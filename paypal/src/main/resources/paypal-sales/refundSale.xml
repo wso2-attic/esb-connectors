@@ -1,0 +1,34 @@
+<template name="refundSale" xmlns="http://ws.apache.org/ns/synapse">
+  <parameter name="authorization" description="Authorization header value"/>
+  <parameter name="sale_id" description="Sales id"/>
+  <parameter name="total" description="Amount to refund"/>
+  <parameter name="currencyCode" description="Refund currency"/>
+  <sequence>
+    <property name="uri.var.sale_id" expression="$func:sale_id"/>
+    <property name="uri.var.total" expression="$func:total"/>
+    <property name="uri.var.currency" expression="$func:currencyCode"/>
+    <payloadFactory media-type="json" >
+        <format>
+         {            
+       		"amount":{
+				"total":"$1",
+				"currency":"$2"
+ 			}
+         }             
+        </format>
+        <args>
+         	<arg expression="get-property('uri.var.total')"/>
+         	<arg expression="get-property('uri.var.currency')"/>                              
+        </args>
+     </payloadFactory>
+     <property name="messageType" value="application/json" scope="axis2" />
+     <property xmlns:ns2="http://org.apache.synapse/xsd" xmlns:ns="http://org.apache.synapse/xsd" 
+	   	xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope" name="Authorization" expression="$func:authorization"
+	   	scope="transport" type="STRING"/>
+    <call>
+      <endpoint>
+        <http method="post" uri-template="{uri.var.paypalUrl}/v1/payments/sale/{uri.var.sale_id}/refund"/>
+      </endpoint>
+    </call>
+  </sequence>
+</template>
