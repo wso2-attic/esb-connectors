@@ -1,0 +1,62 @@
+<template name="getMultipleEntriesByIDs" xmlns="http://ws.apache.org/ns/synapse">
+  
+  <parameter name="moduleName" description="The name of the module from which to retrieve records"/>
+  <parameter name="ids" description="The list of record IDs to retrieve"/>
+  <parameter name="selectFields" description="The list of fields to be returned in the results"/>
+  
+  <sequence>
+  
+    <property name="uri.var.moduleName" expression="$func:moduleName"/>
+    <property name="uri.var.ids" expression="$func:ids"/>
+    <property name="uri.var.selectFields" expression="$func:selectFields"/>
+     
+    <payloadFactory>
+      
+      <format>
+        
+        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+            	xmlns:sug="http://www.sugarcrm.com/sugarcrm"
+            	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            	xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/">
+          
+          <soapenv:Header/>
+         
+          <soapenv:Body>
+          
+		          <sug:get_entries>
+			         <session>$1</session>
+			         <module_name>$2</module_name>
+			         <ids soapenc:arrayType="xsd:string[1]"></ids>
+			         <select_fields soapenc:arrayType="xsd:string[1]"></select_fields>			         
+		      	  </sug:get_entries>
+                    
+          </soapenv:Body>
+        
+        </soapenv:Envelope>
+      
+      </format>
+       
+       <args>
+         <arg expression="get-property('uri.var.session')"/>
+         <arg expression="get-property('uri.var.moduleName')"/>        
+      </args>
+       
+    </payloadFactory>
+    
+    <class name="org.wso2.carbon.connector.sugarcrm.operation.GetEntries" />
+    
+    <enrich>
+		<source clone="true" type="body" />
+		<target property="MSG_PAYLOAD" type="property" />
+   	</enrich>
+    
+        
+    <header name="To" expression="get-property('uri.var.sugarCRMurl')"/>
+	    
+    <call>
+		<endpoint>
+			<default format="soap11"/>
+		</endpoint>
+	</call>
+  </sequence>
+</template>
