@@ -1,0 +1,68 @@
+<template name="getObjectsInBucket" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="bucketUrl" description="End point for the request" />
+	<parameter name="delimiter" description="Character to group keys" />
+	<parameter name="encoding-type" description="Encoding method to use" />
+	<parameter name="marker" description="Key to start with" />
+	<parameter name="max-keys" description="Maximum number of keys returned" />
+	<parameter name="prefix" description="Prefixes to separate a bucket" />
+	<parameter name="query" description="Query for search parameters" />
+
+	<sequence>
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+		<property name="uri.var.delimiter" expression="$func:delimiter" />
+		<property name="uri.var.encoding-type" expression="$func:encoding-type" />
+		<property name="uri.var.marker" expression="$func:marker" />
+		<property name="uri.var.max-keys" expression="$func:max-keys" />
+		<property name="uri.var.prefix" expression="$func:prefix" />
+		<property name="uri.var.query" expression="$func:query" />
+
+		<filter
+			xpath="(not(get-property('uri.var.delimiter') = '' or  (not(string(get-property('uri.var.delimiter'))))))">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'delimiter','=',get-property('uri.var.delimiter'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter
+			xpath="(not(get-property('uri.var.encoding-type') = '' or  (not(string(get-property('uri.var.encoding-type'))))))">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'encoding-type','=',get-property('uri.var.encoding-type'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter
+			xpath="(not(get-property('uri.var.marker') = '' or  (not(string(get-property('uri.var.marker'))))))">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'marker','=',get-property('uri.var.marker'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter
+			xpath="(not(get-property('uri.var.max-keys') = '' or  (not(string(get-property('uri.var.max-keys'))))))">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'max-keys','=',get-property('uri.var.max-keys'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter
+			xpath="(not(get-property('uri.var.prefix') = '' or  (not(string(get-property('uri.var.prefix'))))))">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'prefix','=',get-property('uri.var.prefix'),'&amp;')" />
+			</then>
+		</filter>
+
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.bucketUrl}?{uri.var.query}" />
+			</endpoint>
+		</call>
+
+	</sequence>
+</template>

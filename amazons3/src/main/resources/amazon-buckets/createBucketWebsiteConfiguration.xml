@@ -1,0 +1,65 @@
+<template name="createBucketWebsiteConfiguration" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="bucketUrl" description="End point for the request" />
+	<parameter name="indexDocument" description="Container for the Suffix element" />
+	<parameter name="errorDocument" description="Container for the Key element" />
+	<parameter name="conditionKeyPrefix" description="A container for describing a condition that must be met for the specified redirect to apply" />
+	<parameter name="redirectReplaceKey" description="The specific object key to use in the redirect request" />
+	<parameter name="httpErrorCode" description="The HTTP error code when the redirect is applied" />
+	<parameter name="hostName" description="The host name to use in the redirect request" />
+	<parameter name="redirectReplaceKeyPrefix" description="The object key prefix to use in the redirect request" />
+
+	<sequence>
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+		<property name="uri.var.indexDocument" expression="$func:indexDocument" />
+		<property name="uri.var.errorDocument" expression="$func:errorDocument" />
+		<property name="uri.var.conditionKeyPrefix" expression="$func:conditionKeyPrefix" />
+		<property name="uri.var.redirectReplaceKey" expression="$func:redirectReplaceKey" />
+		<property name="uri.var.httpErrorCode" expression="$func:httpErrorCode" />
+		<property name="uri.var.hostName" expression="$func:hostName" />
+		<property name="uri.var.redirectReplaceKeyPrefix" expression="$func:redirectReplaceKeyPrefix" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<WebsiteConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+					<IndexDocument>
+						<Suffix>$1</Suffix>
+					</IndexDocument>
+					<ErrorDocument>
+						<Key>$2</Key>
+					</ErrorDocument>
+				</WebsiteConfiguration>
+				<RoutingRules>
+					<RoutingRule>
+						<Condition>
+							<KeyPrefixEquals>$3</KeyPrefixEquals>
+							<HttpErrorCodeReturnedEquals>$5</HttpErrorCodeReturnedEquals>
+						</Condition>
+						<Redirect>
+							<ReplaceKeyWith>$4</ReplaceKeyWith>
+							<HostName>$6</HostName>
+							<ReplaceKeyPrefixWith>$7</ReplaceKeyPrefixWith>
+						</Redirect>
+					</RoutingRule>
+				</RoutingRules>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.indexDocument')" />
+				<arg expression="get-property('uri.var.errorDocument')" />
+				<arg expression="get-property('uri.var.conditionKeyPrefix')" />
+				<arg expression="get-property('uri.var.redirectReplaceKey')" />
+				<arg expression="get-property('uri.var.httpErrorCode')" />
+				<arg expression="get-property('uri.var.hostName')" />
+				<arg expression="get-property('uri.var.redirectReplaceKeyPrefix')" />
+			</args>
+		</payloadFactory>
+
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="put" uri-template="{uri.var.bucketUrl}/?website" format="pox" />
+			</endpoint>
+		</call>
+
+	</sequence>
+</template>

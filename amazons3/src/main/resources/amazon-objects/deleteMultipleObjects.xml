@@ -1,0 +1,40 @@
+<template name="deleteMultipleObjects" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="bucketUrl" description="Name of the bucketUrl" />
+	<parameter name="deleteConfig" description="Name of the deleteConfig" />
+
+
+	<sequence>
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+
+
+		<property name="uri.var.deleteConfig" expression="$func:deleteConfig" />
+		<payloadFactory media-type="xml">
+			<format>
+				<Delete>$1</Delete>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.deleteConfig')" />
+
+			</args>
+		</payloadFactory>
+
+
+
+		<filter
+			xpath="(not(get-property('xAmzMfaValue') = '' or (not(string(get-property('xAmzMfaValue'))))))">
+			<then>
+				<property xmlns:ns2="http://org.apache.synapse/xsd"
+					xmlns:ns="http://org.apache.synapse/xsd" xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope"
+					name="x-amz-mfa" expression="get-property('xAmzMfaValue')" scope="transport"
+					type="STRING" />
+			</then>
+		</filter>
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+		<call>
+			<endpoint>
+
+				<http method="post" uri-template="{uri.var.bucketUrl}/?delete" format="pox" />
+			</endpoint>
+		</call>
+	</sequence>
+</template>
