@@ -1,0 +1,52 @@
+<template name="getNetworkUpdates" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="id"
+		description="ID of the connection that updates will be retrieved from" />
+	<parameter name="scope" description="self to return member's feed" />
+	<parameter name="type" description="Any valid Network Update Type" />
+	<parameter name="count"
+		description="Number of updates to return, with a maximum of 250" />
+	<parameter name="start"
+		description="The offset by which to start Network Update pagination" />
+	<parameter name="after"
+		description="timestamp after which to retrieve updates for" />
+	<parameter name="before"
+		description="timestamp before which to retrieve updates for" />
+	<parameter name="showHiddenMembers"
+		description=" Whether to display updates from people the member has chosen to hide from their update stream" />
+	<sequence>
+		<property name="uri.var.scope" expression="$func:scope" />
+		<property name="uri.var.id" expression="$func:id" />
+		<property name="uri.var.type" expression="$func:type" />
+		<property name="uri.var.count" expression="$func:count" />
+		<property name="uri.var.start" expression="$func:start" />
+		<property name="uri.var.after" expression="$func:after" />
+		<property name="uri.var.before" expression="$func:before" />
+		<property name="uri.var.showHiddenMembers" expression="$func:showHiddenMembers" />
+
+
+		<filter xpath="not(get-property('uri.var.id') = '')">
+			<then>
+				<call>
+					<endpoint>
+						<http method="get"
+							uri-template="{uri.var.linkedinUrl}/people/id={uri.var.id}/network/updates?oauth2_access_token={uri.var.accessToken}&amp;format=json" />
+					</endpoint>
+				</call>
+			</then>
+			<else>
+				<filter xpath="not(get-property('uri.var.type') = '')">
+					<then>
+						<property name="uri.var.query"
+							expression="fn:concat(get-property('uri.var.query'),'&amp;','type','=',get-property('uri.var.type'))" />
+					</then>
+				</filter>
+				<call>
+					<endpoint>
+						<http method="get"
+							uri-template="{uri.var.linkedinUrl}/people/~/network/updates?oauth2_access_token={uri.var.accessToken}&amp;format=json" />
+					</endpoint>
+				</call>
+			</else>
+		</filter>
+	</sequence>
+</template>
