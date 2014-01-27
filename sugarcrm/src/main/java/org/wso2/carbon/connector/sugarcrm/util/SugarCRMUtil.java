@@ -59,7 +59,7 @@ public class SugarCRMUtil {
      * @param strObject String
      * @return OMElement
      */
-    public final OMElement getItemElement(final OMFactory omFactory, final MessageContext messageContext,
+    public static final OMElement getItemElement(final OMFactory omFactory, final MessageContext messageContext,
             final OMElement childElement, final String strObject) {
     
         String[] strArray = strObject.split(ENTER_KEY_STRING);

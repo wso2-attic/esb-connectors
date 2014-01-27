@@ -66,7 +66,7 @@ public class SearchByModule extends AbstractConnector implements Connector {
                 OMFactory omFactory = OMAbstractFactory.getOMFactory();
                 OMElement item = omElementIterator.next();
                 String moduleListString = (String) ConnectorUtils.lookupTemplateParamater(messageContext, MODULES_TAG);
-                (new SugarCRMUtil()).getItemElement(omFactory, messageContext, item, moduleListString);
+                SugarCRMUtil.getItemElement(omFactory, messageContext, item, moduleListString);
             }
             
         } catch (Exception e) {

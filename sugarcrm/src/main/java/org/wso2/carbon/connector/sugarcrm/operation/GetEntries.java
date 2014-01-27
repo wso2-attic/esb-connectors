@@ -79,7 +79,7 @@ public class GetEntries extends AbstractConnector implements Connector {
             if (childElementsId.hasNext()) {
                 OMElement childElementId = childElementsId.next();
                 String idListString = (String) ConnectorUtils.lookupTemplateParamater(messageContext, IDS_TAG);
-                (new SugarCRMUtil()).getItemElement(omFactory, messageContext, childElementId, idListString);
+                SugarCRMUtil.getItemElement(omFactory, messageContext, childElementId, idListString);
             }
             
             Iterator<OMElement> childElementsField = omElementList.getChildrenWithLocalName(SELECT_FIELDS_TAG);
@@ -87,7 +87,7 @@ public class GetEntries extends AbstractConnector implements Connector {
             if (childElementsField.hasNext()) {
                 OMElement childElementField = childElementsField.next();
                 String strobject = (String) ConnectorUtils.lookupTemplateParamater(messageContext, SELECTFIELDS_TAG);
-                (new SugarCRMUtil()).getItemElement(omFactory, messageContext, childElementField, strobject);
+                SugarCRMUtil.getItemElement(omFactory, messageContext, childElementField, strobject);
             }
             
         } catch (Exception e) {

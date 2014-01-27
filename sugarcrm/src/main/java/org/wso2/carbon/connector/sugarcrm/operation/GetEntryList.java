@@ -74,7 +74,7 @@ public class GetEntryList extends AbstractConnector implements Connector {
                 OMElement currentElement = omElementIterator.next();
                 String selectFiledListString =
                         (String) ConnectorUtils.lookupTemplateParamater(messageContext, SELECTFIELDS_TAG);
-                (new SugarCRMUtil()).getItemElement(omFactory, messageContext, currentElement, selectFiledListString);
+                SugarCRMUtil.getItemElement(omFactory, messageContext, currentElement, selectFiledListString);
             }
             
         } catch (Exception e) {
