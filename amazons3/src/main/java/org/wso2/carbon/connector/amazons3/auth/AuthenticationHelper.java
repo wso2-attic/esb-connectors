@@ -274,23 +274,28 @@ public class AuthenticationHelper extends AbstractConnector implements Connector
             builder.append(AmazonS3Utils.FORWARD_SLASH).append(bucketName);
             builder.append(uriRemainder);
             
-            System.out.println("------------------------------------------------");
-            System.out.println("AmazonS3 Connector Log");
-            System.out.println("------------------------------------------------");
+            log.debug("------------------------------------------------");
+            log.debug("AmazonS3 Connector Log");
+            log.debug("------------------------------------------------");
             // Log message.
-            System.out.println("String to sign : \n" + builder.toString());
+            log.debug("String to sign : \n" + builder.toString());
             
             // Sign the created string.
             AmazonS3Authentication amazonS3Authentication = new AmazonS3Authentication(accessKeyId, secretAccessKey);
-            amazonS3Authentication.setKey();
-            String authenticationHeaderValue = amazonS3Authentication.getAuthorizationHeaderValue(builder.toString());
             
-            System.out.println("------------------------------------------------");
-            // Log message.
-            System.out.println("authenticationHeaderValue : " + authenticationHeaderValue);
-            
-            if (authenticationHeaderValue != null) {
-                messageContext.setProperty(AmazonS3Utils.AUTH_CODE, authenticationHeaderValue);
+            if (! secretAccessKey.equals(AmazonS3Utils.EMPTY_STR)) {
+                
+                amazonS3Authentication.setKey();
+                String authenticationHeaderValue = amazonS3Authentication.getAuthorizationHeaderValue(builder.toString());
+                
+                log.debug("------------------------------------------------");
+                // Log message.
+                log.debug("authenticationHeaderValue : " + authenticationHeaderValue);
+                
+                if (authenticationHeaderValue != null) {
+                    messageContext.setProperty(AmazonS3Utils.AUTH_CODE, authenticationHeaderValue);
+                }
+                
             }
             
             // Set headers.
