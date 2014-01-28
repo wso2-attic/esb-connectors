@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.connector.googledrive;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import org.apache.axiom.om.OMElement;
@@ -33,21 +34,13 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.Drive.Files;
 import com.google.api.services.drive.model.Channel;
+
 /**
  * Class mediator which maps to <strong>/files</strong> endpoint's <strong>watch</strong> method.
  * 
  * @see https://developers.google.com/drive/v2/reference/files/watch
  */
 public class GoogledriveWatchFile extends AbstractConnector implements Connector {
-    
-    /** Represent the watchResult . */
-    private Channel watchResult = null;
-    
-    /** Represent the errorCode . */
-    private static String errorCode;
-    
-    /** Represent the watchFileResult . */
-    private OMElement watchFileResult;
     
     /** Represent the emptyString . */
     private static final String EMPTY_STRING = "";
@@ -75,6 +68,12 @@ public class GoogledriveWatchFile extends AbstractConnector implements Connector
         
         HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
         
+        /** Represent the watchResult . */
+        Channel watchResult = null;
+        
+        /** Represent the watchFileResult . */
+        OMElement watchFileResult;
+        
         try {
             HttpTransport httpTransport = new NetHttpTransport();
             JsonFactory jsonFactory = new JacksonFactory();
@@ -89,61 +88,50 @@ public class GoogledriveWatchFile extends AbstractConnector implements Connector
                                 GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_WATCHFILE,
                                 GoogleDriveUtils.StringConstants.WATCH_FILE_RESULT, true, hashMapForResultEnvelope);
                 hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.FILE, watchResult.toPrettyString());
-                
-            } else {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                watchFileResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_WATCHFILE,
-                                GoogleDriveUtils.StringConstants.WATCH_FILE_RESULT, false, hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(watchFileResult);
                 
             }
-            messageContext.getEnvelope().getBody().addChild(watchFileResult);
+            
         } catch (Exception e) {
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            watchFileResult =
+                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_WATCHFILE,
+                            GoogleDriveUtils.StringConstants.WATCH_FILE_RESULT, false, hashMapForResultEnvelope);
+            messageContext.getEnvelope().getBody().addChild(watchFileResult);
             log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
         }
     }
     
-    private Channel watchFile(Drive service, String fileId, HashMap<String, String> parameters) {
+    private Channel watchFile(Drive service, String fileId, HashMap<String, String> parameters) throws IOException {
     
         Channel channel = new Channel();
         
-        try {
+        Files.Watch watchRequest = service.files().watch(fileId, channel);
+        
+        String temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.CHANNEL_ID);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
             
-            Files.Watch watchRequest = service.files().watch(fileId, channel);
-            
-            String temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.CHANNEL_ID);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                channel.setId((String) temporaryResult);
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.CHANNEL_ADDRESS);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                channel.setAddress((String) temporaryResult);
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.CHANNEL_TYPE);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                channel.setType((String) temporaryResult);
-            }
-            
-            return watchRequest.execute();
-            
-        } catch (Exception e) {
-            errorCode = e.getMessage();
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            return null;
-            
+            channel.setId((String) temporaryResult);
         }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.CHANNEL_ADDRESS);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            
+            channel.setAddress((String) temporaryResult);
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.CHANNEL_TYPE);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            
+            channel.setType((String) temporaryResult);
+        }
+        
+        return watchRequest.execute();
         
     }
     

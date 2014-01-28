@@ -42,9 +42,6 @@ import com.google.api.services.drive.model.ChangeList;
  */
 public class GoogledriveListChangesForUser extends AbstractConnector implements Connector {
     
-    /** Represent the errorCode of the IOException . */
-    private static String errorCode;
-    
     /** Represent the EMPTY_STRING of optional parameter request . */
     private static final String EMPTY_STRING = "";
     
@@ -90,21 +87,18 @@ public class GoogledriveListChangesForUser extends AbstractConnector implements 
                                 GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTCHANGESFORUSER,
                                 GoogleDriveUtils.StringConstants.LIST_CHANGES_FOR_USER_RESULT, true,
                                 hashMapForResultEnvelope);
-            } else {
-                
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                changeListResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTCHANGESFORUSER,
-                                GoogleDriveUtils.StringConstants.LIST_CHANGES_FOR_USER_RESULT, false,
-                                hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(changeListResult);
             }
-            messageContext.getEnvelope().getBody().addChild(changeListResult);
             
         } catch (Exception e) {
-            
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            changeListResult =
+                    GoogleDriveUtils.buildResultEnvelope(
+                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTCHANGESFORUSER,
+                            GoogleDriveUtils.StringConstants.LIST_CHANGES_FOR_USER_RESULT, false,
+                            hashMapForResultEnvelope);
+            messageContext.getEnvelope().getBody().addChild(changeListResult);
             log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
         }
     }
     
@@ -115,59 +109,49 @@ public class GoogledriveListChangesForUser extends AbstractConnector implements 
      * @param params HashMap containing parameters for the request
      * @return <strong>List</strong> of changes
      */
-    private ChangeList getChangeList(Drive service, HashMap<String, String> params) {
+    private ChangeList getChangeList(Drive service, HashMap<String, String> params) throws IOException {
     
-        try {
+        Changes.List request = service.changes().list();
+        String temporaryResult = params.get(GoogleDriveUtils.StringConstants.INCLUDE_DELETED);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
             
-            Changes.List request = service.changes().list();
-            String temporaryResult = params.get(GoogleDriveUtils.StringConstants.INCLUDE_DELETED);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                request.setIncludeDeleted(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = params.get(GoogleDriveUtils.StringConstants.INCLUDE_SUBSCRIBED);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                request.setIncludeSubscribed(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = params.get(GoogleDriveUtils.StringConstants.MAX_RESULTS);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                request.setMaxResults(Integer.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = params.get(GoogleDriveUtils.StringConstants.PAGE_TOKEN);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                request.setPageToken(temporaryResult);
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = params.get(GoogleDriveUtils.StringConstants.START_CHANGE_ID);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                request.setStartChangeId(Long.valueOf(temporaryResult));
-            }
-            
-            return request.execute();
-            
-        } catch (IOException e) {
-            
-            errorCode = e.getMessage();
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
+            request.setIncludeDeleted(Boolean.valueOf(temporaryResult));
         }
         
-        return null;
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = params.get(GoogleDriveUtils.StringConstants.INCLUDE_SUBSCRIBED);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            
+            request.setIncludeSubscribed(Boolean.valueOf(temporaryResult));
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = params.get(GoogleDriveUtils.StringConstants.MAX_RESULTS);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            
+            request.setMaxResults(Integer.valueOf(temporaryResult));
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = params.get(GoogleDriveUtils.StringConstants.PAGE_TOKEN);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            
+            request.setPageToken(temporaryResult);
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = params.get(GoogleDriveUtils.StringConstants.START_CHANGE_ID);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            
+            request.setStartChangeId(Long.valueOf(temporaryResult));
+        }
+        
+        return request.execute();
+        
     }
 }
-

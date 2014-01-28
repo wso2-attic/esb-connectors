@@ -40,9 +40,6 @@ import com.google.api.services.drive.Drive;
  */
 public class GoogledriveDeleteComment extends AbstractConnector implements Connector {
     
-    /** Error Code. */
-    private String errorCode;
-    
     /**
      * Connect method for class mediator.
      * 
@@ -54,34 +51,31 @@ public class GoogledriveDeleteComment extends AbstractConnector implements Conne
     
         String fileId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_ID);
         String commentId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.COMMENT_ID);
-        
+        OMElement deleteCommentResult;
         try {
-            OMElement deleteCommentResult;
+            
             HttpTransport httpTransport = new NetHttpTransport();
             JsonFactory jsonFactory = new JacksonFactory();
             
             Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
-            boolean commentDeleted = deleteComment(service, fileId, commentId);
             
-            if (commentDeleted) {
-                deleteCommentResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETECOMMENT,
-                                GoogleDriveUtils.StringConstants.DELETE_COMMENT_RESULT, true, null);
-            } else {
-                HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
-                hashMapForResultEnvelope.put("error", errorCode);
-                deleteCommentResult =
-                        GoogleDriveUtils
-                                .buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETECOMMENT,
-                                        GoogleDriveUtils.StringConstants.DELETE_COMMENT_RESULT, false,
-                                        hashMapForResultEnvelope);
-            }
+            deleteComment(service, fileId, commentId);
+            
+            deleteCommentResult =
+                    GoogleDriveUtils.buildResultEnvelope(
+                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETECOMMENT,
+                            GoogleDriveUtils.StringConstants.DELETE_COMMENT_RESULT, true, null);
             messageContext.getEnvelope().getBody().addChild(deleteCommentResult);
             
         } catch (Exception e) {
+            HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
+            hashMapForResultEnvelope.put("error", e.getMessage());
+            deleteCommentResult =
+                    GoogleDriveUtils.buildResultEnvelope(
+                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETECOMMENT,
+                            GoogleDriveUtils.StringConstants.DELETE_COMMENT_RESULT, false, hashMapForResultEnvelope);
+            messageContext.getEnvelope().getBody().addChild(deleteCommentResult);
             log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
         }
     }
     
@@ -92,15 +86,9 @@ public class GoogledriveDeleteComment extends AbstractConnector implements Conne
      * @param fileId ID of the file to remove the comment for.
      * @param commentId ID of the comment to remove.
      */
-    private boolean deleteComment(Drive service, String fileId, String commentId) {
+    private void deleteComment(Drive service, String fileId, String commentId) throws IOException {
     
-        try {
-            service.comments().delete(fileId, commentId).execute();
-            return true;
-        } catch (IOException e) {
-            errorCode = e.getMessage();
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-        }
-        return false;
+        service.comments().delete(fileId, commentId).execute();
+        
     }
 }

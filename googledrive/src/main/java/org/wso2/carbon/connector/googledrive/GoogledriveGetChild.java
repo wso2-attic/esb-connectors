@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.connector.googledrive;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import org.apache.axiom.om.OMElement;
@@ -40,9 +41,6 @@ import com.google.api.services.drive.model.ChildReference;
  */
 public class GoogledriveGetChild extends AbstractConnector implements Connector {
     
-    /** Error Code. */
-    private String errorCode;
-    
     /**
      * Connect method for class mediator.
      * 
@@ -54,12 +52,14 @@ public class GoogledriveGetChild extends AbstractConnector implements Connector 
     
         String folderId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FOLDER_ID);
         String childId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.CHILD_ID);
+        
+        HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
+        OMElement getChildResult;
         try {
             HttpTransport httpTransport = new NetHttpTransport();
             JsonFactory jsonFactory = new JacksonFactory();
-            OMElement getChildResult;
+            
             ChildReference returnedChild;
-            HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
             
             Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
             returnedChild = getChild(service, folderId, childId);
@@ -69,16 +69,16 @@ public class GoogledriveGetChild extends AbstractConnector implements Connector 
                 getChildResult =
                         GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETCHILD,
                                 GoogleDriveUtils.StringConstants.GET_CHILD_RESULT, true, hashMapForResultEnvelope);
-            } else {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                getChildResult =
-                        GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETCHILD,
-                                GoogleDriveUtils.StringConstants.GET_CHILD_RESULT, false, hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(getChildResult);
             }
-            messageContext.getEnvelope().getBody().addChild(getChildResult);
+            
         } catch (Exception e) {
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            getChildResult =
+                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETCHILD,
+                            GoogleDriveUtils.StringConstants.GET_CHILD_RESULT, false, hashMapForResultEnvelope);
+            messageContext.getEnvelope().getBody().addChild(getChildResult);
             log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
         }
     }
     
@@ -90,14 +90,9 @@ public class GoogledriveGetChild extends AbstractConnector implements Connector 
      * @param childId ID of the file.
      * @return A reference to the Child instance.
      */
-    private ChildReference getChild(Drive service, String folderId, String childId) {
+    private ChildReference getChild(Drive service, String folderId, String childId) throws IOException {
     
-        try {
-            return service.children().get(folderId, childId).execute();
-        } catch (Exception e) {
-            errorCode = e.getMessage();
-            log.error(GoogleDriveUtils.getStackTraceAsString(e));
-            return null;
-        }
+        return service.children().get(folderId, childId).execute();
+        
     }
 }

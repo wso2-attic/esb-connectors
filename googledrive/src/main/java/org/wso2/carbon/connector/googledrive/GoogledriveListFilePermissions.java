@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.connector.googledrive;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import org.apache.axiom.om.OMElement;
@@ -39,9 +40,6 @@ import com.google.api.services.drive.model.PermissionList;
  * @see https://developers.google.com/drive/v2/reference/permissions/list
  */
 public class GoogledriveListFilePermissions extends AbstractConnector implements Connector {
-    
-    /** Represent the errorCode of the IOException . */
-    private String errorCode;
     
     /**
      * Modify request body before sending to the end point.
@@ -66,28 +64,28 @@ public class GoogledriveListFilePermissions extends AbstractConnector implements
             
             permissionList = retrievePermissions(service, fileId);
             
-            OMElement temporaryResultGetPermissionList =
-                    GoogleDriveUtils.buildResultEnvelope(
-                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETPERMISSIONLIST,
-                            GoogleDriveUtils.StringConstants.GET_PERMISSIONS_RESULT, false, hashMapForResultEnvelope);
-            
             if (permissionList != null) {
                 
                 hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.PERMISSION,
                         permissionList.toPrettyString());
-                permissionListResult = temporaryResultGetPermissionList;
+                permissionListResult =
+                        GoogleDriveUtils
+                                .buildResultEnvelope(
+                                        GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETPERMISSIONLIST,
+                                        GoogleDriveUtils.StringConstants.GET_PERMISSIONS_RESULT, true,
+                                        hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(permissionListResult);
                 
-            } else {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                permissionListResult = temporaryResultGetPermissionList;
             }
-            
-            messageContext.getEnvelope().getBody().addChild(permissionListResult);
-            
         } catch (Exception e) {
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
             
+            permissionListResult =
+                    GoogleDriveUtils.buildResultEnvelope(
+                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETPERMISSIONLIST,
+                            GoogleDriveUtils.StringConstants.GET_PERMISSIONS_RESULT, false, hashMapForResultEnvelope);
+            messageContext.getEnvelope().getBody().addChild(permissionListResult);
             log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
         }
     }
     
@@ -98,18 +96,9 @@ public class GoogledriveListFilePermissions extends AbstractConnector implements
      * @param fileId ID of the file to retrieve permissions for.
      * @return List of permissions.
      */
-    private PermissionList retrievePermissions(Drive service, String fileId) {
+    private PermissionList retrievePermissions(Drive service, String fileId) throws IOException {
     
-        try {
-            
-            return service.permissions().list(fileId).execute();
-            
-        } catch (Exception e) {
-            
-            errorCode = e.getMessage();
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            return null;
-        }
+        return service.permissions().list(fileId).execute();
         
     }
     

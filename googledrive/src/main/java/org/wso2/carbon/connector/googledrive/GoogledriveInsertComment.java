@@ -49,9 +49,6 @@ public class GoogledriveInsertComment extends AbstractConnector implements Conne
     /** Represent the EMPTY_STRING of optional parameter request . */
     private static final String EMPTY_STRING = "";
     
-    /** Represent the errorCode of the IOException . */
-    private String errorCode;
-    
     /**
      * connect.
      * 
@@ -83,16 +80,18 @@ public class GoogledriveInsertComment extends AbstractConnector implements Conne
                         GoogleDriveUtils.buildResultEnvelope(
                                 GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTCOMMENT,
                                 GoogleDriveUtils.StringConstants.INSERT_COMMENT_RESULT, true, hashMapForResultEnvelope);
-            } else {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                insertCommentResult =
-                        GoogleDriveUtils
-                                .buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTCOMMENT,
-                                        GoogleDriveUtils.StringConstants.INSERT_COMMENT_RESULT, false,
-                                        hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(insertCommentResult);
             }
-            messageContext.getEnvelope().getBody().addChild(insertCommentResult);
+            
         } catch (Exception e) {
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            insertCommentResult =
+                    GoogleDriveUtils.buildResultEnvelope(
+                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTCOMMENT,
+                            GoogleDriveUtils.StringConstants.INSERT_COMMENT_RESULT, false, hashMapForResultEnvelope);
+            
+            messageContext.getEnvelope().getBody().addChild(insertCommentResult);
+            
             log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
             throw new ConnectException(e);
         }
@@ -106,28 +105,25 @@ public class GoogledriveInsertComment extends AbstractConnector implements Conne
      * @param content Text content of the comment.
      * @return The inserted comment if successful, {@code null} otherwise.
      */
-    private Comment insertComment(Drive service, String fileId, String content, HashMap<String, String> params) {
+    private Comment insertComment(Drive service, String fileId, String content, HashMap<String, String> params)
+            throws IOException {
     
         Comment newComment = new Comment();
         newComment.setContent(content);
-        try {
-            Comments.Insert request = service.comments().insert(fileId, newComment);
+        
+        Comments.Insert request = service.comments().insert(fileId, newComment);
+        
+        String temporaryResult = params.get(GoogleDriveUtils.StringConstants.REQUEST_BODY);
+        if (!EMPTY_STRING.equals(temporaryResult)) {
             
-            String temporaryResult = params.get(GoogleDriveUtils.StringConstants.REQUEST_BODY);
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                String json = temporaryResult;
-                Gson gson = new Gson();
-                Type hashmapCollectionType = new TypeToken<HashMap<String, String>>() {}.getType();
-                Map<String, Object> requestMap = gson.fromJson(json, hashmapCollectionType);
-                request.setUnknownKeys(requestMap);
-                
-            }
-            return request.execute();
-        } catch (IOException e) {
-            errorCode = e.getMessage();
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
+            String json = temporaryResult;
+            Gson gson = new Gson();
+            Type hashmapCollectionType = new TypeToken<HashMap<String, String>>() {}.getType();
+            Map<String, Object> requestMap = gson.fromJson(json, hashmapCollectionType);
+            request.setUnknownKeys(requestMap);
+            
         }
-        return null;
+        return request.execute();
+        
     }
 }

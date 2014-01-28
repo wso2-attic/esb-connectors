@@ -42,9 +42,6 @@ import com.google.api.services.drive.model.File;
  */
 public class GoogledrivePatchFile extends AbstractConnector implements Connector {
     
-    /** Represent the errorCode of the IOException . */
-    private static String errorCode;
-    
     /** Represent the EMPTY_STRING of optional parameter request . */
     private static final String EMPTY_STRING = "";
     
@@ -58,6 +55,8 @@ public class GoogledrivePatchFile extends AbstractConnector implements Connector
     
         File patchedFile;
         OMElement patchFileResult;
+        
+        HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
         
         String fileId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_ID);
         
@@ -83,8 +82,6 @@ public class GoogledrivePatchFile extends AbstractConnector implements Connector
         parameters.put(GoogleDriveUtils.StringConstants.USE_CONTENT_AS_INDEXABLE_TEXT,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.USE_CONTENT_AS_INDEXABLE_TEXT));
         
-        HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
-        
         try {
             HttpTransport httpTransport = new NetHttpTransport();
             JsonFactory jsonFactory = new JacksonFactory();
@@ -99,18 +96,20 @@ public class GoogledrivePatchFile extends AbstractConnector implements Connector
                                 GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_PATCHFILE,
                                 GoogleDriveUtils.StringConstants.PATCH_FILE_RESULT, true, hashMapForResultEnvelope);
                 
-            } else {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                patchFileResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_PATCHFILE,
-                                GoogleDriveUtils.StringConstants.PATCH_FILE_RESULT, false, hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(patchFileResult);
+                
             }
-            messageContext.getEnvelope().getBody().addChild(patchFileResult);
             
         } catch (Exception e) {
+            
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            patchFileResult =
+                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_PATCHFILE,
+                            GoogleDriveUtils.StringConstants.PATCH_FILE_RESULT, false, hashMapForResultEnvelope);
+            
+            messageContext.getEnvelope().getBody().addChild(patchFileResult);
+            
             log.error(GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
         }
     }
     
@@ -123,79 +122,72 @@ public class GoogledrivePatchFile extends AbstractConnector implements Connector
      * @return File type resource
      * @throws Exception
      */
-    private File patchFile(Drive service, String fileId, HashMap<String, String> parameters) {
+    private File patchFile(Drive service, String fileId, HashMap<String, String> parameters) throws IOException {
     
         File file = new File();
-        try {
-            Files.Patch patchRequest = service.files().patch(fileId, file);
-            
-            String temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.CONVERT);
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setConvert(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.OCR);
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setOcr(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.NEW_REVISION);
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setNewRevision(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.OCR_LANGUAGE);
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setOcrLanguage(temporaryResult);
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.PINNED);
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setPinned(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.SET_MODIFIED_DATE);
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setSetModifiedDate(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.TIMED_TEXT_LANGUAGE);
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setTimedTextLanguage(temporaryResult);
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.TIMED_TEXT_TRACKNAME);
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setTimedTextTrackName(temporaryResult);
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.UPDATE_VIEWED_DATE);
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setUpdateViewedDate(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.USE_CONTENT_AS_INDEXABLE_TEXT);
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setUseContentAsIndexableText(Boolean.valueOf(temporaryResult));
-            }
-            
-            // File updatedFile = patchRequest.execute();
-            return patchRequest.execute();
-            
-        } catch (IOException ioe) {
-            errorCode = ioe.getMessage();
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(ioe));
-            return null;
+        
+        Files.Patch patchRequest = service.files().patch(fileId, file);
+        
+        String temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.CONVERT);
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            patchRequest.setConvert(Boolean.valueOf(temporaryResult));
         }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.OCR);
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            patchRequest.setOcr(Boolean.valueOf(temporaryResult));
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.NEW_REVISION);
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            patchRequest.setNewRevision(Boolean.valueOf(temporaryResult));
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.OCR_LANGUAGE);
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            patchRequest.setOcrLanguage(temporaryResult);
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.PINNED);
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            patchRequest.setPinned(Boolean.valueOf(temporaryResult));
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.SET_MODIFIED_DATE);
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            patchRequest.setSetModifiedDate(Boolean.valueOf(temporaryResult));
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.TIMED_TEXT_LANGUAGE);
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            patchRequest.setTimedTextLanguage(temporaryResult);
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.TIMED_TEXT_TRACKNAME);
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            patchRequest.setTimedTextTrackName(temporaryResult);
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.UPDATE_VIEWED_DATE);
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            patchRequest.setUpdateViewedDate(Boolean.valueOf(temporaryResult));
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.USE_CONTENT_AS_INDEXABLE_TEXT);
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            patchRequest.setUseContentAsIndexableText(Boolean.valueOf(temporaryResult));
+        }
+        
+        return patchRequest.execute();
         
     }
 }

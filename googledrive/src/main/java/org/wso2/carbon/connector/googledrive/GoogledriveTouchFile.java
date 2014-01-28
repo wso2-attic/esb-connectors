@@ -41,9 +41,6 @@ import com.google.api.services.drive.model.File;
  */
 public class GoogledriveTouchFile extends AbstractConnector implements Connector {
     
-    /** Represent the errorCode of the IOException . */
-    private String errorCode;
-    
     /**
      * connect.
      * 
@@ -70,18 +67,17 @@ public class GoogledriveTouchFile extends AbstractConnector implements Connector
                         GoogleDriveUtils.buildResultEnvelope(
                                 GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_TOUCHFILE,
                                 GoogleDriveUtils.StringConstants.TOUCH_FILE_RESULT, true, hashMapForResultEnvelope);
-            } else {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                touchFileResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_TOUCHFILE,
-                                GoogleDriveUtils.StringConstants.TOUCH_FILE_RESULT, false, hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(touchFileResult);
             }
-            messageContext.getEnvelope().getBody().addChild(touchFileResult);
             
         } catch (Exception e) {
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            touchFileResult =
+                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_TOUCHFILE,
+                            GoogleDriveUtils.StringConstants.TOUCH_FILE_RESULT, false, hashMapForResultEnvelope);
+            messageContext.getEnvelope().getBody().addChild(touchFileResult);
             log.error(GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
+            
         }
     }
     
@@ -92,14 +88,9 @@ public class GoogledriveTouchFile extends AbstractConnector implements Connector
      * @param fileId ID of the file to update the modified date for.
      * @return The updated file if successful, {@code null} otherwise.
      */
-    private File updateModifiedDate(Drive service, String fileId) {
+    private File updateModifiedDate(Drive service, String fileId) throws IOException {
     
-        try {
-            return service.files().touch(fileId).execute();
-        } catch (IOException e) {
-            errorCode = e.getMessage();
-            log.error("Error: " + errorCode);
-            return null;
-        }
+        return service.files().touch(fileId).execute();
+        
     }
 }

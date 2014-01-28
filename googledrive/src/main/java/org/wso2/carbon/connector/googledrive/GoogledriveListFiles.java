@@ -18,9 +18,8 @@
 
 package org.wso2.carbon.connector.googledrive;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 
 import org.apache.axiom.om.OMElement;
 import org.apache.synapse.MessageContext;
@@ -34,7 +33,6 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.Drive.Files;
-import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 
 /**
@@ -43,12 +41,6 @@ import com.google.api.services.drive.model.FileList;
  * @see https://developers.google.com/drive/v2/reference/files/list
  */
 public class GoogledriveListFiles extends AbstractConnector implements Connector {
-    
-    /** Represent the errorCode of the IOException . */
-    private static String errorCode;
-    
-    /** Represent the listFileResult of google drive utils . */
-    private OMElement listFileResult;
     
     /** Represent the EMPTY_STRING of optional parameter request . */
     private static final String EMPTY_STRING = "";
@@ -70,43 +62,32 @@ public class GoogledriveListFiles extends AbstractConnector implements Connector
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.Q));
         
         HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
-        
+        /** Represent the listFileResult of google drive utils . */
+        OMElement listFileResult;
         try {
             HttpTransport httpTransport = new NetHttpTransport();
             JsonFactory jsonFactory = new JacksonFactory();
             
             Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
-            List<File> files = retrieveListOfFiles(service, optParam);
+            FileList files = retrieveListOfFiles(service, optParam);
             
             if (files != null) {
                 
-                for (int i = 0; i < files.size(); i++) {
-                    
-                    if (files.get(i) != null) {
-                        
-                        hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.FILE + i, files.get(i)
-                                .toPrettyString());
-                        listFileResult =
-                                GoogleDriveUtils.buildResultEnvelope(
-                                        GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTFILE,
-                                        GoogleDriveUtils.StringConstants.LIST_FILE_RESULT, true,
-                                        hashMapForResultEnvelope);
-                    }
-                }
-            } else {
-                
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
+                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.FILE_LIST, files.toPrettyString());
                 listFileResult =
                         GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTFILE,
-                                GoogleDriveUtils.StringConstants.LIST_FILE_RESULT, false, hashMapForResultEnvelope);
+                                GoogleDriveUtils.StringConstants.LIST_FILE_RESULT, true, hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(listFileResult);
+                
             }
             
-            messageContext.getEnvelope().getBody().addChild(listFileResult);
-            
         } catch (Exception e) {
-            
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            listFileResult =
+                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTFILE,
+                            GoogleDriveUtils.StringConstants.LIST_FILE_RESULT, false, hashMapForResultEnvelope);
+            messageContext.getEnvelope().getBody().addChild(listFileResult);
             log.error(GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
         }
     }
     
@@ -117,56 +98,42 @@ public class GoogledriveListFiles extends AbstractConnector implements Connector
      * @param optParam
      * @return List of File resources.
      */
-    private List<File> retrieveListOfFiles(Drive service, HashMap<String, String> optParam) {
+    private FileList retrieveListOfFiles(Drive service, HashMap<String, String> optParam) throws IOException {
     
-        List<File> result = new ArrayList<File>();
+        Files.List request = service.files().list();
         
-        try {
+        String temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.MAX_RESULTS);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
             
-            Files.List request = service.files().list();
-            
-            String temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.MAX_RESULTS);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                request.setMaxResults(Integer.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.MAX_RESULTS);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                request.setMaxResults(Integer.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.PAGE_TOKEN);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                request.setPageToken(temporaryResult);
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.Q);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                request.setQ(temporaryResult);
-            }
-            
-            FileList files = request.execute();
-            result.addAll(files.getItems());
-            
-        } catch (Exception e) {
-            
-            errorCode = e.getMessage();
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            return null;
+            request.setMaxResults(Integer.valueOf(temporaryResult));
         }
         
-        return result;
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.MAX_RESULTS);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            
+            request.setMaxResults(Integer.valueOf(temporaryResult));
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.PAGE_TOKEN);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            
+            request.setPageToken(temporaryResult);
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.Q);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            
+            request.setQ(temporaryResult);
+        }
+        
+        return request.execute();
     }
     
 }

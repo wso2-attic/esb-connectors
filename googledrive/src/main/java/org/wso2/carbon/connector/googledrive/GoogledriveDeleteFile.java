@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.connector.googledrive;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import org.apache.axiom.om.OMElement;
@@ -39,9 +40,6 @@ import com.google.api.services.drive.Drive;
  */
 public class GoogledriveDeleteFile extends AbstractConnector implements Connector {
     
-    /** Represent the errorCode of the IOException . */
-    private String errorCode;
-    
     /**
      * connect.
      * 
@@ -58,30 +56,25 @@ public class GoogledriveDeleteFile extends AbstractConnector implements Connecto
             JsonFactory jsonFactory = new JacksonFactory();
             
             Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
-            boolean isDeleted = deleteFile(service, fileId);
+            deleteFile(service, fileId);
             
-            if (isDeleted) {
-                deleteFileResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETEFILE,
-                                GoogleDriveUtils.StringConstants.DELETE_FILE_RESULT, isDeleted, null);
-            } else {
-                HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                deleteFileResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETEFILE,
-                                GoogleDriveUtils.StringConstants.DELETE_FILE_RESULT, isDeleted,
-                                hashMapForResultEnvelope);
-            }
+            deleteFileResult =
+                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETEFILE,
+                            GoogleDriveUtils.StringConstants.DELETE_FILE_RESULT, true, null);
             
             messageContext.getEnvelope().getBody().addChild(deleteFileResult);
             // All exceptions are being caught to pass to the ESB, so that the
             // ESB is notified of any
             // exception
         } catch (Exception e) {
+            HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            deleteFileResult =
+                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETEFILE,
+                            GoogleDriveUtils.StringConstants.DELETE_FILE_RESULT, false, hashMapForResultEnvelope);
+            messageContext.getEnvelope().getBody().addChild(deleteFileResult);
             log.error(GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
+            
         }
     }
     
@@ -91,15 +84,9 @@ public class GoogledriveDeleteFile extends AbstractConnector implements Connecto
      * @param service Drive API service instance.
      * @param fileId ID of the file to delete.
      */
-    private boolean deleteFile(Drive service, String fileId) {
+    private void deleteFile(Drive service, String fileId) throws IOException {
     
-        try {
-            service.files().delete(fileId).execute();
-            return true;
-        } catch (Exception e) {
-            errorCode = e.getMessage();
-            log.error("Error: " + errorCode);
-            return false;
-        }
+        service.files().delete(fileId).execute();
+        
     }
 }

@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.connector.googledrive;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import org.apache.axiom.om.OMElement;
@@ -40,9 +41,6 @@ import com.google.api.services.drive.model.Permission;
  * @see https://developers.google.com/drive/v2/reference/permissions/insert
  */
 public class GoogledriveInsertPermissionToFile extends AbstractConnector implements Connector {
-    
-    /** Represent the errorCode . */
-    private static String errorCode;
     
     /** Represent the emptyString . */
     private static final String EMPTY_STRING = "";
@@ -86,18 +84,17 @@ public class GoogledriveInsertPermissionToFile extends AbstractConnector impleme
                                 GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTPERMISSION,
                                 GoogleDriveUtils.StringConstants.INSERT_PERMISSION_RESULT, true,
                                 hashMapForResultEnvelope);
-            } else {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                insertPermissionResult =
-                        GoogleDriveUtils
-                                .buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTCOMMENT,
-                                        GoogleDriveUtils.StringConstants.INSERT_COMMENT_RESULT, false,
-                                        hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(insertPermissionResult);
             }
-            messageContext.getEnvelope().getBody().addChild(insertPermissionResult);
         } catch (Exception e) {
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            insertPermissionResult =
+                    GoogleDriveUtils.buildResultEnvelope(
+                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTCOMMENT,
+                            GoogleDriveUtils.StringConstants.INSERT_COMMENT_RESULT, false, hashMapForResultEnvelope);
+            messageContext.getEnvelope().getBody().addChild(insertPermissionResult);
             log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
+            
         }
     }
     
@@ -112,7 +109,7 @@ public class GoogledriveInsertPermissionToFile extends AbstractConnector impleme
      * @return The inserted permission if successful, {@code null} otherwise.
      */
     private Permission insertPermission(Drive service, String fileId, String value, String type, String role,
-            HashMap<String, String> params) throws Exception {
+            HashMap<String, String> params) throws IOException {
     
         Permission newPermission = new Permission();
         
@@ -120,32 +117,25 @@ public class GoogledriveInsertPermissionToFile extends AbstractConnector impleme
         newPermission.setType(type);
         newPermission.setRole(role);
         
-        try {
-            Permissions.Insert request = service.permissions().insert(fileId, newPermission);
+        Permissions.Insert request = service.permissions().insert(fileId, newPermission);
+        
+        String temporaryResult = params.get(GoogleDriveUtils.StringConstants.EMAIL_MESSAGE);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
             
-            String temporaryResult = params.get(GoogleDriveUtils.StringConstants.EMAIL_MESSAGE);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                request.setEmailMessage((String) temporaryResult);
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = params.get(GoogleDriveUtils.StringConstants.SEND_NOTIFICATION_EMAILS);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                
-                request.setSendNotificationEmails(Boolean.valueOf(temporaryResult));
-            }
-            
-            return request.execute();
+            request.setEmailMessage((String) temporaryResult);
         }
         
-        catch (Exception e) {
-        	errorCode = e.getMessage();
-            log.error(GoogleDriveUtils.getStackTraceAsString(e));
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = params.get(GoogleDriveUtils.StringConstants.SEND_NOTIFICATION_EMAILS);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            
+            request.setSendNotificationEmails(Boolean.valueOf(temporaryResult));
         }
-        return null;
+        
+        return request.execute();
+        
     }
     
 }

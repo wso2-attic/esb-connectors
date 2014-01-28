@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.connector.googledrive;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import org.apache.axiom.om.OMElement;
@@ -41,9 +42,6 @@ import com.google.api.services.drive.model.ChildList;
  */
 public class GoogledriveListFolders extends AbstractConnector implements Connector {
     
-    /** Error Code. */
-    private String errorCode;
-    
     /** Empty String. */
     private static final String EMPTY_STRING = "";
     
@@ -66,11 +64,11 @@ public class GoogledriveListFolders extends AbstractConnector implements Connect
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.Q));
         
         HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
-        
+        OMElement listFoldersResult;
         try {
             HttpTransport httpTransport = new NetHttpTransport();
             JsonFactory jsonFactory = new JacksonFactory();
-            OMElement listFoldersResult;
+            
             ChildList childrenList;
             Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
             childrenList = retrieveListOfChildren(service, folderId, optParam);
@@ -82,18 +80,16 @@ public class GoogledriveListFolders extends AbstractConnector implements Connect
                         GoogleDriveUtils.buildResultEnvelope(
                                 GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTFOLDERS,
                                 GoogleDriveUtils.StringConstants.LIST_FOLDERS_RESULT, false, hashMapForResultEnvelope);
-            } else {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                listFoldersResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTFOLDERS,
-                                GoogleDriveUtils.StringConstants.LIST_FOLDERS_RESULT, false, hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(listFoldersResult);
             }
-            messageContext.getEnvelope().getBody().addChild(listFoldersResult);
             
         } catch (Exception e) {
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            listFoldersResult =
+                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTFOLDERS,
+                            GoogleDriveUtils.StringConstants.LIST_FOLDERS_RESULT, false, hashMapForResultEnvelope);
+            messageContext.getEnvelope().getBody().addChild(listFoldersResult);
             log.error(GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
         }
     }
     
@@ -105,35 +101,29 @@ public class GoogledriveListFolders extends AbstractConnector implements Connect
      * @param optParam optional parameter hashmap
      * @return List of Child objects
      */
-    private ChildList retrieveListOfChildren(Drive service, String folderId, HashMap<String, String> optParam) {
+    private ChildList retrieveListOfChildren(Drive service, String folderId, HashMap<String, String> optParam)
+            throws IOException {
     
-        try {
-            Children.List request = service.children().list(folderId);
-            String temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.MAX_RESULTS);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                request.setMaxResults(Integer.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.PAGE_TOKEN);
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                request.setPageToken(temporaryResult);
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.Q);
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                request.setQ(temporaryResult);
-            }
-            
-            return request.execute();
-            
-        } catch (Exception e) {
-            errorCode = e.getMessage();
-            log.error("Error: " + errorCode);
-            return null;
+        Children.List request = service.children().list(folderId);
+        String temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.MAX_RESULTS);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            request.setMaxResults(Integer.valueOf(temporaryResult));
         }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.PAGE_TOKEN);
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            request.setPageToken(temporaryResult);
+        }
+        
+        temporaryResult = EMPTY_STRING;
+        temporaryResult = optParam.get(GoogleDriveUtils.StringConstants.Q);
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            request.setQ(temporaryResult);
+        }
+        
+        return request.execute();
         
     }
     

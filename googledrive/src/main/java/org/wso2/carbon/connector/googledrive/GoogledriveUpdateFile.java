@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.connector.googledrive;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,14 +47,8 @@ import com.google.gson.reflect.TypeToken;
  */
 public class GoogledriveUpdateFile extends AbstractConnector implements Connector {
     
-    /** Error Code. */
-    private String errorCode;
-    
     /** Empty String. */
     private static final String EMPTY_STRING = "";
-    
-    /** Is Patch. */
-    private boolean isPatch = false;;
     
     /**
      * Connect method for class mediator.
@@ -64,6 +59,8 @@ public class GoogledriveUpdateFile extends AbstractConnector implements Connecto
      */
     public void connect(MessageContext messageContext) throws ConnectException {
     
+        /** Is Patch. */
+        boolean isPatch = false;
         String fileId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_ID);
         String uploadType = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.UPLOAD_TYPE);
         String fileContentBase64 = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_CONTENT);
@@ -99,6 +96,7 @@ public class GoogledriveUpdateFile extends AbstractConnector implements Connecto
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.REQUEST_BODY));
         
         HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
+        OMElement updateFileResult;
         try {
             HttpTransport httpTransport = new NetHttpTransport();
             JsonFactory jsonFactory = new JacksonFactory();
@@ -111,28 +109,25 @@ public class GoogledriveUpdateFile extends AbstractConnector implements Connecto
             }
             
             File updatedFile;
-            updatedFile = updateFile(service, fileId, uploadType, mimeType, writtenFile, parameters);
-            OMElement updateFileResult;
+            updatedFile = updateFile(service, fileId, uploadType, mimeType, writtenFile, parameters, isPatch);
+            
             if (updatedFile != null) {
                 hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.FILE, updatedFile.toPrettyString());
                 updateFileResult =
                         GoogleDriveUtils.buildResultEnvelope(
                                 GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_UPDATEFILE,
                                 GoogleDriveUtils.StringConstants.UPDATE_FILE_RESULT, true, hashMapForResultEnvelope);
-                
-            } else {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                updateFileResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_UPDATEFILE,
-                                GoogleDriveUtils.StringConstants.UPDATE_FILE_RESULT, false, hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(updateFileResult);
                 
             }
-            messageContext.getEnvelope().getBody().addChild(updateFileResult);
             
         } catch (Exception e) {
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            updateFileResult =
+                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_UPDATEFILE,
+                            GoogleDriveUtils.StringConstants.UPDATE_FILE_RESULT, false, hashMapForResultEnvelope);
+            messageContext.getEnvelope().getBody().addChild(updateFileResult);
             log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
         }
     }
     
@@ -149,95 +144,91 @@ public class GoogledriveUpdateFile extends AbstractConnector implements Connecto
      * @return Updated file metadata if successful, {@code null} otherwise.
      */
     private File updateFile(Drive service, String fileId, String uploadType, String mimeType, java.io.File content,
-            HashMap<String, String> parameters) {
+            HashMap<String, String> parameters, boolean isPatch) throws IOException {
     
-        try {
-            Files files = service.files();
-            File file = files.get(fileId).execute();
-            if (isPatch) {
-                // If it is a patch that is required (metadata update), we are going to run a patch
-                Files.Patch patchRequest = files.patch(fileId, file);
-                
-                String temporaryResult = parameters.get("convert");
-                if (!EMPTY_STRING.equals(temporaryResult)) {
-                    patchRequest.setConvert(Boolean.valueOf(temporaryResult));
-                }
-                
-                temporaryResult = EMPTY_STRING;
-                temporaryResult = parameters.get("newRevision");
-                if (!EMPTY_STRING.equals(temporaryResult)) {
-                    patchRequest.setNewRevision(Boolean.valueOf(temporaryResult));
-                }
-                
-                temporaryResult = EMPTY_STRING;
-                temporaryResult = parameters.get("ocr");
-                if (!EMPTY_STRING.equals(temporaryResult)) {
-                    patchRequest.setOcr(Boolean.valueOf(temporaryResult));
-                }
-                
-                temporaryResult = EMPTY_STRING;
-                temporaryResult = parameters.get("ocrLanguage");
-                if (!EMPTY_STRING.equals(temporaryResult)) {
-                    patchRequest.setOcrLanguage(temporaryResult);
-                }
-                
-                temporaryResult = EMPTY_STRING;
-                temporaryResult = parameters.get("pinned");
-                if (!EMPTY_STRING.equals(temporaryResult)) {
-                    patchRequest.setPinned(Boolean.valueOf(temporaryResult));
-                }
-                
-                temporaryResult = EMPTY_STRING;
-                temporaryResult = parameters.get("setModifiedDate");
-                if (!EMPTY_STRING.equals(temporaryResult)) {
-                    patchRequest.setSetModifiedDate(Boolean.valueOf(temporaryResult));
-                }
-                
-                temporaryResult = EMPTY_STRING;
-                temporaryResult = parameters.get("timedTextLanguage");
-                if (!EMPTY_STRING.equals(temporaryResult)) {
-                    patchRequest.setTimedTextLanguage(temporaryResult);
-                }
-                
-                temporaryResult = EMPTY_STRING;
-                temporaryResult = parameters.get("timedTextTrackName");
-                if (!EMPTY_STRING.equals(temporaryResult)) {
-                    patchRequest.setTimedTextTrackName(temporaryResult);
-                }
-                
-                temporaryResult = EMPTY_STRING;
-                temporaryResult = parameters.get("updateViewedDate");
-                if (!EMPTY_STRING.equals(temporaryResult)) {
-                    patchRequest.setUpdateViewedDate(Boolean.valueOf(temporaryResult));
-                }
-                
-                temporaryResult = EMPTY_STRING;
-                temporaryResult = parameters.get("useContentAsIndexableText");
-                if (!EMPTY_STRING.equals(temporaryResult)) {
-                    patchRequest.setUseContentAsIndexableText(Boolean.valueOf(temporaryResult));
-                }
-                
-                temporaryResult = EMPTY_STRING;
-                temporaryResult = parameters.get("requestBody");
-                if (!EMPTY_STRING.equals(temporaryResult)) {
-                    Gson gson = new Gson();
-                    Type hashmapCollectionType = new TypeToken<HashMap<String, String>>() {}.getType();
-                    Map<String, Object> requestMap = gson.fromJson(temporaryResult, hashmapCollectionType);
-                    patchRequest.setUnknownKeys(requestMap);
-                    
-                }
-                return patchRequest.execute();
-                
-            } else {
-                // If it is not a patch that is required, we are going to run an upload
-                return service.files().update(fileId, file, new FileContent(mimeType, content)).execute();
+        Files files = service.files();
+        File file = files.get(fileId).execute();
+        if (isPatch) {
+            // If it is a patch that is required (metadata update), we are going
+            // to run a patch
+            Files.Patch patchRequest = files.patch(fileId, file);
+            
+            String temporaryResult = parameters.get("convert");
+            if (!EMPTY_STRING.equals(temporaryResult)) {
+                patchRequest.setConvert(Boolean.valueOf(temporaryResult));
             }
             
-        } catch (Exception e) {
-        	errorCode = e.getMessage();
-            log.error(GoogleDriveUtils.getStackTraceAsString(e));
-            return null;
+            temporaryResult = EMPTY_STRING;
+            temporaryResult = parameters.get("newRevision");
+            if (!EMPTY_STRING.equals(temporaryResult)) {
+                patchRequest.setNewRevision(Boolean.valueOf(temporaryResult));
+            }
+            
+            temporaryResult = EMPTY_STRING;
+            temporaryResult = parameters.get("ocr");
+            if (!EMPTY_STRING.equals(temporaryResult)) {
+                patchRequest.setOcr(Boolean.valueOf(temporaryResult));
+            }
+            
+            temporaryResult = EMPTY_STRING;
+            temporaryResult = parameters.get("ocrLanguage");
+            if (!EMPTY_STRING.equals(temporaryResult)) {
+                patchRequest.setOcrLanguage(temporaryResult);
+            }
+            
+            temporaryResult = EMPTY_STRING;
+            temporaryResult = parameters.get("pinned");
+            if (!EMPTY_STRING.equals(temporaryResult)) {
+                patchRequest.setPinned(Boolean.valueOf(temporaryResult));
+            }
+            
+            temporaryResult = EMPTY_STRING;
+            temporaryResult = parameters.get("setModifiedDate");
+            if (!EMPTY_STRING.equals(temporaryResult)) {
+                patchRequest.setSetModifiedDate(Boolean.valueOf(temporaryResult));
+            }
+            
+            temporaryResult = EMPTY_STRING;
+            temporaryResult = parameters.get("timedTextLanguage");
+            if (!EMPTY_STRING.equals(temporaryResult)) {
+                patchRequest.setTimedTextLanguage(temporaryResult);
+            }
+            
+            temporaryResult = EMPTY_STRING;
+            temporaryResult = parameters.get("timedTextTrackName");
+            if (!EMPTY_STRING.equals(temporaryResult)) {
+                patchRequest.setTimedTextTrackName(temporaryResult);
+            }
+            
+            temporaryResult = EMPTY_STRING;
+            temporaryResult = parameters.get("updateViewedDate");
+            if (!EMPTY_STRING.equals(temporaryResult)) {
+                patchRequest.setUpdateViewedDate(Boolean.valueOf(temporaryResult));
+            }
+            
+            temporaryResult = EMPTY_STRING;
+            temporaryResult = parameters.get("useContentAsIndexableText");
+            if (!EMPTY_STRING.equals(temporaryResult)) {
+                patchRequest.setUseContentAsIndexableText(Boolean.valueOf(temporaryResult));
+            }
+            
+            temporaryResult = EMPTY_STRING;
+            temporaryResult = parameters.get("requestBody");
+            if (!EMPTY_STRING.equals(temporaryResult)) {
+                Gson gson = new Gson();
+                Type hashmapCollectionType = new TypeToken<HashMap<String, String>>() {}.getType();
+                Map<String, Object> requestMap = gson.fromJson(temporaryResult, hashmapCollectionType);
+                patchRequest.setUnknownKeys(requestMap);
+                
+            }
+            return patchRequest.execute();
+            
+        } else {
+            // If it is not a patch that is required, we are going to run an
+            // upload
+            return service.files().update(fileId, file, new FileContent(mimeType, content)).execute();
         }
+        
     }
     
 }

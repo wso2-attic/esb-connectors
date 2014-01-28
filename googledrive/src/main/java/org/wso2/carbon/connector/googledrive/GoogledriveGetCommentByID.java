@@ -42,10 +42,7 @@ import com.google.api.services.drive.model.Comment;
  */
 public class GoogledriveGetCommentByID extends AbstractConnector implements Connector {
     
-    /** Error Code.*/
-    private String errorCode;
-    
-    /** Empty String.*/
+    /** Empty String. */
     private static final String EMPTY_STRING = "";
     
     /**
@@ -64,11 +61,12 @@ public class GoogledriveGetCommentByID extends AbstractConnector implements Conn
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.COMMENT_INCLUDE_DELETED));
         
         HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
+        OMElement getCommentResult;
         try {
             HttpTransport httpTransport = new NetHttpTransport();
             JsonFactory jsonFactory = new JacksonFactory();
             Comment returnedComment;
-            OMElement getCommentResult;
+            
             Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
             returnedComment = getCommentById(service, fileId, commentId, parameters);
             if (returnedComment != null) {
@@ -78,18 +76,20 @@ public class GoogledriveGetCommentByID extends AbstractConnector implements Conn
                         GoogleDriveUtils.buildResultEnvelope(
                                 GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETCOMMENTBYID,
                                 GoogleDriveUtils.StringConstants.GET_COMMENT_RESULT, true, hashMapForResultEnvelope);
-            } else {
-                hashMapForResultEnvelope.put("error", errorCode);
-                getCommentResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETCOMMENTBYID,
-                                GoogleDriveUtils.StringConstants.GET_COMMENT_RESULT, false, hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(getCommentResult);
             }
-            messageContext.getEnvelope().getBody().addChild(getCommentResult);
             
         } catch (Exception e) {
+            hashMapForResultEnvelope.put("error", e.getMessage());
+            getCommentResult =
+                    GoogleDriveUtils.buildResultEnvelope(
+                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETCOMMENTBYID,
+                            GoogleDriveUtils.StringConstants.GET_COMMENT_RESULT, false, hashMapForResultEnvelope);
+            
+            messageContext.getEnvelope().getBody().addChild(getCommentResult);
+            
             log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
+            
         }
     }
     
@@ -102,20 +102,16 @@ public class GoogledriveGetCommentByID extends AbstractConnector implements Conn
      * @param params Parameters for comment return
      * @return <strong>Comment</strong> object
      */
-    private Comment getCommentById(Drive service, String fileId, String commentId, HashMap<String, String> params) {
+    private Comment getCommentById(Drive service, String fileId, String commentId, HashMap<String, String> params)
+            throws IOException {
     
-        try {
-            Comments.Get request = service.comments().get(fileId, commentId);
-            String temporaryResult = params.get(GoogleDriveUtils.StringConstants.COMMENT_INCLUDE_DELETED);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                request.setIncludeDeleted(Boolean.valueOf(temporaryResult));
-            }
-            return request.execute();
-        } catch (IOException ioe) {
-            errorCode = ioe.getMessage();
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(ioe));
+        Comments.Get request = service.comments().get(fileId, commentId);
+        String temporaryResult = params.get(GoogleDriveUtils.StringConstants.COMMENT_INCLUDE_DELETED);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            request.setIncludeDeleted(Boolean.valueOf(temporaryResult));
         }
-        return null;
+        return request.execute();
+        
     }
 }

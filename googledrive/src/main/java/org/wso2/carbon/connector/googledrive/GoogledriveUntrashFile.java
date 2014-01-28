@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.connector.googledrive;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import org.apache.axiom.om.OMElement;
@@ -40,9 +41,6 @@ import com.google.api.services.drive.model.File;
  */
 public class GoogledriveUntrashFile extends AbstractConnector implements Connector {
     
-    /** Represent the errorCode of the IOException . */
-    private static String errorCode;
-    
     /**
      * Modify request body before sending to the end point.
      * 
@@ -53,10 +51,9 @@ public class GoogledriveUntrashFile extends AbstractConnector implements Connect
     
         String fileId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_ID);
         HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
-        
+        OMElement untrashedFileResult = null;
         try {
             
-            OMElement untrashedFileResult = null;
             HttpTransport httpTransport = new NetHttpTransport();
             JsonFactory jsonFactory = new JacksonFactory();
             
@@ -72,25 +69,19 @@ public class GoogledriveUntrashFile extends AbstractConnector implements Connect
                         GoogleDriveUtils.buildResultEnvelope(
                                 GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_UNTRASHFILE,
                                 GoogleDriveUtils.StringConstants.UNTRASHED_FILE_RESULT, true, hashMapForResultEnvelope);
-                
-            } else {
-                
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                untrashedFileResult =
-                        GoogleDriveUtils
-                                .buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_UNTRASHFILE,
-                                        GoogleDriveUtils.StringConstants.UNTRASHED_FILE_RESULT, false,
-                                        hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(untrashedFileResult);
                 
             }
-            messageContext.getEnvelope().getBody().addChild(untrashedFileResult);
             
         }
         
         catch (Exception e) {
-            
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            untrashedFileResult =
+                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_UNTRASHFILE,
+                            GoogleDriveUtils.StringConstants.UNTRASHED_FILE_RESULT, false, hashMapForResultEnvelope);
+            messageContext.getEnvelope().getBody().addChild(untrashedFileResult);
             log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
         }
     }
     
@@ -101,17 +92,9 @@ public class GoogledriveUntrashFile extends AbstractConnector implements Connect
      * @param fileId ID of the file to restore.
      * @return The updated file if successful, {@code null} otherwise.
      */
-    private File restoreFile(Drive service, String fileId) throws Exception {
+    private File restoreFile(Drive service, String fileId) throws IOException {
     
-        try {
-            return service.files().untrash(fileId).execute();
-        }
-        
-        catch (Exception e) {
-        	errorCode = e.getMessage();
-            log.error(GoogleDriveUtils.getStackTraceAsString(e));
-            return null;
-        }
+        return service.files().untrash(fileId).execute();
         
     }
     

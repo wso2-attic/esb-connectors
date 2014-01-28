@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.connector.googledrive;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import org.apache.axiom.om.OMElement;
@@ -39,9 +40,6 @@ import com.google.api.services.drive.model.ChildReference;
  * @see https://developers.google.com/drive/v2/reference/children/insert
  */
 public class GoogledriveInsertFileToFolder extends AbstractConnector implements Connector {
-    
-    /** Represent the error_code . */
-    private static String errorCode;
     
     /**
      * Returns body for response SOAP envelope
@@ -72,18 +70,18 @@ public class GoogledriveInsertFileToFolder extends AbstractConnector implements 
                                 GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTFILETOFOLDER,
                                 GoogleDriveUtils.StringConstants.INSERT_FILE_TO_FOLDER_RESULT, true,
                                 hashMapForResultEnvelope);
-            } else {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                insertFileToFolderResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTFILETOFOLDER,
-                                GoogleDriveUtils.StringConstants.INSERT_FILE_TO_FOLDER_RESULT, false,
-                                hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(insertFileToFolderResult);
             }
-            messageContext.getEnvelope().getBody().addChild(insertFileToFolderResult);
+            
         } catch (Exception e) {
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            insertFileToFolderResult =
+                    GoogleDriveUtils.buildResultEnvelope(
+                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTFILETOFOLDER,
+                            GoogleDriveUtils.StringConstants.INSERT_FILE_TO_FOLDER_RESULT, false,
+                            hashMapForResultEnvelope);
+            messageContext.getEnvelope().getBody().addChild(insertFileToFolderResult);
             log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
         }
     }
     
@@ -95,18 +93,13 @@ public class GoogledriveInsertFileToFolder extends AbstractConnector implements 
      * @param fileId ID of the file to insert.
      * @return The inserted child if successful, {@code null} otherwise.
      */
-    private ChildReference insertFileIntoFolder(Drive service, String folderId, String fileId) throws Exception {
+    private ChildReference insertFileIntoFolder(Drive service, String folderId, String fileId) throws IOException {
     
         ChildReference newChild = new ChildReference();
         newChild.setId(fileId);
-        try {
-            return service.children().insert(folderId, newChild).execute();
-            
-        } catch (Exception e) {
-            errorCode = e.getMessage();
-            log.error(GoogleDriveUtils.getStackTraceAsString(e));
-        }
-        return null;
+        
+        return service.children().insert(folderId, newChild).execute();
+        
     }
     
 }

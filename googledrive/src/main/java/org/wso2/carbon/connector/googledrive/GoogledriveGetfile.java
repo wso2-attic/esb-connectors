@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.connector.googledrive;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import org.apache.axiom.om.OMElement;
@@ -41,12 +42,6 @@ import com.google.api.services.drive.model.File;
  */
 public class GoogledriveGetfile extends AbstractConnector implements Connector {
     
-    /** Represent the errorCode . */
-    private static String errorCode;
-    
-    /** Represent the getFileResult . */
-    private OMElement getFileResult;
-    
     /** Represent the emptyString . */
     private static final String EMPTY_STRING = "";
     
@@ -67,6 +62,8 @@ public class GoogledriveGetfile extends AbstractConnector implements Connector {
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.UPDATE_VIEW_DATE));
         
         HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
+        /** Represent the getFileResult . */
+        OMElement getFileResult;
         
         try {
             HttpTransport httpTransport = new NetHttpTransport();
@@ -81,39 +78,33 @@ public class GoogledriveGetfile extends AbstractConnector implements Connector {
                 getFileResult =
                         GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETFILE,
                                 GoogleDriveUtils.StringConstants.GET_FILE_RESULT, true, hashMapForResultEnvelope);
-                
-            } else {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, errorCode);
-                getFileResult =
-                        GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETFILE,
-                                GoogleDriveUtils.StringConstants.GET_FILE_RESULT, false, hashMapForResultEnvelope);
+                messageContext.getEnvelope().getBody().addChild(getFileResult);
                 
             }
-            messageContext.getEnvelope().getBody().addChild(getFileResult);
+            
         } catch (Exception e) {
+            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
+            getFileResult =
+                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETFILE,
+                            GoogleDriveUtils.StringConstants.GET_FILE_RESULT, false, hashMapForResultEnvelope);
+            
+            messageContext.getEnvelope().getBody().addChild(getFileResult);
+            
             log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
         }
     }
     
-    private File downloadFile(Drive service, String fileId, HashMap<String, String> parameters) throws Exception {
+    private File downloadFile(Drive service, String fileId, HashMap<String, String> parameters) throws IOException {
     
-        try {
-            Files.Get fileResult = service.files().get(fileId);
-            String temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.UPDATE_VIEW_DATE);
-            
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                fileResult.setUpdateViewedDate(Boolean.valueOf(temporaryResult));
-                
-            }
-            
-            return fileResult.execute();
-        } catch (Exception e) {
-            errorCode = e.getMessage();
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
+        Files.Get fileResult = service.files().get(fileId);
+        String temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.UPDATE_VIEW_DATE);
+        
+        if (!EMPTY_STRING.equals(temporaryResult)) {
+            fileResult.setUpdateViewedDate(Boolean.valueOf(temporaryResult));
             
         }
+        
+        return fileResult.execute();
         
     }
     
