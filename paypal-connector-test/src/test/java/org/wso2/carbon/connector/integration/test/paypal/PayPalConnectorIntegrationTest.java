@@ -86,11 +86,12 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
 
 		ConnectorIntegrationUtil.uploadConnector(repoLocation,
 				mediationLibUploadStub, paypalConnectorFileName);
-		Thread.sleep(30000);
+		log.info("Sleeping for "+60000/1000+" seconds while waiting for synapse import");
+		Thread.sleep(60000);
 
 		adminServiceStub.updateStatus(
-				"{org.wso2.carbon.connectors}PayPal",
-				"PayPal", "org.wso2.carbon.connectors",
+				"{org.wso2.carbon.connector}PayPal",
+				"PayPal", "org.wso2.carbon.connector",
 				"enabled");
 		paypalConnectorProperties = ConnectorIntegrationUtil
 				.getConnectorConfigProperties(CONNECTOR_NAME);
@@ -140,6 +141,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
 			Assert.assertTrue(response.toString().contains(
 					(String) paypalConnectorProperties.getProperty(methodName
 							+ "ExpectedResult")));
+			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
 
 		}
 

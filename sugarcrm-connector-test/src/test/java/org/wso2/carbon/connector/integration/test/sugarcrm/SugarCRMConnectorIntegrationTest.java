@@ -72,8 +72,8 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 		Thread.sleep(30000);
 
 		adminServiceStub.updateStatus(
-				"{org.wso2.carbon.connectors}sugarcrm-connector-1.0.0",
-				"sugarcrm-connector-1.0.0", "org.wso2.carbon.connectors",
+				"{org.wso2.carbon.connector}sugarcrm-connector-1.0.0",
+				"sugarcrm-connector-1.0.0", "org.wso2.carbon.connector",
 				"enabled");
 		sugarCrmConnectorProperties = ConnectorIntegrationUtil
 				.getConnectorConfigProperties(CONNECTOR_NAME);
@@ -123,6 +123,7 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 			Assert.assertTrue(response.toString().contains(
 					(String) sugarCrmConnectorProperties.getProperty(methodName
 							+ "ExpectedResult")));
+			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
 		}
 
 	}

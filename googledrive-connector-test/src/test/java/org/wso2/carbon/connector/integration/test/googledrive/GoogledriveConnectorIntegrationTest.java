@@ -91,8 +91,8 @@ public class GoogledriveConnectorIntegrationTest extends ESBIntegrationTest {
 		Thread.sleep(30000);
 
 		adminServiceStub.updateStatus(
-				"{org.wso2.carbon.connectors}" + CONNECTOR_NAME,
-				CONNECTOR_NAME, "org.wso2.carbon.connectors",
+				"{org.wso2.carbon.connector}" + CONNECTOR_NAME,
+				CONNECTOR_NAME, "org.wso2.carbon.connector",
 				"enabled");
 		googleDriveConnectorProperties = ConnectorIntegrationUtil
 				.getConnectorConfigProperties(CONNECTOR_NAME);
@@ -133,6 +133,7 @@ public class GoogledriveConnectorIntegrationTest extends ESBIntegrationTest {
 							+ response.toString());
 			Assert.assertTrue(response.toString().contains(
 								(String)googleDriveConnectorProperties.getProperty(methodName + "ExpectedResult")));
+			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
 			
 		}
 		

@@ -86,12 +86,12 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
 		ConnectorIntegrationUtil.uploadConnector(repoLocation,
 				mediationLibUploadStub, linkedinConnectorFileName);
-		Thread.sleep(30000);
-
-		adminServiceStub.updateStatus("{org.wso2.carbon.connectors}"
-				+ CONNECTOR_NAME, CONNECTOR_NAME, "org.wso2.carbon.connectors",
+		log.info("Sleeping for "+60000/1000+" seconds while waiting for synapse import");
+		Thread.sleep(60000);
+		//adminServiceStub.addImport(CONNECTOR_NAME, "org.wso2.carbon.connectors");
+		adminServiceStub.updateStatus("{org.wso2.carbon.connector}"
+				+ CONNECTOR_NAME, CONNECTOR_NAME, "org.wso2.carbon.connector",
 				"enabled");
-
 		linkedinConnectorProperties = ConnectorIntegrationUtil
 				.getConnectorConfigProperties(CONNECTOR_NAME);
 
@@ -120,6 +120,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 					+ File.separator + "proxies" + File.separator
 					+ CONNECTOR_NAME + File.separator + CONNECTOR_NAME + "_"
 					+ methodName + ".xml")));
+			log.info("Sending SOAP message from "+methodName+".xml");
 			OMElement getRequest = AXIOMUtil
 					.stringToOM(ConnectorIntegrationUtil
 							.readSoapRequestFile(
@@ -139,6 +140,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 			Assert.assertTrue(response.toString().contains(
 					(String) linkedinConnectorProperties.getProperty(methodName
 							+ "ExpectedResult")));
+			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
 		}
 
 	}

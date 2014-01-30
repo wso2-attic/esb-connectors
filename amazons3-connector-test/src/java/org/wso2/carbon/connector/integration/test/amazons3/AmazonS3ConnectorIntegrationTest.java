@@ -73,8 +73,8 @@ public class AmazonS3ConnectorIntegrationTest extends ESBIntegrationTest {
 		Thread.sleep(30000);
 
 		adminServiceStub.updateStatus(
-				"{org.wso2.carbon.connectors}amazons3-connector-1.0.0",
-				"amazons3-connector-1.0.0", "org.wso2.carbon.connectors",
+				"{org.wso2.carbon.connector}amazons3-connector-1.0.0",
+				"amazons3-connector-1.0.0", "org.wso2.carbon.connector",
 				"enabled");
 		
 		amazons3ConnectorProperties = ConnectorIntegrationUtil
@@ -125,6 +125,7 @@ public class AmazonS3ConnectorIntegrationTest extends ESBIntegrationTest {
 			Assert.assertTrue(response.toString().contains(
 					(String) amazons3ConnectorProperties.getProperty(methodName
 							+ "ExpectedResult")));
+			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
 		}
 
 	}
