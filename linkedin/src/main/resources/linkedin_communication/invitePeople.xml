@@ -1,0 +1,38 @@
+<template name="invitePeople" xmlns="http://ws.apache.org/ns/synapse">
+ 
+  <parameter name="recipients" description="Comma-separated list of recipient IDs" />
+  <parameter name="subject" description="Subject of the invitation" />
+  <parameter name="messageBody" description="body of the invitation" />
+  <parameter name="authorizationName" description="Authorization name" />
+  <parameter name="authorizationValue" description="Value for authorization" />
+    
+  <sequence >
+   <property name="uri.var.recipients" expression="$func:recipients" />
+   <property name="uri.var.subject" expression="$func:subject" />
+   <property name="uri.var.messageBody" expression="$func:messageBody" />
+   <property name="uri.var.authorizationName" expression="$func:authorizationName" />
+   <property name="uri.var.authorizationValue" expression="$func:authorizationValue" />
+
+
+   <payloadFactory media-type="json">
+		<format>{"recipients":{"values": [{"person": {"_path": "/people/$1"}}]},"subject": "$2","body": "$3","item-content":{"invitation-request":{"connect-type":"friend","authorization":{"name":"$4","value":"$5"}}}}</format>
+		<args>
+			<arg expression="get-property('uri.var.recipients')" />
+			<arg expression="get-property('uri.var.subject')" />
+			<arg expression="get-property('uri.var.messageBody')" />
+			<arg expression="get-property('uri.var.authorizationName')" />
+			<arg expression="get-property('uri.var.authorizationValue')" />
+		</args>
+
+	</payloadFactory>
+ 	<property name="messageType" value="application/json" scope="axis2" />
+ 	<property name="DISABLE_CHUNKING" value="true" scope="axis2"></property>
+    
+   		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.linkedinUrl}/people/~/mailbox?oauth2_access_token={uri.var.accessToken}&amp;format=json" />
+			</endpoint>
+		</call>
+  </sequence>
+</template>

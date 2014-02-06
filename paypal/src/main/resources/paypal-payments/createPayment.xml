@@ -1,0 +1,171 @@
+<template name="createPayment" xmlns="http://ws.apache.org/ns/synapse">
+  <parameter name="intent" description="Payment intent, Must be set to sale for immediate payment or authorize for a delayed payment to be captured at a later time."/>
+  <parameter name="payment_method" description="Payment method used. Must be either credit_card or paypal." default="none"/>
+  <parameter name="number" description="Credit card number."/>
+  <parameter name="type" description="Credit card type. Valid types are: visa, mastercard, discover, amex."/>
+  <parameter name="expire_month" description="Expiration month with no leading zero."/>
+  <parameter name="expire_year" description="4-digit expiration year."/>
+  <parameter name="cvv2" description="3-4 digit card validation code."/>
+  <parameter name="first_name" description="Cardholder’s first name."/>
+  <parameter name="last_name" description="Cardholder’s last name."/>
+  <parameter name="line1" description="Line 1 of the address (e.g., Number, street, etc)."/>
+  <parameter name="city" description="City name. 50 characters max."/>
+  <parameter name="country_code" description="2-letter country code."/>
+  <parameter name="postal_code" description="Zip code or equivalent is usually required for countries that have them."/>
+  <parameter name="state" description="2-letter code for US states, and the equivalent for other countries."/>
+  <parameter name="total" description="Total amount charged from the payer to the payee."/>
+  <parameter name="currency" description="3-letter currency code."/>
+  <parameter name="subtotal" description="Sub-total (amount) of items being paid for."/>
+  <parameter name="tax" description="Amount charged for tax."/>
+  <parameter name="shipping" description="Amount charged for shipping."/>
+  <parameter name="description" description="Description of transaction."/>
+  <parameter name="return_url" description="The payer is redirected to this URL after approving the payment."/>
+  <parameter name="cancel_url" description="The payer is redirected to this URL after canceling the payment."/>
+  
+  <sequence>
+  	  <property name="uri.var.intent" expression="$func:intent"/>
+	  <property name="uri.var.payment_method" expression="$func:payment_method" default="none"/>
+	  <property name="uri.var.number" expression="$func:number"/>
+	  <property name="uri.var.type" expression="$func:type"/>
+	  <property name="uri.var.expire_month" expression="$func:expire_month"/>
+	  <property name="uri.var.expire_year" expression="$func:expire_year"/>
+	  <property name="uri.var.cvv2" expression="$func:cvv2"/>
+	  <property name="uri.var.first_name" expression="$func:first_name"/>
+	  <property name="uri.var.last_name" expression="$func:last_name"/>
+	  <property name="uri.var.line1" expression="$func:line1"/>
+	  <property name="uri.var.city" expression="$func:city"/>
+	  <property name="uri.var.country_code" expression="$func:country_code"/>
+	  <property name="uri.var.postal_code" expression="$func:postal_code"/>
+	  <property name="uri.var.state" expression="$func:state"/>
+	  <property name="uri.var.total" expression="$func:total"/>
+	  <property name="uri.var.currency" expression="$func:currency"/>
+	  <property name="uri.var.subtotal" expression="$func:subtotal"/>
+	  <property name="uri.var.tax" expression="$func:tax"/>
+	  <property name="uri.var.shipping" expression="$func:shipping"/>
+	  <property name="uri.var.description" expression="$func:description"/>
+	  <property name="uri.var.return_url" expression="$func:return_url"/>
+	  <property name="uri.var.cancel_url" expression="$func:cancel_url"/>
+	  
+  	    <filter xpath="get-property('uri.var.payment_method') = 'credit_card'" >
+  	      <then>
+	  		<payloadFactory media-type="json">
+	  		<format>
+	  			{
+				  "intent":"$1",
+				  "payer":{
+				    "payment_method":"$2",
+				    "funding_instruments":[
+				      {
+				        "credit_card":{
+				          "number":"$3",
+				          "type":"$4",
+				          "expire_month":"$5",
+				          "expire_year":"$6",
+				          "cvv2":"$7",
+				          "first_name":"$8",
+				          "last_name":"$9",
+				          "billing_address":{
+				            "line1":"$10",
+				            "city":"$11",
+				            "country_code":"$12",
+				            "postal_code":"$13",
+				            "state":"$14"
+				          }
+				        }
+				      }
+				    ]
+				  },
+				  "transactions":[
+				    {
+				      "amount":{
+				        "total":"$15",
+				        "currency":"$16",
+				        "details":{
+				          "subtotal":"$17",
+				          "tax":"$18",
+				          "shipping":"$19"
+				        }
+				      },
+				      "description":"$20"
+				    }
+				  ]
+				}
+  		    </format>
+	  		<args>
+	      	  <arg expression="get-property('uri.var.intent')"/>
+	          <arg expression="get-property('uri.var.payment_method')"/>
+	          <arg expression="get-property('uri.var.number')"/>
+	          <arg expression="get-property('uri.var.type')"/>
+	          <arg expression="get-property('uri.var.expire_month')"/>
+	          <arg expression="get-property('uri.var.expire_year')"/>
+	          <arg expression="get-property('uri.var.cvv2')"/>
+	          <arg expression="get-property('uri.var.first_name')"/>
+	          <arg expression="get-property('uri.var.last_name')"/>
+	          <arg expression="get-property('uri.var.line1')"/>
+	          <arg expression="get-property('uri.var.city')"/>
+	          <arg expression="get-property('uri.var.country_code')"/>
+	          <arg expression="get-property('uri.var.postal_code')"/>
+	          <arg expression="get-property('uri.var.state')"/>
+	          <arg expression="get-property('uri.var.total')"/>
+	          <arg expression="get-property('uri.var.currency')"/>
+	          <arg expression="get-property('uri.var.subtotal')"/>
+	          <arg expression="get-property('uri.var.tax')"/>
+	          <arg expression="get-property('uri.var.shipping')"/>
+	          <arg expression="get-property('uri.var.description')"/>
+	        </args>
+	        </payloadFactory>
+	     </then>
+	    </filter>
+	    <filter xpath="get-property('uri.var.payment_method') = 'paypal'" >
+  	      <then>
+  	        <payloadFactory media-type="json">
+	  	      <format>
+		  	      {
+					  "intent": "$1",
+					  "payer": {
+					    "payment_method": "$2"
+					  },
+					  "redirect_urls": {
+					    "return_url": "$3",
+					    "cancel_url": "$4"
+					  },
+					  "transactions": [
+						  {
+						    "amount": {
+						      "total": "$5",
+						      "currency": "$6",
+						      "details":{
+						          "subtotal":"$7",
+						          "tax":"$8",
+						          "shipping":"$9"
+					        	}
+						    },
+						    "description": "$10"
+						  }
+					  ]
+				  }
+	  	      </format>
+  	      	  <args>
+  	      	    <arg expression="get-property('uri.var.intent')"/>
+	            <arg expression="get-property('uri.var.payment_method')"/>
+  	      	    <arg expression="get-property('uri.var.return_url')"/>
+		        <arg expression="get-property('uri.var.cancel_url')"/>
+	  	      	<arg expression="get-property('uri.var.total')"/>
+		        <arg expression="get-property('uri.var.currency')"/>
+		        <arg expression="get-property('uri.var.subtotal')"/>
+		        <arg expression="get-property('uri.var.tax')"/>
+		        <arg expression="get-property('uri.var.shipping')"/>
+		        <arg expression="get-property('uri.var.description')"/>
+		      </args>
+		    </payloadFactory>
+  	      </then>
+  	    </filter>
+  	<property name="messageType" scope="axis2" value="application/json" />
+  	
+    <call>
+      <endpoint>
+        <http method="post" uri-template="{uri.var.paypalUrl}/v1/payments/payment"/>
+      </endpoint>
+    </call>
+  </sequence>
+</template>

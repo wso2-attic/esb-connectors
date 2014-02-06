@@ -1,0 +1,69 @@
+<template name="executeApprovedPayPal" xmlns="http://ws.apache.org/ns/synapse">
+  <parameter name="id" description="Pass the payment id in the resource URI and include updated details as a payment-execution object in the body."/>
+  <parameter name="payer_id" description="The ID of the Payer, passed in the return_url by PayPal."/>
+  <parameter name="total" description="Total amount charged from the payer to the payee."/>
+  <parameter name="currency" description="3-letter currency code."/>
+  <parameter name="subtotal" description="Sub-total (amount) of items being paid for."/>
+  <parameter name="tax" description="Amount charged for tax."/>
+  <parameter name="shipping" description="Amount charged for shipping."/>
+  
+  <sequence>
+      <property name="uri.var.id" expression="$func:id"/>
+      <property name="uri.var.payer_id" expression="$func:payer_id"/>
+      <property name="uri.var.total" expression="$func:total"/>
+	  <property name="uri.var.currency" expression="$func:currency"/>
+	  <property name="uri.var.subtotal" expression="$func:subtotal"/>
+	  <property name="uri.var.tax" expression="$func:tax"/>
+	  <property name="uri.var.shipping" expression="$func:shipping"/>
+	  
+      <filter xpath="get-property('uri.var.total') = '' or (not(string(get-property('uri.var.total'))))">
+      <then>
+        <payloadFactory media-type="json">
+          <format>
+			{ "payer_id" : "$1" }
+		  </format>
+		  <args>
+	      	  <arg expression="get-property('uri.var.payer_id')"/>
+	      </args>
+	    </payloadFactory>
+	  </then>
+	  <else>
+	    <payloadFactory media-type="json">
+		  <format>
+	        { "payer_id" : "$1",
+	          "transactions":[
+			    {
+			      "amount":{
+			        "total":"$2",
+			        "currency":"$3",
+			        "details":{
+			          "subtotal":"$4",
+			          "tax":"$5",
+			          "shipping":"$6"
+			        }
+			      }
+			    }
+			  ] 
+			}
+	      </format>
+	      <args>
+	      	  <arg expression="get-property('uri.var.payer_id')"/>
+	      	  <arg expression="get-property('uri.var.total')"/>
+	          <arg expression="get-property('uri.var.currency')"/>
+	          <arg expression="get-property('uri.var.subtotal')"/>
+	          <arg expression="get-property('uri.var.tax')"/>
+	          <arg expression="get-property('uri.var.shipping')"/>
+	      </args>
+	    </payloadFactory>
+	  </else>
+	</filter>
+	
+    <property name="messageType" value="application/json" scope="axis2"/>
+    
+    <call>
+      <endpoint>
+        <http method="post" uri-template="{uri.var.paypalUrl}/v1/payments/payment/{uri.var.id}/execute"/>
+      </endpoint>
+    </call>
+  </sequence>
+</template>

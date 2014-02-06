@@ -1,0 +1,67 @@
+<template name="searchByModule" xmlns="http://ws.apache.org/ns/synapse">
+
+  <parameter name="userName"/>
+  <parameter name="password"/>
+  <parameter name="searchString"/>
+  <parameter name="modules"/>
+  <parameter name="offset"/>
+  <parameter name="maxResults"/>
+  
+  <sequence>
+  
+    <property name="uri.var.userName" expression="$func:userName"/>
+    <property name="uri.var.password" expression="$func:password"/>
+    <property name="uri.var.searchString" expression="$func:searchString"/>
+    <property name="uri.var.modules" expression="$func:modules"/>
+    <property name="uri.var.offset" expression="$func:offset"/>
+    <property name="uri.var.maxResults" expression="$func:maxResults"/>
+  
+    <payloadFactory>
+	
+	  <format>
+	
+	  	<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+            	xmlns:sug="http://www.sugarcrm.com/sugarcrm"
+            	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            	xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/">
+           	<soapenv:Header/>
+            <soapenv:Body>
+            	<sug:search_by_module>
+            		<sug:user_name>$1</sug:user_name>
+		            <sug:password>$2</sug:password>
+		            <sug:search_string>$3</sug:search_string>
+		            <sug:modules soapenc:arrayType="xsd:string[1]"></sug:modules>
+		            <sug:offset>$4</sug:offset>
+		            <sug:max_results>$5</sug:max_results>
+            	</sug:search_by_module>
+            </soapenv:Body>
+        </soapenv:Envelope>
+      </format>
+	  
+	  <args>
+         <arg expression="get-property('uri.var.userName')"/>
+         <arg expression="get-property('uri.var.password')"/>
+         <arg expression="get-property('uri.var.searchString')"/>
+         <arg expression="get-property('uri.var.offset')"/>
+         <arg expression="get-property('uri.var.maxResults')"/>
+      </args>
+    
+    </payloadFactory>
+    
+    <class name="org.wso2.carbon.connector.sugarcrm.operation.SearchByModule" />
+    <enrich>
+		<source clone="true" type="body" />
+		<target property="MSG_PAYLOAD" type="property" />
+   	</enrich>
+    
+    <header name="To" expression="get-property('uri.var.sugarCRMurl')"/>
+    
+    <call>
+		<endpoint>
+			<default format="soap11"/>
+		</endpoint>
+	</call>
+
+  </sequence>
+
+</template>

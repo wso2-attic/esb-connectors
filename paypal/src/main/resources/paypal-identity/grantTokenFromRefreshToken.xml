@@ -1,0 +1,42 @@
+<template name="grantTokenFromRefreshToken" xmlns="http://ws.apache.org/ns/synapse">
+	<!-- Required parameters -->
+	<parameter name="grantType" description="Token grant type" />
+	<parameter name="refreshToken" description="Refresh token previously received along with the access token that is to be refreshed" />
+	
+	<!-- Optional parameters -->
+	<parameter name="scope" description="Resource URL endpoints that the client wants the token to be scoped for" />
+	
+	<sequence>
+		<property name="uri.var.grantType" expression="$func:grantType" />
+		<property name="uri.var.refreshToken" expression="$func:refreshToken" />
+		<property name="uri.var.scope" expression="$func:scope" />
+		<property name="uri.var.scopeUrlParameter" value="" />
+		
+		<filter
+			xpath="get-property('uri.var.scope') = '' or (not(string(get-property('uri.var.scope'))))">
+			<then>
+				<property name="uri.var.scope" value="" />
+			</then>
+			<else>
+				<property name="uri.var.scopeUrlParameter" value="&amp;scope=" />
+			</else>
+		</filter>
+		
+		<payloadFactory media-type="json">
+			<format>
+				{
+				     "bypassJson":"true"
+				}
+			</format>
+		</payloadFactory>
+		
+		<property name="messageType" value="application/json" scope="axis2" />
+	
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.paypalUrl}/v1/identity/openidconnect/tokenservice?grant_type={uri.var.grantType}&amp;refresh_token={uri.var.refreshToken}{uri.var.scopeUrlParameter}{uri.var.scope}" />
+			</endpoint>
+		</call>
+	</sequence>
+</template>

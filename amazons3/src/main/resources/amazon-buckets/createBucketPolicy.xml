@@ -1,0 +1,31 @@
+<template name="createBucketPolicy" xmlns="http://ws.apache.org/ns/synapse">
+	
+	<parameter name="bucketUrl" description="End point URL of the request" />
+	
+	<!-- Return the bucket policy -->
+	<parameter name="bucketPolicy" description="Policy of the bucket" />
+
+	<sequence>
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+		
+		<!-- Pass bucket policy to the payload as an argument -->
+		<property name="uri.var.bucketPolicy" expression="$func:bucketPolicy" />
+
+		<payloadFactory media-type="json">
+			<format>$1</format>
+			<args>
+				<arg expression="get-property('uri.var.bucketPolicy')" />
+			</args>
+		</payloadFactory>
+
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+		<property name="messageType" value="application/json" scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="put" uri-template="{uri.var.bucketUrl}/?policy" />
+			</endpoint>
+		</call>
+
+	</sequence>
+</template>

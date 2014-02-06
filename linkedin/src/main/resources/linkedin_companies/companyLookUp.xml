@@ -1,0 +1,65 @@
+<template name="companyLookUp" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="universalName" description="The unique string identifier for a company" />
+	<parameter name="id" description="The unique internal numeric company identifier" />
+	<parameter name="emailDomains" description="Company email domains" />
+
+	<sequence>
+		<property name="uri.var.universalName" expression="$func:universalName" />
+		<property name="uri.var.id" expression="$func:id" />
+		<property name="uri.var.emailDomains" expression="$func:emailDomains" />
+		
+		<filter xpath="(get-property('uri.var.id') != '') or (get-property('uri.var.universalName') != '') or (get-property('uri.var.emailDomains') != '')">
+			<then>
+				
+				<filter xpath="not(get-property('uri.var.id') = '') and not(get-property('uri.var.universalName') = '')">
+					<then>
+						<call>
+							<endpoint>
+								<http method="get" uri-template="{uri.var.linkedinUrl}/companies::({uri.var.id},universal-name={uri.var.universalName})?oauth2_access_token={uri.var.accessToken}&amp;format=json" />
+							</endpoint>
+						</call>
+					</then>
+					<else>
+		                <filter xpath="not(get-property('uri.var.id') = '')">
+							<then>
+								<call>
+									<endpoint>
+										<http method="get" uri-template="{uri.var.linkedinUrl}/companies/{uri.var.id}?oauth2_access_token={uri.var.accessToken}&amp;format=json" />
+									</endpoint>
+								</call>
+							</then>
+						</filter>
+						<filter xpath="not(get-property('uri.var.universalName') = '')">
+							<then>
+								<call>
+									<endpoint>
+										<http method="get" uri-template="{uri.var.linkedinUrl}/companies/universal-name={uri.var.universalName}?oauth2_access_token={uri.var.accessToken}&amp;format=json" />
+									</endpoint>
+								</call>
+							</then>
+						</filter>
+		            </else>
+				</filter>
+		
+				<filter xpath="not(get-property('uri.var.emailDomains') = '')">
+					<then>
+						<call>
+							<endpoint>
+								<http method="get" uri-template="{uri.var.linkedinUrl}/companies?email-domain={uri.var.emailDomains}&amp;oauth2_access_token={uri.var.accessToken}&amp;format=json" />
+							</endpoint>
+						</call>
+					</then>
+				</filter>
+				
+			</then>
+			<else>
+				<call>
+					<endpoint>
+						<http method="get" uri-template="{uri.var.linkedinUrl}/companies?oauth2_access_token={uri.var.accessToken}&amp;format=json" />
+					</endpoint>
+				</call>
+			</else>
+		</filter>
+		
+	</sequence>
+</template>

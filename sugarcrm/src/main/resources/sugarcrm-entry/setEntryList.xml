@@ -1,0 +1,53 @@
+<template name="setEntryList" xmlns="http://ws.apache.org/ns/synapse">
+
+  	<parameter name="moduleName" description="The name of the module from which to retrieve records"/>
+  	<parameter name="nameValueLists" description="The name/value list of the record attributes"/>
+	
+  	<sequence>
+	
+	    <property name="uri.var.moduleName" expression="$func:moduleName"/>
+	    <property name="uri.var.nameValueLists" expression="$func:nameValueLists"/>  
+		
+	    <payloadFactory>
+	    
+	    	<format>
+	      		<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+	           		xmlns:sug="http://www.sugarcrm.com/sugarcrm"
+	           		xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/">
+	      			
+	      			<soapenv:Header/>
+	                <soapenv:Body>
+			        	<sug:set_entries>
+					    	<sug:session>$1</sug:session>
+					        <sug:module_name>$2</sug:module_name>		        
+					        <sug:name_value_lists soapenc:arrayType="sug:name_value_list[1]">
+					        </sug:name_value_lists>
+					 	</sug:set_entries>  
+					</soapenv:Body>
+	         	</soapenv:Envelope>
+	      	</format>
+	      
+	      	<args>
+	      	   	<arg expression="get-property('uri.var.session')"/>
+	           	<arg expression="get-property('uri.var.moduleName')"/>
+	      	</args>
+	      	
+	    </payloadFactory>
+		
+		<class name="org.wso2.carbon.connector.sugarcrm.operation.SetEntries" />
+	      
+	    <enrich>
+			<source clone="true" type="body" />
+			<target property="MSG_PAYLOAD" type="property" />
+	   	</enrich>
+		
+	    <header name="To" expression="get-property('uri.var.sugarCRMurl')"/>
+		
+	    <call>
+			<endpoint>
+				<default format="soap11"/>
+			</endpoint>
+		</call>
+		
+  	</sequence>
+</template>

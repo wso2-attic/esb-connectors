@@ -1,0 +1,29 @@
+<template name="sendActivity" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="contentType"
+		description="Indicates that you may have a limited subset of HTML within the contents of your update" />
+	<parameter name="postBody" description="The actual content of the update" />
+	<sequence>
+		<property name="uri.var.contentType" expression="$func:contentType" />
+		<property name="uri.var.postBody" expression="$func:postBody" />
+		<header name="x-li-format" value="json" scope="transport"/>
+
+		<payloadFactory media-type="json">
+			<format>
+				{"body":"$2","contentType":"$1"}
+			</format>
+			<args>
+			    <arg expression="get-property('uri.var.contentType')" />
+			    <arg expression="get-property('uri.var.postBody')" />
+			</args>
+		</payloadFactory>
+
+		<property name="messageType" scope="axis2" value="application/json" />
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2"></property>
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.linkedinUrl}/people/~/person-activities?oauth2_access_token={uri.var.accessToken}&amp;format=json" />
+			</endpoint>
+		</call>
+	</sequence>
+</template>

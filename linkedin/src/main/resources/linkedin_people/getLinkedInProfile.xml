@@ -1,0 +1,51 @@
+<template name="getLinkedInProfile" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="memberId"
+		description="Id of the member of whose profile fields are requested to be retrived" />
+	<parameter name="publicUrl" description="public url of the requested profile" />
+	<sequence>
+		<property name="uri.var.accessToken" expression="$func:accessToken" />
+		<property name="uri.var.memberId" expression="$func:memberId" />
+		<property name="uri.var.publicUrl" expression="$func:publicUrl" />
+
+		<!-- if the access token is not null and the id and publicUrl both are 
+			null -->
+		<filter
+			xpath="not(get-property('uri.var.accessToken') = '') and (get-property('uri.var.memberId') = '') and (get-property('uri.var.publicUrl') = '')">
+			<then>
+				<call>
+					<endpoint>
+						<http method="get"
+							uri-template="{uri.var.linkedinUrl}/people/~?oauth2_access_token={uri.var.accessToken}&amp;format=json" />
+					</endpoint>
+				</call>
+			</then>
+		</filter>
+
+		<!-- if the access token and the id is not null and publicUrl is null -->
+		<filter
+			xpath="not(get-property('uri.var.accessToken') = '') and not(get-property('uri.var.memberId') = '') and (get-property('uri.var.publicUrl') = '')">
+			<then>
+				<call>
+					<endpoint>
+						<http method="get"
+							uri-template="{uri.var.linkedinUrl}/people?id={uri.var.memberId}&amp;oauth2_access_token={uri.var.accessToken}&amp;format=json" />
+					</endpoint>
+				</call>
+			</then>
+		</filter>
+
+		<!-- if the access token and the publicUrl is not null and id is null -->
+		<filter
+			xpath="not(get-property('uri.var.accessToken') = '') and not(get-property('uri.var.publicUrl') = '') and (get-property('uri.var.memberId') = '')">
+			<then>
+				<call>
+					<endpoint>
+						<http method="get"
+							uri-template="{uri.var.linkedinUrl}/people?url={uri.var.publicUrl}&amp;oauth2_access_token={uri.var.accessToken}&amp;format=json" />
+					</endpoint>
+				</call>
+			</then>
+		</filter>
+		
+	</sequence>
+</template>
