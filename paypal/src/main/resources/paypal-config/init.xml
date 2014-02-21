@@ -1,11 +1,21 @@
 <template name="init" xmlns="http://ws.apache.org/ns/synapse">
-	<parameter name="appUri" description="URL of the Paypal API" />
-	<parameter name="authorization" description="Authorization header value" />
+
+	<parameter name="apiUrl" description="URL of the Paypal API. This is an optional parameter which has a default value of https://api.paypal.com" />
+	<parameter name="accessToken"
+		description="The access token allows to make requests to the API on a behalf of a user." />
 
 	<sequence>
-		<property name="uri.var.paypalUrl" expression="$func:appUri" />
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.accessToken" expression="$func:accessToken" />
 		<property xmlns:ns2="http://org.apache.synapse/xsd" xmlns:ns="http://org.apache.synapse/xsd"
-			xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope" name="Authorization"
-			expression="$func:authorization" scope="transport" type="STRING" />
+			name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))"
+			scope="transport" type="STRING" />
+
+		<filter xpath="get-property('uri.var.apiUrl') = '' or not(string(get-property('uri.var.apiUrl')))">
+			<then>
+				<property name="uri.var.apiUrl" value="https://api.paypal.com" />
+			</then>
+		</filter>
 	</sequence>
+
 </template>
