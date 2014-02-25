@@ -1,29 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <proxy xmlns="http://ws.apache.org/ns/synapse"
-       name="paypal_captureAuthorization"
+       name="paypal_lookupPayment"
        transports="https,http"
        statistics="disable"
        trace="disable"
        startOnLoad="true">
    <target>
       <inSequence>
-         <property name="apiUrl" expression="json-eval($.apiUrl)"/>
-         <property name="accessToken" expression="json-eval($.accessToken)"/>
-         <property name="authorizationId" expression="json-eval($.authorizationId)"/>
-         <property name="total" expression="json-eval($.total)"/>
-         <property name="currency" expression="json-eval($.currency)"/>
-         <property name="finalCapture" expression="json-eval($.isFinalCapture)"/>
+         <property name="apiUrl"
+                   expression="json-eval($.apiUrl)"/>
+		 <property name="accessToken"
+                   expression="json-eval($.accessToken)"/>
+         <property name="captureId"
+                   expression="json-eval($.captureId)"/>
          <paypal.init>
             <apiUrl>{$ctx:apiUrl}</apiUrl>
             <accessToken>{$ctx:accessToken}</accessToken>
          </paypal.init>
-         <paypal.captureAuthorization>
-            <authorizationId>{$ctx:authorizationId}</authorizationId>
-            <total>{$ctx:total}</total>
-            <currency>{$ctx:currency}</currency>
-            <isFinalCapture>{$ctx:finalCapture}</isFinalCapture>
-         </paypal.captureAuthorization>
-         <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+         <paypal.lookupPayment>
+            <paymentId>{$ctx:captureId}</paymentId>
+         </paypal.lookupPayment>
+		 <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
             <then>
                <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
                <switch source="$axis2:HTTP_SC">
@@ -32,10 +29,11 @@
                   </case>
                   <case regex="404">
                      <property name="ERROR_MESSAGE" value="Not Found"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
                   </case>
-                  <case regex="400">
+				  <case regex="400">
                      <property name="ERROR_MESSAGE" value="Bad Request"/>
-                     <property name="message" expression="json-eval($.message)"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
                   </case>
                </switch>
             </then>
@@ -49,4 +47,3 @@
    </target>
    <description/>
 </proxy>
-                                

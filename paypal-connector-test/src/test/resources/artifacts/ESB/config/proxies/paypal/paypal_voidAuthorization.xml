@@ -7,22 +7,37 @@
        startOnLoad="true">
    <target>
       <inSequence>
-         <property xmlns:ns="wso2.connector.paypal.voidauthorization"
-                   name="appUri"
-                   expression="//ns:paypalApiUrl/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.voidauthorization"
-                   name="auth"
-                   expression="//ns:authorization/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.voidauthorization"
-                   name="authorizationId"
-                   expression="//ns:authorizationId/text()"/>
-         <PayPal.init>
-            <appUri>{$ctx:appUri}</appUri>
-            <authorization>{$ctx:auth}</authorization>
-         </PayPal.init>
-         <PayPal.voidAuthorization>
+         <property name="apiUrl"
+                   expression="json-eval($.apiUrl)"/>
+         <property name="accessToken"
+                   expression="json-eval($.accessToken)"/>
+         <property name="authorizationId"
+                   expression="json-eval($.authorizationId)"/>
+         <paypal.init>
+            <apiUrl>{$ctx:apiUrl}</apiUrl>
+            <accessToken>{$ctx:accessToken}</accessToken>
+         </paypal.init>
+         <paypal.voidAuthorization>
             <authorizationId>{$ctx:authorizationId}</authorizationId>
-         </PayPal.voidAuthorization>
+         </paypal.voidAuthorization>
+		 <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_MESSAGE" value="Unauthorized"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_MESSAGE" value="Not Found"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+				  <case regex="400">
+                     <property name="ERROR_MESSAGE" value="Bad Request"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+               </switch>
+            </then>
+         </filter>
          <respond/>
       </inSequence>
       <outSequence>

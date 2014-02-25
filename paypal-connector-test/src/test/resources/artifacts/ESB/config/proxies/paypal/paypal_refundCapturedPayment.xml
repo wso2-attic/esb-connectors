@@ -7,30 +7,39 @@
        startOnLoad="true">
    <target>
       <inSequence>
-         <property xmlns:ns="wso2.connector.paypal.refundCapturedPayment"
-                   name="ppurl"
-                   expression="//ns:paypalApiUrl/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.refundCapturedPayment"
-                   name="auth"
-                   expression="//ns:authorization/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.refundCapturedPayment"
-                   name="captureId"
-                   expression="//ns:captureid/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.refundCapturedPayment"
-                   name="currency"
-                   expression="//ns:currency/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.refundCapturedPayment"
-                   name="total"
-                   expression="//ns:total/text()"/>
-         <PayPal.init>
-            <appUri>{$ctx:ppurl}</appUri>
-            <authorization>{$ctx:auth}</authorization>
-         </PayPal.init>
-         <PayPal.refundCapturedPayment>
+         <property name="apiUrl" expression="json-eval($.apiUrl)"/>
+         <property name="accessToken" expression="json-eval($.accessToken)"/>
+         <property name="captureId" expression="json-eval($.captureId)"/>
+         <property name="total" expression="json-eval($.total)"/>
+         <property name="currency" expression="json-eval($.currency)"/>
+         <property name="details" expression="json-eval($.details)"/>
+         <paypal.init>
+            <apiUrl>{$ctx:apiUrl}</apiUrl>
+            <accessToken>{$ctx:accessToken}</accessToken>
+         </paypal.init>
+         <paypal.refundCapturedPayment>
             <captureId>{$ctx:captureId}</captureId>
-            <currency>{$ctx:currency}</currency>
             <total>{$ctx:total}</total>
-         </PayPal.refundCapturedPayment>
+            <currency>{$ctx:currency}</currency>
+            <details>{$ctx:details}</details>
+         </paypal.refundCapturedPayment>
+         <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_MESSAGE" value="Unauthorized"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_MESSAGE" value="Not Found"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_MESSAGE" value="Bad Request"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+               </switch>
+            </then>
+         </filter>
          <respond/>
       </inSequence>
       <outSequence>
@@ -40,3 +49,4 @@
    </target>
    <description/>
 </proxy>
+                                

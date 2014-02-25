@@ -7,37 +7,47 @@
        startOnLoad="true">
    <target>
       <inSequence>
-         <property xmlns:ns="wso2.connector.paypal.granttokenfromrefreshtoken"
-                   name="appUri"
-                   expression="//ns:paypalApiUrl/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.granttokenfromrefreshtoken"
-                   name="auth"
-                   expression="//ns:authorization/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.granttokenfromrefreshtoken"
-                   name="grantType"
-                   expression="//ns:grantType/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.granttokenfromrefreshtoken"
-                   name="refreshToken"
-                   expression="//ns:refreshToken/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.granttokenfromrefreshtoken"
-                   name="scope"
-                   expression="//ns:scope/text()"/>
-         <PayPal.init>
-            <appUri>{$ctx:appUri}</appUri>
-            <authorization>{$ctx:auth}</authorization>
-         </PayPal.init>
-         <PayPal.grantTokenFromRefreshToken>
+         <property name="apiUrl" expression="json-eval($.apiUrl)"/>
+         <property name="clientId" expression="json-eval($.clientId)"/>
+         <property name="clientSecret" expression="json-eval($.clientSecret)"/>
+         <property name="accessToken" expression="json-eval($.accessToken)"/>
+         <property name="grantType" expression="json-eval($.grantType)"/>
+         <property name="refreshToken" expression="json-eval($.refreshToken)"/>
+         <property name="scope" expression="json-eval($.scope)"/>
+         <paypal.init>
+            <apiUrl>{$ctx:apiUrl}</apiUrl>
+         </paypal.init>
+         <paypal.grantTokenFromRefreshToken>
+            <clientId>{$ctx:clientId}</clientId>
+            <clientSecret>{$ctx:clientSecret}</clientSecret>
             <grantType>{$ctx:grantType}</grantType>
             <refreshToken>{$ctx:refreshToken}</refreshToken>
             <scope>{$ctx:scope}</scope>
-         </PayPal.grantTokenFromRefreshToken>
+         </paypal.grantTokenFromRefreshToken>
+	 <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_MESSAGE" value="Unauthorized"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_MESSAGE" value="Not Found"/>
+		     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+		  <case regex="400">
+                     <property name="ERROR_MESSAGE" value="Bad Request"/>
+	 	     <property name="error_description" expression="json-eval($.error_description)"/>
+                  </case>
+               </switch>
+            </then>
+         </filter>
          <respond/>
       </inSequence>
       <outSequence>
          <log/>
          <send/>
       </outSequence>
-   </target>
+      </target>
    <description/>
-</proxy>
-                                
+</proxy>   
