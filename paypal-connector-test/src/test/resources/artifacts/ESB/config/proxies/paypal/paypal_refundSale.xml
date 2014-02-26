@@ -7,30 +7,37 @@
        startOnLoad="true">
    <target>
       <inSequence>
-         <property xmlns:ns="wso2.connector.paypal.refundsale"
-                   name="ppurl"
-                   expression="//ns:paypalApiUrl/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.refundsale"
-                   name="auth"
-                   expression="//ns:authorization/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.refundsale"
-                   name="salesid"
-                   expression="//ns:id/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.refundsale"
-                   name="refundAmt"
-                   expression="//ns:amount/text()"/>
-         <property xmlns:ns="wso2.connector.paypal.refundsale"
-                   name="currency"
-                   expression="//ns:currCode/text()"/>
-         <PayPal.init>
-            <appUri>{$ctx:ppurl}</appUri>
-            <authorization>{$ctx:auth}</authorization>
-         </PayPal.init>
-         <PayPal.refundSale>
-            <sale_id>{$ctx:salesid}</sale_id>
-            <total>{$ctx:refundAmt}</total>
-            <currencyCode>{$ctx:currency}</currencyCode>
-         </PayPal.refundSale>
+         <property name="apiUrl" expression="json-eval($.apiUrl)"/>
+         <property name="accessToken" expression="json-eval($.accessToken)"/>
+         <property name="saleId" expression="json-eval($.saleId)"/>
+         <property name="total" expression="json-eval($.total)"/>
+         <property name="currency" expression="json-eval($.currency)"/>
+         <paypal.init>
+            <apiUrl>{$ctx:apiUrl}</apiUrl>
+            <accessToken>{$ctx:accessToken}</accessToken>
+         </paypal.init>
+         <paypal.refundSale>
+            <saleId>{$ctx:saleId}</saleId>
+            <total>{$ctx:total}</total>
+            <currency>{$ctx:currency}</currency>
+         </paypal.refundSale>
+         <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_MESSAGE" value="Unauthorized"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_MESSAGE" value="Not Found"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_MESSAGE" value="Bad Request"/>
+                     <property name="message" expression="json-eval($.message)"/>
+                  </case>
+               </switch>
+            </then>
+         </filter>
          <respond/>
       </inSequence>
       <outSequence>
