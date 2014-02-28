@@ -1,95 +1,37 @@
-
 <template name="viewJobs" xmlns="http://ws.apache.org/ns/synapse">
 
+	<!-- Required Parameters -->
 	<parameter name="id" description="ID of the job posting" />
-	<parameter name="jobFields" description="Parameter Description 1" />
-	<parameter name="companyFieldsSet" description="Parameter Description 1" />
-	<parameter name="positionFieldsSet" description="Parameter Description 1" />
-	<parameter name="job-PosterFieldsSet" description="Parameter Description 1" />
-
+	<!-- Optional Parameters -->
+	<parameter name="fieldSelectors" description="To retrieve the specific fields." />
 
 	<sequence>
 		<property name="uri.var.id" expression="$func:id" />
-		<property name="uri.var.jobFields" expression="$func:jobFields" />
-		<property name="uri.var.companyFieldsSet" expression="$func:companyFieldsSet" />
-		<property name="uri.var.positionFieldsSet" expression="$func:positionFieldsSet" />
-		<property name="uri.var.job-PosterFieldsSet" expression="$func:job-PosterFieldsSet" />
-
-
-		<filter xpath="(get-property('uri.var.jobFields') = '') ">
+		<property name="uri.var.fieldSelectors" expression="$func:fieldSelectors" />
+		
+		<filter xpath="get-property('uri.var.fieldSelectors') = '' or not(string(get-property('uri.var.fieldSelectors')))">
 			<then>
-				<property name="uri.var.query" value="" />
+				<property name="uri.var.fieldSelectors" value="" />
 			</then>
 			<else>
-
-				<property name="uri.var.query"
-					expression="fn:concat(get-property('uri.var.query'),get-property('uri.var.jobFields'),',')" />
-
-
+				<property name="uri.var.fieldSelectors" expression="fn:concat(':(', get-property('uri.var.fieldSelectors'), ')')" />
 			</else>
-		</filter>
-
-
-
-		<filter xpath="(get-property('uri.var.companyFieldsSet') = '') ">
-			<then>
-				<property name="uri.var.query" value="" />
-			</then>
-			<else>
-
-				<property name="uri.var.query"
-					expression="fn:concat(get-property('uri.var.query'),'company:(',get-property('uri.var.companyFieldsSet'),')',',')" />
-
-
-			</else>
-		</filter>
-
-
-
-		<filter xpath="(get-property('uri.var.positionFieldsSet') = '') ">
-			<then>
-				<property name="uri.var.query" value="" />
-			</then>
-			<else>
-
-				<property name="uri.var.query"
-					expression="fn:concat(get-property('uri.var.query'),'position:(',get-property('uri.var.positionFieldsSet'),')',',')" />
-
-
-			</else>
-		</filter>
-
-		<filter xpath="(get-property('uri.var.job-PosterFieldsSet') = '') ">
-			<then>
-				<property name="uri.var.query" value="" />
-			</then>
-			<else>
-
-				<property name="uri.var.query"
-					expression="fn:concat(get-property('uri.var.query'),'job-poster:(',get-property('uri.var.job-PosterFieldsSet'),')',',')" />
-
-
-			</else>
-		</filter>
-
-		<log>
-
-			<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'')" />
-
-		</log>
-
-
+		</filter>	
 
 		<call>
-
 			<endpoint>
-
 				<http method="get"
-					uri-template="{uri.var.linkedinUrl}/jobs?id={uri.var.id}:({uri.var.query})&amp;oauth2_access_token={uri.var.accessToken}&amp;format=json" />
+					uri-template="{uri.var.apiUrl}/v1/jobs/{uri.var.id}{uri.var.fieldSelectors}?oauth2_access_token={uri.var.accessToken}&amp;format=json" />
 			</endpoint>
-
 		</call>
-		<property name="messageType" scope="axis2" value="application/xml" />
+		
+
+		<!-- Remove response custom header information -->
+		<header name="x-li-format" scope="transport" action="remove" />
+		<header name="X-LI-UUID" scope="transport" action="remove" />
+		<header name="X-Li-Pop" scope="transport" action="remove" />
+		<header name="X-Li-Fabric" scope="transport" action="remove" />
+		<header name="x-li-request-id" scope="transport" action="remove" />
 
 	</sequence>
 </template>
