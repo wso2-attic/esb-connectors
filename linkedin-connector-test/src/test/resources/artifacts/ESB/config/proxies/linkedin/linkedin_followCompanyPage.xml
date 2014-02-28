@@ -7,22 +7,47 @@
        startOnLoad="true">
    <target>
       <inSequence>
-         <property xmlns:ns="wso2.connector.linkedin.followcompanypage"
-                   name="id"
-                   expression="//ns:id/text()"/>
-         <property xmlns:ns="wso2.connector.linkedin.followcompanypage"
-                   name="accessToken"
-                   expression="//ns:accessToken/text()"/>
-         <property xmlns:ns="wso2.connector.linkedin.followcompanypage"
-                   name="appUri"
-                   expression="//ns:appUri/text()"/>
+         <property name="accessToken" expression="json-eval($.accessToken)"/>
+         <property name="apiUrl" expression="json-eval($.apiUrl)"/>
+         <property name="companyId" expression="json-eval($.companyId)"/>
+		 <property name="executeFunction" expression="json-eval($.executeFunction)"/>
+		 <property name="fieldSelectors" expression="json-eval($.fieldSelectors)"/>
          <linkedin.init>
-            <appUri>{$ctx:appUri}</appUri>
+            <apiUrl>{$ctx:apiUrl}</apiUrl>
             <accessToken>{$ctx:accessToken}</accessToken>
          </linkedin.init>
          <linkedin.followCompanyPage>
-            <id>{$ctx:id}</id>
+            <companyId>{$ctx:companyId}</companyId>
+			<executeFunction>{$ctx:executeFunction}</executeFunction>
+			<fieldSelectors>{$ctx:fieldSelectors}</fieldSelectors>
          </linkedin.followCompanyPage>
+		 <property name="messageType" value="application/json" scope="axis2" />
+         <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_MESSAGE" value="Unauthorized"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+                  <case regex="403">
+                     <property name="ERROR_MESSAGE" value="Forbidden"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_MESSAGE" value="Not Found"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_MESSAGE" value="Bad Request"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+                  <case regex="500">
+                     <property name="ERROR_MESSAGE" value="Internal Server Error"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+               </switch>
+            </then>
+         </filter>
          <respond/>
       </inSequence>
       <outSequence>
@@ -32,3 +57,4 @@
    </target>
    <description/>
 </proxy>
+                                
