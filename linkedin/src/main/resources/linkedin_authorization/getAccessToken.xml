@@ -1,27 +1,58 @@
 <template name="getAccessToken" xmlns="http://ws.apache.org/ns/synapse">
- 
-  <parameter name="grantType" description="Parameter Description 1"/>
-  <parameter name="code" description="Parameter Description 2"/>
-  <parameter name="redirectUri" description="Parameter Description 3"/>
-  <parameter name="clientId" description="Parameter Description 4"/>
-  <parameter name="clientSecret" description="Parameter Description 5"/>
-  <sequence>
 
-    <property name="uri.var.grantType" expression="$func:grantType"/>
-    <property  name="uri.var.code" expression="$func:code"/>
-    <property  name="uri.var.redirectUri" expression="$func:redirectUri"/>
-    <property name="uri.var.clientId" expression="$func:clientId"/>
-    <property  name="uri.var.clientSecret" expression="$func:clientSecret"/>
-    
+	<!-- Required parameters -->
 	
-    
-    <call>
-      <endpoint>
-     
-     
-        <http method="get" uri-template="{uri.var.linkedinUrl}/uas/oauth2/accessToken?grant_type={uri.var.grantType}&amp;code={uri.var.code}&amp;redirect_uri={uri.var.redirectUri}&amp;client_id={uri.var.clientId}&amp;client_secret={uri.var.clientSecret}&amp;format=json"/>
-      </endpoint>
-    </call>
+	<parameter name="code"
+		description="Value of authorization_code." />
+	<parameter name="redirectUri"
+		description="Same redirect_uri that you passed to get authorization_code." />
+	<parameter name="clientId"
+		description="Value of your API Key given when you registered your application with LinkedIn." />
+	<parameter name="clientSecret"
+		description="Value of your secret key given when you registered your application with LinkedIn." />
 
-  </sequence>
+	<sequence>
+		<property name="uri.var.code" expression="$func:code" />
+		<property name="uri.var.redirectUri" expression="$func:redirectUri" />
+		<property name="uri.var.clientId" expression="$func:clientId" />
+		<property name="uri.var.clientSecret" expression="$func:clientSecret" />
+		
+		<payloadFactory media-type="xml">
+			<format>
+				<root>
+					<grant_type>authorization_code</grant_type>
+					<code>$1</code>
+					<redirect_uri>$2</redirect_uri>
+					<client_id>$3</client_id>
+					<client_secret>$4</client_secret>
+				</root>
+			</format>
+			
+			<args>
+				<arg expression="get-property('uri.var.code')" />
+				<arg expression="get-property('uri.var.redirectUri')" />
+				<arg expression="get-property('uri.var.clientId')" />
+				<arg expression="get-property('uri.var.clientSecret')" />
+			</args>
+		</payloadFactory>
+		
+		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />	
+		
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/uas/oauth2/accessToken" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove response custom header information -->
+		<header name="x-li-format" scope="transport" action="remove" />
+		<header name="X-LI-UUID" scope="transport" action="remove" />
+		<header name="X-Li-Pop" scope="transport" action="remove" />
+		<header name="X-Li-Fabric" scope="transport" action="remove" />
+		<header name="x-li-request-id" scope="transport" action="remove" />
+		<header name="P3P" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		
+	</sequence>
 </template>
