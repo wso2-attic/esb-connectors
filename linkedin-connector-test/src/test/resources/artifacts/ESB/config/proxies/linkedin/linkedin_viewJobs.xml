@@ -7,39 +7,40 @@
        startOnLoad="true">
    <target>
       <inSequence>
-         <log/>
-         <property xmlns:ns="wso2.connector.linkedin.viewjobs"
-                   name="accessToken"
-                   expression="//ns:accessToken/text()"/>
-         <property xmlns:ns="wso2.connector.linkedin.viewjobs"
-                   name="appUri"
-                   expression="//ns:appUri/text()"/>
-         <property xmlns:ns="wso2.connector.linkedin.viewjobs"
-                   name="id"
-                   expression="//ns:id/text()"/>
-         <property xmlns:ns="wso2.connector.linkedin.viewjobs"
-                   name="jobFields"
-                   expression="//ns:jobFields/text()"/>
-         <property xmlns:ns="wso2.connector.linkedin.viewjobs"
-                   name="companyFieldsSet"
-                   expression="//ns:companyFieldsSet/text()"/>
-         <property xmlns:ns="wso2.connector.linkedin.viewjobs"
-                   name="positionFieldsSet"
-                   expression="//ns:positionFieldsSet/text()"/>
-         <property xmlns:ns="wso2.connector.linkedin.viewjobs"
-                   name="job-PosterFieldsSet"
-                   expression="//ns:job-PosterFieldsSet/text()"/>
+         <property name="accessToken" expression="json-eval($.accessToken)"/>
+         <property name="apiUrl" expression="json-eval($.apiUrl)"/>
+         <property name="id" expression="json-eval($.id)"/>
+         <property name="fieldSelectors" expression="json-eval($.fieldSelectors)"/>
          <linkedin.init>
-            <appUri>{$ctx:appUri}</appUri>
+            <apiUrl>{$ctx:apiUrl}</apiUrl>
             <accessToken>{$ctx:accessToken}</accessToken>
          </linkedin.init>
          <linkedin.viewJobs>
             <id>{$ctx:id}</id>
-            <jobFields>{$ctx:jobFields}</jobFields>
-            <companyFieldsSet>{$ctx:companyFieldsSet}</companyFieldsSet>
-            <positionFieldsSet>{$ctx:positionFieldsSet}</positionFieldsSet>
-            <job-PosterFieldsSet>{$ctx:job-PosterFieldsSet}</job-PosterFieldsSet>
+            <fieldSelectors>{$ctx:fieldSelectors}</fieldSelectors>
          </linkedin.viewJobs>
+         <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_MESSAGE" value="Unauthorized"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+                  <case regex="403">
+                     <property name="ERROR_MESSAGE" value="Forbidden"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_MESSAGE" value="Not Found"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_MESSAGE" value="Bad Request"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+               </switch>
+            </then>
+         </filter>
          <respond/>
       </inSequence>
       <outSequence>
@@ -49,4 +50,3 @@
    </target>
    <description/>
 </proxy>
-                                

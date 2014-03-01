@@ -1,45 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <proxy xmlns="http://ws.apache.org/ns/synapse"
-       name="linkedin_getLinkedInProfile"
+       name="linkedin_getConnections"
        transports="https,http"
        statistics="disable"
        trace="disable"
        startOnLoad="true">
    <target>
       <inSequence>
-         <property name="accessToken" expression="json-eval($.accessToken)"/>
+          <property name="accessToken" expression="json-eval($.accessToken)"/>
          <property name="apiUrl" expression="json-eval($.apiUrl)"/>
-         <property name="memberId" expression="json-eval($.memberId)"/>
-         <property name="publicUrl" expression="json-eval($.publicUrl)"/>
+         <property name="id" expression="json-eval($.id)"/>
+         <property name="publicProfileUrl" expression="json-eval($.publicProfileUrl)"/>
          <property name="fieldSelectors" expression="json-eval($.fieldSelectors)"/>
-         <property name="secureUrls" expression="json-eval($.secureUrls)"/>
+         <property name="start" expression="json-eval($.start)"/>
+         <property name="count" expression="json-eval($.count)"/>
+         <property name="modified" expression="json-eval($.modified)"/>
+         <property name="modifiedSince" expression="json-eval($.modifiedSince)"/>
          <linkedin.init>
             <apiUrl>{$ctx:apiUrl}</apiUrl>
             <accessToken>{$ctx:accessToken}</accessToken>
          </linkedin.init>
-         <linkedin.getProfile>
-            <memberId>{$ctx:memberId}</memberId>
-            <publicUrl>{$ctx:publicUrl}</publicUrl>
+         <linkedin.getConnections>
+            <id>{$ctx:id}</id>
+            <publicProfileUrl>{$ctx:publicProfileUrl}</publicProfileUrl>
             <fieldSelectors>{$ctx:fieldSelectors}</fieldSelectors>
-            <secureUrls>{$ctx:secureUrls}</secureUrls>
-         </linkedin.getProfile>
+            <count>{$ctx:count}</count>
+            <start>{$ctx:start}</start>
+            <modifiedSince>{$ctx:modifiedSince}</modifiedSince>
+            <modified>{$ctx:modified}</modified>
+         </linkedin.getConnections>
          <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
             <then>
                <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
                <switch source="$axis2:HTTP_SC">
                   <case regex="401">
                      <property name="ERROR_MESSAGE" value="Unauthorized"/>
-                     <property name="error_description" expression="json-eval($.message)"/>
-                  </case>
-                  <case regex="403">
-                     <property name="ERROR_MESSAGE" value="Forbidden"/>
-                     <property name="error_description" expression="json-eval($.message)"/>
                   </case>
                   <case regex="404">
                      <property name="ERROR_MESSAGE" value="Not Found"/>
                   </case>
                   <case regex="400">
                      <property name="ERROR_MESSAGE" value="Bad Request"/>
+                     <property name="message" expression="json-eval($.message)"/>
                   </case>
                </switch>
             </then>
@@ -53,4 +55,3 @@
    </target>
    <description/>
 </proxy>
-                                
