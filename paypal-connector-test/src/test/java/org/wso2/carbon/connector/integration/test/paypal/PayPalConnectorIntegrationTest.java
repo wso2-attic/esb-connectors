@@ -31,11 +31,11 @@ import org.wso2.carbon.connector.integration.test.common.ConnectorIntegrationUti
 import org.wso2.carbon.esb.ESBIntegrationTest;
 import org.wso2.carbon.mediation.library.stub.MediationLibraryAdminServiceStub;
 import org.wso2.carbon.mediation.library.stub.upload.MediationLibraryUploaderStub;
+import org.json.JSONObject;
 
 import java.net.URL;
 
 import javax.activation.DataHandler;
-import org.json.JSONObject;
 
 public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
     
@@ -56,6 +56,21 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
     private String pathToProxiesDirectory = null;
     
     private String pathToRequestsDirectory = null;
+    
+    // Variables for store results of dependent methods
+    private String createPaymentResultPaymentId;
+    
+    private String createPaymentResultSaleId;
+    
+    private String createPaymentResultAuthorizationId;
+    
+    private String refundSaleResultId;
+    
+    private String captureAuthorizationResultId;
+    
+    private String storeCreditCardResultId;
+    
+    
     
     @BeforeClass(alwaysRun = true)
     public void setEnvironment() throws Exception {
@@ -101,528 +116,6 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
     }
     
     /**
-     * Positive test case for captureAuthorization method with mandatory parameters.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {captureAuthorization} integration test with mandatory parameters.")
-    public void testCaptureAuthorizationWithMandatoryParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "captureAuthorization_mandatory.txt";
-        String methodName = "paypal_captureAuthorization";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("create_time"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-    }
-    
-    /**
-     * Positive test case for captureAuthorization method with optional parameters.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {captureAuthorization} integration test with optional parameters.")
-    public void testCaptureAuthorizationWithOptionalParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "captureAuthorization_optional.txt";
-        String methodName = "paypal_captureAuthorization";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("create_time"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-    }
-    
-    /**
-     * Negative test case for captureAuthorization method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {captureAuthorization} integration test with negative case.")
-    public void testCaptureAuthorizationWithNegetiveCase() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "captureAuthorization_negetive.txt";
-        String methodName = "paypal_captureAuthorization";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 400);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-    }
-    
-    /**
-     * Positive test case for lookupSales method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupSale} integration test with mandatory parameters.")
-    public void testLookupSaleWithMandatoryParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "lookupSale_mandatory.txt";
-        String methodName = "paypal_lookupSale";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("id"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Negative test case for lookupSales method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupSale} integration test with negative case.")
-    public void testLookupSaleWithNegetiveCase() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "lookupSale_negetive.txt";
-        String methodName = "paypal_lookupSale";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 404);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Positive test case for lookupRefund method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupRefund} integration test with mandatory parameters.")
-    public void testLookupRefundWithMandatoryParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "lookupRefund_mandatory.txt";
-        String methodName = "paypal_lookupRefund";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("create_time"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Negative test case for lookupRefund method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupRefund} integration test with negative case.")
-    public void testLookupRefundWithNegetiveCase() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "lookupRefund_negetive.txt";
-        String methodName = "paypal_lookupRefund";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 404);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Positive test case for lookupPayment method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupPayment} integration test with mandatory parameters.")
-    public void testLookupPaymentWithMandatoryParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "lookupPayment_mandatory.txt";
-        String methodName = "paypal_lookupPayment";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("create_time"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Negative test case for lookupPayment method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal { lookupPayment } integration test with negative case.")
-    public void testLookupPaymentWithNegetiveCase() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "lookupPayment_negative.txt";
-        String methodName = "paypal_lookupPayment";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 404);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Positive test case for grantTokenFromRefreshToken method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {grantTokenFromRefreshToken} integration test with mandatory parameters.")
-    public void testGrantTokenFromRefreshTokenWithMandatoryParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "grantTokenFromRefreshToken_mandatory.txt";
-        String methodName = "paypal_grantTokenFromRefreshToken";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("clientId"), paypalConnectorProperties.getProperty("clientSecret"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("access_token"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Positive test case for grantTokenFromRefreshToken method with optional parameters.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {grantTokenFromRefreshToken} integration test with optional parameters.")
-    public void testGrantTokenFromRefreshTokenWithOptionalParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "grantTokenFromRefreshToken_optional.txt";
-        String methodName = "paypal_grantTokenFromRefreshToken";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("clientId"), paypalConnectorProperties.getProperty("clientSecret"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("access_token"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Negative test case for grantTokenFromRefreshToken method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {grantTokenFromRefreshToken} integration test with negative case.")
-    public void testGrantTokenFromRefreshTokenWithNegetiveCase() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "grantTokenFromRefreshToken_negetive.txt";
-        String methodName = "paypal_grantTokenFromRefreshToken";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("clientId"), paypalConnectorProperties.getProperty("clientSecret"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 400);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Positive test case for lookupStoredCreditCard method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupStoredCreditCard} integration test with mandatory parameters.")
-    public void testLookupStoredCreditCardWithMandatoryParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "lookupStoredCreditCard_mandatory.txt";
-        String methodName = "paypal_lookupStoredCreditCard";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("id"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Negetive test case for lookupStoredCreditCard method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupStoredCreditCard} integration test with negative case.")
-    public void testLookupStoredCreditCardWithNegetiveCase() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "lookupStoredCreditCard_negetive.txt";
-        String methodName = "paypal_lookupStoredCreditCard";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 404);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Negative test case for grantTokenFromAuthorization method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {grantTokenFromAuthorization} integration test with negative case.")
-    public void testGrantTokenFromAuthorizationWithNegetiveCase() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "grantTokenFromAuthorization_negetive.txt";
-        String methodName = "paypal_grantTokenFromAuthorization";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("clientId"), paypalConnectorProperties.getProperty("clientSecret"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 400);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Positive test case for refundCapturedPayment method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {refundCapturedPayment} integration test with mandatory parameters.")
-    public void testRefundCapturedPaymentWithMandatoryParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "refundCapturedPayment_mandatory.txt";
-        String methodName = "paypal_refundCapturedPayment";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("create_time"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Negative test case for refundCapturedPayment method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal { lookupPayment } integration test with negative case.")
-    public void testRefundCapturedPaymentWithNegetiveCase() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "refundCapturedPayment_negetive.txt";
-        String methodName = "paypal_refundCapturedPayment";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 404);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Negative test case for reAuthorization method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {reAuthorization} integration test with negative case.")
-    public void testReAuthorizationNegative() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "reAuthorization_negative.txt";
-        String methodName = "paypal_reAuthorization";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 400);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Positive test case for createPayment method with mandatory parameters - credit card payment.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {createPayment} integration test with mandatory parameters - credit card payment.")
-    public void testCreateCreditCardPaymentWithMandatoryParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "createPayment_credit_card_mandatory.txt";
-        String methodName = "paypal_createPayment";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("create_time"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Positive test case for createPayment method with optional parameters - credit card payment.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {createPayment} integration test with optional parameters - credit card payment.")
-    public void testCreateCreditCardPaymentWithOptionalParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "createPayment_credit_card_optional.txt";
-        String methodName = "paypal_createPayment";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("create_time"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Negative test case for createPayment method - credit card payment.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {createPayment} integration test with negative case - credit card payment.")
-    public void testCreateCreditCardPaymentWithNegativeCase() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "createPayment_credit_card_negative.txt";
-        String methodName = "paypal_createPayment";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 400);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
      * Positive test case for createPayment method with mandatory parameters - paypal payment.
      */
     @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {createPayment} integration test with mandatory parameters - paypal payment.")
@@ -631,8 +124,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         String jsonRequestFilePath = pathToRequestsDirectory + "createPayment_paypal_mandatory.txt";
         String methodName = "paypal_createPayment";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
         
@@ -656,8 +148,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         String jsonRequestFilePath = pathToRequestsDirectory + "createPayment_paypal_optional.txt";
         String methodName = "paypal_createPayment";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
         
@@ -681,8 +172,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         String jsonRequestFilePath = pathToRequestsDirectory + "createPayment_paypal_negative.txt";
         String methodName = "paypal_createPayment";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
         
@@ -698,16 +188,284 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
     }
     
     /**
+     * Positive test case for createPayment method with mandatory parameters - credit card payment.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {createPayment} integration test with mandatory parameters - credit card payment.")
+    public void testCreateCreditCardPaymentWithMandatoryParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "createPayment_credit_card_mandatory.txt";
+        String methodName = "paypal_createPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("create_time"));
+            createPaymentResultPaymentId = jsonObject.getString("id");
+            createPaymentResultSaleId = jsonObject.getJSONArray("transactions").getJSONObject(0).getJSONArray("related_resources").getJSONObject(0).getJSONObject("sale").getString("id");
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Positive test case for createPayment method with optional parameters - credit card payment.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {createPayment} integration test with optional parameters - credit card payment.")
+    public void testCreateCreditCardPaymentWithOptionalParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "createPayment_credit_card_optional.txt";
+        String methodName = "paypal_createPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("create_time"));
+            createPaymentResultAuthorizationId = jsonObject.getJSONArray("transactions").getJSONObject(0).getJSONArray("related_resources").getJSONObject(0).getJSONObject("authorization").getString("id");
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Positive test case for createPayment method with optional parameters - credit card payment (this will run in order to resolve dependencies).
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {createPayment} integration test with optional parameters - credit card payment.")
+    public void testCreateCreditCardPaymentWithOptionalParametersForResolveDependencies1() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "createPayment_credit_card_optional.txt";
+        String methodName = "paypal_createPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("create_time"));
+            createPaymentResultAuthorizationId = jsonObject.getJSONArray("transactions").getJSONObject(0).getJSONArray("related_resources").getJSONObject(0).getJSONObject("authorization").getString("id");
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Positive test case for createPayment method with optional parameters - credit card payment (this will run in order to resolve dependencies).
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {createPayment} integration test with optional parameters - credit card payment.")
+    public void testCreateCreditCardPaymentWithOptionalParametersForResolveDependencies2() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "createPayment_credit_card_optional.txt";
+        String methodName = "paypal_createPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("create_time"));
+            createPaymentResultAuthorizationId = jsonObject.getJSONArray("transactions").getJSONObject(0).getJSONArray("related_resources").getJSONObject(0).getJSONObject("authorization").getString("id");
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Negative test case for createPayment method - credit card payment.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {createPayment} integration test with negative case - credit card payment.")
+    public void testCreateCreditCardPaymentWithNegativeCase() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "createPayment_credit_card_negative.txt";
+        String methodName = "paypal_createPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 400);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Positive test case for executeApprovedPayment method with mandatory parameters.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {executeApprovedPayment} integration test with mandatory parameters.")
+    public void testExecuteApprovedPaymentWithMandatoryParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "executeApprovedPayment_mandatory.txt";
+        String methodName = "paypal_executeApprovedPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), paypalConnectorProperties.getProperty("paypalPaymentId_1"), paypalConnectorProperties.getProperty("payerId_1"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("id"));
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Positive test case for executeApprovedPayment method with optional parameters.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {executeApprovedPayment} integration test with optional parameters.")
+    public void testExecuteApprovedPaymentWithOptionalParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "executeApprovedPayment_optional.txt";
+        String methodName = "paypal_executeApprovedPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), paypalConnectorProperties.getProperty("paypalPaymentId_2"), paypalConnectorProperties.getProperty("payerId_2"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("id"));
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Negative test case for executeApprovedPayment method.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {executeApprovedPayment} integration test with negative case.")
+    public void testExecuteApprovedPaymentWithNegativeCase() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "executeApprovedPayment_negative.txt";
+        String methodName = "paypal_executeApprovedPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 404);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Positive test case for lookupPayment method.
+     */
+    @Test(dependsOnMethods = {"testCreateCreditCardPaymentWithMandatoryParameters"}, priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupPayment} integration test with mandatory parameters.")
+    public void testLookupPaymentWithMandatoryParameters() throws Exception {
+        
+        String jsonRequestFilePath = pathToRequestsDirectory + "lookupPayment_mandatory.txt";
+        String methodName = "paypal_lookupPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultPaymentId);
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("create_time"));
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Negative test case for lookupPayment method.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal { lookupPayment } integration test with negative case.")
+    public void testLookupPaymentWithNegetiveCase() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "lookupPayment_negative.txt";
+        String methodName = "paypal_lookupPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 404);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
      * Positive test case for listPayments method.
      */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {listPayments} integration test with mandatory parameters.")
+    @Test(dependsOnMethods = {"testCreateCreditCardPaymentWithMandatoryParameters"}, priority = 1, groups = { "wso2.esb" }, description = "paypal {listPayments} integration test with mandatory parameters.")
     public void testListPaymentsWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "listPayments_mandatory.txt";
         String methodName = "paypal_listPaymentResources";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("count"));
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Optional test case for listPayments method.
+     */
+    @Test(dependsOnMethods = {"testCreateCreditCardPaymentWithMandatoryParameters"}, priority = 1, groups = { "wso2.esb" }, description = "paypal {listPayments} integration test with optional parameters.")
+    public void testListPaymentswithOptionalParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "listPayments_optional.txt";
+        String methodName = "paypal_listPaymentResources";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
         
@@ -731,8 +489,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPayments_negetive.txt";
         String methodName = "paypal_listPaymentResources";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
         
@@ -748,24 +505,47 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
     }
     
     /**
-     * Optional test case for listPayments method.
+     * Positive test case for lookupSales method.
      */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {listPayments} integration test with optional parameters.")
-    public void testListPaymentswithOptionalParameters() throws Exception {
+    @Test(dependsOnMethods = {"testCreateCreditCardPaymentWithMandatoryParameters"}, priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupSale} integration test with mandatory parameters.")
+    public void testLookupSaleWithMandatoryParameters() throws Exception {
     
-        String jsonRequestFilePath = pathToRequestsDirectory + "listPayments_optional.txt";
-        String methodName = "paypal_listPaymentResources";
+        String jsonRequestFilePath = pathToRequestsDirectory + "lookupSale_mandatory.txt";
+        String methodName = "paypal_lookupSale";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultSaleId);
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("id"));
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Negative test case for lookupSales method.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupSale} integration test with negative case.")
+    public void testLookupSaleWithNegetiveCase() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "lookupSale_negetive.txt";
+        String methodName = "paypal_lookupSale";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("count"));
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 404);
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -775,22 +555,22 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for refundSale method.
      */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {refundSale} integration test with mandatory parameters.")
+    @Test(dependsOnMethods = {"testCreateCreditCardPaymentWithMandatoryParameters"}, priority = 1, groups = { "wso2.esb" }, description = "paypal {refundSale} integration test with mandatory parameters.")
     public void testRefundSaleWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "refundSale_mandatory.txt";
         String methodName = "paypal_refundSale";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultSaleId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
             JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
             Assert.assertTrue(jsonObject.has("create_time"));
+            refundSaleResultId = jsonObject.getString("id");
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -806,8 +586,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         String jsonRequestFilePath = pathToRequestsDirectory + "refundSale_negetive.txt";
         String methodName = "paypal_refundSale";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
         
@@ -823,24 +602,23 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
     }
     
     /**
-     * Positive test case for voidAuthorization method.
+     * Positive test case for lookupRefund method.
      */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {voidAuthorization} integration test with mandatory parameters.")
-    public void testVoidAuthorizationWithMandatoryParameters() throws Exception {
+    @Test(dependsOnMethods = {"testRefundSaleWithMandatoryParameters"}, priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupRefund} integration test with mandatory parameters.")
+    public void testLookupRefundWithMandatoryParameters() throws Exception {
     
-        String jsonRequestFilePath = pathToRequestsDirectory + "voidAuthorization_mandatory.txt";
-        String methodName = "paypal_voidAuthorization";
+        String jsonRequestFilePath = pathToRequestsDirectory + "lookupRefund_mandatory.txt";
+        String methodName = "paypal_lookupRefund";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), refundSaleResultId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
             JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("id"));
+            Assert.assertTrue(jsonObject.has("create_time"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -848,66 +626,15 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
     }
     
     /**
-     * Negative test case for voidAuthorization method.
+     * Negative test case for lookupRefund method.
      */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {voidAuthorization} integration test with negative case.")
-    public void testVoidAuthorizationWithNegativeCase() throws Exception {
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupRefund} integration test with negative case.")
+    public void testLookupRefundWithNegetiveCase() throws Exception {
     
-        String jsonRequestFilePath = pathToRequestsDirectory + "voidAuthorization_negative.txt";
-        String methodName = "paypal_voidAuthorization";
+        String jsonRequestFilePath = pathToRequestsDirectory + "lookupRefund_negetive.txt";
+        String methodName = "paypal_lookupRefund";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 400);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Positive test case for lookupCapturedPayment method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupCapturedPayment} integration test with mandatory parameters.")
-    public void testLookupCapturedPaymentWithMandatoryParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "lookupCapturedPayment_mandatory.txt";
-        String methodName = "paypal_lookupCapturedPayment";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("id"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Negative test case for lookupCapturedPayment method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupCapturedPayment} integration test with negative case.")
-    public void testLookupCapturedPaymentWithNegetiveCase() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "lookupCapturedPayment_negative.txt";
-        String methodName = "paypal_lookupCapturedPayment";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
         
@@ -923,93 +650,17 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
     }
     
     /**
-     * Positive test case for executeApprovedPayment method with mandatory parameters.
+     * Mandatory parameter test case for lookupAuthorization method.
      */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {executeApprovedPayment} integration test with mandatory parameters.")
-    public void testExecuteApprovedPaymentWithMandatoryParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "executeApprovedPayment_mandatory.txt";
-        String methodName = "paypal_executeApprovedPayment";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("id"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Positive test case for executeApprovedPayment method with optional parameters.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {executeApprovedPayment} integration test with optional parameters.")
-    public void testExecuteApprovedPaymentWithOptionalParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "executeApprovedPayment_optional.txt";
-        String methodName = "paypal_executeApprovedPayment";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(jsonObject.has("id"));
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Negative test case for executeApprovedPayment method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {executeApprovedPayment} integration test with negative case.")
-    public void testExecuteApprovedPaymentWithNegativeCase() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "executeApprovedPayment_negative.txt";
-        String methodName = "paypal_executeApprovedPayment";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 404);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Mandotary parameter test case for lookupAuthorization method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupAuthorization} integration test with mandatory parameters.")
+    @Test(dependsOnMethods = {"testCreateCreditCardPaymentWithOptionalParameters"}, priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupAuthorization} integration test with mandatory parameters.")
     public void testLookupAuthorizationWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "lookupAuthorization_mandotary.txt";
         String methodName = "paypal_lookupAuthorization";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultAuthorizationId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -1031,8 +682,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         String jsonRequestFilePath = pathToRequestsDirectory + "lookupAuthorization_negative.txt";
         String methodName = "paypal_lookupAuthorization";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
         
@@ -1048,7 +698,245 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
     }
     
     /**
-     * Mandotary parameter test case for storeCreditCardDetails method.
+     * Positive test case for captureAuthorization method with mandatory parameters.
+     */
+    @Test(dependsOnMethods = {"testCreateCreditCardPaymentWithOptionalParameters"}, priority = 1, groups = { "wso2.esb" }, description = "paypal {captureAuthorization} integration test with mandatory parameters.")
+    public void testCaptureAuthorizationWithMandatoryParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "captureAuthorization_mandatory.txt";
+        String methodName = "paypal_captureAuthorization";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultAuthorizationId);
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("create_time"));
+            captureAuthorizationResultId = jsonObject.getString("id");
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+    }
+    
+    /**
+     * Positive test case for captureAuthorization method with optional parameters.
+     */
+    @Test(dependsOnMethods = {"testCreateCreditCardPaymentWithOptionalParametersForResolveDependencies1"}, priority = 1, groups = { "wso2.esb" }, description = "paypal {captureAuthorization} integration test with optional parameters.")
+    public void testCaptureAuthorizationWithOptionalParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "captureAuthorization_optional.txt";
+        String methodName = "paypal_captureAuthorization";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultAuthorizationId);
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("create_time"));
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+    }
+    
+    /**
+     * Negative test case for captureAuthorization method.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {captureAuthorization} integration test with negative case.")
+    public void testCaptureAuthorizationWithNegetiveCase() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "captureAuthorization_negetive.txt";
+        String methodName = "paypal_captureAuthorization";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 400);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+    }
+    
+    /**
+     * Negative test case for reAuthorization method.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {reAuthorization} integration test with negative case.")
+    public void testReAuthorizationNegative() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "reAuthorization_negative.txt";
+        String methodName = "paypal_reAuthorization";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 400);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Positive test case for voidAuthorization method.
+     */
+    @Test(dependsOnMethods = {"testCreateCreditCardPaymentWithOptionalParametersForResolveDependencies2"}, priority = 1, groups = { "wso2.esb" }, description = "paypal {voidAuthorization} integration test with mandatory parameters.")
+    public void testVoidAuthorizationWithMandatoryParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "voidAuthorization_mandatory.txt";
+        String methodName = "paypal_voidAuthorization";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultAuthorizationId);
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("id"));
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Negative test case for voidAuthorization method.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {voidAuthorization} integration test with negative case.")
+    public void testVoidAuthorizationWithNegativeCase() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "voidAuthorization_negative.txt";
+        String methodName = "paypal_voidAuthorization";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 400);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Positive test case for lookupCapturedPayment method.
+     */
+    @Test(dependsOnMethods = {"testCaptureAuthorizationWithMandatoryParameters"}, priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupCapturedPayment} integration test with mandatory parameters.")
+    public void testLookupCapturedPaymentWithMandatoryParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "lookupCapturedPayment_mandatory.txt";
+        String methodName = "paypal_lookupCapturedPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), captureAuthorizationResultId);
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("id"));
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Negative test case for lookupCapturedPayment method.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupCapturedPayment} integration test with negative case.")
+    public void testLookupCapturedPaymentWithNegetiveCase() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "lookupCapturedPayment_negative.txt";
+        String methodName = "paypal_lookupCapturedPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 404);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Positive test case for refundCapturedPayment method.
+     */
+    @Test(dependsOnMethods = {"testCaptureAuthorizationWithMandatoryParameters"}, priority = 1, groups = { "wso2.esb" }, description = "paypal {refundCapturedPayment} integration test with mandatory parameters.")
+    public void testRefundCapturedPaymentWithMandatoryParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "refundCapturedPayment_mandatory.txt";
+        String methodName = "paypal_refundCapturedPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), captureAuthorizationResultId);
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("create_time"));
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Negative test case for refundCapturedPayment method.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal { lookupPayment } integration test with negative case.")
+    public void testRefundCapturedPaymentWithNegetiveCase() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "refundCapturedPayment_negetive.txt";
+        String methodName = "paypal_refundCapturedPayment";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 404);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Mandatory parameter test case for storeCreditCardDetails method.
      */
     @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {storeCreditCardDetails} integration test with mandatory parameters.")
     public void testStoreCreditCardDetailsWithMandatoryParameters() throws Exception {
@@ -1056,8 +944,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         String jsonRequestFilePath = pathToRequestsDirectory + "storecreditcard_mandatory.txt";
         String methodName = "paypal_storeCreditCard";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
         
@@ -1066,6 +953,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         try {
             JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
             Assert.assertTrue(jsonObject.has("create_time"));
+            storeCreditCardResultId = jsonObject.getString("id");
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -1081,8 +969,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         String jsonRequestFilePath = pathToRequestsDirectory + "storeCreditcard_optional.txt";
         String methodName = "paypal_storeCreditCard";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
         
@@ -1106,10 +993,201 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         String jsonRequestFilePath = pathToRequestsDirectory + "storeCreditcard_negative.txt";
         String methodName = "paypal_storeCreditCard";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 400);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Positive test case for lookupStoredCreditCard method.
+     */
+    @Test(dependsOnMethods = {"testStoreCreditCardDetailsWithMandatoryParameters"}, priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupStoredCreditCard} integration test with mandatory parameters.")
+    public void testLookupStoredCreditCardWithMandatoryParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "lookupStoredCreditCard_mandatory.txt";
+        String methodName = "paypal_lookupStoredCreditCard";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), storeCreditCardResultId);
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("id"));
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Negative test case for lookupStoredCreditCard method.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {lookupStoredCreditCard} integration test with negative case.")
+    public void testLookupStoredCreditCardWithNegetiveCase() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "lookupStoredCreditCard_negetive.txt";
+        String methodName = "paypal_lookupStoredCreditCard";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 404);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Positive test case for deleteCreditCardDetails method.
+     */
+    @Test(priority = 2, groups = { "wso2.esb" }, description = "paypal {deleteCreditCardDetails} integration test with mandatory parameters.")
+    public void testDeleteCreditCardDetailsWithMandatoryParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "deleteStoredCreditCard_mandatory.txt";
+        String methodName = "paypal_deleteCreditCardDetails";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), storeCreditCardResultId);
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 204);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Negative test case for deleteCreditCardDetails method.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {deleteCreditCardDetails} integration test with negative case.")
+    public void testDeleteCreditCardDetailsWithNegetiveCase() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "deleteStoredCreditCard_negetive.txt";
+        String methodName = "paypal_deleteCreditCardDetails";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 404);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Negative test case for grantTokenFromAuthorization method.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {grantTokenFromAuthorization} integration test with negative case.")
+    public void testGrantTokenFromAuthorizationWithNegetiveCase() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "grantTokenFromAuthorization_negetive.txt";
+        String methodName = "paypal_grantTokenFromAuthorization";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("clientId"), paypalConnectorProperties.getProperty("clientSecret"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(statusCode == 400);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Positive test case for grantTokenFromRefreshToken method with mandatory parameters.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {grantTokenFromRefreshToken} integration test with mandatory parameters.")
+    public void testGrantTokenFromRefreshTokenWithMandatoryParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "grantTokenFromRefreshToken_mandatory.txt";
+        String methodName = "paypal_grantTokenFromRefreshToken";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("clientId"), paypalConnectorProperties.getProperty("clientSecret"), paypalConnectorProperties.getProperty("refreshToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("access_token"));
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Positive test case for grantTokenFromRefreshToken method with optional parameters.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {grantTokenFromRefreshToken} integration test with optional parameters.")
+    public void testGrantTokenFromRefreshTokenWithOptionalParameters() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "grantTokenFromRefreshToken_optional.txt";
+        String methodName = "paypal_grantTokenFromRefreshToken";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("clientId"), paypalConnectorProperties.getProperty("clientSecret"), paypalConnectorProperties.getProperty("refreshToken"));
+        
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            Assert.assertTrue(jsonObject.has("access_token"));
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        
+    }
+    
+    /**
+     * Negative test case for grantTokenFromRefreshToken method.
+     */
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {grantTokenFromRefreshToken} integration test with negative case.")
+    public void testGrantTokenFromRefreshTokenWithNegetiveCase() throws Exception {
+    
+        String jsonRequestFilePath = pathToRequestsDirectory + "grantTokenFromRefreshToken_negetive.txt";
+        String methodName = "paypal_grantTokenFromRefreshToken";
+        
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("clientId"), paypalConnectorProperties.getProperty("clientSecret"));
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -1131,8 +1209,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         String jsonRequestFilePath = pathToRequestsDirectory + "getuserInformation_mandatory.txt";
         String methodName = "paypal_getUserInformation";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
         
@@ -1156,8 +1233,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         String jsonRequestFilePath = pathToRequestsDirectory + "getuserInformation_negetive.txt";
         String methodName = "paypal_getUserInformation";
         
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml ";
         String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
         
@@ -1166,56 +1242,6 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         try {
             int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
             Assert.assertTrue(statusCode == 400);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Positive test case for deleteCreditCardDetails method.
-     */
-    @Test(priority = 2, groups = { "wso2.esb" }, description = "paypal {deleteCreditCardDetails} integration test with mandatory parameters.")
-    public void testDeleteCreditCardDetailsWithMandatoryParameters() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "deleteStoredCreditCard_mandatory.txt";
-        String methodName = "paypal_deleteCreditCardDetails";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 204);
-        } finally {
-            proxyAdmin.deleteProxy(methodName);
-        }
-        
-    }
-    
-    /**
-     * Negative test case for deleteCreditCardDetails method.
-     */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "paypal {deleteCreditCardDetails} integration test with negative case.")
-    public void testDeleteCreditCardDetailsWithNegetiveCase() throws Exception {
-    
-        String jsonRequestFilePath = pathToRequestsDirectory + "deleteStoredCreditCard_negetive.txt";
-        String methodName = "paypal_deleteCreditCardDetails";
-        
-        final String jsonString =
-                ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
-        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
-        
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
-        try {
-            int statusCode = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertTrue(statusCode == 404);
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }

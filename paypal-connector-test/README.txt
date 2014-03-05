@@ -14,7 +14,7 @@ STEPS:
 
 1. Make sure the ESB 4.8.1 zip file with latest patches available at "Integration_Test\products\esb\4.8.1\modules\distribution\target\".
 
-2. This ESB should configured below
+2. This ESB should be configured as below;
 	In Axis configurations (\repository\conf\axis2\axis2.xml).
 
    i) Enable message formatter for "text/html"
@@ -39,14 +39,29 @@ STEPS:
  
     </test>
 
-4. Get the access token by the following URL : https://devtools-paypal.com/hateoas/index.html and update "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\connector\config\paypal.properties" and modify clientId and clientSecret appropriately.
+4. Login to your developer account, then navigate to url: https://developer.paypal.com/webapps/developer/applications/accounts and create new sandbox account, by selecting "Account type" as personal and "Select payment card" as PayPal
+   NOTE: This step is a pre-requisite of executing an approved payment.
+
+5. Update the connector properties file "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\connector\config\paypal.properties" and modify clientId and clientSecret appropriately.
+
+   i) clientId and clientSecret - client id and client secret of registered application.
+
+   ii) refreshToken - Execute the request described at https://developer.paypal.com/docs/api/#grant-token-from-authorization-code externally, and use the refresh token in the response. You may need to execute the web flow in order to get an authorization code which is required to this request.
+
+   iii) accessToken - Get the access token by the PayPal REST API Playground : https://devtools-paypal.com/hateoas/index.html, using the client id and client secret of your registered application.
+
+   iv) paypalPaymentId_1 - Using the same access token obtained in iii), create a paypal payment using the PayPal REST API playground, and use the id in the response.
+
+   v) payerId_1 - In the above response, copy the URL with REDIRECT HTTP method, inside "links" array, and proceed with the web flow. After you are redirected to vendor website, use the PayerID in the URL.
+
+   vi) paypalPaymentId_2 and payerId_2 - Repeat the steps iv) and v) respectively.
+
+
 NOTE: this access is subject to expire and at the event of expiration the user need to replace the access token following the above steps.
 
-5. Copy proxy files to location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\proxies\paypal\"
+6. Copy proxy files to location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\proxies\paypal\"
 
-6. Copy request files to location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\restRequests\paypal\" 
-
-7. Update request files with relevant data if necessary.
+7. Copy request files to location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\restRequests\paypal\" 
 
 8. Navigate to "Integration_Test\products\esb\4.8.1\modules\integration\connectors\" and run the following command.
      $ mvn clean install
