@@ -15,7 +15,7 @@ STEPS:
 
 2. Copy Linkedin connector zip file (linkedin.zip) to the location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\repository\"
 
-3. Include the below mentioned code to the following file - "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\testng.xml"
+3. Put only the following code block, just after the listeners block (Remove or comment all the other test blocks) to the file - "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\testng.xml"
 
 	<test name="LinkedIn-Connector-Test" preserve-order="true" verbose="2">
         <packages>
@@ -36,9 +36,9 @@ STEPS:
 		- Provide ur username and password on re-directed page and click allow access
 		- It will come back to apigee page and click send (request URL should https://api.linkedin.com/v1/people/~)
 		- You will have access token in respose		
-	- myPublicUrl: public URL which belongs to the access token of the test account. 
+	- myPublicUrl: public URL which belongs to the access token of the test account. (Use the redirected URL here. Eg: http://www.linkedin.com/pub/darshana-silva/91/b8b/3a1)
 	- memberId: A valid id of a connection.
-	- publicProfileUrl: public profile URL of a connection (for other accounts).
+	- publicProfileUrl: public profile URL of a connection (for other accounts). (Use the redirected URL here. Eg: http://www.linkedin.com/in/janakaranathunga)
 	- companyId: A valid id of a company.
 	- jobId: A valid job id.
 	- followCompanyId: A valid id of a company, which a user needs to follow. This parameter is applicable only for the "followCompanyPage". Please give a new company id for followCompanyId parameter each time you run the integration tests.  
