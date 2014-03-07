@@ -44,20 +44,16 @@ STEPS:
 
 5. Update the connector properties file "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\connector\config\paypal.properties" and modify clientId and clientSecret appropriately.
 
-   i) clientId and clientSecret - client id and client secret of registered application.
+   i)  clientId and clientSecret - client id and client secret of registered application.
 
    ii) refreshToken - Execute the request described at https://developer.paypal.com/docs/api/#grant-token-from-authorization-code externally, and use the refresh token in the response. You may need to execute the web flow in order to get an authorization code which is required to this request.
 
-   iii) accessToken - Get the access token by the PayPal REST API Playground : https://devtools-paypal.com/hateoas/index.html, using the client id and client secret of your registered application.
+   iii) paypalPaymentId_1 - Using the same access token obtained in iii), create a paypal payment using the PayPal REST API playground, and use the id in the response.
 
-   iv) paypalPaymentId_1 - Using the same access token obtained in iii), create a paypal payment using the PayPal REST API playground, and use the id in the response.
+   vi) payerId_1 - In the above response, copy the URL with REDIRECT HTTP method, inside "links" array, and proceed with the web flow. After you are redirected to vendor website, use the PayerID in the URL.
 
-   v) payerId_1 - In the above response, copy the URL with REDIRECT HTTP method, inside "links" array, and proceed with the web flow. After you are redirected to vendor website, use the PayerID in the URL.
+   v) paypalPaymentId_2 and payerId_2 - Repeat the steps iv) and v) respectively.
 
-   vi) paypalPaymentId_2 and payerId_2 - Repeat the steps iv) and v) respectively.
-
-
-NOTE: this access is subject to expire and at the event of expiration the user need to replace the access token following the above steps.
 
 6. Copy proxy files to location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\proxies\paypal\"
 
