@@ -19,7 +19,7 @@ STEPS:
 
    i) Enable message formatter for "text/html"
 		<messageFormatters>
-			<messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>\
+			<messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
 		</messageFormatters>
 
    ii) Enable message builder for "text/html"
@@ -27,9 +27,9 @@ STEPS:
 			<messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 		</messageBuilders>
 
-2. Copy PayPal connector zip file (paypal.zip) to the location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\repository\"
+3. Copy PayPal connector zip file (paypal.zip) to the location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\repository\"
 
-3. Make sure the paypal test suite is enabled (as given below) and all other test suites are commented in the following file - "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\testng.xml"  
+4. Make sure the paypal test suite is enabled (as given below) and all other test suites are commented in the following file - "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\testng.xml"  
      <test name="PayPal-Connector-Test" preserve-order="true" verbose="2">
 	<packages>
 
@@ -39,10 +39,10 @@ STEPS:
  
     </test>
 
-4. Login to your developer account, then navigate to url: https://developer.paypal.com/webapps/developer/applications/accounts and create new sandbox account, by selecting "Account type" as personal and "Select payment card" as PayPal
+5. Login to your developer account, then navigate to url: https://developer.paypal.com/webapps/developer/applications/accounts and create new sandbox account, by selecting "Account type" as personal and "Select payment card" as PayPal
    NOTE: This step is a pre-requisite of executing an approved payment.
 
-5. Update the connector properties file "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\connector\config\paypal.properties" and modify clientId and clientSecret appropriately.
+6. Update the connector properties file "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\connector\config\paypal.properties" and modify clientId and clientSecret appropriately.
 
    i)  clientId and clientSecret - client id and client secret of registered application.
 
@@ -55,9 +55,9 @@ STEPS:
    v) paypalPaymentId_2 and payerId_2 - Repeat the steps iv) and v) respectively.
 
 
-6. Copy proxy files to location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\proxies\paypal\"
+7. Copy proxy files to location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\proxies\paypal\"
 
-7. Copy request files to location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\restRequests\paypal\" 
+8. Copy request files to location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\restRequests\paypal\" 
 
-8. Navigate to "Integration_Test\products\esb\4.8.1\modules\integration\connectors\" and run the following command.
+9. Navigate to "Integration_Test\products\esb\4.8.1\modules\integration\connectors\" and run the following command.
      $ mvn clean install
