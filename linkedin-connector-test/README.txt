@@ -15,7 +15,7 @@ STEPS:
 
 2. Copy Linkedin connector zip file (linkedin.zip) to the location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\repository\"
 
-3. Put only the following code block, just after the listeners block (Remove or comment all the other test blocks) to the file - "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\testng.xml"
+3. Add following code block, just after the listeners block (Remove or comment all the other test blocks) in following file - "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\testng.xml"
 
 	<test name="LinkedIn-Connector-Test" preserve-order="true" verbose="2">
         <packages>
@@ -23,21 +23,22 @@ STEPS:
         </packages>
     </test> 
 
-4. Copy proxy files to location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\proxies\linkedin\"
+4. Copy proxy files to following location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\proxies\linkedin\"
 
-5. Copy request files to location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\restRequests\linkedin\" 
+5. Copy request files to following "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\restRequests\linkedin\" 
 
 6. Edit the "linkedin.properties" at Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\connector\config using valid and relevant data. Parameters to be changed are mentioned below.
 	
-	- accessToken: Please use the sandbox account created below no-7. Get the access token by the following URL :http://developer.linkedin.com/documents/authentication. Alternatively you can also follow the below mentioned steps to derive the access token through apigee console.
+	- accessToken: Use the sandbox account created below no-7. Get the access token by the following URL :http://developer.linkedin.com/documents/authentication. 
+	- Alternatively you can also follow the below mentioned steps to get the access token through apigee console.
 		- Navigate to https://apigee.com/console/linkedin
 		- Under “Authentication” select Oauth2
 		- Select sign in with linkedIn
 		- Provide ur username and password on re-directed page and click allow access
 		- It will come back to apigee page and click send (request URL should https://api.linkedin.com/v1/people/~)
 		- You will have access token in respose		
-	- myPublicUrl: public URL which belongs to the access token of the test account. (Use the redirected URL here. Eg: http://www.linkedin.com/pub/darshana-silva/91/b8b/3a1)
-	- memberId: A valid id of a connection.
+	- myPublicUrl: public URL which is belongs to the test account. (Use the redirected URL here. Eg: http://www.linkedin.com/pub/darshana-silva/91/b8b/3a1)
+	- memberId: A valid memner id. [this member must be a connection of the test account].
 	- publicProfileUrl: public profile URL of a connection (for other accounts). (Use the redirected URL here. Eg: http://www.linkedin.com/in/janakaranathunga)
 	- companyId: A valid id of a company.
 	- jobId: A valid job id.
@@ -46,12 +47,13 @@ STEPS:
 		Special Notes:
 		
 		- Following requirements should be fulfilled, in order for "getStatus" test cases to be successful.
-			- Test account should have a valid status update.
+			- Test account should update the "status" before proceed with the test
 			- Connection account referred by "memberId" in the properties file should have a valid status update.
 		
-		- When a particular method is executed several times, throttle limit which is defined by the API will be exceeded and the method will be blocked. This can be a reason for test cases to fail.
+		- When a particular method is executed several times, throttle limit which is defined by the API will be exceeded and the method will be blocked.
+			This can be a reason for test cases to fail.
 		
-7. Following date set can be used for the first testsuite run.
+7. Following data set can be used for the first testsuite run.
 
 		proxyDirectoryRelativePath=/../src/test/resources/artifacts/ESB/config/proxies/linkedin/
 		requestDirectoryRelativePath=/../src/test/resources/artifacts/ESB/config/restRequests/linkedin/
