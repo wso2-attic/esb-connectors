@@ -19,83 +19,71 @@
 package org.wso2.carbon.connector.googledrive;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.axiom.om.OMElement;
 import org.apache.synapse.MessageContext;
 import org.wso2.carbon.connector.core.AbstractConnector;
-import org.wso2.carbon.connector.core.ConnectException;
-import org.wso2.carbon.connector.core.Connector;
 
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.Drive.Files;
 import com.google.api.services.drive.model.File;
 
 /**
- * Class mediator which maps to <strong>/files</strong> endpoint's <strong>trash</strong> method.
+ * Class mediator which maps to <strong>/files</strong> endpoint's <strong>trash</strong> method. Adds a file
+ * specified by file ID to the Google Drive account's trash. Returns the trashed file as a Google Drive SDK
+ * File resource in XML format and attaches to the message context's envelope body, and stores an error
+ * message as a property on failure. Maps to the <strong>trashFile</strong> Synapse template within the
+ * <strong>Google Drive</strong> connector.
  * 
  * @see https://developers.google.com/drive/v2/reference/files/trash
  */
-public class GoogledriveTrashFile extends AbstractConnector implements Connector {
+public class GoogledriveTrashFile extends AbstractConnector {
     
     /**
-     * Modify request body before sending to the end point.
+     * Connector method which is executed at the specified point within the corresponding Synapse template
+     * within the connector.
      * 
-     * @param messageContext MessageContext - The message context.
-     * @throws ConnectException if connection is failed.
+     * @param messageContext Synapse Message Context
+     * @see org.wso2.carbon.connector.core.AbstractConnector#connect(org.apache.synapse.MessageContext)
      */
-    public void connect(MessageContext messageContext) throws ConnectException {
+    public final void connect(final MessageContext messageContext) {
     
         String fileId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_ID);
-        HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
-        OMElement trashedFileResult = null;
+        String fields = (String) messageContext.getProperty(GoogleDriveUtils.StringConstants.FIELDS);
+        Map<String, String> resultEnvelopeMap = new HashMap<String, String>();
         try {
             
-            HttpTransport httpTransport = new NetHttpTransport();
-            JsonFactory jsonFactory = new JacksonFactory();
+            Drive service = GoogleDriveUtils.getDriveService(messageContext);
             
-            Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
-            File trashedFile = trashFile(service, fileId);
-            
-            if (trashedFile != null) {
-                
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.FILE, trashedFile.toPrettyString());
-                
-                trashedFileResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_TRASHFILE,
-                                GoogleDriveUtils.StringConstants.TRASHED_FILE_RESULT, true, hashMapForResultEnvelope);
-                messageContext.getEnvelope().getBody().addChild(trashedFileResult);
-                
+            Files.Trash request = service.files().trash(fileId);
+            if (fields != null && !fields.isEmpty()) {
+                request.setFields(fields);
             }
+            File trashedFile = request.execute();
             
-        }
-        
-        catch (Exception e) {
-            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
-            trashedFileResult =
-                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_TRASHFILE,
-                            GoogleDriveUtils.StringConstants.TRASHED_FILE_RESULT, false, hashMapForResultEnvelope);
-            messageContext.getEnvelope().getBody().addChild(trashedFileResult);
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
+            resultEnvelopeMap.put(GoogleDriveUtils.StringConstants.FILE, trashedFile.toPrettyString());
             
+            messageContext.getEnvelope().detach();
+            // build new SOAP envelope to return to client
+            messageContext.setEnvelope(GoogleDriveUtils.buildResultEnvelope(
+                    GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_TRASHFILE,
+                    GoogleDriveUtils.StringConstants.TRASHED_FILE_RESULT, resultEnvelopeMap));
+            
+        } catch (IOException ioe) {
+            log.error("Error trashing file:", ioe);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ioe,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_IO_EXCEPTION);
+            handleException("Error trashing file: ", ioe, messageContext);
+            
+        } catch (GeneralSecurityException gse) {
+            
+            log.error("Google Drive authentication failure:", gse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, gse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_GENERAL_SECURITY_EXCEPTION);
+            handleException("Google Drive authentication failure: ", gse, messageContext);
         }
-        
-    }
-    
-    /**
-     * Move a file to the trash.
-     * 
-     * @param service Drive API service instance.
-     * @param fileId ID of the file to trash.
-     * @return The updated file if successful, {@code null} otherwise.
-     */
-    private File trashFile(Drive service, String fileId) throws IOException {
-    
-        return service.files().trash(fileId).execute();
         
     }
     

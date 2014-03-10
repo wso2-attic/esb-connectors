@@ -19,74 +19,56 @@
 package org.wso2.carbon.connector.googledrive;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.security.GeneralSecurityException;
 
-import org.apache.axiom.om.OMElement;
 import org.apache.synapse.MessageContext;
 import org.wso2.carbon.connector.core.AbstractConnector;
-import org.wso2.carbon.connector.core.ConnectException;
-import org.wso2.carbon.connector.core.Connector;
 
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
 
 /**
- * Class mediator which maps to <strong>/files</strong> endpoint's <strong>delete</strong> method.
+ * Class mediator which maps to <strong>/files</strong> endpoint's <strong>delete</strong> method. Deletes a
+ * file specified by a file ID. Returns the success of the deletion operation by adding a true tag to the
+ * message context's soap envelope, and stores an error message as a property on failure. Maps to the
+ * <strong>deleteFile</strong> Synapse template within the <strong>Google Drive</strong> connector.
  * 
  * @see https://developers.google.com/drive/v2/reference/files/delete
  */
-public class GoogledriveDeleteFile extends AbstractConnector implements Connector {
+public class GoogledriveDeleteFile extends AbstractConnector {
     
     /**
-     * connect.
+     * Connector method which is executed at the specified point within the corresponding Synapse template
+     * within the connector.
      * 
-     * @param messageContext ESB messageContext.
-     * @throws ConnectException if connection fails.
+     * @param messageContext Synapse Message Context.
+     * @see org.wso2.carbon.connector.core.AbstractConnector#connect(org.apache.synapse.MessageContext)
      */
-    public void connect(MessageContext messageContext) throws ConnectException {
+    public final void connect(final MessageContext messageContext) {
     
-        OMElement deleteFileResult;
         String fileId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_ID);
         
         try {
-            HttpTransport httpTransport = new NetHttpTransport();
-            JsonFactory jsonFactory = new JacksonFactory();
             
-            Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
-            deleteFile(service, fileId);
+            Drive service = GoogleDriveUtils.getDriveService(messageContext);
             
-            deleteFileResult =
-                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETEFILE,
-                            GoogleDriveUtils.StringConstants.DELETE_FILE_RESULT, true, null);
+            service.files().delete(fileId).execute();
+            messageContext.getEnvelope().detach();
+            // build new SOAP envelope to return to client
+            messageContext.setEnvelope(GoogleDriveUtils.buildResultEnvelope(
+                    GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETEFILE,
+                    GoogleDriveUtils.StringConstants.DELETE_FILE_RESULT, null));
             
-            messageContext.getEnvelope().getBody().addChild(deleteFileResult);
-            // All exceptions are being caught to pass to the ESB, so that the
-            // ESB is notified of any
-            // exception
-        } catch (Exception e) {
-            HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
-            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
-            deleteFileResult =
-                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETEFILE,
-                            GoogleDriveUtils.StringConstants.DELETE_FILE_RESULT, false, hashMapForResultEnvelope);
-            messageContext.getEnvelope().getBody().addChild(deleteFileResult);
-            log.error(GoogleDriveUtils.getStackTraceAsString(e));
-            
+        } catch (IOException ioe) {
+            log.error("Failed to delete file.", ioe);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ioe,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_IO_EXCEPTION);
+            handleException("Failed to delete file.", ioe, messageContext);
+        } catch (GeneralSecurityException gse) {
+            log.error("Google Drive authentication failure.", gse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, gse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_GENERAL_SECURITY_EXCEPTION);
+            handleException("Google Drive authentication failure.", gse, messageContext);
         }
     }
     
-    /**
-     * Permanently delete a file, skipping the trash.
-     * 
-     * @param service Drive API service instance.
-     * @param fileId ID of the file to delete.
-     */
-    private void deleteFile(Drive service, String fileId) throws IOException {
-    
-        service.files().delete(fileId).execute();
-        
-    }
 }

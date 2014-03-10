@@ -19,76 +19,55 @@
 package org.wso2.carbon.connector.googledrive;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.security.GeneralSecurityException;
 
-import org.apache.axiom.om.OMElement;
 import org.apache.synapse.MessageContext;
 import org.wso2.carbon.connector.core.AbstractConnector;
-import org.wso2.carbon.connector.core.ConnectException;
-import org.wso2.carbon.connector.core.Connector;
 
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
 
 /**
- * Class which maps to <strong>/comments</strong> endpoint's <strong>delete</strong> method.
+ * Class which maps to <strong>/comments</strong> endpoint's <strong>delete</strong> method. Deletes a comment
+ * specified by a comment ID, on a file specified by a file ID. Returns the success of the deletion operation
+ * by adding a true tag to the message context's soap envelope, and stores an error message as a property on
+ * failure. Maps to the <strong>deleteComment</strong> Synapse template within the <strong>Google
+ * Drive</strong> connector.
  * 
  * @see https://developers.google.com/drive/v2/reference/comments/delete
  */
-public class GoogledriveDeleteComment extends AbstractConnector implements Connector {
+public class GoogledriveDeleteComment extends AbstractConnector {
     
     /**
-     * Connect method for class mediator.
+     * Connector method which is executed at the specified point within the corresponding Synapse template
+     * within the connector.
      * 
-     * @param messageContext the context of the OMElement
+     * @param messageContext Synapse Message Context
      * @see org.wso2.carbon.connector.core.AbstractConnector#connect(org.apache.synapse.MessageContext)
-     * @throws ConnectException if connection fails.
      */
-    public void connect(MessageContext messageContext) throws ConnectException {
+    public final void connect(final MessageContext messageContext) {
     
         String fileId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_ID);
         String commentId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.COMMENT_ID);
-        OMElement deleteCommentResult;
         try {
             
-            HttpTransport httpTransport = new NetHttpTransport();
-            JsonFactory jsonFactory = new JacksonFactory();
+            Drive service = GoogleDriveUtils.getDriveService(messageContext);
+            service.comments().delete(fileId, commentId).execute();
+            messageContext.getEnvelope().detach();
+            // build new SOAP envelope to return to client
+            messageContext.setEnvelope(GoogleDriveUtils.buildResultEnvelope(
+                    GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETECOMMENT,
+                    GoogleDriveUtils.StringConstants.DELETE_COMMENT_RESULT, null));
             
-            Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
-            
-            deleteComment(service, fileId, commentId);
-            
-            deleteCommentResult =
-                    GoogleDriveUtils.buildResultEnvelope(
-                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETECOMMENT,
-                            GoogleDriveUtils.StringConstants.DELETE_COMMENT_RESULT, true, null);
-            messageContext.getEnvelope().getBody().addChild(deleteCommentResult);
-            
-        } catch (Exception e) {
-            HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
-            hashMapForResultEnvelope.put("error", e.getMessage());
-            deleteCommentResult =
-                    GoogleDriveUtils.buildResultEnvelope(
-                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_DELETECOMMENT,
-                            GoogleDriveUtils.StringConstants.DELETE_COMMENT_RESULT, false, hashMapForResultEnvelope);
-            messageContext.getEnvelope().getBody().addChild(deleteCommentResult);
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
+        } catch (IOException ioe) {
+            log.error("Failed to delete Comment.", ioe);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ioe,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_IO_EXCEPTION);
+            handleException("Failed to delete Comment.", ioe, messageContext);
+        } catch (GeneralSecurityException gse) {
+            log.error("Google Drive authentication failure.", gse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, gse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_GENERAL_SECURITY_EXCEPTION);
+            handleException("Google Drive authentication failure.", gse, messageContext);
         }
-    }
-    
-    /**
-     * Remove a comment.
-     * 
-     * @param service Drive API service instance.
-     * @param fileId ID of the file to remove the comment for.
-     * @param commentId ID of the comment to remove.
-     */
-    private void deleteComment(Drive service, String fileId, String commentId) throws IOException {
-    
-        service.comments().delete(fileId, commentId).execute();
-        
     }
 }

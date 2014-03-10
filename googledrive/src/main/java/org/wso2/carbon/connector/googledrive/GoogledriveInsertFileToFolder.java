@@ -19,86 +19,92 @@
 package org.wso2.carbon.connector.googledrive;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.axiom.om.OMElement;
 import org.apache.synapse.MessageContext;
 import org.wso2.carbon.connector.core.AbstractConnector;
-import org.wso2.carbon.connector.core.ConnectException;
-import org.wso2.carbon.connector.core.Connector;
 
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.Drive.Children;
 import com.google.api.services.drive.model.ChildReference;
 
 /**
- * Class mediator which maps to <strong>/children</strong> endpoint's <strong>insert</strong> method.
+ * Class mediator which maps to <strong>/children</strong> endpoint's <strong>insert</strong> method. Inserts
+ * an existing file, specified by a File ID, into a folder in Google Drive specified by a folder ID. Returns
+ * the inserted reference as a Google Drive SDK ChildReference resource in XML format and attaches to the
+ * message context's envelope body, and stores an error message as a property on failure. Maps to the
+ * <strong>insertFileToFolder</strong> Synapse template within the <strong>Google Drive</strong> connector.
  * 
  * @see https://developers.google.com/drive/v2/reference/children/insert
  */
-public class GoogledriveInsertFileToFolder extends AbstractConnector implements Connector {
+public class GoogledriveInsertFileToFolder extends AbstractConnector {
     
     /**
-     * Returns body for response SOAP envelope
+     * Connector method which is executed at the specified point within the corresponding Synapse template
+     * within the connector.
      * 
-     * @param messageContext value for message context.
-     * @throws ConnectException if an ConnectException error occurs
+     * @param messageContext Synapse Message Context
+     * @see org.wso2.carbon.connector.core.AbstractConnector#connect(org.apache.synapse.MessageContext)
      */
-    public void connect(MessageContext messageContext) throws ConnectException {
+    public final void connect(final MessageContext messageContext) {
     
-        OMElement insertFileToFolderResult;
         ChildReference insertedChild;
         
         String folderId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FOLDER_ID);
         String fileId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_ID);
+        String fields = (String) messageContext.getProperty(GoogleDriveUtils.StringConstants.FIELDS);
         
-        HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
+        Map<String, String> resultEnvelopeMap = new HashMap<String, String>();
         try {
-            HttpTransport httpTransport = new NetHttpTransport();
-            JsonFactory jsonFactory = new JacksonFactory();
             
-            Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
-            insertedChild = insertFileIntoFolder(service, folderId, fileId);
-            if (insertedChild != null) {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.CHILD_REFERENCE,
-                        insertedChild.toPrettyString());
-                insertFileToFolderResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTFILETOFOLDER,
-                                GoogleDriveUtils.StringConstants.INSERT_FILE_TO_FOLDER_RESULT, true,
-                                hashMapForResultEnvelope);
-                messageContext.getEnvelope().getBody().addChild(insertFileToFolderResult);
-            }
+            Drive service = GoogleDriveUtils.getDriveService(messageContext);
             
-        } catch (Exception e) {
-            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
-            insertFileToFolderResult =
-                    GoogleDriveUtils.buildResultEnvelope(
-                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTFILETOFOLDER,
-                            GoogleDriveUtils.StringConstants.INSERT_FILE_TO_FOLDER_RESULT, false,
-                            hashMapForResultEnvelope);
-            messageContext.getEnvelope().getBody().addChild(insertFileToFolderResult);
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
+            insertedChild = insertFileIntoFolder(service, folderId, fileId, fields);
+            
+            resultEnvelopeMap.put(GoogleDriveUtils.StringConstants.CHILD_REFERENCE, insertedChild.toPrettyString());
+            messageContext.getEnvelope().detach();
+            // build new SOAP envelope to return to client
+            messageContext.setEnvelope(GoogleDriveUtils.buildResultEnvelope(
+                    GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTFILETOFOLDER,
+                    GoogleDriveUtils.StringConstants.INSERT_FILE_TO_FOLDER_RESULT, resultEnvelopeMap));
+            
+        } catch (IOException ioe) {
+            log.error("Failed insert file to folder.", ioe);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ioe,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_IO_EXCEPTION);
+            handleException("Failed insert file to folder.", ioe, messageContext);
+        } catch (GeneralSecurityException gse) {
+            log.error("Google Drive authentication failure.", gse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, gse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_GENERAL_SECURITY_EXCEPTION);
+            handleException("Google Drive authentication failure.", gse, messageContext);
         }
     }
     
     /**
-     * Insert a file into a folder.
+     * Insert a file into a folder, and return inserted file as a ChildReference resource.
      * 
      * @param service Drive API service instance.
      * @param folderId ID of the folder to insert the file into
      * @param fileId ID of the file to insert.
+     * @param fields Field selectors for the response.
      * @return The inserted child if successful, {@code null} otherwise.
+     * @throws IOException If an error occur on Google Drive API end.
+     * @throws TokenResponseException If receiving an error response from the token server.
      */
-    private ChildReference insertFileIntoFolder(Drive service, String folderId, String fileId) throws IOException {
+    private ChildReference insertFileIntoFolder(final Drive service, final String folderId, final String fileId,
+            final String fields) throws IOException, TokenResponseException {
     
         ChildReference newChild = new ChildReference();
         newChild.setId(fileId);
-        
-        return service.children().insert(folderId, newChild).execute();
+        Children.Insert insertChildRequest = service.children().insert(folderId, newChild);
+        if ( fields != null && !fields.isEmpty() ) {
+            insertChildRequest.setFields(fields);
+        }
+        return insertChildRequest.execute();
         
     }
     

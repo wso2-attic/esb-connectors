@@ -19,116 +19,135 @@
 package org.wso2.carbon.connector.googledrive;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
-import org.apache.axiom.om.OMElement;
+import javax.xml.stream.XMLStreamException;
+
 import org.apache.synapse.MessageContext;
 import org.wso2.carbon.connector.core.AbstractConnector;
-import org.wso2.carbon.connector.core.ConnectException;
-import org.wso2.carbon.connector.core.Connector;
 
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.Drive.Files;
 import com.google.api.services.drive.model.Channel;
 
 /**
- * Class mediator which maps to <strong>/files</strong> endpoint's <strong>watch</strong> method.
+ * Class mediator which maps to <strong>/files</strong> endpoint's <strong>watch</strong> method. Creates a
+ * callback channel to watch modifications on a file within Google Drive, specified by a file ID. Returns the
+ * callback channel as a Google Drive SDK Channel resource in XML format and attaches to the message context's
+ * envelope body, and stores an error message as a property on failure. Maps to the <strong>watchFile</strong>
+ * Synapse template within the <strong>Google Drive</strong> connector.
  * 
  * @see https://developers.google.com/drive/v2/reference/files/watch
  */
-public class GoogledriveWatchFile extends AbstractConnector implements Connector {
-    
-    /** Represent the emptyString . */
-    private static final String EMPTY_STRING = "";
+public class GoogledriveWatchFile extends AbstractConnector {
     
     /**
-     * Returns body for response SOAP envelope
+     * Connector method which is executed at the specified point within the corresponding Synapse template
+     * within the connector.
      * 
-     * @param messageContext value for message context.
-     * @throws ConnectException if an ConnectException error occurs
+     * @param messageContext Synapse Message Context
+     * @see org.wso2.carbon.connector.core.AbstractConnector#connect(org.apache.synapse.MessageContext)
      */
-    public void connect(MessageContext messageContext) throws ConnectException {
+    public final void connect(final MessageContext messageContext) {
     
-        HashMap<String, String> parameters = new HashMap<String, String>();
+        Map<String, String> parameters = new HashMap<String, String>();
         
         String fileId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_ID);
         
-        parameters.put(GoogleDriveUtils.StringConstants.CHANNEL_ID,
-                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.CHANNEL_ID));
+        parameters.put(GoogleDriveUtils.StringConstants.REQUEST_BODY,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.REQUEST_BODY));
         
-        parameters.put(GoogleDriveUtils.StringConstants.CHANNEL_ADDRESS,
-                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.CHANNEL_ADDRESS));
+        parameters.put(GoogleDriveUtils.StringConstants.PARAMS,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.PARAMS));
         
-        parameters.put(GoogleDriveUtils.StringConstants.CHANNEL_TYPE,
-                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.CHANNEL_TYPE));
+        parameters.put(GoogleDriveUtils.StringConstants.FIELDS,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FIELDS));
         
-        HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
+        Map<String, String> resultEnvelopeMap = new HashMap<String, String>();
         
-        /** Represent the watchResult . */
-        Channel watchResult = null;
-        
-        /** Represent the watchFileResult . */
-        OMElement watchFileResult;
+        // Channel object to store result
+        Channel createdChannel = null;
         
         try {
-            HttpTransport httpTransport = new NetHttpTransport();
-            JsonFactory jsonFactory = new JacksonFactory();
             
-            Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
-            watchResult = watchFile(service, fileId, parameters);
+            Drive service = GoogleDriveUtils.getDriveService(messageContext);
             
-            if (watchResult != null) {
-                
-                watchFileResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_WATCHFILE,
-                                GoogleDriveUtils.StringConstants.WATCH_FILE_RESULT, true, hashMapForResultEnvelope);
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.FILE, watchResult.toPrettyString());
-                messageContext.getEnvelope().getBody().addChild(watchFileResult);
-                
-            }
+            createdChannel = watchFile(service, fileId, parameters);
             
-        } catch (Exception e) {
-            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
-            watchFileResult =
-                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_WATCHFILE,
-                            GoogleDriveUtils.StringConstants.WATCH_FILE_RESULT, false, hashMapForResultEnvelope);
-            messageContext.getEnvelope().getBody().addChild(watchFileResult);
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
+            messageContext.getEnvelope().detach();
+            // build new SOAP envelope to return to client
+            messageContext.setEnvelope(GoogleDriveUtils.buildResultEnvelope(
+                    GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_WATCHFILE,
+                    GoogleDriveUtils.StringConstants.WATCH_FILE_RESULT, resultEnvelopeMap));
+            resultEnvelopeMap.put(GoogleDriveUtils.StringConstants.FILE, createdChannel.toPrettyString());
+            
+        } catch (IOException ioe) {
+            
+            log.error("Error creating callback channel:", ioe);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ioe,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_IO_EXCEPTION);
+            handleException("Error creating callback channel: ", ioe, messageContext);
+        } catch (GeneralSecurityException gse) {
+            
+            log.error("Google Drive authentication failure:", gse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, gse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_GENERAL_SECURITY_EXCEPTION);
+            handleException("Google Drive authentication failure.: ", gse, messageContext);
+        } catch (XMLStreamException xse) {
+            log.error("Failed to parse OM Element.", xse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, xse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_XML_STREAM_PARSE_FAILURE);
+            handleException("Failed to parse OM Element.", xse, messageContext);
         }
     }
     
-    private Channel watchFile(Drive service, String fileId, HashMap<String, String> parameters) throws IOException {
+    /**
+     * Creates a callback channel to watch a file specified by a file ID and returns a Channel resource.
+     * 
+     * @param service Google Drive SDK service object
+     * @param fileId ID of the file to watch
+     * @param parameters Map containing optional parameters to create the channel
+     * @return Channel callback Channel
+     * @throws IOException If an error occur on Google Drive API end.
+     * @throws TokenResponseException If receiving an error response from the token server.
+     * @throws XMLStreamException If an error occurs during parsing string as XML.
+     */
+    private Channel watchFile(final Drive service, final String fileId, final Map<String, String> parameters)
+            throws IOException, TokenResponseException, XMLStreamException {
     
         Channel channel = new Channel();
         
+        String temporaryValue = parameters.get(GoogleDriveUtils.StringConstants.REQUEST_BODY);
+        
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            
+            channel.setUnknownKeys(GoogleDriveUtils.getUnkownKeyMap(temporaryValue));
+        }
+        
+        temporaryValue = parameters.get(GoogleDriveUtils.StringConstants.PARAMS);
+        
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            
+            Map<String, Object> unknownKeyMap = GoogleDriveUtils.getUnkownKeyMap(temporaryValue);
+            Map<String, String> params = new HashMap<String, String>();
+            Iterator<Map.Entry<String, Object>> paramIterator = unknownKeyMap.entrySet().iterator();
+            while (paramIterator.hasNext()) {
+                Map.Entry<String, Object> element = paramIterator.next();
+                params.put(element.getKey(), (String) element.getValue());
+            }
+            channel.setParams(params);
+        }
+        
         Files.Watch watchRequest = service.files().watch(fileId, channel);
+        temporaryValue = parameters.get(GoogleDriveUtils.StringConstants.FIELDS);
         
-        String temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.CHANNEL_ID);
-        
-        if (!EMPTY_STRING.equals(temporaryResult)) {
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
             
-            channel.setId((String) temporaryResult);
-        }
-        
-        temporaryResult = EMPTY_STRING;
-        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.CHANNEL_ADDRESS);
-        
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            channel.setAddress((String) temporaryResult);
-        }
-        
-        temporaryResult = EMPTY_STRING;
-        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.CHANNEL_TYPE);
-        
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            channel.setType((String) temporaryResult);
+            watchRequest.setFields((String) temporaryValue);
         }
         
         return watchRequest.execute();

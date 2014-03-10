@@ -19,136 +19,139 @@
 package org.wso2.carbon.connector.googledrive;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.axiom.om.OMElement;
 import org.apache.synapse.MessageContext;
 import org.wso2.carbon.connector.core.AbstractConnector;
-import org.wso2.carbon.connector.core.ConnectException;
-import org.wso2.carbon.connector.core.Connector;
 
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.Drive.Changes;
 import com.google.api.services.drive.model.ChangeList;
 
 /**
- * Class mediator which maps to <strong>/files</strong> endpoint's <strong>list</strong> method.
+ * Class mediator which maps to <strong>/files</strong> endpoint's <strong>list</strong> method. Gets a list
+ * of changes by the user to a file in Google Drive specified by a file ID. Returns the retrieved list of
+ * changes as a Google Drive SDK ChangeList resource in XML format and attaches to the message context's
+ * envelope body, and stores an error message as a property on failure. Maps to the
+ * <strong>listChangesForUser</strong> Synapse template within the <strong>Google Drive</strong> connector.
  * 
  * @see https://developers.google.com/drive/v2/reference/changes/list
  */
-public class GoogledriveListChangesForUser extends AbstractConnector implements Connector {
-    
-    /** Represent the EMPTY_STRING of optional parameter request . */
-    private static final String EMPTY_STRING = "";
+public class GoogledriveListChangesForUser extends AbstractConnector {
     
     /**
-     * connect.
+     * Connector method which is executed at the specified point within the corresponding Synapse template
+     * within the connector.
      * 
-     * @param messageContext ESB messageContext.
-     * @throws ConnectException if connection fails.
+     * @param messageContext Synapse Message Context
+     * @see org.wso2.carbon.connector.core.AbstractConnector#connect(org.apache.synapse.MessageContext)
      */
-    public void connect(MessageContext messageContext) throws ConnectException {
+    public final void connect(final MessageContext messageContext) {
     
         ChangeList changeList;
-        OMElement changeListResult;
         
-        HashMap<String, String> parameters = new HashMap<String, String>();
-        parameters.put(GoogleDriveUtils.StringConstants.INCLUDE_DELETED,
+        Map<String, String> parameterMap = new HashMap<String, String>();
+        Map<String, String> resultEnvelopeMap = new HashMap<String, String>();
+        
+        // Adding parameters to parameterMap
+        parameterMap.put(GoogleDriveUtils.StringConstants.INCLUDE_DELETED,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.INCLUDE_DELETED));
-        parameters.put(GoogleDriveUtils.StringConstants.INCLUDE_SUBSCRIBED,
+        parameterMap.put(GoogleDriveUtils.StringConstants.INCLUDE_SUBSCRIBED,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.INCLUDE_SUBSCRIBED));
-        parameters.put(GoogleDriveUtils.StringConstants.MAX_RESULTS,
+        parameterMap.put(GoogleDriveUtils.StringConstants.MAX_RESULTS,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.MAX_RESULTS));
-        parameters.put(GoogleDriveUtils.StringConstants.PAGE_TOKEN,
+        parameterMap.put(GoogleDriveUtils.StringConstants.PAGE_TOKEN,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.PAGE_TOKEN));
-        parameters.put(GoogleDriveUtils.StringConstants.START_CHANGE_ID,
+        parameterMap.put(GoogleDriveUtils.StringConstants.START_CHANGE_ID,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.START_CHANGE_ID));
-        HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
+        parameterMap.put(GoogleDriveUtils.StringConstants.FIELDS,
+                (String) messageContext.getProperty(GoogleDriveUtils.StringConstants.FIELDS));
         
         try {
             
-            HttpTransport httpTransport = new NetHttpTransport();
-            JsonFactory jsonFactory = new JacksonFactory();
+            Drive service = GoogleDriveUtils.getDriveService(messageContext);
             
-            Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
+            changeList = getChangeList(service, parameterMap);
             
-            changeList = getChangeList(service, parameters);
+            resultEnvelopeMap.put(GoogleDriveUtils.StringConstants.CHANGE_LIST, changeList.toPrettyString());
+            messageContext.getEnvelope().detach();
+            // build new SOAP envelope to return to client
+            messageContext.setEnvelope(GoogleDriveUtils.buildResultEnvelope(
+                    GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTCHANGESFORUSER,
+                    GoogleDriveUtils.StringConstants.LIST_CHANGES_FOR_USER_RESULT, resultEnvelopeMap));
             
-            if (changeList != null) {
-                
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.CHANGE_LIST, changeList.toPrettyString());
-                
-                changeListResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTCHANGESFORUSER,
-                                GoogleDriveUtils.StringConstants.LIST_CHANGES_FOR_USER_RESULT, true,
-                                hashMapForResultEnvelope);
-                messageContext.getEnvelope().getBody().addChild(changeListResult);
-            }
-            
-        } catch (Exception e) {
-            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
-            changeListResult =
-                    GoogleDriveUtils.buildResultEnvelope(
-                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTCHANGESFORUSER,
-                            GoogleDriveUtils.StringConstants.LIST_CHANGES_FOR_USER_RESULT, false,
-                            hashMapForResultEnvelope);
-            messageContext.getEnvelope().getBody().addChild(changeListResult);
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
+        } catch (IOException ioe) {
+            log.error("Failed to retrieve changes.", ioe);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ioe,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_IO_EXCEPTION);
+            handleException("Failed to retrieve changes.", ioe, messageContext);
+        } catch (GeneralSecurityException gse) {
+            log.error("Google Drive authentication failure.", gse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, gse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_GENERAL_SECURITY_EXCEPTION);
+            handleException("Google Drive authentication failure.", gse, messageContext);
+        } catch (ValidationException ve) {
+            log.error("Failed to validate boolean parameter.", ve);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ve,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_CONNECTOR_VALIDATION_EXCEPTION);
+            handleException("Failed to validate boolean parameter.", ve, messageContext);
         }
     }
     
     /**
-     * Returns a list of changes to a file
+     * Returns a list of changes to a file as a ChangeList resource.
      * 
      * @param service Drive API service instance.
      * @param params HashMap containing parameters for the request
-     * @return <strong>List</strong> of changes
+     * @return <strong>ChangeList</strong> of changes
+     * @throws IOException If an error occur on Google Drive API end.
+     * @throws ValidationException If a validation error occurs.
+     * @throws TokenResponseException If receiving an error response from
+     *         the token server.
      */
-    private ChangeList getChangeList(Drive service, HashMap<String, String> params) throws IOException {
+    private ChangeList getChangeList(final Drive service, final Map<String, String> params) throws IOException,
+            ValidationException, TokenResponseException {
     
+        // Get list of changes
         Changes.List request = service.changes().list();
-        String temporaryResult = params.get(GoogleDriveUtils.StringConstants.INCLUDE_DELETED);
+        String temporaryValue;
         
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            request.setIncludeDeleted(Boolean.valueOf(temporaryResult));
+        temporaryValue = params.get(GoogleDriveUtils.StringConstants.INCLUDE_DELETED);
+        
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            request.setIncludeDeleted(GoogleDriveUtils.toBoolean(temporaryValue));
         }
         
-        temporaryResult = EMPTY_STRING;
-        temporaryResult = params.get(GoogleDriveUtils.StringConstants.INCLUDE_SUBSCRIBED);
+        temporaryValue = params.get(GoogleDriveUtils.StringConstants.INCLUDE_SUBSCRIBED);
         
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            request.setIncludeSubscribed(Boolean.valueOf(temporaryResult));
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            request.setIncludeSubscribed(GoogleDriveUtils.toBoolean(temporaryValue));
         }
         
-        temporaryResult = EMPTY_STRING;
-        temporaryResult = params.get(GoogleDriveUtils.StringConstants.MAX_RESULTS);
+        temporaryValue = params.get(GoogleDriveUtils.StringConstants.MAX_RESULTS);
         
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            request.setMaxResults(Integer.valueOf(temporaryResult));
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            request.setMaxResults(GoogleDriveUtils.toInteger(temporaryValue));
         }
         
-        temporaryResult = EMPTY_STRING;
-        temporaryResult = params.get(GoogleDriveUtils.StringConstants.PAGE_TOKEN);
+        temporaryValue = params.get(GoogleDriveUtils.StringConstants.PAGE_TOKEN);
         
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            request.setPageToken(temporaryResult);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            request.setPageToken(temporaryValue);
         }
         
-        temporaryResult = EMPTY_STRING;
-        temporaryResult = params.get(GoogleDriveUtils.StringConstants.START_CHANGE_ID);
+        temporaryValue = params.get(GoogleDriveUtils.StringConstants.START_CHANGE_ID);
         
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            request.setStartChangeId(Long.valueOf(temporaryResult));
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            request.setStartChangeId(GoogleDriveUtils.toLong(temporaryValue));
+        }
+        temporaryValue = params.get(GoogleDriveUtils.StringConstants.FIELDS);
+        
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            request.setFields(temporaryValue);
         }
         
         return request.execute();

@@ -19,93 +19,108 @@
 package org.wso2.carbon.connector.googledrive;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.axiom.om.OMElement;
 import org.apache.synapse.MessageContext;
 import org.wso2.carbon.connector.core.AbstractConnector;
-import org.wso2.carbon.connector.core.ConnectException;
-import org.wso2.carbon.connector.core.Connector;
 
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.Drive.Files;
 import com.google.api.services.drive.model.File;
 
 /**
- * Class mediator which maps to <strong>/files</strong> endpoint's <strong>get</strong> method.
+ * Class mediator which maps to <strong>/files</strong> endpoint's <strong>get</strong> method. Gets a file
+ * within Google Drive, as specified by a file ID. Returns the file as a Google Drive SDK File resource in XML
+ * format and attaches to the message context's envelope body, and stores an error message as a property on
+ * failure. Maps to the <strong>getFile</strong> Synapse template within the <strong>Google Drive</strong>
+ * connector.
  * 
  * @see https://developers.google.com/drive/v2/reference/files/get
  */
-public class GoogledriveGetfile extends AbstractConnector implements Connector {
-    
-    /** Represent the emptyString . */
-    private static final String EMPTY_STRING = "";
+public class GoogledriveGetfile extends AbstractConnector {
     
     /**
-     * Returns body for response SOAP envelope
+     * Connector method which is executed at the specified point within the corresponding Synapse template
+     * within the connector.
      * 
-     * @param messageContext value for message context.
-     * @throws ConnectException if an ConnectException error occurs
+     * @param messageContext Synapse Message Context
+     * @see org.wso2.carbon.connector.core.AbstractConnector#connect(org.apache.synapse.MessageContext)
      */
-    
-    public void connect(MessageContext messageContext) throws ConnectException {
+    public final void connect(final MessageContext messageContext) {
     
         String fileId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_ID);
         
-        HashMap<String, String> parameters = new HashMap<String, String>();
+        Map<String, String> parameters = new HashMap<String, String>();
         
         parameters.put(GoogleDriveUtils.StringConstants.UPDATE_VIEW_DATE,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.UPDATE_VIEW_DATE));
+        parameters.put(GoogleDriveUtils.StringConstants.FIELDS,
+                (String) messageContext.getProperty(GoogleDriveUtils.StringConstants.FIELDS));
         
-        HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
-        /** Represent the getFileResult . */
-        OMElement getFileResult;
+        Map<String, String> resultEnvelopeMap = new HashMap<String, String>();
         
         try {
-            HttpTransport httpTransport = new NetHttpTransport();
-            JsonFactory jsonFactory = new JacksonFactory();
+            Drive service = GoogleDriveUtils.getDriveService(messageContext);
             
-            Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
+            File fileResult = getFileById(service, fileId, parameters);
+            resultEnvelopeMap.put(GoogleDriveUtils.StringConstants.FILE, fileResult.toPrettyString());
+            messageContext.getEnvelope().detach();
+            // build new SOAP envelope to return to client
+            messageContext.setEnvelope(GoogleDriveUtils.buildResultEnvelope(
+                    GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETFILE,
+                    GoogleDriveUtils.StringConstants.GET_FILE_RESULT, resultEnvelopeMap));
             
-            File fileResult = downloadFile(service, fileId, parameters);
-            
-            if (fileResult != null) {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.FILE, fileResult.toPrettyString());
-                getFileResult =
-                        GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETFILE,
-                                GoogleDriveUtils.StringConstants.GET_FILE_RESULT, true, hashMapForResultEnvelope);
-                messageContext.getEnvelope().getBody().addChild(getFileResult);
-                
-            }
-            
-        } catch (Exception e) {
-            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
-            getFileResult =
-                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_GETFILE,
-                            GoogleDriveUtils.StringConstants.GET_FILE_RESULT, false, hashMapForResultEnvelope);
-            
-            messageContext.getEnvelope().getBody().addChild(getFileResult);
-            
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
+        } catch (IOException ioe) {
+            log.error("Error retrieving file.", ioe);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ioe,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_IO_EXCEPTION);
+            handleException("Error retrieving file.", ioe, messageContext);
+        } catch (GeneralSecurityException gse) {
+            log.error("Google Drive authentication failure.", gse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, gse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_GENERAL_SECURITY_EXCEPTION);
+            handleException("Google Drive authentication failure.", gse, messageContext);
+        } catch (ValidationException ve) {
+            log.error("Failed to validate boolean parameter.", ve);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ve,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_CONNECTOR_VALIDATION_EXCEPTION);
+            handleException("Failed to validate boolean parameter.", ve, messageContext);
         }
     }
     
-    private File downloadFile(Drive service, String fileId, HashMap<String, String> parameters) throws IOException {
+    /**
+     * Retrieve a File according to fileId passed and return it as a File resource.
+     * 
+     * @param service Drive API service instance
+     * @param fileId ID of the file to insert comment for
+     * @param parameters collection of optional parameters
+     * @return File resource
+     * @throws IOException If an error occur on Google Drive API end.
+     * @throws ValidationException If a validation error occurs.
+     * @throws TokenResponseException If receiving an error response from
+     *         the token server.
+     */
+    private File getFileById(final Drive service, final String fileId, final Map<String, String> parameters)
+            throws IOException, ValidationException, TokenResponseException {
     
         Files.Get fileResult = service.files().get(fileId);
-        String temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.UPDATE_VIEW_DATE);
+        String temporaryValue = parameters.get(GoogleDriveUtils.StringConstants.UPDATE_VIEW_DATE);
         
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            fileResult.setUpdateViewedDate(Boolean.valueOf(temporaryResult));
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            fileResult.setUpdateViewedDate(GoogleDriveUtils.toBoolean(temporaryValue));
+            
+        }
+        temporaryValue = parameters.get(GoogleDriveUtils.StringConstants.FIELDS);
+        
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            fileResult.setFields(temporaryValue);
             
         }
         
         return fileResult.execute();
-        
     }
     
 }
