@@ -50,10 +50,11 @@ STEPS:
 
    iii) paypalPaymentId_1 - Using the same access token obtained in iii), create a paypal payment using the PayPal REST API playground, and use the id in the response.
 
-   vi) payerId_1 - In the above response, copy the URL with REDIRECT HTTP method, inside "links" array, and proceed with the web flow. After you are redirected to vendor website, use the PayerID in the URL.
+   iv) payerId_1 - In the above response, copy the URL with REDIRECT HTTP method, inside "links" array, and proceed with the web flow. After you are redirected to vendor website, use the PayerID in the URL.
 
    v) paypalPaymentId_2 and payerId_2 - Repeat the steps iv) and v) respectively.
 
+   NOTE: Please follow steps iii), iv) and v) for subsequent test runs, after initial test run.
 
 7. Copy proxy files to location "Integration_Test\products\esb\4.8.1\modules\integration\connectors\src\test\resources\artifacts\ESB\config\proxies\paypal\"
 
