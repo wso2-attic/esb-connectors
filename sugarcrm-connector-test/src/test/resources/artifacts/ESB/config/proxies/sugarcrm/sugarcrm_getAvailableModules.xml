@@ -6,30 +6,75 @@
        trace="disable"
        startOnLoad="true">
    <target>
-      <inSequence>
+      <inSequence onError="faultHandlerSeq">
          <property xmlns:ns="wso2.connector.sugarcrm.getAvailableModules"
-                   name="sessionId"
-                   expression="//ns:session/text()"/>
+                   name="userName"
+                   expression="//ns:userName/text()"/>
+         <property xmlns:ns="wso2.connector.sugarcrm.getAvailableModules"
+                   name="password"
+                   expression="//ns:password/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.getAvailableModules"
                    name="appUri"
-                   expression="//ns:sugarCRMApiUrl/text()"/>
+                   expression="//ns:appUri/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.getAvailableModules"
-                   name="filterText"
-                   expression="//ns:filter/text()"/>
-         <sugarcrm-connector-1.0.0.init>
+                   name="version"
+                   expression="//ns:version/text()"/>
+         <property xmlns:ns="wso2.connector.sugarcrm.getAvailableModules"
+                   name="appName"
+                   expression="//ns:appname/text()"/>
+         <property xmlns:ns="wso2.connector.sugarcrm.getAvailableModules"
+                   name="forceLogin"
+                   expression="//ns:forceLogin/text()"/>
+         <sugarcrm.init>
             <appUri>{$ctx:appUri}</appUri>
-            <session>{$ctx:sessionId}</session>
-         </sugarcrm-connector-1.0.0.init>
-         <sugarcrm-connector-1.0.0.getAvailableModules>
-            <filter>{$ctx:filterText}</filter>
-         </sugarcrm-connector-1.0.0.getAvailableModules>
+            <userName>{$ctx:userName}</userName>
+            <password>{$ctx:password}</password>
+            <version>{$ctx:version}</version>
+            <applicationName>{$ctx:appName}</applicationName>
+            <forceLogin>{$ctx:forceLogin}</forceLogin>
+         </sugarcrm.init>
+         <sugarcrm.getAvailableModules/>
+         <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_CODE" value="600401"/>
+                     <property name="ERROR_MESSAGE" value="Unauthorized"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_CODE" value="600404"/>
+                     <property name="ERROR_MESSAGE" value="Not Found"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_CODE" value="600400"/>
+                     <property name="ERROR_MESSAGE" value="Bad Request"/>
+                  </case>
+                  <case regex="500">
+                     <property name="ERROR_CODE" value="600500"/>
+                     <property name="ERROR_MESSAGE" value="Internal Server Error"/>
+                  </case>
+               </switch>
+               <makefault version="soap11">
+                  <code expression="get-property('ERROR_CODE')"/>
+                  <reason expression="get-property('ERROR_MESSAGE')"/>
+                  <detail/>
+               </makefault>
+            </then>
+         </filter>
          <respond/>
       </inSequence>
       <outSequence>
          <log/>
          <send/>
       </outSequence>
+      <faultSequence>
+         <makefault version="soap11">
+            <code expression="get-property('ERROR_CODE')"/>
+            <reason expression="get-property('ERROR_MESSAGE')"/>
+            <detail/>
+         </makefault>
+         <send/>
+      </faultSequence>
    </target>
    <description/>
 </proxy>
-                                

@@ -6,28 +6,37 @@
        trace="disable"
        startOnLoad="true">
    <target>
-      <inSequence>
+      <inSequence onError="faultHandlerSeq">
          <property xmlns:ns="wso2.connector.sugarcrm.getEntryList"
-                   name="sessionId"
-                   expression="//ns:session/text()"/>
+                   name="userName"
+                   expression="//ns:userName/text()"/>
+         <property xmlns:ns="wso2.connector.sugarcrm.getEntryList"
+                   name="password"
+                   expression="//ns:password/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.getEntryList"
                    name="appUri"
-                   expression="//ns:sugarcrmUrl/text()"/>
+                   expression="//ns:appUri/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.getEntryList"
-                   name="moduleNm"
-                   expression="//ns:module_name/text()"/>
+                   name="version"
+                   expression="//ns:version/text()"/>
+         <property xmlns:ns="wso2.connector.sugarcrm.getEntryList"
+                   name="appName"
+                   expression="//ns:appname/text()"/>
+         <property xmlns:ns="wso2.connector.sugarcrm.getEntryList"
+                   name="moduleName"
+                   expression="//ns:moduleName/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.getEntryList"
                    name="queryString"
                    expression="//ns:query/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.getEntryList"
-                   name="orderby"
-                   expression="//ns:order_by/text()"/>
+                   name="orderBy"
+                   expression="//ns:orderBy/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.getEntryList"
                    name="offset"
                    expression="//ns:offset/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.getEntryList"
                    name="maxResults"
-                   expression="//ns:max_results/text()"/>
+                   expression="//ns:maxResults/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.getEntryList"
                    name="deleted"
                    expression="//ns:deleted/text()"/>
@@ -36,26 +45,68 @@
                    expression="//ns:favorites/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.getEntryList"
                    name="selectFields"
-                   expression="//ns:select_fields/child::node()"/>
-         <sugarcrm-connector-1.0.0.init>
+                   expression="//ns:selectFields"/>
+         <property xmlns:ns="wso2.connector.sugarcrm.getEntryList"
+                   name="forceLogin"
+                   expression="//ns:forceLogin/text()"/>
+         <sugarcrm.init>
             <appUri>{$ctx:appUri}</appUri>
-            <session>{$ctx:sessionId}</session>
-         </sugarcrm-connector-1.0.0.init>
-         <sugarcrm-connector-1.0.0.getEntryList>
-            <moduleName>{$ctx:moduleNm}</moduleName>
+            <userName>{$ctx:userName}</userName>
+            <password>{$ctx:password}</password>
+            <version>{$ctx:version}</version>
+            <applicationName>{$ctx:appName}</applicationName>
+            <forceLogin>{$ctx:forceLogin}</forceLogin>
+         </sugarcrm.init>
+         <sugarcrm.getEntryList>
+            <moduleName>{$ctx:moduleName}</moduleName>
             <query>{$ctx:queryString}</query>
-            <orderby>{$ctx:orderby}</orderby>
+            <orderby>{$ctx:orderBy}</orderby>
             <offset>{$ctx:offset}</offset>
             <deleted>{$ctx:deleted}</deleted>
             <maxResults>{$ctx:maxResults}</maxResults>
             <favorites>{$ctx:favorites}</favorites>
             <selectFields>{$ctx:selectFields}</selectFields>
-         </sugarcrm-connector-1.0.0.getEntryList>
+         </sugarcrm.getEntryList>
+         <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_CODE" value="600401"/>
+                     <property name="ERROR_MESSAGE" value="Unauthorized"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_CODE" value="600404"/>
+                     <property name="ERROR_MESSAGE" value="Not Found"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_CODE" value="600400"/>
+                     <property name="ERROR_MESSAGE" value="Bad Request"/>
+                  </case>
+                  <case regex="500">
+                     <property name="ERROR_CODE" value="600500"/>
+                     <property name="ERROR_MESSAGE" value="Internal Server Error"/>
+                  </case>
+               </switch>
+               <makefault version="soap11">
+                  <code expression="get-property('ERROR_CODE')"/>
+                  <reason expression="get-property('ERROR_MESSAGE')"/>
+                  <detail/>
+               </makefault>
+            </then>
+         </filter>
          <respond/>
       </inSequence>
       <outSequence>
          <send/>
       </outSequence>
+      <faultSequence>
+         <makefault version="soap11">
+            <code expression="get-property('ERROR_CODE')"/>
+            <reason expression="get-property('ERROR_MESSAGE')"/>
+            <detail/>
+         </makefault>
+         <send/>
+      </faultSequence>
    </target>
    <description/>
 </proxy>
