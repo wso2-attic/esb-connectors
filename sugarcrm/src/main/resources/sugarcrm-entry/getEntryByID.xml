@@ -1,41 +1,71 @@
 <template name="getEntryByID" xmlns="http://ws.apache.org/ns/synapse">
-	
-  	<parameter name="moduleName" description="The name of the module from which to retrieve records"/>
-  	<parameter name="id" description="The ID of the record to retrieve"/>
-  	  	
-  	<sequence>
-  		
-	    <property name="uri.var.moduleName" expression="$func:moduleName"/>
-	    <property name="uri.var.id" expression="$func:id"/>
-	 	    
-	    <payloadFactory>
-	     	
-	     <format>
-	     
-	     		<sug:get_entry xmlns:sug="http://www.sugarcrm.com/sugarcrm">
-	          		<sug:session>$1</sug:session>
-	          		<sug:module_name>$2</sug:module_name>
-          			<sug:id>$3</sug:id>          			
-	        	</sug:get_entry>
-	
-	    </format>
-	      	
-      	<args>
-      		<arg expression="get-property('uri.var.session')"/>
-      		<arg expression="get-property('uri.var.moduleName')"/>
-      		<arg expression="get-property('uri.var.id')"/>      
-      	</args>
-	     	
-	    </payloadFactory>	    
-	   	   
-	    <header name="To" expression="get-property('uri.var.sugarCRMurl')"/>
-	    
-	    <call>
-			<endpoint>
-				<default format="soap11"/>
+
+	<!-- Fields required by the method -->
+	<parameter name="moduleName"
+		description="The name of the module from which to retrieve records" />
+	<parameter name="id" description="The ID of the record to retrieve" />
+	<parameter name="selectFields"
+		description="The selected field array which needs to retrive" />
+
+	<sequence>
+
+		<property name="uri.var.moduleName" expression="$func:moduleName" />
+		<property name="uri.var.id" expression="$func:id" />
+		<property name="uri.var.selectFields" expression="$func:selectFields" />
+
+		<payloadFactory>
+
+			<format>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+					xmlns:sug="http://www.sugarcrm.com/sugarcrm" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+					xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/">
+
+					<soapenv:Header />
+
+					<soapenv:Body>
+						<sug:get_entry xmlns:sug="http://www.sugarcrm.com/sugarcrm">
+							<sug:session>$1</sug:session>
+							<sug:module_name>$2</sug:module_name>
+							<sug:id>$3</sug:id>
+							<sug:select_fields soapenc:arrayType="xsd:string[1]">$4</sug:select_fields>
+						</sug:get_entry>
+					</soapenv:Body>
+
+				</soapenv:Envelope>
+
+			</format>
+
+			<args>
+				<arg expression="get-property('uri.var.session')" />
+				<arg expression="get-property('uri.var.moduleName')" />
+				<arg expression="get-property('uri.var.id')" />
+				<arg expression="get-property('uri.var.selectFields')" />
+			</args>
+
+		</payloadFactory>
+
+		<class
+			name="org.wso2.carbon.connector.sugarcrm.operation.SelectFieldsItemListHandler" />
+
+		<header name="To" expression="get-property('uri.var.sugarCRMurl')" />
+		
+		<call>
+			<endpoint name="templEPTimeout" template="org.wso2.carbon.connector.sugarcrm.timeout">
+				<parameter name="timoutDuration" value="6000" />
+				<parameter name="initialDuration" value="2000" />
+				<parameter name="progressAFactor" value="2.0" />
+				<parameter name="maximumDuration" value="3000" />
 			</endpoint>
 		</call>
-	    
-  	</sequence>
-  	
+
+		<!-- Remove response custom header information -->
+		<header name="X-SOAP-Server" scope="transport" action="remove" />
+		<header name="Cache-control" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="path" scope="transport" action="remove" />
+
+	</sequence>
+
 </template>

@@ -1,39 +1,52 @@
 <template name="createSession" xmlns="http://ws.apache.org/ns/synapse">
 
-  <parameter name="userName" description="User Name"/>
-  <parameter name="password" description="The md5 hashed password of teh user"/>
+	<!-- Fields required by the method -->
+	<parameter name="appUri" description="URL of the SugarCRM API" />
+	<parameter name="userName" description="User Name" />
+	<parameter name="password" description="The md5 hashed password of teh user" />
 
-  <sequence>
-  
-    <property name="uri.var.userName" expression="$func:userName"/>
-    <property name="uri.var.password" expression="$func:password"/>
-    
-    <payloadFactory>
-	
-	  <format>
-   	
-   		 <sug:create_session xmlns:sug="http://www.sugarcrm.com/sugarcrm">
-            <user_name>$1</user_name>
-            <password>$2</password>
-	      </sug:create_session>
-	
-	  </format>
-	
-	  <args>
-          <arg expression="get-property('uri.var.userName')"/>
-          <arg expression="get-property('uri.var.password')"/>
-      </args>
-    
-    </payloadFactory>
-    
-    <header name="To" expression="get-property('uri.var.sugarCRMurl')"/>
-    
-    <call>
-		<endpoint>
-			<default format="soap11"/>
-		</endpoint>
-	</call>
-	
-  </sequence>
-  
+	<sequence>
+		<property name="uri.var.sugarCRMurl" expression="$func:appUri" />
+		<property name="uri.var.userName" expression="$func:userName" />
+		<property name="uri.var.password" expression="$func:password" />
+
+		<payloadFactory>
+
+			<format>
+
+				<sug:create_session xmlns:sug="http://www.sugarcrm.com/sugarcrm">
+					<user_name>$1</user_name>
+					<password>$2</password>
+				</sug:create_session>
+
+			</format>
+
+			<args>
+				<arg expression="get-property('uri.var.userName')" />
+				<arg expression="get-property('uri.var.password')" />
+			</args>
+
+		</payloadFactory>
+
+		<header name="To" expression="get-property('uri.var.sugarCRMurl')" />
+
+		<call>
+			<endpoint name="templEPTimeout" template="org.wso2.carbon.connector.sugarcrm.timeout">
+				<parameter name="timoutDuration" value="6000" />
+				<parameter name="initialDuration" value="2000" />
+				<parameter name="progressAFactor" value="2.0" />
+				<parameter name="maximumDuration" value="3000" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-SOAP-Server" scope="transport" action="remove" />
+		<header name="Cache-control" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="path" scope="transport" action="remove" />
+
+	</sequence>
+
 </template>
