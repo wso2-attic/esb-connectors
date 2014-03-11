@@ -28,19 +28,19 @@ import org.wso2.carbon.connector.core.AbstractConnector;
 
 import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.services.drive.Drive;
-import com.google.api.services.drive.Drive.Files;
-import com.google.api.services.drive.model.FileList;
+import com.google.api.services.drive.Drive.Children;
+import com.google.api.services.drive.model.ChildList;
 
 /**
- * Class mediator which maps to <strong>/files</strong> endpoint's <strong>list</strong> method. Gets a list
- * of files within the user's Drive. Returns the retrieved list of files as a Google Drive SDK FileList
- * resource in XML format and attaches to the message context's envelope body, and stores an error message as
- * a property on failure. Maps to the <strong>listFiles</strong> Synapse template within the <strong>Google
- * Drive</strong> connector.
+ * Class mediator which maps to <strong>/children</strong> endpoint's <strong>list</strong> method. Gets a
+ * list of folders within the user's Drive or within a folder specified by a folder ID. Returns the retrieved
+ * list of Folders as a Google Drive SDK ChildList resource in XML format and attaches to the message
+ * context's envelope body, and stores an error message as a property on failure. Maps to the
+ * <strong>listFolders</strong> Synapse template within the <strong>Google Drive</strong> connector.
  * 
- * @see https://developers.google.com/drive/v2/reference/files/list
+ * @see https://developers.google.com/drive/v2/reference/children/list
  */
-public class GoogledriveListFiles extends AbstractConnector {
+public class GoogledriveListChildren extends AbstractConnector {
     
     /**
      * Connector method which is executed at the specified point within the corresponding Synapse template
@@ -51,6 +51,7 @@ public class GoogledriveListFiles extends AbstractConnector {
      */
     public final void connect(final MessageContext messageContext) {
     
+        String folderId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FOLDER_ID);
         Map<String, String> optParam = new HashMap<String, String>();
         optParam.put(GoogleDriveUtils.StringConstants.MAX_RESULTS,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.MAX_RESULTS));
@@ -60,32 +61,32 @@ public class GoogledriveListFiles extends AbstractConnector {
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.Q));
         optParam.put(GoogleDriveUtils.StringConstants.FIELDS,
                 (String) messageContext.getProperty(GoogleDriveUtils.StringConstants.FIELDS));
-        
         Map<String, String> resultEnvelopeMap = new HashMap<String, String>();
         try {
             
+            ChildList childrenList;
             Drive service = GoogleDriveUtils.getDriveService(messageContext);
             
-            FileList files = retrieveListOfFiles(service, optParam);
+            childrenList = retrieveListOfChildren(service, folderId, optParam);
             
-            resultEnvelopeMap.put(GoogleDriveUtils.StringConstants.FILE_LIST, files.toPrettyString());
+            resultEnvelopeMap.put(GoogleDriveUtils.StringConstants.CHILD_REFERENCE, childrenList.toPrettyString());
             messageContext.getEnvelope().detach();
             // build new SOAP envelope to return to client
             messageContext.setEnvelope(GoogleDriveUtils.buildResultEnvelope(
-                    GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTFILE,
-                    GoogleDriveUtils.StringConstants.LIST_FILE_RESULT, resultEnvelopeMap));
+                    GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_LISTFOLDERS,
+                    GoogleDriveUtils.StringConstants.LIST_CHILDREN_RESULT, resultEnvelopeMap));
             
         } catch (IOException ioe) {
-            log.error("Failed to retrieve file list:", ioe);
+            log.error("Error listing folders:", ioe);
             GoogleDriveUtils.storeErrorResponseStatus(messageContext, ioe,
                     GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_IO_EXCEPTION);
-            handleException("Failed to retrieve file list:", ioe, messageContext);
+            handleException("Error listing folders: ", ioe, messageContext);
         } catch (GeneralSecurityException gse) {
             
             log.error("Google Drive authentication failure:", gse);
             GoogleDriveUtils.storeErrorResponseStatus(messageContext, gse,
                     GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_GENERAL_SECURITY_EXCEPTION);
-            handleException("Google Drive authentication failure: ", gse, messageContext);
+            handleException("Google Drive authentication failure.: ", gse, messageContext);
         } catch (ValidationException ve) {
             log.error("Failed to validate integer parameter.", ve);
             GoogleDriveUtils.storeErrorResponseStatus(messageContext, ve,
@@ -95,48 +96,42 @@ public class GoogledriveListFiles extends AbstractConnector {
     }
     
     /**
-     * Retrieve a list of File resources according to optional parameters passed.
+     * Retrieves a list of children for a given folder and returns them as a ChildList resource.
      * 
-     * @param service Drive API service instance.
-     * @param optParam Collection of optional parameters.
-     * @return List of File resources.
+     * @param service Drive service object
+     * @param folderId ID of the folder of which the children should be returned
+     * @param optParam optional parameter hashmap
+     * @return List of Child objects
      * @throws IOException If an error occur on Google Drive API end.
-     * @throws ValidationException If a validation error occurs.
-     * @throws TokenResponseException If receiving an error response from the token server.
+     * @throws TokenResponseException If receiving an error response from
+     *         the token server.
      */
-    private FileList retrieveListOfFiles(final Drive service, final Map<String, String> optParam) throws IOException,
-            ValidationException, TokenResponseException {
+    private ChildList retrieveListOfChildren(final Drive service, final String folderId,
+            final Map<String, String> optParam) throws IOException, ValidationException, TokenResponseException {
     
-        Files.List request = service.files().list();
-        
+        Children.List request = service.children().list(folderId);
         String temporaryValue = optParam.get(GoogleDriveUtils.StringConstants.MAX_RESULTS);
         
         if (temporaryValue != null && !temporaryValue.isEmpty()) {
-            
             request.setMaxResults(GoogleDriveUtils.toInteger(temporaryValue));
         }
         
         temporaryValue = optParam.get(GoogleDriveUtils.StringConstants.PAGE_TOKEN);
-        
         if (temporaryValue != null && !temporaryValue.isEmpty()) {
-            
             request.setPageToken(temporaryValue);
         }
         
         temporaryValue = optParam.get(GoogleDriveUtils.StringConstants.Q);
-        
         if (temporaryValue != null && !temporaryValue.isEmpty()) {
-            
             request.setQ(temporaryValue);
         }
         temporaryValue = optParam.get(GoogleDriveUtils.StringConstants.FIELDS);
-        
         if (temporaryValue != null && !temporaryValue.isEmpty()) {
-            
             request.setFields(temporaryValue);
         }
         
         return request.execute();
+        
     }
     
 }

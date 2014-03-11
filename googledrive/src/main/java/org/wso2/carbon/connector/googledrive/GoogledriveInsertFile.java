@@ -18,203 +18,109 @@
 
 package org.wso2.carbon.connector.googledrive;
 
-import java.util.Arrays;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import org.apache.axiom.om.OMElement;
+import javax.activation.DataHandler;
+import javax.xml.stream.XMLStreamException;
+
 import org.apache.synapse.MessageContext;
+import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.wso2.carbon.connector.core.AbstractConnector;
-import org.wso2.carbon.connector.core.ConnectException;
-import org.wso2.carbon.connector.core.Connector;
 
-import com.google.api.client.http.FileContent;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.Drive.Files;
+import com.google.api.services.drive.model.File;
+import com.google.api.services.drive.model.File.IndexableText;
+import com.google.api.services.drive.model.File.Labels;
 import com.google.api.services.drive.model.ParentReference;
+import com.google.api.services.drive.model.Property;
 
 /**
- * Class mediator which maps to <strong>/files</strong> endpoint's <strong>insert</strong> method.
+ * Class mediator which maps to <strong>/files</strong> endpoint's <strong>insert</strong> method. Inserts a
+ * new file to Google Drive. File contents need to be passed as a Base64-encoded string. Returns the newly
+ * created file as a Google Drive SDK File resource in XML format and attaches to the message context's
+ * envelope body, and stores an error message as a property on failure. Maps to the
+ * <strong>insertFile</strong> Synapse template within the <strong>Google Drive</strong> connector.
  * 
  * @see https://developers.google.com/drive/v2/reference/files/insert
  */
-public class GoogledriveInsertFile extends AbstractConnector implements Connector {
-    
-    /** Represent the EMPTY_STRING of optional parameter request . */
-    private static final String EMPTY_STRING = "";
+public class GoogledriveInsertFile extends AbstractConnector {
     
     /**
-     * connect.
+     * Connector method which is executed at the specified point within the corresponding Synapse template
+     * within the connector.
      * 
-     * @param messageContext ESB messageContext.
-     * @throws ConnectException if connection fails.
+     * @param messageContext Synapse Message Context
+     * @see org.wso2.carbon.connector.core.AbstractConnector#connect(org.apache.synapse.MessageContext)
      */
-    public void connect(MessageContext messageContext) throws ConnectException {
+    public final void connect(final MessageContext messageContext) {
     
-        OMElement insertedFileResult = null;
+        String uploadType = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.UPLOAD_TYPE);
         
-        String fileContentBaseSixtyFour =
-                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_CONTENT);
-        String title = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.TITLE);
-        String description = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.DESCRIPTION);
-        String parentId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.PARENT_ID);
-        String mimeType = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.MIME_TYPE);
-        String fileName = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_NAME);
+        Map<String, String> resultEnvelopeMap = new HashMap<String, String>();
         
-        HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
-        
+        InputStream attachmentInStream = null;
         try {
+            org.apache.axis2.context.MessageContext axis2mc =
+                    ((Axis2MessageContext) messageContext).getAxis2MessageContext();
+            DataHandler dataHandler = axis2mc.getAttachment(GoogleDriveUtils.StringConstants.FILE);
             
-            HttpTransport httpTransport = new NetHttpTransport();
-            JsonFactory jsonFactory = new JacksonFactory();
-            
-            Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
-            
-            HashMap<String, String> parameters = getOptionalParams(messageContext);
-            
-            com.google.api.services.drive.model.File insertedFile =
-                    insertFile(service, title, description, parentId, mimeType, fileName, fileContentBaseSixtyFour,
-                            parameters);
-            
-            if (insertedFile != null) {
-                
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.FILE, insertedFile.toPrettyString());
-                
-                insertedFileResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTFILE,
-                                GoogleDriveUtils.StringConstants.INSERTED_FILE_RESULT, true, hashMapForResultEnvelope);
-                messageContext.getEnvelope().getBody().addChild(insertedFileResult);
-                
+            if ( dataHandler != null ) {
+                attachmentInStream = dataHandler.getInputStream();
             }
             
-        }
-        
-        catch (Exception e) {
-            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
-            insertedFileResult =
-                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTFILE,
-                            GoogleDriveUtils.StringConstants.INSERTED_FILE_RESULT, false, hashMapForResultEnvelope);
+            Map<String, String> optionalParametersMap = getOptionalParamMap(messageContext);
             
-            messageContext.getEnvelope().getBody().addChild(insertedFileResult);
+            Drive service = GoogleDriveUtils.getDriveService(messageContext);
             
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
+            File insertedFile = insertFile(service, uploadType, attachmentInStream, optionalParametersMap);
             
+            resultEnvelopeMap.put(GoogleDriveUtils.StringConstants.FILE, insertedFile.toPrettyString());
+            messageContext.getEnvelope().detach();
+            // build new SOAP envelope to return to client
+            messageContext.setEnvelope(GoogleDriveUtils.buildResultEnvelope(
+                    GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTFILE,
+                    GoogleDriveUtils.StringConstants.INSERTED_FILE_RESULT, resultEnvelopeMap));
+            
+        } catch (IOException ioe) {
+            log.error("Error inserting file.", ioe);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ioe,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_IO_EXCEPTION);
+            handleException("Error inserting file.", ioe, messageContext);
+        } catch (GeneralSecurityException gse) {
+            log.error("Google Drive authentication failure.", gse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, gse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_GENERAL_SECURITY_EXCEPTION);
+            handleException("Google Drive authentication failure.", gse, messageContext);
+        } catch (ValidationException ve) {
+            log.error("Failed to validate boolean parameter.", ve);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ve,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_CONNECTOR_VALIDATION_EXCEPTION);
+            handleException("Failed to validate boolean parameter.", ve, messageContext);
+        } catch (XMLStreamException xse) {
+            log.error("Failed to parse OM Element.", xse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, xse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_XML_STREAM_PARSE_FAILURE);
+            handleException("Failed to parse OM Element.", xse, messageContext);
         }
     }
     
     /**
-     * Insert new file.
+     * Assign optional parameters stored in the message context to a Map.
      * 
-     * @param service Drive API service instance.
-     * @param title Title of the file to insert, including the extension.
-     * @param description Description of the file to insert.
-     * @param parentId Optional parent folder's ID.
-     * @param mimeType MIME type of the file to insert.
-     * @param filename Filename of the file to insert.
-     * @return Inserted file metadata if successful, {@code null} otherwise.
+     * @param messageContext Synapse Message Context
+     * @return return optional parameters map
      */
-    private com.google.api.services.drive.model.File insertFile(Drive service, String title, String description,
-            String parentId, String mimeType, String filename, String fileContentBaseSixtyFour,
-            HashMap<String, String> parameters) throws Exception {
+    private Map<String, String> getOptionalParamMap(final MessageContext messageContext) {
     
-        java.io.File writtenFile =
-                GoogleDriveUtils.writeToTempFile(GoogleDriveUtils.StringConstants.TEMP_FILE_NAME,
-                        fileContentBaseSixtyFour);
-        
-        // File's metadata.
-        com.google.api.services.drive.model.File body = new com.google.api.services.drive.model.File();
-        body.setTitle(title);
-        body.setDescription(description);
-        body.setMimeType(mimeType);
-        
-        // Set the parent folder.
-        if (parentId != null && parentId.length() > 0) {
-            body.setParents(Arrays.asList(new ParentReference().setId(parentId)));
-        }
-        
-        // File's content.
-        java.io.File fileContent = writtenFile;
-        FileContent mediaContent = new FileContent(mimeType, fileContent);
-        
-        Files.Insert insertRequest = service.files().insert(body, mediaContent);
-        
-        /*
-         * setting optional parameters to the request
-         */
-        String temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.CONVERT);
-        
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            insertRequest.setConvert(Boolean.valueOf(temporaryResult));
-        }
-        
-        temporaryResult = EMPTY_STRING;
-        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.OCR);
-        
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            insertRequest.setOcr(Boolean.valueOf(temporaryResult));
-        }
-        
-        temporaryResult = EMPTY_STRING;
-        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.OCR_LANGUAGE);
-        
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            insertRequest.setOcrLanguage((String) temporaryResult);
-        }
-        
-        temporaryResult = EMPTY_STRING;
-        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.PINNED);
-        
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            insertRequest.setPinned(Boolean.valueOf(temporaryResult));
-        }
-        
-        temporaryResult = EMPTY_STRING;
-        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.TIMED_TEXT_LANGUAGE);
-        
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            insertRequest.setTimedTextLanguage((String) temporaryResult);
-        }
-        
-        temporaryResult = EMPTY_STRING;
-        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.TIMED_TEXT_TRACKNAME);
-        
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            insertRequest.setTimedTextTrackName((String) temporaryResult);
-        }
-        
-        temporaryResult = EMPTY_STRING;
-        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.USE_CONTENT_AS_INDEXABLE_TEXT);
-        
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            insertRequest.setOcr(Boolean.valueOf(temporaryResult));
-        }
-        
-        temporaryResult = EMPTY_STRING;
-        temporaryResult = parameters.get(GoogleDriveUtils.StringConstants.VISIBILITY);
-        
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            insertRequest.setTimedTextTrackName((String) temporaryResult);
-        }
-        
-        return insertRequest.execute();
-        
-    }
-    
-    private HashMap<String, String> getOptionalParams(MessageContext messageContext) {
-    
-        HashMap<String, String> parameters = new HashMap<String, String>();
+        Map<String, String> parameters = new HashMap<String, String>();
         
         parameters.put(GoogleDriveUtils.StringConstants.CONVERT,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.CONVERT));
@@ -232,7 +138,166 @@ public class GoogledriveInsertFile extends AbstractConnector implements Connecto
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.USE_CONTENT_AS_INDEXABLE_TEXT));
         parameters.put(GoogleDriveUtils.StringConstants.VISIBILITY,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.VISIBILITY));
+        parameters.put(GoogleDriveUtils.StringConstants.FILE_RESOURCE,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_RESOURCE));
+        parameters.put(GoogleDriveUtils.StringConstants.LABELS,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.LABELS));
+        parameters.put(GoogleDriveUtils.StringConstants.PARENTS,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.PARENTS));
+        parameters.put(GoogleDriveUtils.StringConstants.PROPERTIES,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.PROPERTIES));
+        parameters.put(GoogleDriveUtils.StringConstants.INDEXABLE_TEXT,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.INDEXABLE_TEXT));
+        parameters.put(GoogleDriveUtils.StringConstants.FIELDS,
+                (String) messageContext.getProperty(GoogleDriveUtils.StringConstants.FIELDS));
         
         return parameters;
+    }
+    
+    /**
+     * Insert a new file and return it as a Google Drive SDK file resource.
+     * 
+     * @param service Google Drive SDK service object
+     * @param uploadType The type of the upload: resumable or media
+     * @param fileContentStream InputStream for file content to be inserted
+     * @param optionalParametersMap Optional parameters for the request
+     * @return Google Drive SDK File resource related to the inserted file
+     * @throws IOException If an error occur on Google Drive API end.
+     * @throws ValidationException If a validation error occurs.
+     * @throws TokenResponseException If receiving an error response from the token server.
+     * @throws XMLStreamException If an error occurs during parsing string as XML.
+     */
+    private File insertFile(final Drive service, final String uploadType, final InputStream fileContentStream,
+            final Map<String, String> optionalParametersMap) throws IOException, ValidationException,
+            TokenResponseException, XMLStreamException {
+    
+        // Mime Type is set to null if not specified
+        String mimeType = null;
+        // File's metadata.
+        File metaDatafile = new File();
+        
+        String temporaryValue;
+        if (uploadType != null && !uploadType.equals(GoogleDriveUtils.StringConstants.MEDIA)) {
+            temporaryValue = optionalParametersMap.get(GoogleDriveUtils.StringConstants.FILE_RESOURCE);
+            
+            if (temporaryValue != null && !temporaryValue.isEmpty()) {
+                
+                Map<String, Object> fileResourceMap = GoogleDriveUtils.getUnkownKeyMap(temporaryValue);
+                mimeType = (String) fileResourceMap.get(GoogleDriveUtils.StringConstants.MIME_TYPE);
+                metaDatafile.setUnknownKeys(fileResourceMap);
+                
+            }
+            
+            temporaryValue = optionalParametersMap.get(GoogleDriveUtils.StringConstants.LABELS);
+            
+            if (temporaryValue != null && !temporaryValue.isEmpty()) {
+                
+                Map<String, Object> labelsMap = GoogleDriveUtils.getUnkownKeyMap(temporaryValue);
+                Labels labels = new Labels();
+                labels.setUnknownKeys(labelsMap);
+                metaDatafile.setLabels(labels);
+            }
+            
+            temporaryValue = optionalParametersMap.get(GoogleDriveUtils.StringConstants.PARENTS);
+            
+            if (temporaryValue != null && !temporaryValue.isEmpty()) {
+                
+                List<ParentReference> parentReferences = GoogleDriveUtils.getParentReferenceList(temporaryValue);
+                metaDatafile.setParents(parentReferences);
+                
+            }
+            
+            temporaryValue = optionalParametersMap.get(GoogleDriveUtils.StringConstants.PROPERTIES);
+            
+            if (temporaryValue != null && !temporaryValue.isEmpty()) {
+                
+                List<Property> properties = GoogleDriveUtils.getPropertyList(temporaryValue);
+                metaDatafile.setProperties(properties);
+                
+            }
+            
+            temporaryValue = optionalParametersMap.get(GoogleDriveUtils.StringConstants.INDEXABLE_TEXT);
+            
+            if (temporaryValue != null && !temporaryValue.isEmpty()) {
+                
+                IndexableText indexableText = new IndexableText();
+                indexableText.setText(temporaryValue);
+                metaDatafile.setIndexableText(indexableText);
+                
+            }
+        }
+        Files.Insert insertRequest = null;
+        if ( fileContentStream != null ) {
+            // File's content.
+            insertRequest =
+                    service.files().insert(metaDatafile, new GoogleDriveFileContent(mimeType, fileContentStream));
+            if (uploadType != null && !uploadType.equals(GoogleDriveUtils.StringConstants.RESUMABLE)) {
+                insertRequest.getMediaHttpUploader().setDirectUploadEnabled(true);
+            } 
+        } else {
+            insertRequest = service.files().insert(metaDatafile);
+        }
+        // Setting optional parameters to the request
+        setOptionalParameters(optionalParametersMap, insertRequest);
+        
+        return insertRequest.execute();
+    }
+    
+    /**
+     * Set optional parameters for the request.
+     * 
+     * @param insertRequest Google insert request.
+     * @param parametersMap list of parameter values.
+     * @throws ValidationException If a validation error occurs.
+     */
+    private void setOptionalParameters(final Map<String, String> parametersMap, final Files.Insert insertRequest)
+            throws ValidationException {
+    
+        String temporaryValue;
+        
+        temporaryValue = parametersMap.get(GoogleDriveUtils.StringConstants.CONVERT);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            insertRequest.setConvert(GoogleDriveUtils.toBoolean(temporaryValue));
+        }
+        
+        temporaryValue = parametersMap.get(GoogleDriveUtils.StringConstants.OCR);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            insertRequest.setOcr(GoogleDriveUtils.toBoolean(temporaryValue));
+        }
+        
+        temporaryValue = parametersMap.get(GoogleDriveUtils.StringConstants.OCR_LANGUAGE);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            insertRequest.setOcrLanguage((String) temporaryValue);
+        }
+        
+        temporaryValue = parametersMap.get(GoogleDriveUtils.StringConstants.PINNED);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            insertRequest.setPinned(GoogleDriveUtils.toBoolean(temporaryValue));
+        }
+        
+        temporaryValue = parametersMap.get(GoogleDriveUtils.StringConstants.TIMED_TEXT_LANGUAGE);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            insertRequest.setTimedTextLanguage(temporaryValue);
+        }
+        
+        temporaryValue = parametersMap.get(GoogleDriveUtils.StringConstants.TIMED_TEXT_TRACKNAME);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            insertRequest.setTimedTextTrackName(temporaryValue);
+        }
+        
+        temporaryValue = parametersMap.get(GoogleDriveUtils.StringConstants.USE_CONTENT_AS_INDEXABLE_TEXT);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            insertRequest.setUseContentAsIndexableText(GoogleDriveUtils.toBoolean(temporaryValue));
+        }
+        
+        temporaryValue = parametersMap.get(GoogleDriveUtils.StringConstants.VISIBILITY);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            insertRequest.setVisibility(temporaryValue);
+        }
+        temporaryValue = parametersMap.get(GoogleDriveUtils.StringConstants.FIELDS);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            insertRequest.setFields(temporaryValue);
+        }
+        
     }
 }

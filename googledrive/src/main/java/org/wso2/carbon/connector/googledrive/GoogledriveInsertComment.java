@@ -19,111 +19,129 @@
 package org.wso2.carbon.connector.googledrive;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.axiom.om.OMElement;
+import javax.xml.parsers.ParserConfigurationException;
+
 import org.apache.synapse.MessageContext;
 import org.wso2.carbon.connector.core.AbstractConnector;
-import org.wso2.carbon.connector.core.ConnectException;
-import org.wso2.carbon.connector.core.Connector;
+import org.xml.sax.SAXException;
 
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.Drive.Comments;
 import com.google.api.services.drive.model.Comment;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.google.api.services.drive.model.Comment.Context;
 
 /**
- * Class mediator which maps to <strong>/comments</strong> endpoint's <strong>insert</strong> method.
+ * Class mediator which maps to <strong>/comments</strong> endpoint's <strong>insert</strong> method. Inserts
+ * a new comment to a file in Google Drive specified by a file ID. Returns the newly created comment as a
+ * Google Drive SDK Comment resource in XML format and attaches to the message context's envelope body, and
+ * stores an error message as a property on failure. Maps to the <strong>insertComment</strong> Synapse
+ * template within the <strong>Google Drive</strong> connector.
  * 
  * @see https://developers.google.com/drive/v2/reference/comments/insert
  */
-public class GoogledriveInsertComment extends AbstractConnector implements Connector {
-    
-    /** Represent the EMPTY_STRING of optional parameter request . */
-    private static final String EMPTY_STRING = "";
+public class GoogledriveInsertComment extends AbstractConnector {
     
     /**
-     * connect.
+     * Connector method which is executed at the specified point within the corresponding Synapse template
+     * within the connector.
      * 
-     * @param messageContext ESB messageContext.
-     * @throws ConnectException if connection fails.
+     * @param messageContext Synapse Message Context
+     * @see org.wso2.carbon.connector.core.AbstractConnector#connect(org.apache.synapse.MessageContext)
      */
-    public void connect(MessageContext messageContext) throws ConnectException {
+    public final void connect(final MessageContext messageContext) {
     
-        OMElement insertCommentResult;
-        Comment insertedComment;
+        Comment comment;
         
         String fileId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_ID);
-        String content = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.COMMENT_CONTENT);
+        String commentContent = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.COMMENT_CONTENT);
         
-        HashMap<String, String> parameters = new HashMap<String, String>();
-        parameters.put(GoogleDriveUtils.StringConstants.REQUEST_BODY,
-                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.REQUEST_BODY));
+        Map<String, String> parameters = new HashMap<String, String>();
+        parameters.put(GoogleDriveUtils.StringConstants.CONTEXT_TYPE,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.CONTEXT_TYPE));
+        parameters.put(GoogleDriveUtils.StringConstants.CONTEXT_VALUE,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.CONTEXT_VALUE));
+        parameters.put(GoogleDriveUtils.StringConstants.FIELDS,
+                (String) messageContext.getProperty(GoogleDriveUtils.StringConstants.FIELDS));
         
-        HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
+        Map<String, String> resultEnvelopeMap = new HashMap<String, String>();
+        
         try {
-            HttpTransport httpTransport = new NetHttpTransport();
-            JsonFactory jsonFactory = new JacksonFactory();
-            Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
-            insertedComment = insertComment(service, fileId, content, parameters);
-            if (insertedComment != null) {
-                hashMapForResultEnvelope
-                        .put(GoogleDriveUtils.StringConstants.COMMENT, insertedComment.toPrettyString());
-                insertCommentResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTCOMMENT,
-                                GoogleDriveUtils.StringConstants.INSERT_COMMENT_RESULT, true, hashMapForResultEnvelope);
-                messageContext.getEnvelope().getBody().addChild(insertCommentResult);
-            }
+            Drive service = GoogleDriveUtils.getDriveService(messageContext);
             
-        } catch (Exception e) {
-            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
-            insertCommentResult =
-                    GoogleDriveUtils.buildResultEnvelope(
-                            GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTCOMMENT,
-                            GoogleDriveUtils.StringConstants.INSERT_COMMENT_RESULT, false, hashMapForResultEnvelope);
+            comment = insertComment(service, fileId, commentContent, parameters);
             
-            messageContext.getEnvelope().getBody().addChild(insertCommentResult);
+            resultEnvelopeMap.put(GoogleDriveUtils.StringConstants.COMMENT, comment.toPrettyString());
+            messageContext.getEnvelope().detach();
+            // build new SOAP envelope to return to client
+            messageContext.setEnvelope(GoogleDriveUtils.buildResultEnvelope(
+                    GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_INSERTCOMMENT,
+                    GoogleDriveUtils.StringConstants.INSERT_COMMENT_RESULT, resultEnvelopeMap));
             
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
-            throw new ConnectException(e);
+        } catch (ParserConfigurationException pce) {
+            log.error("Error in XML parsing configuration.", pce);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, pce,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_XML_PARSER_CONFIGURATION_EXCEPTION);
+            handleException("Error in XML parsing configuration.", pce, messageContext);
+        } catch (SAXException saxe) {
+            log.error("Error in parsing XML request.", saxe);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, saxe,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_SAX_EXCEPTION);
+            handleException("Error in parsing XML request.", saxe, messageContext);
+        } catch (IOException ioe) {
+            log.error("Error retrieving file.", ioe);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ioe,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_IO_EXCEPTION);
+            handleException("Error retrieving file.", ioe, messageContext);
+        } catch (GeneralSecurityException gse) {
+            log.error("Google Drive authentication failure.", gse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, gse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_GENERAL_SECURITY_EXCEPTION);
+            handleException("Google Drive authentication failure.", gse, messageContext);
         }
     }
     
     /**
-     * Insert a new document-level comment.
+     * Insert a new document-level comment, and return the newly created comment as a Comment resource.
      * 
-     * @param service Drive API service instance.
-     * @param fileId ID of the file to insert comment for.
-     * @param content Text content of the comment.
-     * @return The inserted comment if successful, {@code null} otherwise.
+     * @param service Drive API service instance
+     * @param fileId ID of the file to insert comment for
+     * @param commentContent Text content of the comment
+     * @param params Optional parameters
+     * @return The inserted comment if successful
+     * @throws IOException If an error occur on Google Drive API end.
+     * @throws ParserConfigurationException If an error occurs in the parser.
+     * @throws SAXException If a parser error occurs.
+     * @throws TokenResponseException If receiving an error response from
+     *         the token server.
      */
-    private Comment insertComment(Drive service, String fileId, String content, HashMap<String, String> params)
-            throws IOException {
+    private Comment insertComment(final Drive service, final String fileId, final String commentContent,
+            final Map<String, String> params) throws IOException, ParserConfigurationException, SAXException,
+            TokenResponseException {
     
         Comment newComment = new Comment();
-        newComment.setContent(content);
+        newComment.setContent(commentContent);
+        Context context = new Context();
         
+        
+        String temporaryValue = params.get(GoogleDriveUtils.StringConstants.CONTEXT_TYPE);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            context.setType(temporaryValue);
+        }
+        temporaryValue = params.get(GoogleDriveUtils.StringConstants.CONTEXT_VALUE);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            context.setValue(temporaryValue);
+        }
+        newComment.setContext(context);
         Comments.Insert request = service.comments().insert(fileId, newComment);
-        
-        String temporaryResult = params.get(GoogleDriveUtils.StringConstants.REQUEST_BODY);
-        if (!EMPTY_STRING.equals(temporaryResult)) {
-            
-            String json = temporaryResult;
-            Gson gson = new Gson();
-            Type hashmapCollectionType = new TypeToken<HashMap<String, String>>() {}.getType();
-            Map<String, Object> requestMap = gson.fromJson(json, hashmapCollectionType);
-            request.setUnknownKeys(requestMap);
-            
+        temporaryValue = params.get(GoogleDriveUtils.StringConstants.FIELDS);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            request.setFields(temporaryValue);
         }
         return request.execute();
-        
     }
 }

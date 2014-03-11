@@ -19,78 +19,69 @@
 package org.wso2.carbon.connector.googledrive;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.axiom.om.OMElement;
 import org.apache.synapse.MessageContext;
 import org.wso2.carbon.connector.core.AbstractConnector;
-import org.wso2.carbon.connector.core.ConnectException;
-import org.wso2.carbon.connector.core.Connector;
 
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.Drive.Files;
 import com.google.api.services.drive.model.File;
 
 /**
- * Class mediator which maps to <strong>/files</strong> endpoint's <strong>touch</strong> method.
+ * Class mediator which maps to <strong>/files</strong> endpoint's <strong>touch</strong> method. Updates the
+ * last modified time of a file within Google Drive, specified by a file ID, updating its last modified time
+ * to the current server time. Returns the touched file as a Google Drive SDK File resource in XML format and
+ * attaches to the message context's envelope body, and stores an error message as a property on failure. Maps
+ * to the <strong>touchFile</strong> Synapse template within the <strong>Google Drive</strong> connector.
  * 
  * @see https://developers.google.com/drive/v2/reference/files/touch
  */
-public class GoogledriveTouchFile extends AbstractConnector implements Connector {
+public class GoogledriveTouchFile extends AbstractConnector {
     
     /**
-     * connect.
+     * Connector method which is executed at the specified point within the corresponding Synapse template
+     * within the connector.
      * 
-     * @param messageContext ESB messageContext.
-     * @throws ConnectException if connection fails.
+     * @param messageContext Synapse Message Context
+     * @see org.wso2.carbon.connector.core.AbstractConnector#connect(org.apache.synapse.MessageContext)
      */
-    public void connect(MessageContext messageContext) throws ConnectException {
+    public final void connect(final MessageContext messageContext) {
     
-        OMElement touchFileResult;
-        
         String fileId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_ID);
-        HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
+        String fields = (String) messageContext.getProperty(GoogleDriveUtils.StringConstants.FIELDS);
+        Map<String, String> resultEnvelopeMap = new HashMap<String, String>();
         
         try {
-            HttpTransport httpTransport = new NetHttpTransport();
-            JsonFactory jsonFactory = new JacksonFactory();
             
-            Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
-            File file = updateModifiedDate(service, fileId);
-            
-            if (file != null) {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.FILE, file.toPrettyString());
-                touchFileResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_TOUCHFILE,
-                                GoogleDriveUtils.StringConstants.TOUCH_FILE_RESULT, true, hashMapForResultEnvelope);
-                messageContext.getEnvelope().getBody().addChild(touchFileResult);
+            Drive service = GoogleDriveUtils.getDriveService(messageContext);
+            Files.Touch request = service.files().touch(fileId);
+            if (fields != null && !fields.isEmpty()) {
+                request.setFields(fields);
             }
+            File file = request.execute();
             
-        } catch (Exception e) {
-            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
-            touchFileResult =
-                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_TOUCHFILE,
-                            GoogleDriveUtils.StringConstants.TOUCH_FILE_RESULT, false, hashMapForResultEnvelope);
-            messageContext.getEnvelope().getBody().addChild(touchFileResult);
-            log.error(GoogleDriveUtils.getStackTraceAsString(e));
+            resultEnvelopeMap.put(GoogleDriveUtils.StringConstants.FILE, file.toPrettyString());
+            messageContext.getEnvelope().detach();
+            // build new SOAP envelope to return to client
+            messageContext.setEnvelope(GoogleDriveUtils.buildResultEnvelope(
+                    GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_TOUCHFILE,
+                    GoogleDriveUtils.StringConstants.TOUCH_FILE_RESULT, resultEnvelopeMap));
             
+        } catch (IOException ioe) {
+            log.error("Error updating time to the current server time:", ioe);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ioe,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_IO_EXCEPTION);
+            handleException("Error updating time to the current server time: ", ioe, messageContext);
+        } catch (GeneralSecurityException gse) {
+            
+            log.error("Google Drive authentication failure:", gse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, gse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_GENERAL_SECURITY_EXCEPTION);
+            handleException("Google Drive authentication failure: ", gse, messageContext);
         }
     }
     
-    /**
-     * Update a file's modified date.
-     * 
-     * @param service Drive API service instance.
-     * @param fileId ID of the file to update the modified date for.
-     * @return The updated file if successful, {@code null} otherwise.
-     */
-    private File updateModifiedDate(Drive service, String fileId) throws IOException {
-    
-        return service.files().touch(fileId).execute();
-        
-    }
 }

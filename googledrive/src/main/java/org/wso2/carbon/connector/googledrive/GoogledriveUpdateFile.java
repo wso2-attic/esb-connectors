@@ -19,215 +19,277 @@
 package org.wso2.carbon.connector.googledrive;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
+import java.io.InputStream;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.axiom.om.OMElement;
-import org.apache.synapse.MessageContext;
-import org.wso2.carbon.connector.core.AbstractConnector;
-import org.wso2.carbon.connector.core.ConnectException;
-import org.wso2.carbon.connector.core.Connector;
+import javax.activation.DataHandler;
+import javax.xml.stream.XMLStreamException;
 
-import com.google.api.client.http.FileContent;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import org.apache.synapse.MessageContext;
+import org.apache.synapse.core.axis2.Axis2MessageContext;
+import org.wso2.carbon.connector.core.AbstractConnector;
+
+import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.Drive.Files;
 import com.google.api.services.drive.model.File;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.google.api.services.drive.model.File.IndexableText;
+import com.google.api.services.drive.model.File.Labels;
+import com.google.api.services.drive.model.ParentReference;
+import com.google.api.services.drive.model.Property;
 
 /**
- * Class mediator which maps to <strong>/files</strong> endpoint's <strong>update</strong> method.
+ * Class mediator which maps to <strong>/files</strong> endpoint's <strong>update</strong> method. Runs a
+ * patch request on a file within Google Drive, specified by a file ID, thereby updating its metadata, or adds
+ * new content to an existing file if so required. Returns the updated file as a Google Drive SDK File
+ * resource in XML format and attaches to the message context's envelope body, and stores an error message as
+ * a property on failure. Maps to the <strong>updateFile</strong> Synapse template within the <strong>Google
+ * Drive</strong> connector.
  * 
  * @see https://developers.google.com/drive/v2/reference/files/update
  */
-public class GoogledriveUpdateFile extends AbstractConnector implements Connector {
-    
-    /** Empty String. */
-    private static final String EMPTY_STRING = "";
+public class GoogledriveUpdateFile extends AbstractConnector {
     
     /**
-     * Connect method for class mediator.
+     * Connector method which is executed at the specified point within the corresponding Synapse template
+     * within the connector.
      * 
-     * @param messageContext the context of the OMElement
-     * @throws ConnectException if connection fails.
+     * @param messageContext Synapse Message Context
      * @see org.wso2.carbon.connector.core.AbstractConnector#connect(org.apache.synapse.MessageContext)
      */
-    public void connect(MessageContext messageContext) throws ConnectException {
+    public final void connect(final MessageContext messageContext) {
     
-        /** Is Patch. */
-        boolean isPatch = false;
         String fileId = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_ID);
         String uploadType = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.UPLOAD_TYPE);
-        String fileContentBase64 = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_CONTENT);
         
-        String mimeType = "text/plain";
-        if (EMPTY_STRING.equals(fileContentBase64)) {
-            isPatch = true;
-            mimeType = (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.MIME_TYPE);
-        }
+        Map<String, String> mandatoryParameters = new HashMap<String, String>();
+        mandatoryParameters.put(GoogleDriveUtils.StringConstants.FILE_ID, fileId);
+        mandatoryParameters.put(GoogleDriveUtils.StringConstants.UPLOAD_TYPE, uploadType);
         
-        HashMap<String, String> parameters = new HashMap<String, String>();
-        parameters.put(GoogleDriveUtils.StringConstants.CONVERT,
+        Map<String, String> optionalParameters = new HashMap<String, String>();
+        optionalParameters.put(GoogleDriveUtils.StringConstants.CONVERT,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.CONVERT));
-        parameters.put(GoogleDriveUtils.StringConstants.NEW_REVISION,
+        optionalParameters.put(GoogleDriveUtils.StringConstants.NEW_REVISION,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.NEW_REVISION));
-        parameters.put(GoogleDriveUtils.StringConstants.OCR,
+        optionalParameters.put(GoogleDriveUtils.StringConstants.OCR,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.OCR));
-        parameters.put(GoogleDriveUtils.StringConstants.OCR_LANGUAGE,
+        optionalParameters.put(GoogleDriveUtils.StringConstants.OCR_LANGUAGE,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.OCR_LANGUAGE));
-        parameters.put(GoogleDriveUtils.StringConstants.PINNED,
+        optionalParameters.put(GoogleDriveUtils.StringConstants.PINNED,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.PINNED));
-        parameters.put(GoogleDriveUtils.StringConstants.SET_MODIFIED_DATE,
+        optionalParameters.put(GoogleDriveUtils.StringConstants.SET_MODIFIED_DATE,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.SET_MODIFIED_DATE));
-        parameters.put(GoogleDriveUtils.StringConstants.TIMED_TEXT_LANGUAGE,
+        optionalParameters.put(GoogleDriveUtils.StringConstants.TIMED_TEXT_LANGUAGE,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.TIMED_TEXT_LANGUAGE));
-        parameters.put(GoogleDriveUtils.StringConstants.TIMED_TEXT_TRACKNAME,
+        optionalParameters.put(GoogleDriveUtils.StringConstants.TIMED_TEXT_TRACKNAME,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.TIMED_TEXT_TRACKNAME));
-        parameters.put(GoogleDriveUtils.StringConstants.UPDATE_VIEWED_DATE,
+        optionalParameters.put(GoogleDriveUtils.StringConstants.UPDATE_VIEWED_DATE,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.UPDATE_VIEWED_DATE));
-        parameters.put(GoogleDriveUtils.StringConstants.USE_CONTENT_AS_INDEXABLE_TEXT,
+        optionalParameters.put(GoogleDriveUtils.StringConstants.USE_CONTENT_AS_INDEXABLE_TEXT,
                 (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.USE_CONTENT_AS_INDEXABLE_TEXT));
-        parameters.put(GoogleDriveUtils.StringConstants.REQUEST_BODY,
-                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.REQUEST_BODY));
-        
-        HashMap<String, String> hashMapForResultEnvelope = new HashMap<String, String>();
-        OMElement updateFileResult;
+        optionalParameters.put(GoogleDriveUtils.StringConstants.FILE_RESOURCE,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.FILE_RESOURCE));
+        optionalParameters.put(GoogleDriveUtils.StringConstants.LABELS,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.LABELS));
+        optionalParameters.put(GoogleDriveUtils.StringConstants.PARENTS,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.PARENTS));
+        optionalParameters.put(GoogleDriveUtils.StringConstants.PROPERTIES,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.PROPERTIES));
+        optionalParameters.put(GoogleDriveUtils.StringConstants.INDEXABLE_TEXT,
+                (String) getParameter(messageContext, GoogleDriveUtils.StringConstants.INDEXABLE_TEXT));
+        optionalParameters.put(GoogleDriveUtils.StringConstants.FIELDS,
+                (String) messageContext.getProperty(GoogleDriveUtils.StringConstants.FIELDS));
+        Map<String, String> resultEnvelopeMap = new HashMap<String, String>();
         try {
-            HttpTransport httpTransport = new NetHttpTransport();
-            JsonFactory jsonFactory = new JacksonFactory();
+            InputStream attachmentInStream = null;
+            org.apache.axis2.context.MessageContext axis2mc =
+                    ((Axis2MessageContext) messageContext).getAxis2MessageContext();
             
-            Drive service = GoogleDriveUtils.getDriveService(messageContext, httpTransport, jsonFactory);
+            DataHandler dataHandler = axis2mc.getAttachment(GoogleDriveUtils.StringConstants.FILE);
             
-            java.io.File writtenFile = null;
-            if (!isPatch) {
-                writtenFile = GoogleDriveUtils.writeToTempFile("tempfile", fileContentBase64);
+            if (dataHandler != null) {
+                
+                attachmentInStream = dataHandler.getInputStream();
             }
+            
+            Drive service = GoogleDriveUtils.getDriveService(messageContext);
             
             File updatedFile;
-            updatedFile = updateFile(service, fileId, uploadType, mimeType, writtenFile, parameters, isPatch);
+            updatedFile = updateFile(service, mandatoryParameters, attachmentInStream, optionalParameters);
             
-            if (updatedFile != null) {
-                hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.FILE, updatedFile.toPrettyString());
-                updateFileResult =
-                        GoogleDriveUtils.buildResultEnvelope(
-                                GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_UPDATEFILE,
-                                GoogleDriveUtils.StringConstants.UPDATE_FILE_RESULT, true, hashMapForResultEnvelope);
-                messageContext.getEnvelope().getBody().addChild(updateFileResult);
-                
-            }
+            resultEnvelopeMap.put(GoogleDriveUtils.StringConstants.FILE, updatedFile.toPrettyString());
+            messageContext.getEnvelope().detach();
+            // build new SOAP envelope to return to client
+            messageContext.setEnvelope(GoogleDriveUtils.buildResultEnvelope(
+                    GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_UPDATEFILE,
+                    GoogleDriveUtils.StringConstants.UPDATE_FILE_RESULT, resultEnvelopeMap));
             
-        } catch (Exception e) {
-            hashMapForResultEnvelope.put(GoogleDriveUtils.StringConstants.ERROR, e.getMessage());
-            updateFileResult =
-                    GoogleDriveUtils.buildResultEnvelope(GoogleDriveUtils.StringConstants.URN_GOOGLEDRIVE_UPDATEFILE,
-                            GoogleDriveUtils.StringConstants.UPDATE_FILE_RESULT, false, hashMapForResultEnvelope);
-            messageContext.getEnvelope().getBody().addChild(updateFileResult);
-            log.error("Error: " + GoogleDriveUtils.getStackTraceAsString(e));
+        } catch (IOException ioe) {
+            log.error("Error updating file.", ioe);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ioe,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_IO_EXCEPTION);
+            handleException("Error updating file.", ioe, messageContext);
+        } catch (GeneralSecurityException gse) {
+            log.error("Google Drive authentication failure.", gse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, gse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_GENERAL_SECURITY_EXCEPTION);
+            handleException("Google Drive authentication failure.", gse, messageContext);
+        } catch (ValidationException ve) {
+            log.error("Failed to validate boolean parameter.", ve);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, ve,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_CONNECTOR_VALIDATION_EXCEPTION);
+            handleException("Failed to validate boolean parameter.", ve, messageContext);
+        } catch (XMLStreamException xse) {
+            log.error("Failed to parse OM Element.", xse);
+            GoogleDriveUtils.storeErrorResponseStatus(messageContext, xse,
+                    GoogleDriveUtils.ErrorCodeConstants.ERROR_CODE_XML_STREAM_PARSE_FAILURE);
+            handleException("Failed to parse OM Element.", xse, messageContext);
         }
     }
     
     /**
-     * Update an existing file's metadata and content.
+     * Updates a file's metadata or content and returns a file resource.
      * 
-     * @param service Drive API service instance.
-     * @param fileId ID of the file to update.
-     * @param newTitle New title for the file.
-     * @param newDescription New description for the file.
-     * @param newMimeType New MIME type for the file.
-     * @param newFilename Filename of the new content to upload.
-     * @param newRevision Whether or not to create a new revision for this file.
-     * @return Updated file metadata if successful, {@code null} otherwise.
+     * @param service Google Drive SDK service object
+     * @param mandatoryParams Mandatory parameters for the request
+     * @param fileContentStream InputStream containing file content
+     * @param optionalParams Optional parameters for the request
+     * @return Google Drive SDK File resource
+     * @throws IOException If an error occur on Google Drive API end.
+     * @throws ValidationException If a validation error occurs.
+     * @throws TokenResponseException If receiving an error response from the token server.
+     * @throws XMLStreamException If an error occurs during parsing string as XML.
      */
-    private File updateFile(Drive service, String fileId, String uploadType, String mimeType, java.io.File content,
-            HashMap<String, String> parameters, boolean isPatch) throws IOException {
+    private File updateFile(final Drive service, final Map<String, String> mandatoryParams,
+            final InputStream fileContentStream, final Map<String, String> optionalParams) throws IOException,
+            ValidationException, TokenResponseException, XMLStreamException {
     
-        Files files = service.files();
-        File file = files.get(fileId).execute();
-        if (isPatch) {
-            // If it is a patch that is required (metadata update), we are going
-            // to run a patch
-            Files.Patch patchRequest = files.patch(fileId, file);
-            
-            String temporaryResult = parameters.get("convert");
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setConvert(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get("newRevision");
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setNewRevision(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get("ocr");
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setOcr(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get("ocrLanguage");
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setOcrLanguage(temporaryResult);
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get("pinned");
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setPinned(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get("setModifiedDate");
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setSetModifiedDate(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get("timedTextLanguage");
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setTimedTextLanguage(temporaryResult);
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get("timedTextTrackName");
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setTimedTextTrackName(temporaryResult);
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get("updateViewedDate");
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setUpdateViewedDate(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get("useContentAsIndexableText");
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                patchRequest.setUseContentAsIndexableText(Boolean.valueOf(temporaryResult));
-            }
-            
-            temporaryResult = EMPTY_STRING;
-            temporaryResult = parameters.get("requestBody");
-            if (!EMPTY_STRING.equals(temporaryResult)) {
-                Gson gson = new Gson();
-                Type hashmapCollectionType = new TypeToken<HashMap<String, String>>() {}.getType();
-                Map<String, Object> requestMap = gson.fromJson(temporaryResult, hashmapCollectionType);
-                patchRequest.setUnknownKeys(requestMap);
+        String fileId = mandatoryParams.get(GoogleDriveUtils.StringConstants.FILE_ID);
+        String mimeType = null;
+        String uploadType = mandatoryParams.get(GoogleDriveUtils.StringConstants.UPLOAD_TYPE);
+        File file = new File();
+        String temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.FILE_RESOURCE);
+        if (uploadType != null && !uploadType.equals(GoogleDriveUtils.StringConstants.MEDIA)) {
+            if (temporaryValue != null && !temporaryValue.isEmpty()) {
+                
+                Map<String, Object> fileResourceMap = GoogleDriveUtils.getUnkownKeyMap(temporaryValue);
+                mimeType = (String) fileResourceMap.get(GoogleDriveUtils.StringConstants.MIME_TYPE);
+                file.setUnknownKeys(fileResourceMap);
                 
             }
-            return patchRequest.execute();
+            temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.LABELS);
+            
+            if (temporaryValue != null && !temporaryValue.isEmpty()) {
+                
+                Map<String, Object> labelsMap = GoogleDriveUtils.getUnkownKeyMap(temporaryValue);
+                Labels labels = new Labels();
+                labels.setUnknownKeys(labelsMap);
+                file.setLabels(labels);
+            }
+            
+            temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.PARENTS);
+            
+            if (temporaryValue != null && !temporaryValue.isEmpty()) {
+                
+                List<ParentReference> parentReferences = GoogleDriveUtils.getParentReferenceList(temporaryValue);
+                file.setParents(parentReferences);
+                
+            }
+            
+            temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.PROPERTIES);
+            
+            if (temporaryValue != null && !temporaryValue.isEmpty()) {
+                
+                List<Property> properties = GoogleDriveUtils.getPropertyList(temporaryValue);
+                file.setProperties(properties);
+                
+            }
+            
+            temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.INDEXABLE_TEXT);
+            
+            if (temporaryValue != null && !temporaryValue.isEmpty()) {
+                
+                IndexableText indexableText = new IndexableText();
+                indexableText.setText(temporaryValue);
+                file.setIndexableText(indexableText);
+                
+            }
+        }
+        File resultFile;
+        Files.Update updateRequest = null;
+        if (fileContentStream == null) {
+            
+            updateRequest = service.files().update(fileId, file);
             
         } else {
             // If it is not a patch that is required, we are going to run an
             // upload
-            return service.files().update(fileId, file, new FileContent(mimeType, content)).execute();
+            updateRequest =
+                    service.files().update(fileId, file, new GoogleDriveFileContent(mimeType, fileContentStream));
+            
+            if (uploadType != null && !uploadType.equals(GoogleDriveUtils.StringConstants.RESUMABLE)) {
+                updateRequest.getMediaHttpUploader().setDirectUploadEnabled(true);
+            }
         }
+        temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.CONVERT);
+        if (!temporaryValue.isEmpty()) {
+            updateRequest.setConvert(GoogleDriveUtils.toBoolean(temporaryValue));
+        }
+        
+        temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.NEW_REVISION);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            updateRequest.setNewRevision(GoogleDriveUtils.toBoolean(temporaryValue));
+        }
+        
+        temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.OCR);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            updateRequest.setOcr(GoogleDriveUtils.toBoolean(temporaryValue));
+        }
+        
+        temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.OCR_LANGUAGE);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            updateRequest.setOcrLanguage(temporaryValue);
+        }
+        
+        temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.PINNED);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            updateRequest.setPinned(GoogleDriveUtils.toBoolean(temporaryValue));
+        }
+        
+        temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.SET_MODIFIED_DATE);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            updateRequest.setSetModifiedDate(GoogleDriveUtils.toBoolean(temporaryValue));
+        }
+        
+        temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.TIMED_TEXT_LANGUAGE);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            updateRequest.setTimedTextLanguage(temporaryValue);
+        }
+        
+        temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.TIMED_TEXT_TRACKNAME);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            updateRequest.setTimedTextTrackName(temporaryValue);
+        }
+        
+        temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.UPDATE_VIEWED_DATE);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            updateRequest.setUpdateViewedDate(GoogleDriveUtils.toBoolean(temporaryValue));
+        }
+        
+        temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.USE_CONTENT_AS_INDEXABLE_TEXT);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            updateRequest.setUseContentAsIndexableText(GoogleDriveUtils.toBoolean(temporaryValue));
+        }
+        temporaryValue = optionalParams.get(GoogleDriveUtils.StringConstants.FIELDS);
+        if (temporaryValue != null && !temporaryValue.isEmpty()) {
+            updateRequest.setFields(temporaryValue);
+        }
+        
+        resultFile = updateRequest.execute();
+        return resultFile;
         
     }
     
