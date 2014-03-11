@@ -162,6 +162,56 @@ public class ConnectorIntegrationUtil {
         return jsonObject;
     }
     
+    public static JSONObject sendRequestWithAcceptHeader(String addUrl, String query) throws IOException, JSONException {
+        
+        String charset = "UTF-8";
+        URLConnection connection = new URL(addUrl).openConnection();
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Accept-Charset", charset);
+        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Content-Type", "application/json;charset=" + charset);
+        OutputStream output = null;
+        try {
+            output = connection.getOutputStream();
+            output.write(query.getBytes(charset));
+        } finally {
+            if (output != null) {
+                try {
+                    output.close();
+                } catch (IOException logOrIgnore) {
+                    log.error("Error while closing the connection");
+                }
+            }
+        }
+        
+        HttpURLConnection httpConn = (HttpURLConnection) connection;
+        InputStream response;
+        
+        if (httpConn.getResponseCode() >= 400) {
+            response = httpConn.getErrorStream();
+        } else {
+            response = connection.getInputStream();
+        }
+        
+        String out = "{}";
+        if (response != null) {
+            StringBuilder sb = new StringBuilder();
+            byte[] bytes = new byte[1024];
+            int len;
+            while ((len = response.read(bytes)) != -1) {
+                sb.append(new String(bytes, 0, len));
+            }
+            
+            if (!sb.toString().trim().isEmpty()) {
+                out = sb.toString();
+            }
+        }
+        
+        JSONObject jsonObject = new JSONObject(out);
+        
+        return jsonObject;
+    }
+    
     public static OMElement sendXMLRequest(String addUrl, String query) throws MalformedURLException, IOException,
             XMLStreamException {
     

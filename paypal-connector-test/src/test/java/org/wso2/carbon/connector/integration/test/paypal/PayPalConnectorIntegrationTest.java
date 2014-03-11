@@ -70,7 +70,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
     
     private String storeCreditCardResultId;
     
-    
+    private String accessToken;
     
     @BeforeClass(alwaysRun = true)
     public void setEnvironment() throws Exception {
@@ -108,6 +108,21 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         pathToProxiesDirectory = repoLocation + paypalConnectorProperties.getProperty("proxyDirectoryRelativePath");
         pathToRequestsDirectory = repoLocation + paypalConnectorProperties.getProperty("requestDirectoryRelativePath");
         
+        // Invoking the getAccessToken method to derive the access token which will be used in other test cases
+        String jsonRequestFilePath = pathToRequestsDirectory + "getAccessToken.txt";
+        String methodName = "paypal_getAccessToken";
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("clientId"), paypalConnectorProperties.getProperty("clientSecret"));
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        
+        try {
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequestWithAcceptHeader(getProxyServiceURL(methodName), modifiedJsonString);
+            accessToken = jsonObject.get("access_token").toString();
+            
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
     }
     
     @Override
@@ -126,12 +141,12 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
-            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+        	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
             Assert.assertTrue(jsonObject.has("create_time"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
@@ -150,7 +165,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -174,7 +189,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -198,7 +213,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -224,7 +239,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -249,7 +264,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -274,7 +289,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -299,7 +314,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -323,7 +338,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), paypalConnectorProperties.getProperty("paypalPaymentId_1"), paypalConnectorProperties.getProperty("payerId_1"));
+        String modifiedJsonString = String.format(jsonString, accessToken, paypalConnectorProperties.getProperty("paypalPaymentId_1"), paypalConnectorProperties.getProperty("payerId_1"));
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -347,7 +362,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), paypalConnectorProperties.getProperty("paypalPaymentId_2"), paypalConnectorProperties.getProperty("payerId_2"));
+        String modifiedJsonString = String.format(jsonString, accessToken, paypalConnectorProperties.getProperty("paypalPaymentId_2"), paypalConnectorProperties.getProperty("payerId_2"));
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -371,7 +386,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -395,7 +410,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultPaymentId);
+        String modifiedJsonString = String.format(jsonString, accessToken, createPaymentResultPaymentId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -419,7 +434,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -443,7 +458,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -467,7 +482,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -491,7 +506,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -515,7 +530,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultSaleId);
+        String modifiedJsonString = String.format(jsonString, accessToken, createPaymentResultSaleId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -539,7 +554,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -563,7 +578,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultSaleId);
+        String modifiedJsonString = String.format(jsonString, accessToken, createPaymentResultSaleId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -588,7 +603,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -612,7 +627,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), refundSaleResultId);
+        String modifiedJsonString = String.format(jsonString, accessToken, refundSaleResultId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -636,7 +651,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -660,7 +675,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultAuthorizationId);
+        String modifiedJsonString = String.format(jsonString, accessToken, createPaymentResultAuthorizationId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -684,7 +699,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -708,7 +723,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultAuthorizationId);
+        String modifiedJsonString = String.format(jsonString, accessToken, createPaymentResultAuthorizationId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -732,7 +747,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultAuthorizationId);
+        String modifiedJsonString = String.format(jsonString, accessToken, createPaymentResultAuthorizationId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -755,7 +770,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -778,7 +793,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -802,7 +817,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), createPaymentResultAuthorizationId);
+        String modifiedJsonString = String.format(jsonString, accessToken, createPaymentResultAuthorizationId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -826,7 +841,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -850,7 +865,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), captureAuthorizationResultId);
+        String modifiedJsonString = String.format(jsonString, accessToken, captureAuthorizationResultId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -874,7 +889,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -898,7 +913,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), captureAuthorizationResultId);
+        String modifiedJsonString = String.format(jsonString, accessToken, captureAuthorizationResultId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -922,7 +937,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -946,7 +961,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -971,7 +986,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -995,7 +1010,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -1019,7 +1034,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), storeCreditCardResultId);
+        String modifiedJsonString = String.format(jsonString, accessToken, storeCreditCardResultId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -1043,7 +1058,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -1067,7 +1082,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"), storeCreditCardResultId);
+        String modifiedJsonString = String.format(jsonString, accessToken, storeCreditCardResultId);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -1091,7 +1106,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -1211,7 +1226,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
@@ -1235,7 +1250,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
         
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml ";
-        String modifiedJsonString = String.format(jsonString, paypalConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, accessToken);
         
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
