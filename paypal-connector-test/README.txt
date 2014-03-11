@@ -62,3 +62,8 @@ STEPS:
 
 9. Navigate to "Integration_Test\products\esb\4.8.1\modules\integration\connectors\" and run the following command.
      $ mvn clean install
+
+NOTE : Following PayPal sand box account can be used for run the integration tests.
+Username : ppalconnector@gmail.com
+Password : paypalCon123
+
