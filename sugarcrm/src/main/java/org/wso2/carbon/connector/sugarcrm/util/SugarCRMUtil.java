@@ -18,83 +18,51 @@
 
 package org.wso2.carbon.connector.sugarcrm.util;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
-import org.apache.synapse.MessageContext;
+
 import org.apache.axiom.om.OMElement;
-import org.apache.axiom.om.OMFactory;
 
 /**
  * This class contains utility functions used for SugarCRM connector.
  */
-public class SugarCRMUtil {
-    
-    /** Represent the prefix for exception logs. */
-    public static final String EXCEPTION = "EXCEPTION: ";
-    
-    /** Represent the name space needed for the pay load. */
-    public static final String NAME_SPACE = "http://www.sugarcrm.com/sugarcrm";
-    
-    /** Represent the name space alias. */
-    public static final String NAME_SPACE_ALIAS = "sug";
-    
-    /** Represent the new tag name item. */
-    private static final String ITEM_TAG = "item";
-    
-    /** Represent an empty string. */
-    private static final String EMPTY_STRING = "";
-    
-    /** Represent the enter key string (\n). */
-    private static final String ENTER_KEY_STRING = "\n";
+public final class SugarCRMUtil {
     
     /**
-     * Add the child elements to the given OM element.
-     * 
-     * @param omFactory OMFactory
-     * @param messageContext MessageContext
-     * @param childElement OMElement
-     * @param strObject String
-     * @return OMElement
+     * Default private constructor for utility class SugarCRMUtil.
      */
-    public static final OMElement getItemElement(final OMFactory omFactory, final MessageContext messageContext,
-            final OMElement childElement, final String strObject) {
+    private SugarCRMUtil() {
     
-        String[] strArray = strObject.split(ENTER_KEY_STRING);
-        List<String> itemList = new ArrayList<String>();
-        
-        for (int i = 0; i < strArray.length; i++) {
-            if (!EMPTY_STRING.equals(strArray[i].trim())) {
-                itemList.add(strArray[i].trim());
-            }
-        }
-        
-        // assume the child element name is item and soap request need to be
-        // sent as item
-        Iterator<String> iterator = itemList.iterator();
-        while (iterator.hasNext()) {
-            OMElement itemElement = omFactory.createOMElement(ITEM_TAG, null);
-            itemElement.addChild(omFactory.createOMText(iterator.next()));
-            childElement.addChild(itemElement);
-        }
-        
-        return childElement;
     }
     
     /**
-     * Return the stack trace for a <strong>Throwable</strong> as a String.
+     * Remove unnecessary root element of the item list and add it to request root list element of the given
+     * OM element.
      * 
-     * @param e <strong>Throwable</strong>
-     * @return <strong>String</strong> The stack trace as String
+     * @param omElementIterator iterator for OM elements.
      */
-    public static String getStackTraceAsString(final Throwable e) {
+    public static void handleItemListElement(final Iterator< ? > omElementIterator) {
     
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        e.printStackTrace(pw);
-        return sw.toString();
+        if (omElementIterator.hasNext()) {
+            
+            OMElement apiElement = (OMElement) omElementIterator.next();
+            
+            Iterator< ? > tagInnerIterator = apiElement.getChildElements();
+            
+            if (tagInnerIterator.hasNext()) {
+                OMElement tagInnerElement = (OMElement) tagInnerIterator.next();
+                Iterator< ? > itemIterator = tagInnerElement.getChildElements();
+                
+                // detach unwanted parent element of item list.
+                tagInnerElement.detach();
+                
+                while (itemIterator.hasNext()) {
+                    OMElement itemElement = (OMElement) itemIterator.next();
+                    apiElement.addChild(itemElement);
+                }
+                
+            }
+            
+        }
     }
     
 }
