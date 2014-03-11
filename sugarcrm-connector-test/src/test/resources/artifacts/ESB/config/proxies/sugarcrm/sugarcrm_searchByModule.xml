@@ -6,19 +6,19 @@
        trace="disable"
        startOnLoad="true">
    <target>
-      <inSequence>
+      <inSequence onError="faultHandlerSeq">
          <property xmlns:ns="wso2.connector.sugarcrm.searchByModule"
-                   name="uname"
-                   expression="//ns:username/text()"/>
+                   name="username"
+                   expression="//ns:userName/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.searchByModule"
-                   name="pwd"
+                   name="password"
                    expression="//ns:password/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.searchByModule"
                    name="searchstring"
                    expression="//ns:searchstring/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.searchByModule"
                    name="modules"
-                   expression="//ns:modules/child::node()"/>
+                   expression="//ns:modules"/>
          <property xmlns:ns="wso2.connector.sugarcrm.searchByModule"
                    name="offset"
                    expression="//ns:offset/text()"/>
@@ -26,24 +26,59 @@
                    name="maxresults"
                    expression="//ns:maxresults/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.searchByModule"
-                   name="sugarcrmUrl"
-                   expression="//ns:sugarcrmUrl/text()"/>
-         <sugarcrm-connector-1.0.0.init>
-            <appUri>{$ctx:sugarcrmUrl}</appUri>
-         </sugarcrm-connector-1.0.0.init>
-         <sugarcrm-connector-1.0.0.searchByModule>
-            <userName>{$ctx:uname}</userName>
-            <password>{$ctx:pwd}</password>
+                   name="appUri"
+                   expression="//ns:appUri/text()"/>
+         <sugarcrm.init>
+            <appUri>{$ctx:appUri}</appUri>
+         </sugarcrm.init>
+         <sugarcrm.searchByModule>
+            <userName>{$ctx:username}</userName>
+            <password>{$ctx:password}</password>
             <searchString>{$ctx:searchstring}</searchString>
             <modules>{$ctx:modules}</modules>
             <offset>{$ctx:offset}</offset>
             <maxResults>{$ctx:maxresults}</maxResults>
-         </sugarcrm-connector-1.0.0.searchByModule>
+         </sugarcrm.searchByModule>
+		 <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_CODE" value="600401"/>
+                     <property name="ERROR_MESSAGE" value="Unauthorized"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_CODE" value="600404"/>
+                     <property name="ERROR_MESSAGE" value="Not Found"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_CODE" value="600400"/>
+                     <property name="ERROR_MESSAGE" value="Bad Request"/>
+                  </case>
+                  <case regex="500">
+                     <property name="ERROR_CODE" value="600500"/>
+                     <property name="ERROR_MESSAGE" value="Internal Server Error"/>
+                  </case>
+               </switch>
+               <makefault version="soap11">
+                  <code expression="get-property('ERROR_CODE')"/>
+                  <reason expression="get-property('ERROR_MESSAGE')"/>
+                  <detail/>
+               </makefault>
+            </then>
+         </filter>
          <respond/>
       </inSequence>
       <outSequence>
          <send/>
       </outSequence>
+	  <faultSequence>
+         <makefault version="soap11">
+            <code expression="get-property('ERROR_CODE')"/>
+            <reason expression="get-property('ERROR_MESSAGE')"/>
+            <detail/>
+         </makefault>
+         <send/>
+      </faultSequence>
    </target>
    <description/>
 </proxy>

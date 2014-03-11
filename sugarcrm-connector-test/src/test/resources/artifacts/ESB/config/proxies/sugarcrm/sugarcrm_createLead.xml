@@ -6,42 +6,76 @@
        trace="disable"
        startOnLoad="true">
    <target>
-      <inSequence>
+<inSequence onError="faultHandlerSeq">
+      <property xmlns:ns="wso2.connector.sugarcrm.createLead"
+                   name="userName"
+                   expression="//ns:userName/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.createLead"
-                   name="username"
-                   expression="//ns:user_name/text()"/>
+                   name="appUri"
+                   expression="//ns:appUri/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.createLead"
-                   name="sugarCRMurl"
-                   expression="//ns:sugarCRMApiUrl/text()"/>
-         <property xmlns:ns="wso2.connector.sugarcrm.createLead"
-                   name="pswd"
+                   name="password"
                    expression="//ns:password/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.createLead"
-                   name="firstname"
-                   expression="//ns:first_name/text()"/>
+                   name="firstName"
+                   expression="//ns:firstName/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.createLead"
-                   name="lastname"
-                   expression="//ns:last_name/text()"/>
+                   name="lastName"
+                   expression="//ns:lastName/text()"/>
          <property xmlns:ns="wso2.connector.sugarcrm.createLead"
-                   name="emailadd"
-                   expression="//ns:email_address/text()"/>
-         <sugarcrm-connector-1.0.0.init>
-            <appUri>{$ctx:sugarCRMurl}</appUri>
-         </sugarcrm-connector-1.0.0.init>
-         <sugarcrm-connector-1.0.0.createLead>
-            <userName>{$ctx:username}</userName>
-            <password>{$ctx:pswd}</password>
-            <firstName>{$ctx:firstname}</firstName>
-            <lastName>{$ctx:lastname}</lastName>
-            <emailAddress>{$ctx:emailadd}</emailAddress>
-         </sugarcrm-connector-1.0.0.createLead>
+                   name="emailAddress"
+                   expression="//ns:emailAddress/text()"/>
+         <sugarcrm.init>
+            <appUri>{$ctx:appUri}</appUri>
+         </sugarcrm.init>
+         <sugarcrm.createLead>
+            <userName>{$ctx:userName}</userName>
+            <password>{$ctx:password}</password>
+            <firstName>{$ctx:firstName}</firstName>
+            <lastName>{$ctx:lastName}</lastName>
+            <emailAddress>{$ctx:emailAddress}</emailAddress>
+         </sugarcrm.createLead>
+         <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_CODE" value="600401"/>
+                     <property name="ERROR_MESSAGE" value="Unauthorized"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_CODE" value="600404"/>
+                     <property name="ERROR_MESSAGE" value="Not Found"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_CODE" value="600400"/>
+                     <property name="ERROR_MESSAGE" value="Bad Request"/>
+                  </case>
+                  <case regex="500">
+                     <property name="ERROR_CODE" value="600500"/>
+                     <property name="ERROR_MESSAGE" value="Internal Server Error"/>
+                  </case>
+               </switch>
+               <makefault version="soap11">
+                  <code expression="get-property('ERROR_CODE')"/>
+                  <reason expression="get-property('ERROR_MESSAGE')"/>
+                  <detail/>
+               </makefault>
+            </then>
+         </filter>
          <respond/>
       </inSequence>
       <outSequence>
          <log/>
          <send/>
       </outSequence>
+      <faultSequence>
+         <makefault version="soap11">
+            <code expression="get-property('ERROR_CODE')"/>
+            <reason expression="get-property('ERROR_MESSAGE')"/>
+            <detail/>
+         </makefault>
+         <send/>
+      </faultSequence>
    </target>
    <description/>
 </proxy>
-                                
