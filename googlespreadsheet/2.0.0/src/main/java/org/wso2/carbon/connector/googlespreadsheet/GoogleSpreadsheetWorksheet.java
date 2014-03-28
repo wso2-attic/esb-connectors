@@ -133,7 +133,7 @@ public class GoogleSpreadsheetWorksheet {
             String title = worksheet.getTitle().getPlainText();
             int rowCount = worksheet.getRowCount();
             int colCount = worksheet.getColCount();
-            System.out.println("\t" + title + " - rows:" + rowCount + " cols: "
+           log.debug("\t" + title + " - rows:" + rowCount + " cols: "
                     + colCount);
             if(worksheet.getTitle().getPlainText().equalsIgnoreCase(worksheetName)) {
                 worksheetResult = worksheet;
