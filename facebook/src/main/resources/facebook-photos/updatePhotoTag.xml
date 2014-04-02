@@ -1,0 +1,50 @@
+<template name="updatePhotoTag" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="photoId" description="The id of the Photo" />
+	<parameter name="to" description="ID of the user whose tag you want to update" />
+	<parameter name="x" description="x coordinate of tag" />
+	<parameter name="y" description="y coordinate of tag" />
+	<sequence>
+
+		<property name="uri.var.photoId" expression="$func:photoId" />
+		<property name="uri.var.to" expression="$func:to" />
+		<property name="uri.var.x" expression="$func:x" />
+		<property name="uri.var.y" expression="$func:y" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"access_token":"$1",
+				"to":"$2",
+				"x":"$3",
+				"y":"$4"
+				}
+			</format>
+			<args>
+
+				<arg expression="get-property('uri.var.accessToken')" />
+				<arg expression="get-property('uri.var.to')" />
+				<arg expression="get-property('uri.var.x')" />
+				<arg expression="get-property('uri.var.y')" />
+
+			</args>
+
+		</payloadFactory>
+		
+		<property name="messageType" value="application/x-www-form-urlencoded"
+			scope="axis2" />
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/{uri.var.photoId}/tags" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+
+		<header name="X-FB-Debug" scope="transport" action="remove" />
+		<header name="X-FB-Rev" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		
+
+	</sequence>
+</template>
