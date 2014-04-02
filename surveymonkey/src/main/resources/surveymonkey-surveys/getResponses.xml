@@ -1,0 +1,38 @@
+<template name="getResponses" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Required Parameters -->
+	<parameter name="respondentIds" description="List of respondent Ids to retrieve" />
+	<parameter name="surveyId" description="The Survey Id" />
+	<sequence>
+		<property name="uri.var.respondentIds" expression="$func:respondentIds" />
+		<property name="uri.var.surveyId" expression="$func:surveyId" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"respondent_ids": $1,
+				"survey_id": "$2"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.respondentIds')" />
+				<arg expression="get-property('uri.var.surveyId')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/v2/surveys/get_responses?api_key={uri.var.apiKey}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="Access-Control-Expose-Headers" scope="transport" action="remove" />
+		<header name="X-Mashery-Message-ID" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+		<header name="SM-Request-ID" scope="transport" action="remove" />
+		<header name="X-Mashery-Responder" scope="transport" action="remove" />
+
+	</sequence>
+</template>
