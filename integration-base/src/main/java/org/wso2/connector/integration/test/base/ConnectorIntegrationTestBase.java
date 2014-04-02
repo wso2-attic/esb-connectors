@@ -167,9 +167,17 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
         pathToRequestsDirectory = repoLocation + connectorProperties.getProperty("requestDirectoryRelativePath");
         
         pathToResourcesDirectory = repoLocation + connectorProperties.getProperty("resourceDirectoryRelativePath");
-        
-        String proxyFilePath = "file:///" + pathToProxiesDirectory + connectorName + ".xml";
-        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+                
+        File folder = new File(pathToProxiesDirectory);
+        File[] listOfFiles = folder.listFiles(); 
+        for (int i = 0; i < listOfFiles.length; i++) {
+        	if (listOfFiles[i].isFile()) {
+        		String fileName = listOfFiles[i].getName();
+        		if (fileName.endsWith(".xml") || fileName.endsWith(".XML")) {
+        			proxyAdmin.addProxyService(new DataHandler(new URL("file:///" + pathToProxiesDirectory + fileName)));
+        		}
+        	}
+        }
         
         proxyUrl = getProxyServiceURL(connectorName);
         
