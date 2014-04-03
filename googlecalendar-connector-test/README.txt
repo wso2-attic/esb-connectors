@@ -25,10 +25,10 @@ STEPS:
 			<messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
    iii) Enable message formatter for "application/json" in messageFormatters tag
-			<messageFormatter contentType=”application/json” class=”org.apache.synapse.commons.json.JsonStreamFormatter”/>
+			<messageFormatter contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamFormatter"/>
 
    iv) Enable message builder for "application/json" in messageBuilders tag
-			<messageBuilder contentType=”application/json” class=”org.apache.synapse.commons.json.JsonStreamBuilder”/>
+			<messageBuilder contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
 
    V) Install HTTP PATCH request enabling patch and Json patch to ESB 4.8.1
 		patch0804 - http PATCH request patch
