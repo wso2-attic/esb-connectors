@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="linkedin_shareResources"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence>
+         <property name="accessToken" expression="json-eval($.accessToken)"/>
+         <property name="comment" expression="json-eval($.comment)"/>
+         <property name="title" expression="json-eval($.title)"/>
+         <property name="description" expression="json-eval($.description)"/>
+         <property name="submittedUrl" expression="json-eval($.submittedUrl)"/>
+         <property name="submittedImageUrl" expression="json-eval($.submittedImageUrl)"/>
+         <property name="code" expression="json-eval($.code)"/>
+         <property name="apiUrl" expression="json-eval($.apiUrl)"/>
+         <linkedin.init>
+            <apiUrl>{$ctx:apiUrl}</apiUrl>
+            <accessToken>{$ctx:accessToken}</accessToken>
+         </linkedin.init>
+         <linkedin.shareResources>
+            <comment>{$ctx:comment}</comment>
+            <title>{$ctx:title}</title>
+            <description>{$ctx:description}</description>
+            <submittedUrl>{$ctx:submittedUrl}</submittedUrl>
+            <submittedImageUrl>{$ctx:submittedImageUrl}</submittedImageUrl>
+            <code>{$ctx:code}</code>
+         </linkedin.shareResources>
+         <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_MESSAGE" value="Unauthorized"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+                  <case regex="403">
+                     <property name="ERROR_MESSAGE" value="Forbidden"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_MESSAGE" value="Not Found"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_MESSAGE" value="Bad Request"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+               </switch>
+            </then>
+         </filter>
+         <respond/>
+      </inSequence>
+      <outSequence>
+         <log/>
+         <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>
