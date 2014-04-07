@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="linkedin_sendActivity" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+  <target>
+    <inSequence>
+      <property name="contentType" expression="json-eval($.contentType)"/>
+      <property name="postBody" expression="json-eval($.postBody)"/>
+      <property name="apiUrl" expression="json-eval($.apiUrl)"/>
+      <property name="accessToken" expression="json-eval($.accessToken)"/>
+	  <linkedin.init>
+        <accessToken>{$ctx:accessToken}</accessToken>
+        <apiUrl>{$ctx:apiUrl}</apiUrl>
+      </linkedin.init>
+      <linkedin.sendActivity>
+        <postBody>{$ctx:postBody}</postBody>
+        <contentType>{$ctx:contentType}</contentType>
+      </linkedin.sendActivity>
+	  <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_MESSAGE" value="Unauthorized"/>
+					 <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_MESSAGE" value="Not Found"/>
+					 <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+				  <case regex="400">
+                    <property name="ERROR_MESSAGE" value="Bad Request"/>
+                    <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+               </switch>
+            </then>
+         </filter>
+      <respond />
+    </inSequence>
+    <outSequence>
+      <log></log>
+      <send></send>
+    </outSequence>
+  </target>
+</proxy>
