@@ -1,0 +1,67 @@
+<template name="setDocumentRevision" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- not released still, due to implementation issue in file attachment -->
+
+	<parameter name="noteId"
+		description="The ID of the note record to associate the attachment to" />
+	<parameter name="fileContent" description="The binary contents of the file" />
+	<parameter name="fileName" description="The file name of the file attachment" />
+	<parameter name="revision" description="The revision number" />
+	<parameter name="documentName" description="The name of the document" />
+
+	<sequence>
+
+		<property name="uri.var.noteId" expression="$func:noteId" />
+		<property name="uri.var.fileContent" expression="$func:fileContent" />
+		<property name="uri.var.fileName" expression="$func:fileName" />
+		<property name="uri.var.revision" expression="$func:revision" />
+		<property name="uri.var.documentName" expression="$func:documentName" />
+
+		<payloadFactory>
+
+			<format>
+				<sug:set_document_revision xmlns:sug="http://www.sugarcrm.com/sugarcrm">
+					<sug:session>$1</sug:session>
+					<sug:note>
+						<sug:id>$2</sug:id>
+						<sug:file>$3</sug:file>
+						<sug:filename>$4</sug:filename>
+						<sug:revision>$5</sug:revision>
+						<sug:document_name>$6</sug:document_name>
+					</sug:note>
+				</sug:set_document_revision>
+			</format>
+
+			<args>
+				<arg expression="get-property('uri.var.session')" />
+				<arg expression="get-property('uri.var.noteId')" />
+				<arg expression="get-property('uri.var.fileContent')" />
+				<arg expression="get-property('uri.var.fileName')" />
+				<arg expression="get-property('uri.var.revision')" />
+				<arg expression="get-property('uri.var.documentName')" />
+			</args>
+
+		</payloadFactory>
+
+		<header name="To" expression="get-property('uri.var.sugarCRMurl')" />
+
+		<call>
+			<endpoint name="templEPTimeout" template="org.wso2.carbon.connector.sugarcrm.timeout">
+				<parameter name="timoutDuration" value="6000" />
+				<parameter name="initialDuration" value="2000" />
+				<parameter name="progressAFactor" value="2.0" />
+				<parameter name="maximumDuration" value="3000" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-SOAP-Server" scope="transport" action="remove" />
+		<header name="Cache-control" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="path" scope="transport" action="remove" />
+
+	</sequence>
+
+</template>

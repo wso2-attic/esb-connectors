@@ -1,0 +1,59 @@
+<template name="createOpportunity" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Fields required by the method -->
+	<parameter name="appUri" description="URL of the SugarCRM API" />
+	<parameter name="userName" description="The username" />
+	<parameter name="password" description="The md5 hashed password" />
+	<parameter name="name" description="The opportunity name" />
+	<parameter name="amount" description="The amount" />
+
+	<sequence>
+
+		<property name="uri.var.sugarCRMurl" expression="$func:appUri" />
+		<property name="uri.var.userName" expression="$func:userName" />
+		<property name="uri.var.password" expression="$func:password" />
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.amount" expression="$func:amount" />
+
+		<payloadFactory media-type="xml">
+
+			<format>
+				<sug:create_opportunity xmlns:sug="http://www.sugarcrm.com/sugarcrm">
+					<sug:user_name>$1</sug:user_name>
+					<sug:password>$2</sug:password>
+					<sug:name>$3</sug:name>
+					<sug:amount>$4</sug:amount>
+				</sug:create_opportunity>
+			</format>
+
+			<args>
+				<arg expression="get-property('uri.var.userName')" />
+				<arg expression="get-property('uri.var.password')" />
+				<arg expression="get-property('uri.var.name')" />
+				<arg expression="get-property('uri.var.amount')" />
+			</args>
+
+		</payloadFactory>
+
+		<header name="To" expression="get-property('uri.var.sugarCRMurl')" />
+
+		<call>
+			<endpoint name="templEPTimeout" template="org.wso2.carbon.connector.sugarcrm.timeout">
+				<parameter name="timoutDuration" value="6000" />
+				<parameter name="initialDuration" value="2000" />
+				<parameter name="progressAFactor" value="2.0" />
+				<parameter name="maximumDuration" value="3000" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-SOAP-Server" scope="transport" action="remove" />
+		<header name="Cache-control" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="path" scope="transport" action="remove" />
+
+	</sequence>
+
+</template>

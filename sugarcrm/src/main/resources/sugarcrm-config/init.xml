@@ -1,0 +1,63 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Field required by the methods, those need session as SOAP request parameter.
+		 And this init need not to be called by methods those have userName and password
+		 other than session in specific method.-->
+	<parameter name="appUri" description="URL of the SugarCRM API" />
+
+	<!-- Fields required by the login method -->
+	<parameter name="userName" description="Name of the user" />
+	<parameter name="password" description="The md5 hashed password of teh user" />
+	<parameter name="version" description="Version number" />
+	<parameter name="applicationName" description="Application Name" />
+
+	<sequence>
+
+		<property name="uri.var.sugarCRMurl" expression="$func:appUri" />
+		<property name="uri.var.userName" expression="$func:userName" />
+		<property name="uri.var.password" expression="$func:password" />
+		<property name="uri.var.version" expression="$func:version" />
+		<property name="uri.var.applicationName" expression="$func:applicationName" />
+
+		<payloadFactory>
+
+			<format>
+				<sug:login xmlns:sug="http://www.sugarcrm.com/sugarcrm">
+					<sug:user_auth>
+						<user_name>$1</user_name>
+						<password>$2</password>
+						<version>$3</version>
+					</sug:user_auth>
+					<application_name>$4</application_name>
+				</sug:login>
+			</format>
+
+			<args>
+				<arg expression="get-property('uri.var.userName')" />
+				<arg expression="get-property('uri.var.password')" />
+				<arg expression="get-property('uri.var.version')" />
+				<arg expression="get-property('uri.var.applicationName')" />
+			</args>
+
+		</payloadFactory>
+
+		<property name="FORCE_ERROR_ON_SOAP_FAULT" value="true" />
+		<header name="To" expression="get-property('uri.var.sugarCRMurl')" />
+
+		<call>
+			<endpoint name="templEPTimeout" template="org.wso2.carbon.connector.sugarcrm.timeout">
+				<parameter name="timoutDuration" value="6000" />
+				<parameter name="initialDuration" value="2000" />
+				<parameter name="progressAFactor" value="2.0" />
+				<parameter name="maximumDuration" value="3000" />
+			</endpoint>
+		</call>
+
+		<property name="FORCE_ERROR_ON_SOAP_FAULT" value="false" />
+
+		<property expression="//ns:loginResponse/return/id/text()"
+			name="uri.var.session" type="STRING"
+			xmlns:ns="http://www.sugarcrm.com/sugarcrm" />
+
+	</sequence>
+</template>

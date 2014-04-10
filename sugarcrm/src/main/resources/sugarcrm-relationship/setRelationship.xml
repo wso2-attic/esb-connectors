@@ -1,0 +1,62 @@
+<template name="setRelationship" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Fields required by the method -->
+	<parameter name="module1" description="The name of the module from which to retrieve records" />
+	<parameter name="module1Id" description="The ID of the specified module record" />
+	<parameter name="module2" description="The name of the module which needs to relate to" />
+	<parameter name="module2Id" description="The ID of the module which needs to relate to" />
+	
+	<sequence>
+
+		<property name="uri.var.module1" expression="$func:module1" />
+		<property name="uri.var.module1Id" expression="$func:module1Id" />
+		<property name="uri.var.module2" expression="$func:module2" />
+		<property name="uri.var.module2Id" expression="$func:module2Id" />
+
+		<payloadFactory>
+
+			<format>
+
+				<sug:set_relationship xmlns:sug="http://www.sugarcrm.com/sugarcrm">
+					<session>$1</session>
+					<sug:set_relationship_value>
+						<module1>$2</module1>
+						<module1_id>$3</module1_id>
+						<module2>$4</module2>
+						<module2_id>$5</module2_id>
+					</sug:set_relationship_value>
+				</sug:set_relationship>
+
+			</format>
+
+			<args>
+				<arg expression="get-property('uri.var.session')" />
+				<arg expression="get-property('uri.var.module1')" />
+				<arg expression="get-property('uri.var.module1Id')" />
+				<arg expression="get-property('uri.var.module2')" />
+				<arg expression="get-property('uri.var.module2Id')" />
+			</args>
+
+		</payloadFactory>
+
+		<header name="To" expression="get-property('uri.var.sugarCRMurl')" />
+
+		<call>
+			<endpoint name="templEPTimeout" template="org.wso2.carbon.connector.sugarcrm.timeout">
+				<parameter name="timoutDuration" value="6000" />
+				<parameter name="initialDuration" value="2000" />
+				<parameter name="progressAFactor" value="2.0" />
+				<parameter name="maximumDuration" value="3000" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-SOAP-Server" scope="transport" action="remove" />
+		<header name="Cache-control" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="path" scope="transport" action="remove" />
+	</sequence>
+
+</template>

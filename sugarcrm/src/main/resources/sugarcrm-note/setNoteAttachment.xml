@@ -1,0 +1,73 @@
+<template name="setNoteAttachment" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- not released still, due to implementation issue in file attachment -->
+
+	<parameter name="noteId" description="The ID of the note record to associate the attachment to" />
+	<parameter name="noteFileName" description="The file name of the file attachment" />
+
+	<sequence>
+
+		<property name="uri.var.noteId" expression="$func:noteId" />
+		<property name="uri.var.noteFileName" expression="$func:noteFileName" />
+
+		<!-- <class name="org.wso2.carbon.connector.sugarcrm.operation.SetNoteAttachment" /> -->
+		<call-template target="org.wso2.carbon.connector.sugarcrm.init">
+
+			<with-param name="appUri" value="https://vwqbaa4243.trial.sugarcrm.com/soap.php" />
+			<with-param name="userName" value="admin" />
+			<with-param name="password" value="3FC4B74F5A26C7EFEB0E20982823CCDF" />
+			<with-param name="version" value="1" />
+			<with-param name="applicationName" value="appfd" />
+			<with-param name="forceLogin" value="true" />
+
+		</call-template>
+
+		<payloadFactory media-type="xml">
+
+			<format>
+				<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+					xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sug="http://www.sugarcrm.com/sugarcrm">
+					<soapenv:Header />
+					<soapenv:Body>
+						<sug:set_note_attachment soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+							<session xsi:type="xsd:string">$1</session>
+							<note xsi:type="sug:note_attachment">
+								<filename xsi:type="xsd:string">$2</filename>
+								<id xsi:type="xsd:string">$3</id>
+								<file>$4</file>
+							</note>
+						</sug:set_note_attachment>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</format>
+
+			<args>
+				<arg expression="get-property('uri.var.session')" />
+				<arg expression="get-property('uri.var.noteFileName')" />
+				<arg expression="get-property('uri.var.noteId')" />
+				<arg expression="get-property('file')" />
+			</args>
+		</payloadFactory>
+
+		<header name="To" expression="get-property('uri.var.sugarCRMurl')" />
+
+		<call>
+			<endpoint name="templEPTimeout" template="org.wso2.carbon.connector.sugarcrm.timeout">
+				<parameter name="timoutDuration" value="6000" />
+				<parameter name="initialDuration" value="2000" />
+				<parameter name="progressAFactor" value="2.0" />
+				<parameter name="maximumDuration" value="3000" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-SOAP-Server" scope="transport" action="remove" />
+		<header name="Cache-control" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="path" scope="transport" action="remove" />
+
+	</sequence>
+
+</template>
