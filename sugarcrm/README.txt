@@ -15,7 +15,7 @@ STEPS:
 
 	1. To build the connector without running tests from any location, run maven build with the -Dmaven.test.skip=true switch.
 
-	2. Before attempting to run integration tests, uncomment the following in pom.xml:
+	2. Before attempting to run integration tests, uncomment the following in pom.xml (Integration_Test/products/esb/4.8.1/modules/integration/connectors):
 
 		<parent>
         	<groupId>org.wso2.esb</groupId>
@@ -25,7 +25,7 @@ STEPS:
     	</parent>
 
 
-	3. Make sure the ESB 4.8.1 zip file with latest patches available at "Integration_Test/products/esb/4.8.1/modules/integration/connectors/repository".
+	3. Make sure the ESB 4.8.1 zip file with latest patches including XSLT Patch available at "Integration_Test/products/esb/4.8.1/modules/distribution/target/".
 
 	4. Copy SugarCRM connector zip file (sugarcrm.zip) to the location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/repository/"
 
