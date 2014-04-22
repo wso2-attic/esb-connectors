@@ -23,9 +23,12 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gdata.data.spreadsheet.ListEntry;
+import com.google.gdata.data.spreadsheet.ListFeed;
 import org.apache.axiom.om.OMAbstractFactory;
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.OMFactory;
@@ -48,6 +51,7 @@ public class GoogleSpreadsheetImportCSV extends AbstractConnector {
 	public static final String FILE_PATH = "filePath";
 	public static final String BATCH_ENABLE = "batchEnable";
 	public static final String BATCH_SIZE = "batchSize";
+    public static final String APPEND = "append";
 	
 	private static Log log = LogFactory
 			.getLog(GoogleSpreadsheetImportCSV.class);
@@ -64,6 +68,8 @@ public class GoogleSpreadsheetImportCSV extends AbstractConnector {
 					.lookupFunctionParam(messageContext, BATCH_ENABLE);
 			String batchSize = GoogleSpreadsheetUtils
 					.lookupFunctionParam(messageContext, BATCH_SIZE);
+            String append = GoogleSpreadsheetUtils.lookupFunctionParam(messageContext, APPEND);
+            int lastRowId = 1;
 			
 			if (worksheetName == null || "".equals(worksheetName.trim())
 					|| spreadsheetName == null
@@ -94,8 +100,24 @@ public class GoogleSpreadsheetImportCSV extends AbstractConnector {
 
 			GoogleSpreadsheetCellData gssData = new GoogleSpreadsheetCellData(
 					ssService);
+
+            if((append != null) && append.equalsIgnoreCase("true"))
+            {
+                // Fetch the list feed of the worksheet.
+            URL listFeedUrl = wsEntry.getListFeedUrl();
+                ListFeed listFeed = ssService.getFeed(listFeedUrl, ListFeed.class);
+                // Iterate through each row, get the last row id.
+                for (ListEntry row : listFeed.getEntries()) {
+                    lastRowId++;
+                }
+                // Increment the lastRowId to insert new data
+                if(lastRowId >1)    {
+                lastRowId++;
+                }
+            }
+
 			
-			if(batchEnable.equalsIgnoreCase("true")) {
+			if((batchEnable != null) && batchEnable.equalsIgnoreCase("true")) {
 				
 				 // Build list of cell addresses to be filled in
 			    List<GoogleSpreadsheetCellAddress> cellAddrs = new ArrayList<GoogleSpreadsheetCellAddress>();
@@ -125,7 +147,7 @@ public class GoogleSpreadsheetImportCSV extends AbstractConnector {
 								new InputStreamReader(is));
 
 						String line;
-						int rowNumber = 1;
+						int rowNumber = lastRowId;
 						if(batchSizeInt > 0) {
 						while ((line = br.readLine()) != null) {
 							String[] recordList = line.split(",");
@@ -160,7 +182,7 @@ public class GoogleSpreadsheetImportCSV extends AbstractConnector {
 
 					BufferedReader br = new BufferedReader(new FileReader(filePath));
 					String line;
-					int rowNumber = 1;
+					int rowNumber = lastRowId;
 					if(batchSizeInt > 0) {
 					while ((line = br.readLine()) != null) {
 						String[] recordList = line.split(",");
@@ -205,7 +227,7 @@ public class GoogleSpreadsheetImportCSV extends AbstractConnector {
 							new InputStreamReader(is));
 
 					String line;
-					int rowNumber = 1;
+					int rowNumber = lastRowId;
 					while ((line = br.readLine()) != null) {
 						String[] recordList = line.split(",");
 						for (int i = 1; i <= recordList.length; i++) {
@@ -221,7 +243,7 @@ public class GoogleSpreadsheetImportCSV extends AbstractConnector {
 
 				BufferedReader br = new BufferedReader(new FileReader(filePath));
 				String line;
-				int rowNumber = 1;
+				int rowNumber = lastRowId;
 				while ((line = br.readLine()) != null) {
 					String[] recordList = line.split(",");
 					for (int i = 1; i <= recordList.length; i++) {
