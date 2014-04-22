@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="createGroupEvent" xmlns="http://ws.apache.org/ns/synapse">
+  <parameter name="groupId" description="The groupId"/>
+  <parameter name="name" description="Name of the event"/>
+  <parameter name="startTime" description="Start time of the event in ISO-8601 format"/>
+  <parameter name="endTime" description="End time of the event in ISO-8601 format"/>
+  <parameter name="description" description="Description of the event"/>
+  <parameter name="location" description="Location of the event"/>
+  <parameter name="locationId" description="Facebook Place ID of the place for the event"/>
+  <sequence>
+    <property name="uri.var.groupId" expression="$func:groupId"/>
+    <property name="uri.var.name" expression="$func:name"/>
+    <property name="uri.var.startTime" expression="$func:startTime"/>
+    <property name="uri.var.endTime" expression="$func:endTime"/>
+    <property name="uri.var.description" expression="$func:description"/>
+    <property name="uri.var.location" expression="$func:location"/>
+    <property name="uri.var.locationId" expression="$func:locationId"/>
+    <payloadFactory media-type="json">
+	   <format>
+	      {
+			"access_token":"$1",
+			"name":"$2",
+			"start_time":"$3"
+		  }
+	   </format>
+          <args>
+			<arg expression="get-property('uri.var.accessToken')" />
+			<arg expression="get-property('uri.var.name')" />
+			<arg expression="get-property('uri.var.startTime')" />
+		  </args>	   
+	</payloadFactory>	
+	<script language="js"><![CDATA[
+			var endTime=mc.getProperty('uri.var.endTime');
+			var description=mc.getProperty('uri.var.description');
+			var location=mc.getProperty('uri.var.location');
+			var locationId=mc.getProperty('uri.var.locationId');
+			
+			
+			payload = mc.getPayloadJSON();
+			
+			if(endTime !=null && endTime != ""){
+				payload.end_time=endTime;
+			}
+					
+			if(description != null && description != ""){
+				payload.description = description;
+			}
+			
+			if(location !=null && location != ""){
+				payload.location=location;
+			}
+			
+			if(locationId !=null && locationId != ""){
+				payload.location_id=locationId;
+			}
+           
+           mc.setPayloadJSON(payload);
+         ]]></script>		 
+	<property name="messageType" value="application/x-www-form-urlencoded"
+		scope="axis2" />  
+    <call>
+      <endpoint>
+        <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.groupId}/events"/>
+      </endpoint>
+    </call>	
+	<!-- Remove response custom header information -->
+    <header name="X-FB-Debug" scope="transport" action="remove" />
+	<header name="X-FB-Rev" scope="transport" action="remove" />
+	<header name="WWW-Authenticate" scope="transport" action="remove" />	
+  </sequence>
+</template>

@@ -1,0 +1,30 @@
+<template name="removeMembersFromFriendList" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="friendlistId" description="The unique identifier of the friendlist" />
+	<parameter name="members" description="A comma-separated list of IDs of friends to add to the list" />
+	<sequence>
+
+		<property name="uri.var.friendlistId" expression="$func:friendlistId" />
+		<property name="uri.var.members" expression="$func:members" />
+
+	<filter source="boolean(get-property('uri.var.members'))" regex="true">
+       <script language="js">
+        <![CDATA[                    
+               //encoding url param variables 
+                var members = encodeURIComponent(mc.getProperty("uri.var.members"));                                                                                                                            
+                mc.setProperty('uri.var.members', members);                                                       
+               ]]>
+        </script>
+    </filter>            	
+		<call>
+			<endpoint>
+				<http method="delete" uri-template="{uri.var.apiUrl}/{uri.var.friendlistId}/members?access_token={uri.var.accessToken}&amp;members={uri.var.members}" />
+			</endpoint>
+		</call>
+		
+				<!-- Remove response custom header information -->
+		<header name="X-FB-Debug" scope="transport" action="remove" />
+		<header name="X-FB-Rev" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+	</sequence>
+</template>
