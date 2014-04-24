@@ -1,0 +1,27 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+	<!-- Optional parameters -->
+	<parameter name="apiUrl" description="URL of the SurveyMonkey API" />
+	<!-- Required parameters -->
+	<parameter name="accessToken"
+		description="The access token allows to make requests to the API on a behalf of a user." />
+	<parameter name="apiKey" description="The apiKey used for authentication" />
+	<sequence>
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.accessToken" expression="$func:accessToken" />
+		<property name="uri.var.apiKey" expression="$func:apiKey" />
+
+		<property name="Authorization"
+			expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))"
+			scope="transport" type="STRING" />
+		<property name="Content-Type" value="application/json" scope="transport"
+			type="STRING" />
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+
+		<filter
+			xpath="not(string(get-property('uri.var.apiUrl'))) or get-property('uri.var.apiUrl') = ''">
+			<then>
+				<property name="uri.var.apiUrl" value="https://api.surveymonkey.net" />
+			</then>
+		</filter>
+	</sequence>
+</template>
