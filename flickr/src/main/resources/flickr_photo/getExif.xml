@@ -1,0 +1,56 @@
+<template name="getExif" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="photoId" description="photo Id of the photo"/>
+    <parameter name="format" description="response format expected"/>
+
+    <sequence>
+        <property name="POST_TO_URI" value="true" scope="axis2"/>
+        <property name="flickr.consumerKey" expression="get-property('flickr.oauth.consumerKey')"/>
+        <property name="flickr.method" value="flickr.photos.getExif"/>
+        <property name="flickr.format" expression="$func:format"/>
+        <property name="flickr.photoId" expression="$func:photoId"/>
+
+        <property name="flickr.parameters" expression="fn:concat(
+        'method=', get-property('flickr.method'),
+        '&amp;api_key=', get-property('flickr.oauth.consumerKey'),
+        '&amp;photo_id=', get-property('flickr.photoId')
+        )"/>
+
+        <!--Adding optional parameters.-->
+        <filter
+                xpath="(not(get-property('flickr.format') = '' or  (not(string(get-property('flickr.format'))))))">
+            <then>
+                <!--
+                default flickr response for json format is a json callback function.
+                But the ESB expect raw json. To get that we additionally set the
+                nojsoncallback=1 parameter.
+                -->
+                <filter xpath="(get-property('flickr.format') = 'json')">
+                    <then>
+                        <property name="flickr.parameters" expression="fn:concat(
+                        get-property('flickr.parameters'),
+                        '&amp;nojsoncallback=1',
+                        )"/>
+                    </then>
+                </filter>
+                <property name="flickr.parameters" expression="fn:concat(
+                get-property('flickr.parameters'),
+                '&amp;format=', get-property('flickr.format')
+                )"/>
+            </then>
+        </filter>
+
+        <property name="uri.var.parameters" expression="get-property('flickr.parameters')"/>
+        <property name="uri.var.apiUri" expression="get-property('flickr.apiUri')"/>
+
+
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUri}?{uri.var.parameters}"/>
+            </endpoint>
+        </call>
+
+        <header name="P3P" action="remove" scope="transport"/>
+
+    </sequence>
+</template>
