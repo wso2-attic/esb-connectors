@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="googletasks_moveTask"
+	transports="https,http" statistics="disable" trace="disable"
+	startOnLoad="true">
+	<target>
+		<inSequence>
+			<property name="accessToken" expression="json-eval($.accessToken)" />
+			<property name="tasklist_id" expression="json-eval($.tasklist_id)" />
+			<property name="task_id" expression="json-eval($.task_id)" />
+			<property name="parent" expression="json-eval($.parent)" />
+			<property name="previous" expression="json-eval($.previous)" />
+			<googletasks.init>
+				<accessToken>{$ctx:accessToken}</accessToken>
+			</googletasks.init>
+			<googletasks.moveTask>
+				<tasklist_id>{$ctx:tasklist_id}</tasklist_id>
+				<task_id>{$ctx:task_id}</task_id>
+				<parent>{$ctx:parent}</parent>
+				<previous>{$ctx:previous}</previous>
+			</googletasks.moveTask>
+			<filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+				<then>
+					<property name="ERROR_CODE" expression="$axis2:HTTP_SC" />
+					<switch source="$axis2:HTTP_SC">
+						<case regex="401">
+							<property name="ERROR_MESSAGE" value="Unauthorized" />
+							<property name="error_description" expression="json-eval($.message)" />
+						</case>
+						<case regex="403">
+							<property name="ERROR_MESSAGE" value="Forbidden" />
+							<property name="error_description" expression="json-eval($.message)" />
+						</case>
+						<case regex="404">
+							<property name="ERROR_MESSAGE" value="Not Found" />
+						</case>
+						<case regex="400">
+							<property name="ERROR_MESSAGE" value="Bad Request" />
+							<property name="error_description" expression="json-eval($.message)" />
+						</case>
+					</switch>
+				</then>
+			</filter>
+			<respond />
+		</inSequence>
+		<outSequence>
+			<log />
+			<send />
+		</outSequence>
+	</target>
+	<description />
+</proxy>
