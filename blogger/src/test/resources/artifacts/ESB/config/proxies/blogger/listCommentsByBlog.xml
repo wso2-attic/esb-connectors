@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="listCommentsByBlog"
+	transports="https,http" statistics="disable" trace="disable"
+	startOnLoad="true">
+	<target>
+		<inSequence>
+			<property name="apiKey" expression="json-eval($.apiKey)" />
+			<property name="accessToken" expression="json-eval($.accessToken)" />
+			<property expression="json-eval($.blogID)" name="blogID" />
+			<property expression="json-eval($.endDate)" name="endDate" />
+			<property expression="json-eval($.labels)" name="labels" />
+			<property expression="json-eval($.fetchBodies)" name="fetchBodies" />
+			<property expression="json-eval($.maxResults)" name="maxResults" />
+			<property expression="json-eval($.pageToken)" name="pageToken" />
+			<property expression="json-eval($.startDate)" name="startDate" />
+			<property expression="json-eval($.fields)" name="fields" />
+			<blogger.init>
+				<apiKey>{$ctx:apiKey}</apiKey>
+				<accessToken>{$ctx:accessToken}</accessToken>
+			</blogger.init>
+			<blogger.listCommentsByBlog>
+				<blogID>{$ctx:blogID}</blogID>
+				<endDate>{$ctx:endDate}</endDate>
+				<labels>{$ctx:labels}</labels>
+				<fetchBodies>{$ctx:fetchBodies}</fetchBodies>
+				<maxResults>{$ctx:maxResults}</maxResults>
+				<pageToken>{$ctx:pageToken}</pageToken>
+				<startDate>{$ctx:startDate}</startDate>
+				<fields>{$ctx:fields}</fields>
+			</blogger.listCommentsByBlog>
+			<filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+				<then>
+					<property name="ERROR_CODE" expression="$axis2:HTTP_SC" />
+					<switch source="$axis2:HTTP_SC">
+						<case regex="400">
+							<property name="ERROR_MESSAGE" value="Bad Request" />
+							<property name="issue" expression="json-eval($.details[0].issue)" />
+							<property name="fieldName" expression="json-eval($.details[0].field)" />
+							<filter
+								xpath="get-property('issue') = '' or (not(string(get-property('issue'))))">
+								<then>
+									<property name="error_description" expression="json-eval($.message)" />
+								</then>
+								<else>
+									<property name="error_description"
+										expression="fn:concat( get-property('fieldName'), ' - ',get-property('issue'))" />
+								</else>
+							</filter>
+						</case>
+						<case regex="401">
+							<property name="ERROR_MESSAGE" value="Unauthorized" />
+						</case>
+						<case regex="404">
+							<property name="ERROR_MESSAGE" value="Not Found" />
+						</case>
+					</switch>
+				</then>
+			</filter>
+			<respond />
+		</inSequence>
+		<outSequence>
+			<log />
+			<send />
+		</outSequence>
+	</target>
+	<description />
+</proxy>
