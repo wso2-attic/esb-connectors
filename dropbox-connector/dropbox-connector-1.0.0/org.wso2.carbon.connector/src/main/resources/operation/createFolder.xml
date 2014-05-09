@@ -1,0 +1,55 @@
+<template name="createFolder" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Optional parameters -->
+	<parameter name="locale"
+		description="The locale, returned size value field will be translated based on the given locale" />
+	<sequence>
+		<property name="uri.var.locale" expression="$func:locale" />
+
+		<!-- Building payload for mandatory params -->
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"root": "$1",
+					"path": "$2"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.root')" />
+				<arg expression="get-property('uri.var.path')" />
+			</args>
+		</payloadFactory>
+
+		<script language="js">
+		    <![CDATA[
+		    
+		    var locale = mc.getProperty("uri.var.locale");
+		    
+		    if(locale!= null && locale != ''){
+		    	payload = mc.getPayloadJSON();
+		    	payload.locale = locale;
+		    	mc.setPayloadJSON(payload);
+		    }
+		    
+			]]>
+		</script>
+
+		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="POST"
+					uri-template="{uri.var.apiUrl}/1/fileops/create_folder" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="x-server-response-time" scope="transport" action="remove" />
+		<header name="x-frame-options" scope="transport" action="remove" />
+		<header name="x-dropbox-http-protocol" scope="transport" action="remove" />
+		<header name="x-dropbox-request-id" scope="transport" action="remove" />
+		<header name="set-cookie" scope="transport" action="remove" />
+		<header name="X-RequestId" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+	</sequence>
+</template>
