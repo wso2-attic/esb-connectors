@@ -19,7 +19,7 @@ Product: WSO2 ESB Connector for Blogger + Integration Tests
 
 4. Copy the blogger.zip file to the location "Integration_Test/products/esb/4.8.1/modules/integration/blogger/repository" 
  
-5. Create trial blogger account and a trial blog and a trial post for test purpose. Make few Randow Comments in the trial post. Go to google api console and get a api key. Use Oauth Playground to create an Oauth 2.0 access token for permission. 
+5. Create trial blogger account and a trial blog and a trial post for test purpose. Make few Randon Comments in the trial post. Go to google api console and get a api key. Use Oauth Playground to create an Oauth 2.0 access token for permission. 
  
 6. Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/blogger/src/test/resources/artifacts/ESB/connector/config"  and modify the following properties in blogger.properties file 
  
