@@ -23,6 +23,7 @@ import java.util.Properties;
 import org.apache.axis2.context.ConfigurationContext;
 import org.apache.axis2.json.JSONBuilder;
 import org.apache.axis2.json.JSONOMBuilder;
+import org.apache.tools.ant.taskdefs.Sleep;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -83,6 +84,8 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     private String postpath;
 
     private String postID2;
+    
+    private long stime;
 
     @BeforeClass(alwaysRun = true)
     public void setEnvironment() throws Exception {
@@ -129,6 +132,8 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         bURL        = bloggerConnectorProperties.getProperty("blogURL");
         squery      = bloggerConnectorProperties.getProperty("search_query");
         postpath    = bloggerConnectorProperties.getProperty("post_path");
+        
+        stime = 10000;
     }
     
     @Override
@@ -142,7 +147,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for getBlog method with mandatory parameters - blogger blog
      */
-    @Test(priority = 17, groups = { "wso2.esb" }, description = "blogger {getBlog} integration test with mandatory parameters - blogID")
+    @Test(priority = 2, groups = { "wso2.esb" }, description = "blogger {getBlog} integration test with mandatory parameters - blogID")
     public void getBlogWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "getBlog_mandatory.txt";
@@ -155,8 +160,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                      System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -179,8 +185,10 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+          	System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -190,7 +198,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for getBlog method.
      */
-    @Test(priority = 3, groups = { "wso2.esb" }, description = "blogger {getBlog} integration test with negative case")
+    @Test(priority = 2, groups = { "wso2.esb" }, description = "blogger {getBlog} integration test with negative case")
     public void getBlogWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "getBlog_negative.txt";
@@ -203,8 +211,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -216,7 +225,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for getByURL  method with mandatory parameters - blogger blog
      */
-    @Test(priority = 4, groups = { "wso2.esb" }, description = "blogger {getByURL} integration test with mandatory parameters - blogID")
+    @Test(priority = 3, groups = { "wso2.esb" }, description = "blogger {getByURL} integration test with mandatory parameters - blogID")
     public void getByURLWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "getByURL_mandatory.txt";
@@ -229,8 +238,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -240,7 +250,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for getByURL method with optional parameters - blogger blog.
      */
-    @Test(priority = 5, groups = { "wso2.esb" }, description = "blogger {getByURL} integration test with optional parameters")
+    @Test(priority = 3, groups = { "wso2.esb" }, description = "blogger {getByURL} integration test with optional parameters")
     public void getByURLWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "getByURL_optional.txt";
@@ -253,8 +263,10 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
+
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -264,7 +276,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for getByURL method.
      */
-    @Test(priority = 6, groups = { "wso2.esb" }, description = "blogger {getByURL} integration test with negative case")
+    @Test(priority = 3, groups = { "wso2.esb" }, description = "blogger {getByURL} integration test with negative case")
     public void getByURLWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "getByURL_negative.txt";
@@ -277,8 +289,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -291,7 +304,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for listByUser  method with mandatory parameters - blogger blog
      */
-    @Test(priority = 7, groups = { "wso2.esb" }, description = "blogger {listByUser} integration test with mandatory parameters - blogID")
+    @Test(priority = 4, groups = { "wso2.esb" }, description = "blogger {listByUser} integration test with mandatory parameters - blogID")
     public void listByUserWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "listByUser_mandatory.txt";
@@ -304,8 +317,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.getString("kind").equals("blogger#blogList"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -315,7 +329,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for listByUser method with optional parameters - blogger blog.
      */
-    @Test(priority = 8, groups = { "wso2.esb" }, description = "blogger {listByUser} integration test with optional parameters")
+    @Test(priority = 4, groups = { "wso2.esb" }, description = "blogger {listByUser} integration test with optional parameters")
     public void listByUserWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "listByUser_optional.txt";
@@ -328,8 +342,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -339,7 +354,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for listByUser method.
      */
-    @Test(priority = 9, groups = { "wso2.esb" }, description = "blogger {listByUser} integration test with negative case")
+    @Test(priority = 4, groups = { "wso2.esb" }, description = "blogger {listByUser} integration test with negative case")
     public void listByUserWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "listByUser_negative.txt";
@@ -352,8 +367,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -367,7 +383,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for listPosts  method with mandatory parameters - blogger post
      */
-    @Test(priority = 10, groups = { "wso2.esb" }, description = "blogger {listPosts} integration test with mandatory parameters - blogID")
+    @Test(priority = 5, groups = { "wso2.esb" }, description = "blogger {listPosts} integration test with mandatory parameters - blogID")
     public void listPostsWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "listPosts_mandatory.txt";
@@ -380,8 +396,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	 JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-             System.out.println(jsonObject.toString());
+             Assert.assertTrue(jsonObject.getString("kind").equals("blogger#postList"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -391,7 +408,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for listPosts method with optional parameters - blogger post.
      */
-    @Test(priority = 11, groups = { "wso2.esb" }, description = "blogger {listPosts} integration test with optional parameters")
+    @Test(priority = 5, groups = { "wso2.esb" }, description = "blogger {listPosts} integration test with optional parameters")
     public void listPostsWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "listPosts_optional.txt";
@@ -404,8 +421,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-             System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -415,7 +433,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for listPosts method.
      */
-    @Test(priority = 12, groups = { "wso2.esb" }, description = "blogger {listPosts} integration test with negative case")
+    @Test(priority = 5, groups = { "wso2.esb" }, description = "blogger {listPosts} integration test with negative case")
     public void listPostsWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "listPosts_negative.txt";
@@ -428,8 +446,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-            System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -441,7 +460,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for getPost  method with mandatory parameters - blogger blog
      */
-    @Test(priority = 19, groups = { "wso2.esb" }, description = "blogger {getPost} integration test with mandatory parameters")
+    @Test(priority = 6, groups = { "wso2.esb" }, description = "blogger {getPost} integration test with mandatory parameters")
     public void getPostWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "getPost_mandatory.txt";
@@ -454,8 +473,10 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+            System.out.println(jsonObject.toString());
+        	Assert.assertTrue(jsonObject.has("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -465,7 +486,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for getPost method with optional parameters - blogger blog.
      */
-    @Test(priority = 20, groups = { "wso2.esb" }, description = "blogger {getPost} integration test with optional parameters")
+    @Test(priority = 6, groups = { "wso2.esb" }, description = "blogger {getPost} integration test with optional parameters")
     public void getPostWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "getPost_optional.txt";
@@ -478,8 +499,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -489,7 +511,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for getPost method.
      */
-    @Test(priority = 21, groups = { "wso2.esb" }, description = "blogger {getPost} integration test with negative case")
+    @Test(priority = 6, groups = { "wso2.esb" }, description = "blogger {getPost} integration test with negative case")
     public void getPostWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "getPost_negative.txt";
@@ -502,8 +524,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -515,7 +538,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**m
      * Positive test case for searchPost  method with mandatory parameters - blogger post
      */
-    @Test(priority = 13, groups = { "wso2.esb" }, description = "blogger {searchPost} integration test with mandatory parameters - blogID")
+    @Test(priority = 5, groups = { "wso2.esb" }, description = "blogger {searchPost} integration test with mandatory parameters - blogID")
     public void searchPostWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPost_mandatory.txt";
@@ -528,8 +551,10 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
-        	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+
+        	int stat = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonReqString);
+        	boolean assrt = (stat != 400);
+        	Assert.assertTrue(assrt);
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -539,7 +564,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for searchPost method with optional parameters - blogger post.
      */
-    @Test(priority = 14, groups = { "wso2.esb" }, description = "blogger {searchPost} integration test with optional parameters")
+    @Test(priority = 10, groups = { "wso2.esb" }, description = "blogger {searchPost} integration test with optional parameters")
     public void searchPostWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "searchPost_optional.txt";
@@ -552,8 +577,10 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
-          	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+
+            int stat = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonReqString);
+            boolean assrt = (stat != 400);
+        	Assert.assertTrue(assrt);
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -563,7 +590,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for searchPost method.
      */
-    @Test(priority = 15, groups = { "wso2.esb" }, description = "blogger {searchPost} integration test with negative case")
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "blogger {searchPost} integration test with negative case")
     public void searchPostWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "searchPost_negative.txt";
@@ -576,8 +603,10 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
-          	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+
+          	int stat = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonReqString);
+            boolean assrt = (stat == 400 | stat == 500);
+          	Assert.assertTrue(assrt);
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -589,7 +618,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for insertPost  method with mandatory parameters - blogger post
      */
-    @Test(priority = 16, groups = { "wso2.esb" }, description = "blogger {insertPost} integration test with mandatory parameters")
+    @Test(priority = 8, groups = { "wso2.esb" }, description = "blogger {insertPost} integration test with mandatory parameters")
     public void insertPostWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "insertPost_mandatory.txt";
@@ -602,9 +631,10 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-             System.out.println(jsonObject.toString());
-             
+        	Assert.assertTrue(jsonObject.has("id"));   
+            
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -614,7 +644,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for insertPost method with optional parameters - blogger post.
      */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "blogger {insertPost} integration test with optional parameters")
+    @Test(priority = 9, groups = { "wso2.esb" }, description = "blogger {insertPost} integration test with optional parameters")
     public void insertPostWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "insertPost_optional.txt";
@@ -627,10 +657,11 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-           System.out.println(jsonObject.toString());
-           postID2 = jsonObject.getString("id");
-
+            System.out.println(jsonObject.toString());
+          	postID2 = jsonObject.getString("id");
+           Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -640,7 +671,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for insertPost method.
      */
-    @Test(priority = 18, groups = { "wso2.esb" }, description = "blogger {insertPost} integration test with negative case")
+    @Test(priority = 10, groups = { "wso2.esb" }, description = "blogger {insertPost} integration test with negative case")
     public void insertPostWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "insertPost_negative.txt";
@@ -653,9 +684,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-           System.out.println(jsonObject.toString());
-            
+            Assert.assertTrue(jsonObject.has("error"));            
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -669,7 +700,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for getPostByPath  method with mandatory parameters - blogger post
      */
-    @Test(priority = 22, groups = { "wso2.esb" }, description = "blogger {getPostByPath} integration test with mandatory parameters ")
+    @Test(priority = 7, groups = { "wso2.esb" }, description = "blogger {getPostByPath} integration test with mandatory parameters ")
     public void getPostByPathWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "getPostByPath_mandatory.txt";
@@ -682,8 +713,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -693,7 +725,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for getPostByPath method with optional parameters   - blogger post.
      */
-    @Test(priority = 23, groups = { "wso2.esb" }, description = "blogger {getPostByPath} integration test with optional parameters")
+    @Test(priority = 7, groups = { "wso2.esb" }, description = "blogger {getPostByPath} integration test with optional parameters")
     public void getPostByPathWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "getPostByPath_optional.txt";
@@ -706,8 +738,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -717,7 +750,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for getPostByPath method.
      */
-    @Test(priority = 25, groups = { "wso2.esb" }, description = "blogger {getPostByPath} integration test with negative case")
+    @Test(priority = 7, groups = { "wso2.esb" }, description = "blogger {getPostByPath} integration test with negative case")
     public void getPostByPathWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "getPostByPath_negative.txt";
@@ -730,8 +763,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -744,7 +778,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for patchPost  method with mandatory parameters - blogger post
      */
-    @Test(priority = 27, groups = { "wso2.esb" }, description = "blogger {patchPost} integration test with mandatory parameters ")
+    @Test(priority = 14, groups = { "wso2.esb" }, description = "blogger {patchPost} integration test with mandatory parameters ")
     public void patchPostWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "patchPost_mandatory.txt";
@@ -757,8 +791,10 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+        	Assert.assertTrue(jsonObject.has("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -768,7 +804,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for patchPost method with optional parameters - blogger post.
      */
-    @Test(priority = 29, groups = { "wso2.esb" }, description = "blogger {patchPost} integration test with optional parameters")
+    @Test(priority = 15, groups = { "wso2.esb" }, description = "blogger {patchPost} integration test with optional parameters")
     public void patchPostWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "patchPost_optional.txt";
@@ -781,8 +817,11 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	  
+          	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+
+          	Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -792,7 +831,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for patchPost method.
      */
-    @Test(priority = 28, groups = { "wso2.esb" }, description = "blogger {patchPost} integration test with negative case")
+    @Test(priority = 16, groups = { "wso2.esb" }, description = "blogger {patchPost} integration test with negative case")
     public void patchPostWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "patchPost_negative.txt";
@@ -805,8 +844,11 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	  
+          	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-            System.out.println(jsonObject.toString());
+
+          	Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -820,7 +862,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for updatePost  method with mandatory parameters - blogger post
      */
-    @Test(priority = 30, groups = { "wso2.esb" }, description = "blogger {updatePost} integration test with mandatory parameters ")
+    @Test(priority = 11, groups = { "wso2.esb" }, description = "blogger {updatePost} integration test with mandatory parameters ")
     public void updatePostWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "updatePost_mandatory.txt";
@@ -833,8 +875,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -844,7 +887,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for updatePost method with optional parameters - blogger post.
      */
-    @Test(priority = 32, groups = { "wso2.esb" }, description = "blogger {updatePost} integration test with optional parameters")
+    @Test(priority = 12, groups = { "wso2.esb" }, description = "blogger {updatePost} integration test with optional parameters")
     public void updatePostWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "updatePost_optional.txt";
@@ -857,8 +900,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -868,7 +912,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for updatePost method.
      */
-    @Test(priority = 31, groups = { "wso2.esb" }, description = "blogger {updatePost} integration test with negative case")
+    @Test(priority = 13, groups = { "wso2.esb" }, description = "blogger {updatePost} integration test with negative case")
     public void updatePostWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "updatePost_negative.txt";
@@ -881,8 +925,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -895,7 +940,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for revertPost  method with mandatory parameters - blogger post
      */
-    @Test(priority = 33, groups = { "wso2.esb" }, description = "blogger {revertPost} integration test with mandatory parameters ")
+    @Test(priority = 17, groups = { "wso2.esb" }, description = "blogger {revertPost} integration test with mandatory parameters ")
     public void revertPostWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "revertPost_mandatory.txt";
@@ -908,8 +953,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -919,7 +965,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for revertPost method with optional parameters - blogger post.
      */
-    @Test(priority = 35, groups = { "wso2.esb" }, description = "blogger {revertPost} integration test with optional parameters")
+    @Test(priority = 18, groups = { "wso2.esb" }, description = "blogger {revertPost} integration test with optional parameters")
     public void revertPostWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "revertPost_optional.txt";
@@ -932,8 +978,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -943,7 +990,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for revertPost method.
      */
-    @Test(priority = 34, groups = { "wso2.esb" }, description = "blogger {revertPost} integration test with negative case")
+    @Test(priority = 19, groups = { "wso2.esb" }, description = "blogger {revertPost} integration test with negative case")
     public void revertPostWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "revertPost_negative.txt";
@@ -956,8 +1003,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -971,7 +1019,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for publishPost  method with mandatory parameters - blogger post
      */
-    @Test(priority = 36, groups = { "wso2.esb" }, description = "blogger {publishPost} integration test with mandatory parameters ")
+    @Test(priority = 20, groups = { "wso2.esb" }, description = "blogger {publishPost} integration test with mandatory parameters ")
     public void publishPostWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "publishPost_mandatory.txt";
@@ -983,8 +1031,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -994,7 +1043,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for publishPost method with optional parameters - blogger post.
      */
-    @Test(priority = 38, groups = { "wso2.esb" }, description = "blogger {publishPost} integration test with optional parameters")
+    @Test(priority = 21, groups = { "wso2.esb" }, description = "blogger {publishPost} integration test with optional parameters")
     public void publishPostWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "publishPost_optional.txt";
@@ -1007,8 +1056,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1018,7 +1068,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for publishPost method.
      */
-    @Test(priority = 37, groups = { "wso2.esb" }, description = "blogger {publishPost} integration test with negative case")
+    @Test(priority = 22, groups = { "wso2.esb" }, description = "blogger {publishPost} integration test with negative case")
     public void publishPostWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "publishPost_negative.txt";
@@ -1031,8 +1081,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1046,7 +1097,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for listComments  method with mandatory parameters - blogger comment
      */
-    @Test(priority = 39, groups = { "wso2.esb" }, description = "blogger {listComments} integration test with mandatory parameters ")
+    @Test(priority = 23, groups = { "wso2.esb" }, description = "blogger {listComments} integration test with mandatory parameters ")
     public void listCommentsWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "listComments_mandatory.txt";
@@ -1059,9 +1110,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                   System.out.println(jsonObject.toString());
-
+        	Assert.assertTrue(jsonObject.getString("kind").equals("blogger#commentList"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -1071,7 +1122,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for listComments method with optional parameters - blogger comment.
      */
-    @Test(priority = 40, groups = { "wso2.esb" }, description = "blogger {listComments} integration test with optional parameters")
+    @Test(priority = 23, groups = { "wso2.esb" }, description = "blogger {listComments} integration test with optional parameters")
     public void listCommentsWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "listComments_optional.txt";
@@ -1084,8 +1135,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-            System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           	JSONArray ja = jsonObject.getJSONArray("items");
             commentID2 = (ja.getJSONObject(ja.length()-1).getString("id"));
           } finally {
@@ -1097,7 +1149,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for listComments method.
      */
-    @Test(priority = 41, groups = { "wso2.esb" }, description = "blogger {listComments} integration test with negative case")
+    @Test(priority = 23, groups = { "wso2.esb" }, description = "blogger {listComments} integration test with negative case")
     public void listCommentsWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "listComments_negative.txt";
@@ -1110,8 +1162,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1125,7 +1178,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for getComment  method with mandatory parameters - blogger comment
      */
-    @Test(priority = 42, groups = { "wso2.esb" }, description = "blogger {getComment} integration test with mandatory parameters ")
+    @Test(priority = 24, groups = { "wso2.esb" }, description = "blogger {getComment} integration test with mandatory parameters ")
     public void getCommentWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "getComment_mandatory.txt";
@@ -1138,8 +1191,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-            System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -1149,7 +1203,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for getComment method with optional parameters - blogger comment.
      */
-    @Test(priority = 43, groups = { "wso2.esb" }, description = "blogger {getComment} integration test with optional parameters")
+    @Test(priority = 24, groups = { "wso2.esb" }, description = "blogger {getComment} integration test with optional parameters")
     public void getCommentWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "getComment_optional.txt";
@@ -1162,8 +1216,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1173,7 +1228,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for getComment method.
      */
-    @Test(priority = 44, groups = { "wso2.esb" }, description = "blogger {getComment} integration test with negative case")
+    @Test(priority = 24, groups = { "wso2.esb" }, description = "blogger {getComment} integration test with negative case")
     public void getCommentWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "getComment_negative.txt";
@@ -1186,8 +1241,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	  
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1201,7 +1257,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**listCommentsByBlog
      * Positive test case for listCommentsByBlog  method with mandatory parameters - blogger comment
      */
-    @Test(priority = 45, groups = { "wso2.esb" }, description = "blogger {listCommentsByBlog} integration test with mandatory parameters ")
+    @Test(priority = 25, groups = { "wso2.esb" }, description = "blogger {listCommentsByBlog} integration test with mandatory parameters ")
     public void listCommentsByBlogWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsByBlog_mandatory.txt";
@@ -1214,8 +1270,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+        	Assert.assertTrue(jsonObject.getString("kind").equals("blogger#commentList"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -1225,7 +1282,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for listCommentsByBlog method with optional parameters - blogger comment.
      */
-    @Test(priority = 46, groups = { "wso2.esb" }, description = "blogger {listCommentsByBlog} integration test with optional parameters")
+    @Test(priority = 25, groups = { "wso2.esb" }, description = "blogger {listCommentsByBlog} integration test with optional parameters")
     public void listCommentsByBlogWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsByBlog_optional.txt";
@@ -1238,8 +1295,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	  
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1249,7 +1307,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for listCommentsByBlog method.
      */
-    @Test(priority = 47, groups = { "wso2.esb" }, description = "blogger {listCommentsByBlog} integration test with negative case")
+    @Test(priority = 25, groups = { "wso2.esb" }, description = "blogger {listCommentsByBlog} integration test with negative case")
     public void listCommentsByBlogWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsByBlog_negative.txt";
@@ -1262,8 +1320,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	  
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1277,7 +1336,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for markCommentAsSpam  method with mandatory parameters - blogger comment
      */
-    @Test(priority = 48, groups = { "wso2.esb" }, description = "blogger {markCommentAsSpam} integration test with mandatory parameters ")
+    @Test(priority = 26, groups = { "wso2.esb" }, description = "blogger {markCommentAsSpam} integration test with mandatory parameters ")
     public void markCommentAsSpamWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "markCommentAsSpam_mandatory.txt";
@@ -1290,8 +1349,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -1301,7 +1361,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for markCommentAsSpam method with optional parameters - blogger comment.
      */
-    @Test(priority = 49, groups = { "wso2.esb" }, description = "blogger {markCommentAsSpam} integration test with optional parameters")
+    @Test(priority = 26, groups = { "wso2.esb" }, description = "blogger {markCommentAsSpam} integration test with optional parameters")
     public void markCommentAsSpamWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "markCommentAsSpam_optional.txt";
@@ -1314,8 +1374,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	  
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-            System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1325,7 +1386,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for markCommentAsSpam method.
      */
-    @Test(priority = 50, groups = { "wso2.esb" }, description = "blogger {markCommentAsSpam} integration test with negative case")
+    @Test(priority = 26, groups = { "wso2.esb" }, description = "blogger {markCommentAsSpam} integration test with negative case")
     public void markCommentAsSpamWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "markCommentAsSpam_negative.txt";
@@ -1338,8 +1399,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	  
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1351,7 +1413,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for approveComment  method with mandatory parameters - blogger comment
      */
-    @Test(priority = 51, groups = { "wso2.esb" }, description = "blogger {approveComment} integration test with mandatory parameters ")
+    @Test(priority = 27, groups = { "wso2.esb" }, description = "blogger {approveComment} integration test with mandatory parameters ")
     public void approveCommentWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "approveComment_mandatory.txt";
@@ -1364,8 +1426,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -1375,7 +1438,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for approveComment method with optional parameters - blogger comment.
      */
-    @Test(priority = 52, groups = { "wso2.esb" }, description = "blogger {approveComment} integration test with optional parameters")
+    @Test(priority = 27, groups = { "wso2.esb" }, description = "blogger {approveComment} integration test with optional parameters")
     public void approveCommentWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "approveComment_optional.txt";
@@ -1388,8 +1451,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	  
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1399,7 +1463,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for approveComment method.
      */
-    @Test(priority = 53, groups = { "wso2.esb" }, description = "blogger {approveComment} integration test with negative case")
+    @Test(priority = 27, groups = { "wso2.esb" }, description = "blogger {approveComment} integration test with negative case")
     public void approveCommentWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "approveComment_negative.txt";
@@ -1412,8 +1476,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        	  
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1426,7 +1491,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for removeCommentContent  method with mandatory parameters - blogger comment
      */
-    @Test(priority = 54, groups = { "wso2.esb" }, description = "blogger {removeCommentContent} integration test with mandatory parameters ")
+    @Test(priority = 28, groups = { "wso2.esb" }, description = "blogger {removeCommentContent} integration test with mandatory parameters ")
     public void removeCommentContentWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "removeCommentContent_mandatory.txt";
@@ -1439,8 +1504,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -1450,7 +1516,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for removeCommentContent method with optional parameters - blogger comment.
      */
-    @Test(priority = 55, groups = { "wso2.esb" }, description = "blogger {removeCommentContent} integration test with optional parameters")
+    @Test(priority = 28, groups = { "wso2.esb" }, description = "blogger {removeCommentContent} integration test with optional parameters")
     public void removeCommentContentWithOptionalParameters() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "removeCommentContent_optional.txt";
@@ -1464,7 +1530,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           
           try {
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1474,7 +1540,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for removeCommentContent method.
      */
-    @Test(priority = 56, groups = { "wso2.esb" }, description = "blogger {removeCommentContent} integration test with negative case")
+    @Test(priority = 28, groups = { "wso2.esb" }, description = "blogger {removeCommentContent} integration test with negative case")
     public void removeCommentContentWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "removeCommentContent_negative.txt";
@@ -1488,7 +1554,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           
           try {
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1501,7 +1567,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for deleteComment  method with mandatory parameters - blogger comment
      */
-    @Test(priority = 58, groups = { "wso2.esb" }, description = "blogger {deleteComment} integration test with mandatory parameters ")
+    @Test(priority = 29, groups = { "wso2.esb" }, description = "blogger {deleteComment} integration test with mandatory parameters ")
     public void deleteCommentWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "deleteComment_mandatory.txt";
@@ -1514,8 +1580,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
-        	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                System.out.println(jsonObject.toString());
+        	
+        	int stat = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonReqString);
+            Assert.assertTrue(stat==204);
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -1526,7 +1593,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative test case for deleteComment method.
      */
-    @Test(priority = 57, groups = { "wso2.esb" }, description = "blogger {deleteComment} integration test with negative case")
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "blogger {deleteComment} integration test with negative case")
     public void deleteCommentWithNegativeCase() throws Exception {
     
     	  String jsonRequestFilePath = pathToRequestsDirectory + "deleteComment_negative.txt";
@@ -1539,8 +1606,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
-          	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+
+          	int stat = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonReqString);
+          	Assert.assertTrue(stat == 404);
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1553,7 +1621,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Positive test case for deletePost  method with mandatory parameters - blogger post
      */
-    @Test(priority = 70, groups = { "wso2.esb" }, description = "blogger {deletePost} integration test with mandatory parameters ")
+    @Test(priority = 30, groups = { "wso2.esb" }, description = "blogger {deletePost} integration test with mandatory parameters ")
     public void deletePostWithMandatoryParameters() throws Exception {
     
         String jsonRequestFilePath = pathToRequestsDirectory + "deletePost_mandatory.txt";
@@ -1566,8 +1634,11 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
-        	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-             System.out.println(jsonObject.toString());
+        	long t = System.currentTimeMillis();
+        	while(System.currentTimeMillis() - t < stime){}
+        	int stat = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonReqString);
+        	System.out.println(stat);
+        	Assert.assertTrue(stat==204);
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -1591,8 +1662,10 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+        		long t = System.currentTimeMillis();
+            	while(System.currentTimeMillis() - t < stime){}
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-               System.out.println(jsonObject.toString());
+          	Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1619,8 +1692,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         
         try {
+        	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                       System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -1643,8 +1717,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-                                                                                                  System.out.println(jsonObject.toString());
+            Assert.assertTrue(!jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
@@ -1667,8 +1742,9 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
           proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
           
           try {
+
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
-              System.out.println(jsonObject.toString());
+            Assert.assertTrue(jsonObject.has("error"));
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
