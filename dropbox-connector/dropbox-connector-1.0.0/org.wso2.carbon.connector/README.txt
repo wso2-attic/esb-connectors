@@ -13,7 +13,7 @@ Tested Platform:
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches available at "Integration_Test/products/esb/4.8.1/modules/distribution/target/"
+ 1. Make sure the ESB 4.8.1 zip file with latest patches available at "Integration_Test/products/esb/4.8.1/modules/integration/connectors/repository"
 
  2. This ESB should be configured as below;
 	Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
@@ -43,6 +43,7 @@ STEPS:
 		Eg: Below mentioned message formatter and the builder should be enabled when uploading ".png" files to test file upload methods.
 		
 		<messageFormatter contentType="image/png" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+
 		<messageBuilder contentType="image/png" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 		
  3. Make sure "integration-base" project is placed at "Integration_Test/products/esb/4.8.1/modules/integration/"
@@ -50,38 +51,39 @@ STEPS:
  4. Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/integration-base" and run the following command.
       $ mvn clean install
 
- 5. Add following dependancy to the file "Integration_Test/products/esb/4.8.1/modules/integration/connectors/pom.xml"
-	<dependency>
 
-		<groupId>org.wso2.esb</groupId>
-
-		<artifactId>org.wso2.connector.integration.test.base</artifactId>
-
-		<version>4.8.1</version>
-
-		<scope>system</scope>
-
-		<systemPath>${basedir}/../integration-base/target/org.wso2.connector.integration.test.base-4.8.1.jar</systemPath>
-
-	</dependency>
-
- 6. Make sure the dropbox test suite is enabled (as given below) and all other test suites are commented in the following file - "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/testng.xml"  
+ 5. Make sure the dropbox test suite is enabled (as given below) and all other test suites are commented in the following file - "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/testng.xml"  
     <test name="Dropbox-Connector-Test" preserve-order="true" verbose="2">
         <packages>
             <package name="org.wso2.carbon.connector.integration.test.dropbox"/>
         </packages>
     </test>
 
- 7. Create a DropBox account and derive the access token:
+ 6. Create a DropBox account and derive the access token:
 	i) 	Using the URL "https://www.dropbox.com/" create a DropBox account.
 	ii) Derive the access token by following the instructions at "https://www.dropbox.com/developers/core/docs#oa2-authorize".
 
 	
- 8. Copy the main and the test folders from the provided DropBox connector source bundle to the location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/"
+ 7. Copy the main and the test folders from the provided DropBox connector source bundle to the location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/". Copy pom.xml from the source bundle to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/". When running integration tests, uncomment fhe following two blocks from pom.xml:
 
- 9. Update the DropBox properties file at location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/connector/config" as below.
+	<parent>
+		<groupId>org.wso2.esb</groupId>
+		<artifactId>esb-integration-tests</artifactId>
+		<version>4.8.1</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+
+	<dependency>
+		<groupId>org.wso2.esb</groupId>
+		<artifactId>org.wso2.connector.integration.test.base</artifactId>
+		<version>4.8.1</version>
+		<scope>system</scope>
+		<systemPath>${basedir}/../integration-base/target/org.wso2.connector.integration.test.base-4.8.1.jar</systemPath>
+	</dependency>
+
+ 8. Update the DropBox properties file at location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/connector/config" as below.
    
-		i) accessToken - Use the access token you got from step 8.
+		i) accessToken - Use the access token you got from step 6.
 
 	Following properties should be changed to facilitate the file upload test cases. Values should be set based on the properties of the file which will uploaded. 
 	
@@ -100,8 +102,9 @@ STEPS:
 		xi) fileName - File name of the uploaded file.
 		xii) root - This parameter should always be set to "dropbox".
 		
- 10. Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/" and run the following command.
+ 9. Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/" and run the following command.
       $ mvn clean install
+
 
  NOTE : Following DropBox account, can be used for run the integration tests.
     Username : dropboxconnector2014@gmail.com

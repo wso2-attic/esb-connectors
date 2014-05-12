@@ -861,6 +861,8 @@ public class DropboxConnectorIntegrationTest extends ConnectorIntegrationTestBas
         String apiEndPoint =
                 connectorProperties.getProperty("dropboxApiUrl") + "/1/fileops/delete";
         RestResponse<JSONObject> response = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_cleanup.json");
+	connectorProperties.put("fileName", connectorProperties.getProperty("chunckUploadDestinationPath"));
+	response = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_cleanup.json");
     }
     
 	    private String getFileHash(InputStream in) throws IOException, NoSuchAlgorithmException {
