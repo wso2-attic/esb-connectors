@@ -26,11 +26,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
@@ -167,16 +166,17 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
         pathToRequestsDirectory = repoLocation + connectorProperties.getProperty("requestDirectoryRelativePath");
         
         pathToResourcesDirectory = repoLocation + connectorProperties.getProperty("resourceDirectoryRelativePath");
-                
+        
         File folder = new File(pathToProxiesDirectory);
-        File[] listOfFiles = folder.listFiles(); 
+        File[] listOfFiles = folder.listFiles();
         for (int i = 0; i < listOfFiles.length; i++) {
-        	if (listOfFiles[i].isFile()) {
-        		String fileName = listOfFiles[i].getName();
-        		if (fileName.endsWith(".xml") || fileName.endsWith(".XML")) {
-        			proxyAdmin.addProxyService(new DataHandler(new URL("file:///" + pathToProxiesDirectory + fileName)));
-        		}
-        	}
+            if (listOfFiles[i].isFile()) {
+                String fileName = listOfFiles[i].getName();
+                if (fileName.endsWith(".xml") || fileName.endsWith(".XML")) {
+                    proxyAdmin
+                            .addProxyService(new DataHandler(new URL("file:///" + pathToProxiesDirectory + fileName)));
+                }
+            }
         }
         
         proxyUrl = getProxyServiceURL(connectorName);
@@ -310,7 +310,7 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
             throws IOException, XMLStreamException {
     
         HttpURLConnection httpConnection =
-                writeRequest(endPoint, httpMethod, RestResponse.JSON_TYPE, headersMap, requestFileName, parametersMap);
+                writeRequest(endPoint, httpMethod, RestResponse.XML_TYPE, headersMap, requestFileName, parametersMap);
         
         String responseString = readResponse(httpConnection);
         
@@ -334,10 +334,12 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
      * @throws XMLStreamException Thrown on failure to build OM Element from the file's contents.
      * @throws IOException Thrown on failure to send the request.
      */
-	protected SOAPEnvelope sendSOAPRequest(String endpoint, String soapRequestFileName) throws XMLStreamException, IOException {
-			return sendSOAPRequest(endpoint, soapRequestFileName, null);
-	}
-	
+    protected SOAPEnvelope sendSOAPRequest(String endpoint, String soapRequestFileName) throws XMLStreamException,
+            IOException {
+    
+        return sendSOAPRequest(endpoint, soapRequestFileName, null);
+    }
+    
     /**
      * Send a SOAP request via a MEPClient without attachments.
      * 
@@ -365,25 +367,25 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
      * @param endpoint The URL of the end point to send the request to.
      * @param soapRequestFileName Path to the SOAP request file
      * @param parametersMap A map containing key value pairs to be parameterized in the request.
-     * @param attachmentMap A map containing content IDs and paths to files which needed to be added to the SOAP
-     * request as attachments. 
+     * @param attachmentMap A map containing content IDs and paths to files which needed to be added to the
+     *        SOAP request as attachments.
      * @return The SOAP Envelope that is returned as a result of the request.
      * @throws XMLStreamException Thrown on failure to build OM Element from the file's contents.
      * @throws IOException Thrown on failure to send the request.
      */
     protected SOAPEnvelope sendSOAPRequest(String endpoint, String soapRequestFileName,
-            Map<String, String> parametersMap, Map<String,String> attachmentMap) 
-                    throws XMLStreamException, IOException {
+            Map<String, String> parametersMap, Map<String, String> attachmentMap) throws XMLStreamException,
+            IOException {
     
         OMElement requestEnvelope = AXIOMUtil.stringToOM(loadRequestFromFile(soapRequestFileName, parametersMap));
         Map<String, DataHandler> dataHandlerMap = new HashMap<String, DataHandler>();
         for (String contentId : attachmentMap.keySet()) {
-            dataHandlerMap.put(contentId, new DataHandler(new FileDataSource(new File(
-                    pathToRequestsDirectory + attachmentMap.get(contentId)))));
+            dataHandlerMap.put(contentId, new DataHandler(new FileDataSource(new File(pathToRequestsDirectory
+                    + attachmentMap.get(contentId)))));
         }
         OperationClient mepClient =
                 buildMEPClient(new EndpointReference(getProxyServiceURL(endpoint)), requestEnvelope, dataHandlerMap);
-       
+        
         mepClient.execute(true);
         return mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE).getEnvelope();
     }
@@ -413,7 +415,6 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
         } else if (responseType == RestResponse.JSON_TYPE) {
             requestData = "{}";
         }
-        
         OutputStream output = null;
         
         URL url = new URL(endPoint);
@@ -424,7 +425,7 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
             httpConnection.setRequestProperty(key, headersMap.get(key));
         }
         
-        if (httpMethod.equalsIgnoreCase("POST")) {
+        if (httpMethod.equalsIgnoreCase("POST") || httpMethod.equalsIgnoreCase("PUT")) {
             httpConnection.setDoOutput(true);
             try {
                 
@@ -809,20 +810,34 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
         return xPath.compile(xPathExpression).evaluate(xmlDocument);
     }
     
+    protected InputStream processForInputStream(String endPoint, String httpMethod, Map<String, String> headersMap,
+            String requestFileName, Map<String, String> parametersMap) throws IOException, JSONException {
+    
+        HttpURLConnection httpConnection =
+                writeRequest(endPoint, httpMethod, RestResponse.JSON_TYPE, headersMap, requestFileName, parametersMap);
+        
+        InputStream responseStream = null;
+        
+        if (httpConnection.getResponseCode() >= 400) {
+            responseStream = httpConnection.getErrorStream();
+        } else {
+            responseStream = httpConnection.getInputStream();
+        }
+        return responseStream;
+    }
+    
     /**
      * Innre class to handle Multipart data
-     * 
-     *
      */
     protected class MultipartFormdataProcessor {
         
-        private PrintWriter httpWriter;
+        private final String boundary = "----=_wso2IntegTest" + System.currentTimeMillis();
         
-        private final String boundary = "===wso2IntegTest" + System.currentTimeMillis() + "===";;
+        OutputStream httpStream;
         
-        private OutputStream outputStream;
+        HttpURLConnection httpURLConnection;
         
-        private HttpURLConnection httpURLConnection;
+        final String LINE_FEED = "\r\n";
         
         public MultipartFormdataProcessor(String endPointUrl) throws IOException {
         
@@ -855,9 +870,11 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
             httpURLConnection.setDoInput(true);
             httpURLConnection.setDoOutput(true);
             httpURLConnection.setUseCaches(false);
-            httpURLConnection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+            httpURLConnection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + "\"" + boundary
+                    + "\"");
             httpURLConnection.setRequestProperty("User-Agent", "Wso2ESB intergration test");
-            // check for cusom heares
+            // httpURLConnection.setRequestProperty("Content-Length", 332);
+            // check for custom headers
             
             if (httpHeaders != null && !httpHeaders.isEmpty()) {
                 Set<String> headerKeys = httpHeaders.keySet();
@@ -871,47 +888,60 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
                 }
             }
             
-            outputStream = httpURLConnection.getOutputStream();
-            
-            httpWriter = new PrintWriter(new OutputStreamWriter(outputStream, Charset), true);
+            httpStream = httpURLConnection.getOutputStream();
             
         }
         
-        public void addFormDataToRequest(String fieldName, String fieldValue) {
+        public void addFormDataToRequest(String fieldName, String fieldValue) throws IOException {
         
             addFormDataToRequest(fieldName, fieldValue, Charset.defaultCharset().toString());
         }
         
-        public void addFormDataToRequest(String fieldName, String fieldValue, String charset) {
+        public void addFormDataToRequest(String fieldName, String fieldValue, String charset) throws IOException {
         
-            final String LINE_FEED = "\n";
+            StringBuilder builder = new StringBuilder();
             
-            httpWriter.append("--").append(boundary).append(LINE_FEED);
-            httpWriter.append("Content-Type: text/plain; charset=" + charset).append(LINE_FEED);
-            httpWriter.append("Content-Disposition: form-data; name=\"" + fieldName + "\"").append(LINE_FEED);
+            builder.append(LINE_FEED);
+            builder.append("--").append(boundary).append(LINE_FEED);
             
-            httpWriter.append(LINE_FEED);
-            httpWriter.append(fieldValue).append(LINE_FEED);
-            httpWriter.flush();
+            builder.append("Content-Type: text/plain; charset=" + charset).append(LINE_FEED);
+            builder.append("Content-Disposition: form-data; name=\"" + fieldName + "\"").append(LINE_FEED);
+            
+            builder.append(LINE_FEED);
+            builder.append(fieldValue).append(LINE_FEED);
+            
+            httpStream.write(builder.toString().getBytes());
+            httpStream.flush();
         }
         
-        public void addFileToRequest(String fieldName, String filename, String contentType) throws IOException {
+        public void addFileToRequest(String fieldName, String fileName, String contentType) throws IOException {
         
-            filename = pathToResourcesDirectory + filename;
-            File file = new File(filename);
+            fileName = pathToResourcesDirectory + fileName;
+            File file = new File(fileName);
             addFileToRequest(fieldName, file, contentType);
         }
         
-        public void addFileToRequest(String fieldName, String filename) throws IOException {
+        public void addFileToRequest(String fieldName, String fileName, String contentType, String targetFileName)
+                throws IOException {
+        
+            fileName = pathToResourcesDirectory + fileName;
+            File file = new File(fileName);
+            if (contentType == null) {
+                contentType = URLConnection.guessContentTypeFromName(file.getName());
+            }
+            addFileToRequest(fieldName, file, contentType, targetFileName);
+        }
+        
+        public void addFileToRequest(String fieldName, String fileName) throws IOException {
         
             File file = null;
             
             InputStream inputStream = null;
             try {
                 
-                filename = pathToResourcesDirectory + filename;
+                fileName = pathToResourcesDirectory + fileName;
                 
-                file = new File(filename);
+                file = new File(fileName);
                 String contentType;
                 
                 inputStream = new FileInputStream(file);
@@ -949,31 +979,40 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
             
         }
         
-        public void addFileToRequest(String fieldName, File file, String contentType) throws IOException {
+        public void addFileToRequest(String fieldName, File file, String contentType, String fileName)
+                throws IOException {
         
             FileInputStream inputStream = null;
             try {
-                final String LINE_FEED = "\n";
-                httpWriter.append("--").append(boundary).append(LINE_FEED);
-                String fileName = file.getName();
-                httpWriter.append(
+                StringBuilder builder = new StringBuilder();
+                
+                builder.append("--").append(boundary).append(LINE_FEED);
+                
+                builder.append(
                         "Content-Disposition: form-data; name=\"" + fieldName + "\"; filename=\"" + fileName + "\"")
                         .append(LINE_FEED);
-                httpWriter.append("Content-Type: " + contentType).append(LINE_FEED);
-                httpWriter.append("Content-Transfer-Encoding: binary").append(LINE_FEED).append(LINE_FEED);
-                httpWriter.flush();
+                /*
+                 * builder.append( "Content-Disposition: form-data; name=\"" + fieldName + "\"; filename=\"" +
+                 * "file" + "\"").append(LINE_FEED);
+                 */
+                builder.append("Content-Type: " + contentType).append(LINE_FEED);
+                builder.append("Content-Transfer-Encoding: binary").append(LINE_FEED).append(LINE_FEED);
+                
+                httpStream.write(builder.toString().getBytes());
+                
+                httpStream.flush();
                 
                 // process File
                 inputStream = new FileInputStream(file);
-                byte[] buffer = new byte[4096];
+                byte[] buffer = new byte[10485760];
                 int bytesRead = -1;
                 while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, bytesRead);
+                    httpStream.write(buffer, 0, bytesRead);
                 }
-                outputStream.flush();
+                httpStream.flush();
                 inputStream.close();
-                httpWriter.append(LINE_FEED);
-                httpWriter.flush();
+                httpStream.write(LINE_FEED.getBytes());
+                httpStream.flush();
                 
             } finally {
                 if (inputStream != null)
@@ -982,14 +1021,20 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
             
         }
         
+        public void addFileToRequest(String fieldName, File file, String contentType) throws IOException {
+        
+            addFileToRequest(fieldName, file, contentType, file.getName());
+            
+        }
+        
         public String processForStringResponse() throws IOException {
         
-            final String LINE_FEED = "\n";
+            StringBuilder builder = new StringBuilder();
             
-            httpWriter.append(LINE_FEED);
-            httpWriter.append("--").append(boundary).append("--").append(LINE_FEED);
-            httpWriter.flush();
-            httpWriter.close();
+            builder.append("--").append(boundary).append("--").append(LINE_FEED);
+            httpStream.write(builder.toString().getBytes());
+            
+            httpStream.flush();
             
             return readResponse(httpURLConnection);
             
@@ -997,12 +1042,12 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
         
         public RestResponse<JSONObject> processForJsonResponse() throws IOException, JSONException {
         
-            final String LINE_FEED = "\n";
+            StringBuilder builder = new StringBuilder();
             
-            httpWriter.append(LINE_FEED);
-            httpWriter.append("--").append(boundary).append("--").append(LINE_FEED);
-            httpWriter.flush();
-            httpWriter.close();
+            builder.append("--").append(boundary).append("--").append(LINE_FEED);
+            httpStream.write(builder.toString().getBytes());
+            
+            httpStream.flush();
             
             String responseString = readResponse(httpURLConnection);
             RestResponse<JSONObject> restResponse = new RestResponse<JSONObject>();
@@ -1026,12 +1071,12 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
         
         public RestResponse<OMElement> processForXmlResponse() throws IOException, XMLStreamException {
         
-            final String LINE_FEED = "\n";
+            StringBuilder builder = new StringBuilder();
             
-            httpWriter.append(LINE_FEED);
-            httpWriter.append("--").append(boundary).append("--").append(LINE_FEED);
-            httpWriter.flush();
-            httpWriter.close();
+            builder.append("--").append(boundary).append("--").append(LINE_FEED);
+            httpStream.write(builder.toString().getBytes());
+            
+            httpStream.flush();
             
             String responseString = readResponse(httpURLConnection);
             RestResponse<OMElement> restResponse = new RestResponse<OMElement>();
@@ -1042,6 +1087,57 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
                 restResponse.setBody(AXIOMUtil.stringToOM(responseString));
             }
             
+            return restResponse;
+            
+        }
+        
+        public void addFiletoRequestBody(File file) throws IOException {
+        
+            FileInputStream inputStream = null;
+            try {
+                
+                // process File
+                inputStream = new FileInputStream(file);
+                byte[] buffer = new byte[4096];
+                int bytesRead = -1;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    httpStream.write(buffer, 0, bytesRead);
+                }
+                httpStream.flush();
+                inputStream.close();
+                
+            } finally {
+                if (inputStream != null)
+                    inputStream.close();
+            }
+        }
+        
+        public void addChunckedFiletoRequestBody(byte[] bytesPortion) throws IOException {
+        
+            httpStream.write(bytesPortion);
+            
+            httpStream.flush();
+            
+        }
+        
+        public RestResponse<JSONObject> processAttachmentForJsonResponse() throws IOException, JSONException {
+        
+            String responseString = readResponse(httpURLConnection);
+            RestResponse<JSONObject> restResponse = new RestResponse<JSONObject>();
+            restResponse.setHttpStatusCode(httpURLConnection.getResponseCode());
+            restResponse.setHeadersMap(httpURLConnection.getHeaderFields());
+            
+            if (responseString != null) {
+                JSONObject jsonObject = null;
+                if (isValidJSON(responseString)) {
+                    jsonObject = new JSONObject(responseString);
+                } else {
+                    jsonObject = new JSONObject();
+                    jsonObject.put("output", responseString);
+                }
+                
+                restResponse.setBody(jsonObject);
+            }
             return restResponse;
             
         }
