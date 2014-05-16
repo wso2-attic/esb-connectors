@@ -54,18 +54,12 @@ Steps to follow in setting integration test.
 
 			<messageFormatter contentType="application/octet-stream" class="org.apache.axis2.format.BinaryFormatter"/>
 
- 4.  Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "Integration_Test/products/esb/4.8.1/modules/distribution/target/".
+ 4.  Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/repository".
 
- 5.  Copy the main and the test folders from the provided AmazonS3 connector source bundle to the location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/". Copy pom.xml from the source bundle to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/". When running integration tests, uncomment fhe following two blocks from pom.xml:
+ 5.  Copy the main and the test folders from the provided AmazonS3 connector source bundle to the location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/". 
+ 6.	 Copy pom.xml from the source bundle to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/".
 
-	<parent>
-	<groupId>org.wso2.esb</groupId>
-	<artifactId>esb-integration-tests</artifactId>
-	<version>4.8.1</version>
-	<relativePath>../pom.xml</relativePath>
-	</parent>
-
- 6. Prerequisites for AmazonS3 Connector Integration Testing
+ 7. Prerequisites for AmazonS3 Connector Integration Testing
 
     Follow these steps before start testing.
     a)  Create a fresh account in amazons3 and Log on to http://aws.amazon.com/s3/ with the web browser.
@@ -81,6 +75,8 @@ Steps to follow in setting integration test.
 		4) 	  ownerdisplayName is the display name of the owner of the created buckets.
 		
 		5) 	  displayName is the short display name of the owner of the created buckets and objects.
+		
+		Note : (According to Amazon API all bucket names should be in lowercase and cannot include special charactors)
 		
 		6)    bucketName_1 is the name of a bucket to be generated.
 		
@@ -124,7 +120,7 @@ Steps to follow in setting integration test.
 		
 		25)   timeOut is the amount of time to wait for manipulate the responses.
         
- 7. Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/" and run the following command.
+ 8. Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/" and run the following command.
      $ mvn clean install
      
      
