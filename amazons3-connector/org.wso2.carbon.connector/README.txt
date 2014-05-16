@@ -76,7 +76,7 @@ Steps to follow in setting integration test.
 		
 		5) 	  displayName is the short display name of the owner of the created buckets and objects.
 		
-		Note : (According to Amazon API all bucket names should be in lowercase and cannot include special charactors)
+		Note : (According to Amazon API all bucket names should be in lowercase and cannot include special characters)
 		
 		6)    bucketName_1 is the name of a bucket to be generated.
 		
@@ -100,7 +100,7 @@ Steps to follow in setting integration test.
 		15)   bucketUrl_7 is the URL of the bucket generated with the name bucketName_3.
 			  (Different bucket URLs are used for different request methods.)
 		
-		16)   objectName is the name of the Object to be creted by the Create Object method.
+		16)   objectName is the name of the Object to be created by the Create Object method.
 		
 		17)   objectName_1 is a name of a Object being used for multiple object deletion.
 		
@@ -122,5 +122,3 @@ Steps to follow in setting integration test.
         
  8. Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/" and run the following command.
      $ mvn clean install
-     
-     
