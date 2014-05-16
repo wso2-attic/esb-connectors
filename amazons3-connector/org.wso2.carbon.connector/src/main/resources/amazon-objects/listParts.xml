@@ -1,0 +1,79 @@
+<template name="listParts" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="bucketUrl" description="End point URL of the request." />
+	<parameter name="objectName" description="The name to give the newly created object." />
+	<parameter name="uploadId" description="Upload ID identifying the multipart upload whose parts are being listed." />
+	<parameter name="encodingType" description="Requests Amazon S3 to encode the response and specifies the encoding method to use." />
+	<parameter name="maxParts" description="Sets the maximum number of parts to return in the response body." />
+	<parameter name="partNumberMarker" description="Specifies the part after which listing should begin." />
+
+	<sequence>
+
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+		<property name="uri.var.objectName" expression="$func:objectName" />
+		<property name="uri.var.uploadId" expression="$func:uploadId" />
+		<property name="uri.var.maxParts" expression="$func:maxParts" />
+		<property name="uri.var.encodingType" expression="$func:encodingType" />
+		<property name="uri.var.partNumberMarker" expression="$func:partNumberMarker" />
+		<property name="uri.var.uriRemainder"
+			expression="fn:concat('/',get-property('uri.var.objectName'),'?uploadId=',get-property('uri.var.uploadId'))" />
+		<property name="uri.var.query" value="&amp;" />
+
+		<!-- Authentication Header Setup -->
+		<class name="org.wso2.carbon.connector.amazons3.auth.AmazonS3AuthConnector" />
+
+		<filter xpath="(string(get-property('uri.var.encodingType'))) and get-property('uri.var.encodingType') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'encoding-type=',get-property('uri.var.encodingType'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.maxParts'))) and get-property('uri.var.maxParts') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'max-parts=',get-property('uri.var.maxParts'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.partNumberMarker'))) and get-property('uri.var.partNumberMarker') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'part-number-marker=',get-property('uri.var.partNumberMarker'))" />
+			</then>
+		</filter>
+
+
+		<!-- Properties Assigned in AmazonS3AuthConnector -->
+		<filter xpath="(string(get-property('date'))) and get-property('date') != ''">
+			<then>
+				<property name="Date" expression="get-property('date')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('isXAmzDateValue'))) and get-property('isXAmzDateValue') != ''">
+			<then>
+				<property name="x-amz-date" expression="get-property('isXAmzDateValue')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('authenticationCode'))) and get-property('authenticationCode') != ''">
+			<then>
+				<property name="Authorization" expression="get-property('authenticationCode')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.bucketUrl}{uri.var.uriRemainder}{uri.var.query}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="Authorization" scope="transport" action="remove" />
+		<header name="x-amz-id-2" scope="transport" action="remove" />
+		<header name="x-amz-request-id" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+
+	</sequence>
+</template>

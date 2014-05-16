@@ -1,0 +1,175 @@
+<template name="getObject" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="bucketUrl" description="End point URL of the request." />
+	<parameter name="objectName" description="The name of the object to retrieve details for." />
+	<parameter name="query" description="Query for search parameters." />
+	<parameter name="responseContentType" description="Content-Type header of the response." />
+	<parameter name="responseContentLanguage" description="Content-Language header of the response." />
+	<parameter name="responseExpires" description="Expires header of the response." />
+	<parameter name="responseCacheControl" description="Cache-Control header of the response." />
+	<parameter name="responseContentDisposition" description="Content-Disposition header of the response." />
+	<parameter name="responseContentEncoding" description="Content-Encoding header of the response" />
+	<parameter name="range" description="HTTP range header." />
+	<parameter name="ifModifiedSince" description="Return the object only if it has been modified." />
+	<parameter name="ifUnmodifiedSince" description="Return the object only if it has not been modified." />
+	<parameter name="ifMatch" description="Return the object only if its ETag is the same." />
+	<parameter name="ifNoneMatch" description="Return the object only if its ETag is not same." />
+
+	<sequence>
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+		<property name="uri.var.responseContentType" expression="$func:responseContentType" />
+		<property name="uri.var.responseContentLanguage" expression="$func:responseContentLanguage" />
+		<property name="uri.var.responseExpires" expression="$func:responseExpires" />
+		<property name="uri.var.responseCacheControl" expression="$func:responseCacheControl" />
+		<property name="uri.var.responseContentDisposition" expression="$func:responseContentDisposition" />
+		<property name="uri.var.responseContentEncoding" expression="$func:responseContentEncoding" />
+		<property name="uri.var.range" expression="$func:range" />
+		<property name="uri.var.ifModifiedSince" expression="$func:ifModifiedSince" />
+		<property name="uri.var.ifUnmodifiedSince" expression="$func:ifUnmodifiedSince" />
+		<property name="uri.var.ifMatch" expression="$func:ifMatch" />
+		<property name="uri.var.ifNoneMatch" expression="$func:ifNoneMatch" />
+		<property name="uri.var.objectName" expression="$func:objectName" />
+
+		<property name="uri.var.uriRemainder" expression="fn:concat('/',get-property('uri.var.objectName'))" />
+		<property name="uri.var.query" value="?" />
+
+		<!-- Authentication Header Setup -->
+		<class name="org.wso2.carbon.connector.amazons3.auth.AmazonS3AuthConnector" />
+
+		<!-- Properties Assigned in AmazonS3AuthConnector -->
+		<filter xpath="(string(get-property('date'))) and get-property('date') != ''">
+			<then>
+				<property name="Date" expression="get-property('date')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('isXAmzDateValue'))) and get-property('isXAmzDateValue') != ''">
+			<then>
+				<property name="x-amz-date" expression="get-property('isXAmzDateValue')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('authenticationCode'))) and get-property('authenticationCode') != ''">
+			<then>
+				<property name="Authorization" expression="get-property('authenticationCode')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.range'))) and get-property('uri.var.range') != ''">
+			<then>
+				<property name="Range" expression="get-property('uri.var.range')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.ifModifiedSince'))) and get-property('uri.var.ifModifiedSince') != ''">
+			<then>
+				<property name="If-Modified-Since" expression="get-property('uri.var.ifModifiedSince')" scope="transport"
+					type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.ifUnmodifiedSince'))) and get-property('uri.var.ifUnmodifiedSince') != ''">
+			<then>
+				<property name="If-Unmodified-Since" expression="get-property('uri.var.ifUnmodifiedSince')" scope="transport"
+					type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.ifMatch'))) and get-property('uri.var.ifMatch') != ''">
+			<then>
+				<property name="If-Match" expression="get-property('uri.var.ifMatch')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.ifNoneMatch'))) and get-property('uri.var.ifNoneMatch') != ''">
+			<then>
+				<property name="If-None-Match" expression="get-property('uri.var.ifNoneMatch')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.responseContentType'))) and get-property('uri.var.responseContentType') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'response-content-type=',get-property('uri.var.responseContentType'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter
+			xpath="(string(get-property('uri.var.responseContentLanguage'))) and get-property('uri.var.responseContentLanguage') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'response-content-language=',get-property('uri.var.responseContentLanguage'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.responseExpires'))) and get-property('uri.var.responseExpires') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'response-expires=',get-property('uri.var.responseExpires'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter
+			xpath="(string(get-property('uri.var.responseCacheControl'))) and get-property('uri.var.responseCacheControl') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'response-cache-control=',get-property('uri.var.responseCacheControl'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter
+			xpath="(string(get-property('uri.var.responseContentDisposition'))) and get-property('uri.var.responseContentDisposition') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'response-content-disposition=',get-property('uri.var.responseContentDisposition'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter
+			xpath="(string(get-property('uri.var.responseContentEncoding'))) and get-property('uri.var.responseContentEncoding') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'response-content-encoding=',get-property('uri.var.responseContentEncoding'),'&amp;')" />
+			</then>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.bucketUrl}{uri.var.uriRemainder}{uri.var.query}" format="pox" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="x-amz-id-2" scope="transport" action="remove" />
+		<header name="x-amz-request-id" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+		<header name="ETag" scope="transport" action="remove" />
+		<header name="Accept-Ranges" scope="transport" action="remove" />
+		<header name="Last-Modified" scope="transport" action="remove" />
+		<header name="x-amz-website-redirect-location" scope="transport" action="remove" />
+		<header name="x-amz-server-side-encryption" scope="transport" action="remove" />
+		<header name="x-amz-version-id" scope="transport" action="remove" />
+		<header name="x-amz-delete-marker" scope="transport" action="remove" />
+
+		<!-- Add contentType to message response when the status code is 200 -->
+		<filter source="$axis2:HTTP_SC" regex="[2][0][0]">
+			<then>
+				<payloadFactory>
+					<format>
+						<getObjectResponse>
+							<dataType>$1</dataType>
+							<data>$2</data>
+						</getObjectResponse>
+					</format>
+					<args>
+						<arg expression="get-property('transport', 'Content-Type')" />
+						<arg expression="$body/child::node()" />
+					</args>
+				</payloadFactory>
+			</then>
+		</filter>
+
+		<property name="messageType" value="application/xml" scope="axis2" />
+
+	</sequence>
+</template>

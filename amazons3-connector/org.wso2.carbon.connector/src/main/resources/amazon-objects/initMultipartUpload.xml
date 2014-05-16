@@ -1,0 +1,66 @@
+<template name="initMultipartUpload" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="bucketUrl" description="End point URL of the request." />
+	<parameter name="objectName" description="The name to give the newly created object." />
+	<parameter name="cacheControl" description="This can be used to specify caching behavior along the request or reply chain." />
+	<parameter name="contentDisposition" description="This specifies presentational information for the object." />
+	<parameter name="contentEncoding" description="This specifies what content encodings have been applied to the object." />
+	<parameter name="expires" description="This specifies the date and time at which the object is no longer cacheable." />
+	 
+	<sequence>
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+		<property name="uri.var.cacheControl" expression="$func:cacheControl" />
+		<property name="uri.var.contentDisposition" expression="$func:contentDisposition" />
+		<property name="uri.var.contentEncoding" expression="$func:contentEncoding" />
+		<property name="uri.var.expires" expression="$func:expires" />
+		<property name="uri.var.objectName" expression="$func:objectName" /> 
+		<property name="uri.var.uriRemainder" expression="fn:concat('/',get-property('uri.var.objectName'),'?uploads')" />
+		
+		<class name="org.wso2.carbon.connector.amazons3.auth.AmazonS3AuthConnector" />
+
+		<!-- Properties Assigned in AmazonS3AuthConnector -->		  
+		<filter xpath="(string(get-property('date'))) and get-property('date') != ''">  
+			<then>
+				<property name="Date" expression="get-property('date')" scope="transport" type="STRING" />
+			</then>
+		</filter> 
+		
+		<filter xpath="(string(get-property('isXAmzDateValue'))) and get-property('isXAmzDateValue') != ''">   
+			<then>
+				<property name="x-amz-date" expression="get-property('isXAmzDateValue')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('authenticationCode'))) and get-property('authenticationCode') != ''">    
+			<then>
+				<property name="Authorization" expression="get-property('authenticationCode')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<!-- Sending an empty payload to support FORCE_POST_PUT_NOBODY property-->	
+		<payloadFactory media-type="xml">
+			<format>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+					<soapenv:Header />
+					<soapenv:Body />
+				</soapenv:Envelope>
+			</format>
+			<args />
+		</payloadFactory>
+		<property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN" />
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.bucketUrl}{uri.var.uriRemainder}" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove response custom header information --> 
+		<header name="x-amz-id-2" scope="transport" action="remove" />
+		<header name="x-amz-request-id" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" /> 
+		<header name="ETag" scope="transport" action="remove" /> 
+		<header name="x-amz-server-side-encryption" scope="transport" action="remove" />
+		
+	</sequence>
+</template>
