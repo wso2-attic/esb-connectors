@@ -37,26 +37,31 @@ Steps to follow in setting integration test.
         <messageBuilder contentType="image/jpeg" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
         <messageBuilder contentType="image/png" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 			
- 4.  Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "Integration_Test/products/esb/4.8.1/modules/distribution/target/".
+ 4.  Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/repository/".
 
  5.  Make sure "integration-base" project is placed at "Integration_Test/products/esb/4.8.1/modules/integration/"
 
  6.  Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/integration-base" and run the following command.
       $ mvn clean install
       
- 7.  Add following dependency to the file "Integration_Test/products/esb/4.8.1/modules/integration/connectors/pom.xml"
- 
-		 <dependency>
-			 <groupId>org.wso2.esb</groupId>
-			 <artifactId>org.wso2.connector.integration.test.base</artifactId>
-			 <version>4.8.1</version>
-			 <scope>system</scope>
-			 <systemPath>${basedir}/../integration-base/target/org.wso2.connector.integration.test.base-4.8.1.jar</systemPath>
-		 </dependency>
-  
- 8.  Copy the src directory "concur/org.wso2.carbon.connector/src/" to location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/"
+ 7. Copy the main and the test folders from the provided Concur connector source bundle to the location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/". Copy pom.xml from the source bundle to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/". When running integration tests, uncomment fhe following two blocks from pom.xml:
+
+	<parent>
+		<groupId>org.wso2.esb</groupId>
+		<artifactId>esb-integration-tests</artifactId>
+		<version>4.8.1</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+
+	<dependency>
+		<groupId>org.wso2.esb</groupId>
+		<artifactId>org.wso2.connector.integration.test.base</artifactId>
+		<version>4.8.1</version>
+		<scope>system</scope>
+		<systemPath>${basedir}/../integration-base/target/org.wso2.connector.integration.test.base-4.8.1.jar</systemPath>
+	</dependency>
         
- 9.  Prerequisites for Concur Connector Integration Testing
+ 8.  Prerequisites for Concur Connector Integration Testing
 
      Follow these steps before start testing.
 	 
@@ -75,9 +80,8 @@ Steps to follow in setting integration test.
      e)  Go to Administration -> Web Services -> Register Partner Application
      f)  Select the partner application available and click modify. This opens Modify Partner Application dialog.
 	 g)  Tick all the APIs available under API's category in the Modify Partner Application dialog. Keep the other values as it is and click ok.
-	 h)  Go to Expense -> New Expense Report	 
-     i)  Create a New Expense Report by giving appropriate data into required fields.
-	 j)	 Generate New Access Token using OAuth web flow using bellow steps:
+	 h)  Go to Expense -> New Expense Report. Once the Expense Report is created, add a new Expense.	 
+	 i)	 Generate New Access Token using OAuth web flow using bellow steps:
 	 
 			1) Use following redirection URL format to retrieve OAuth code using web browser.
 			
@@ -93,7 +97,7 @@ Steps to follow in setting integration test.
 				Note: Use OAuth Code returned from above step (1) for code URL parameter. Use the Consumer Key and Consumer Secret returned from step (b) 
 				      for client_id and client_secret URL parameter.
 	 
-     k) Update the Concur properties file at location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/connector/config" as below.	 
+     j) Update the Concur properties file at location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/connector/config" as below.	 
 		Following fields in the property file should be updated appropriately.
 	  
 	    1) imageContentType - the content type of the image to be added.
@@ -104,7 +108,7 @@ Steps to follow in setting integration test.
 		6) vendorDescription - The descriptive text of the vendor for create a quick expense entry. Maximum Length is 64.
 		7) updatedVendorDescription - The descriptive text of the vendor for update a quick expense entry. Maximum Length is 64.
 
- 10. Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/" and run the following command.
+ 9. Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/" and run the following command.
      $ mvn clean install
 
 	 
