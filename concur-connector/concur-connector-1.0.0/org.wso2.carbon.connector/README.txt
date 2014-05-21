@@ -1,4 +1,4 @@
-Product: Integration tests for WSO2 ESB Concur connector
+﻿Product: Integration tests for WSO2 ESB Concur connector
     Pre-requisites:
 
     - Maven 3.x
@@ -12,15 +12,15 @@ Product: Integration tests for WSO2 ESB Concur connector
 
 Note:
 	This test suite can execute based on two scenarios.
-		1. Use the given test account and parameters. - in this scenario you only need to replace apiUrl, accessToken and user in property file
-		2. Setup new concur account and follow all the instruction given below
+		1. Use the given test account and parameters at the end of the file. - in this scenario you only need to replace apiUrl, accessToken and user in property file
+		2. Setup new concur account and follow all the instruction given below in step 9.
 	
 Steps to follow in setting integration test.
  1.  Download ESB 4.8.1 from official website.
  2.  Deploy following patches.
             special-char-on-get
             multipart-patch
-			PATCH for XSLT with local entry
+	    PATCH for XSLT with local entry
  3.  Navigate to location "/wso2esb-4.8.1/repository/conf/axis2" and add/uncomment following lines in "axis2.xml" and Message Formatters and Message Builders should be added for each of the content types of the files to be added as attachments.
 		
 		Message Formatters :-
@@ -68,13 +68,16 @@ Steps to follow in setting integration test.
 			3) The Access Token tied to your user account that you will provide when authenticating with your sandbox for this partner application. 
 			   Note: This Access Token is only for authenticate the APIs enabled by default.
 		 Copy this information and store it in a safe place.
-		 
-     c)  Go to Administration -> Web Services -> Register Partner Application
-     d)  Select the partner application available and click modify. This opens Modify Partner Application dialog.
-	 e)  Tick all the APIs available under API's category in the Modify Partner Application dialog. Keep the other values as it is and click ok.
-	 f)  Go to Expense -> New Expense Report	 
-     g)  Create a New Expense Report by giving appropriate data into required fields.
-	 h)	 Generate New Access Token using OAuth web flow using bellow steps:
+		
+     c)  Click On Get Started in the welcome page and it directs to Set up Expense for your company page.
+     d)  Give values for required fields and proceed with each and every step to setup the expense category for your company in concur account.
+			Note: Some steps you can proceed with its default values.
+     e)  Go to Administration -> Web Services -> Register Partner Application
+     f)  Select the partner application available and click modify. This opens Modify Partner Application dialog.
+	 g)  Tick all the APIs available under API's category in the Modify Partner Application dialog. Keep the other values as it is and click ok.
+	 h)  Go to Expense -> New Expense Report	 
+     i)  Create a New Expense Report by giving appropriate data into required fields.
+	 j)	 Generate New Access Token using OAuth web flow using bellow steps:
 	 
 			1) Use following redirection URL format to retrieve OAuth code using web browser.
 			
@@ -90,10 +93,11 @@ Steps to follow in setting integration test.
 				Note: Use OAuth Code returned from above step (1) for code URL parameter. Use the Consumer Key and Consumer Secret returned from step (b) 
 				      for client_id and client_secret URL parameter.
 	 
-     i) Following fields in the property file also should be updated appropriately.
+     k) Update the Concur properties file at location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/connector/config" as below.	 
+		Following fields in the property file should be updated appropriately.
 	  
 	    1) imageContentType - the content type of the image to be added.
-		2) imageFileName - the name of the image file to be added with the image extension.
+		2) imageFileName - the name of the image file to be added with the image extension. Set the resourceDirectoryRelativePath property to the relative path leading to this attachment file.
 		3) timeOut - waiting time for completing the requests before querying any further.
 		4) transactionAmount - the total amount of the expense in the original currency, with up to three decimal places for create a Quick Expense Entry.
 		5) updatedTransactionAmount - the total amount of the expense in the original currency, with up to three decimal places for update a Quick Expense Entry.
@@ -104,8 +108,8 @@ Steps to follow in setting integration test.
      $ mvn clean install
 
 	 
-	 credential of test account:
+     credential of test account:
      API URL: https://www.concursolutions.com
      username: wso2connector.abdera@gmail.com
      password: connector1234
-	 Access Token: 0KgYaacRmTc+QO6jGacTIWskcd8=
+     Access Token: 0KgYaacRmTc+QO6jGacTIWskcd8=
