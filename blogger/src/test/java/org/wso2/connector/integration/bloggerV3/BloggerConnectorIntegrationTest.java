@@ -1113,6 +1113,8 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         	
         	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
         	Assert.assertTrue(jsonObject.getString("kind").equals("blogger#commentList"));
+        	JSONArray ja = jsonObject.getJSONArray("items");
+            commentID2 = (ja.getJSONObject(ja.length()-1).getString("id"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -1138,8 +1140,7 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         	
           	JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
             Assert.assertTrue(!jsonObject.has("error"));
-          	JSONArray ja = jsonObject.getJSONArray("items");
-            commentID2 = (ja.getJSONObject(ja.length()-1).getString("id"));
+          	
           } finally {
               proxyAdmin.deleteProxy(methodName);
           }
