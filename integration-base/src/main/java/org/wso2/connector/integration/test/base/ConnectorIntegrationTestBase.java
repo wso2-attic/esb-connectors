@@ -471,7 +471,7 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
         Matcher matcher = Pattern.compile("%s\\(([A-Za-z0-9]*)\\)", Pattern.DOTALL).matcher(requestData);
         while (matcher.find()) {
             String key = matcher.group(1);
-            requestData = requestData.replaceAll("%s\\(" + key + "\\)", prop.getProperty(key));
+            requestData = requestData.replaceAll("%s\\(" + key + "\\)", Matcher.quoteReplacement(prop.getProperty(key)));
         }
         return requestData;
     }
@@ -599,7 +599,7 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
                 Matcher matcher = Pattern.compile("%s\\(([A-Za-z0-9]*)\\)", Pattern.DOTALL).matcher(content);
                 while (matcher.find()) {
                     String key = matcher.group(1);
-                    content = content.replaceAll("%s\\(" + key + "\\)", prop.getProperty(key));
+                    content = content.replaceAll("%s\\(" + key + "\\)", Matcher.quoteReplacement(prop.getProperty(key)));
                 }
             }
             
@@ -1138,6 +1138,21 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
                 
                 restResponse.setBody(jsonObject);
             }
+            return restResponse;
+            
+        }
+		
+		public RestResponse<OMElement> processAttachmentForXmlResponse() throws IOException, XMLStreamException {
+            
+            final String responseString = readResponse(httpURLConnection);
+            final RestResponse<OMElement> restResponse = new RestResponse<OMElement>();
+            restResponse.setHttpStatusCode(httpURLConnection.getResponseCode());
+            restResponse.setHeadersMap(httpURLConnection.getHeaderFields());
+            
+            if (responseString != null) {
+                restResponse.setBody(AXIOMUtil.stringToOM(responseString));
+            }
+            
             return restResponse;
             
         }
