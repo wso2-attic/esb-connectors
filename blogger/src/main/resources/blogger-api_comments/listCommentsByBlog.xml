@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template xmlns="http://ws.apache.org/ns/synapse" name="listCommentsByBlog">
+	<parameter name="blogID" />
+	<parameter name="endDate" />
+	<parameter name="fetchBodies" />
+	<parameter name="maxResults" />
+	<parameter name="pageToken" />
+	<parameter name="startDate" />
+	<parameter name="fields" />
+	<sequence>
+		<property expression="$func:blogID" name="uri.var.blog_id"
+			scope="default" type="STRING" />
+		<property expression="$func:endDate" name="uri.var.end_date"
+			scope="default" type="STRING" />
+		<property expression="$func:fetchBodies" name="uri.var.fetch_bodies"
+			scope="default" type="BOOLEAN" />
+		<property expression="$func:maxResults" name="uri.var.max_results"
+			scope="default" type="STRING" />
+		<property expression="$func:pageToken" name="uri.var.page_token"
+			scope="default" type="STRING" />
+		<property expression="$func:startDate" name="uri.var.start_date"
+			scope="default" type="STRING" />
+		<property expression="$func:fields" name="uri.var.fields"
+			scope="default" type="STRING" />
+		<property value="" name="uri.var.options" scope="default"
+			type="STRING" />
+		<filter
+			xpath="not(get-property('uri.var.fields') = '') and string(get-property('uri.var.fields'))">
+			<then>
+				<property name="uri.var.options"
+					expression="concat(get-property('uri.var.options'),'&amp;fields&#61;',get-property('uri.var.fields')) " />
+			</then>
+		</filter>
+		<filter
+			xpath="not(get-property('uri.var.end_date') = '') and  string(get-property('uri.var.end_date'))">
+			<then>
+				<property name="uri.var.options"
+					expression="concat(get-property('uri.var.options'),'&amp;endDate&#61;',get-property('uri.var.end_date')) " />
+			</then>
+		</filter>
+		<filter
+			xpath="not(get-property('uri.var.max_results' ) = '') and string(get-property('uri.var.max_results'))">
+			<then>
+				<property name="uri.var.options"
+					expression="concat(get-property('uri.var.options'),'&amp;maxResults&#61;',string(get-property('uri.var.max_results'))) " />
+			</then>
+		</filter>
+		<filter
+			xpath="not(get-property('uri.var.page_token'  ) = '') and string(get-property('uri.var.page_token'))">
+			<then>
+				<property name="uri.var.options"
+					expression="concat(get-property('uri.var.options'),'&amp;pageToken&#61;',get-property('uri.var.page_token')) " />
+			</then>
+		</filter>
+		<filter
+			xpath="not(get-property('uri.var.start_date'  ) = '') and string(get-property('uri.var.start_date'))">
+			<then>
+				<property name="uri.var.options"
+					expression="concat(get-property('uri.var.options'),'&amp;startDate&#61;',get-property('uri.var.start_date')) " />
+			</then>
+		</filter>
+		<filter
+			xpath="get-property('uri.var.access_token') = '' or  (not(string(get-property('uri.var.access_token'))))">
+			<then>
+				<property name="uri.var.access_s"
+					expression="concat('key&#61;',get-property('uri.var.api_key'))" />
+			</then>
+			<else>
+				<property name="uri.var.access_s"
+					expression="concat('access_token&#61;',get-property('uri.var.access_token')) " />
+			</else>
+		</filter>
+		<property action="remove" name="Accept-Encoding" scope="transport" />
+		<payloadFactory media-type="json">
+			<format>
+				{ }
+			</format>
+			<args />
+		</payloadFactory>
+		<property name="messageType" scope="axis2" value="application/json" />
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="https://www.googleapis.com/blogger/v{uri.var.api_version}/blogs/{uri.var.blog_id}/comments?{uri.var.access_s}&amp;fetchBodies&#61;{uri.var.fetch_bodies}{uri.var.options}"></http>
+			</endpoint>
+		</call>
+		<header name="etag" scope="transport" action="remove" />
+	</sequence>
+</template>
