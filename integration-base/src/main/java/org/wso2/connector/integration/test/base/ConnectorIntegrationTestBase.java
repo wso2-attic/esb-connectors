@@ -1017,8 +1017,7 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
                 }
                 httpStream.flush();
                 inputStream.close();
-                httpStream.write(LINE_FEED.getBytes());
-                httpStream.flush();
+   
                 
             } finally {
                 if (inputStream != null)
