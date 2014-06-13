@@ -393,7 +393,7 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
         Assert.assertEquals(connectorProperties.getProperty("itemNameOptional"), apiResponseObject.getString("Name"));
         Assert.assertEquals("Item description", apiResponseObject.getString("Description"));
         Assert.assertEquals("1500", apiResponseObject.getString("QtyOnHand"));
-        Assert.assertEquals("2014-04-01", apiResponseObject.getString("InvStartDate"));
+        Assert.assertEquals(connectorProperties.getProperty("inventoryStartDate"), apiResponseObject.getString("InvStartDate"));
         
     }
     
