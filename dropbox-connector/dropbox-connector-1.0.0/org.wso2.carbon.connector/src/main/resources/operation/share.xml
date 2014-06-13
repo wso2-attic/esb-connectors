@@ -1,0 +1,53 @@
+<template name="share" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Optional parameters -->
+	<parameter name="locale"
+		description="The locale, specifies language settings for user error messages and other language specific text" />
+
+	<sequence>
+		<property name="uri.var.locale" expression="$func:locale" />
+		
+		<!-- Clear request payload -->
+		<payloadFactory media-type="json">
+			<format>
+				{
+				}
+			</format>
+		</payloadFactory>
+		
+		
+		<script language="js">
+	  		<![CDATA[
+	  		 		
+		    var locale = mc.getProperty("uri.var.locale");
+		    
+		    if(locale!= null && locale != ''){
+		    	payload = mc.getPayloadJSON();
+		    	payload.locale = locale;
+		    	mc.setPayloadJSON(payload);
+		    }	
+	  		]]>  	
+  		</script>
+  	
+  		<filter source="boolean(get-property('uri.var.locale'))" regex="true">
+            <then>
+  				<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+  			</then>
+  		</filter>
+		<call>
+			<endpoint>
+				<http method="POST"
+					uri-template="{uri.var.apiUrl}/1/media/{uri.var.root}/{uri.var.path}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="x-server-response-time" scope="transport" action="remove" />
+		<header name="x-frame-options" scope="transport" action="remove" />
+		<header name="x-dropbox-http-protocol" scope="transport" action="remove" />
+		<header name="x-dropbox-request-id" scope="transport" action="remove" />
+		<header name="set-cookie" scope="transport" action="remove" />
+		<header name="X-RequestId" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+	</sequence>
+</template>
