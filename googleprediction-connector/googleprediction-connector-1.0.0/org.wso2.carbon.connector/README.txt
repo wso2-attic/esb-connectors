@@ -30,14 +30,15 @@ STEPS:
 	    (click Overview Button in left handside menu list)	
 	
 	v) In project dashboard click create bucket to create a storage bucket for your project. Then Click "enable billing link" which appears as in browser popup.
-	   
+	   	   
 	vi) Confirm step (v) and fill "set up a billing profile" details. In "set up billing profile", select the account type as "individual" (Provide valid credit card details). Then submit and enable billing for your account.
 		
 	vii) If step (vi) succeeded. Navigate back to your project dashboard and click create new bucket again. (Give unique name and create a bucket) 
+		(Note: keep project number and bucket name for future references.)
 		  
-	viii) Then click your created bucket under "cloud storage" and upload the CSV file to train the system.
+	viii) Then click your created bucket under "cloud storage" and upload the file to train the system.
 		  (sample file can be found at https://developers.google.com/prediction/docs/language_id.txt)
-		  [NOTE: The same csv file name needs to be updated in googleprediction property file.]	  
+		  [NOTE: The same file name needs to be updated in googleprediction property file.]	  
 		
  2. Make sure the latest "integration-base" project is placed at "<Integration_Test_Home>/products/esb/4.8.1/modules/integration/".
 
@@ -101,7 +102,7 @@ STEPS:
 	 - accessToken=Modify the latest access token generated from Auth 2.0 play ground in step 10.
 	 - project=Use the project number generated from step 1.
 	 - analyzeFields=Change according to your filter requirement.
-	 - storageDataLocation=[bucket name]/[csvFilename] => Give your created bucket name and csv file name.[in step 1 => (vii) and (viii)] 
+	 - storageDataLocation=[bucket name]/[filename] => Give your created bucket name and file name.[in step 1 => (vii) and (viii)] 
 	 - trainModuleTimeout=Adjust according to size of the file, since the system takes time to train the module.
 	 - modelId=Per each execution iteration this value should be changed.
 
