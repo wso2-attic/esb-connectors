@@ -1,0 +1,73 @@
+<template name="listTrainedModels" xmlns="http://ws.apache.org/ns/synapse">
+
+  <parameter name="maxResults" description="Maximum number of results to return."/>
+  <parameter name="pageToken" description="Pagination token."/>
+  <parameter name="fields" description="Specifying the only fields that needs to be returned in the Response."/>
+  
+  <sequence>  
+    <property name="uri.var.maxResults" expression="$func:maxResults"/>
+    <property name="uri.var.pageToken" expression="$func:pageToken"/>
+	<property name="uri.var.fields" expression="$func:fields"/>
+    <property name="uri.var.query" value=""/>
+    
+    <filter xpath="boolean(get-property('uri.var.maxResults'))">
+    	<then>
+    		<property name="uri.var.query" expression="fn:concat('?maxResults=',get-property('uri.var.maxResults'))"/>
+    	</then>
+    </filter>
+    
+    <filter xpath="boolean(get-property('uri.var.pageToken'))">
+    	<then>
+    		<filter xpath="string(get-property('uri.var.query')) and get-property('uri.var.query') != ''">
+    			<then>
+    				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'&amp;','pageToken=',get-property('uri.var.pageToken'))"/>
+    			</then>
+    			<else>
+    				<property name="uri.var.query" expression="fn:concat('?pageToken=',get-property('uri.var.pageToken'))"/>    				
+    			</else>
+    		</filter>    		
+    	</then>
+    </filter>
+	
+	<script language="js">
+	<![CDATA[ 		
+		var fields = mc.getProperty('uri.var.fields');		
+		if(fields!=null && fields!= ""){
+			var fields = encodeURIComponent(fields);		        		       			           								
+			mc.setProperty('uri.var.fields', fields);
+		}			
+	]]>
+	</script>		
+    
+	<filter xpath="boolean(get-property('uri.var.fields'))">
+    	<then>
+			<filter xpath="boolean(get-property('uri.var.query'))"> 
+    			<then>
+    				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'&amp;','fields=',get-property('uri.var.fields'))"/>
+    			</then>
+    			<else>
+    				<property name="uri.var.query" expression="fn:concat('?fields=',get-property('uri.var.fields'))"/>    				
+    			</else>
+    		</filter>    		
+    	</then>
+    </filter> 
+		
+    <call>
+      <endpoint>
+        <http method="get" uri-template="{uri.var.apiUrl}/prediction/v1.6/projects/{uri.var.project}/trainedmodels/list{uri.var.query}"/>
+      </endpoint>
+    </call>
+    
+    <header name="ETag" scope="transport" action="remove"/>
+    <header name="X-Frame-Options" scope="transport" action="remove"/>
+    <header name="X-XSS-Protection" scope="transport" action="remove"/>
+    <header name="Alternate-Protocol" scope="transport" action="remove"/>
+    <header name="X-Content-Type-Options" scope="transport" action="remove"/>
+    <header name="Via" scope="transport" action="remove"/>  
+    <header name="Expires" scope="transport" action="remove"/>
+    <header name="Pragma" scope="transport" action="remove"/>
+	<header name="WWW-Authenticate" scope="transport" action="remove"/>        
+	<header name="Proxy-Support" scope="transport" action="remove"/>        	        
+    
+  </sequence>
+</template>
