@@ -1,0 +1,43 @@
+<template name="getExchangeRates" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="fromCurrency" description="The 3-letter ISO 4217 currency code for exchange from currency." />
+	<parameter name="toCurrency" description="The 3-letter ISO 4217 currency code for exchange to currency." />
+	<parameter name="forDate" description="For date in YYYY-MM-DD format." />
+
+	<sequence>
+		<property name="uri.var.fromCurrency" expression="$func:fromCurrency" />
+		<property name="uri.var.toCurrency" expression="$func:toCurrency" />
+		<property name="uri.var.forDate" expression="$func:forDate" />
+		<property name="uri.var.query" value="?" />
+
+		<filter xpath="(string(get-property('uri.var.fromCurrency'))) and get-property('uri.var.fromCurrency') != ''">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'fromCurrency=',get-property('uri.var.fromCurrency'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.toCurrency'))) and get-property('uri.var.toCurrency') != ''">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'toCurrency=',get-property('uri.var.toCurrency'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.forDate'))) and get-property('uri.var.forDate') != ''">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'forDate=',get-property('uri.var.forDate'),'&amp;')" />
+			</then>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}/api/v3.0/expense/exchangerates/{uri.var.query}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Webserver" scope="transport" action="remove" />
+		<header name="X-N" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+	</sequence>
+</template>
