@@ -108,6 +108,8 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
     protected String proxyUrl;
     
     protected String pathToResourcesDirectory;
+
+    protected static final int MULTIPART_TYPE_RELATED = 100001;
     
     /**
      * Set up the integration test environment.
@@ -471,7 +473,7 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
         Matcher matcher = Pattern.compile("%s\\(([A-Za-z0-9]*)\\)", Pattern.DOTALL).matcher(requestData);
         while (matcher.find()) {
             String key = matcher.group(1);
-            requestData = requestData.replaceAll("%s\\(" + key + "\\)", prop.getProperty(key));
+            requestData = requestData.replaceAll("%s\\(" + key + "\\)", Matcher.quoteReplacement(prop.getProperty(key)));
         }
         return requestData;
     }
@@ -599,7 +601,7 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
                 Matcher matcher = Pattern.compile("%s\\(([A-Za-z0-9]*)\\)", Pattern.DOTALL).matcher(content);
                 while (matcher.find()) {
                     String key = matcher.group(1);
-                    content = content.replaceAll("%s\\(" + key + "\\)", prop.getProperty(key));
+                    content = content.replaceAll("%s\\(" + key + "\\)", Matcher.quoteReplacement(prop.getProperty(key)));
                 }
             }
             
@@ -827,7 +829,7 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
     }
     
     /**
-     * Innre class to handle Multipart data
+     * Inner class to handle Multipart data
      */
     protected class MultipartFormdataProcessor {
         
@@ -860,6 +862,12 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
             init(endPointUrl, Charset, null);
         }
         
+        public MultipartFormdataProcessor(String endPointUrl, Map<String, String> httpHeaders,
+                int multipartType) throws IOException {
+        
+            init(endPointUrl, httpHeaders, multipartType);
+        }
+        
         private void init(String endPointUrl, String Charset, Map<String, String> httpHeaders) throws IOException {
         
             URL endpoint;
@@ -890,6 +898,131 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
             
             httpStream = httpURLConnection.getOutputStream();
             
+        }
+        
+        private void init(String endPointUrl, Map<String, String> httpHeaders, int multipartType)
+                throws IOException {
+        
+            URL endpoint;
+            
+            endpoint = new URL(endPointUrl);
+            
+            httpURLConnection = (HttpURLConnection) endpoint.openConnection();
+            httpURLConnection.setDoInput(true);
+            httpURLConnection.setDoOutput(true);
+            httpURLConnection.setUseCaches(false);
+            switch (multipartType) {
+                case MULTIPART_TYPE_RELATED:
+                    httpURLConnection.setRequestProperty("Content-Type", "multipart/related; boundary=" + "\""
+                            + boundary + "\"");
+                    break;
+                default:
+                    httpURLConnection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + "\""
+                            + boundary + "\"");
+            }
+            
+            httpURLConnection.setRequestProperty("User-Agent", "Wso2ESB intergration test");
+            // httpURLConnection.setRequestProperty("Content-Length", 332);
+            // check for custom headers
+            
+            if (httpHeaders != null && !httpHeaders.isEmpty()) {
+                //remove content type header as we have already set it
+                httpHeaders.remove("Content-Type");
+                Set<String> headerKeys = httpHeaders.keySet();
+                String key = null;
+                String value = null;
+                for (Iterator<String> i = headerKeys.iterator(); i.hasNext();) {
+                    key = i.next();
+                    value = httpHeaders.get(key);
+                    httpURLConnection.setRequestProperty(key, value);
+                    
+                }
+            }
+            
+            httpStream = httpURLConnection.getOutputStream();
+            
+        }
+        
+        public void addMetadataToMultipartRelatedRequest(String filename, String contentType, String charset,
+                Map<String, String> parametersMap) throws IOException {
+        
+            StringBuilder builder = new StringBuilder();
+            
+            builder.append(LINE_FEED);
+            builder.append("--").append(boundary).append(LINE_FEED);
+            
+            builder.append("Content-Type: " + contentType + "; charset=" + charset).append(LINE_FEED)
+                                .append(LINE_FEED);
+            
+            builder.append(loadRequestFromFile(filename, parametersMap));
+            
+            builder.append(LINE_FEED);
+            
+            httpStream.write(builder.toString().getBytes());
+            httpStream.flush();
+        }
+        
+        public void addFileToMultipartRelatedRequest(String fileName, String contentId)
+                throws IOException {
+        
+            File file = null;
+            
+            InputStream inputStream = null;
+            try {
+                
+                fileName = pathToResourcesDirectory + fileName;
+                
+                file = new File(fileName);
+                String contentType;
+                
+                inputStream = new FileInputStream(file);
+                contentType = HttpURLConnection.guessContentTypeFromName(fileName);
+                inputStream.close();
+                
+                addFileToMultipartRelatedRequest(fileName, file, contentType, contentId);
+                
+            } finally {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+                
+            }
+        }
+        
+        public void addFileToMultipartRelatedRequest(String fileName, File file, 
+                String contentType, String contentId) throws IOException {
+            FileInputStream inputStream = null;
+            try {
+                StringBuilder builder = new StringBuilder();
+                
+                builder.append("--").append(boundary).append(LINE_FEED);
+                
+                builder.append(
+                        "Content-Disposition: attachment; filename=\"" + fileName + "\"")
+                        .append(LINE_FEED);
+
+                builder.append("Content-Type: " + contentType).append(LINE_FEED);
+                builder.append("content-id: <" + contentId + ">").append(LINE_FEED).append(LINE_FEED);
+                
+                httpStream.write(builder.toString().getBytes());
+                
+                httpStream.flush();
+                
+                // process File
+                inputStream = new FileInputStream(file);
+                byte[] buffer = new byte[10485760];
+                int bytesRead = -1;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    httpStream.write(buffer, 0, bytesRead);
+                }
+                httpStream.flush();
+                inputStream.close();
+   
+                
+            } finally {
+                if (inputStream != null)
+                    inputStream.close();
+            }
         }
         
         public void addFormDataToRequest(String fieldName, String fieldValue) throws IOException {
@@ -1138,6 +1271,21 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
                 
                 restResponse.setBody(jsonObject);
             }
+            return restResponse;
+            
+        }
+        
+        public RestResponse<OMElement> processAttachmentForXmlResponse() throws IOException, XMLStreamException {
+        
+            final String responseString = readResponse(httpURLConnection);
+            final RestResponse<OMElement> restResponse = new RestResponse<OMElement>();
+            restResponse.setHttpStatusCode(httpURLConnection.getResponseCode());
+            restResponse.setHeadersMap(httpURLConnection.getHeaderFields());
+            
+            if (responseString != null) {
+                restResponse.setBody(AXIOMUtil.stringToOM(responseString));
+            }
+            
             return restResponse;
             
         }
