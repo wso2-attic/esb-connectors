@@ -15,9 +15,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+/**
+ * Integration Base package for ESB Cloud Connector.
+ * v0.01
+ */
 package org.wso2.connector.integration.test.base;
-
 import java.beans.XMLDecoder;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -42,7 +44,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.activation.DataHandler;
 import javax.activation.FileDataSource;
 import javax.xml.parsers.DocumentBuilder;
@@ -53,9 +54,12 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.axiom.om.OMAbstractFactory;
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.util.AXIOMUtil;
+import org.apache.axiom.om.xpath.AXIOMXPath;
 import org.apache.axiom.soap.SOAPEnvelope;
+import org.apache.axiom.soap.SOAPFactory;
 import org.apache.axis2.AxisFault;
 import org.apache.axis2.Constants;
 import org.apache.axis2.addressing.EndpointReference;
@@ -66,6 +70,7 @@ import org.apache.axis2.context.ConfigurationContext;
 import org.apache.axis2.context.MessageContext;
 import org.apache.axis2.transport.TransportUtils;
 import org.apache.axis2.wsdl.WSDLConstants;
+import org.jaxen.JaxenException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.testng.annotations.AfterClass;
@@ -120,7 +125,7 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
     protected void init(String connectorName) throws Exception {
     
         super.init();
-        this.connectorName = connectorName;
+        
         
         ConfigurationContextProvider configurationContextProvider = ConfigurationContextProvider.getInstance();
         ConfigurationContext cc = configurationContextProvider.getConfigurationContext();
@@ -159,6 +164,10 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
             
         }
         
+      //Connector file name comes with version,however mediation process only with name.
+    	connectorName=connectorName.split("-")[0];
+    	this.connectorName = connectorName;
+        
         adminServiceStub.updateStatus("{org.wso2.carbon.connector}" + connectorName, connectorName,
                 "org.wso2.carbon.connector", "enabled");
         
@@ -194,7 +203,7 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
     @AfterClass(alwaysRun = true)
     public void cleanUpEsb() throws RemoteException, ProxyServiceAdminProxyAdminException {
     
-        proxyAdmin.deleteProxy(connectorName);
+       proxyAdmin.deleteProxy(connectorName);
     }
     
     /**
@@ -345,6 +354,8 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
     /**
      * Send a SOAP request via a MEPClient without attachments.
      * 
+     * @deprecated Please use {@link #sendSOAPRequest(String, String, Map, String, String, String)}
+     * 
      * @param endpoint The URL of the endpoint to send the request to.
      * @param soapRequestFileName Path to the SOAP request file
      * @param parametersMap A map containing key value pairs to be parameterized in the request.
@@ -352,12 +363,13 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
      * @throws XMLStreamException Thrown on failure to build OM Element from the file's contents.
      * @throws IOException Thrown on failure to send the request.
      */
+    @Deprecated
     protected SOAPEnvelope sendSOAPRequest(String endpoint, String soapRequestFileName,
             Map<String, String> parametersMap) throws XMLStreamException, IOException {
     
         OMElement requestEnvelope = AXIOMUtil.stringToOM(loadRequestFromFile(soapRequestFileName, parametersMap));
         OperationClient mepClient =
-                buildMEPClient(new EndpointReference(getProxyServiceURL(endpoint)), requestEnvelope);
+                buildMEPClient(new EndpointReference(endpoint), requestEnvelope);
         
         mepClient.execute(true);
         return mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE).getEnvelope();
@@ -365,6 +377,8 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
     
     /**
      * Send a SOAP request via a MEPClient without attachments.
+     * 
+     * @deprecated Please use {@link #sendSOAPRequest(String, String, Map, Map, String, String, String)} instead.
      * 
      * @param endpoint The URL of the end point to send the request to.
      * @param soapRequestFileName Path to the SOAP request file
@@ -375,6 +389,7 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
      * @throws XMLStreamException Thrown on failure to build OM Element from the file's contents.
      * @throws IOException Thrown on failure to send the request.
      */
+    @Deprecated
     protected SOAPEnvelope sendSOAPRequest(String endpoint, String soapRequestFileName,
             Map<String, String> parametersMap, Map<String, String> attachmentMap) throws XMLStreamException,
             IOException {
@@ -386,7 +401,70 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
                     + attachmentMap.get(contentId)))));
         }
         OperationClient mepClient =
-                buildMEPClient(new EndpointReference(getProxyServiceURL(endpoint)), requestEnvelope, dataHandlerMap);
+                buildMEPClient(new EndpointReference(endpoint), requestEnvelope, dataHandlerMap);
+        
+        mepClient.execute(true);
+        return mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE).getEnvelope();
+    }
+    
+    /**
+     * Send a SOAP request via a MEPClient without attachments, taking a SOAP action.
+     * This method also takes XPath expressions to evaluate the header and body sections of 
+     * the request envelope.
+     * 
+     * @param endpoint The URL of the endpoint to send the request to.
+     * @param soapRequestFileName Path to the SOAP request file
+     * @param parametersMap A map containing key value pairs to be parameterized in the request.
+     * @param action String describing the SOAP action.
+     * @param xpathHeaderExp XPath expression to evaluate the SOAP header.
+     * @param xpathBodyExp XPath expression to evaluate the SOAP body. 
+     * @return The SOAP Envelope that is returned as a result of the request.
+     * @throws XMLStreamException Thrown on failure to build OM Element from the file's contents.
+     * @throws IOException Thrown on failure to send the request.
+     * @throws JaxenException Thrown on failure to evaluate XPath expression.
+     */
+    protected SOAPEnvelope sendSOAPRequest(final String endpoint, final String soapRequestFileName,
+            final Map<String, String> parametersMap, final String action, final String xpathHeaderExp,final String xpathBodyExp) throws XMLStreamException, IOException, JaxenException {
+    
+        OMElement requestEnvelope = AXIOMUtil.stringToOM(loadRequestFromFile(soapRequestFileName, parametersMap));
+        OperationClient mepClient =
+                buildMEPClient(new EndpointReference(endpoint), requestEnvelope, action,xpathHeaderExp,xpathBodyExp);
+        
+        mepClient.execute(true);
+        
+        return mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE).getEnvelope();
+    }
+    
+    /**
+     * Send a SOAP request via a MEPClient with attachments, taking a SOAP action.
+     * This method also takes XPath expressions to evaluate the header and body sections of 
+     * the request envelope.
+     * @param endpoint The URL of the end point to send the request to.
+     * @param soapRequestFileName Path to the SOAP request file
+     * @param parametersMap A map containing key value pairs to be parameterized in the request.
+     * @param attachmentMap A map containing content IDs and paths to files which needed to be added to the
+     *        SOAP request as attachments.
+     * @param action The SOAP Action as a string.
+     * @param xpathHeaderExp XPath expression to evaluate the SOAP header.
+     * @param xpathBodyExp XPath expression to evaluate the SOAP body. 
+     * @return The SOAP Envelope that is returned as a result of the request.
+     * @throws XMLStreamException Thrown on failure to build OM Element from the file's contents.
+     * @throws IOException Thrown on failure to send the request.
+     * @throws JaxenException Thrown on failure to evaluate XPath expression.
+     */
+    protected SOAPEnvelope sendSOAPRequest(final String endpoint, final String soapRequestFileName,
+            final Map<String, String> parametersMap, 
+            final Map<String, String> attachmentMap, final String action,final String xpathHeaderExp,final String xpathBodyExp) throws XMLStreamException,
+            IOException, JaxenException {
+    
+        OMElement requestEnvelope = AXIOMUtil.stringToOM(loadRequestFromFile(soapRequestFileName, parametersMap));
+        Map<String, DataHandler> dataHandlerMap = new HashMap<String, DataHandler>();
+        for (String contentId : attachmentMap.keySet()) {
+            dataHandlerMap.put(contentId, new DataHandler(new FileDataSource(new File(pathToRequestsDirectory
+                    + attachmentMap.get(contentId)))));
+        }
+        OperationClient mepClient =
+                buildMEPClient(new EndpointReference(endpoint), requestEnvelope, dataHandlerMap, action,xpathHeaderExp,xpathBodyExp);
         
         mepClient.execute(true);
         return mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE).getEnvelope();
@@ -647,7 +725,7 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
     
     /**
      * Method to build a MEP Client with an attachment in the method context.
-     * 
+     * @deprecated Please use {@link #buildMEPClient(EndpointReference, OMElement, Map, String, String, String)} instead.
      * @param endpoint The endpoint to configure the client for.
      * @param request The request to add as a SOAP envelope
      * @param attachmentDataHandler The attachment to add to the message context.
@@ -655,8 +733,9 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
      * @return The built MEP Client
      * @throws AxisFault on failure to initialize the client.
      */
-    private OperationClient buildMEPClient(EndpointReference endpoint, OMElement request,
-            Map<String, DataHandler> attachmentMap) throws AxisFault {
+    @Deprecated
+    private OperationClient buildMEPClient(final EndpointReference endpoint, final OMElement request,
+            final Map<String, DataHandler> attachmentMap) throws AxisFault {
     
         ServiceClient serviceClient = new ServiceClient();
         
@@ -682,13 +761,14 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
     
     /**
      * Method to build a MEP with a specified soap envelope.
-     * 
+     * @deprecated Please use {@link #buildMEPClient(EndpointReference, OMElement, String, String, String)} instead.
      * @param endpoint The endpoint to configure the client for.
      * @param request The request to add as a SOAP envelope
      * @return The built MEP Client
      * @throws AxisFault on failure to initialize the client.
      */
-    private OperationClient buildMEPClient(EndpointReference endpoint, OMElement request) throws AxisFault {
+    @Deprecated
+    private OperationClient buildMEPClient(final EndpointReference endpoint, final OMElement request) throws AxisFault {
     
         ServiceClient serviceClient = new ServiceClient();
         
@@ -703,6 +783,116 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
         OperationClient mepClient = serviceClient.createClient(ServiceClient.ANON_OUT_IN_OP);
         mepClient.addMessageContext(messageContext);
         return mepClient;
+    }
+    
+   
+    
+    /**
+     * Method to build a MEP with a specified soap envelope which created parsing original request, 
+     * taking the SOAP action as a parameter.
+     * 
+     * @param endpoint The endpoint to configure the client for.
+     * @param request The request to add as a SOAP envelope.
+     * @param action The SOAP action.
+     * @param xpathHeaderExp XPath expression to evaluate the SOAP header.
+     * @param xpathBodyExp XPath expression to evaluate the SOAP body.
+     * @return The built MEP Client.
+     * @throws AxisFault on failure to initialize the client.
+     * @throws JaxenException Thrown on failure to evaluate XPath expression
+     */
+    private OperationClient buildMEPClient(final EndpointReference endpoint, 
+            final OMElement request, final String action,final String xpathHeaderExp,final String xpathBodyExp) throws AxisFault, JaxenException {
+    
+        ServiceClient serviceClient = new ServiceClient();
+        
+        Options serviceOptions = new Options();
+        serviceOptions.setTo(endpoint);
+        serviceOptions.setAction(action);
+        
+        serviceClient.setOptions(serviceOptions);
+        MessageContext messageContext = new MessageContext();
+        
+        SOAPEnvelope soapEnvelope = createSOAPEnvelope(request,xpathHeaderExp,xpathBodyExp);
+        messageContext.setEnvelope(soapEnvelope);
+        OperationClient mepClient = serviceClient.createClient(ServiceClient.ANON_OUT_IN_OP);
+        mepClient.addMessageContext(messageContext);
+        return mepClient;
+    }
+    
+    /**
+     * Method to build a MEP Client with an attachment in the method context,
+     * taking the SOAP action as a parameter.
+     * 
+     * @param endpoint The endpoint to configure the client for.
+     * @param request The request to add as a SOAP envelope
+     * @param attachmentDataHandler The attachment to add to the message context.
+     * @param attachmentContentId The content ID for the attachment.\
+     * @param action The SOAP action.
+     * @param xpathHeaderExp XPath expression to evaluate the SOAP header.
+     * @param xpathBodyExp XPath expression to evaluate the SOAP body. 
+     * @return The built MEP Client
+     * @throws AxisFault on failure to initialize the client.
+     * @throws JaxenException Thrown on failure to evaluate XPath expression.
+     */
+    private OperationClient buildMEPClient(final EndpointReference endpoint, final OMElement request,
+            final Map<String, DataHandler> attachmentMap, final String action,final String xpathHeaderExp,final String xpathBodyExp) throws AxisFault, JaxenException {
+    
+        ServiceClient serviceClient = new ServiceClient();
+        
+        Options serviceOptions = new Options();
+        serviceOptions.setProperty(Constants.Configuration.ENABLE_SWA, Constants.VALUE_TRUE);
+        serviceOptions.setTo(endpoint);
+        serviceOptions.setAction(action);
+        serviceClient.setOptions(serviceOptions);
+        MessageContext messageContext = new MessageContext();
+        
+        SOAPEnvelope soapEnvelope = createSOAPEnvelope(request,xpathHeaderExp,xpathBodyExp);
+        messageContext.setEnvelope(soapEnvelope);
+        
+        for (String contentId : attachmentMap.keySet()) {
+            messageContext.addAttachment(contentId, attachmentMap.get(contentId));
+        }
+        
+        OperationClient mepClient = serviceClient.createClient(ServiceClient.ANON_OUT_IN_OP);
+        mepClient.addMessageContext(messageContext);
+        return mepClient;
+        
+    }
+    
+    
+    /**
+     * Method to create a SOAP Envelope by evaluating and separating SOAP Header and SOAP Body from an OMElement. 
+     * @param request The request to add as a SOAP envelope.
+     * @param xpathHeaderExp XPath expression to evaluate the SOAP header.
+     * @param xpathBodyExp XPath expression to evaluate the SOAP body. 
+     * @return the built SOAPEnvelope
+     * @throws JaxenException Thrown on failure to evaluate XPath expression.
+     */
+    private SOAPEnvelope createSOAPEnvelope(final OMElement request,final String xpathHeaderExp,final String xpathBodyExp) throws JaxenException{
+        AXIOMXPath xpathHeader = new AXIOMXPath(request,xpathHeaderExp);
+        AXIOMXPath xpathBody = new AXIOMXPath(request,xpathBodyExp);
+        
+        @SuppressWarnings("unchecked")
+        List<OMElement> headerOMElements=xpathHeader.selectNodes(request);
+       
+        
+        @SuppressWarnings("unchecked")
+        List<OMElement> bodyOMElements=xpathBody.selectNodes(request);
+        
+        
+        SOAPFactory soapFactory = OMAbstractFactory.getSOAP11Factory();
+        SOAPEnvelope soapEnvelope = soapFactory.getDefaultEnvelope();
+       
+        for (OMElement omElement : headerOMElements) {
+            soapEnvelope.getHeader().addChild(omElement);
+        }
+        
+        for(OMElement omElement : bodyOMElements){
+            soapEnvelope.getBody().addChild(omElement);
+        }
+        
+        
+       return soapEnvelope;
     }
     
     /**
