@@ -69,7 +69,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for createFolder method with mandatory parameters.
      * 
      */
-    @Test(priority = 1, description = "dropbox {createFolder} integration test with mandatory parameters.")
+    @Test(priority = 1, description = "box {createFolder} integration test with mandatory parameters.")
     public void testCreateFolderWithMandatoryParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:createFolder");
@@ -90,7 +90,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for createFolder method with optional parameters.
      * 
      */
-    @Test(priority = 1, dependsOnMethods = {"testCreateFolderWithMandatoryParameters"}, description = "dropbox {createFolder} integration test with optional parameters.")
+    @Test(priority = 1, dependsOnMethods = {"testCreateFolderWithMandatoryParameters"}, description = "box {createFolder} integration test with optional parameters.")
     public void testCreateFolderWithOptionalParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:createFolder");
@@ -113,7 +113,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Negative test case for createFolder.
      * 
      */
-    @Test(priority = 1, dependsOnMethods = {"testCreateFolderWithOptionalParameters"}, description = "dropbox {createFolder} integration test negative case.")
+    @Test(priority = 1, dependsOnMethods = {"testCreateFolderWithOptionalParameters"}, description = "box {createFolder} integration test negative case.")
     public void testCreateFolderNegativeCase() throws IOException, JSONException, InterruptedException {
     
         esbRequestHeadersMap.put("Action", "urn:createFolder");
@@ -134,7 +134,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for listUsers method with mandatory parameters.
      * 
      */
-    @Test(priority = 1, dependsOnMethods = {"testCreateFolderNegativeCase"}, description = "dropbox {listUsers} integration test with mandatory parameters.")
+    @Test(priority = 1, dependsOnMethods = {"testCreateFolderNegativeCase"}, description = "box {listUsers} integration test with mandatory parameters.")
     public void testListUsersWithMandatoryParameters() throws IOException, JSONException, InterruptedException {
     
         esbRequestHeadersMap.put("Action", "urn:listUsers");
@@ -151,7 +151,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for listUsers method with optional parameters.
      * 
      */
-    @Test(priority = 1, dependsOnMethods = {"testListUsersWithMandatoryParameters"}, description = "dropbox {listUsers} integration test with optional parameters.")
+    @Test(priority = 1, dependsOnMethods = {"testListUsersWithMandatoryParameters"}, description = "box {listUsers} integration test with optional parameters.")
     public void testListUsersWithOptionalParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:listUsers");
@@ -252,7 +252,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for shareFolder method with optional parameters.
      * 
      */
-    @Test(priority = 1, dependsOnMethods = {"testCreateFolderWithOptionalParameters"}, description = "dropbox {shareFolder} integration test with optional parameters.")
+    @Test(priority = 1, dependsOnMethods = {"testCreateFolderWithOptionalParameters"}, description = "box {shareFolder} integration test with optional parameters.")
     public void testShareFolderWithOptionalParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:shareFolder");
@@ -269,7 +269,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Negative test case for shareFolder method.
      * 
      */
-    @Test(priority = 1, dependsOnMethods = {"testShareFolderWithOptionalParameters"}, description = "dropbox {shareFolder} integration test negative case.")
+    @Test(priority = 1, dependsOnMethods = {"testShareFolderWithOptionalParameters"}, description = "box {shareFolder} integration test negative case.")
     public void testShareFolderNegativeCase() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:shareFolder");
@@ -286,7 +286,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for updateFolderInformation method with optional parameters.
      * 
      */
-    @Test(priority = 1, dependsOnMethods = {"testCreateFolderWithMandatoryParameters"}, description = "dropbox {updateFolderInformation} integration test with mandatory parameters.")
+    @Test(priority = 1, dependsOnMethods = {"testCreateFolderWithMandatoryParameters"}, description = "box {updateFolderInformation} integration test with mandatory parameters.")
     public void testUpdateFolderInformationWithOptionalParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:updateFolderInformation");
@@ -308,7 +308,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Negative test case for updateFolderInformation method.
      * 
      */
-    @Test(priority = 1, dependsOnMethods = {"testUpdateFolderInformationWithOptionalParameters"}, description = "dropbox {updateFolderInformation} integration test with mandatory parameters.")
+    @Test(priority = 1, dependsOnMethods = {"testUpdateFolderInformationWithOptionalParameters"}, description = "box {updateFolderInformation} integration test with mandatory parameters.")
     public void testUpdateFolderInformationWithNegativeCase() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:updateFolderInformation");
@@ -531,7 +531,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for updateFileInformation method with optional parameters.
      * 
      */
-    @Test(priority = 2, dependsOnMethods = {"testGetFileInformationtWithNegativeCase"}, description = "dropbox {updateFileInformation} integration test with mandatory parameters.")
+    @Test(priority = 2, dependsOnMethods = {"testGetFileInformationtWithNegativeCase"}, description = "box {updateFileInformation} integration test with mandatory parameters.")
     public void testUpdateFileInformationWithOptionalParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:updateFileInformation");
@@ -554,7 +554,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Negative test case for updateFileInformation method.
      * 
      */
-    @Test(priority = 2, dependsOnMethods = {"testUpdateFileInformationWithOptionalParameters"}, description = "dropbox {updateFileInformation} integration test with mandatory parameters.")
+    @Test(priority = 2, dependsOnMethods = {"testUpdateFileInformationWithOptionalParameters"}, description = "box {updateFileInformation} integration test with mandatory parameters.")
     public void testUpdateFileInformationWithNegativeCase() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:updateFileInformation");
@@ -573,7 +573,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for downloadFile method with mandatory parameters.
      * 
      */
-    @Test(priority = 2, dependsOnMethods = {"testUpdateFileInformationWithNegativeCase"}, description = "dropbox {downloadFile} integration test with mandatory parameters.")
+    @Test(priority = 2, dependsOnMethods = {"testUpdateFileInformationWithNegativeCase"}, description = "box {downloadFile} integration test with mandatory parameters.")
     public void downLoadFileWithMandatoryParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:downloadFile");
@@ -605,7 +605,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for downloadFile method with optional parameters.
      *
      */
-    @Test(priority = 2, dependsOnMethods = {"downLoadFileWithMandatoryParameters"}, description = "dropbox {downloadFile} integration test with optional parameters.")
+    @Test(priority = 2, dependsOnMethods = {"downLoadFileWithMandatoryParameters"}, description = "box {downloadFile} integration test with optional parameters.")
     public void downLoadFileWithOptionalParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:downloadFile");
@@ -637,7 +637,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Negative test case for downloadFile method.
      * 
      */
-    @Test(priority = 2, dependsOnMethods = {"downLoadFileWithOptionalParameters"}, description = "dropbox {downloadFile} integration test with Negative case.")
+    @Test(priority = 2, dependsOnMethods = {"downLoadFileWithOptionalParameters"}, description = "box {downloadFile} integration test with Negative case.")
     public void downLoadFileWithNegativeTestCase() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:downloadFile");
@@ -658,7 +658,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for shareFile method with optional parameters.
      * 
      */
-    @Test(priority = 2, dependsOnMethods = {"downLoadFileWithNegativeTestCase"}, description = "dropbox {shareFile} integration test with mandatory parameters.")
+    @Test(priority = 2, dependsOnMethods = {"downLoadFileWithNegativeTestCase"}, description = "box {shareFile} integration test with mandatory parameters.")
     public void testShareFileWithOptionalParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:shareFile");
@@ -682,7 +682,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Negative test case for shareFile method.
      * 
      */
-    @Test(priority = 2, dependsOnMethods = {"testShareFileWithOptionalParameters"}, description = "dropbox {shareFile} integration test with mandatory parameters.")
+    @Test(priority = 2, dependsOnMethods = {"testShareFileWithOptionalParameters"}, description = "box {shareFile} integration test with mandatory parameters.")
     public void testShareFileWithNegativeCase() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:shareFile");
@@ -826,7 +826,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     * Positive test case for getSharedItem method with mandatory parameters.  
     * 
     */
-   @Test(priority = 2, dependsOnMethods = { "testCreateCommentWithNegativeCase" }, description = "dropbox {getSharedItem} integration test with mandatory parameters.")
+   @Test(priority = 2, dependsOnMethods = { "testCreateCommentWithNegativeCase" }, description = "box {getSharedItem} integration test with mandatory parameters.")
    public void getSharedItemWithMandatoryParameters() throws IOException, JSONException {
    
        esbRequestHeadersMap.put("Action", "urn:getSharedItem");
@@ -850,7 +850,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     * Positive test case for getSharedItem method with optional parameters.  
     * 
     */
-   @Test(priority = 2, dependsOnMethods = { "getSharedItemWithMandatoryParameters" }, description = "dropbox {getSharedItem} integration test with optional parameters.")
+   @Test(priority = 2, dependsOnMethods = { "getSharedItemWithMandatoryParameters" }, description = "box {getSharedItem} integration test with optional parameters.")
    public void getSharedItemWithOptionalParameters() throws IOException, JSONException {
    
        esbRequestHeadersMap.put("Action", "urn:getSharedItem");
@@ -874,7 +874,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     * Negative test case for getSharedItem method.  
     * 
     */
-   @Test(priority = 2, dependsOnMethods = { "getSharedItemWithOptionalParameters" }, description = "dropbox {getSharedItem} integration test with Negative Case.")
+   @Test(priority = 2, dependsOnMethods = { "getSharedItemWithOptionalParameters" }, description = "box {getSharedItem} integration test with Negative Case.")
    public void getSharedItemWithNegativeCase() throws IOException, JSONException {
    
        esbRequestHeadersMap.put("Action", "urn:getSharedItem");
@@ -967,7 +967,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     * Positive test case for listFileComments with mandatory parameters.
     * 
     */
-   @Test(priority = 3, dependsOnMethods = { "testSearchWithNegativeCase" }, description = "dropbox {listFileComments} integration test with mandatory parameters.")
+   @Test(priority = 3, dependsOnMethods = { "testSearchWithNegativeCase" }, description = "box {listFileComments} integration test with mandatory parameters.")
    public void listFileCommentsWithMandatoryParameters() throws IOException, JSONException {
    
        esbRequestHeadersMap.put("Action", "urn:listFileComments");
@@ -984,7 +984,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     * Positive test case for listFileComments with optional parameters.
     * 
     */
-   @Test(priority = 3, dependsOnMethods = { "listFileCommentsWithMandatoryParameters" }, description = "dropbox {listFileComments} integration test with optional parameters.")
+   @Test(priority = 3, dependsOnMethods = { "listFileCommentsWithMandatoryParameters" }, description = "box {listFileComments} integration test with optional parameters.")
    public void listFileCommentsWithOptionalParameters() throws IOException, JSONException {
    
        esbRequestHeadersMap.put("Action", "urn:listFileComments");
@@ -1001,7 +1001,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     * Negative test case for listFileComments.
     * 
     */
-   @Test(priority = 3, dependsOnMethods = { "listFileCommentsWithOptionalParameters" }, description = "dropbox {listFileComments} integration test negative case.")
+   @Test(priority = 3, dependsOnMethods = { "listFileCommentsWithOptionalParameters" }, description = "box {listFileComments} integration test negative case.")
    public void listFileCommentsNegativeCase() throws IOException, JSONException {
    
        esbRequestHeadersMap.put("Action", "urn:listFileComments");
@@ -1019,7 +1019,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     * Positive test case for updateComment method with mandatory parameters.
     * 
     */
-   @Test(priority = 3, dependsOnMethods = { "listFileCommentsWithOptionalParameters" }, description = "dropbox {updateComment} integration test with mandatory parameters.")
+   @Test(priority = 3, dependsOnMethods = { "listFileCommentsWithOptionalParameters" }, description = "box {updateComment} integration test with mandatory parameters.")
    public void updateCommentWithMandatoryParameters() throws IOException, JSONException {
    
        esbRequestHeadersMap.put("Action", "urn:updateComment");
@@ -1039,7 +1039,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     * Positive test case for updateComment method with optional parameters.
     * 
     */
-   @Test(priority = 3, dependsOnMethods = { "updateCommentWithMandatoryParameters" }, description = "dropbox {updateComment} integration test with optional parameters.")
+   @Test(priority = 3, dependsOnMethods = { "updateCommentWithMandatoryParameters" }, description = "box {updateComment} integration test with optional parameters.")
    public void updateCommentWithOptionalParameters() throws IOException, JSONException {
    
        esbRequestHeadersMap.put("Action", "urn:updateComment");
@@ -1059,7 +1059,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     * Negative test case for updateComment.
     * 
     */
-   @Test(priority = 3, dependsOnMethods = { "updateCommentWithOptionalParameters" }, description = "dropbox {updateComment} integration test negative case.")
+   @Test(priority = 3, dependsOnMethods = { "updateCommentWithOptionalParameters" }, description = "box {updateComment} integration test negative case.")
    public void updateCommentNegativeCase() throws IOException, JSONException {
    
        esbRequestHeadersMap.put("Action", "urn:updateComment");
@@ -1137,7 +1137,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for deleteComment method with mandatory parameters.
      * 
      */
-    @Test(priority = 4, dependsOnMethods = { "testGetCommentWithNegativeCase" }, description = "dropbox {deleteComment} integration test with mandatory parameters.")
+    @Test(priority = 4, dependsOnMethods = { "testGetCommentWithNegativeCase" }, description = "box {deleteComment} integration test with mandatory parameters.")
     public void testDeleteCommentWithMandatoryParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:deleteComment");
@@ -1158,7 +1158,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Negative test case for deleteComment method.
      * 
      */
-    @Test(priority = 4, dependsOnMethods = { "testDeleteCommentWithMandatoryParameters" }, description = "dropbox {deleteComment} integration test with mandatory parameters.")
+    @Test(priority = 4, dependsOnMethods = { "testDeleteCommentWithMandatoryParameters" }, description = "box {deleteComment} integration test with mandatory parameters.")
     public void testDeleteCommentWithNegativeCase() throws IOException, JSONException, InterruptedException {
     
         esbRequestHeadersMap.put("Action", "urn:deleteComment");
@@ -1178,7 +1178,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for deleteFile method with mandatory parameters.
      * 
      */
-    @Test(priority = 4, dependsOnMethods = { "testDeleteCommentWithNegativeCase" }, description = "dropbox {deleteFile} integration test with mandatory parameters.")
+    @Test(priority = 4, dependsOnMethods = { "testDeleteCommentWithNegativeCase" }, description = "box {deleteFile} integration test with mandatory parameters.")
     public void deleteFileWithMandatoryParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:deleteFile");
@@ -1200,7 +1200,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for deleteFile method with optional parameters.
      * 
      */
-    @Test(priority = 4, dependsOnMethods = { "deleteFileWithMandatoryParameters" }, description = "dropbox {deleteFile} integration test with optional parameters.")
+    @Test(priority = 4, dependsOnMethods = { "deleteFileWithMandatoryParameters" }, description = "box {deleteFile} integration test with optional parameters.")
     public void deleteFileWithOptionalParameters() throws IOException, JSONException, InterruptedException {
         esbRequestHeadersMap.put("Action", "urn:deleteFile");
         String apiEndPoint =
@@ -1227,7 +1227,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Negative test case for deleteFile.
      * 
      */
-    @Test(priority = 4, dependsOnMethods = { "deleteFileWithOptionalParameters" }, description = "dropbox {deleteFile} integration test negative case.")
+    @Test(priority = 4, dependsOnMethods = { "deleteFileWithOptionalParameters" }, description = "box {deleteFile} integration test negative case.")
     public void testDeleteFileNegativeCase() throws IOException, JSONException, InterruptedException {
     
         esbRequestHeadersMap.put("Action", "urn:deleteFile");
@@ -1248,7 +1248,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for deleteFolder method with mandatory parameters.
      * 
      */
-    @Test(priority = 4, dependsOnMethods = { "deleteFileWithOptionalParameters" }, description = "dropbox {deleteFodler} integration test with mandatory parameters.")
+    @Test(priority = 4, dependsOnMethods = { "deleteFileWithOptionalParameters" }, description = "box {deleteFodler} integration test with mandatory parameters.")
     public void deleteFolderWithMandatoryParameters() throws IOException, JSONException, InterruptedException {
     
         esbRequestHeadersMap.put("Action", "urn:deleteFolder");
@@ -1271,7 +1271,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Positive test case for deleteFolder method with optional parameters.
      * 
      */
-    @Test(priority = 4, dependsOnMethods = { "deleteFolderWithMandatoryParameters" }, description = "dropbox {deleteFodler} integration test with optional parameters.")
+    @Test(priority = 4, dependsOnMethods = { "deleteFolderWithMandatoryParameters" }, description = "box {deleteFodler} integration test with optional parameters.")
     public void deleteFolderWithOptionalParameters() throws IOException, JSONException, InterruptedException {
     
         esbRequestHeadersMap.put("Action", "urn:deleteFolder");
@@ -1297,7 +1297,7 @@ public class BoxConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      * Negative test case for deleteFolder method.
      * 
      */
-    @Test(priority = 4, dependsOnMethods = {"deleteFolderWithOptionalParameters"}, description = "dropbox {deleteFodler} integration test with negative case.")
+    @Test(priority = 4, dependsOnMethods = {"deleteFolderWithOptionalParameters"}, description = "box {deleteFodler} integration test with negative case.")
     public void testDeleteFolderWithNegativeCase() throws IOException, JSONException, InterruptedException {
     
         esbRequestHeadersMap.put("Action", "urn:deleteFolder");
