@@ -1,0 +1,56 @@
+<template name="receiveMessage" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="attributes"
+		description="A list of attributes that need to be returned along with each message" />
+	<parameter name="maxNumberOfMessages" description="The maximum number of messages to return" />
+	<parameter name="messageAttributeNames"
+		description="The name of the message attribute, where N is the index" />
+	<parameter name="visibilityTimeout"
+		description="The duration (in seconds) that the received messages are hidden from subsequent retrieve requests after being retrieved by a ReceiveMessage request" />
+	<parameter name="waitTimeSeconds"
+		description="The duration (in seconds) for which the call will wait for a message to arrive in the queue before returning" />
+	<parameter name="queueId" description="The unique identifier of the queue" />
+	<parameter name="queueName" description="The name of the queue" />
+
+	<sequence>
+		<property name="uri.var.queueId" expression="$func:queueId" />
+		<property name="uri.var.urlQueueName" expression="$func:queueName" />
+		<property name="uri.var.attributes" expression="$func:attributes" />
+		<property name="uri.var.maxNumberOfMessages" expression="$func:maxNumberOfMessages" />
+		<property name="uri.var.messageAttributeNames" expression="$func:messageAttributeNames" />
+		<property name="uri.var.visibilityTimeout" expression="$func:visibilityTimeout" />
+		<property name="uri.var.waitTimeSeconds" expression="$func:waitTimeSeconds" />
+		<property name="uri.var.action" value="ReceiveMessage" />
+
+		<class
+			name="org.wso2.carbon.connector.amazonsqs.auth.AmazonSQSAuthConnector" />
+
+		<!-- Add authorization and date header parameters -->
+		<header name="Authorization" scope="transport"
+			expression="get-property('uri.var.authorizationHeader')" />
+		<header name="x-amz-date" scope="transport"
+			expression="get-property('uri.var.amzDate')" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				$1
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.requestPayload')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}{uri.var.httpRequestUri}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information -->
+		<header name="Proxy-Connection" scope="transport" action="remove" />
+		<header name="x-amzn-RequestId" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+
+	</sequence>
+</template>
