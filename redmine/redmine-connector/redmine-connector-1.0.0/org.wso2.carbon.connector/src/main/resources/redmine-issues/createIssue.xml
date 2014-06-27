@@ -1,0 +1,114 @@
+<template name="createIssue" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="projectId" description="The projectId is project identifier." />
+	<parameter name="trackerId" description="The trackerId get issues from the tracker." />
+	<parameter name="statusId" description="The statusId get issues with the given status." />
+	<parameter name="priorityId" description="The priorityId provide issue priority." />
+	<parameter name="subject" description="The subject of the issue." />
+	<parameter name="description" description="The description of the issue." />
+	<parameter name="categoryId" description="The categoryId of the issue." />
+	<parameter name="fixedVersionId" description="The fixedVersionId  of the issue." />
+	<parameter name="assignedToId" description="The assignedToId display assigned details." />
+	<parameter name="parentIssueId" description="The parentIssueId display parent issue id." />
+	<parameter name="customFields" description="The customFields add customer fields." />
+	<parameter name="watcherUserIds" description="Array of user ids." />
+	<parameter name="uploads" description="The upload attachment." />
+
+	<sequence>
+		<property name="uri.var.projectId" expression="$func:projectId" />
+		<property name="uri.var.trackerId" expression="$func:trackerId" />
+		<property name="uri.var.statusId" expression="$func:statusId" />
+		<property name="uri.var.priorityId" expression="$func:priorityId" />
+		<property name="uri.var.subject" expression="$func:subject" />
+		<property name="uri.var.description" expression="$func:description" />
+		<property name="uri.var.categoryId" expression="$func:categoryId" />
+		<property name="uri.var.fixedVersionId" expression="$func:fixedVersionId" />
+		<property name="uri.var.assignedToId" expression="$func:assignedToId" />
+		<property name="uri.var.parentIssueId" expression="$func:parentIssueId" />
+		<property name="uri.var.customFields" expression="$func:customFields" />
+		<property name="uri.var.watcherUserIds" expression="$func:watcherUserIds" />
+		<property name="uri.var.uploads" expression="$func:uploads" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"issue":{
+						"project_id": "$1",
+						"status_id": "$2",
+						"subject": "$3",
+						"description": "$4",
+						"category_id": "$5",
+						"fixed_version_id": "$6",
+						"assigned_to_id": "$7",
+						"parent_issue_id": "$8"
+						}
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.projectId')" />
+				<arg expression="get-property('uri.var.statusId')" />
+				<arg expression="get-property('uri.var.subject')" />
+				<arg expression="get-property('uri.var.description')" />
+				<arg expression="get-property('uri.var.categoryId')" />
+				<arg expression="get-property('uri.var.fixedVersionId')" />
+				<arg expression="get-property('uri.var.assignedToId')" />
+				<arg expression="get-property('uri.var.parentIssueId')" />
+			</args>
+		</payloadFactory>
+		
+		<script language="js">
+		<![CDATA[
+		
+			var tracker_id = mc.getProperty("uri.var.trackerId");
+			var priority_id = mc.getProperty("uri.var.priorityId");
+			var custom_fields = mc.getProperty("uri.var.customFields");
+			var uploads = mc.getProperty("uri.var.uploads");
+			var watcher_user_ids = mc.getProperty('uri.var.watcherUserIds');
+			
+			payload = mc.getPayloadJSON();
+			
+			if (tracker_id != null && tracker_id != "") {
+				payload.issue.tracker_id = eval("("+tracker_id+")");
+			}
+			
+			if (priority_id != null && priority_id != "") {
+				payload.issue.priority_id = eval("("+priority_id+")");
+			}
+			
+			if (custom_fields != null && custom_fields != "") {
+				payload.issue.custom_fields = eval("("+custom_fields+")");
+			}
+			
+			if (uploads != null && uploads != "") {
+				payload.issue.uploads = eval("("+uploads+")");
+			}
+			
+			if (watcher_user_ids != null && watcher_user_ids != "") {
+				payload.issue.watcher_user_ids = eval("("+watcher_user_ids+")");
+			}
+			
+			mc.setPayloadJSON(payload);
+			
+		]]>
+		</script>
+
+		<header name="Content-Type" value="application/json" scope="transport" />
+		
+		<property name="messageType" value="application/json" scope="axis2"/>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/issues.{uri.var.responseType}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+		<header name="ETag" scope="transport" action="remove" />
+		<header name="X-UA-Compatible" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Rack-Cache" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+	</sequence>
+</template>
