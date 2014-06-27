@@ -1,0 +1,38 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="apiUrl" description="The url of the API" />
+	<parameter name="accessToken"
+		description="The access token which is used to call api methods" />
+	<parameter name="fields" description="The fields to be returned with the output" />
+
+	<sequence>
+
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.accessToken" expression="$func:accessToken" />
+		<property name="uri.var.fields" expression="$func:fields" />
+
+		<header name="Authorization"
+			expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))"
+			scope="transport"/>
+
+		<!-- If the apiUrl is not specified, set the default value as https://api.box.com -->
+		<filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+			<then>
+				<property name="uri.var.apiUrl" value="https://api.box.com" />
+			</then>
+		</filter>
+
+		<script language="js">
+	        <![CDATA[                    
+	               //encoding and setting fields url parameter 
+                  var fields = mc.getProperty("uri.var.fields");
+                  var urlFields = "?fields="		
+                  if (fields!=null && fields!= ""){
+                     urlFields += encodeURIComponent(fields);
+                     mc.setProperty('uri.var.fields', urlFields);
+                  }                                                 
+	               ]]>
+		</script>
+
+	</sequence>
+</template>

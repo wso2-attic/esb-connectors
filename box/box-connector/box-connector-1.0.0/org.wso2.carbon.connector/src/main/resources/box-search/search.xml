@@ -1,0 +1,58 @@
+<template name="search" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="query"
+		description="The string to search for; can be matched against item names, descriptions, text content of a file, and other fields of the different item types." />
+	<parameter name="limit" description="Number of search results to return" />
+	<parameter name="offset"
+		description="The search result at which to start the response" />
+	<sequence>
+
+		<property name="uri.var.query" expression="$func:query" />
+		<property name="uri.var.limit" expression="$func:limit" />
+		<property name="uri.var.offset" expression="$func:offset" />
+
+		<script language="js">
+        	<![CDATA[
+                    
+                    var limit = mc.getProperty('uri.var.limit');
+                    var offset = mc.getProperty('uri.var.offset');
+                    var query = mc.getProperty('uri.var.query');
+                    var fields = mc.getProperty('uri.var.fields');
+                    var urlQuery = "";
+                    
+                    if (query != null && query !="" ){
+                    	urlQuery += 'query=' + encodeURIComponent(query) + '&';
+                    }
+                                        					           
+					if (limit != null && limit != "" ) {
+						urlQuery += 'limit=' + limit + '&';												
+					}
+					
+					if (offset != null && offset != "" ) {
+						urlQuery += 'offset=' + offset + '&';	
+					}
+					
+					if (urlQuery != ""){
+					
+						if(fields != ""){
+							urlQuery = fields + '&' + urlQuery.substring(0,urlQuery.length-1);
+						}else{
+							urlQuery = '?' + urlQuery.substring(0,urlQuery.length-1);
+						}
+						mc.setProperty('uri.var.urlQuery', urlQuery);
+					}
+					
+							
+        	]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}/2.0/search{uri.var.urlQuery}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+	</sequence>
+</template>

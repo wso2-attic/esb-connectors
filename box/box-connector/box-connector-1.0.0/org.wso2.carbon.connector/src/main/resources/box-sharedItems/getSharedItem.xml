@@ -1,0 +1,35 @@
+<template name="getSharedItem" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="sharedLink" description="The shared link for the item" />
+	<parameter name="sharedLinkPassword" description="The password for the shared link" />
+	<sequence>
+
+		<property name="uri.var.sharedLink" expression="$func:sharedLink" />
+		<property name="uri.var.sharedLinkPassword" expression="$func:sharedLinkPassword" />
+
+		<filter source="boolean(get-property('uri.var.sharedLinkPassword'))"
+			regex="false">
+			<then>
+				<header name="BoxApi" scope="transport"
+					expression="fn:concat('shared_link=', get-property('uri.var.sharedLink'))" />
+			</then>
+			<else>
+				<header name="BoxApi"
+					expression="fn:concat('shared_link=', get-property('uri.var.sharedLink'),'&amp;shared_link_password=',get-property('uri.var.sharedLinkPassword'))"
+					scope="transport" />
+			</else>
+		</filter>
+
+
+
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}/2.0/shared_items{uri.var.fields}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+	</sequence>
+</template>
