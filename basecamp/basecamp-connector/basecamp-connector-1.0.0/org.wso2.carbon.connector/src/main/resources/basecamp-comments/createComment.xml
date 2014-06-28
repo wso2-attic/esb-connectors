@@ -1,0 +1,90 @@
+<template name="createComment" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="projectId" description="The project identifier to which the comment would be made" />
+	<parameter name="sectionType" description="The section type, either messages or todos" />
+	<parameter name="sectionId" description="The section identifier either message ID or todo ID depending on the given sectionType" />
+	<parameter name="content" description="The content of the comment" />
+	<parameter name="subscribers" description="The subscribers, list of people IDs to be notified about this comment" />
+	<parameter name="attachments"
+		description="The attachments, array contaning lists of tokens and the names of an already created attachments" />
+		
+	<sequence>
+		<property name="uri.var.projectId" expression="$func:projectId" />
+		<property name="uri.var.sectionType" expression="$func:sectionType" />
+		<property name="uri.var.sectionId" expression="$func:sectionId" />
+		<property name="uri.var.content" expression="$func:content" />
+		<property name="uri.var.subscribers" expression="$func:subscribers" />
+		<property name="uri.var.attachments" expression="$func:attachments" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{}
+			</format>
+		</payloadFactory>
+
+		<!-- Construct payload for optional parameters -->
+		<script language="js">
+		<![CDATA[
+		
+			//payload variables
+			var subscribers = mc.getProperty("uri.var.subscribers");
+			var attachments = mc.getProperty("uri.var.attachments");
+			var content = mc.getProperty("uri.var.content");
+			
+			payload = mc.getPayloadJSON();
+			
+			if (subscribers != null && subscribers != "") {
+				payload.subscribers = eval("(" + subscribers + ")");
+			}
+			
+			if (attachments != null && attachments != "") {
+				payload.attachments = eval("(" + attachments + ")");
+			}
+			
+			if (content != null && content != "") {
+				payload.content = content;
+			}
+			mc.setPayloadJSON(payload);	
+		]]>
+		</script>
+
+		<!-- returns an error to user when received and invalid section type -->
+		<filter source="get-property('uri.var.sectionType')" regex="(?!^(messages|todos)$).*">
+			<then>
+				<payloadFactory media-type="json">
+					<format>
+						{
+						"error_code":"700013",
+						"error_message":"Invalid value for section type parameter, supported values are [section|todos]"}
+						}
+					</format>
+				</payloadFactory>
+				
+				<header name="Authorization" scope="transport" action="remove" />
+				<header name="Status" scope="transport" action="remove" />
+				<header name="Host" scope="transport" action="remove" />
+				<property name="HTTP_SC" value="400" scope="axis2" />
+				<respond></respond>
+			</then>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/projects/{uri.var.projectId}/{uri.var.sectionType}/{uri.var.sectionId}/comments.json" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Queue-Time" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Timing-Allow-Origin" scope="transport" action="remove" />
+		<header name="X-Asset-Paths" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />		
+
+	</sequence>
+</template>

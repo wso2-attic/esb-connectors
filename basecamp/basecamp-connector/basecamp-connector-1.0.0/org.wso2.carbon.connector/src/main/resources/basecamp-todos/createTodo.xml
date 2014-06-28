@@ -1,0 +1,71 @@
+<template name="createTodo" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="projectId"
+		description="The project identifier to which the to do will be created" />
+	<parameter name="todoListId"
+		description="The to do List identifier to create the to do on" />
+	<parameter name="content" description="The content of the to do" />
+	<parameter name="dueDate" description="The due Date of the to do" />
+	<parameter name="assignee"
+		description="The assignee, an JSON object containing the person id and type" />
+
+	<sequence>
+		<property name="uri.var.projectId" expression="$func:projectId" />
+		<property name="uri.var.todoListId" expression="$func:todoListId" />
+		<property name="uri.var.content" expression="$func:content" />
+		<property name="uri.var.dueDate" expression="$func:dueDate" />
+		<property name="uri.var.assignee" expression="$func:assignee" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"content": "$1"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.content')" />
+			</args>
+		</payloadFactory>
+
+		<!-- Construct payload for optional parameters -->
+		<script language="js">
+			<![CDATA[
+			
+				//payload variables
+				var dueDate = mc.getProperty("uri.var.dueDate");
+				var assignee = mc.getProperty("uri.var.assignee");
+				
+				payload = mc.getPayloadJSON();
+			
+				if (dueDate != null && dueDate != "") {
+					payload.due_at = dueDate;
+				}
+				
+				if (assignee != null && assignee != "") {
+					payload.assignee = eval("(" + assignee + ")");
+				}
+				mc.setPayloadJSON(payload);	
+				
+			]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/projects/{uri.var.projectId}/todolists/{uri.var.todoListId}/todos.json" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Queue-Time" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Timing-Allow-Origin" scope="transport" action="remove" />
+		<header name="X-Asset-Paths" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+
+	</sequence>
+</template>

@@ -1,0 +1,55 @@
+<template name="createProject" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="name" description="The name of the project which is creating" />
+	<parameter name="description" description="The description of the project which is creating" />
+
+	<sequence>
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.description" expression="$func:description" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"name":"$1"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.name')" />
+			</args>
+		</payloadFactory>
+
+		<!-- Construct payload for optional parameters -->
+		<script language="js">
+		<![CDATA[
+		
+			//payload variables
+			var description = mc.getProperty("uri.var.description");
+			
+			payload = mc.getPayloadJSON();
+			
+			if (description != null && description != "") {
+				payload.description = description;
+			}
+			mc.setPayloadJSON(payload);	
+		]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/projects.json" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Queue-Time" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Timing-Allow-Origin" scope="transport" action="remove" />
+		<header name="X-Asset-Paths" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+
+	</sequence>
+</template>

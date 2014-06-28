@@ -1,0 +1,59 @@
+<template name="grantAccess" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="projectId" description="The project identifier from which the access will be granted" />
+	<parameter name="idList" description="The list of people identifiers to grant access to" />
+	<parameter name="emailList" description="The email List containing emails to grant access to" />
+
+	<sequence>
+		<property name="uri.var.projectId" expression="$func:projectId" />
+		<property name="uri.var.idList" expression="$func:idList" />
+		<property name="uri.var.emailList" expression="$func:emailList" />
+
+		<!-- Clears the request payload -->
+		<payloadFactory media-type="json">
+			<format>
+				{}
+			</format>
+		</payloadFactory>
+
+		<script language="js">
+			<![CDATA[
+			
+				//Creates payload for optional parameters
+				var idList = mc.getProperty("uri.var.idList");
+				var emailList = mc.getProperty("uri.var.emailList");
+				
+				payload = mc.getPayloadJSON();
+				
+				if (idList != null && idList != "") {
+					payload.ids = eval("(" + idList + ")");
+				}
+				
+				if (emailList != null && emailList != "") {
+					payload.email_addresses = eval("(" + emailList + ")");
+				}
+								
+				mc.setPayloadJSON(payload);	
+				
+			]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/projects/{uri.var.projectId}/accesses.json" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Queue-Time" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Timing-Allow-Origin" scope="transport" action="remove" />
+		<header name="X-Asset-Paths" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+
+	</sequence>
+</template>
