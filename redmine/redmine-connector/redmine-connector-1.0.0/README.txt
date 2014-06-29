@@ -33,13 +33,13 @@ Steps to follow in setting integration test.
 
             <messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
 
-            <messageBuilder contentType="text/javascript" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+            <messageFormatter contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamFormatter"/>
+			
+			<messageBuilder contentType="text/javascript" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
             <messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
-            <messageFormatter contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamFormatter"/>
-
-            <messageBuilder contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
+			<messageBuilder contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
 
  4.  Based on the content type of the attachment file you are adding in step 9-g-6, add the relevant message formatter and builder.
 
