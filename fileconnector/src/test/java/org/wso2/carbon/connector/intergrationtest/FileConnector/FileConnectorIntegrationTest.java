@@ -20,7 +20,6 @@ package org.wso2.carbon.connector.intergrationtest.FileConnector;
 
 import java.io.File;
 import java.net.URL;
-import java.rmi.RemoteException;
 import java.util.Arrays;
 
 import javax.activation.DataHandler;
@@ -43,7 +42,6 @@ import org.wso2.carbon.connector.intergrationtest.common.ConnectorIntegrationUti
 import org.wso2.carbon.esb.ESBIntegrationTest;
 import org.wso2.carbon.mediation.library.stub.MediationLibraryAdminServiceStub;
 import org.wso2.carbon.mediation.library.stub.upload.MediationLibraryUploaderStub;
-import org.wso2.carbon.proxyadmin.stub.ProxyServiceAdminProxyAdminException;
 
 public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 
@@ -129,7 +127,7 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 	}
 
 	@Test(groups = { "wso2.esb" }, priority = 2, description = "File creation integration Tests")
-	public void testFileCreation() throws RemoteException, ProxyServiceAdminProxyAdminException {
+	public void testFileCreation() throws Exception {
 
 		final String methodName = "create";
 		final String omString =
@@ -169,15 +167,14 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 			                                mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE);
 
 			Assert.assertTrue(responseMsgCtx.getEnvelope().getBody().toString().contains("success"));
-		} catch (Exception e) {
 
 		} finally {
 			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
 		}
 	}
 
-	@Test(groups = { "wso2.esb" }, priority = 2, description = "File deletion integration Tests")
-	public void testFileDeletion() throws RemoteException, ProxyServiceAdminProxyAdminException {
+	@Test(groups = { "wso2.esb" }, priority = 2, description = "File deletion integration Tests", dependsOnMethods = { "testFileRename" })
+	public void testFileDeletion() throws Exception {
 
 		final String methodName = "delete";
 		final String omString =
@@ -217,16 +214,14 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 			                                mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE);
 
 			Assert.assertTrue(responseMsgCtx.getEnvelope().getBody().toString().contains("success"));
-		} catch (Exception e) {
-
 		} finally {
 			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
 		}
 
 	}
 
-	@Test(groups = { "wso2.esb" }, priority = 2, description = "File rename integration Tests")
-	public void testFileRename() throws RemoteException, ProxyServiceAdminProxyAdminException {
+	@Test(groups = { "wso2.esb" }, priority = 2, description = "File rename integration Tests", dependsOnMethods = { "testFileCreation" })
+	public void testFileRename() throws Exception {
 
 		final String methodName = "rename";
 		final String omString =
@@ -267,7 +262,54 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 
 			Assert.assertTrue(responseMsgCtx.getEnvelope().getBody().toString().contains("success"));
 
-		} catch (Exception e) {
+		} finally {
+			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
+		}
+
+	}
+
+	@Test(groups = { "wso2.esb" }, priority = 2, description = "Is File exist integration Tests", dependsOnMethods = { "testFileCopy" })
+	public void testFileExists() throws Exception {
+
+		final String methodName = "fileexists";
+		final String omString =
+		                        "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:wso2.connector.googledrive.insertcomment\">\n"
+		                                + "   <soapenv:Header/>\n"
+		                                + "   <soapenv:Body>\n"
+		                                + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		                                + "   </soapenv:Body>\n"
+		                                + "</soapenv:Envelope>";
+		try {
+			proxyAdmin.addProxyService(new DataHandler(
+			                                           new URL(
+			                                                   "file:" +
+			                                                           File.separator +
+			                                                           File.separator +
+			                                                           ProductConstant.SYSTEM_TEST_RESOURCE_LOCATION +
+			                                                           ConnectorIntegrationUtil.ESB_CONFIG_LOCATION +
+			                                                           File.separator + "proxies" +
+			                                                           File.separator +
+			                                                           CONNECTOR_NAME +
+			                                                           File.separator +
+			                                                           CONNECTOR_NAME + "_" +
+			                                                           methodName + ".xml")));
+			OMElement requestEnvelope = AXIOMUtil.stringToOM(omString);
+
+			OperationClient mepClient = null;
+
+			mepClient =
+			            ConnectorIntegrationUtil.buildMEPClient(new EndpointReference(
+			                                                                          getProxyServiceURL(CONNECTOR_NAME +
+			                                                                                             "_" +
+			                                                                                             methodName)),
+			                                                    requestEnvelope);
+
+			mepClient.execute(true);
+			MessageContext responseMsgCtx =
+			                                mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE);
+
+			Assert.assertTrue(responseMsgCtx.getEnvelope().getBody().toString()
+			                                .contains("fileexits"));
 
 		} finally {
 			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
@@ -276,7 +318,7 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 	}
 
 	@Test(groups = { "wso2.esb" }, priority = 2, description = "File copy integration Tests")
-	public void testFileCopy() throws RemoteException, ProxyServiceAdminProxyAdminException {
+	public void testFileCopy() throws Exception {
 
 		final String methodName = "copy";
 		final String omString =
@@ -315,8 +357,7 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 			MessageContext responseMsgCtx =
 			                                mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE);
 
-			Assert.assertTrue(responseMsgCtx.getEnvelope().getBody().toString().contains("success"));
-		} catch (Exception e) {
+			Assert.assertTrue(responseMsgCtx.getEnvelope().getBody().toString().contains("copy"));
 
 		} finally {
 			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
@@ -325,7 +366,7 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 	}
 
 	@Test(groups = { "wso2.esb" }, priority = 2, description = "File large copy integration Tests")
-	public void testFileCopyLarge() throws RemoteException, ProxyServiceAdminProxyAdminException {
+	public void testFileCopyLarge() throws Exception {
 		final String methodName = "copylarge";
 		final String omString =
 		                        "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:wso2.connector.googledrive.insertcomment\">\n"
@@ -363,8 +404,54 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 			MessageContext responseMsgCtx =
 			                                mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE);
 
+			log.info("result" + responseMsgCtx.getEnvelope().getBody().toString());
+			Assert.assertTrue(responseMsgCtx.getEnvelope().getBody().toString()
+			                                .contains("copylarge"));
+
+		} finally {
+			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
+		}
+
+	}
+
+	@Test(groups = { "wso2.esb" }, priority = 2, description = "File move integration Tests")
+	public void testFileMove() throws Exception {
+		final String methodName = "create";
+		final String omString =
+		                        "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:wso2.connector.googledrive.insertcomment\">\n"
+		                                + "   <soapenv:Header/>\n" + "   <soapenv:Body>\n"
+
+		                                + "   </soapenv:Body>\n" + "</soapenv:Envelope>";
+		try {
+			proxyAdmin.addProxyService(new DataHandler(
+			                                           new URL(
+			                                                   "file:" +
+			                                                           File.separator +
+			                                                           File.separator +
+			                                                           ProductConstant.SYSTEM_TEST_RESOURCE_LOCATION +
+			                                                           ConnectorIntegrationUtil.ESB_CONFIG_LOCATION +
+			                                                           File.separator + "proxies" +
+			                                                           File.separator +
+			                                                           CONNECTOR_NAME +
+			                                                           File.separator +
+			                                                           CONNECTOR_NAME + "_" +
+			                                                           methodName + ".xml")));
+			OMElement requestEnvelope = AXIOMUtil.stringToOM(omString);
+
+			OperationClient mepClient = null;
+
+			mepClient =
+			            ConnectorIntegrationUtil.buildMEPClient(new EndpointReference(
+			                                                                          getProxyServiceURL(CONNECTOR_NAME +
+			                                                                                             "_" +
+			                                                                                             methodName)),
+			                                                    requestEnvelope);
+
+			mepClient.execute(true);
+			MessageContext responseMsgCtx =
+			                                mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE);
+
 			Assert.assertTrue(responseMsgCtx.getEnvelope().getBody().toString().contains("success"));
-		} catch (Exception e) {
 
 		} finally {
 			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
@@ -373,7 +460,7 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 	}
 
 	@Test(groups = { "wso2.esb" }, priority = 2, description = "File search integration Tests")
-	public void testFileSearch() throws RemoteException, ProxyServiceAdminProxyAdminException {
+	public void testFileSearch() throws Exception {
 		final String methodName = "search";
 		final String omString =
 		                        "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:wso2.connector.googledrive.insertcomment\">\n"
@@ -411,8 +498,7 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 			MessageContext responseMsgCtx =
 			                                mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE);
 
-			Assert.assertTrue(responseMsgCtx.getEnvelope().getBody().toString().contains("success"));
-		} catch (Exception e) {
+			Assert.assertTrue(responseMsgCtx.getEnvelope().getBody().toString().contains("file"));
 
 		} finally {
 			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
@@ -421,7 +507,7 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 	}
 
 	@Test(groups = { "wso2.esb" }, priority = 2, description = "File archive integration Tests")
-	public void testFileArchive() throws RemoteException, ProxyServiceAdminProxyAdminException {
+	public void testFileArchive() throws Exception {
 
 		final String methodName = "archive";
 		final String omString =
@@ -461,7 +547,6 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 			                                mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE);
 
 			Assert.assertTrue(responseMsgCtx.getEnvelope().getBody().toString().contains("success"));
-		} catch (Exception e) {
 
 		} finally {
 			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);
@@ -470,7 +555,7 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 	}
 
 	@Test(groups = { "wso2.esb" }, priority = 2, description = "File append integration Tests")
-	public void testFileAppend() throws RemoteException, ProxyServiceAdminProxyAdminException {
+	public void testFileAppend() throws Exception {
 
 		final String methodName = "create";
 		final String omString =
@@ -510,7 +595,6 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 			                                mepClient.getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE);
 
 			Assert.assertTrue(responseMsgCtx.getEnvelope().getBody().toString().contains("success"));
-		} catch (Exception e) {
 
 		} finally {
 			proxyAdmin.deleteProxy(CONNECTOR_NAME + "_" + methodName);

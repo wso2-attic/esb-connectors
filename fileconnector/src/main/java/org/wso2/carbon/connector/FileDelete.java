@@ -66,7 +66,7 @@ public class FileDelete extends AbstractConnector implements Connector {
 		try {
 			resultStatus = deleteFile(fileLocation, filename, filebeforepprocess);
 		} catch (FileSystemException e) {
-			handleException(e.getMessage(), messageContext);
+			generateResults(messageContext, resultStatus);
 		}
 
 		generateResults(messageContext, resultStatus);
