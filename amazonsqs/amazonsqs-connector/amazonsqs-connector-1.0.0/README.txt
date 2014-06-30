@@ -4,8 +4,10 @@ Pre-requisites:
 
  - Maven 3.x
  - Java 1.6 or above
- - org.wso2.esb.integration.integration-base is rquired. this test suite has been configred to download this automatically. however if its fail download following project and compile using mvn clean install command to update your local repository.
+ - The org.wso2.esb.integration.integration-base project is required. The test suite has been configured to download this project automatically.
+   If the automatic download fails, download the following project and compile it using the mvn clean install command to update your local repository:
    https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
+
 
 Tested Platform:
 
@@ -15,7 +17,7 @@ Tested Platform:
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{PATH_TO_SOURCE_BUNDLE}/amazonsqs-connector/amazonsqs-connector-1.0.0/org.wso2.carbon.connector/repository/"
+ 1. Make sure the ESB 4.8.1 zip file with latest patches available at "<AmazonSQS_Connector_Home>/amazonsqs-connector/amazonsqs-connector-1.0.0/org.wso2.carbon.connector/repository/"
 
  2. The ESB should be configured as below;
 	Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
@@ -32,7 +34,7 @@ STEPS:
  
     a)  Create a fresh account in Amazon AWS and Log on to http://aws.amazon.com/sqs/ with the web browser.
     b)  Save the AWSAccessKeyId and AWSSecretKey while continuing the registration process.	
-	c)  Update the "amazonsqs" properties file at location "{PATH_TO_SOURCE_BUNDLE}/amazonsqs-connector/amazonsqs-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+	c)  Update the "amazonsqs" properties file at location "<AmazonSQS_Connector_Home>/amazonsqs-connector/amazonsqs-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
    
 	i) 		accessKeyId 			- Your AWS account is identified by your Access Key ID. Use the saved Access Key ID in step b). 
 	ii) 	secretAccessKey         - Secret access key given in the account. Use the saved Secret Access Key in step b). 
@@ -52,5 +54,5 @@ STEPS:
 	xii)	apiQueueName			- eg : SampleQueqeName	
 		
 	
- 4. Navigate to "{PATH_TO_SOURCE_BUNDLE}/amazonsqs-connector/amazonsqs-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 4. Navigate to "<AmazonSQS_Connector_Home>/amazonsqs-connector/amazonsqs-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
