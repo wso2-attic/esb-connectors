@@ -67,7 +67,7 @@ public class FileConnectorIntegrationTest extends ESBIntegrationTest {
 
 	private static String folderId;
 
-	@BeforeClass(alwaysRun = false)
+	@BeforeClass(alwaysRun = true)
 	public void setEnvironment() throws Exception {
 
 		super.init();
