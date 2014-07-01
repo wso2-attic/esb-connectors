@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 
 import javax.xml.stream.XMLStreamException;
 
@@ -77,9 +78,9 @@ public class FileArchives extends AbstractConnector implements Connector {
 		                                                                                           messageContext,
 		                                                                                           "dirpattern").toString();
 		boolean archivedirectory =
-		                           getParameter(messageContext, "archivedirectory") == null ? false : Boolean.parseBoolean(getParameter(
-		                                                                                                                                messageContext,
-		                                                                                                                                "archivedirectory").toString());
+		                           getParameter(messageContext, "archivedirectory") == null ? false : Boolean.getBoolean(getParameter(
+		                                                                                                                              messageContext,
+		                                                                                                                              "archivedirectory").toString());
 		if (log.isDebugEnabled()) {
 			log.info("File creation started..." + filename.toString());
 			log.info("File Location..." + fileLocation.toString());
@@ -93,7 +94,7 @@ public class FileArchives extends AbstractConnector implements Connector {
 		File inputDirectory = new File(fileLocation.toString());
 
 		File[] subdirs = inputDirectory.listFiles();
-		Collection<File> fileList = new ArrayList<File>();
+		Collection fileList = new ArrayList();
 		if (suffixs.equals("")) {
 			if (archivedirectory) {
 				for (File f : subdirs) {
@@ -106,11 +107,12 @@ public class FileArchives extends AbstractConnector implements Connector {
 			}
 
 		} else {
+
 			final String[] SUFFIX = suffixs.split(",".toString());// { "xls" };
 			fileList = FileUtils.listFiles(inputDirectory, SUFFIX, true);
 		}
 
-		Collection<File> filteredList = new ArrayList<File>();
+		Collection filteredList = new ArrayList();
 		if (filepattern.equals("") && dirpattern.equals("")) {
 			filteredList = fileList;
 		} else {
@@ -120,7 +122,10 @@ public class FileArchives extends AbstractConnector implements Connector {
 			if (!dirpattern.equals("")) {
 				DIR_PATTERN = dirpattern;
 			}
-			for (File filterFile : fileList) {
+			Iterator iterator = filteredList.iterator();
+			while (iterator.hasNext()) {
+				File filterFile = (File) iterator.next();
+
 				if (new FilePattenMatcher(FILE_PATTERN).validate(filterFile.getName())) {
 					filteredList.add(filterFile);
 				} else if (filterFile.isDirectory() &&
@@ -128,6 +133,7 @@ public class FileArchives extends AbstractConnector implements Connector {
 					filteredList.add(filterFile);
 				}
 			}
+
 		}
 		try {
 			if (archiveType.equals(ArchiveType.TAR_GZIP.toString())) {
@@ -164,8 +170,16 @@ public class FileArchives extends AbstractConnector implements Connector {
 			OMElement element = resultPayload.performSearchMessages(responce);
 			resultPayload.preparePayload(messageContext, element);
 
-		} catch (XMLStreamException | IOException | JSONException e) {
+		} catch (XMLStreamException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
+		} catch (IOException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
+		} catch (JSONException e) {
+			log.error(e.getMessage());
 			handleException(e.getMessage(), messageContext);
 		}
+
 	}
 }

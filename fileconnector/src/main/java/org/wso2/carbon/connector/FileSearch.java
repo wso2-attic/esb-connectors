@@ -20,6 +20,7 @@ package org.wso2.carbon.connector;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Iterator;
 
 import javax.xml.stream.XMLStreamException;
 
@@ -62,9 +63,9 @@ public class FileSearch extends AbstractConnector implements Connector {
 		                                                                                           "dirpattern").toString();
 
 		boolean searchInLocal =
-		                        getParameter(messageContext, "searchinlocal") == null ? false : Boolean.parseBoolean(getParameter(
-		                                                                                                                          messageContext,
-		                                                                                                                          "searchinlocal").toString());
+		                        getParameter(messageContext, "searchinlocal") == null ? false : Boolean.getBoolean(getParameter(
+		                                                                                                                        messageContext,
+		                                                                                                                        "searchinlocal").toString());
 		if (log.isDebugEnabled()) {
 			log.info("File pattern..." + filepattern.toString());
 		}
@@ -88,12 +89,11 @@ public class FileSearch extends AbstractConnector implements Connector {
 			final String FILE_PATTERN = filepattern;
 			final String DIR_PATTERN = dirpattern;
 			final IOFileFilter filesFilter = new IOFileFilter() {
-				@Override
+
 				public boolean accept(File file, String s) {
 					return file.isFile();
 				}
 
-				@Override
 				public boolean accept(File file) {
 					return new FilePattenMatcher(FILE_PATTERN).validate(file.getName()
 					                                                        .toLowerCase());
@@ -102,23 +102,24 @@ public class FileSearch extends AbstractConnector implements Connector {
 			};
 
 			final IOFileFilter dirsFilter = new IOFileFilter() {
-				@Override
+
 				public boolean accept(File file, String s) {
 					return file.isDirectory();
 				}
 
-				@Override
 				public boolean accept(File file) {
 					return new FilePattenMatcher(DIR_PATTERN).validate(file.getName().toLowerCase());
 				}
 
 			};
 
-			Collection<File> fileList =
-			                            FileUtils.listFiles(inputDirectory, filesFilter, dirsFilter);
+			Collection fileList = FileUtils.listFiles(inputDirectory, filesFilter, dirsFilter);
 			StringBuffer sb = new StringBuffer();
 			sb.append("<result>");
-			for (File f : fileList) {
+			Iterator iterator = fileList.iterator();
+			while (iterator.hasNext()) {
+				File f = (File) iterator.next();
+
 				sb.append("<file>" + f.getName() + "</file>");
 
 			}
@@ -145,9 +146,17 @@ public class FileSearch extends AbstractConnector implements Connector {
 		try {
 			element = resultPayload.performSearchMessages(sb.toString());
 			resultPayload.preparePayload(messageContext, element);
-		} catch (XMLStreamException | IOException | JSONException e) {
+		} catch (XMLStreamException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
+		} catch (IOException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
+		} catch (JSONException e) {
+			log.error(e.getMessage());
 			handleException(e.getMessage(), messageContext);
 		}
+
 	}
 
 	/**

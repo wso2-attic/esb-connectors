@@ -63,9 +63,9 @@ public class FileCopy extends AbstractConnector implements Connector {
 		                                                                                                     messageContext,
 		                                                                                                     "newfilelocation").toString();
 		boolean isFolder =
-		                   getParameter(messageContext, "isfolder") == null ? false : Boolean.parseBoolean(getParameter(
-		                                                                                                                messageContext,
-		                                                                                                                "isfolder").toString());
+		                   getParameter(messageContext, "isfolder") == null ? false : Boolean.getBoolean(getParameter(
+		                                                                                                              messageContext,
+		                                                                                                              "isfolder").toString());
 		if (log.isDebugEnabled()) {
 			log.info("File creation started..." + filename.toString());
 			log.info("File Location..." + fileLocation.toString());
@@ -99,10 +99,17 @@ public class FileCopy extends AbstractConnector implements Connector {
 		try {
 			element = resultPayload.performSearchMessages(responce);
 			resultPayload.preparePayload(messageContext, element);
-		} catch (XMLStreamException | IOException | JSONException e) {
-			log.info(e.getMessage());
-			e.printStackTrace();
+		} catch (XMLStreamException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
+		} catch (IOException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
+		} catch (JSONException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
 		}
+
 	}
 
 	/**
