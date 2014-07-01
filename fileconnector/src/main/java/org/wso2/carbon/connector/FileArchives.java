@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 
 import javax.xml.stream.XMLStreamException;
 
@@ -78,9 +77,9 @@ public class FileArchives extends AbstractConnector implements Connector {
 		                                                                                           messageContext,
 		                                                                                           "dirpattern").toString();
 		boolean archivedirectory =
-		                           getParameter(messageContext, "archivedirectory") == null ? false : Boolean.getBoolean(getParameter(
-		                                                                                                                              messageContext,
-		                                                                                                                              "archivedirectory").toString());
+		                           getParameter(messageContext, "archivedirectory") == null ? false : Boolean.parseBoolean(getParameter(
+		                                                                                                                                messageContext,
+		                                                                                                                                "archivedirectory").toString());
 		if (log.isDebugEnabled()) {
 			log.info("File creation started..." + filename.toString());
 			log.info("File Location..." + fileLocation.toString());
@@ -94,7 +93,7 @@ public class FileArchives extends AbstractConnector implements Connector {
 		File inputDirectory = new File(fileLocation.toString());
 
 		File[] subdirs = inputDirectory.listFiles();
-		Collection fileList = new ArrayList();
+		Collection<File> fileList = new ArrayList<File>();
 		if (suffixs.equals("")) {
 			if (archivedirectory) {
 				for (File f : subdirs) {
@@ -112,7 +111,7 @@ public class FileArchives extends AbstractConnector implements Connector {
 			fileList = FileUtils.listFiles(inputDirectory, SUFFIX, true);
 		}
 
-		Collection filteredList = new ArrayList();
+		Collection<File> filteredList = new ArrayList<File>();
 		if (filepattern.equals("") && dirpattern.equals("")) {
 			filteredList = fileList;
 		} else {
@@ -122,10 +121,7 @@ public class FileArchives extends AbstractConnector implements Connector {
 			if (!dirpattern.equals("")) {
 				DIR_PATTERN = dirpattern;
 			}
-			Iterator iterator = filteredList.iterator();
-			while (iterator.hasNext()) {
-				File filterFile = (File) iterator.next();
-
+			for (File filterFile : fileList) {
 				if (new FilePattenMatcher(FILE_PATTERN).validate(filterFile.getName())) {
 					filteredList.add(filterFile);
 				} else if (filterFile.isDirectory() &&
@@ -133,7 +129,6 @@ public class FileArchives extends AbstractConnector implements Connector {
 					filteredList.add(filterFile);
 				}
 			}
-
 		}
 		try {
 			if (archiveType.equals(ArchiveType.TAR_GZIP.toString())) {
