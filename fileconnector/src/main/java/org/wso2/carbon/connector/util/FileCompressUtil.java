@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.compress.archivers.ArchiveOutputStream;
@@ -31,8 +32,8 @@ public class FileCompressUtil {
 	 * @param archiveType
 	 * @throws IOException
 	 */
-	public void compressFiles(Collection<File> files, File file, ArchiveType archiveType)
-	                                                                                     throws IOException {
+	public void compressFiles(Collection files, File file, ArchiveType archiveType)
+	                                                                               throws IOException {
 		log.info("Compressing " + files.size() + " to " + file.getAbsoluteFile());
 		// Create the output stream for the output file
 		FileOutputStream fos;
@@ -53,9 +54,13 @@ public class FileCompressUtil {
 				// support for it
 				taos.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
 				// Get to putting all the files in the compressed output file
-				for (File f : files) {
+				Iterator iterator = files.iterator();
+				while (iterator.hasNext()) {
+					File f = (File) iterator.next();
 					addFilesToCompression(taos, f, ".", ArchiveType.TAR_GZIP);
+					// do something to object here...
 				}
+
 				// Close everything up
 				taos.close();
 				fos.close();
@@ -72,8 +77,11 @@ public class FileCompressUtil {
 				zaos.setCreateUnicodeExtraFields(ZipArchiveOutputStream.UnicodeExtraFieldPolicy.ALWAYS);
 
 				// Get to putting all the files in the compressed output file
-				for (File f : files) {
+				Iterator iterator1 = files.iterator();
+				while (iterator1.hasNext()) {
+					File f = (File) iterator1.next();
 					addFilesToCompression(zaos, f, ".", ArchiveType.ZIP);
+					// do something to object here...
 				}
 
 				// Close everything up

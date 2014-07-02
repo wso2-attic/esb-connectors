@@ -181,10 +181,16 @@ public class FileCreate extends AbstractConnector implements Connector {
 		try {
 			OMElement element = resultPayload.performSearchMessages(responce);
 			resultPayload.preparePayload(messageContext, element);
-		} catch (XMLStreamException | IOException | JSONException e) {
+		} catch (XMLStreamException e) {
 			log.error(e.getMessage());
 			handleException(e.getMessage(), messageContext);
-
+		} catch (IOException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
+		} catch (JSONException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
 		}
+
 	}
 }

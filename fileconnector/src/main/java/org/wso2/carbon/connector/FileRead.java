@@ -90,10 +90,17 @@ public class FileRead extends AbstractConnector implements Connector {
 		try {
 			element = resultPayload.performSearchMessages(sb.toString());
 			resultPayload.preparePayload(messageContext, element);
-		} catch (XMLStreamException | IOException | JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (XMLStreamException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
+		} catch (IOException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
+		} catch (JSONException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
 		}
+
 	}
 
 	/**

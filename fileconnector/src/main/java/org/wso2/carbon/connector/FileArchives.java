@@ -106,6 +106,7 @@ public class FileArchives extends AbstractConnector implements Connector {
 			}
 
 		} else {
+
 			final String[] SUFFIX = suffixs.split(",".toString());// { "xls" };
 			fileList = FileUtils.listFiles(inputDirectory, SUFFIX, true);
 		}
@@ -164,8 +165,16 @@ public class FileArchives extends AbstractConnector implements Connector {
 			OMElement element = resultPayload.performSearchMessages(responce);
 			resultPayload.preparePayload(messageContext, element);
 
-		} catch (XMLStreamException | IOException | JSONException e) {
+		} catch (XMLStreamException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
+		} catch (IOException e) {
+			log.error(e.getMessage());
+			handleException(e.getMessage(), messageContext);
+		} catch (JSONException e) {
+			log.error(e.getMessage());
 			handleException(e.getMessage(), messageContext);
 		}
+
 	}
 }
