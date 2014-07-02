@@ -87,7 +87,7 @@ public class FileConnectorIntegrationWithOneProxyTest extends ConnectorIntegrati
 	/**
 	 * Positive test case for create file method with mandatory parameters.
 	 */
-	@Test(groups = { "wso2.esb" }, description = "Fileconnector rename file intergration test", dependsOnMethods = { "testCreateFile" })
+	@Test(groups = { "wso2.esb" }, description = "Fileconnector rename file intergration test", dependsOnMethods = { "testAppendFile" })
 	public void testRenameFile() throws Exception {
 
 		esbRequestHeadersMap.put("Action", "urn:rename");
