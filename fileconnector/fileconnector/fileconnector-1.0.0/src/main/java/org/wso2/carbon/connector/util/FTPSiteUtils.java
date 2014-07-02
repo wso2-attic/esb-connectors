@@ -17,7 +17,7 @@ public class FTPSiteUtils {
 		FileSystemOptions opts = new FileSystemOptions();
 
 		FtpFileSystemConfigBuilder.getInstance().setPassiveMode(opts, true);
-		FtpFileSystemConfigBuilder.getInstance().setUserDirIsRoot(opts, false);
+		
 		// SSH Key checking
 		SftpFileSystemConfigBuilder.getInstance().setStrictHostKeyChecking(opts, "no");
 
