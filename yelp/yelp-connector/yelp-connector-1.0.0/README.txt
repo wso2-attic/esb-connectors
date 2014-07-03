@@ -1,4 +1,4 @@
-Product: Integration tests for WSO2 ESB DropBox connector
+Product: Integration tests for WSO2 ESB yelp connector
 
 Pre-requisites:
 
