@@ -64,6 +64,7 @@ public class FileConnectorIntegrationWithOneProxyTest extends ConnectorIntegrati
 		                                                             esbRequestHeadersMap);
 
 		Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+	//	log.info(esbRestResponse.getBody().toString());
 		Assert.assertEquals(true, esbRestResponse.getBody().toString().contains("true"));
 
 	}
