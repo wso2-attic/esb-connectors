@@ -24,10 +24,10 @@ import javax.xml.stream.XMLStreamException;
 
 import org.apache.axiom.om.OMElement;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.vfs.FileObject;
-import org.apache.commons.vfs.FileSystemManager;
-import org.apache.commons.vfs.FileSystemOptions;
-import org.apache.commons.vfs.VFS;
+import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSystemManager;
+import org.apache.commons.vfs2.FileSystemOptions;
+import org.apache.commons.vfs2.VFS;
 import org.apache.synapse.MessageContext;
 import org.codehaus.jettison.json.JSONException;
 import org.wso2.carbon.connector.core.AbstractConnector;
