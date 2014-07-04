@@ -161,32 +161,7 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
 
 
 
-    /**
-     * Positive test case for addCheckins method with optional parameters.
-     */
-   /* @Test(priority = 2, description = "foursquare {addCheckin} integration test with optional parameters.")
-    public void testaddCheckinsWithOptionalParameters() throws IOException, JSONException, InterruptedException {
 
-        esbRequestHeadersMap.put("Action", "urn:addCheckins");
-
-        RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_addCheckins_optional.txt");
-
-        //https://api.foursquare.com/v2/checkins/add?v=20131016&venueId=fghj&broadcast=public&venue=gjjh&eventId=hkj&shout=jhl%3B&ll=33.7%2C44.2&llAcc=1&alt=0&altAcc=1-->
-        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v2/checkins/add?v=20140626&venueId=" + connectorProperties.getProperty("venueId")
-                +"&broadcast="+connectorProperties.getProperty("broadcast")+"&shout="+ connectorProperties.getProperty("shout")+"&ll="+connectorProperties.getProperty("ll")+
-                "&alt="+ connectorProperties.getProperty("alt") +"&altAcc=" +connectorProperties.getProperty("altAcc")+"&oauth_token="+connectorProperties.getProperty("accessToken");
-        //https://api.foursquare.com/v2/checkins/add?v=20131016&venueId=fghj&broadcast=public&venue=gjjh&eventId=hkj&shout=jhl%3B&ll=33.7%2C44.2&llAcc=1&alt=0&altAcc=1-->
-        //https://api.foursquare.com/v2/checkins/add?v=20131016&venueId=4d6728f6a88a6ea8aa9fe072&broadcast=public&shout=There%20are%20crayons!Crayons!&ll=23.23%2C44.54&alt=0&altAcc=1
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
-        System.out.println();
-        System.out.println();
-        System.out.println("-------------------apiRestResponseaddCheckinsOpt-------" + apiRestResponse.getBody().toString());
-        System.out.println("---------------esbrestresponseaddcheckinsOpt----" +esbRestResponse.getBody().toString());
-        //Assert.assertEquals(esbRestResponse.getBody(), apiRestResponse.getBody());
-
-
-    }
 
     /**
      * Negative test case for addCheckins method with negative parameters.
@@ -356,9 +331,6 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
 
 
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
-        System.out.println(esbRestResponse.getBody());
-        System.out.println("*********************************************************88");
-        System.out.println(apiRestResponse.getBody());
 
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 400);
@@ -391,122 +363,12 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
 
           }
 
-    /**
-     * Positive test case for getVenues method with mandatory parameters.
-     **/
-/*
-    @Test(priority = 2, description = "foursquare {getVenues} integration test with mandatory parameters.")
-    public void testgetVenuesMandatoryParameters() throws IOException, JSONException, InterruptedException {
-
-        esbRequestHeadersMap.put("Action", "urn:getVenues");
-
-        RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getVenues_mandatory.txt");
-
-
-        //https://api.foursquare.com/v2/venues/explore?v=20131016&ll=44.3%2C37.2
-        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v2/venues/explore?v=20140626&ll="+connectorProperties.getProperty("ll")
-                +"&oauth_token="+connectorProperties.getProperty("accessToken");
-
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        System.out.println();
-        System.out.println();
-        System.out.println("-------------------apiRestResponsegetVenuesMand-------" + apiRestResponse.getBody().toString());
-        System.out.println("---------------esbrestresponsegetVenuesMand---" +esbRestResponse.getBody().toString());
-        //Assert.assertEquals(esbRestResponse.getBody(), apiRestResponse.getBody());
-
-
-    }
-
-    /**
-     * Positive test case for getVenues method with optional parameters.
-     **/
-/*
-    @Test(priority = 2, description = "foursquare {getVenues} integration test with optional parameters.")
-    public void testgetVenuesOptionalParameters() throws IOException, JSONException, InterruptedException {
-
-        esbRequestHeadersMap.put("Action", "urn:getVenues");
-
-        RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getVenues_optional.txt");
-
-        // https://api.foursquare.com/v2/venues/explore?ll=40.7,-74&oauth_token=BAGX0Q33OBCBEVPOHSWYC13RV2MYQQNDZKUUWTADTXHOZ52K&v=20140701
-        //https://api.foursquare.com/v2/venues/explore?v=20131016&ll=44.3%2C37.2
-        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v2/venues/explore?v=20140626&ll="+
-                connectorProperties.getProperty("ll")+ "&llAcc="+connectorProperties.getProperty("llAcc")+ "&alt=" +
-                connectorProperties.getProperty("alt") + "&altAcc=" +connectorProperties.getProperty("altAcc") + "&radius="
-                +connectorProperties.getProperty("radius") + "&section=" +connectorProperties.getProperty("section") + "&query="+
-                connectorProperties.getProperty("query") + "&intent=" + connectorProperties.getProperty("intent")+ "&limit=" + connectorProperties.getProperty("limit")
-                 + "&novelty=" + connectorProperties.getProperty("novelty")+ "&oauth_token="+connectorProperties.getProperty("accessToken");
-
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        System.out.println();
-        System.out.println();
-        System.out.println("-------------------apiRestResponsegetVenuesOpt-------" + apiRestResponse.getBody().toString());
-        System.out.println("---------------esbrestresponsegetVenuesOpt---" +esbRestResponse.getBody().toString());
-        //Assert.assertEquals(esbRestResponse.getBody(), apiRestResponse.getBody());
-
-
-    }
-
-    /**
-     * Positive test case for addTips method with mandatory parameters.
-     **//*
-
-    @Test(priority = 2, description = "foursquare {addTips} integration test with mandatory parameters.")
-    public void testaddTipsMandatoryParameters() throws IOException, JSONException, InterruptedException {
-
-        esbRequestHeadersMap.put("Action", "urn:addTips");
-
-        RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_addTips_mandatory.txt");
-
-        //https://api.foursquare.com/v2/tips/add?v=20131016&venueId=dfvsdfds&text=great
-        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v2/tips/add?v=20140626&venueId=" +connectorProperties.getProperty("venueId")+
-        "&text="+ connectorProperties.getProperty("tip")+"&oauth_token="+connectorProperties.getProperty("accessToken");
-
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
-        System.out.println();
-        System.out.println();
-        System.out.println("-------------------apiRestResponseaddCheckinCommentman-------" + apiRestResponse.getBody().toString());
-        System.out.println("---------------esbrestresponseaddcheckinCommentMan----" +esbRestResponse.getBody().toString());
-        //Assert.assertEquals(esbRestResponse.getBody(), apiRestResponse.getBody());
-
-
-    }
-
-    *//**
-     * Positive test case for addTips method with mandatory parameters.
-     **//*
-
-    @Test(priority = 2, description = "foursquare {addTips} integration test with optional parameters.")
-    public void testaddTipsOptionalParameters() throws IOException, JSONException, InterruptedException {
-
-        esbRequestHeadersMap.put("Action", "urn:addTips");
-
-        RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_addTips_optional.txt");
-
-        //https://api.foursquare.com/v2/tips/add?v=20131016&venueId=dfvsdfds&text=great
-        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v2/tips/add?v=20140626&venueId=" +connectorProperties.getProperty("venueId")+
-                "&text="+ connectorProperties.getProperty("tip")+ "&url="+ connectorProperties.getProperty("url") +"&broadcast="
-                +connectorProperties.getProperty("broadcast")+ "&oauth_token="+connectorProperties.getProperty("accessToken");
-
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        System.out.println();
-        System.out.println();
-        System.out.println("-------------------apiRestResponseaddTipsOpt-------" + apiRestResponse.getBody().toString());
-        System.out.println("---------------esbrestresponseaddTipsOpt----" +esbRestResponse.getBody().toString());
-        //Assert.assertEquals(esbRestResponse.getBody(), apiRestResponse.getBody());
-
-
-    }
 
 
 
     //-------------------------------------------------------User Category----------------------------------------------------------------------------------------------------------------------------------
 
-    *//**
+    /**
      * Positive test case for getUserDetails method with mandatory parameters.
      */
 
@@ -528,7 +390,7 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
 
     /**
      * Negaive test case for getUserDetails method.
-     *//*
+     */
 
     @Test(priority = 1, description = "foursquare {getUserDetails} integration test with negative case.")
     public void testgetUserDetailsWithNegativeCase() throws IOException, JSONException, NoSuchAlgorithmException {
@@ -549,7 +411,7 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
 
     }
 
-    *//**
+    /**
      * Positive test case for getFriendDetails method with mandatory parameters.
      */
 
@@ -584,7 +446,7 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
             +"&oauth_token="+connectorProperties.getProperty("accessToken");
 
 
-    RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getFriendDetailsOptional.txt");
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getFriendDetailsOptional.txt");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("friends").get("count").toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("friends").get("count").toString());
@@ -592,7 +454,7 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
     }
 
     /**
-     * Negative test case for getFriendtails method
+     * Negative test case for getFriendDetails method
      */
 
    @Test(priority = 2, description = "foursquare {getFriendDetails} integration test with negative case.")
@@ -675,7 +537,6 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getMayorshipDetailsMandatory.txt");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
-        //Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("badges").getJSONObject("4f6a48ae7beb7e5831d4dffe").get("name").toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("badges").getJSONObject("4f6a48ae7beb7e5831d4dffe").get("name").toString());
 
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(),200);
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(),200);
@@ -697,8 +558,7 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
 
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getMayorshipDetailsNegative.txt");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        //System.out.println("================>"+esbRestResponse.getBody());
-        //System.out.println("\n\n\n================>"+apiRestResponse.getBody());
+
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 401);
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("meta").get("errorDetail"), apiRestResponse.getBody().getJSONObject("meta").get("errorDetail"));
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("meta").get("errorType"), apiRestResponse.getBody().getJSONObject("meta").get("errorType"));
@@ -706,90 +566,11 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
 
     }
 
-    /**
-     * Positive test case for getCheckinDetails method with mandatory parameters.
-     */
-
-    @Test(priority = 2, description = "foursquare {getUserCheckinDetails} integration test with mandatory fields.")
-    public void testgetUserCheckinDetailsWithMandatoryFields() throws IOException, JSONException, NoSuchAlgorithmException {
-
-            esbRequestHeadersMap.put("Action", "urn:getCheckinDetails");
-            String apiEndPoint = connectorProperties.getProperty("apiUrl")+"/v2/users/"+connectorProperties.getProperty("userId")
-            +"/checkins"
-            +"?v=20131213"
-            +"&oauth_token="+connectorProperties.getProperty("accessToken");
-
-        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getUserCheckinDetailsMandatory.txt");
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-
-        //Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("checkins").get("count").toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("checkins").get("count").toString());
-
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(),200);
-        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
-    }
 
 
     /**
-     * Positive test case for getUserCheckins method with optional parameters.(limit, offset, afterTimeStamp, beforeTimeStamp)
-     */
-/*
-    @Test(priority = 2, description = "foursquare {getUserCheckins} integration test with mandatory fields.")
-    public void testgetUserCheckinsWithOptionalFields() throws IOException, JSONException, NoSuchAlgorithmException {
-
-            esbRequestHeadersMap.put("Action", "urn:getCheckinDetails");
-            String apiEndPoint = connectorProperties.getProperty("apiUrl")+"/v2/users/"+connectorProperties.getProperty("userId")
-            +"/checkins"
-            +"?v=20131213"
-            +"&limit="+connectorProperties.getProperty("limit")
-            +"&offset="+connectorProperties.getProperty("offset")
-            +"&afterTimestamp="+connectorProperties.getProperty("afterTimestamp")
-            +"&beforeTimestamp="+connectorProperties.getProperty("beforeTimestamp")
-            +"&oauth_token="+connectorProperties.getProperty("accessToken");
-
-
-    RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getUserCheckinDetailsOptional.txt");
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-
-        //Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("checkins").get("count").toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("checkins").get("count").toString());
-
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(),200);
-        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
-    }
-
-
-    /**
-     * Negative case for getUserCheckins method
-     */
-/*
-    @Test(priority = 2, description = "foursquare {getUserCheckins} integration test with mandatory fields.")
-    public void testgetUserCheckinsWithNegativeCase() throws IOException, JSONException, NoSuchAlgorithmException {
-
-        esbRequestHeadersMap.put("Action", "urn:getUserCheckinDetails");
-        String apiEndPoint = connectorProperties.getProperty("apiUrl")+"/v2/users/"+connectorProperties.getProperty("userId")
-                +"/checkins"
-                +"?v=20140626"
-                +"&limit="+connectorProperties.getProperty("limitInvalid")
-                +"&offset="+connectorProperties.getProperty("offset")
-                +"&afterTimestamp="+connectorProperties.getProperty("afterTimestamp")
-                +"&beforeTimestamp="+connectorProperties.getProperty("beforeTimestamp")
-                +"&oauth_token="+connectorProperties.getProperty("accessToken");
-
-        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getUserCheckinDetailsNegative.txt");
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-
-        System.out.println(esbRestResponse.getBody());
-        System.out.println(apiRestResponse.getBody());
-       // Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
-      //  Assert.assertEquals(esbRestResponse.getBody().getJSONObject("meta").get("errorDetail"), apiRestResponse.getBody().getJSONObject("meta").get("errorDetail"));
-      //  Assert.assertEquals(esbRestResponse.getBody().getJSONObject("meta").get("errorType"), apiRestResponse.getBody().getJSONObject("meta").get("errorType"));
-      //  Assert.assertEquals(esbRestResponse.getBody().getJSONObject("meta").get("code"), apiRestResponse.getBody().getJSONObject("meta").get("code"));
-
-
-    }
-
-    *//**
      * Positive test case for getUserTips method with mandatory parameters.
-     *//*
+     */
 
     @Test(priority = 2, description = "foursquare {getTipsDetails} integration test with mandatory fields.")
     public void testgetTipsDetailsWithMandatoryFields() throws IOException, JSONException, NoSuchAlgorithmException {
@@ -801,7 +582,7 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
             +"&oauth_token="+connectorProperties.getProperty("accessToken");
 
 
-    RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getTipsDetailsMandatory.txt");
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getTipsDetailsMandatory.txt");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("tips").get("count").toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("tips").get("count").toString());
@@ -810,9 +591,9 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(),200);
     }
 
-    *//**
+    /**
      * Positive test case for getTipsDetails method with optional parameters.
-     *//*
+     */
 
     @Test(priority = 2, description = "foursquare {getTipsDetails} integration test with optional fields.")
     public void testgetTipsDetailsWithOptionlaFields() throws IOException, JSONException, NoSuchAlgorithmException {
@@ -828,7 +609,7 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
           +"&oauth_token="+connectorProperties.getProperty("accessToken");
 
 
-  RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getTipsDetailsOptional.txt");
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getTipsDetailsOptional.txt");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("tips").get("count").toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("tips").get("count").toString());
@@ -837,7 +618,7 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
     }
 
 
-    *//**
+    /**
      * Negative test case for getUserTips method.
      */
 
@@ -883,6 +664,7 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
 
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
 
 
     }
@@ -925,8 +707,7 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
 
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_unFriendsMandatory.txt");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
-        System.out.println("================>"+apiRestResponse.getBody().toString());
-        System.out.println("\n\n\n================>"+esbRestResponse.getBody().toString());
+
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("meta").get("errorDetail").toString(), "No relationship between you and this user.");
 
