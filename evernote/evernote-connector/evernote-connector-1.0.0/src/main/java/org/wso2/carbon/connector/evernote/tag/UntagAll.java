@@ -1,18 +1,3 @@
-package org.wso2.carbon.connector.evernote.tag;
-
-import com.evernote.clients.NoteStoreClient;
-import com.evernote.edam.error.EDAMNotFoundException;
-import com.evernote.edam.error.EDAMSystemException;
-import com.evernote.edam.error.EDAMUserException;
-import com.evernote.thrift.TException;
-import org.apache.axiom.om.OMElement;
-import org.apache.synapse.MessageContext;
-import org.apache.synapse.SynapseException;
-import org.apache.synapse.SynapseLog;
-import org.wso2.carbon.connector.core.AbstractConnector;
-import org.wso2.carbon.connector.core.ConnectException;
-import org.wso2.carbon.connector.evernote.util.EvernoteUtil;
-
 /**
  *  Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
@@ -30,6 +15,22 @@ import org.wso2.carbon.connector.evernote.util.EvernoteUtil;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+package org.wso2.carbon.connector.evernote.tag;
+
+import com.evernote.clients.NoteStoreClient;
+import com.evernote.edam.error.EDAMNotFoundException;
+import com.evernote.edam.error.EDAMSystemException;
+import com.evernote.edam.error.EDAMUserException;
+import com.evernote.thrift.TException;
+import org.apache.axiom.om.OMElement;
+import org.apache.synapse.MessageContext;
+import org.apache.synapse.SynapseException;
+import org.apache.synapse.SynapseLog;
+import org.wso2.carbon.connector.core.AbstractConnector;
+import org.wso2.carbon.connector.core.ConnectException;
+import org.wso2.carbon.connector.evernote.util.EvernoteUtil;
+
 
 public class UntagAll extends AbstractConnector {
     @Override

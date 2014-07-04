@@ -1,3 +1,23 @@
+
+/**
+ *  Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *
+ *  WSO2 Inc. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+
 package org.wso2.carbon.connector.evernote.util;
 
 import com.evernote.auth.EvernoteAuth;
@@ -28,23 +48,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
 import java.util.Properties;
 
-/**
- *  Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
- *
- *  WSO2 Inc. licenses this file to you under the Apache License,
- *  Version 2.0 (the "License"); you may not use this file except
- *  in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
 
 public class EvernoteUtil {
 
@@ -55,10 +58,6 @@ public class EvernoteUtil {
     public static final String MIME = "mime";
     public static final String FILE_NAME ="fileName";
     public static final String NOTE_GUID ="noteGuid";
-    public static final String WITH_CONTENT = "withContent";
-    public static final String WITH_RESOURCES_DATA = "withResourcesData";
-    public static final String WITH_RESOURCES_RECOGNITION = "withResourcesRecognition";
-    public static final String WITH_RESOURCES_ALTERNATE_DATA = "withResourcesAlternateData";
     public static final String NOTE_ACTIVE = "active";
     public static final String TAG_NAME = "tagName";
     public static final String TAG_PARENT_GUID = "parentGuid";
