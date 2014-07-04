@@ -1,4 +1,4 @@
-Product: Integration tests for WSO2 ESB DropBox connector
+Product: Integration tests for WSO2 ESB Evernote connector
 
 Pre-requisites:
 
@@ -14,7 +14,7 @@ Tested Platform:
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{PATH_TO_SOURCE_BUNDLE}/dropbox-connector/dropbox-connector-1.0.0/org.wso2.carbon.connector/repository/"
+ 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{PATH_TO_SOURCE_BUNDLE}/evernote-connector/evernote-connector-1.0.0/org.wso2.carbon.connector/repository/"
 
  
  2. Create a Evernote account and derive the developer token:
@@ -23,7 +23,7 @@ STEPS:
 
 
 
- 3. Update the Evernote properties file at location "{PATH_TO_SOURCE_BUNDLE}/dropbox-connector/dropbox-connector-1.0.0/src/test/resources/artifacts/ESB/connector/config" as below.
+ 3. Update the Evernote properties file at location "{PATH_TO_SOURCE_BUNDLE}/evernote-connector/evernote-connector-1.0.0/src/test/resources/artifacts/ESB/connector/config" as below.
 
 	i) developerToken - Use the developer token you got from step 3.
 	ii)noteStoreUrl - Use the notestore url that you got from step 3
