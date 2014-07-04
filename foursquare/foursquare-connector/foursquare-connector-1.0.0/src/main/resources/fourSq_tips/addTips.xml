@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="addTips" xmlns="http://ws.apache.org/ns/synapse">
+
+    <parameter name="venueId" description="Venue ID of the check-in" />
+    <parameter name="tip" description="Tip on the venue" />
+
+    <!--optional parameters -->
+    <parameter name="url" description="A URL related to this tip"/>
+    <parameter name="broadcast" description="Whether to broadcast this tip"/>
+
+
+    <!-- https://api.foursquare.com/v2/tips/add?v=20131016&venueId=dfvsdfds&text=great-->
+
+    <sequence>
+        <property name="HTTP_METHOD" value="POST" scope="axis2" type="STRING"/>
+        <property name="uri.var.venueId" expression="$func:venueId" scope="default" type="STRING" />
+        <property name="Accept-Encoding" scope="transport" action="remove"/>
+        <property name="messageType" value="application/json" scope="axis2" type="STRING"/>
+        <property name="uri.var.tip" expression="$func:tip" scope="default" type="STRING" />
+        <property name="uri.var.url" expression="$func:url" scope="default"/>
+        <property name="uri.var.broadcast" expression="$func:broadcast" scope="default" />
+        <property name="parameters" expression="fn:concat(get-property('uri.var.venueId'),'&amp;text=', get-property('uri.var.tip'))" />
+
+        <!--adding optional parameters-->
+        <filter xpath="get-property('uri.var.url') = '' or not(string(get-property('uri.var.url')))">
+            <then>
+                <property name="uri.var.url" value="" />
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;url=', get-property('uri.var.url'))" />
+            </else>
+        </filter>
+
+        <filter xpath="get-property('uri.var.broadcast') = 'twitter' or get-property('uri.var.broadcast') = 'facebook' or get-property('uri.var.broadcast') = 'twitterfacebook' ">
+            <then>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;broadcast=', get-property('uri.var.broadcast'))" />
+            </then>
+            <else>
+                <property name="uri.var.broadcast" value="" />
+            </else>
+        </filter>
+
+        <payloadFactory media-type="json">
+            <format>
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                    <soapenv:Header/>
+                    <soapenv:Body/>
+                </soapenv:Envelope>
+            </format>
+            <args/>
+        </payloadFactory>
+        <property name="messageType" value="application/json" scope="axis2" />
+        <property name="uri.var.parameters" expression="get-property('parameters')"/>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.foursquare.apiUrl}/v2/tips/add?v=20140626&amp;venueId={uri.var.parameters}&amp;oauth_token={uri.var.foursquare.accessToken}" />
+            </endpoint>
+        </call>
+
+    </sequence>
+
+</template>
