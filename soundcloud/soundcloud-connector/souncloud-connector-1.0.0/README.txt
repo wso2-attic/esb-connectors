@@ -53,3 +53,8 @@ STEPS:
 NOTE : Following SoundCloud account, can be used for run the integration tests.
     Username : wso2soundcloud@gmail.com
     Password : soundcloud1234
+    Client Key: 8640b475697d4c379fa6f62c4dbee0af
+    Access token: 1-87105-103067839-90557e733573b1
+    Redirect URI: https://www.example.com/soundcloud
+    
+    
