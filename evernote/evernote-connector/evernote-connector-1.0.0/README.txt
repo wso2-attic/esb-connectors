@@ -30,7 +30,7 @@ STEPS:
 		iii)devTokenType - Use the developer token type that you choose from step 3
 
 	Following properties should be changed to facilitate the createTag test cases.
-         iv) tagName1 - Tag name to test createTag method
+        iv) tagName1 - Tag name to test createTag method
          v) tagName2 - Tag name to test createTag method
 
 	Following properties should be changed to facilitate the updateTag test cases.
