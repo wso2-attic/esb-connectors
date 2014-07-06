@@ -56,15 +56,27 @@ STEPS:
 		ii) apiUrl - api url of foursquare (https://api.foursquare.com).
 		iii) userId - id of authenticated user.
 		iv) userIdInvalid - an invalid userId to test the negative cases of user methods.
-		v) userIdToUnFriend - userId of ur friend who you want to unfriend.
+		v) userIdToUnFriend - userId of your friend who you want to unfriend.
 		vi) accessTokenInvalid - invalid accessToken to test authentication and negative cases of user methods.
-		vii) limit - 
-		viii) offset - 
-		ix) limitInvlid - 
-		x) afterTimestamp - 
-		xi) beforeTimestamp - 
-		xii) sort -
-		fousquare/foursquare-connector/foursquare-connector-1.0.0/pom.xml
+		vii) limit - Number of results to return, upto 100.
+		viii) offset - Used to page through results.
+		ix) limitInvalid - Invalid number of results to return, upto 100.
+		x) afterTimestamp - Seconds after which to look for checkins.
+		xi) beforeTimestamp - Retrieve the first results prior to these seconds since epoch.
+		xii) sort -How to sort the returned checkins.
+		xiii) broadcast- Who to broadcast this check-in to.
+		xiv) commentId - The id of the comment to remove.
+		xv) ll - Latitude and longitude of the user's location.
+		xvi) comment - The text of the comment, up to 200 characters.
+		xvii) llAcc- Accuracy of the user's latitude and longitude, in meters.
+        xviii) alt - Altitude of the user's location, in meters.
+        xix) altAcc - Vertical accuracy of the user's location, in meters.
+        xx) checkinId - The ID of the checkin to add a comment to.
+        xxi) signature -When checkins are sent to public feeds such as Twitter, foursquare appends a signature (s=XXXXXX) allowing users to bypass the friends-only access check on checkins.
+        xxii) venueId - The venue where the user is checking in.
+
+
+		foursquare/foursquare-connector/foursquare-connector-1.0.0/pom.xml
  5. Navigate to "{PATH_TO_SOURCE_BUNDLE}/fousquare/foursquare-connector/foursquare-connector-1.0.0/" and run the following command.
       $ mvn clean install
 
