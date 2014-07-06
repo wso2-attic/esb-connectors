@@ -9,7 +9,6 @@ Pre-requisites:
 
 Tested Platform: 
 
- - Microsoft WINDOWS V-7
  - UBUNTU 13.04
  - WSO2 ESB 4.8.1
 
@@ -66,5 +65,9 @@ STEPS:
 
 
 NOTE : Following Yelp account, can be used for run the integration tests.
-    Username : xxxxxxxxxx@gmail.com
-    Password : xxxxxxxx
+    Username : yelpconnector2014@gmail.com
+    Password : wso2@123
+    consumerKey : cnLWLngTVVVq1IB_jY6ATg
+    consumerKeySecret : EvogOq_n0wR3QD7P8XxLJbSyA60
+    accessToken : 6ZejUmp_x306jkcvqujEDE4xGnBLl7Z9
+    accessTokenSecret : SjebK4fuY6TAhF2Y1WngQnDcoEM
