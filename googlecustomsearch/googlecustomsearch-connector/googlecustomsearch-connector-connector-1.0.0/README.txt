@@ -55,4 +55,4 @@ NOTE => The Custom Search API allows only 100 queries per day for free,
 	
 	You can use instead of cscID. For testing use cref=http://www.guha.com/cref_cse.xml
 	or manually create a custom search engine specification and host 
-	it into your website and use it.
+	it into your website and use it
