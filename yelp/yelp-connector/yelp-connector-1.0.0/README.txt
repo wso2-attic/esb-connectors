@@ -16,36 +16,7 @@ STEPS:
 
 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{PATH_TO_SOURCE_BUNDLE}/yelp-connector/yelp-connector-1.0.0/repository/"
 
-2. This ESB should be configured as below;
-	Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
-
-   <messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
-   
-   <messageFormatter contentType="application/x-www-form-urlencoded" class="org.apache.axis2.transport.http.XFormURLEncodedFormatter"/>
-   
-   <messageFormatter contentType="text/javascript" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>	
-   
-   <messageFormatter contentType="application/octet-stream" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>	
-   
-   <messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
-   
-   <messageBuilder contentType="application/x-www-form-urlencoded" class="org.apache.synapse.commons.builders.XFormURLEncodedBuilder"/>
-   
-   <messageBuilder contentType="text/javascript" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
-   
-   <messageBuilder contentType="application/octet-stream" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
-   
-   Enable the relevant message builders and formatters in axis2 configuration file when testing file upload methods.
-   
-		Eg: Below mentioned message formatter and the builder should be enabled when uploading ".png" files to test file upload methods.
-		
-		<messageFormatter contentType="image/png" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
-
-		<messageBuilder contentType="image/png" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
-
-
 3. Make sure "integration-base" project is placed at "{PATH_TO_SOURCE_BUNDLE}/../"
-
 
 3. Create a Yelp account and get the api access keys:
 	i) 	Using the URL "http://www.yelp.com/SignUp" create a yelp account.
@@ -71,3 +42,6 @@ NOTE : Following Yelp account, can be used for run the integration tests.
     consumerKeySecret : EvogOq_n0wR3QD7P8XxLJbSyA60
     accessToken : 6ZejUmp_x306jkcvqujEDE4xGnBLl7Z9
     accessTokenSecret : SjebK4fuY6TAhF2Y1WngQnDcoEM
+
+Yelp Connector Documentation link
+    https://docs.google.com/document/d/15Se5Rr2E8f5AC_ko_Y5o4D0gYOBqu_dmUtZHpNBEwDU/edit
