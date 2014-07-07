@@ -50,9 +50,9 @@ NOTE => The Custom Search API allows only 100 queries per day for free,
 	if you want to search more than 100, you have to paid for it 
 	or create a new API key and use it.
 	
-        apiKey:AIzaSyBAj-H1k2IGT19ZTqp_UwZzJmzvzQvV4tw
+    apiKey:AIzaSyBAj-H1k2IGT19ZTqp_UwZzJmzvzQvV4tw
 	cscID:014869045608377880101:18pywcgrwls
 	
 	You can use instead of cscID. For testing use cref=http://www.guha.com/cref_cse.xml
 	or manually create a custom search engine specification and host 
-	it into your website and use it
+	it into your website and use it.
