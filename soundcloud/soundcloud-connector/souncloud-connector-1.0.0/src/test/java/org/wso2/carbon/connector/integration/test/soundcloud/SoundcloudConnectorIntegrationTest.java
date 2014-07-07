@@ -2051,8 +2051,8 @@ public void testSoundcloudActivitiesOptional() throws Exception {
 
 
 
-    //TODO
-    //TESTING COMMIT
+    //TODO: Following methods are commented as deletions can be done only once.
+
 
 
 /*    @Test(priority = 3, description = "soundcloud {deleteCommentOfTrack} integration test with optional parameters.")
