@@ -82,5 +82,5 @@ STEPS:
 
 
  NOTE : Following Foursquare account, can be used for run the integration tests.
-    Username : @gmail.com
-    Password : 
+    Username : foursquareconnector2014@gmail.com
+    Password : foursquarecon
