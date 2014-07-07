@@ -1,0 +1,57 @@
+<template name="createCreditMemo" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="orderIncrementId" description="The order increment ID." />
+	<parameter name="creditmemoData" description="The array of sales order credit memo data." />
+	<parameter name="comment" description="The comment string." />
+	<parameter name="notifyCustomer" description="The notify customer by email flag." />
+	<parameter name="includeComment" description="This flag Includes comment text into an email notification." />
+	<parameter name="refundToStoreCreditAmount" description="The Payment amount to be refunded to the customer store credit." />
+
+	<sequence>
+		<property name="uri.var.orderIncrementId" expression="$func:orderIncrementId" />
+		<property name="uri.var.creditmemoData" expression="$func:creditmemoData" />
+		<property name="uri.var.comment" expression="$func:comment" />
+		<property name="uri.var.notifyCustomer" expression="$func:notifyCustomer" />
+		<property name="uri.var.includeComment" expression="$func:includeComment" />
+		<property name="uri.var.refundToStoreCreditAmount" expression="$func:refundToStoreCreditAmount" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<salesOrderCreditmemoCreate>
+					<sessionId>$1</sessionId>
+					<orderIncrementId>$2</orderIncrementId>
+					<creditmemoData>$3</creditmemoData>
+					<comment>$4</comment>
+					<notifyCustomer>$5</notifyCustomer>
+					<includeComment>$6</includeComment>
+					<refundToStoreCreditAmount>$7</refundToStoreCreditAmount>
+				</salesOrderCreditmemoCreate>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.orderIncrementId')" />
+				<arg expression="get-property('uri.var.creditmemoData')" />
+				<arg expression="get-property('uri.var.comment')" />
+				<arg expression="get-property('uri.var.notifyCustomer')" />
+				<arg expression="get-property('uri.var.includeComment')" />
+				<arg expression="get-property('uri.var.refundToStoreCreditAmount')" />
+			</args>
+		</payloadFactory>
+
+		<!-- Remove values element via XSLT -->
+		<xslt key="magento_removeRootElement.xslt" />
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>

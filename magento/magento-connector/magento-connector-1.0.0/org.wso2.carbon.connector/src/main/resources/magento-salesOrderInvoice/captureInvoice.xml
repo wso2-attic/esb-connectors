@@ -1,0 +1,35 @@
+<template name="captureInvoice" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="invoiceIncrementId" description="The invoice increment id." />
+
+	<sequence>
+		<property name="uri.var.invoiceIncrementId" expression="$func:invoiceIncrementId" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<salesOrderInvoiceCapture>
+					<sessionId>$1</sessionId>
+					<invoiceIncrementId>$2
+					</invoiceIncrementId>
+				</salesOrderInvoiceCapture>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.invoiceIncrementId')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>

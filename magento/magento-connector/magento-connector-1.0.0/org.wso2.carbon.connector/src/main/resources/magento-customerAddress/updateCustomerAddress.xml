@@ -1,0 +1,41 @@
+<template name="updateCustomerAddress" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="addressId" description="The id of the address." />
+	<parameter name="addressData" description="The data of address." />
+
+	<sequence>
+		<property name="uri.var.addressId" expression="$func:addressId" />
+		<property name="uri.var.addressData" expression="$func:addressData" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<customerAddressUpdate>
+					<sessionId>$1</sessionId>
+					<addressId>$2</addressId>
+					<addressData>$3</addressData>
+				</customerAddressUpdate>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.addressId')" />
+				<arg expression="get-property('uri.var.addressData')" />
+			</args>
+		</payloadFactory>
+
+		<!-- Remove root element via XSLT -->
+		<xslt key="magento_removeRootElement.xslt" />
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>
