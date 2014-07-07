@@ -4,7 +4,7 @@ Pre-requisites:
 
  - Maven 3.x
  - Java 1.6 or above
- - org.wso2.esb.integration.integration-base is rquired. this test suite has been configred to download this automatically. however if its fail download following project and compile using mvn clean install command to update your local repository.
+ - org.wso2.esb.integration.integration-base is required. this test suite has been configured to download this automatically. however if its fail download following project and compile using mvn clean install command to update your local repository.
    https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
 
 Tested Platform: 
