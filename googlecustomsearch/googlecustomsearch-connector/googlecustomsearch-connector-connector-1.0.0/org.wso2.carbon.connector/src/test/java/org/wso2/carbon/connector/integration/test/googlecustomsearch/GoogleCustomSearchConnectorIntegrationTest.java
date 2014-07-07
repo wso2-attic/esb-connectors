@@ -966,7 +966,7 @@ public class GoogleCustomSearchConnectorIntegrationTest extends ConnectorIntegra
      * Positive test case for Search method with optional parameter for fields.
      */
     @Test(priority = 1, groups = {"wso2.esb"}, description = "googlecustomsearch {search} integration test with optional parameter fields.")
-    public void testSearchWithMandatoryParametersFields() throws Exception {
+    public void testSearchWithOptionalParametersFields() throws Exception {
 
         esbRequestHeadersMap.put("Action", "urn:fields");
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_fields_optional.txt");
