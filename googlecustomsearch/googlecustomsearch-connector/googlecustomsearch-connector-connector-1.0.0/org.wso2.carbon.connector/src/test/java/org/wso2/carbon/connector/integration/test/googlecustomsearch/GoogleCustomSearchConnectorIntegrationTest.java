@@ -961,4 +961,47 @@ public class GoogleCustomSearchConnectorIntegrationTest extends ConnectorIntegra
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("error").get("message"), apiRestResponse.getBody().getJSONObject("error").get("message"));
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("error").getJSONArray("errors").length(), apiRestResponse.getBody().getJSONObject("error").getJSONArray("errors").length());
     }
+    
+     /**
+     * Positive test case for Search method with optional parameter for fields.
+     */
+    @Test(priority = 1, groups = {"wso2.esb"}, description = "googlecustomsearch {search} integration test with optional parameter fields.")
+    public void testSearchWithMandatoryParametersFields() throws Exception {
+
+        esbRequestHeadersMap.put("Action", "urn:fields");
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_fields_optional.txt");
+
+        String apiEndPoint = connectorProperties.getProperty("url")
+                + "?key=" + connectorProperties.getProperty("apiKey")
+                + "&cx=" + connectorProperties.getProperty("cseID")
+                + "&q=" + connectorProperties.getProperty("query")
+                + "&fields=" + connectorProperties.getProperty("fields");
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+       }
+
+    /**
+     * Negative test case for Search method with optional parameter fields.
+     */
+    @Test(priority = 1, groups = {"wso2.esb"}, description = "googlecustomsearch {search} integration test with negative case for optional parameter fields.")
+    public void testSearchWithNegativeCaseFields() throws Exception {
+
+        esbRequestHeadersMap.put("Action", "urn:fields");
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_fields_optional_negative.txt");
+
+        String apiEndPoint = connectorProperties.getProperty("url")
+                + "?key=" + connectorProperties.getProperty("apiKey")
+                + "&cx=" + connectorProperties.getProperty("cseID")
+                + "&q=" + connectorProperties.getProperty("query")
+                + "&fields=" + connectorProperties.getProperty("invalidFields");
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("error").get("code"), apiRestResponse.getBody().getJSONObject("error").get("code"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("error").get("message"), apiRestResponse.getBody().getJSONObject("error").get("message"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("error").getJSONArray("errors").length(), apiRestResponse.getBody().getJSONObject("error").getJSONArray("errors").length());
+    }
 }
