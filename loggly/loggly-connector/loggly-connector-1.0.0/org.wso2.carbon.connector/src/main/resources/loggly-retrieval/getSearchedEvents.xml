@@ -1,0 +1,62 @@
+<template name="getSearchedEvents" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="rsid"
+		description="Rsid that was returned in search request response" />
+	<parameter name="page"
+		description="Pages to be returned, defaults to 0 which is the first page" />
+	<parameter name="format"
+		description="Data format to be returned, Options are “raw”, “csv”, or “json”" />
+	<parameter name="columns"
+		description="Comma separated list to limit result set to a list of fields" />
+	<sequence>
+		<property name="uri.var.rsid" expression="$func:rsid" />
+		<property name="uri.var.page" expression="$func:page" />
+		<property name="uri.var.format" expression="$func:format" />
+		<property name="uri.var.columns" expression="$func:columns" />
+
+		<script language="js">
+			<![CDATA[ 
+			
+			// Generate url with parameters
+			var rsid = mc.getProperty('uri.var.rsid');
+			var page = mc.getProperty('uri.var.page');
+			var format = mc.getProperty('uri.var.format');
+			var columns = mc.getProperty('uri.var.columns');
+			var urlQuery = '';
+			
+			// Append url parameters
+			if(rsid != null && rsid != ''){
+				urlQuery += 'rsid=' + encodeURIComponent(rsid) + '&';
+			}
+									
+			if(format != null && format != ''){
+				urlQuery += 'format=' + encodeURIComponent(format) + '&';
+			}
+			
+			if(columns != null && columns != ''){
+				urlQuery += 'columns=' + encodeURIComponent(columns) + '&';
+			}
+			
+			if(page != null && page != ''){
+				urlQuery += 'page=' + page + '&';
+			}
+
+			if(urlQuery!=""){
+				urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+				mc.setProperty('uri.var.urlQuery', urlQuery);
+			}			
+						
+    		]]></script>
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}/events{uri.var.urlQuery}" />
+			</endpoint>
+		</call>
+		
+    		<!-- Remove response custom header information -->
+		<header name="X-Varnish" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+	</sequence>
+</template>
