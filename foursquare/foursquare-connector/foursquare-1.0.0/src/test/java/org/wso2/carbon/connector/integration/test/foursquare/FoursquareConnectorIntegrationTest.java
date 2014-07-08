@@ -165,6 +165,31 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
 
     }
 
+    /**
+     * Positive test case for addCheckins method with optional parameters.
+     **/
+
+    @Test(priority = 1, description = "foursquare {addCheckin} integration test with optional parameters.")
+    public void testaddCheckinsWithOptionalParameters() throws IOException, JSONException, InterruptedException {
+
+        esbRequestHeadersMap.put("Action", "urn:addCheckins");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_addCheckins_optional.txt");
+
+
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v2/checkins/add?v=20140626&venueId=" + connectorProperties.getProperty("venueId")
+                +"&broadcast="+ connectorProperties.getProperty("broadcast")+ "&ll=" +connectorProperties.getProperty("ll")+ "&oauth_token="+connectorProperties.getProperty("accessToken");
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
+
+
+       Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("checkin").get("timeZoneOffset"), apiRestResponse.getBody().getJSONObject("response").getJSONObject("checkin").get("timeZoneOffset"));
+       Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("checkin").getJSONObject("score").get("total"), apiRestResponse.getBody().getJSONObject("response").getJSONObject("checkin").getJSONObject("score").get("total"));
+
+
+    }
+
 
 
 
@@ -582,7 +607,7 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
 
 
     /**
-     * Positive test case for getCheckinDetails method with mandatory parameters.
+     * Positive test case for getUserCheckinDetails method with mandatory parameters.
      */
 
 
@@ -833,8 +858,6 @@ public class FoursquareConnectorIntegrationTest extends ConnectorIntegrationTest
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 401);
     }
-
-
 
 
 
