@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="amazons3_createBucket"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <property name="accessKeyId" expression="//accessKeyId/text()"/>
+         <property name="secretAccessKey" expression="//secretAccessKey/text()"/>
+         <property name="methodType" expression="//methodType/text()"/>
+         <property name="contentType" expression="//contentType/text()"/>
+         <property name="bucketName" expression="//bucketName/text()"/>
+         <property name="isXAmzDate" expression="//isXAmzDate/text()"/>
+         <property name="xAmzSecurityToken" expression="//xAmzSecurityToken/text()"/>
+         <property name="contentMD5" expression="//contentMD5/text()"/>
+         <property name="host" expression="//host/text()"/>
+         <property name="expect" expression="//expect/text()"/>
+         <property name="contentLength" expression="//contentLength/text()"/>
+         <property name="bucketUrl" expression="//bucketUrl/text()"/>
+         <property name="bucketRegion" expression="//bucketRegion/text()"/>
+         <property name="xAmzAcl" expression="//xAmzAcl/text()"/>
+         <property name="xAmzGrantRead" expression="//xAmzGrantRead/text()"/>
+         <property name="xAmzGrantWrite" expression="//xAmzGrantWrite/text()"/>
+         <property name="xAmzGrantReadAcp" expression="//xAmzGrantReadAcp/text()"/>
+         <property name="xAmzGrantWriteAcp" expression="//xAmzGrantWriteAcp/text()"/>
+         <property name="xAmzGrantFullControl" expression="//xAmzGrantFullControl/text()"/>
+         <amazons3.init>
+            <accessKeyId>{$ctx:accessKeyId}</accessKeyId>
+            <secretAccessKey>{$ctx:secretAccessKey}</secretAccessKey>
+            <methodType>{$ctx:methodType}</methodType>
+            <contentType>{$ctx:contentType}</contentType>
+            <bucketName>{$ctx:bucketName}</bucketName>
+            <isXAmzDate>{$ctx:isXAmzDate}</isXAmzDate>
+            <expect>{$ctx:expect}</expect>
+            <contentMD5>{$ctx:contentMD5}</contentMD5>
+            <xAmzSecurityToken>{$ctx:xAmzSecurityToken}</xAmzSecurityToken>
+            <contentLength>{$ctx:contentLength}</contentLength>
+            <host>{$ctx:host}</host>
+            <xAmzAcl>{$ctx:xAmzAcl}</xAmzAcl>
+            <xAmzGrantRead>{$ctx:xAmzGrantRead}</xAmzGrantRead>
+            <xAmzGrantWrite>{$ctx:xAmzGrantWrite}</xAmzGrantWrite>
+            <xAmzGrantReadAcp>{$ctx:xAmzGrantReadAcp}</xAmzGrantReadAcp>
+            <xAmzGrantWriteAcp>{$ctx:xAmzGrantWriteAcp}</xAmzGrantWriteAcp>
+            <xAmzGrantFullControl>{$ctx:xAmzGrantFullControl}</xAmzGrantFullControl>
+         </amazons3.init>
+         <amazons3.createBucket>
+            <bucketUrl>{$ctx:bucketUrl}</bucketUrl>
+            <bucketRegion>{$ctx:bucketRegion}</bucketRegion>
+         </amazons3.createBucket>
+          <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_CODE" value="600401"/>					  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_CODE" value="600404"/>					  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+				  <case regex="403">
+                     <property name="ERROR_CODE" value="600403"/>					  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_CODE" value="600400"/>					  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <case regex="500">
+                     <property name="ERROR_CODE" value="600500"/>  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <default> 
+				     <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+                     <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </default>
+               </switch>
+               <sequence key="faultHandlerSeq" />
+            </then>
+         </filter>
+         <respond/>
+      </inSequence>
+      <outSequence>
+         <log/>
+         <respond/>
+     </outSequence> 
+   </target>
+   <description/>
+</proxy>
+                                
