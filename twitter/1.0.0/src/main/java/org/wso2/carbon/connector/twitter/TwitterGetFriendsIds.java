@@ -91,9 +91,9 @@ public class TwitterGetFriendsIds extends AbstractTwitterConnector {
 				}
 			} else if (userID != null && !userID.isEmpty()) {
 				if (count != null && !count.isEmpty()) {
-					ids = twitter.getFriendsIDs(userID, Long.parseLong(count));
+					ids = twitter.getFriendsIDs(Long.parseLong(userID), Long.parseLong(count));
 				} else {
-					ids = twitter.getFriendsIDs(userID, -1);
+					ids = twitter.getFriendsIDs(Long.parseLong(userID), -1);
 				}
 			}
 
