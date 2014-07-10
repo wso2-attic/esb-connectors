@@ -33,14 +33,14 @@ STEPS:
 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "GoodData"' in command line to import gooddata certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from gooddata with  the extension, change it accordingly. Remove the copied certificate. 
 		 
- 2. This ESB should be configured as below;
+ 2. The ESB should be configured as below;
 	Please make sure that the below mentioned Axis configurations are enabled (/repository/conf/axis2/axis2.xml).
 
 	<messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
    
 	<messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
- 3. Make sure the ESB 4.8.1 zip file is available at "<GOODDATA_CONNECTOR_HOME>/gooddata-connector/gooddata-connector-1.0.0/org.wso2.carbon.connector/repository/"
+ 3. Place the ESB 4.8.1.zip file under "<GOODDATA_CONNECTOR_HOME>/gooddata-connector/gooddata-connector-1.0.0/org.wso2.carbon.connector/repository/"
 	
  4. Create a GoodData account using the URL "https://www.gooddata.com/".	
 
@@ -68,5 +68,5 @@ STEPS:
       $ mvn clean install
 
  NOTE : Following GoodData account, can be used to run the integration tests.
-    Username : wso2connector.abdera@gmail.com
-    Password : connector1234
+    Username : gooddatacondev@gmail.com
+    Password : 1qaz2wsx@
