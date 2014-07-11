@@ -1,0 +1,38 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="apiUrl" description="The application url." />
+	<parameter name="username" description="The account username." />
+	<parameter name="password" description="The account password." />
+	<parameter name="owner" description="The account name that owns the repository." />
+
+	<sequence>
+
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.username" expression="$func:username" />
+		<property name="uri.var.password" expression="$func:password" />
+		<property name="uri.var.owner" expression="$func:owner" />
+
+		<property name="Authorization"
+			expression="fn:concat('Basic ', base64Encode(fn:concat(get-property('uri.var.username'), ':', get-property('uri.var.password'))))"
+			scope="transport" type="STRING" />
+
+		<property name="Content-Type" value="application/json" scope="transport"
+			type="STRING" />
+
+		<!-- If the apiUrl is not specified, set the default value as https://bitbucket.org/api/2.0 -->
+		<filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+			<then>
+				<property name="uri.var.apiUrl" value="https://bitbucket.org/api/2.0" />
+
+			</then>
+			<else>
+				<property name="uri.var.apiUrl"
+					expression="fn:concat(get-property('uri.var.apiUrl'),'/api/2.0')" />
+			</else>
+		</filter>
+
+		<property name="uri.var.apiUrl"
+			expression="fn:concat(get-property('uri.var.apiUrl'),'/repositories/',get-property('uri.var.owner'))" />
+
+	</sequence>
+</template>
