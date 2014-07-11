@@ -3,7 +3,7 @@ Product: Integration tests for WSO2 ESB Magento connector
 
     - Maven 3.x
     - Java 1.6 or above
-	- org.wso2.esb.integration.integration-base is rquired. this test suite has been configred to download this automatically. however if its fail download following project and compile using mvn clean install command to update your local repository.
+	- org.wso2.esb.integration.integration-base is required. this test suite has been configured to download this automatically. however if its fail download following project and compile using mvn clean install command to update your local repository.
       https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
 
     Tested Platforms: 
@@ -33,8 +33,8 @@ Steps to follow in setting integration test.
      c)  In the Admin Main Menu, go to System->Web Services->SOAP/XML-RPC-Users and Add New User assigning the above created role.
      d)  Add the username you used to create the API user to the apiUser property and the API Key for the user you created to the apiKey property in the magento.properties property file.
      e)  Update the SOAP API Url of the Magento instance in the property named apiUrl in the magento.properties property file.
-	 f)  In the Admin Main Menu, go to System->Configration->Payment Methods and then enable and configure 'Cash On Delivery Payment' payment method.
-	 g)  In the Admin Main Menu, go to System->Configration->Shipping Methods and then enable and configure 'Free Shipping' shipping method.
+	 f)  In the Admin Main Menu, go to System->Configuration->Payment Methods and then enable and configure 'Cash On Delivery Payment' payment method.
+	 g)  In the Admin Main Menu, go to System->Configuration->Shipping Methods and then enable and configure 'Free Shipping' shipping method.
 	 h)  In the Admin Main Menu, go to Customers->Manage Customers->Add New Customer and create an Admin customer in General group and add the created user id to the moveProductFromQuoteToCartCustomerId property in the connector property file.
 	 i)  In the Admin Main Menu, go to Sales->Orders->Create New Order and create an order for the above created user and set the following information for that order and set the created order id to the cancelInvoiceOptOrderIncId property in the connector property file.
 			- Set the billing and shipping address for the order.
@@ -59,7 +59,7 @@ Steps to follow in setting integration test.
 		13) cartShippingMethod is the shipping method to be set to the shopping cart.
 		14) comment is the comment used when adding the comment to the credit memo.
 		15) addComment is another comment used when adding the comments to the credit memo.
-		16) status is the status to be set when adding a comment to an order (Deafult is 'Pending status')
+		16) status is the status to be set when adding a comment to an order (Default is 'Pending status')
 		17) commentOptional is the optional comment used to add to the credit memo.
 		18) moveProductFromQuoteToCartCustomerId is the customer Id created in step 'h' for moving product from shopping cart to order.
 		19) cancelInvoiceOptOrderIncId is the order Id created for the above user which is used for moving the products into.
