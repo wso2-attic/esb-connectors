@@ -98,9 +98,9 @@ public class TwitterGetFollowers extends AbstractTwitterConnector {
 				}
 			} else if (userID != null && !userID.isEmpty()) {
 				if (count != null && !count.isEmpty()) {
-					results = twitter.getFollowersList(userID, Long.parseLong(count));
+					results = twitter.getFollowersList(Long.parseLong(userID), Long.parseLong(count));
 				} else{
-					results = twitter.getFollowersList(userID, -1);
+					results = twitter.getFollowersList(Long.parseLong(userID), -1);
 				}
 			}
 			
