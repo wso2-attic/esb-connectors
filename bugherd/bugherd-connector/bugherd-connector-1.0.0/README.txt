@@ -17,13 +17,11 @@ Steps to follow in setting integration test.
  1.  Download ESB 4.8.1 from official website.
  2.  Deploy relevant patches, if applicable.
 
-STEPS:
+STEPS: 
+ 
+ 1. Follow the below mentioned steps for adding valid certificate to access bugherd API over https
 
- 1. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{BUGHERD_CONNECTOR_HOME}/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector/repository/".
-
- 2. Follow the below mentioned steps for adding valid certificate to access bugherd API over https
-
-	i) Extract the certificate from browser by navigating to https://www.bugherd.com and place the certificate file in following location.
+	i) Extract the certificate from browser by navigating to 'https://bugherd.com' and place the certificate file in following location.
 	   "{BUGHERD_CONNECTOR_HOME}/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/"
 	  
 	ii) Navigate to "{BUGHERD_CONNECTOR_HOME}/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME" in command line to import Bugherd certificate in to keystore. Give "wso2carbon" as password.
@@ -34,8 +32,9 @@ STEPS:
 
 	iv) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" in command line to import Bugherd certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from bugherd, change it accordingly. (e.g. -.bugherd.com)
-		
- 3. Navigate to location "<ESB_HOME>/repository/conf/axis2" and add/uncomment following lines in "axis2.xml" and Message Formatters and Message Builders should be added for each of the content types of the files to be added as attachments. 
+		       CERT_NAME is name of the certificate. (e.g. bugherd)
+			   
+ 2. Navigate to location "<ESB_HOME>/repository/conf/axis2" and add/uncomment following lines in "axis2.xml" and Message Formatters and Message Builders should be added for each of the content types of the files to be added as attachments. 
 	
 	Message Formatters :-
 		
@@ -54,7 +53,9 @@ STEPS:
         <messageBuilder contentType="image/png" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>  
 		<messageBuilder contentType="application/binary" class="org.apache.axis2.builder.MultipartFormDataBuilder"/>
         <messageBuilder contentType="text/plain" class="org.apache.axis2.format.PlainTextBuilder"/>
-   
+ 
+ 3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{BUGHERD_CONNECTOR_HOME}/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector/repository/".
+
  4. Create a BugHerd account and derive the access token:
 	i) 	 Using the URL "https://www.bugherd.com/" create a BugHerd account.
 	ii)  Derive the API Key by following the instructions at "http://www.bugherd.com/api_v2".
@@ -74,9 +75,9 @@ STEPS:
 	ix)	    Leave the remaining properties unchanged.
 		
  6. Navigate to "{BUGHERD_CONNECTOR_HOME}/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+      $ mvn clean install 
 
-
- NOTE : Following BugHerd apiKey, can be used to run the integration tests.
- 
-	  apiKey=zbnljvrokbgqx4hjucgwla
+ NOTE :  
+    i)  The created trial account is only valid for 14 days.
+    ii) Following BugHerd apiKey, can be used to run the integration tests.
+ 	    apiKey=zbnljvrokbgqx4hjucgwla
