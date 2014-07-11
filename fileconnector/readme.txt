@@ -14,5 +14,8 @@ STEPS:
 
 1. Copy the ESB 4.8.1 zip to the location "File_Connector_Home/repository/"
 
-2.  Navigate to "File_Connector_Home" and run the following command.
+2. Please change the file locations with the accessible file locations in the fileconnector.xml
+    (fileconenctor.xml file can be found from <fileconnetor>/src/test/resources/artifacts/ESB/config/proxies/fileconnector/ )
+
+3.  Navigate to "File_Connector_Home" and run the following command.
       $ mvn clean install
