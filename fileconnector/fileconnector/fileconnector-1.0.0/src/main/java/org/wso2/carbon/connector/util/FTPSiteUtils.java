@@ -3,8 +3,8 @@ package org.wso2.carbon.connector.util;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemOptions;
 import org.apache.commons.vfs2.provider.ftp.FtpFileSystemConfigBuilder;
+import org.apache.commons.vfs2.provider.ftps.FtpsFileSystemConfigBuilder;
 import org.apache.commons.vfs2.provider.sftp.SftpFileSystemConfigBuilder;
-
 
 public class FTPSiteUtils {
 	/**
@@ -14,7 +14,6 @@ public class FTPSiteUtils {
 	 * @throws FileSystemException
 	 */
 	public static FileSystemOptions createDefaultOptions() throws FileSystemException {
-		// Create SFTP options
 		FileSystemOptions opts = new FileSystemOptions();
 
 		// SSH Key checking
@@ -26,10 +25,14 @@ public class FTPSiteUtils {
 		// Timeout is count by Milliseconds
 
 		SftpFileSystemConfigBuilder.getInstance().setTimeout(opts, 100000);
-		
+
 		FtpFileSystemConfigBuilder.getInstance().setPassiveMode(opts, true);
 
-	
+		FtpFileSystemConfigBuilder.getInstance().setSoTimeout(opts, 100000);
+
+		FtpsFileSystemConfigBuilder.getInstance().setPassiveMode(opts, true);
+		
 		return opts;
+
 	}
 }
