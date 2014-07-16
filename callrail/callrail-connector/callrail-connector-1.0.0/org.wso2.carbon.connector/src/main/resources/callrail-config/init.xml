@@ -1,0 +1,31 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+
+  <parameter name="apiUrl" description="The url to access the CallRail API."/>
+  <parameter name="apiKey" description="The apiKey of the account."/>
+  
+  <sequence>
+    <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
+    <property name="uri.var.apiKey" expression="$func:apiKey"/>
+    
+	<property name="Authorization"
+		expression="fn:concat('Token token=',get-property('uri.var.apiKey'))"
+		scope="transport" type="STRING" />
+
+	<property name="Content-Type" value="application/json" scope="transport"
+		type="STRING" />   
+		
+		
+	<!-- If the apiUrl is not specified, set the default value as https://api.callrail.com/v1 -->
+	<filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+		<then>
+			<property name="uri.var.apiUrl" value="https://api.callrail.com/v1" />
+
+		</then>
+		<else>
+			<property name="uri.var.apiUrl"
+				expression="fn:concat(get-property('uri.var.apiUrl'),'/v1')" />
+		</else>
+	</filter>
+    
+  </sequence>
+</template>

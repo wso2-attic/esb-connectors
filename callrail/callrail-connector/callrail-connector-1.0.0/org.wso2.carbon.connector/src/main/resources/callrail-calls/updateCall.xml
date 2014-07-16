@@ -1,0 +1,57 @@
+<template name="updateCall" xmlns="http://ws.apache.org/ns/synapse">
+
+  <parameter name="callId" description="The Id of a call nedds to be updated."/>
+  <parameter name="tag" description="The name of a Tag to associate with this call. This tag must exist."/>
+  <parameter name="note" description="Any text notes to associate with this call."/>
+  
+  <sequence>
+
+    <property name="uri.var.callId" expression="$func:callId"/>
+    <property name="uri.var.tag" expression="$func:tag"/>
+    <property name="uri.var.note" expression="$func:note"/>
+    
+    <payloadFactory media-type="json">
+      <format>
+        {
+        }
+      </format>
+    
+    </payloadFactory>
+    
+    <!--Construct payload for optional parameters -->
+		<script language="js">
+		  <![CDATA[
+	  				payload = mc.getPayloadJSON();
+	  				
+					var tag = mc.getProperty("uri.var.tag");
+					var note = mc.getProperty("uri.var.note");
+					
+									
+					if ( tag != null && tag != "") { 				
+						payload.tag = tag ;	
+					}
+					
+					if ( note != null && note != "") { 				
+						payload.note = note;			
+					}
+					
+									
+					
+					mc.setPayloadJSON(payload);	
+			]]>
+		</script>
+    
+   <call>
+      <endpoint>
+        <http method="put" uri-template="{uri.var.apiUrl}/calls/{uri.var.callId}.json"/>
+      </endpoint>
+    </call>
+    
+	<!-- Remove response custom header information -->
+	<header name="X-Runtime" scope="transport" action="remove" />
+	<header name="X-UA-Compatible" scope="transport" action="remove" />
+	<header name="X-Request-Id" scope="transport" action="remove" />
+	<header name="WWW-Authenticate" scope="transport" action="remove" /> 
+    
+  </sequence>
+</template>
