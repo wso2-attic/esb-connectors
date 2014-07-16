@@ -3,7 +3,7 @@ Product: Integration tests for WSO2 ESB Redmine connector
 
     - Maven 3.x
     - Java 1.6 or above
-	- org.wso2.esb.integration.integration-base is rquired. this test suite has been configred to download this automatically. however if its fail download following project and compile using mvn clean install command to update your local repository.
+	- The org.wso2.esb.integration.integration-base project is required. The test suite has been configured to download this project automatically. If the automatic download fails, download the following project and compile it using the mvn clean install command to update your local repository:
       https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
 
     Tested Platforms: 
@@ -20,12 +20,7 @@ Note:
 Steps to follow in setting integration test.
  1.  Download ESB 4.8.1 from official website.
  
- 2.  Deploy following patches.
-            patchjson
-            Empty-payload-patch
-            special-char-on-get
-            multipart-patch
-            http PATCH request patch
+ 2.  Deploy relevant patches, if applicable.
             
  3.  Navigate to location "/wso2esb-4.8.1/repository/conf/axis2" and add/uncomment following lines in "axis2.xml" and Message Formatters and Message Builders should be added for each of the content types of the files to be added as attachments. 
   
@@ -41,7 +36,7 @@ Steps to follow in setting integration test.
 
 			<messageBuilder contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
 
- 4.  Based on the content type of the attachment file you are adding in step 9-g-6, add the relevant message formatter and builder.
+ 4.  Based on the content type of the attachment file you are adding in step 7-g-6, add the relevant message formatter and builder.
 
             e.g. for image/png:
             <messageFormatter contentType="image/png" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
@@ -49,7 +44,7 @@ Steps to follow in setting integration test.
             <messageBuilder contentType="image/png" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
 
- 6.  Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{PATH_TO_SOURCE_BUNDLE}/redmine-connector/redmine-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 6.  Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{REDMINE_CONNECTOR_HOME}/redmine-connector/redmine-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
          
  7.  Prerequisites for Redmine Connector Integration Testing
@@ -57,9 +52,9 @@ Steps to follow in setting integration test.
      Follow these steps before start testing.
      a)  Create a fresh account in Redmine using the URL http://m.redmine.org/ with the web browser.
      b)  Login to the administrations panel of the account created using the login credentials with the specific API URL.
-     c)  Go to Administration -> Settings -> Auhtentication and enable the check box in "Enable REST web service".
+     c)  Go to Administration -> Settings -> Authentication and enable the check box in "Enable REST web service".
      d)  Go to /my/account URL of your Redmine demo site and copy the API Key from the right hand side of the screen to apiKey property in the redmine.properties property file.
-     e)  Update the API Url of the created account in the property named apiUrl in the redmine.properties property file.
+     e)  Update the API URL of the created account in the property named apiUrl in the redmine.properties property file.
      f)  Go to Administration and click on 'Load Default Configuration' to load some default settings to the demo instance of Redmine.  
         
      g)  Following fields in the property file also should be updated appropriately.
@@ -96,7 +91,7 @@ Steps to follow in setting integration test.
 
         16)   updateIssueDesc is the new description to be used for updating an issue.
 
-        17)   updateIssueFixedVersionId ia a suitable version id for an issue to updated.
+        17)   updateIssueFixedVersionId is a suitable version id for an issue to updated.
 
         18)   updateIssueCategoryId is a category id of an issue to be created or updated.
 
@@ -108,7 +103,7 @@ Steps to follow in setting integration test.
 
         22)   comments is a short description for the time entry.
 
-8.  Navigate to "{PATH_TO_SOURCE_BUNDLE}/redmine-connector/redmine-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+8.  Navigate to "{REDMINE_CONNECTOR_HOME}/redmine-connector/redmine-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
      $ mvn clean install
 
    
