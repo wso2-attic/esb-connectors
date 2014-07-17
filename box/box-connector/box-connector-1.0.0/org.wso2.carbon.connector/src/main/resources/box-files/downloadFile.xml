@@ -1,0 +1,34 @@
+<template name="downloadFile" xmlns="http://ws.apache.org/ns/synapse">
+
+  <parameter name="fileId" description="The id of the file"/>
+  <parameter name="version" description="The  specific version of this file to download."/>
+  
+  <sequence>
+  
+    <property name="uri.var.fileId" expression="$func:fileId"/>
+    <property name="uri.var.version" expression="$func:version"/>
+    
+    <script language="js">
+		<![CDATA[
+			// URI encode optional 'version' parameter
+			var uriParams = '';
+			var version  = mc.getProperty('uri.var.version');
+			if (version != null && version != "") {
+				uriParams = '?version=' + encodeURIComponent(version);
+			}
+			mc.setProperty('uri.var.uriParams', uriParams);		
+		]]>
+	</script>
+    
+    <call>
+      <endpoint>
+        <http method="get" uri-template="{uri.var.apiUrl}/2.0/files/{uri.var.fileId}/content{uri.var.uriParams}"/>
+      </endpoint>
+    </call>
+    
+    <!-- Remove response custom header information -->
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Server" scope="transport" action="remove" />
+
+  </sequence>
+</template>

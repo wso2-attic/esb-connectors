@@ -1,0 +1,55 @@
+<template name="listUsers" xmlns="http://ws.apache.org/ns/synapse">
+  <parameter name="filterTerm" description="A string used to filter the results to only users starting with the filter_term in either the name or the login"/>
+  <parameter name="limit" description="Number of search results to return"/>
+  <parameter name="offset" description="The search result at which to start the response"/>
+  
+  <sequence>
+  
+    <property name="uri.var.filterTerm" expression="$func:filterTerm"/>
+    <property name="uri.var.limit" expression="$func:limit"/>
+    <property name="uri.var.offset" expression="$func:offset"/>
+    
+    <script language="js">
+        	<![CDATA[
+                    
+                    var limit = mc.getProperty('uri.var.limit');
+                    var offset = mc.getProperty('uri.var.offset');
+                    var filterTerm = mc.getProperty('uri.var.filterTerm');
+                    var fields = mc.getProperty('uri.var.fields');
+                    var urlQuery = "";
+                    
+                    if (filterTerm != null && filterTerm !="" ){
+                    	urlQuery += 'filter_term=' + encodeURIComponent(filterTerm) + '&';
+                    }
+                                        					           
+					if (limit != null && limit != "" ) {
+						urlQuery += 'limit=' + limit + '&';												
+					}
+					
+					if (offset != null && offset != "" ) {
+						urlQuery += 'offset=' + offset + '&';	
+					}
+					
+					if (urlQuery != ""){
+					
+						if(fields != ""){
+							urlQuery = fields + '&' + urlQuery.substring(0,urlQuery.length-1);
+						}else{
+							urlQuery = '?' + urlQuery.substring(0,urlQuery.length-1);
+						}
+						mc.setProperty('uri.var.urlQuery', urlQuery);
+					}		
+        	]]>
+		</script>
+		
+    <call>
+      <endpoint>
+        <http method="get" uri-template="{uri.var.apiUrl}/2.0/users{uri.var.urlQuery}"/>
+      </endpoint>
+    </call>
+    
+       <!-- Remove response custom header information -->
+	<header name="WWW-Authenticate" scope="transport" action="remove" />
+	
+  </sequence>
+</template>

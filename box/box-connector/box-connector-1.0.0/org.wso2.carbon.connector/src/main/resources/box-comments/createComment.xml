@@ -1,0 +1,35 @@
+<template name="createComment" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="itemType" description="The type of the item that this comment will be placed on" />
+	<parameter name="itemId" description="The id of the item that this comment will be placed on" />
+	<parameter name="message" description="The text body of the comment" />
+	<sequence>
+
+		<property name="uri.var.itemType" expression="$func:itemType" />
+		<property name="uri.var.itemId" expression="$func:itemId" />
+		<property name="uri.var.message" expression="$func:message" />
+		<payloadFactory media-type="json">
+			<format>
+
+				{
+				"item":{"type":"$1","id":"$2"},
+				"message":"$3"
+				}
+
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.itemType')" />
+				<arg expression="get-property('uri.var.itemId')" />
+				<arg expression="get-property('uri.var.message')" />
+			</args>
+		</payloadFactory>
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/2.0/comments{uri.var.fields}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+	</sequence>
+</template>

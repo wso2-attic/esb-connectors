@@ -1,0 +1,36 @@
+<template name="createReceiptImage" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="user" description="The login ID of the user." />
+	<parameter name="apiUrl" description="Url of Concur API." />
+
+	<sequence>
+		<property name="uri.var.user" expression="$func:user" />
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.query" value="" />
+
+		<filter xpath="(string(get-property('uri.var.user'))) and get-property('uri.var.user') != ''">
+			<then>
+				<property name="uri.var.query" expression="fn:concat('?user=', get-property('uri.var.user'))" />
+			</then>
+		</filter>
+		
+		<!-- Force ESB to send the content length to the concur API -->
+		<property name="FORCE_HTTP_CONTENT_LENGTH" value="true" scope="axis2"/>
+ 		<property name="COPY_CONTENT_LENGTH_FROM_INCOMING" value="true" scope="axis2"/>
+
+		<call>
+			<endpoint>
+				<http method="post" 
+					uri-template="{uri.var.apiUrl}/api/v3.0/expense/receiptimages{uri.var.query}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Webserver" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="X-N" scope="transport" action="remove" />
+
+	</sequence>
+</template>

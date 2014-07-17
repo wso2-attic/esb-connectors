@@ -1,0 +1,63 @@
+<template name="search" xmlns="http://ws.apache.org/ns/synapse">
+  <parameter name="query" description="The search string"/>
+  <parameter name="fileLimit" description="Amount of file details to be returned"/>
+  <parameter name="includeDeleted" description="If this parameter is set to true, then files and folders that have been deleted will also be included in the search"/>
+  <parameter name="locale" description="The metadata returned will have its size field translated based on the given locale"/>
+  
+  <sequence>
+    <property name="uri.var.query" expression="$func:query"/>
+    <property name="uri.var.fileLimit" expression="$func:fileLimit"/>
+    <property name="uri.var.includeDeleted" expression="$func:includeDeleted"/>
+    <property name="uri.var.locale" expression="$func:locale"/>
+    <property name="uri.var.urlQuery" value="" />
+
+    <script language="js">
+        <![CDATA[                    
+                var query = mc.getProperty("uri.var.query");
+                var fileLimit = mc.getProperty("uri.var.fileLimit"); 
+                var includeDeleted = mc.getProperty("uri.var.includeDeleted");
+                var locale = mc.getProperty("uri.var.locale"); 
+                var urlQuery = "";
+                
+                // query is a mandatory parameter   
+                                                                                                                                      
+                  if (query!=null && query!= ""){
+                     urlQuery+='query='+encodeURIComponent(query)+'&';
+                  }
+                                                                             
+                //encoding optional url param variables 
+                                                 
+	              if (fileLimit != null && fileLimit != ""){
+	                 urlQuery += 'file_limit=' + encodeURIComponent(fileLimit)+'&';                
+	              } 
+	              if (includeDeleted != null && includeDeleted != ""){
+	                 urlQuery += 'include_deleted=' + encodeURIComponent(includeDeleted)+'&';                 
+	              } 
+	              if (locale != null && locale != ""){
+	                 urlQuery += 'locale=' + encodeURIComponent(locale)+'&';                          
+	              }
+	              	                                                           
+		          if(urlQuery.length!=1){
+		             urlQuery='?'+urlQuery.substring(0,urlQuery.length-1)
+		             mc.setProperty('uri.var.urlQuery', urlQuery);                               
+                  }                                      
+               ]]>
+    </script>
+      
+    <call>
+      <endpoint>
+        <http method="get" uri-template="{uri.var.apiUrl}/1/search/{uri.var.root}/{uri.var.path}{uri.var.urlQuery}"/>
+      </endpoint>
+    </call>
+    
+    <!-- Remove response custom header information -->
+	<header name="x-server-response-time" scope="transport" action="remove" />
+	<header name="x-frame-options" scope="transport" action="remove" />
+	<header name="x-dropbox-http-protocol" scope="transport" action="remove" />
+	<header name="x-dropbox-request-id" scope="transport" action="remove" />
+	<header name="X-RequestId" scope="transport" action="remove" />
+	<header name="set-cookie" scope="transport" action="remove" />
+	<header name="WWW-Authenticate" scope="transport" action="remove" />
+	
+  </sequence>
+</template>

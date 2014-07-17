@@ -1,0 +1,35 @@
+<template name="uploadFile" xmlns="http://ws.apache.org/ns/synapse">
+
+
+	<parameter name="apiUrl" description="The url of the API" />
+	<parameter name="fields" description="The fields to be returned with the output" />
+	<sequence>
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.fields" expression="$func:fields" />
+
+		<filter source="boolean(get-property('uri.var.fields'))" regex="false">
+			<then>
+				<call>
+					<endpoint>
+						<http method="post" uri-template="{uri.var.apiUrl}/api/2.0/files/content" />
+					</endpoint>
+				</call>
+			</then>
+			<else>
+				<call>
+					<endpoint>
+						<http method="post"
+							uri-template="{uri.var.apiUrl}/api/2.0/files/content?fields={uri.var.fields}" />
+					</endpoint>
+				</call>
+			</else>
+		</filter>
+
+
+
+		<!-- Remove response custom header information -->
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+
+
+	</sequence>
+</template>

@@ -1,0 +1,45 @@
+<template name="copyFile" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="fileId" description="The id of the file" />
+	<parameter name="parentId"
+		description="The ID of the destination folder" />
+	<parameter name="name" description="An optional new name for the file" />
+
+	<sequence>
+
+		<property name="uri.var.fileId" expression="$func:fileId" />
+		<property name="uri.var.parentId" expression="$func:parentId" />
+		<property name="uri.var.name" expression="$func:name" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"parent":{"id":"$1"}
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.parentId')" />
+			</args>
+		</payloadFactory>
+
+		<script language="js"><![CDATA[
+		
+			var name=mc.getProperty('uri.var.name');		
+			payload = mc.getPayloadJSON();
+			
+			if(name != null && name != ""){
+				payload.name = name;
+			}
+			
+           mc.setPayloadJSON(payload);
+         ]]></script>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/2.0/files/{uri.var.fileId}/copy{uri.var.fields}" />
+			</endpoint>
+		</call>
+		
+	    		<!-- Remove response custom header information -->
+		<header name="WWW-Authenticate" scope="transport" action="remove" /> 
+	</sequence>
+</template>
