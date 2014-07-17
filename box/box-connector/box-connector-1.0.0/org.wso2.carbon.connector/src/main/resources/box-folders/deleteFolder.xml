@@ -1,0 +1,38 @@
+<template name="deleteFolder" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="ifMatch" description="This is in the ‘etag’ field of the folder object." />
+	<parameter name="recursive" description="Whether to delete this folder if it has items inside of it" />
+	<parameter name="folderId" description="The id of the folder" />
+	<sequence>
+
+		<property name="uri.var.ifMatch" expression="$func:ifMatch" />
+		<property name="uri.var.recursive" expression="$func:recursive" />
+		<property name="uri.var.folderId" expression="$func:folderId" />
+
+		<filter source="boolean(get-property('uri.var.ifMatch'))" regex="true">
+			<then>
+				<header name="If-Match"
+					expression="get-property('uri.var.ifMatch')" scope="transport"/>
+			</then>
+		</filter>
+		
+		<script language="js">
+			<![CDATA[
+				// URI encode mandatory 'recursive' parameter
+				var recursive  = mc.getProperty('uri.var.recursive');
+				var uriParams = '?recursive=' + encodeURIComponent(recursive);
+				mc.setProperty('uri.var.uriParams', uriParams);		
+			]]>
+		</script>
+		
+		<call>
+			<endpoint>
+				<http method="delete" uri-template="{uri.var.apiUrl}/2.0/folders/{uri.var.folderId}{uri.var.uriParams}" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove response custom header information -->
+		<header name="Content-Location" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" /> 
+		
+	</sequence>
+</template>

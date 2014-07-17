@@ -1,0 +1,62 @@
+<template name="updateTimeEntry" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="id" description="The Specific entry id to update." />
+	<parameter name="projectId" description="The project id to log time on." />
+	<parameter name="issueId" description="The issue id to log time on." />
+	<parameter name="spentOn" description="The date the time was spent." />
+	<parameter name="hours" description="The number of spent hours." />
+	<parameter name="activityId" description="The id of the time activity." />
+	<parameter name="comments" description="Short description for the entry." />
+
+	<sequence>
+		<property name="uri.var.id" expression="$func:id" />
+		<property name="uri.var.projectId" expression="$func:projectId" />
+		<property name="uri.var.issueId" expression="$func:issueId" />
+		<property name="uri.var.spentOn" expression="$func:spentOn" />
+		<property name="uri.var.hours" expression="$func:hours" />
+		<property name="uri.var.activityId" expression="$func:activityId" />
+		<property name="uri.var.comments" expression="$func:comments" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"time_entry": {
+						"project_id": "$1",
+						"issue_id": "$2",
+						"spent_on": "$3",
+						"hours": "$4",
+						"activity_id": "$5",
+						"comments": "$6"
+					}
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.projectId')" />
+				<arg expression="get-property('uri.var.issueId')" />
+				<arg expression="get-property('uri.var.spentOn')" />
+				<arg expression="get-property('uri.var.hours')" />
+				<arg expression="get-property('uri.var.activityId')" />
+				<arg expression="get-property('uri.var.comments')" />
+			</args>
+		</payloadFactory>
+
+		<property name="messageType" value="application/json" scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="put" uri-template="{uri.var.apiUrl}/time_entries/{uri.var.id}.{uri.var.responseType}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-UA-Compatible" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+		<header name="ETag" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Rack-Cache" scope="transport" action="remove" />
+
+	</sequence>
+</template>
