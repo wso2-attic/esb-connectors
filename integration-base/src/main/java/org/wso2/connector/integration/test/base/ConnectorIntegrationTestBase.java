@@ -149,6 +149,11 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
         
         String connectorFileName = connectorName + ".zip";
         uploadConnector(repoLocation, mediationLibUploadStub, connectorFileName);
+		
+		 //Connector file name comes with version,however mediation process only with name.
+        connectorName=connectorName.split("-")[0];
+        this.connectorName = connectorName;
+		
         byte maxAttempts = 3;
         int sleepTimer = 30000;
         for (byte attemptCount = 0; attemptCount < maxAttempts; attemptCount++) {
@@ -499,6 +504,8 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
         
         URL url = new URL(endPoint);
         HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
+		//Disable automatic redirects
+		httpConnection.setInstanceFollowRedirects(false);
         httpConnection.setRequestMethod(httpMethod);
         
         for (String key : headersMap.keySet()) {
