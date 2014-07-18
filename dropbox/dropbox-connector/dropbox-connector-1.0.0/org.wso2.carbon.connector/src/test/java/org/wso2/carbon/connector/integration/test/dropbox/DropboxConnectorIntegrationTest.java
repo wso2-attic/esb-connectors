@@ -106,8 +106,8 @@ public class DropboxConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, description = "dropbox {ChunkUploadWithCommitChunk} integration test positive case.")
     public void testChunkUploadWithCommitChunk() throws IOException, JSONException, NoSuchAlgorithmException {
     
-        headersMap.put("Action", "urn:chunckUpload");
-        headersMap.put("Content-Type", connectorProperties.getProperty("chunckUploadContentType"));
+        headersMap.put("Action", "urn:chunkUpload");
+        headersMap.put("Content-Type", connectorProperties.getProperty("chunkUploadContentType"));
         
         
         File file = new File(pathToResourcesDirectory + connectorProperties.getProperty("chunkUploadSourcePath"));
@@ -175,7 +175,7 @@ public class DropboxConnectorIntegrationTest extends ConnectorIntegrationTestBas
         String apiRequestString =
                 connectorProperties.getProperty("contentApiUrl") + "/1/files/"
                         + connectorProperties.getProperty("root") + "/"
-                        + connectorProperties.getProperty("chunckUploadDestinationPath");
+                        + connectorProperties.getProperty("chunkUploadDestinationPath");
         InputStream downloadedFile = processForInputStream(apiRequestString, "GET", apiRequestHeadersMap,null,null);
         
         String downloadedFileHash = getFileHash(downloadedFile);
@@ -861,7 +861,7 @@ public class DropboxConnectorIntegrationTest extends ConnectorIntegrationTestBas
         String apiEndPoint =
                 connectorProperties.getProperty("dropboxApiUrl") + "/1/fileops/delete";
         RestResponse<JSONObject> response = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_cleanup.json");
-	connectorProperties.put("fileName", connectorProperties.getProperty("chunckUploadDestinationPath"));
+	connectorProperties.put("fileName", connectorProperties.getProperty("chunkUploadDestinationPath"));
 	response = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_cleanup.json");
     }
     

@@ -4,7 +4,7 @@ Pre-requisites:
 
  - Maven 3.x
  - Java 1.6 or above
- - org.wso2.esb.integration.integration-base is rquired. this test suite has been configred to download this automatically. however if its fail download following project and compile using mvn clean install command to update your local repository.
+ - The org.wso2.esb.integration.integration-base project is required. The test suite has been configured to download this project automatically. If the automatic download fails, download the following project and compile it using the mvn clean install command to update your local repository:
    https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
 
 Tested Platform: 
@@ -15,7 +15,7 @@ Tested Platform:
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{PATH_TO_SOURCE_BUNDLE}/dropbox-connector/dropbox-connector-1.0.0/org.wso2.carbon.connector/repository/"
+ 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{DROPBOX_CONNECTOR_HOME}/dropbox-connector/dropbox-connector-1.0.0/org.wso2.carbon.connector/repository/"
 
  2. This ESB should be configured as below;
 	Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
@@ -51,7 +51,7 @@ STEPS:
 	ii) Derive the access token by following the instructions at "https://www.dropbox.com/developers/core/docs#oa2-authorize".
 
 
- 4. Update the DropBox properties file at location "{PATH_TO_SOURCE_BUNDLE}/dropbox-connector/dropbox-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 4. Update the DropBox properties file at location "{DROPBOX_CONNECTOR_HOME}/dropbox-connector/dropbox-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
    
 		i) accessToken - Use the access token you got from step 3.
 
@@ -60,9 +60,9 @@ STEPS:
 		ii) uploadContentType - Content type of the file (uploadFile method).
 		iii) uploadSourcePath - File name with the extension (uploadFile method).
 		iv) contentLength - Content length of the file (uploadFile method).
-		v) chunckUploadContentType - Content type of the file (chunkUpload method).
+		v) chunkUploadContentType - Content type of the file (chunkUpload method).
 		vi) chunkUploadSourcePath - File name with the extension (chunkUpload method).
-		vii) chunckUploadDestinationPath - Destination path of the file (chunkUpload method).
+		vii) chunkUploadDestinationPath - Destination path of the file (chunkUpload method).
 		viii) bufferSize - Size of a single chunk. (chunkUpload method)
 		
 	It is optional to change the below mentioned properties unless you need to change the file and folder names, created during the integration test run.
@@ -72,7 +72,7 @@ STEPS:
 		xi) fileName - File name of the uploaded file.
 		xii) root - This parameter should always be set to "dropbox".
 		
- 5. Navigate to "{PATH_TO_SOURCE_BUNDLE}/dropbox-connector/dropbox-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 5. Navigate to "{DROPBOX_CONNECTOR_HOME}/dropbox-connector/dropbox-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
 
 
