@@ -1,0 +1,94 @@
+<template name="listCommits" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="repoSlug" description="Identifier of the repository." />
+	<parameter name="revision" description="A SHA1 value for the commit." />
+	<parameter name="branchortag" description="The branch or tag to get,for 
+												example,master or default." />
+	<parameter name="include" description="The SHA, branch, bookmark, or tag to include." />
+	<parameter name="exclude" description="The SHA, branch, bookmark, or tag to exclude." />
+
+	<sequence>
+		<property name="uri.var.repoSlug" expression="$func:repoSlug" />
+		<property name="uri.var.revision" expression="$func:revision" />
+		<property name="uri.var.branchortag" expression="$func:branchortag" />
+		<property name="uri.var.include" expression="$func:include" />
+		<property name="uri.var.exclude" expression="$func:exclude" />
+
+		<filter source="boolean(get-property('uri.var.revision'))" regex="false">
+			<then>
+				<payloadFactory media-type="json">
+					<format>
+						{
+						}
+					</format>
+				</payloadFactory>
+				
+				<script language="js">
+        		<![CDATA[     
+	                payload = mc.getPayloadJSON();               
+	                var include = mc.getProperty("uri.var.include"); 
+	                var exclude = mc.getProperty("uri.var.exclude");
+				
+					if(include != null && include != ""){
+						payload.include = include;
+					}
+					
+					if(exclude != null && exclude != ""){
+						payload.exclude = exclude;
+					}
+		          	 mc.setPayloadJSON(payload);                                     
+               ]]>
+				</script>
+
+				<filter
+					xpath="((string(get-property('include'))) and get-property('include') != '') or 
+				    ((string(get-property('exclude'))) and get-property('exclude') != '')">
+					<then>
+
+						<property name="messageType" value="application/x-www-form-urlencoded" 
+								  scope="axis2" />
+						<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+
+						<call>
+							<endpoint>
+								<http method="post"
+								uri-template="{uri.var.apiUrl}/{uri.var.repoSlug}/commits/{uri.var.branchortag}" />
+							</endpoint>
+						</call>
+
+					</then>
+					<else>
+						<call>
+							<endpoint>
+								<http method="post"
+								uri-template="{uri.var.apiUrl}/{uri.var.repoSlug}/commits/{uri.var.branchortag}" />
+							</endpoint>
+						</call>
+					</else>
+				</filter>
+			</then>
+			<else>
+				<call>
+					<endpoint>
+						<http method="get"
+						uri-template="{uri.var.apiUrl}/{uri.var.repoSlug}/commits/{uri.var.revision}" />
+					</endpoint>
+				</call>
+			</else>
+		</filter>
+
+		<!-- Remove response custom header information -->
+	    <header name="X-Frame-Options" scope="transport" action="remove" />		
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />	
+		<header name="X-Render-Time" scope="transport" action="remove" />		
+		<header name="Vary" scope="transport" action="remove" />		
+		<header name="X-Served-By" scope="transport" action="remove" />		
+		<header name="X-Version" scope="transport" action="remove" />	
+		<header name="X-Static-Version" scope="transport" action="remove" />
+		<header name="X-Request-Count" scope="transport" action="remove" />	
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />	
+		<header name="WWW-Authenticate" scope="transport" action="remove" />	
+		<header name="Location" scope="transport" action="remove" />
+		
+	</sequence>
+</template>
