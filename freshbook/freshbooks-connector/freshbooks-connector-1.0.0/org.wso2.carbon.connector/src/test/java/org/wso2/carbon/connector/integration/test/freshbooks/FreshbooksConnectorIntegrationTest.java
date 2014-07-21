@@ -548,7 +548,7 @@ public class FreshbooksConnectorIntegrationTest extends ConnectorIntegrationTest
     /**
      * Positive test case for deleteCategory method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListCategoryNegativeCase" }, description = "Freshbooks {deleteCategory} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, priority = 2, description = "Freshbooks {deleteCategory} integration test with mandatory parameters.")
     public void testDeleteCategoryWithMandatoryParameters() throws Exception {
     
         esbRequestHeadersMap.put("Action", "urn:deleteCategory");
@@ -569,7 +569,7 @@ public class FreshbooksConnectorIntegrationTest extends ConnectorIntegrationTest
     /**
      * Negative test case for deleteCategory method.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testDeleteCategoryWithMandatoryParameters" }, description = "Freshbooks {deleteCategory} integration test with negative.")
+    @Test(groups = { "wso2.esb" }, priority = 3, description = "Freshbooks {deleteCategory} integration test with negative.")
     public void testDeleteCategoryNegativeCase() throws Exception {
     
         esbRequestHeadersMap.put("Action", "urn:deleteCategory");
