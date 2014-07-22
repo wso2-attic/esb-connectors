@@ -43,7 +43,7 @@ STEPS:
  
       i) consumerKey - Use the consumerKey you got from step 3 iv).
 	
-	 ii) consumerSecret - Use the consumerSecret you got from step 3 iv).
+	   ii) consumerSecret - Use the consumerSecret you got from step 3 iv).
 	
     iii) accessToken - Use the accessToken you got from step 3 iv).
    
@@ -59,7 +59,7 @@ STEPS:
    
      ix) accountNameOptional - Give a name for the account.
 	
-	  x) customerNameMandatory - Give a name for the customer.
+	    x) customerNameMandatory - Give a name for the customer.
 	
      xi) customerNameOptional - Give a name for the customer.
    
@@ -67,9 +67,9 @@ STEPS:
    
    xiii) vendorDisplayName2 - Give a name for the vendor.
 	
-	xiv) itemNameMandatory - Give a name for the item.
+	  xiv) itemNameMandatory - Give a name for the item.
 	
-	 xv) itemNameOptional - Give a name for the item.
+	   xv) itemNameOptional - Give a name for the item.
 	
     xvi) docNumber - 500
    
@@ -85,7 +85,7 @@ STEPS:
 
    xxii) txnDate - Date after you create the inventory.
    
-   xxiii)inventoryStartDate - Provide any valid date in the format of YYYY-MM-DD (e.g :- 2014-04-01)
+  xxiii) inventoryStartDate - Provide any valid date in the format of YYYY-MM-DD (e.g :- 2014-04-01)
    
    xxiv) acceptedDate - Provide any valid date in the format of YYYY-MM-DD (e.g :- 2014-04-01)
    
@@ -93,7 +93,9 @@ STEPS:
    
    xxvi) shipDate - Provide any valid date in the format of YYYY-MM-DD (e.g :- 2014-04-01)
    
-   xxvii)serviceDate - Provide any valid date in the format of YYYY-MM-DD (e.g :- 2014-04-01)
+  xxvii) serviceDate - Provide any valid date in the format of YYYY-MM-DD (e.g :- 2014-04-01)
+
+ xxviii) currencyRef - The currency ref provided must be for the particular region specified (e.g:- 'USD or LKR' for USA)
    
    Repeat viii) to xv) before each run.  
     

@@ -1039,8 +1039,6 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
         Assert.assertEquals(esbResponseObject.getJSONObject("MetaData").getString("CreateTime"), apiResponseObject
                 .getJSONObject("MetaData").getString("CreateTime"));
         Assert.assertEquals(esbResponseObject.getString("DocNumber"), apiResponseObject.getString("DocNumber"));
-        Assert.assertEquals(esbResponseObject.getString("ApplyTaxAfterDiscount"),
-                apiResponseObject.getString("ApplyTaxAfterDiscount"));
         Assert.assertEquals(esbResponseObject.getString("TxnDate"), apiResponseObject.getString("TxnDate"));
     }
     
@@ -1070,8 +1068,6 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
         Assert.assertEquals(esbResponseObject.getJSONObject("MetaData").getString("CreateTime"), apiResponseObject
                 .getJSONObject("MetaData").getString("CreateTime"));
         Assert.assertEquals(esbResponseObject.getString("DocNumber"), apiResponseObject.getString("DocNumber"));
-        Assert.assertEquals(esbResponseObject.getString("ApplyTaxAfterDiscount"),
-                apiResponseObject.getString("ApplyTaxAfterDiscount"));
         Assert.assertEquals(esbResponseObject.getString("ExpirationDate"),
                 apiResponseObject.getString("ExpirationDate"));
         Assert.assertEquals(esbResponseObject.getJSONObject("BillAddr").getString("City"), apiResponseObject
@@ -1121,6 +1117,7 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
         esbRequestHeadersMap.put("Action", "urn:createBillPayment");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createBillPayment_mandatory.json");
+        
         JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("BillPayment");
         String billPaymentId = esbResponseObject.getString("Id");
         
