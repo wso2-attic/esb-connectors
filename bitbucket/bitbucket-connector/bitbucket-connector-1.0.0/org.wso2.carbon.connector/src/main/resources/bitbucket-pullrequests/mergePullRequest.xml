@@ -1,0 +1,67 @@
+<template name="mergePullRequest" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="repoSlug" description="Identifier of the repository." />
+	<parameter name="pullRequestId" description="The pullrequest identifier." />
+	<parameter name="message" description="The message that will be used for the merge commit." />
+	<parameter name="closeSourceBranch" description="Override the value of close_source_branch that was used at the time of pull request creation." />
+
+	<sequence>
+		<property name="uri.var.repoSlug" expression="$func:repoSlug" />
+		<property name="uri.var.pullRequestId" expression="$func:pullRequestId" />
+		<property name="uri.var.message" expression="$func:message" />
+		<property name="uri.var.closeSourceBranch" expression="$func:closeSourceBranch" />
+
+		
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"message":"$1"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.message')" />
+			</args>
+		</payloadFactory>
+
+		<!-- Construct payload for optional parameters -->
+		<script language="js">
+		<![CDATA[
+		
+			//payload variables
+			var closeSourceBranch = mc.getProperty("uri.var.closeSourceBranch");
+			
+			payload = mc.getPayloadJSON();
+						
+			if (closeSourceBranch != null && closeSourceBranch != "") {
+				payload.closeSourceBranch = eval("(" + closeSourceBranch + ")");
+			}
+			
+			mc.setPayloadJSON(payload);	
+		]]>
+		</script>
+
+		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+		
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/{uri.var.repoSlug}/pullrequests/{uri.var.pullRequestId}/merge" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="X-Render-Time" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="X-Served-By" scope="transport" action="remove" />
+		<header name="X-Version" scope="transport" action="remove" />
+		<header name="X-Static-Version" scope="transport" action="remove" />
+		<header name="X-Request-Count" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+
+	</sequence>
+</template>
+
