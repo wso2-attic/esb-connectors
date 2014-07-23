@@ -14,7 +14,7 @@ Product: Integration tests for WSO2 ESB Magento connector
 
 Note:
   This test suite can execute based on two scenarios.
-    1. Use the given test account and parameters. - in this scenario you only need to replace apiKey in property file
+    1. Use the given test account and parameters. - in this scenario you need to change the properties 2,3,4,18,19 and 20 mentioned in step 4 - 'j' in the property file
     2. Setup a new Magento instance and test based on the instructions given below
   
 Steps to follow in setting integration test.
@@ -24,7 +24,6 @@ Steps to follow in setting integration test.
 
  3.  Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Magento_Connector_Home}/magento-connector/magento-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
-         
  4.  Prerequisites for Magento Connector Integration Testing
 
      Follow these steps before start testing.
@@ -36,7 +35,7 @@ Steps to follow in setting integration test.
 	 f)  In the Admin Main Menu, go to System->Configuration->Payment Methods and then enable and configure 'Cash On Delivery Payment' payment method.
 	 g)  In the Admin Main Menu, go to System->Configuration->Shipping Methods and then enable and configure 'Free Shipping' shipping method.
 	 h)  In the Admin Main Menu, go to Customers->Manage Customers->Add New Customer and create an Admin customer in General group and add the created user id to the moveProductFromQuoteToCartCustomerId property in the connector property file.
-	 i)  In the Admin Main Menu, go to Sales->Orders->Create New Order and create an order for the above created user and set the following information for that order and set the created order id to the cancelInvoiceOptOrderIncId property in the connector property file.
+	 i)  In the Admin Main Menu, go to Sales->Orders->Create New Order and create two orders for the above created user and set the following information for those orders and set the created order id to the cancelInvoiceOptOrderIncId and orderIncrementId properties in the connector property file.
 			- Set the billing and shipping address for the order.
 			- Add a product with quantity specified.
 			- Set the payment method to 'Cash On Delivery' payment method.
@@ -63,6 +62,7 @@ Steps to follow in setting integration test.
 		17) commentOptional is the optional comment used to add to the credit memo.
 		18) moveProductFromQuoteToCartCustomerId is the customer Id created in step 'h' for moving product from shopping cart to order.
 		19) cancelInvoiceOptOrderIncId is the order Id created for the above user which is used for moving the products into.
+		20) orderIncrementId is another order Id created for the above user.
 		
  5.  Navigate to "{Magento_Connector_Home}/magento-connector/magento-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
      $ mvn clean install

@@ -79,17 +79,13 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     }
     
     /**
-     * Positive test case for moveProductFromQuoteToCart method with mandatory parameters.
-     * For this test to work you need:
-     *  1. A shopping cart that has not been converted to an order (quote)
-     *  2. A customer order which has not been converted to an invoice
-     *  3. Shipping Address set for customer
-     *  4. Customer added to cart 
-     *  5. Products added to cart
+     * Positive test case for moveProductFromQuoteToCart method with mandatory parameters. For this test to work you
+     * need: 1. A shopping cart that has not been converted to an order (quote) 2. A customer order which has not been
+     * converted to an invoice 3. Shipping Address set for customer 4. Customer added to cart 5. Products added to cart
      */
     @Test(priority = 1, groups = { "wso2.esb" }, description = "Magento {moveProductFromQuoteToCart} integration test with mandatory parameters.")
     public void testMoveProductFromQuoteToCartWithMandatoryParameters() throws Exception {
-        
+    
         // Create the quote for the operation
         SOAPEnvelope apiCreateCartSoapResponse =
                 sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_createCart.xml", parametersMap,
@@ -99,33 +95,31 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         String createdQuoteIdSecond = (String) xPathEvaluate(apiCreateCartSoapResponse, xPathExp, nameSpaceMap);
         connectorProperties.setProperty("moveProductFromQuoteToCartQuoteId", createdQuoteIdSecond);
         
-        sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_addCartProduct.xml", parametersMap, MAGENTO_ACTION,
-                SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-        sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_shoppingCartCustomerAdd.xml", parametersMap,
+        sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_addCartProduct.xml", parametersMap,
                 MAGENTO_ACTION, SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-        sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_setCartCustomerAddress.xml", parametersMap,
-                MAGENTO_ACTION, SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+        sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_shoppingCartCustomerAdd.xml",
+                parametersMap, MAGENTO_ACTION, SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+        sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_setCartCustomerAddress.xml",
+                parametersMap, MAGENTO_ACTION, SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         
         // Call the moveProductFromQuoteToCart methods through ESB.
-        SOAPEnvelope esbSoapResponse = sendSOAPRequest(proxyUrl,
-                "esb_moveProductFromQuoteToCart_mandatory.xml", parametersMap, "mediate",
-                SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-
-        OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse
-                .getBody().toString());
+        SOAPEnvelope esbSoapResponse =
+                sendSOAPRequest(proxyUrl, "esb_moveProductFromQuoteToCart_mandatory.xml", parametersMap, "mediate",
+                        SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+        
+        OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
         
         xPathExp = "string(//soapenv:Body/ns1:shoppingCartProductMoveToCustomerQuoteResponse/result/text())";
         Boolean success = Boolean.valueOf((String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap));
         
         Assert.assertTrue(success);
         
-        SOAPEnvelope apiSoapResponse = sendSOAPRequest(apiEndPoint,
-                "api_moveProductFromQuoteToCart_mandatory.xml", parametersMap, MAGENTO_ACTION,
-                SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-
-        OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse
-                .getBody().toString());
-
+        SOAPEnvelope apiSoapResponse =
+                sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory.xml", parametersMap,
+                        MAGENTO_ACTION, SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+        
+        OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse.getBody().toString());
+        
         Assert.assertTrue(apiResponseElement.toString().contains("shoppingCartItemEntity[0]"));
     }
     
@@ -134,7 +128,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
      */
     @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testMoveProductFromQuoteToCartWithMandatoryParameters" }, description = "Magento {moveProductFromQuoteToCart} integration test with optional parameters.")
     public void testMoveProductFromQuoteToCartWithOptionalParameters() throws Exception {
-        
+    
         // Create the quote for the operation
         SOAPEnvelope apiCreateCartSoapResponse =
                 sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_createCart.xml", parametersMap,
@@ -144,59 +138,55 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         String createdQuoteIdSecond = (String) xPathEvaluate(apiCreateCartSoapResponse, xPathExp, nameSpaceMap);
         connectorProperties.setProperty("moveProductFromQuoteToCartQuoteId", createdQuoteIdSecond);
         
-        sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_addCartProduct.xml", parametersMap, MAGENTO_ACTION,
-                SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-        sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_shoppingCartCustomerAdd.xml", parametersMap,
+        sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_addCartProduct.xml", parametersMap,
                 MAGENTO_ACTION, SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-        sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_setCartCustomerAddress.xml", parametersMap,
-                MAGENTO_ACTION, SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+        sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_shoppingCartCustomerAdd.xml",
+                parametersMap, MAGENTO_ACTION, SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+        sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory_setCartCustomerAddress.xml",
+                parametersMap, MAGENTO_ACTION, SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         
         // Call the moveProductFromQuoteToCart methods through ESB.
-        SOAPEnvelope esbSoapResponse = sendSOAPRequest(proxyUrl,
-                "esb_moveProductFromQuoteToCart_optional.xml", parametersMap, "mediate",
-                SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-
-        OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse
-                .getBody().toString());
+        SOAPEnvelope esbSoapResponse =
+                sendSOAPRequest(proxyUrl, "esb_moveProductFromQuoteToCart_optional.xml", parametersMap, "mediate",
+                        SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+        
+        OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
         
         xPathExp = "string(//soapenv:Body/ns1:shoppingCartProductMoveToCustomerQuoteResponse/result/text())";
         Boolean success = Boolean.valueOf((String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap));
         
         Assert.assertTrue(success);
         
-        SOAPEnvelope apiSoapResponse = sendSOAPRequest(apiEndPoint,
-                "api_moveProductFromQuoteToCart_mandatory.xml", parametersMap, MAGENTO_ACTION,
-                SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-
-        OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse
-                .getBody().toString());
-
+        SOAPEnvelope apiSoapResponse =
+                sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_mandatory.xml", parametersMap,
+                        MAGENTO_ACTION, SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+        
+        OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse.getBody().toString());
+        
         Assert.assertTrue(apiResponseElement.toString().contains("shoppingCartItemEntity[0]"));
     }
     
     /**
      * Negative test case for moveProductFromQuoteToCart method.
      */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "Magento {moveProductFromQuoteToCart} negative case integration test.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testMoveProductFromQuoteToCartWithOptionalParameters" }, description = "Magento {moveProductFromQuoteToCart} negative case integration test.")
     public void testMoveProductFromQuoteToCartNegativeCase() throws Exception {
-        
+    
         String esbFaultCode = "esbFaultCode";
         String esbFaultMessage = "esbFaultMessage";
         String apiFaultCode = "apiFaultCode";
         String apiFaultMessage = "apiFaultMessage";
         
         try {
-            sendSOAPRequest(proxyUrl,
-                    "esb_moveProductFromQuoteToCart_negative.xml", parametersMap, "mediate",
+            sendSOAPRequest(proxyUrl, "esb_moveProductFromQuoteToCart_negative.xml", parametersMap, "mediate",
                     SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         } catch (AxisFault af) {
             esbFaultCode = af.getMessage();
             esbFaultMessage = af.getFaultCodeElement().getText();
         }
-
+        
         try {
-            sendSOAPRequest(apiEndPoint,
-                    "api_moveProductFromQuoteToCart_negative.xml", parametersMap, MAGENTO_ACTION,
+            sendSOAPRequest(apiEndPoint, "api_moveProductFromQuoteToCart_negative.xml", parametersMap, MAGENTO_ACTION,
                     SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         } catch (AxisFault af) {
             apiFaultCode = af.getMessage();
@@ -209,7 +199,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for cancelOrder method with mandatory parameters.
      */
-    @Test(dependsOnMethods = { "testMoveProductFromQuoteToCartWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Magento {cancelOrder} integration test with mandatory parameters.")
+    @Test(dependsOnMethods = { "testMoveProductFromQuoteToCartNegativeCase" }, groups = { "wso2.esb" }, description = "Magento {cancelOrder} integration test with mandatory parameters.")
     public void testCancelOrderWithMandatoryParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -516,8 +506,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         Double esbResultCount = (Double) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
         Double apiResultCount = (Double) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
         
-        xPathExp =
-                "string(//soapenv:Body/ns1:catalogInventoryStockItemListResponse/result/item[1]/product_id/text())";
+        xPathExp = "string(//soapenv:Body/ns1:catalogInventoryStockItemListResponse/result/item[1]/product_id/text())";
         String esbProductId = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
         String apiProductId = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
         
@@ -543,7 +532,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for createCustomer method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListStockDataWithMandatoryParameters" }, description = "Magento {createCustomer} integration test with mandatory parameters.")
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "Magento {createCustomer} integration test with mandatory parameters.")
     public void testCreateCustomerWithMandatoryParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -600,7 +589,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for createCustomer method.
      */
-    @Test(dependsOnMethods = { "testCreateCustomerWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Magento {createCustomer} integration test negative case.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateCustomerWithOptionalParameters" }, description = "Magento {createCustomer} integration test negative case.")
     public void testCreateCustomerNegativeCase() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -984,7 +973,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for updateCustomerAddress method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateCustomerAddressWithOptionalParameters" }, description = "Magento {updateCustomerAddress} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateCustomerAddressWithMandatoryParameters" }, description = "Magento {updateCustomerAddress} integration test with optional parameters.")
     public void testUpdateCustomerAddressWithOptionalParameters() throws Exception {
     
         parametersMap.put("company", "updatedCompany");
@@ -1050,9 +1039,120 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     }
     
     /**
+     * Positive test case for deleteCustomerAddress method with mandatory parameters.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateCustomerAddressWithOptionalParameters" }, description = "Magento {deleteCustomerAddress} integration test with mandatory parameters.")
+    public void testDeleteCustomerAddressWithMandatoryParameters() throws Exception {
+    
+        String apiFaultCodeElement = "";
+        
+        SOAPEnvelope esbSoapResponse =
+                sendSOAPRequest(proxyUrl, "esb_deleteCustomerAddress_mandatory.xml", parametersMap, "mediate",
+                        SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+        
+        OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
+        
+        boolean isDeleted =
+                Boolean.valueOf((String) xPathEvaluate(esbResponseElement,
+                        "string(//soapenv:Body/ns1:customerAddressDeleteResponse/info/text())", nameSpaceMap));
+        
+        try {
+            sendSOAPRequest(apiEndPoint, "api_getCustomerAddressInfo_mandatory.xml", parametersMap, MAGENTO_ACTION,
+                    SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+            
+        } catch (AxisFault af) {
+            apiFaultCodeElement = af.getFaultCodeElement().getText();
+        }
+        
+        Assert.assertTrue(isDeleted);
+        Assert.assertEquals(Integer.parseInt(apiFaultCodeElement), 102);
+    }
+    
+    /**
+     * Negative test case for deleteCustomerAddress.
+     */
+    @Test(groups = { "wso2.esb" }, description = "Magento {deleteCustomerAddress} integration test with negative case.")
+    public void testDeleteCustomerAddressNegativeCase() throws Exception {
+    
+        String apiFaultCode = "apiFaultCode";
+        String apiFaultCodeElement = "apiFaultCodeElement";
+        String esbFaultCode = "esbFaultCode";
+        String esbFaultCodeElement = "esbFaultCodeElement";
+        try {
+            sendSOAPRequest(proxyUrl, "esb_deleteCustomerAddress_negative.xml", parametersMap, "mediate",
+                    SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+            
+        } catch (AxisFault af) {
+            esbFaultCode = af.getMessage();
+            esbFaultCodeElement = af.getFaultCodeElement().getText();
+        }
+        try {
+            sendSOAPRequest(apiEndPoint, "api_deleteCustomerAddress_negative.xml", parametersMap, MAGENTO_ACTION,
+                    SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+            
+        } catch (AxisFault af) {
+            apiFaultCode = af.getMessage();
+            apiFaultCodeElement = af.getFaultCodeElement().getText();
+        }
+        Assert.assertEquals(apiFaultCode, esbFaultCode);
+        Assert.assertEquals(apiFaultCodeElement, esbFaultCodeElement);
+    }
+    
+    /**
+     * Positive test case for deleteCustomer method with mandatory parameters.
+     */
+    @Test(expectedExceptions = AxisFault.class, dependsOnMethods = { "testDeleteCustomerAddressWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "Magento {deleteCustomer} integration test with mandatory parameters.")
+    public void testDeleteCustomerWithMandatoryParameters() throws Exception {
+    
+        SOAPEnvelope esbSoapResponse =
+                sendSOAPRequest(proxyUrl, "esb_deleteCustomer_mandatory.xml", parametersMap, "mediate",
+                        SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+        
+        OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
+        String xPathExp = "string(//soapenv:Body/ns1:customerCustomerDeleteResponse/result/text())";
+        Boolean isSuccess = Boolean.valueOf((String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap));
+        
+        Assert.assertTrue(isSuccess);
+        
+        sendSOAPRequest(apiEndPoint, "api_deleteCustomer_mandatory.xml", parametersMap, MAGENTO_ACTION,
+                SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+    }
+    
+    /**
+     * Negative test case for deleteCustomer method.
+     */
+    @Test(dependsOnMethods = { "testDeleteCustomerWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "Magento {deleteCustomer} integration test negative case.")
+    public void testDeleteCustomerNegativeCase() throws Exception {
+    
+        String apiFaultCode = "apiFaultCode";
+        String apiFaultCodeElement = "apiFaultCodeElement";
+        String esbFaultCode = "esbFaultCode";
+        String esbFaultCodeElement = "esbFaultCodeElement";
+        
+        try {
+            sendSOAPRequest(proxyUrl, "esb_deleteCustomer_negative.xml", parametersMap, "mediate",
+                    SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+        } catch (AxisFault af) {
+            esbFaultCode = af.getMessage();
+            esbFaultCodeElement = af.getFaultCodeElement().getText();
+        }
+        
+        try {
+            sendSOAPRequest(apiEndPoint, "api_deleteCustomer_negative.xml", parametersMap, MAGENTO_ACTION,
+                    SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+        } catch (AxisFault af) {
+            apiFaultCode = af.getMessage();
+            apiFaultCodeElement = af.getFaultCodeElement().getText();
+        }
+        
+        Assert.assertEquals(apiFaultCode, esbFaultCode);
+        Assert.assertEquals(apiFaultCodeElement, esbFaultCodeElement);
+    }
+    
+    /**
      * Positive test case for createShoppingCart method with mandatory parameters.
      */
-    @Test(dependsOnMethods = { "testUpdateCustomerAddressWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Magento {createShoppingCart} integration test with mandatory parameters.")
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "Magento {createShoppingCart} integration test with mandatory parameters.")
     public void testCreateShoppingCartWithMandatoryParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -1079,7 +1179,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for createShoppingCart method with optional parameters.
      */
-    @Test(dependsOnMethods = { "testCreateShoppingCartWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "Magento {createShoppingCart} integration test with optional parameters.")
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "Magento {createShoppingCart} integration test with optional parameters.")
     public void testCreateShoppingCartWithOptionalParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -1106,7 +1206,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for createShoppingCart method.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateShoppingCartWithOptionalParameters" }, description = "Magento {createShoppingCart} integration test negative case.")
+    @Test(groups = { "wso2.esb" }, description = "Magento {createShoppingCart} integration test negative case.")
     public void testCreateShoppingCartNegativeCase() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -1137,7 +1237,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for getShoppingCartInfo method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateShoppingCartNegativeCase" }, description = "Magento {getShoppingCartInfo} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateShoppingCartWithMandatoryParameters" }, description = "Magento {getShoppingCartInfo} integration test with mandatory parameters.")
     public void testGetShoppingCartInfoWithMandatoryParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -1176,7 +1276,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for getShoppingCartInfo method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetShoppingCartInfoWithMandatoryParameters" }, description = "Magento {getShoppingCartInfo} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateShoppingCartWithOptionalParameters" }, description = "Magento {getShoppingCartInfo} integration test with optional parameters.")
     public void testGetShoppingCartInfoWithOptionalParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -1215,7 +1315,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for getShoppingCartInfo method.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetShoppingCartInfoWithOptionalParameters" }, description = "Magento {getShoppingCartInfo} integration test negative case.")
+    @Test(groups = { "wso2.esb" }, description = "Magento {getShoppingCartInfo} integration test negative case.")
     public void testGetShoppingCartInfoNegativeCase() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -1246,7 +1346,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for getShoppingCartTotals method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetShoppingCartInfoNegativeCase" }, description = "Magento {getShoppingCartTotals} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetShoppingCartInfoWithMandatoryParameters" }, description = "Magento {getShoppingCartTotals} integration test with mandatory parameters.")
     public void testGetShoppingCartTotalsWithMandatoryParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -1272,13 +1372,13 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         String apiResultTitle = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
         
         Assert.assertEquals(apiItemCount, esbItemCount);
-        Assert.assertEquals(apiResultTitle, esbResultTitle);   
+        Assert.assertEquals(apiResultTitle, esbResultTitle);
     }
     
     /**
      * Positive test case for getShoppingCartTotals method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetShoppingCartTotalsWithMandatoryParameters" }, description = "Magento {getShoppingCartTotals} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetShoppingCartInfoWithOptionalParameters" }, description = "Magento {getShoppingCartTotals} integration test with optional parameters.")
     public void testGetShoppingCartTotalsWithOptionalParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -1304,13 +1404,13 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         String apiResultTitle = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
         
         Assert.assertEquals(apiItemCount, esbItemCount);
-        Assert.assertEquals(apiResultTitle, esbResultTitle);   
+        Assert.assertEquals(apiResultTitle, esbResultTitle);
     }
     
     /**
      * Negative test case for getShoppingCartTotals method.
      */
-    @Test(dependsOnMethods = { "testGetShoppingCartTotalsWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Magento {getShoppingCartTotals} integration test negative case.")
+    @Test(groups = { "wso2.esb" }, description = "Magento {getShoppingCartTotals} integration test negative case.")
     public void testGetShoppingCartTotalsNegativeCase() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -1341,7 +1441,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for setCustomerAddress method with mandatory parameters.
      */
-    @Test(dependsOnMethods = { "testGetShoppingCartTotalsNegativeCase" }, groups = { "wso2.esb" }, description = "Magento {setCustomerAddress} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetShoppingCartTotalsWithMandatoryParameters" }, description = "Magento {setCustomerAddress} integration test with mandatory parameters.")
     public void testSetCustomerAddressWithMandatoryParameters() throws Exception {
     
         parametersMap.put("setCustAddFirstName", "firstName");
@@ -1377,7 +1477,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for setCustomerAddress method with optional parameters.
      */
-    @Test(dependsOnMethods = { "testSetCustomerAddressWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "Magento {setCustomerAddress} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetShoppingCartTotalsWithOptionalParameters" }, description = "Magento {setCustomerAddress} integration test with optional parameters.")
     public void testSetCustomerAddressWithOptionalParameters() throws Exception {
     
         parametersMap.put("setCustAddFirstName", "firstName");
@@ -1413,7 +1513,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for setCustomerAddress method.
      */
-    @Test(dependsOnMethods = { "testSetCustomerAddressWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Magento {setCustomerAddress} integration test with negative case.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCustomerAddressWithMandatoryParameters" }, description = "Magento {setCustomerAddress} integration test with negative case.")
     public void testSetCustomerAddressWithNegativeCase() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -1483,7 +1583,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for setCustomerInformation method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCustomerInformationWithMandatoryParameters" }, description = "Magento {setCustomerInformation} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCustomerAddressWithOptionalParameters" }, description = "Magento {setCustomerInformation} integration test with optional parameters.")
     public void testSetCustomerInformationWithOptionalParameters() throws Exception {
     
         parametersMap.put("setCustInfoFirstName", "FIRST_NAME");
@@ -1521,7 +1621,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for setCustomerInformation method.
      */
-    @Test(dependsOnMethods = { "testSetCustomerInformationWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Magento {setCustomerInformation} integration test with negative case.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCustomerInformationWithMandatoryParameters" }, description = "Magento {setCustomerInformation} integration test with negative case.")
     public void testSetCustomerInformationWithNegativeCase() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -1588,7 +1688,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for addCartProduct method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddCartProductWithMandatoryParameters" }, description = "Magento {addCartProduct} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCustomerInformationWithOptionalParameters" }, description = "Magento {addCartProduct} integration test with optional parameters.")
     public void testAddCartProductWithOptionalParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -1622,7 +1722,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for addCartProduct method.
      */
-    @Test(groups = { "wso2.esb" }, description = "Magento {addCartProduct} integration test with negative case.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddCartProductWithMandatoryParameters" }, description = "Magento {addCartProduct} integration test with negative case.")
     public void testAddCartProductWithNegativeParameters() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -1655,7 +1755,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for updateCartProduct method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddCartProductWithMandatoryParameters" }, description = "Magento {updateCartProduct} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddCartProductWithNegativeParameters" }, description = "Magento {updateCartProduct} integration test with mandatory parameters.")
     public void testUpdateCartProductWithMandatoryParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -1672,14 +1772,15 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         /*
          * The listCartProducts method does not return the <quantity> attributes of the products it lists. There isn't a
          * getCartProduct method as well. Therefore the updated value cannot be retrieved through a direct API call and
-         * subsequently asserted. Hence only the ESB response, returned as part of updateCartProduct is asserted to true!
+         * subsequently asserted. Hence only the ESB response, returned as part of updateCartProduct is asserted to
+         * true!
          */
     }
     
     /**
      * Positive test case for updateCartProduct method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateCartProductWithMandatoryParameters" }, description = "Magento {updateCartProduct} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddCartProductWithOptionalParameters" }, description = "Magento {updateCartProduct} integration test with optional parameters.")
     public void testUpdateCartProductWithOptionalParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -1697,7 +1798,8 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         /*
          * The listCartProducts method does not return the <quantity> attributes of the products it lists. There isn't a
          * getCartProduct method as well. Therefore the updated value cannot be retrieved through a direct API call and
-         * subsequently asserted. Hence only the ESB response, returned as part of updateCartProduct is asserted to true!
+         * subsequently asserted. Hence only the ESB response, returned as part of updateCartProduct is asserted to
+         * true!
          */
         
     }
@@ -1705,7 +1807,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for updateCartProduct method.
      */
-    @Test(groups = { "wso2.esb" }, description = "Magento {updateCartProduct} integration test with negative case.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateCartProductWithMandatoryParameters" }, description = "Magento {updateCartProduct} integration test with negative case.")
     public void testUpdateCartProductWithNegativeParameters() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -1739,7 +1841,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for removeCartProduct method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateCartProductWithOptionalParameters" }, description = "Magento {removeCartProduct} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateCartProductWithNegativeParameters" }, description = "Magento {removeCartProduct} integration test with mandatory parameters.")
     public void testRemoveCartProductWithMandatoryParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -1761,14 +1863,13 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         xPathExp = "string(//product_id)";
         String apiProductList = (String) xPathEvaluate(apiSoapResponse, xPathExp, nameSpaceMap);
         
-        Assert.assertFalse(apiProductList
-                .contains(connectorProperties.getProperty("productIdMandatory")));
+        Assert.assertFalse(apiProductList.contains(connectorProperties.getProperty("productIdMandatory")));
     }
     
     /**
      * Positive test case for removeCartProduct method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testRemoveCartProductWithMandatoryParameters" }, description = "Magento {removeCartProduct} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateCartProductWithOptionalParameters" }, description = "Magento {removeCartProduct} integration test with optional parameters.")
     public void testRemoveCartProductWithOptionalParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -1790,14 +1891,13 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         xPathExp = "string(//product_id)";
         String apiProductList = (String) xPathEvaluate(apiSoapResponse, xPathExp, nameSpaceMap);
         
-        Assert.assertFalse(apiProductList
-                .contains(connectorProperties.getProperty("productIdMandatory")));
+        Assert.assertFalse(apiProductList.contains(connectorProperties.getProperty("productIdMandatory")));
     }
     
     /**
      * Negative test case for removeCartProduct method.
      */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "Magento {removeCartProduct} integration test with negative case.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testRemoveCartProductWithMandatoryParameters" }, description = "Magento {removeCartProduct} integration test with negative case.")
     public void testRemoveCartProductWithNegativeParameters() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -1831,8 +1931,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for listCartProducts method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateCartProductWithMandatoryParameters",
-            "testAddCartProductWithOptionalParameters" }, description = "Magento {listCartProducts} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testRemoveCartProductWithNegativeParameters" }, description = "Magento {listCartProducts} integration test with mandatory parameters.")
     public void testListCartProductsWithMandatoryParameters() throws Exception {
     
         String xpathExpCount = "count(//result/item)";
@@ -1872,15 +1971,15 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for listCartProducts method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListCartProductsWithMandatoryParameters" }, description = "Magento {listCartProducts} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testRemoveCartProductWithOptionalParameters" }, description = "Magento {listCartProducts} integration test with optional parameters.")
     public void testListCartProductsWithOptionalParameters() throws Exception {
     
-        String xPathExpCount  = "count(//result/item)";
+        String xPathExpCount = "count(//result/item)";
         String xPathExpName = "string(//soapenv:Body/ns1:shoppingCartProductListResponse/result/item[1]/name/text())";
         String xPathExpId =
                 "string(//soapenv:Body/ns1:shoppingCartProductListResponse/result/item[1]/product_id/text())";
         String xPathExpSku = "string(//soapenv:Body/ns1:shoppingCartProductListResponse/result/item[1]/sku/text())";
-                
+        
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_listCartProducts_optional.xml", parametersMap, "mediate",
                         SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
@@ -1946,9 +2045,9 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for setCartShippingMethod method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListCartProductsWithOptionalParameters" }, description = "Magento {setCartShippingMethod} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListCartProductsWithMandatoryParameters" }, description = "Magento {setCartShippingMethod} integration test with mandatory parameters.")
     public void testSetCartShippingMethodWithMandatoryParameters() throws Exception {
-        
+    
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_setCartShippingMethod_mandatory.xml", parametersMap, "mediate",
                         SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
@@ -1971,9 +2070,9 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for setCartShippingMethod method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCartShippingMethodWithMandatoryParameters" }, description = "Magento {setCartShippingMethod} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListCartProductsWithOptionalParameters" }, description = "Magento {setCartShippingMethod} integration test with optional parameters.")
     public void testSetCartShippingMethodWithOptionalParameters() throws Exception {
-        
+    
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_setCartShippingMethod_optional.xml", parametersMap, "mediate",
                         SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
@@ -1996,7 +2095,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for setCartShippingMethod method.
      */
-    @Test(groups = { "wso2.esb" }, description = "Magento {setCartShippingMethod} integration test with negative case.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCartShippingMethodWithMandatoryParameters" }, description = "Magento {setCartShippingMethod} integration test with negative case.")
     public void testSetCartShippingMethodWithNegativeCase() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -2027,7 +2126,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for listAvailableCartShippingMethods method with mandatory parameters.
      */
-    @Test(dependsOnMethods = { "testSetCartShippingMethodWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Magento {listAvailableCartShippingMethods} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCartShippingMethodWithNegativeCase" }, description = "Magento {listAvailableCartShippingMethods} integration test with mandatory parameters.")
     public void testListAvailableCartShippingMethodsWithMandatoryParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -2059,7 +2158,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for listAvailableCartShippingMethods method with optional parameters.
      */
-    @Test(dependsOnMethods = { "testListAvailableCartShippingMethodsWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "Magento {listAvailableCartShippingMethods} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCartShippingMethodWithOptionalParameters" }, description = "Magento {listAvailableCartShippingMethods} integration test with optional parameters.")
     public void testListAvailableCartShippingMethodsWithOptionalParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -2092,7 +2191,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for listAvailableCartShippingMethods method.
      */
-    @Test(dependsOnMethods = { "testListAvailableCartShippingMethodsWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Magento {listAvailableCartShippingMethods} integration test negative case.")
+    @Test(groups = { "wso2.esb" }, description = "Magento {listAvailableCartShippingMethods} integration test negative case.")
     public void testListAvailableCartShippingMethodsNegativeCase() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -2148,7 +2247,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for setCartPaymentMethod method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCartPaymentMethodWithMandatoryParameters" }, description = "Magento {setCartPaymentMethod} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListAvailableCartShippingMethodsWithOptionalParameters" }, description = "Magento {setCartPaymentMethod} integration test with optional parameters.")
     public void testSetCartPaymentMethodWithOptionalParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -2173,7 +2272,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for setCartPaymentMethod method.
      */
-    @Test(priority = 1, groups = { "wso2.esb" }, description = "Magento {setCartPaymentMethod} integration test with negative case.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCartPaymentMethodWithMandatoryParameters" }, description = "Magento {setCartPaymentMethod} integration test with negative case.")
     public void testSetCartPaymentMethodWithNegativeCase() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -2204,7 +2303,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for listAvailableCartPaymentMethods method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCartPaymentMethodWithOptionalParameters" }, description = "Magento {listAvailableCartPaymentMethods} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCartPaymentMethodWithNegativeCase" }, description = "Magento {listAvailableCartPaymentMethods} integration test with mandatory parameters.")
     public void testListAvailableCartPaymentMethodsWithMandatoryParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -2235,12 +2334,12 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for listAvailableCartPaymentMethods method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListAvailableCartPaymentMethodsWithMandatoryParameters" }, description = "Magento {listAvailableCartPaymentMethods} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSetCartPaymentMethodWithOptionalParameters" }, description = "Magento {listAvailableCartPaymentMethods} integration test with optional parameters.")
     public void testListAvailableCartPaymentMethodsWithOptionalParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
-                sendSOAPRequest(proxyUrl, "esb_listAvailableCartPaymentMethods_optional.xml", parametersMap,
-                        "mediate", SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+                sendSOAPRequest(proxyUrl, "esb_listAvailableCartPaymentMethods_optional.xml", parametersMap, "mediate",
+                        SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         
         OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
         
@@ -2297,7 +2396,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for createOrderFromShoppingCart method with mandatory parameters. Prerequisites of this test
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListAvailableCartPaymentMethodsWithOptionalParameters" }, description = "Magento {createOrderFromShoppingCart} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListAvailableCartPaymentMethodsWithMandatoryParameters" }, description = "Magento {createOrderFromShoppingCart} integration test with mandatory parameters.")
     public void testCreateOrderFromShoppingCartWithMandatoryParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -2324,7 +2423,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for createOrderFromShoppingCart method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateOrderFromShoppingCartWithMandatoryParameters" }, description = "Magento {createOrderFromShoppingCart} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListAvailableCartPaymentMethodsWithOptionalParameters" }, description = "Magento {createOrderFromShoppingCart} integration test with optional parameters.")
     public void testCreateOrderFromShoppingCartWithOptionalParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -2351,7 +2450,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for createOrderFromShoppingCart method.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateOrderFromShoppingCartWithOptionalParameters" }, description = "Magento {createOrderFromShoppingCart} integration test negative case.")
+    @Test(groups = { "wso2.esb" }, description = "Magento {createOrderFromShoppingCart} integration test negative case.")
     public void testCreateOrderFromShoppingCartNegativeCase() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -2382,7 +2481,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for getOrderInfo method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateOrderFromShoppingCartNegativeCase" }, description = "Magento {getOrderInfo} integration test with mandatory parameters.")
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "Magento {getOrderInfo} integration test with mandatory parameters.")
     public void testGetOrderInfoWithMandatoryParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -2403,7 +2502,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         String apiStoreId = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
         String esbStoreId = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
         
-        Assert.assertEquals(esbSalesOrderIncrementId, connectorProperties.getProperty("orderIdCreated"));
+        Assert.assertEquals(esbSalesOrderIncrementId, connectorProperties.getProperty("orderIncrementId"));
         Assert.assertEquals(esbSalesOrderIncrementId, apiSalesOrderIncrementId);
         Assert.assertEquals(apiStoreId, esbStoreId);
         
@@ -2504,7 +2603,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for addCommentToOrder method.
      */
-    @Test(priority = 1, dependsOnMethods = { "testAddCommentToOrderWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Magento {addCommentToOrder} integration test with negative case.")
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "Magento {addCommentToOrder} integration test with negative case.")
     public void testAddCommentToOrderWithNegativeCase() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -2560,13 +2659,13 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         xPathExp = "string(//soapenv:Body/ns1:salesOrderInvoiceInfoResponse/result/order_increment_id/text())";
         String apiOrderIncrementId = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
         
-        Assert.assertEquals(apiOrderIncrementId, connectorProperties.getProperty("orderIdCreated"));
+        Assert.assertEquals(apiOrderIncrementId, connectorProperties.getProperty("orderIncrementId"));
     }
     
     /**
      * Positive test case for createInvoice method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateInvoiceWithMandatoryParameters" }, description = "Magento {createInvoice} integration test with optional parameters.")
+    @Test(priority = 1, groups = { "wso2.esb" }, description = "Magento {createInvoice} integration test with optional parameters.")
     public void testCreateInvoiceWithOptionalParameters() throws Exception {
     
         SOAPEnvelope apiCreateCartSoapResponse =
@@ -2768,7 +2867,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for createShipment method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateShipmentWithMandatoryParameters" }, description = "Magento {createShipment} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateInvoiceWithOptionalParameters" }, description = "Magento {createShipment} integration test with optional parameters.")
     public void testCreateShipmentWithOptionalParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -2806,7 +2905,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for createShipment method.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateShipmentWithOptionalParameters" }, description = "Magento {createShipment} integration test negative case.")
+    @Test(groups = { "wso2.esb" }, description = "Magento {createShipment} integration test negative case.")
     public void testCreateShipmentNegativeCase() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -2837,7 +2936,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for getShipmentInfo method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateShipmentNegativeCase" }, description = "Magento {getShipmentInfo} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateShipmentWithMandatoryParameters" }, description = "Magento {getShipmentInfo} integration test with mandatory parameters.")
     public void testGetShipmentInfoWithMandatoryParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -2870,7 +2969,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for getShipmentInfo method.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetShipmentInfoWithMandatoryParameters" }, description = "Netsuite {getShipmentInfo} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, description = "Netsuite {getShipmentInfo} integration test with mandatory parameters.")
     public void testGetShipmentInfoNegativeCase() throws Exception {
     
         String apiFaultCode = "";
@@ -2904,7 +3003,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for addCommentToShipment method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetShipmentInfoNegativeCase" }, description = "Magento {addCommentToShipment} integration test with optional parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetShipmentInfoWithMandatoryParameters" }, description = "Magento {addCommentToShipment} integration test with optional parameters.")
     public void testAddCommentToShipmentWithOptionalParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -2931,7 +3030,7 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Negative test case for addCommentToShipment method.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddCommentToShipmentWithOptionalParameters" }, description = "Magento {addCommentToShipment} integration test negative case.")
+    @Test(groups = { "wso2.esb" }, description = "Magento {addCommentToShipment} integration test negative case.")
     public void testAddCommentToShipmentNegativeCase() throws Exception {
     
         String apiFaultCode = "apiFaultCode";
@@ -2962,9 +3061,9 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     /**
      * Positive test case for createCreditMemo method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddCommentToShipmentNegativeCase" }, description = "Magento {createCreditMemo} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddCommentToShipmentWithOptionalParameters" }, description = "Magento {createCreditMemo} integration test with mandatory parameters.")
     public void testCreateCreditMemoWithMandatoryParameters() throws Exception {
-           
+    
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_createCreditMemo_mandatory.xml", parametersMap, "mediate",
                         SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
@@ -3193,117 +3292,6 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         
         try {
             sendSOAPRequest(apiEndPoint, "api_addCommentToCreditMemo_negative.xml", parametersMap, MAGENTO_ACTION,
-                    SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-        } catch (AxisFault af) {
-            apiFaultCode = af.getMessage();
-            apiFaultCodeElement = af.getFaultCodeElement().getText();
-        }
-        
-        Assert.assertEquals(apiFaultCode, esbFaultCode);
-        Assert.assertEquals(apiFaultCodeElement, esbFaultCodeElement);
-    }
-    
-    /**
-     * Positive test case for deleteCustomerAddress method with mandatory parameters.
-     */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddCommentToCreditMemoWithOptionalParameters" }, description = "Magento {deleteCustomerAddress} integration test with mandatory parameters.")
-    public void testDeleteCustomerAddressWithMandatoryParameters() throws Exception {
-    
-        String apiFaultCodeElement = "";
-        
-        SOAPEnvelope esbSoapResponse =
-                sendSOAPRequest(proxyUrl, "esb_deleteCustomerAddress_mandatory.xml", parametersMap, "mediate",
-                        SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-        
-        OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
-        
-        boolean isDeleted =
-                Boolean.valueOf((String) xPathEvaluate(esbResponseElement,
-                        "string(//soapenv:Body/ns1:customerAddressDeleteResponse/info/text())", nameSpaceMap));
-        
-        try {
-            sendSOAPRequest(apiEndPoint, "api_getCustomerAddressInfo_mandatory.xml", parametersMap, MAGENTO_ACTION,
-                    SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-            
-        } catch (AxisFault af) {
-            apiFaultCodeElement = af.getFaultCodeElement().getText();
-        }
-        
-        Assert.assertTrue(isDeleted);
-        Assert.assertEquals(Integer.parseInt(apiFaultCodeElement), 102);
-    }
-    
-    /**
-     * Negative test case for deleteCustomerAddress.
-     */
-    @Test(groups = { "wso2.esb" }, description = "Magento {deleteCustomerAddress} integration test with negative case.")
-    public void testDeleteCustomerAddressNegativeCase() throws Exception {
-    
-        String apiFaultCode = "apiFaultCode";
-        String apiFaultCodeElement = "apiFaultCodeElement";
-        String esbFaultCode = "esbFaultCode";
-        String esbFaultCodeElement = "esbFaultCodeElement";
-        try {
-            sendSOAPRequest(proxyUrl, "esb_deleteCustomerAddress_negative.xml", parametersMap, "mediate",
-                    SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-            
-        } catch (AxisFault af) {
-            esbFaultCode = af.getMessage();
-            esbFaultCodeElement = af.getFaultCodeElement().getText();
-        }
-        try {
-            sendSOAPRequest(apiEndPoint, "api_deleteCustomerAddress_negative.xml", parametersMap, MAGENTO_ACTION,
-                    SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-            
-        } catch (AxisFault af) {
-            apiFaultCode = af.getMessage();
-            apiFaultCodeElement = af.getFaultCodeElement().getText();
-        }
-        Assert.assertEquals(apiFaultCode, esbFaultCode);
-        Assert.assertEquals(apiFaultCodeElement, esbFaultCodeElement);
-    }
-    
-    /**
-     * Positive test case for deleteCustomer method with mandatory parameters.
-     */
-    @Test(expectedExceptions = AxisFault.class, dependsOnMethods = { "testDeleteCustomerAddressWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "Magento {deleteCustomer} integration test with mandatory parameters.")
-    public void testDeleteCustomerWithMandatoryParameters() throws Exception {
-    
-        SOAPEnvelope esbSoapResponse =
-                sendSOAPRequest(proxyUrl, "esb_deleteCustomer_mandatory.xml", parametersMap, "mediate",
-                        SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-        
-        OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
-        String xPathExp = "string(//soapenv:Body/ns1:customerCustomerDeleteResponse/result/text())";
-        Boolean isSuccess = Boolean.valueOf((String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap));
-        
-        Assert.assertTrue(isSuccess);
-        
-        sendSOAPRequest(apiEndPoint, "api_deleteCustomer_mandatory.xml", parametersMap, MAGENTO_ACTION,
-                SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-    }
-    
-    /**
-     * Negative test case for deleteCustomer method.
-     */
-    @Test(dependsOnMethods = { "testDeleteCustomerWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "Magento {deleteCustomer} integration test negative case.")
-    public void testDeleteCustomerNegativeCase() throws Exception {
-    
-        String apiFaultCode = "apiFaultCode";
-        String apiFaultCodeElement = "apiFaultCodeElement";
-        String esbFaultCode = "esbFaultCode";
-        String esbFaultCodeElement = "esbFaultCodeElement";
-        
-        try {
-            sendSOAPRequest(proxyUrl, "esb_deleteCustomer_negative.xml", parametersMap, "mediate",
-                    SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-        } catch (AxisFault af) {
-            esbFaultCode = af.getMessage();
-            esbFaultCodeElement = af.getFaultCodeElement().getText();
-        }
-        
-        try {
-            sendSOAPRequest(apiEndPoint, "api_deleteCustomer_negative.xml", parametersMap, MAGENTO_ACTION,
                     SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         } catch (AxisFault af) {
             apiFaultCode = af.getMessage();
