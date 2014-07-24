@@ -1,0 +1,30 @@
+<template name="deleteFile" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="fileId" description="The id of the file" />
+	<parameter name="ifMatch" description="This is in the ‘etag’ field of the folder object." />
+
+	<sequence>
+
+		<property name="uri.var.fileId" expression="$func:fileId" />
+		<property name="uri.var.ifMatch" expression="$func:ifMatch" />
+
+		<filter source="boolean(get-property('uri.var.ifMatch'))"
+			regex="true">
+			<then>
+				<header name="If-Match"
+					expression="get-property('uri.var.ifMatch')" scope="transport"/>
+			</then>
+		</filter>
+
+
+		<call>
+			<endpoint>
+				<http method="delete"
+					uri-template="{uri.var.apiUrl}/2.0/files/{uri.var.fileId}" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove response custom header information -->
+		<header name="Content-Location" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+	</sequence>
+</template>

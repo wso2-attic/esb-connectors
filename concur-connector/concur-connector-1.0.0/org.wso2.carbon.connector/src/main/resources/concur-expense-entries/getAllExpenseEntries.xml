@@ -1,0 +1,122 @@
+<template name="getAllExpenseEntries" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="offset" description="Starting page offset." />
+	<parameter name="limit" description="Number of records to return (default 25)." />
+	<parameter name="user" description="The login ID of the user." />
+	<parameter name="reportID" description="Get information for the specified Report ID." />
+	<parameter name="paymentTypeID" description="Get information for expense entries with the specified Payment Type ID." />
+	<parameter name="batchID"
+		description="Get information for expense entries that are part of a report payee that is in the specified Batch ID." />
+	<parameter name="isBillable" description="Get information for expense entries where Is Billable is true." />
+	<parameter name="attendeeTypeCode" description="Get information for expense entries that have attendees of the specified type." />
+	<parameter name="hasAttendees" description="Get information for expense entries that have attendees." />
+	<parameter name="hasVAT" description="Get information for expense entries that have VAT details." />
+	<parameter name="expenseTypeCode" description="Get information for expense entries that have the specified Expense Type Code." />
+
+	<sequence>
+		<property name="uri.var.offset" expression="$func:offset" />
+		<property name="uri.var.limit" expression="$func:limit" />
+		<property name="uri.var.user" expression="$func:user" />
+		<property name="uri.var.reportID" expression="$func:reportID" />
+		<property name="uri.var.paymentTypeID" expression="$func:paymentTypeID" />
+		<property name="uri.var.batchID" expression="$func:batchID" />
+		<property name="uri.var.isBillable" expression="$func:isBillable" />
+		<property name="uri.var.attendeeTypeCode" expression="$func:attendeeTypeCode" />
+		<property name="uri.var.hasAttendees" expression="$func:hasAttendees" />
+		<property name="uri.var.hasVAT" expression="$func:hasVAT" />
+		<property name="uri.var.expenseTypeCode" expression="$func:expenseTypeCode" />
+		<property name="uri.var.query" value="" />
+
+		<filter xpath="(string(get-property('uri.var.offset'))) and get-property('uri.var.offset') != ''">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'offset=',get-property('uri.var.offset'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.limit'))) and get-property('uri.var.limit') != ''">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'limit=',get-property('uri.var.limit'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.user'))) and get-property('uri.var.user') != ''">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'user=',get-property('uri.var.user'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.reportID'))) and get-property('uri.var.reportID') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'reportID=',get-property('uri.var.reportID'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.paymentTypeID'))) and get-property('uri.var.paymentTypeID') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'paymentTypeID=',get-property('uri.var.paymentTypeID'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.batchID'))) and get-property('uri.var.batchID') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'batchID=',get-property('uri.var.batchID'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.isBillable'))) and get-property('uri.var.isBillable') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'isBillable=',get-property('uri.var.isBillable'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.attendeeTypeCode'))) and get-property('uri.var.attendeeTypeCode') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'attendeeTypeCode=',get-property('uri.var.attendeeTypeCode'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.hasAttendees'))) and get-property('uri.var.hasAttendees') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'hasAttendees=',get-property('uri.var.hasAttendees'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.hasVAT'))) and get-property('uri.var.hasVAT') != ''">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'hasVAT=',get-property('uri.var.hasVAT'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.expenseTypeCode'))) and get-property('uri.var.expenseTypeCode') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'expenseTypeCode=',get-property('uri.var.expenseTypeCode'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="fn:string-length(get-property('uri.var.query')) > 0">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat('?', fn:substring(get-property('uri.var.query'), 1, fn:string-length(get-property('uri.var.query'))-1))" />
+			</then>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}/api/v3.0/expense/entries{uri.var.query}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Webserver" scope="transport" action="remove" />
+		<header name="X-N" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+
+	</sequence>
+</template>

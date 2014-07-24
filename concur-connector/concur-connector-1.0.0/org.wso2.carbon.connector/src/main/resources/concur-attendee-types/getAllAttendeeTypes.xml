@@ -1,0 +1,47 @@
+<template name="getAllAttendeeTypes" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="offset" description="Starting page offset." />
+	<parameter name="limit" description="Number of records to return (default 25)." />
+
+	<sequence>
+		<property name="uri.var.offset" expression="$func:offset" />
+		<property name="uri.var.limit" expression="$func:limit" />
+		<property name="uri.var.query" value="" />
+
+		<filter
+			xpath="(string(get-property('uri.var.offset'))) and get-property('uri.var.offset') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'offset=',get-property('uri.var.offset'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter
+			xpath="(string(get-property('uri.var.limit'))) and get-property('uri.var.limit') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'limit=',get-property('uri.var.limit'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="fn:string-length(get-property('uri.var.query')) > 0">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat('?', fn:substring(get-property('uri.var.query'), 1, fn:string-length(get-property('uri.var.query'))-1))" />
+			</then>
+		</filter>
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}/api/v3.0/expense/attendeetypes{uri.var.query}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Webserver" scope="transport" action="remove" />
+		<header name="X-N" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+
+	</sequence>
+</template>

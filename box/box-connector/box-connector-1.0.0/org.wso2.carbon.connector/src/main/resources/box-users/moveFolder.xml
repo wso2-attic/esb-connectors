@@ -1,0 +1,51 @@
+<template name="moveFolder" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="folderId" description="The id of the folder." />
+	<parameter name="sourceUserId" description="The user id of the owner." />
+	<parameter name="targetUserId"
+		description="The user id of the folder will be transferred to." />
+	<parameter name="notify"
+		description="Determines if the destination user should receive email notification of the transfer." />
+	<sequence>
+
+		<property name="uri.var.folderId" expression="$func:folderId" />
+		<property name="uri.var.sourceUserId" expression="$func:sourceUserId" />
+		<property name="uri.var.targetUserId" expression="$func:targetUserId" />
+		<property name="uri.var.notify" expression="$func:notify" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"owned_by":{"id":"$1"}
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.targetUserId')" />
+			</args>
+		</payloadFactory>
+
+		<script language="js">
+		<![CDATA[
+			// URI encode optional 'notify' parameter
+			var urlQuery = '';
+			var notify  = mc.getProperty('uri.var.notify');
+			if (notify != null && notify != "") {
+				urlQuery = '?notify=' + encodeURIComponent(notify);
+			}
+			mc.setProperty('uri.var.urlQuery', urlQuery);		
+		]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="put"
+					uri-template="{uri.var.apiUrl}/2.0/users/{uri.var.sourceUserId}/folders/{uri.var.folderId}{uri.var.urlQuery}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Server" scope="transport" action="remove" />
+
+	</sequence>
+</template>

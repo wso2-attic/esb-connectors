@@ -1,0 +1,61 @@
+<template name="createExpenseEntry" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="user" description="The login ID of the user." />
+	<parameter name="contentType" description="Application type is either JSON or XML." />
+	<parameter name="entry" description="Total expense entry." />
+
+	<sequence>
+		<property name="uri.var.user" expression="$func:user" />
+		<property name="uri.var.entry" expression="$func:entry" />
+		<property name="uri.var.query" value="" />
+
+		<filter xpath="(string(get-property('uri.var.user'))) and get-property('uri.var.user') != ''">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'?user=',get-property('uri.var.user'))" />
+			</then>
+		</filter>
+
+		<filter xpath="get-property('uri.var.contentType') = 'application/xml'">
+			<then>
+				<payloadFactory media-type="xml">
+					<format>
+						<Entry xmlns="">$1</Entry>
+					</format>
+					<args>
+						<arg expression="get-property('uri.var.entry')" />
+					</args>
+				</payloadFactory>
+
+				<!-- Remove root element via XSLT -->
+				<xslt key="concur_removeRootElement.xslt" />
+			</then>
+		</filter>
+
+		<filter xpath="get-property('uri.var.contentType') = 'application/json'">
+			<then>
+				<payloadFactory media-type="json">
+					<format>$1</format>
+					<args>
+						<arg expression="get-property('uri.var.entry')" />
+					</args>
+				</payloadFactory>
+			</then>
+		</filter>
+
+
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/api/v3.0/expense/entries{uri.var.query}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Webserver" scope="transport" action="remove" />
+		<header name="X-N" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+
+	</sequence>
+</template>

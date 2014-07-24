@@ -1,0 +1,36 @@
+<template name="shareFile" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="fileId" description="The id of the folder" />
+	<parameter name="sharedLink" description="An object representing this item’s shared link and associated permissions" />
+
+	<sequence>
+		<property name="uri.var.fileId" expression="$func:fileId" />
+		<property name="uri.var.sharedLink" expression="$func:sharedLink" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{}
+			</format>
+		</payloadFactory>
+
+		<script language="js"><![CDATA[
+		
+			var sharedLink = mc.getProperty('uri.var.sharedLink');		
+			payload = mc.getPayloadJSON();
+			
+			if(sharedLink != null && sharedLink != ""){
+				payload.shared_link = eval("("+sharedLink+")");
+			}
+			
+           mc.setPayloadJSON(payload);
+         ]]></script>
+         
+		<call>
+			<endpoint>
+				<http method="put" uri-template="{uri.var.apiUrl}/2.0/files/{uri.var.fileId}{uri.var.fields}" />
+			</endpoint>
+		</call>
+		
+		    		<!-- Remove response custom header information -->
+		<header name="WWW-Authenticate" scope="transport" action="remove" /> 
+	</sequence>
+</template>

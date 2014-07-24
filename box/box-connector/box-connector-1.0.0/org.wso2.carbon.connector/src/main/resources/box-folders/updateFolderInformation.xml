@@ -1,0 +1,96 @@
+<template name="updateFolderInformation" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="folderId" description="The id of the folder" />
+	<parameter name="ifMatch" description="The ifMatch" />
+	<parameter name="name" description="The name of the folder." />
+	<parameter name="description" description="The description of the folder." />
+	<parameter name="parentId" description="The parent folder of this file." />
+	<parameter name="sharedLink" description="An object representing this item’s shared link and associated permissions." />
+	<parameter name="folderUploadEmailAccess" description="The email-to-upload address for this folder." />
+	<parameter name="ownedById" description="The user who owns the folder." />
+	<parameter name="syncState" description="Whether Box Sync clients will sync this folder." />
+	<parameter name="tags" description="All tags attached to this folder." />
+
+	<sequence>
+		<property name="uri.var.folderId" expression="$func:folderId" />
+		<property name="uri.var.ifMatch" expression="$func:ifMatch" />
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.description" expression="$func:description" />
+		<property name="uri.var.parentId" expression="$func:parentId" />
+		<property name="uri.var.sharedLink" expression="$func:sharedLink" />
+		<property name="uri.var.folderUploadEmailAccess" expression="$func:folderUploadEmailAccess" />
+		<property name="uri.var.ownedById" expression="$func:ownedById" />
+		<property name="uri.var.syncState" expression="$func:syncState" />
+		<property name="uri.var.tags" expression="$func:tags" />
+		
+		<filter source="boolean(get-property('uri.var.ifMatch'))"
+			regex="true">    
+			<then>
+				<header name="If-Match" expression="get-property('uri.var.ifMatch')" scope="transport"/>
+			</then>
+		</filter>
+
+		<payloadFactory media-type="json">
+			<format>
+			{}
+			</format>
+			<args>
+			</args>
+		</payloadFactory>
+		
+		<script language="js"><![CDATA[
+		
+			var name=mc.getProperty('uri.var.name');
+			var description=mc.getProperty('uri.var.description');
+			var parentId=mc.getProperty('uri.var.parentId');
+			var sharedLink=mc.getProperty('uri.var.sharedLink');
+			var folderUploadEmailAccess=mc.getProperty('uri.var.folderUploadEmailAccess');
+			var ownedById=mc.getProperty('uri.var.ownedById');
+			var syncState=mc.getProperty('uri.var.syncState');
+			var tags=mc.getProperty('uri.var.tags');
+			
+			payload = mc.getPayloadJSON();
+			
+			if(name != null && name != ""){
+				payload.name = name;
+			}
+			
+			if(description !=null && description != ""){
+				payload.description=description;
+			}
+			
+			if(parentId !=null && parentId != ""){
+				payload.parent= eval("("+'{"id":"'+parentId+'"}'+")");
+			}
+					
+			if(sharedLink != null && sharedLink != ""){
+				payload.shared_link = eval("("+ sharedLink +")");
+			}
+			
+			if(folderUploadEmailAccess !=null && folderUploadEmailAccess != ""){
+				payload.folder_upload_email = eval("("+'{"access":"'+folderUploadEmailAccess+'"}'+")");
+			}
+			
+			if(ownedById !=null && ownedById != ""){
+				payload.owned_by = eval("("+'{"id":"'+ownedById+'"}'+")");
+			}
+            
+            if(syncState !=null && syncState != ""){
+				payload.sync_state=syncState;
+			}
+			
+			if(tags !=null && tags != ""){
+				payload.tags = eval("("+ tags +")");
+			}
+			
+           mc.setPayloadJSON(payload);
+         ]]></script>
+		<call>
+			<endpoint>
+				<http method="put" uri-template="{uri.var.apiUrl}/2.0/folders/{uri.var.folderId}{uri.var.fields}" />
+			</endpoint>
+		</call>
+
+	    		<!-- Remove response custom header information -->
+		<header name="WWW-Authenticate" scope="transport" action="remove" /> 
+	</sequence>
+</template>
