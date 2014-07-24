@@ -95,7 +95,7 @@ STEPS:
    
   xxvii) serviceDate - Provide any valid date in the format of YYYY-MM-DD (e.g :- 2014-04-01)
 
- xxviii) currencyRef - The currency ref provided must be for the particular region specified (e.g:- 'USD or LKR' for USA)
+ xxviii) currencyRef - Provide the currency of the specified country that has been used to create QuickBooks account in step 3.
    
    Repeat viii) to xv) before each run.  
     
