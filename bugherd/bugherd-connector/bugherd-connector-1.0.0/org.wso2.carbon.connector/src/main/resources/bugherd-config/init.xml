@@ -1,0 +1,26 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="apiUrl" description="The apiUrl of the endpoint." />
+	<parameter name="apiKey" description="The apiKey of the organizational account." />
+	<parameter name="projectId" description="The identifier of the particular project." />
+
+	<sequence>
+		<header name="Content-Type" value="application/json" scope="transport" />
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.apiKey" expression="$func:apiKey" />
+		<property name="uri.var.projectId" expression="$func:projectId" />
+
+		<!-- If the apiUrl is not provided, use https://www.bugherd.com as DEFAULT -->
+		<filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+			<then>
+				<property name="uri.var.apiUrl" value="https://www.bugherd.com" />
+			</then>
+		</filter>
+
+		<filter xpath="boolean(get-property('uri.var.apiKey'))">
+			<then>
+				<header name="Authorization" expression="fn:concat('Basic ', base64Encode(fn:concat(get-property('uri.var.apiKey'), ':x')))"
+					scope="transport" />
+			</then>
+		</filter>
+	</sequence>
+</template>
