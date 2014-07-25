@@ -1586,15 +1586,4 @@ public class NetsuiteConnectorIntegrationTest extends
 		Assert.assertEquals(apiFaultCodeElement, esbFaultCodeElement);
 	}
 
-	private Object xPathEvaluate(OMElement element, String xPathExp,
-			Map<String, String> nameSpaceMap) throws JaxenException {
-		AXIOMXPath xpath = new AXIOMXPath(element, xPathExp);
-		xpath.addNamespaces(element);
-		for (String prefix : nameSpaceMap.keySet()) {
-			xpath.addNamespace(prefix, nameSpaceMap.get(prefix));
-		}
-
-		return xpath.evaluate(element);
-	}
-
 }
