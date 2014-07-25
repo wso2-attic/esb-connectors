@@ -24,10 +24,8 @@ import java.util.Map;
 
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.util.AXIOMUtil;
-import org.apache.axiom.om.xpath.AXIOMXPath;
 import org.apache.axiom.soap.SOAPEnvelope;
 import org.apache.axis2.AxisFault;
-import org.jaxen.JaxenException;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -3300,18 +3298,6 @@ public class MagentoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         
         Assert.assertEquals(apiFaultCode, esbFaultCode);
         Assert.assertEquals(apiFaultCodeElement, esbFaultCodeElement);
-    }
-    
-    private Object xPathEvaluate(OMElement element, String xPathExp, Map<String, String> nameSpaceMap)
-            throws JaxenException {
-    
-        AXIOMXPath xpath = new AXIOMXPath(element, xPathExp);
-        xpath.addNamespaces(element);
-        for (String prefix : nameSpaceMap.keySet()) {
-            xpath.addNamespace(prefix, nameSpaceMap.get(prefix));
-        }
-        
-        return xpath.evaluate(element);
     }
     
 }
