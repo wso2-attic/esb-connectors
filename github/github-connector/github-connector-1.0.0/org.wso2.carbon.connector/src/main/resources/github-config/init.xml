@@ -1,0 +1,29 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="apiUrl"  description="Url of the Github API." />
+	<parameter name="accessToken"  description="Access token used to call api methods." />
+	<parameter name="mediaType" description="Custom media type used by the API to let consumers choose the format of the data they wish to receive." />
+
+	<sequence>
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.accessToken" expression="$func:accessToken" />
+		<property name="uri.var.mediaType" expression="$func:mediaType" />
+		
+		<header name="Authorization"
+			expression="fn:concat('token ', get-property('uri.var.accessToken'))"
+			scope="transport" />
+		
+		<!-- Media type header will be set, if provided by the user -->
+		<filter source="boolean(get-property('uri.var.mediaType'))" regex="true">
+			<header name="Accept" expression="get-property('uri.var.mediaType')" scope="transport" />
+		</filter>
+		
+		<!-- If the apiUrl is not specified, set the default value as https://api.github.com -->
+		<filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+			<then>
+				<property name="uri.var.apiUrl" value="https://api.github.com" />
+			</then>
+		</filter>
+
+	</sequence>
+</template>

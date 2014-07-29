@@ -1,0 +1,62 @@
+<template name="performAMerge" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="base"
+		description="The name of the base branch that the head will be merged into." />
+	<parameter name="head" description="The head to merge." />
+	<parameter name="commitMessage" description="Commit message to use for the merge commit." />
+	<parameter name="owner" description="The owner of the repository." />
+	<parameter name="repo" description="The corresponding repository." />
+	<sequence>
+		<property name="uri.var.owner" expression="$func:owner" />
+		<property name="uri.var.repo" expression="$func:repo" />
+		<property name="uri.var.base" expression="$func:base" />
+		<property name="uri.var.head" expression="$func:head" />
+		<property name="uri.var.commitMessage" expression="$func:commitMessage" />
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"base":"$1",
+				"head":"$2"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.base')" />
+				<arg expression="get-property('uri.var.head')" />
+			</args>
+		</payloadFactory>
+		<script language="js">
+			<![CDATA[ 
+				payload = mc.getPayloadJSON();
+				var commitMessage = mc.getProperty('uri.var.commitMessage');
+				if(commitMessage != null && commitMessage != ""){
+					payload.commit_message = commitMessage;
+				}
+	          	 mc.setPayloadJSON(payload); 			
+	]]></script>
+
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/repos/{uri.var.owner}/{uri.var.repo}/merges" />
+			</endpoint>
+		</call>
+
+		<header name="Access-Control-Expose-Headers" scope="transport"
+			action="remove" />
+		<header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-RateLimit-Reset" scope="transport" action="remove" />
+		<header name="X-GitHub-Request-Id" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-Accepted-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-GitHub-Media-Type" scope="transport" action="remove" />
+		<header name="X-Served-By" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="X-RateLimit-Limit" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Credentials" scope="transport" action="remove" />
+		<header name="Content-Security-Policy" scope="transport" action="remove" />
+		<header name="Link" scope="transport" action="remove" />
+
+	</sequence>
+</template>
