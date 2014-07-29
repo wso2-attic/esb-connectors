@@ -1,0 +1,33 @@
+<template name="listDomainDkim" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="domain" description="Name of the Domain to verify" />
+	<sequence>
+		<property name="uri.var.domain" expression="$func:domain" />
+		<property name="uri.var.action" value="VerifyDomainDkim" />
+
+		<class name="org.wso2.carbon.connector.amazonses.auth.AmazonSESListDomainDkimMediator" />
+
+		<payloadFactory media-type="json">
+			<format>
+				$1
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.requestPayload')" />
+			</args>
+		</payloadFactory>
+
+		<header name="x-amz-date" expression="get-property('uri.var.xAmzDate')" scope="transport" />
+		<header name="X-Amzn-Authorization" expression="get-property('uri.var.xAmznAuthorization')" scope="transport" />
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove Custom Headers in the Response -->
+		<header name="Via" scope="transport" action="remove" />
+		<header name="Proxy-Connection" scope="transport" action="remove" />
+		<header name="x-amzn-RequestId" scope="transport" action="remove" />
+
+	</sequence>
+</template>
