@@ -1,0 +1,59 @@
+<template name="getSearchFields" xmlns="http://ws.apache.org/ns/synapse">
+  <parameter name="query" description="Query string"/>
+  <parameter name="from" description="Start time for the search"/>
+  <parameter name="until" description="End time for the search"/>
+  <parameter name="facetSize" description="Number of fields to return"/>
+  <sequence>
+    <property name="uri.var.query" expression="$func:query"/>
+    <property name="uri.var.from" expression="$func:from"/>
+    <property name="uri.var.until" expression="$func:until"/>
+    <property name="uri.var.facetSize" expression="$func:facetSize"/>
+   
+    <script language="js">
+			<![CDATA[ 
+			
+				// Generate url with parameters
+				
+				var from = mc.getProperty('uri.var.from');
+				var until = mc.getProperty('uri.var.until'); 
+				var query = mc.getProperty('uri.var.query');
+				var facetSize = mc.getProperty('uri.var.facetSize');
+				var urlQuery = '';
+				
+				// Append query parameters
+				if(from != null && from != "") {
+					urlQuery += 'from=' + encodeURIComponent(from) + '&';
+				}
+				
+				if(until != null && until != "") {
+					urlQuery += 'until=' + encodeURIComponent(until) + '&';
+				}
+				
+				if(query != null && query != "") {
+					urlQuery += 'q=' + encodeURIComponent(query) + '&';
+				}
+				
+				if(facetSize != null && facetSize != "") {
+					urlQuery += 'facet_size=' + facetSize + '&';
+				}
+				
+				if(urlQuery!=""){
+					urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+					mc.setProperty('uri.var.urlQuery', urlQuery);
+				}	
+							
+			]]></script>
+    
+    <call>
+      <endpoint>
+        <http method="get" uri-template="{uri.var.apiUrl}/fields{uri.var.urlQuery}"/>
+      </endpoint>
+    </call>
+    
+    		<!-- Remove response custom header information -->
+		<header name="X-Varnish" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+  </sequence>
+</template>
