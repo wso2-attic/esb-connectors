@@ -63,8 +63,8 @@ public final class AmazonSESConstants {
     /**
      * Constant for API AWS Access Key Id.
      */
-    public static final String API_AWS_ACCESS_KEY_ID = "accessKeyId";
-    
+    public static final String API_AWS_ACCESS_KEY_ID = "AWSAccessKeyId";
+ 
     /**
      * Constant for ESB Signature Method.
      */
@@ -73,7 +73,7 @@ public final class AmazonSESConstants {
     /**
      * Constant for API Signature Method.
      */
-    public static final String API_SIGNATURE_METHOD = "signatureMethod";
+    public static final String API_SIGNATURE_METHOD = "SignatureMethod";
     
     /**
      * Constant for ESB Signature Version.
@@ -83,7 +83,7 @@ public final class AmazonSESConstants {
     /**
      * Constant for API Signature Version.
      */
-    public static final String API_SIGNATURE_VERSION = "signatureVersion";
+    public static final String API_SIGNATURE_VERSION = "SignatureVersion";
     
     /**
      * Constant for ESB Version.
@@ -93,7 +93,7 @@ public final class AmazonSESConstants {
     /**
      * Constant for API Version.
      */
-    public static final String API_VERSION = "version";
+    public static final String API_VERSION = "Version";
     
     /**
      * Constant for ESB Secret Access Key.

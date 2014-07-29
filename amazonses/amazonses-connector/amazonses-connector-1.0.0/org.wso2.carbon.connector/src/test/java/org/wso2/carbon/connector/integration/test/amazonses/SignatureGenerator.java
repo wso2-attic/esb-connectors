@@ -42,14 +42,14 @@ public class SignatureGenerator {
     /**
      * Maps for storing headers, parameters and parameters.
      */
-    private final Map<String, String> parameterMap, commonParametersMap, singleParamMap, multiParamMap;
+    private Map<String, String> parameterMap, commonParametersMap, singleParamMap, multiParamMap;
     
     /**
      * Instantiates a new signature generator with properties map.
      * 
      * @param parametersMap the parameters map
      */
-    public SignatureGenerator(final Map<String, String> singleParamsMap, final Map<String, String> multiParamsMap,
+    public SignatureGenerator(final Map<String, String> singleParamsMap, Map<String, String> multiParamsMap,
             final Map<String, String> commonParameterMap) {
     
         parameterMap = new TreeMap<String, String>();
@@ -61,7 +61,7 @@ public class SignatureGenerator {
     /**
      * Populate parameter map.
      */
-    private final void populateParameterMap() {
+    private void populateParameterMap() {
     
         // Adding Mandatory Parameters which MUST be there in the MessageContext
         parameterMap.put(AmazonSESConstants.API_ACTION, commonParametersMap.get(AmazonSESConstants.API_ACTION));
@@ -161,8 +161,7 @@ public class SignatureGenerator {
      * @throws NoSuchAlgorithmException the no such algorithm exception
      * @throws InvalidKeyException the invalid key exception
      */
-    private final byte[] hmacSHA1(final String value, final String key) throws NoSuchAlgorithmException,
-            InvalidKeyException {
+    private byte[] hmacSHA1(final String value, final String key) throws NoSuchAlgorithmException, InvalidKeyException {
     
         final byte[] keyBytes = key.getBytes();
         final SecretKeySpec signingKey = new SecretKeySpec(keyBytes, AmazonSESConstants.HMAC_ALGORITHM);
@@ -176,7 +175,7 @@ public class SignatureGenerator {
      * 
      * @return the formatted date
      */
-    public final String getFormattedDate() {
+    public String getFormattedDate() {
     
         final SimpleDateFormat headerDateFormat = new SimpleDateFormat(AmazonSESConstants.HEADER_DATE_FORMATTER);
         headerDateFormat.setTimeZone(TimeZone.getTimeZone(AmazonSESConstants.GMT));

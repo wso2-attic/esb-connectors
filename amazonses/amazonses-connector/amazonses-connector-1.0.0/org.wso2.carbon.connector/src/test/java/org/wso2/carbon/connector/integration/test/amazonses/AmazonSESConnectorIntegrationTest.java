@@ -54,7 +54,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
     private Map<String, String> esbRequestHeadersMap, apiRequestHeadersMap, commonParametersMap, apiParametersMap;
     
     /**
-     * Load api params map.
+     * define api params map.
      */
     private void loadApiParamsMap() {
     
@@ -65,8 +65,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         apiParametersMap.put("maxItems", "3");
         apiParametersMap.put("messageBody", "This is the Message Body: Integration Test Optional 02");
         apiParametersMap.put("messageSubject", "This is the Message Subject: Integration Test Optional 02");
-        apiParametersMap.put("rawMessageInvalid", "Invalid Raw Message");
-        apiParametersMap.put("snsTopic", "arn:aws:sns:us-west-2:294598218081:Topic-AmazonSES");
+        apiParametersMap.put("rawMessageInvalid", "Invalid Raw Message"); 
         
     }
     
@@ -82,12 +81,9 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         final SignatureGenerator generator =
                 new SignatureGenerator(singleValuedParamsMap, multiValuedParamsMap, commonParametersMap);
         
-        final String signature =
-                generator.generateSignature((String) connectorProperties.get("accessKeyId"),
-                        (String) connectorProperties.get("secretAccessKey"));
-        
         apiRequestHeadersMap.put(AmazonSESConstants.API_X_AMZ_DATE_HEADER_SET, generator.getFormattedDate());
-        apiRequestHeadersMap.put(AmazonSESConstants.API_X_AMZN_AUTHORIZATION_HEADER_SET, signature);
+        apiRequestHeadersMap.put(AmazonSESConstants.API_X_AMZN_AUTHORIZATION_HEADER_SET, generator.generateSignature(
+                (String) connectorProperties.get("accessKeyId"), (String) connectorProperties.get("secretAccessKey")));
         connectorProperties.put("payload", generator.buildPayload());
         
     }
@@ -102,24 +98,20 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         apiRequestHeadersMap = new HashMap<String, String>();
         commonParametersMap = new HashMap<String, String>();
         
-        init("amazonses-connector-1.0.0");
+        init("amazonses");
         
         esbRequestHeadersMap.put("Accept-Charset", "UTF-8");
         esbRequestHeadersMap.put("Content-Type", "application/json");
         
-        commonParametersMap.put(AmazonSESConstants.API_AWS_ACCESS_KEY_ID,
-                connectorProperties.getProperty(AmazonSESConstants.API_AWS_ACCESS_KEY_ID));
-        commonParametersMap.put(AmazonSESConstants.API_SIGNATURE_METHOD,
-                connectorProperties.getProperty(AmazonSESConstants.API_SIGNATURE_METHOD));
-        commonParametersMap.put(AmazonSESConstants.API_SIGNATURE_VERSION,
-                connectorProperties.getProperty(AmazonSESConstants.API_SIGNATURE_VERSION));
-        commonParametersMap.put(AmazonSESConstants.API_VERSION,
-                connectorProperties.getProperty(AmazonSESConstants.API_VERSION));
+        commonParametersMap.put("AWSAccessKeyId", connectorProperties.getProperty("accessKeyId"));
+        commonParametersMap.put("SignatureMethod", connectorProperties.getProperty("signatureMethod"));
+        commonParametersMap.put("SignatureVersion", connectorProperties.getProperty("signatureVersion"));
+        commonParametersMap.put("Version", connectorProperties.getProperty("version"));
         
         apiRequestHeadersMap.put("Host", "email.us-west-2.amazonaws.com");
         apiRequestHeadersMap.put("Content-Type", "application/x-www-form-urlencoded");
         
-        // load all parameter values for api calls
+        // load all api parameter values
         loadApiParamsMap();
     }
     
@@ -136,14 +128,12 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_setIdentityDkimEnabled_mandatory.json");
         
-        Assert.assertNotEquals(
-                esbRestResponse.getBody().getJSONObject("SetIdentityDkimEnabledResponse")
-                        .getJSONObject("ResponseMetadata").getString("RequestId"), null);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertNotNull(esbRestResponse.getBody().getJSONObject("SetIdentityDkimEnabledResponse")
+                .getJSONObject("ResponseMetadata").getString("RequestId"));
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("SetIdentityDkimEnabledResponse")
                         .getJSONObject("ResponseMetadata").getString("RequestId"), "");
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-        
     }
     
     /**
@@ -170,6 +160,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         commonParametersMap.put("Action", "SetIdentityDkimEnabled");
         
         Map<String, String> apiRequestSingleValuedParameterMap = new HashMap<String, String>();
+        
         apiRequestSingleValuedParameterMap
                 .put(AmazonSESConstants.API_DKIM_ENABLED, apiParametersMap.get("dkimEnabled"));
         apiRequestSingleValuedParameterMap.put(AmazonSESConstants.API_IDENTITY, "INVALID");
@@ -231,6 +222,8 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
                 apiRestResponse.getBody().toString()
                         .replaceFirst(" xmlns=\"http://ses.amazonaws.com/doc/2010-12-01/\"", "");
         List<OMTextImpl> result = (List) xPathEvaluate(AXIOMUtil.stringToOM(modifiedXml), "//key/text()", null);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         for (int i = 0; i < result.size(); i++) {
             Assert.assertEquals(
                     result.get(i).getText(),
@@ -238,7 +231,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
                             .getJSONObject("GetIdentityDkimAttributesResult").getJSONObject("DkimAttributes")
                             .getJSONArray("entry").getJSONObject(i).getString("key"));
         }
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        
     }
     
     /**
@@ -264,8 +257,10 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
                         "esb_listIdentityDkimAttributes_negative.json");
         
         commonParametersMap.put("Action", "GetIdentityDkimAttributes");
-        // Sending no identities
+        
+        // Sending no identities to api
         buildAPIRequest(null, null);
+        
         RestResponse<OMElement> apiRestResponse =
                 sendXmlRestRequest(connectorProperties.getProperty("apiUrl"), "POST", apiRequestHeadersMap,
                         "api_common");
@@ -320,6 +315,8 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         List<OMTextImpl> result =
                 (List) xPathEvaluate(AXIOMUtil.stringToOM(modifiedXml),
                         "/VerifyDomainDkimResponse/VerifyDomainDkimResult/DkimTokens/member/text()", null);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         for (int i = 0; i < result.size(); i++) {
             Assert.assertEquals(
                     result.get(i).getText(),
@@ -327,7 +324,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
                             .getJSONObject("VerifyDomainDkimResult").getJSONObject("DkimTokens").getJSONArray("member")
                             .getString(i));
         }
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        
     }
     
     /**
@@ -352,7 +349,8 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listDomainDkim_negative.json");
         
         commonParametersMap.put("Action", "VerifyDomainDkim");
-        // Not sending any domain
+        
+        // Not sending any domain to api
         buildAPIRequest(null, null);
         RestResponse<OMElement> apiRestResponse =
                 sendXmlRestRequest(connectorProperties.getProperty("apiUrl"), "POST", apiRequestHeadersMap,
@@ -384,13 +382,14 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:verifyDomainIdentity");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_verifyDomainIdentity_mandatory.json");
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("VerifyDomainIdentityResponse")
                         .getJSONObject("VerifyDomainIdentityResult").getString("VerificationToken"), null);
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("VerifyDomainIdentityResponse")
                         .getJSONObject("VerifyDomainIdentityResult").getString("VerificationToken"), "");
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         
     }
     
@@ -447,13 +446,13 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
     
         esbRequestHeadersMap.put("Action", "urn:setIdentityFeedbackForwardingEnabled");
         RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
-                        "esb_setIdentityFeedbackForwardingEnabled_mandatory.json");
-        Assert.assertNotEquals(esbRestResponse.getBody().getJSONObject("SetIdentityFeedbackForwardingEnabledResponse")
-                .getJSONObject("ResponseMetadata").getString("RequestId"), null);
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_setIdentityFeedback_mandatory.json");
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertNotNull(esbRestResponse.getBody().getJSONObject("SetIdentityFeedbackForwardingEnabledResponse")
+                .getJSONObject("ResponseMetadata").getString("RequestId"));
         Assert.assertNotEquals(esbRestResponse.getBody().getJSONObject("SetIdentityFeedbackForwardingEnabledResponse")
                 .getJSONObject("ResponseMetadata").getString("RequestId"), "");
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         
     }
     
@@ -476,8 +475,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
     
         esbRequestHeadersMap.put("Action", "urn:setIdentityFeedbackForwardingEnabled");
         RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
-                        "esb_setIdentityFeedbackForwardingEnabled_negative.json");
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_setIdentityFeedback_negative.json");
         
         commonParametersMap.put("Action", "SetIdentityFeedbackForwardingEnabled");
         Map<String, String> apiRequestSingleValuedParameterMap = new HashMap<String, String>();
@@ -515,13 +513,12 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_verifyEmailIdentity_mandatory.json");
         
-        Assert.assertNotEquals(
-                esbRestResponse.getBody().getJSONObject("VerifyEmailIdentityResponse")
-                        .getJSONObject("ResponseMetadata").getString("RequestId"), null);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertNotNull(esbRestResponse.getBody().getJSONObject("VerifyEmailIdentityResponse")
+                .getJSONObject("ResponseMetadata").getString("RequestId"));
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("VerifyEmailIdentityResponse")
                         .getJSONObject("ResponseMetadata").getString("RequestId"), "");
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         
     }
     
@@ -588,7 +585,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:setIdentityNotificationTopic");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
-                        "esb_setIdentityNotificationTopic_mandatory.json");
+                        "esb_setIdentityNotification_mandatory.json");
         
         commonParametersMap.put("Action", "GetIdentityNotificationAttributes");
         Map<String, String> apiRequestSingleValuedParameterMap = new HashMap<String, String>();
@@ -605,14 +602,13 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         
         Assert.assertEquals(key, connectorProperties.getProperty("identity"));
         Assert.assertEquals(deliveryTopic, "");
-        Assert.assertEquals(forwardingEnabled, "true");
-        
-        Assert.assertNotEquals(esbRestResponse.getBody().getJSONObject("SetIdentityNotificationTopicResponse")
-                .getJSONObject("ResponseMetadata").getString("RequestId"), null);
-        Assert.assertNotEquals(esbRestResponse.getBody().getJSONObject("SetIdentityNotificationTopicResponse")
-                .getJSONObject("ResponseMetadata").getString("RequestId"), "");
+        Assert.assertTrue(Boolean.parseBoolean(forwardingEnabled));
         
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertNotNull(esbRestResponse.getBody().getJSONObject("SetIdentityNotificationTopicResponse")
+                .getJSONObject("ResponseMetadata").getString("RequestId"));
+        Assert.assertNotEquals(esbRestResponse.getBody().getJSONObject("SetIdentityNotificationTopicResponse")
+                .getJSONObject("ResponseMetadata").getString("RequestId"), "");
         
     }
     
@@ -635,8 +631,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
     
         esbRequestHeadersMap.put("Action", "urn:setIdentityNotificationTopic");
         RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
-                        "esb_setIdentityNotificationTopic_optional.json");
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_setIdentityNotification_optional.json");
         
         commonParametersMap.put("Action", "GetIdentityNotificationAttributes");
         Map<String, String> apiRequestSingleValuedParameterMap = new HashMap<String, String>();
@@ -652,15 +647,14 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         String forwardingEnabled = getValueByExpression("//ForwardingEnabled", apiRestResponse.getBody());
         
         Assert.assertEquals(key, connectorProperties.getProperty("identity"));
-        Assert.assertEquals(deliveryTopic, apiParametersMap.get("snsTopic"));
-        Assert.assertEquals(forwardingEnabled, "true");
-        
-        Assert.assertNotEquals(esbRestResponse.getBody().getJSONObject("SetIdentityNotificationTopicResponse")
-                .getJSONObject("ResponseMetadata").getString("RequestId"), null);
-        Assert.assertNotEquals(esbRestResponse.getBody().getJSONObject("SetIdentityNotificationTopicResponse")
-                .getJSONObject("ResponseMetadata").getString("RequestId"), "");
+        Assert.assertEquals(deliveryTopic, connectorProperties.getProperty("snsTopic"));
+        Assert.assertTrue(Boolean.parseBoolean(forwardingEnabled));
         
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertNotNull(esbRestResponse.getBody().getJSONObject("SetIdentityNotificationTopicResponse")
+                .getJSONObject("ResponseMetadata").getString("RequestId"));
+        Assert.assertNotEquals(esbRestResponse.getBody().getJSONObject("SetIdentityNotificationTopicResponse")
+                .getJSONObject("ResponseMetadata").getString("RequestId"), "");
         
     }
     
@@ -683,8 +677,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
     
         esbRequestHeadersMap.put("Action", "urn:setIdentityNotificationTopic");
         RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
-                        "esb_setIdentityNotificationTopic_negative.json");
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_setIdentityNotifTopic_negative.json");
         
         commonParametersMap.put("Action", "SetIdentityNotificationTopic");
         Map<String, String> apiRequestSingleValuedParameterMap = new HashMap<String, String>();
@@ -731,7 +724,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:listIdentityNotificationAttributes");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
-                        "esb_listIdentityNotificationAttributes_mandatory.json");
+                        "esb_listIdentityNotification_mandatory.json");
         
         commonParametersMap.put("Action", "GetIdentityNotificationAttributes");
         
@@ -747,6 +740,8 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
                 apiRestResponse.getBody().toString()
                         .replaceFirst(" xmlns=\"http://ses.amazonaws.com/doc/2010-12-01/\"", "");
         List<OMTextImpl> result = (List) xPathEvaluate(AXIOMUtil.stringToOM(modifiedXml), "//key/text()", null);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         for (int i = 0; i < result.size(); i++) {
             Assert.assertEquals(
                     result.get(i).getText(),
@@ -755,7 +750,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
                             .getJSONObject("NotificationAttributes").getJSONArray("entry").getJSONObject(i)
                             .getString("key"));
         }
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        
     }
     
     /**
@@ -778,7 +773,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:listIdentityNotificationAttributes");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
-                        "esb_listIdentityNotificationAttributes_negative.json");
+                        "esb_listIdentityNotification_negative.json");
         
         commonParametersMap.put("Action", "GetIdentityNotificationAttributes");
         buildAPIRequest(null, null);
@@ -821,7 +816,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:listIdentityVerificationAttributes");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
-                        "esb_listIdentityVerificationAttributes_mandatory.json");
+                        "esb_listIdentityVerification_mandatory.json");
         
         commonParametersMap.put("Action", "GetIdentityVerificationAttributes");
         
@@ -837,6 +832,8 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
                 apiRestResponse.getBody().toString()
                         .replaceFirst(" xmlns=\"http://ses.amazonaws.com/doc/2010-12-01/\"", "");
         List<OMTextImpl> result = (List) xPathEvaluate(AXIOMUtil.stringToOM(modifiedXml), "//key/text()", null);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         for (int i = 0; i < result.size(); i++) {
             Assert.assertEquals(
                     result.get(i).getText(),
@@ -845,7 +842,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
                             .getJSONObject("VerificationAttributes").getJSONArray("entry").getJSONObject(i)
                             .getString("key"));
         }
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        
     }
     
     /**
@@ -868,7 +865,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:listIdentityVerificationAttributes");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
-                        "esb_listIdentityVerificationAttributes_negative.json");
+                        "esb_listIdentityVerification_negative.json");
         
         commonParametersMap.put("Action", "GetIdentityVerificationAttributes");
         buildAPIRequest(null, null);
@@ -928,6 +925,8 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         List<OMTextImpl> result =
                 (List) xPathEvaluate(AXIOMUtil.stringToOM(modifiedXml),
                         "/ListIdentitiesResponse/ListIdentitiesResult/Identities/member/text()", null);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         for (int i = 0; i < result.size(); i++) {
             Assert.assertEquals(
                     result.get(i).getText(),
@@ -935,7 +934,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
                             .getJSONObject("ListIdentitiesResult").getJSONObject("Identities").getJSONArray("member")
                             .getString(i));
         }
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        
     }
     
     /**
@@ -977,6 +976,8 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         List<OMTextImpl> result =
                 (List) xPathEvaluate(AXIOMUtil.stringToOM(modifiedXml),
                         "/ListIdentitiesResponse/ListIdentitiesResult/Identities/member/text()", null);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         for (int i = 0; i < result.size(); i++) {
             Assert.assertEquals(
                     result.get(i).getText(),
@@ -986,7 +987,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         }
         Assert.assertEquals(result.size(),
                 Integer.parseInt(apiRequestSingleValuedParameterMap.get(AmazonSESConstants.API_MAX_ITEMS)));
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        
     }
     
     /**
@@ -1044,14 +1045,14 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:deleteIdentity");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_deleteIdentity_mandatory.json");
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("DeleteIdentityResponse").getJSONObject("ResponseMetadata")
                         .getString("RequestId"), null);
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("DeleteIdentityResponse").getJSONObject("ResponseMetadata")
                         .getString("RequestId"), "");
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-        
     }
     
     /**
@@ -1109,20 +1110,18 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:sendEmail");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_sendEmail_mandatory.json");
-        Assert.assertNotEquals(
-                esbRestResponse.getBody().getJSONObject("SendEmailResponse").getJSONObject("SendEmailResult")
-                        .getString("MessageId"), null);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertNotNull(esbRestResponse.getBody().getJSONObject("SendEmailResponse")
+                .getJSONObject("SendEmailResult").getString("MessageId"));
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("SendEmailResponse").getJSONObject("SendEmailResult")
                         .getString("MessageId"), "");
-        Assert.assertNotEquals(
-                esbRestResponse.getBody().getJSONObject("SendEmailResponse").getJSONObject("ResponseMetadata")
-                        .getString("RequestId"), null);
+        Assert.assertNotNull(esbRestResponse.getBody().getJSONObject("SendEmailResponse")
+                .getJSONObject("ResponseMetadata").getString("RequestId"));
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("SendEmailResponse").getJSONObject("ResponseMetadata")
                         .getString("RequestId"), "");
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-        
     }
     
     /**
@@ -1137,19 +1136,19 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:sendEmail");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_sendEmail_optional.json");
-        Assert.assertNotEquals(
-                esbRestResponse.getBody().getJSONObject("SendEmailResponse").getJSONObject("SendEmailResult")
-                        .getString("MessageId"), null);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertNotNull(esbRestResponse.getBody().getJSONObject("SendEmailResponse")
+                .getJSONObject("SendEmailResult").getString("MessageId"));
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("SendEmailResponse").getJSONObject("SendEmailResult")
                         .getString("MessageId"), "");
-        Assert.assertNotEquals(
-                esbRestResponse.getBody().getJSONObject("SendEmailResponse").getJSONObject("ResponseMetadata")
-                        .getString("RequestId"), null);
+        Assert.assertNotNull(esbRestResponse.getBody().getJSONObject("SendEmailResponse")
+                .getJSONObject("ResponseMetadata").getString("RequestId"));
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("SendEmailResponse").getJSONObject("ResponseMetadata")
                         .getString("RequestId"), "");
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        
     }
     
     /**
@@ -1218,19 +1217,14 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:sendRawEmail");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_sendRawEmail_mandatory.json");
-        Assert.assertNotEquals(
-                esbRestResponse.getBody().getJSONObject("SendRawEmailResponse").getJSONObject("SendRawEmailResult")
-                        .getString("MessageId"), null);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("SendRawEmailResponse").getJSONObject("SendRawEmailResult")
                         .getString("MessageId"), "");
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("SendRawEmailResponse").getJSONObject("ResponseMetadata")
-                        .getString("RequestId"), null);
-        Assert.assertNotEquals(
-                esbRestResponse.getBody().getJSONObject("SendRawEmailResponse").getJSONObject("ResponseMetadata")
                         .getString("RequestId"), "");
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         
     }
     
@@ -1246,19 +1240,14 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:sendRawEmail");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_sendRawEmail_optional.json");
-        Assert.assertNotEquals(
-                esbRestResponse.getBody().getJSONObject("SendRawEmailResponse").getJSONObject("SendRawEmailResult")
-                        .getString("MessageId"), null);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("SendRawEmailResponse").getJSONObject("SendRawEmailResult")
                         .getString("MessageId"), "");
         Assert.assertNotEquals(
                 esbRestResponse.getBody().getJSONObject("SendRawEmailResponse").getJSONObject("ResponseMetadata")
-                        .getString("RequestId"), null);
-        Assert.assertNotEquals(
-                esbRestResponse.getBody().getJSONObject("SendRawEmailResponse").getJSONObject("ResponseMetadata")
                         .getString("RequestId"), "");
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         
     }
     

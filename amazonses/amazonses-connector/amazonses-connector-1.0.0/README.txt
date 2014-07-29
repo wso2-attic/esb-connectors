@@ -49,8 +49,8 @@ STEPS:
 	iii) 	secretAccessKey - Use the SecretKey you got in step 3.
 	iv)		identity,emailAddress,deleteIdentity,source - (Single valued) Use email addresses which you added to SES account in step 3 and verified. (Multiple email addresses need to be comma seperated)
 	v) 		toAddresses,ccAddresses,bccAddresses,replyToAddresses,destinations,identities - (Multi valued) Use email addresses which you added to SES account in step 3 and verified. (Multiple email addresses need to be comma seperated)
-	vi)     snsTopic -  Use a valid SNS topic name (Amazon Resource Name).
-	vii) 	messageBody,messageSubject,messageBodyMandatory,messageSubjectMandatory - Use valid text content as desired.
+	vi)		domain - Use a domain name that is registered with AmazonSES through the user console, or use a domain name under which atleast one email address is registered with AmazonSES.
+	vii)    snsTopic -  Use a valid SNS topic name (Amazon Resource Name).
 	viii) 	Leave the remaining values as it is
 		
  6. Navigate to "{AMAZONSES_CONNECTOR_HOME}/amazonses-connector/amazonses-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
