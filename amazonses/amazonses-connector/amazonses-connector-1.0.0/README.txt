@@ -6,7 +6,9 @@ Product: Integration tests for WSO2 ESB AMAZONSES connector
     - Java 1.6 or above
 	- The org.wso2.esb.integration.integration-base project is required. The test suite has been configured to download this project automatically. If the automatic download fails, download the following project and compile it using the mvn clean install command to update your local repository:
       https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
-
+	- A valid AMAZON SES topic needs to be created before running the test suite.
+	  Refer : http://docs.aws.amazon.com/sns/latest/dg/CreateTopic.html
+	
     Tested Platforms: 
 
     - Microsoft WINDOWS V-7
@@ -39,20 +41,20 @@ STEPS:
  3. Create a fresh account in Amazon AWS and Log on to https://aws.amazon.com/ses/ in the web browser.
 	i) 	 	On the hompage, under App Service, choose SES.
 	ii)  	Click on the dropdown link on the top right tab (which has your account name) on your Amazon SES page and go to 'Security Credentials'.
-	iii) 	Click on 'Access Keys', create a new Access Key and save you AWSAccessKeyID along with the SecretKey.
-	iv) 	On SES homepage, go to 'Email Addresses' link and add a few valid email addresses to be used while testing (Email addresses should be verified to be used).
+	iii) 	Click on 'Access Keys', create a new Access Key.
+	iv) 	On SES homepage, go to 'Email Addresses' link and add valid email addresses to be used while testing (Email addresses should be verified to be used).
 
  4. Update the amazonses properties file at location "{AMAZONSES_CONNECTOR_HOME}/amazonses-connector/amazonses-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i) 		apiUrl - Use the API URL as "https://email.us-west-2.amazonaws.com".
-	ii) 	accessKeyId, AWSAccessKeyId - Use the AWSAccessKeyId you got in step 3.
-	iii) 	secretAccessKey - Use the SecretKey you got in step 3.
-	iv)		identity,emailAddress,deleteIdentity,source - (Single valued) Use email addresses which you added to SES account in step 3 and verified. (Multiple email addresses need to be comma seperated)
+	ii) 	accessKeyId - Use the Access Key generated in step 3.
+	iii) 	secretAccessKey - Use the Secret Key generated in step 3.
+	iv)		identity,emailAddress,deleteIdentity,source - (Single valued) Use email addresses which you added to SES account in step 3 and verified.
 	v) 		toAddresses,ccAddresses,bccAddresses,replyToAddresses,destinations,identities - (Multi valued) Use email addresses which you added to SES account in step 3 and verified. (Multiple email addresses need to be comma seperated)
 	vi)		domain - Use a domain name that is registered with AmazonSES through the user console, or use a domain name under which atleast one email address is registered with AmazonSES.
 	vii)    snsTopic -  Use a valid SNS topic name (Amazon Resource Name).
-	viii) 	Leave the remaining values as it is
-		
+			NOTE : Refer "Pre-requisites" section for creating a new topic.
+			
  6. Navigate to "{AMAZONSES_CONNECTOR_HOME}/amazonses-connector/amazonses-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install 
 

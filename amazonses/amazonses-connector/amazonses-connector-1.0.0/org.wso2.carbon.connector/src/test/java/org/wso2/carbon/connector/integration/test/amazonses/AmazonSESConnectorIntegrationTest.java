@@ -98,7 +98,7 @@ public class AmazonSESConnectorIntegrationTest extends ConnectorIntegrationTestB
         apiRequestHeadersMap = new HashMap<String, String>();
         commonParametersMap = new HashMap<String, String>();
         
-        init("amazonses");
+        init("amazonses-connector-1.0.0");
         
         esbRequestHeadersMap.put("Accept-Charset", "UTF-8");
         esbRequestHeadersMap.put("Content-Type", "application/json");
