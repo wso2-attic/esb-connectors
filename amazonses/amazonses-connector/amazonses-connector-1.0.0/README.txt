@@ -50,7 +50,7 @@ STEPS:
 	ii) 	accessKeyId - Use the Access Key generated in step 3.
 	iii) 	secretAccessKey - Use the Secret Key generated in step 3.
 	iv)		identity,emailAddress,deleteIdentity,source - (Single valued) Use email addresses which you added to SES account in step 3 and verified.
-	v) 		toAddresses,ccAddresses,bccAddresses,replyToAddresses,destinations,identities - (Multi valued) Use email addresses which you added to SES account in step 3 and verified. (Multiple email addresses need to be comma seperated)
+	v) 		toAddresses,ccAddresses,bccAddresses,replyToAddresses,destinations,identities(at least two identities NEED to be provided) - (Multi valued) Use email addresses which you added to SES account in step 3 and verified. (Multiple email addresses need to be comma seperated)
 	vi)		domain - Use a domain name that is registered with AmazonSES through the user console, or use a domain name under which atleast one email address is registered with AmazonSES.
 	vii)    snsTopic -  Use a valid SNS topic name (Amazon Resource Name).
 			NOTE : Refer "Pre-requisites" section for creating a new topic.
