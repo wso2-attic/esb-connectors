@@ -15,9 +15,7 @@ Tested Platform:
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches are available at "{ZOHOCRM_CONNECTOR_HOME}/zohocrm-connector/zohocrm-connector-1.0.0/org.wso2.carbon.connector/repository/"
- 
- 2. Extract the certificate from browser by navigating to https://www.zohocrm.com/ and place the certificate file in following locations. 
+ 1. Extract the certificate from browser by navigating to https://www.zohocrm.com/ and place the certificate file in following locations. 
 
 	i)  "<ZOHOCRM_CONNECTOR_HOME>/zohocrm-connector/zohocrm-connector-1.0.0/org wso2.carbon.connector/src/test/resources/keystores/products"
 
@@ -29,7 +27,7 @@ STEPS:
 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "Zohocrm"' in command line to import zohocrm certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from zohocrm with  the extension, change it accordingly. Remove the copied certificate.
 
- 3. The ESB should be configured as below;
+ 2. The ESB should be configured as below;
 	Please make sure that the below mentioned Axis configurations are enabled (/repository/conf/axis2/axis2.xml).
    
     <messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
@@ -42,6 +40,8 @@ STEPS:
 
 	Note: Add the aforementioned message formatters and the message builder to the axis file, if they are not available by default.
 	
+ 3. Make sure the ESB 4.8.1 zip file with latest patches and the chages in the step 1 and 2, is available at "{ZOHOCRM_CONNECTOR_HOME}/zohocrm-connector/zohocrm-connector-1.0.0/org.wso2.carbon.connector/repository/"
+
  4. Follow the below steps to create a ZohoCRM account.
 
 	i) Navigate to "https://www.zoho.com/crm/lp/signup.html?src=slid1".
