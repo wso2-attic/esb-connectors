@@ -1,0 +1,64 @@
+<template name="deleteObject" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="bucketUrl" description="End point URL of the request." />
+	<parameter name="objectName" description="The name of the object to be deleted." />
+	<parameter name="versionId" description="Version Id of an object to remove a specific object version." />
+
+	<sequence>
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+		<property name="uri.var.objectName" expression="$func:objectName" />
+		<property name="uri.var.versionId" expression="$func:versionId" /> 
+
+		<!-- urlRemainder needs to be sent to generate authentication code -->
+		<filter xpath="(string(get-property('uri.var.versionId'))) and get-property('uri.var.versionId') != ''">  
+			<then>
+				<property name="uri.var.uriRemainder" expression="fn:concat('/', get-property('uri.var.objectName'), '?versionId=', get-property('uri.var.versionId'))" />
+			</then>
+			<else>
+				<property name="uri.var.uriRemainder" expression="fn:concat('/', get-property('uri.var.objectName'))" />
+			</else>
+		</filter>
+		
+		<!-- Authentication Header Setup -->
+		<class name="org.wso2.carbon.connector.amazons3.auth.AmazonS3AuthConnector" />
+
+		<!-- Properties assigned in AmazonS3AuthConnector -->
+		<filter xpath="(string(get-property('date'))) and get-property('date') != ''">  
+			<then>
+				<property name="Date" expression="get-property('date')" scope="transport" type="STRING" />
+			</then>
+		</filter> 
+		
+		<filter xpath="(string(get-property('isXAmzDateValue'))) and get-property('isXAmzDateValue') != ''">   
+			<then>
+				<property name="x-amz-date" expression="get-property('isXAmzDateValue')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('authenticationCode'))) and get-property('authenticationCode') != ''">    
+			<then>
+				<property name="Authorization" expression="get-property('authenticationCode')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.xAmzMfa'))) and get-property('uri.var.xAmzMfa') != ''">
+			<then>
+				<property name="x-amz-mfa" expression="get-property('uri.var.xAmzMfa')" scope="transport" type="STRING" />
+			</then>
+		</filter> 
+		
+		<call>
+			<endpoint> 
+				<http method="delete" uri-template="{uri.var.bucketUrl}{uri.var.uriRemainder}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="x-amz-date" scope="transport" action="remove" />
+		<header name="x-amz-id-2" scope="transport" action="remove" />
+		<header name="x-amz-request-id" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" /> 
+		<header name="x-amz-delete-marker" scope="transport" action="remove" />
+		<header name="x-amz-version-id" scope="transport" action="remove" />
+	</sequence>
+</template>
