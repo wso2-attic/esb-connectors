@@ -1,0 +1,54 @@
+<template name="getRecordsById" xmlns="http://ws.apache.org/ns/synapse">
+  <parameter name="newFormat" description="The newFormat, an integer determine weather null valus should be excluded(1) or included(2)"/>
+  <parameter name="version" description="The API version"/>
+  <parameter name="id" description="The id of the record"/>
+  <parameter name="moduleType" description="The type of the module"/>
+  <sequence>
+    <property name="uri.var.newFormat" expression="$func:newFormat"/>
+    <property name="uri.var.version" expression="$func:version"/>
+    <property name="uri.var.id" expression="$func:id"/>
+    <property name="uri.var.moduleType" expression="$func:moduleType"/>
+
+    <script language="js">
+			<![CDATA[ 
+			
+				// Generate url with parameters
+				var version = mc.getProperty('uri.var.version');
+				var newFormat = mc.getProperty('uri.var.newFormat');
+				var id = mc.getProperty('uri.var.id');
+				var moduleType = mc.getProperty('uri.var.moduleType');
+				var urlQuery = mc.getProperty('uri.var.urlQuery');
+				
+				//Append mandatory url parameters
+				urlQuery += 'id=' + id + '&';
+				
+				//Append optional url parameters
+				if(newFormat != null && newFormat != "") {
+					urlQuery += 'newFormat=' + newFormat + '&';
+				}
+
+				if(version != null && version != "") {
+					urlQuery += 'version=' + version + '&';
+				}
+						
+				urlQuery = '/' + encodeURIComponent(moduleType) + '/getRecordById?' + urlQuery.substring(0, urlQuery.length-1);
+				mc.setProperty('uri.var.urlQuery', urlQuery);
+							
+			]]></script>
+			
+    <call>
+      <endpoint>
+        <http method="get" uri-template="{uri.var.apiUrl}/crm/private/json{uri.var.urlQuery}"/>
+      </endpoint>
+    </call>
+    
+    <!-- Removing custom headers -->
+     <header name="Strict-Transport-Security" action="remove" scope="transport"/>
+     <header name="X-XSS-Protection" action="remove" scope="transport"/>
+     <header name="X-Download-Options" action="remove" scope="transport"/>
+     <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+     <header name="Pragma" action="remove" scope="transport"/>
+     <header name="Cache-Control" action="remove" scope="transport"/>
+     
+  </sequence>
+</template>
