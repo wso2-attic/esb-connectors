@@ -1,0 +1,54 @@
+<template name="predictTrainedModel" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="fields" description="Selector specifying which fields to include in a partial response." />
+	<parameter name="modelId" description="The unique name for the predictive model." />
+	<parameter name="csvInstance" description="The csvInstance passed in as a json object" />
+
+	<sequence>
+		<property name="uri.var.fields" expression="$func:fields" />
+		<property name="uri.var.modelId" expression="$func:modelId" />
+		<property name="uri.var.csvInstance" expression="$func:csvInstance" />
+
+		<filter xpath="boolean(get-property('uri.var.fields'))">
+			<then>
+				<property name="uri.var.fields" expression="fn:concat('?fields=',get-property('uri.var.fields'))" />
+			</then>
+		</filter>
+
+		<payloadFactory media-type="json">
+			<format>
+				{}
+			</format>
+		</payloadFactory>
+
+		<script language="js">
+    	<![CDATA[
+    		var csvInstance = mc.getProperty('uri.var.csvInstance');
+    		payload = mc.getPayloadJSON();
+			if(csvInstance!=null && csvInstance != ""){
+				payload.input = new Object();
+				payload.input.csvInstance = eval(""+csvInstance+""); 
+			}
+    		mc.setPayloadJSON(payload);
+    	]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/prediction/v1.6/projects/{uri.var.project}/trainedmodels/{uri.var.modelId}/predict{uri.var.fields}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="alternate-protocol" scope="transport" action="remove" />
+		<header name="ETag" scope="transport" action="remove" />
+		<header name="expires" scope="transport" action="remove" />
+		<header name="server" scope="transport" action="remove" />
+		<header name="x-content-type-options" scope="transport" action="remove" />
+		<header name="x-frame-options" scope="transport" action="remove" />
+		<header name="x-xss-protection" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Proxy-Support" scope="transport" action="remove"/>  
+
+	</sequence>
+</template>
