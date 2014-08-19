@@ -1,0 +1,47 @@
+<template name="sendEmail" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="toAddresses" description="To Addresses for the Email." />
+	<parameter name="ccAddresses" description="CC Addresses for the Email." />
+	<parameter name="bccAddresses" description="BCC Addresses for the Email." />
+	<parameter name="replyToAddresses" description="Addresses to which the recipients can reply to." />
+	<parameter name="messageBody" description="Body of the Email." />
+	<parameter name="messageSubject" description="Subject of the Email." />
+	<parameter name="returnPath" description="The email address to which bounces and complaints are to be forwarded when feedback forwarding is enabled." />
+	<parameter name="source" description="Email address of the sender." />
+	<sequence>
+		<property name="uri.var.toAddresses" expression="$func:toAddresses" />
+		<property name="uri.var.ccAddresses" expression="$func:ccAddresses" />
+		<property name="uri.var.bccAddresses" expression="$func:bccAddresses" />
+		<property name="uri.var.replyToAddresses" expression="$func:replyToAddresses" />
+		<property name="uri.var.messageBody" expression="$func:messageBody" />
+		<property name="uri.var.messageSubject" expression="$func:messageSubject" />
+		<property name="uri.var.returnPath" expression="$func:returnPath" />
+		<property name="uri.var.source" expression="$func:source" />
+		<property name="uri.var.action" value="SendEmail" />
+
+		<class name="org.wso2.carbon.connector.amazonses.auth.AmazonSESSendEmailMediator" />
+
+		<payloadFactory media-type="json">
+			<format>
+				$1
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.requestPayload')" />
+			</args>
+		</payloadFactory>
+
+		<header name="x-amz-date" expression="get-property('uri.var.xAmzDate')" scope="transport" />
+		<header name="X-Amzn-Authorization" expression="get-property('uri.var.xAmznAuthorization')" scope="transport" />
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove Custom Headers in the Response -->
+		<header name="Via" scope="transport" action="remove" />
+		<header name="Proxy-Connection" scope="transport" action="remove" />
+		<header name="x-amzn-RequestId" scope="transport" action="remove" />
+
+	</sequence>
+</template>
