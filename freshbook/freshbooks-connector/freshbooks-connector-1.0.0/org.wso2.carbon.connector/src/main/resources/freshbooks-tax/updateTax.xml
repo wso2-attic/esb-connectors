@@ -1,0 +1,71 @@
+<template name="updateTax" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="taxId" description="The ID of the tax to be updated" />
+	<parameter name="name" description="The name to update the tax with" />
+	<parameter name="rate" description="Percentage rate of the tax to update" />
+	<parameter name="compound" description="Whether the tax is compound, 1 or 0." />
+	<parameter name="number" description="Tax Number." />
+	<sequence>
+	    <property name="uri.var.taxId" expression="$func:taxId" />
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.rate" expression="$func:rate" />
+		<property name="uri.var.number" expression="$func:number" />
+		<property name="uri.var.compound" expression="$func:compound" />
+		<payloadFactory media-type="xml">
+			<format>
+				<request method="tax.update" xmlns="">
+					<tax>
+					    <tax_id>$1</tax_id>
+					</tax>
+				</request>
+			</format>
+			<args>
+			    <arg expression="get-property('uri.var.taxId')" />
+			</args>
+		</payloadFactory>
+		<script language="js">
+			<![CDATA[
+			
+				//request body param variables
+				var name = mc.getProperty('uri.var.name');
+				var rate = mc.getProperty('uri.var.rate');
+				var number = mc.getProperty('uri.var.number');
+				var compound = mc.getProperty('uri.var.compound');
+			
+				//Get the existing payload
+				var payload = mc.getPayloadXML();
+				
+				if (name != null && name != "") {
+					payload.tax.name = name;
+				}
+				
+				if (rate != null && rate != "") {
+					payload.tax.rate = rate;
+				}
+				
+				if (number != null && number != "") {
+					payload.tax.number = number;
+				}
+				
+				if (compound != null && compound != "") {
+					payload.tax.compound = compound;
+				}
+				
+				//Set the newly constructed payload
+				mc.setPayloadXML(payload);
+				
+			]]>
+		</script>
+		
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/api/2.1/xml-in" />
+			</endpoint>
+		</call>
+
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Strict-Transport-Security" scope="transport"
+			action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+	</sequence>
+</template>
