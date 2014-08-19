@@ -5,14 +5,23 @@
 	<parameter name="ownerId" description="ID of the bucket owner." />
 	<parameter name="ownerDisplayName" description="Screen name of the bucket owner." />
 	<parameter name="accessControlList" description="Container for ACL information." />
+	<parameter name="versionId" description="Version Id of an object to remove a specific object version." />
 
 	<sequence>
 		<property name="uri.var.objectName" expression="$func:objectName" />
 		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
 		<property name="uri.var.ownerId" expression="$func:ownerId" />
 		<property name="uri.var.ownerDisplayName" expression="$func:ownerDisplayName" />
-		<property name="uri.var.accessControlList" expression="$func:accessControlList" />  		
-		<property name="uri.var.uriRemainder" expression="fn:concat('/',get-property('uri.var.objectName'),'?acl')" />
+		<property name="uri.var.accessControlList" expression="$func:accessControlList" />
+		<property name="uri.var.versionId" expression="$func:versionId" /> 		
+		<property name="uri.var.uriRemainder" expression="fn:concat('/',get-property('uri.var.objectName'),'?acl')" /> 
+		
+		<!-- Setting the ACL of a specified object version -->
+		<filter xpath="(string(get-property('uri.var.versionId'))) and get-property('uri.var.versionId') != ''">    
+			<then>
+				<property name="uri.var.uriRemainder" expression="fn:concat(get-property('uri.var.uriRemainder'),'&amp;versionId=',get-property('uri.var.versionId'))" /> 
+			</then>
+		</filter>
 		
 		<!-- Authentication Header Setup -->
 		<class name="org.wso2.carbon.connector.amazons3.auth.AmazonS3AuthConnector" />
@@ -33,7 +42,7 @@
 			<then>
 				<property name="Authorization" expression="get-property('authenticationCode')" scope="transport" type="STRING" />
 			</then>
-		</filter>
+		</filter> 
 		 
 		<payloadFactory media-type="xml">
 			<format>
