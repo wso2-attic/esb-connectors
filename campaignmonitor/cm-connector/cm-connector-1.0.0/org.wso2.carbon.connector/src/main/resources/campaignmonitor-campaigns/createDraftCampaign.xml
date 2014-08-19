@@ -1,0 +1,72 @@
+<template name="createDraftCampaign" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="clientId" description="The clientId" />
+	<parameter name="name" description="The name" />
+	<parameter name="subject" description="The subject" />
+	<parameter name="fromName" description="The fromName" />
+	<parameter name="fromEmail" description="The fromEmail" />
+	<parameter name="replyToEmail" description="The replyToEmail" />
+	<parameter name="htmlUrl" description="The htmlUrl" />
+	<parameter name="listIds" description="The listIds" />
+	<parameter name="segmentIds" description="The segmentIds" />
+	<sequence>
+		<property name="uri.var.clientId" expression="$func:clientId" />
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.subject" expression="$func:subject" />
+		<property name="uri.var.fromName" expression="$func:fromName" />
+		<property name="uri.var.fromEmail" expression="$func:fromEmail" />
+		<property name="uri.var.replyToEmail" expression="$func:replyToEmail" />
+		<property name="uri.var.htmlUrl" expression="$func:htmlUrl" />
+		<property name="uri.var.listIds" expression="$func:listIds" />
+		<property name="uri.var.segmentIds" expression="$func:segmentIds" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"Name": "$1",
+				"Subject": "$2",
+				"FromName": "$3",
+				"FromEmail": "$4",
+				"ReplyTo": "$5",
+				"HtmlUrl": "$6"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.name')" />
+				<arg expression="get-property('uri.var.subject')" />
+				<arg expression="get-property('uri.var.fromName')" />
+				<arg expression="get-property('uri.var.fromEmail')" />
+				<arg expression="get-property('uri.var.replyToEmail')" />
+				<arg expression="get-property('uri.var.htmlUrl')" />
+			</args>
+		</payloadFactory>
+
+		<script language="js">
+			<![CDATA[
+			
+				// Sets optional payload parameter, note that either one of the following two parameters should be present in the request
+				var segmentIds = mc.getProperty("uri.var.segmentIds");
+				var listIds = mc.getProperty("uri.var.listIds");
+				payload = mc.getPayloadJSON();
+			
+				if (segmentIds != null && segmentIds != "") {
+					payload.SegmentIDs = eval("(" + segmentIds + ")");
+				}
+				
+				if (listIds != null && listIds != "") {
+					payload.ListIDs = eval("(" + listIds + ")");
+				}
+				
+				mc.setPayloadJSON(payload);	
+			]]>
+		</script>
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/api/v3.1/campaigns/{uri.var.clientId}.json" />
+			</endpoint>
+		</call>
+		<!-- Removing custom headers -->
+		<header name="P3P" action="remove" scope="transport" />
+		<header name="WWW-Authenticate" action="remove" scope="transport" />
+		<header name="X-CS-Node" action="remove" scope="transport" />
+	</sequence>
+</template>
