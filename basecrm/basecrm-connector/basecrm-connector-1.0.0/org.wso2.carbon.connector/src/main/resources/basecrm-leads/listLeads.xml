@@ -1,0 +1,53 @@
+<template name="listLeads" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="leadServiceUrl" description="The service URL for Leads Category." />
+	<parameter name="page" description="The page of the list of leads." />
+	<parameter name="sortBy" description="Sorting criteria for the list of leads." />
+
+	<sequence>
+		<property name="uri.var.leadServiceUrl" expression="$func:leadServiceUrl" />
+		<property name="uri.var.page" expression="$func:page" />
+		<property name="uri.var.sortBy" expression="$func:sortBy" />
+		<property name="uri.var.query" value="" />
+
+		<filter xpath="boolean(get-property('uri.var.page'))">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'page=',get-property('uri.var.page'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="boolean(get-property('uri.var.sortBy'))">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'sort_by=',get-property('uri.var.sortBy'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="fn:string-length(get-property('uri.var.query')) > 0">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat('?', fn:substring(get-property('uri.var.query'), 1, fn:string-length(get-property('uri.var.query'))-1))" />
+			</then>
+		</filter>
+
+		<header name="X-Futuresimple-Token" expression="get-property('uri.var.token')" scope="transport" />
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.leadServiceUrl}/api/v1/leads.json{uri.var.query}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-Pagination-Page" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-Mesh-ID" scope="transport" action="remove" />
+		<header name="X-Pagination-Per-Page" scope="transport" action="remove" />
+		<header name="X-UA-Compatible" scope="transport" action="remove" />
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="ETag" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Status" scope="transport" action="remove" />
+
+	</sequence>
+</template>

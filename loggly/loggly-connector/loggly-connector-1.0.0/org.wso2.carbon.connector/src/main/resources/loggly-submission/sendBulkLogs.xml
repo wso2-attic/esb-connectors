@@ -1,0 +1,34 @@
+<template name="sendBulkLogs" xmlns="http://ws.apache.org/ns/synapse">
+<!-- This method uses a different authentication scheme. Therefore the init method should not be called for this method -->	
+	<parameter name="apiUrl" description="The api url to connect" />
+	<parameter name="token"
+		description="The customer token associated with the account" />
+	<parameter name="logData" description="The data which needs to be logged" />
+	<sequence>
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.token" expression="$func:token" />
+		<property name="uri.var.logData" expression="$func:logData" />
+
+         <payloadFactory media-type="xml">
+            <format>
+               <ns:text xmlns:ns="http://ws.apache.org/commons/ns/payload">
+					$1
+			   </ns:text>
+            </format>
+            <args>
+               <arg expression="get-property('uri.var.logData')"/>
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="text/plain" scope="axis2"/>
+         
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/bulk/{uri.var.token}/tag/bulk" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove response custom header information -->
+		<header name="Via" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+	</sequence>
+</template>

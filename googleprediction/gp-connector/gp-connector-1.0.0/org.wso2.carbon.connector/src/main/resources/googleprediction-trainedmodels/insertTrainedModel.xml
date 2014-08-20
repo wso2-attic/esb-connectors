@@ -1,0 +1,104 @@
+<template name="insertTrainedModel" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="fields" description="Selector specifying which fields to include in a partial response." />
+	<parameter name="modelId" description="The unique name for the predictive model." />
+	<parameter name="sourceModel" description="The Id of the model to be copied over." />
+	<parameter name="storageDataLocation" description="Google storage location of the training data file." />
+	<parameter name="storagePMMLLocation" description="Google storage location of the preprocessing pmml file." />
+	<parameter name="storagePMMLModelLocation" description="Google storage location of the pmml model file." />
+	<parameter name="modelType" description="Type of predictive model (CLASSIFICATION or REGRESSION)" />
+	<parameter name="trainingInstances" description="Instances to train model on." />
+	<parameter name="utility"
+		description="A class weighting function, which allows the importance weights for class labels to be specified (Categorical models only)." />
+
+	<sequence>
+		<property name="uri.var.fields" expression="$func:fields" />
+		<property name="uri.var.modelId" expression="$func:modelId" />
+		<property name="uri.var.sourceModel" expression="$func:sourceModel" />
+		<property name="uri.var.storageDataLocation" expression="$func:storageDataLocation" />
+		<property name="uri.var.storagePMMLLocation" expression="$func:storagePMMLLocation" />
+		<property name="uri.var.storagePMMLModelLocation" expression="$func:storagePMMLModelLocation" />
+		<property name="uri.var.modelType" expression="$func:modelType" />
+		<property name="uri.var.trainingInstances" expression="$func:trainingInstances" />
+		<property name="uri.var.utility" expression="$func:utility" />
+
+		<filter xpath="boolean(get-property('uri.var.fields'))">
+			<then>
+				<property name="uri.var.fields" expression="fn:concat('?fields=',get-property('uri.var.fields'))" />
+			</then>
+		</filter>
+
+		<payloadFactory media-type="json">
+			<format>
+				{}
+			</format>
+		</payloadFactory>
+
+		<script language="js"> 
+    	<![CDATA[
+    		var modelId = mc.getProperty('uri.var.modelId');
+    		var sourceModel = mc.getProperty('uri.var.sourceModel');
+    		var storageDataLocation = mc.getProperty('uri.var.storageDataLocation');
+    		var storagePMMLLocation = mc.getProperty('uri.var.storagePMMLLocation');
+    		var storagePMMLModelLocation = mc.getProperty('uri.var.storagePMMLModelLocation');
+    		var modelType = mc.getProperty('uri.var.modelType');
+    		var trainingInstances = mc.getProperty('uri.var.trainingInstances');
+    		var utility = mc.getProperty('uri.var.utility');
+    		    		
+    		payload = mc.getPayloadJSON();  
+			  
+			if(modelId != null && modelId != ""){
+				payload.id = modelId;
+			}
+			
+			if(sourceModel != null && sourceModel != ""){
+				payload.sourceModel = sourceModel;
+			}
+			
+			if(storageDataLocation != null && storageDataLocation != ""){
+				payload.storageDataLocation = storageDataLocation;
+			}
+			
+			if(storagePMMLLocation != null && storagePMMLLocation != ""){
+				payload.storagePMMLLocation = storagePMMLLocation;
+			}		 
+			
+			if(modelType != null && modelType != ""){
+				payload.modelType = modelType;
+			}
+			
+			if(storagePMMLModelLocation != null && storagePMMLModelLocation != ""){
+				payload.storagePMMLModelLocation = storagePMMLModelLocation;
+			}
+			
+			if(trainingInstances != null && trainingInstances != ""){ 
+				payload.trainingInstances = eval(""+trainingInstances+"");
+			}
+			
+			if(utility != null && utility != ""){
+				payload.utility = eval(""+utility+"");
+			}
+			
+			mc.setPayloadJSON(payload);
+    	]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/prediction/v1.6/projects/{uri.var.project}/trainedmodels{uri.var.fields}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="alternate-protocol" scope="transport" action="remove" />
+		<header name="ETag" scope="transport" action="remove" />
+		<header name="expires" scope="transport" action="remove" />
+		<header name="server" scope="transport" action="remove" />
+		<header name="x-content-type-options" scope="transport" action="remove" />
+		<header name="x-frame-options" scope="transport" action="remove" />
+		<header name="x-xss-protection" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Proxy-Support" scope="transport" action="remove"/>
+
+	</sequence>
+</template>

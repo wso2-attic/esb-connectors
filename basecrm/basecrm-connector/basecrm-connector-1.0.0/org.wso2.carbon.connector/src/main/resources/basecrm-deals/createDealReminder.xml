@@ -1,0 +1,82 @@
+<template name="createDealReminder" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="dealId" description="Unique id of the deal to add reminder." />
+	<parameter name="reminderContent" description="Content of the reminder." />
+	<parameter name="reminderDone" description="Flag which states whether task in the Reminder was done or not." />
+	<parameter name="reminderRemind" description="Flag which states whether a reminder should be sent the the user." />
+	<parameter name="reminderDate" description="Date of the reminder." />
+	<parameter name="reminderHour" description="Hour of the reminder." />
+	
+	<sequence>
+		<property name="uri.var.dealId" expression="$func:dealId" />
+		<property name="uri.var.reminderContent" expression="$func:reminderContent" />
+		<property name="uri.var.reminderDone" expression="$func:reminderDone" />
+		<property name="uri.var.reminderRemind" expression="$func:reminderRemind" />
+		<property name="uri.var.reminderDate" expression="$func:reminderDate" />
+		<property name="uri.var.reminderHour" expression="$func:reminderHour" />
+		
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"reminder":{
+						"content":"$1"
+					}
+				}
+
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.reminderContent')" />
+			</args>
+		</payloadFactory>
+		<script language="js">
+		<![CDATA[
+		
+			var done = mc.getProperty("uri.var.reminderDone");
+		    var remind = mc.getProperty("uri.var.reminderRemind");
+		    var date = mc.getProperty("uri.var.reminderDate");
+		    var hour = mc.getProperty("uri.var.reminderHour");
+		    
+		    payload = mc.getPayloadJSON();
+		    
+		    if(done != null && done != ""){
+		    	payload.reminder.done = done;		    	
+		    }
+		    
+		    if(remind != null && remind != ""){
+		    	payload.reminder.remind = remind;		    	
+		    }
+		    
+		    if(date != null && date != ""){
+		    	payload.reminder.date = date;		    	
+		    }
+		    
+		    if(hour != null && hour != ""){
+		    	payload.reminder.hour = hour;		    	
+		    }
+		    
+		    mc.setPayloadJSON(payload);    
+		    
+		]]>
+		</script>
+
+		<header name="X-Pipejump-Auth" expression="get-property('uri.var.token')" scope="transport" />
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/api/v1/deals/{uri.var.dealId}/reminders.{uri.var.responseType}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-Pagination-Page" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-Mesh-ID" scope="transport" action="remove" />
+		<header name="X-Pagination-Per-Page" scope="transport" action="remove" />
+		<header name="X-UA-Compatible" scope="transport" action="remove" />
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="ETag" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>

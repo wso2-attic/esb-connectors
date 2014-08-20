@@ -1,0 +1,64 @@
+<template name="listCategory" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="page" description="The page number of the results." />
+	<parameter name="perPage" description="The number of entries per page." />
+	<parameter name="order" description="The order of the results." />
+	<parameter name="parentId" description="The parent ID to select the sub categories." />
+
+	<sequence>
+		<property name="uri.var.page" expression="$func:page" />
+		<property name="uri.var.perPage" expression="$func:perPage" />
+		<property name="uri.var.order" expression="$func:order" />
+		<property name="uri.var.parentId" expression="$func:parentId" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<request xmlns="" method="category.list">
+				</request>
+			</format>
+		</payloadFactory>
+
+		<script language="js">
+			<![CDATA[
+			
+				//request body param variables
+		        var page = mc.getProperty('uri.var.page');
+				var perPage = mc.getProperty('uri.var.perPage');
+				var order = mc.getProperty('uri.var.order');
+				var parentId = mc.getProperty('uri.var.parentId');
+				
+				var payload = mc.getPayloadXML();
+				
+				if (page != null && page != "") {
+					payload.page = page;
+				}
+				
+				if (perPage != null && perPage != "") {
+					payload.per_page = perPage;
+				}
+				
+				if (order != null && order != "") {
+					payload.order = order;
+				}
+				
+				if (parentId != null && parentId != "") {
+					payload.parent_id = parentId;
+				}
+				
+				mc.setPayloadXML(payload);
+				
+			]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/api/2.1/xml-in" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+
+	</sequence>
+</template>

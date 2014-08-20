@@ -1,0 +1,123 @@
+<template name="createObjectCopy" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="bucketUrl" description="End point URL of the request." />
+	<parameter name="destinationObject" description="The name for the destination object to create after copying." />
+
+	<sequence>
+
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+		<property name="uri.var.destinationObject" expression="$func:destinationObject" />
+		<property name="uri.var.uriRemainder" expression="fn:concat('/',get-property('uri.var.destinationObject'))" />
+		
+		<!-- Authentication Header Setup -->
+		<class name="org.wso2.carbon.connector.amazons3.auth.AmazonS3AuthConnector" />
+		
+		<filter xpath="(string(get-property('date'))) and get-property('date') != ''">  
+			<then>
+				<property name="Date" expression="get-property('date')" scope="transport" type="STRING" />
+			</then>
+		</filter> 
+		
+		<filter xpath="(string(get-property('isXAmzDateValue'))) and get-property('isXAmzDateValue') != ''">   
+			<then>
+				<property name="x-amz-date" expression="get-property('isXAmzDateValue')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('authenticationCode'))) and get-property('authenticationCode') != ''">    
+			<then>
+				<property name="Authorization" expression="get-property('authenticationCode')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+		
+		<filter xpath="(string(get-property('uri.var.xAmzCopySource'))) and get-property('uri.var.xAmzCopySource') != ''">  
+			<then>
+				<property name="x-amz-copy-source" expression="get-property('uri.var.xAmzCopySource')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.xAmzMetadataDirective'))) and get-property('uri.var.xAmzMetadataDirective') != ''">
+			<then>
+				<property name="x-amz-metadata-directive" expression="get-property('uri.var.xAmzMetadataDirective')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.xAmzCopySourceIfMatch'))) and get-property('uri.var.xAmzCopySourceIfMatch') != ''"> 
+			<then>
+				<property name="x-amz-copy-source-if-match" expression="get-property('uri.var.xAmzCopySourceIfMatch')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.xAmzCopySourceIfNoneMatch'))) and get-property('uri.var.xAmzCopySourceIfNoneMatch') != ''"> 
+			<then>
+				<property name="x-amz-copy-source-if-none-match" expression="get-property('uri.var.xAmzCopySourceIfNoneMatch')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.xAmzCopySourceIfUnmodifiedSince'))) and get-property('uri.var.xAmzCopySourceIfUnmodifiedSince') != ''">  
+			<then>
+				<property name="x-amz-copy-source-if-unmodified-since" expression="get-property('uri.var.xAmzCopySourceIfUnmodifiedSince')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.xAmzCopySourceIfModifiedSince'))) and get-property('uri.var.xAmzCopySourceIfModifiedSince') != ''">
+			<then>
+				<property name="x-amz-copy-source-if-modified-since" expression="get-property('uri.var.xAmzCopySourceIfModifiedSince')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.xAmzServeEncryptionValue'))) and get-property('uri.var.xAmzServeEncryptionValue') != ''">
+			<then>
+				<property name="x-amz-server-side-encryption" expression="get-property('uri.var.xAmzServeEncryptionValue')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.xAmzStorageClassValue'))) and get-property('uri.var.xAmzStorageClassValue') != ''"> 
+			<then>
+				<property name="x-amz-storage-class" expression="get-property('uri.var.xAmzStorageClassValue')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.xAmzWebsiteLocationValue'))) and get-property('uri.var.xAmzWebsiteLocationValue') != ''">
+			<then>
+				<property name="x-amz-website-redirect-location" expression="get-property('uri.var.xAmzWebsiteLocationValue')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+		 
+        <!-- Send Empty Message Body -->
+		<payloadFactory media-type="xml">
+			<format>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+					<soapenv:Header />
+					<soapenv:Body />
+				</soapenv:Envelope>
+				</format>
+				<args />
+		</payloadFactory>
+	
+		<property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN" /> 
+	
+		<property name="NO_ENTITY_BODY" value="true" type="BOOLEAN" scope="axis2"/> 
+
+		<call>
+			<endpoint>
+				<http method="put" uri-template="{uri.var.bucketUrl}{uri.var.uriRemainder}"/>
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="x-amz-id-2" scope="transport" action="remove" />
+		<header name="x-amz-request-id" scope="transport" action="remove" />
+		<header name="x-amz-copy-source-version-id" scope="transport" action="remove" />
+		<header name="x-amz-version-id" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" /> 
+
+	</sequence>
+</template>

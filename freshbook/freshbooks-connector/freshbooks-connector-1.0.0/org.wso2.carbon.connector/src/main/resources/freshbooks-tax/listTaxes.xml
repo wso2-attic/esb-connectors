@@ -1,0 +1,60 @@
+<template name="listTaxes" xmlns="http://ws.apache.org/ns/synapse">
+
+
+	<parameter name="compound" description="Whether to list compound taxes only, 1 or 0." />
+	<parameter name="order" description="The order the results need to presented in" />
+	<parameter name="perPage" description="Results to return by page" />
+	<parameter name="page" description="The page of results to return" />
+	<sequence>
+		<property name="uri.var.compound" expression="$func:compound" />
+		<property name="uri.var.order" expression="$func:order" />
+		<property name="uri.var.perPage" expression="$func:perPage" />
+		<property name="uri.var.page" expression="$func:page" />
+		<payloadFactory media-type="xml">
+			<format>
+				<request method="tax.list" xmlns="">
+				</request>
+			</format>
+		</payloadFactory>
+		<script language="js">
+			<![CDATA[
+			
+				//request body param variables
+		        var compound = mc.getProperty('uri.var.compound');
+				var order = mc.getProperty('uri.var.order');
+				var perPage = mc.getProperty('uri.var.perPage');
+				var page = mc.getProperty('uri.var.page');
+				
+				var payload = mc.getPayloadXML();
+				
+				if (compound != null && compound != "") {
+					payload.compound = compound;
+				}				
+				
+				
+				if (order != null && order != "") {
+					payload.order = order;
+				}
+				
+				if (perPage != null && perPage != "") {
+					payload.per_page = perPage;
+				}
+				
+				if (page != null && page != "") {
+					payload.page = page;
+				}
+				
+				mc.setPayloadXML(payload);
+				
+			]]>
+		</script>
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/api/2.1/xml-in" />
+			</endpoint>
+		</call>
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+	</sequence>
+</template>

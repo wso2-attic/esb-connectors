@@ -1,0 +1,85 @@
+<template name="getObjectsInBucket" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="bucketUrl" description="End point URL of the request." />
+	<parameter name="delimiter" description="Character to group keys." />
+	<parameter name="encodingType" description="This requests Amazon S3 to encode the response and specifies the encoding method to use." />
+	<parameter name="marker" description="This specifies the key to start with when listing objects in a bucket." />
+	<parameter name="maxKeys" description="This sets the maximum number of keys returned in the response body." />
+	<parameter name="prefix" description="This limits the response to keys that begin with the specified prefix." />
+
+	<sequence>
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+		<property name="uri.var.delimiter" expression="$func:delimiter" />
+		<property name="uri.var.encodingType" expression="$func:encodingType" />
+		<property name="uri.var.marker" expression="$func:marker" />
+		<property name="uri.var.maxKeys" expression="$func:maxKeys" />
+		<property name="uri.var.prefix" expression="$func:prefix" />
+		<property name="uri.var.query" value="?" />
+
+		<!-- Authentication Header Setup -->
+		<class name="org.wso2.carbon.connector.amazons3.auth.AmazonS3AuthConnector" />
+
+		<filter xpath="(string(get-property('date'))) and get-property('date') != ''">  
+			<then>
+				<property name="Date" expression="get-property('date')" scope="transport" type="STRING" />
+			</then>
+		</filter> 
+		
+		<filter xpath="(string(get-property('isXAmzDateValue'))) and get-property('isXAmzDateValue') != ''">   
+			<then>
+				<property name="x-amz-date" expression="get-property('isXAmzDateValue')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('authenticationCode'))) and get-property('authenticationCode') != ''">    
+			<then>
+				<property name="Authorization" expression="get-property('authenticationCode')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.delimiter'))) and get-property('uri.var.delimiter') != ''">   
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'delimiter=',get-property('uri.var.delimiter'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.encodingType'))) and get-property('uri.var.encodingType') != ''">   
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'encoding-type=',get-property('uri.var.encodingType'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.marker'))) and get-property('uri.var.marker') != ''">    
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'marker=',get-property('uri.var.marker'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.maxKeys'))) and get-property('uri.var.maxKeys') != ''">    
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'max-keys=',get-property('uri.var.maxKeys'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.prefix'))) and get-property('uri.var.prefix') != ''">   
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'prefix=',get-property('uri.var.prefix'),'&amp;')" />
+			</then>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.bucketUrl}{uri.var.query}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="x-amz-id-2" scope="transport" action="remove" />
+		<header name="x-amz-request-id" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+
+	</sequence>
+</template>

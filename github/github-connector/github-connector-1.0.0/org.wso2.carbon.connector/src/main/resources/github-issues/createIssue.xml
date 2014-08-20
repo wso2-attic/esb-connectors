@@ -1,0 +1,87 @@
+<template name="createIssue" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="owner" description="The owner of the repository." />
+	<parameter name="repo" description="The name of the repository." />
+	<parameter name="title" description="The title of issue" />
+	<parameter name="issueContent" description="The body of issue" />
+	<parameter name="assignee" description="The assignee of issue" />
+	<parameter name="milestone" description="The milestone" />
+	<parameter name="labels" description="The labels of issue" />
+	
+	<sequence>
+
+		<property name="uri.var.owner" expression="$func:owner" />
+		<property name="uri.var.repo" expression="$func:repo" />
+		<property name="uri.var.title" expression="$func:title" />
+		<property name="uri.var.issueContent" expression="$func:issueContent" />
+		<property name="uri.var.assignee" expression="$func:assignee" />
+		<property name="uri.var.milestone" expression="$func:milestone" />
+		<property name="uri.var.labels" expression="$func:labels" />
+		
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"title":"$1"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.title')" />
+				
+			</args>
+		</payloadFactory>
+
+		<script language="js"><![CDATA[
+					
+			var assignee=mc.getProperty('uri.var.assignee');
+			var milestone=mc.getProperty('uri.var.milestone');
+			var labels=mc.getProperty('uri.var.labels');
+			var issueContent=mc.getProperty('uri.var.issueContent');
+			
+			payload = mc.getPayloadJSON();
+						
+			if(milestone !=null && milestone != ""){
+				payload.milestone= milestone;
+			}
+			
+			if(assignee !=null && assignee != ""){
+				payload.assignee=assignee;
+			}
+			
+			if(labels !=null && labels != ""){
+				payload.labels= eval("("+ labels +")");
+			}
+			
+			if(issueContent != null && issueContent != ""){
+				payload.body = issueContent;
+			}
+						
+			mc.setPayloadJSON(payload);
+         ]]></script>
+         
+        
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/repos/{uri.var.owner}/{uri.var.repo}/issues" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove response custom header information --> 
+		<header name="Access-Control-Expose-Headers" scope="transport" action="remove" />
+		<header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-RateLimit-Reset" scope="transport" action="remove" />
+		<header name="X-GitHub-Request-Id" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-Accepted-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-GitHub-Media-Type" scope="transport" action="remove" />
+		<header name="X-Served-By" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Credentials" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="X-RateLimit-Limit" scope="transport" action="remove" />
+		<header name="Content-Security-Policy" scope="transport" action="remove" />
+		
+	</sequence>
+</template>
