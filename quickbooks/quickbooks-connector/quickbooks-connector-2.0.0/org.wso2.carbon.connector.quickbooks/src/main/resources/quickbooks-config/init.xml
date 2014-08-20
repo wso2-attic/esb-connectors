@@ -1,0 +1,57 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="apiUrl" description="The apiUrl of quickbooks." />
+	<parameter name="responseType" description="The response type to be accepted." />
+	<parameter name="companyId" description="The ID of the company." />
+	<parameter name="consumerKey" description="The consumer key of the created application." />
+	<parameter name="consumerSecret" description="The consumer secret of the created application." />
+	<parameter name="accessToken" description="The generated access token." />
+	<parameter name="accessTokenSecret" description="The generated access token secret." />
+	
+
+	<sequence>
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.contentType" value="application/json" />
+		<property name="uri.var.responseType" expression="$func:responseType" />
+		<property name="uri.var.companyId" expression="$func:companyId" />
+		<property name="uri.var.consumerKey" expression="$func:consumerKey" />
+		<property name="uri.var.consumerSecret" expression="$func:consumerSecret" />
+		<property name="uri.var.accessToken" expression="$func:accessToken" />
+		<property name="uri.var.accessTokenSecret" expression="$func:accessTokenSecret" />
+		<property name="uri.var.hostHeader" value="" />
+
+		<filter source="boolean(get-property('uri.var.contentType'))" regex="true">
+			<then>
+				<property name="Content-Type" expression="get-property('uri.var.contentType')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter source="boolean(get-property('uri.var.responseType'))" regex="true">
+			<then>
+				<property name="Accept" expression="get-property('uri.var.responseType')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<!-- If the apiUrl is not specified, set the default value as https://qb.sbfinance.intuit.com/v3 -->
+		<filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+			<then>
+				<property name="uri.var.apiUrl" value="https://qb.sbfinance.intuit.com/v3" />
+
+			</then>
+			<else>
+				<property name="uri.var.apiUrl"
+					expression="fn:concat(get-property('uri.var.apiUrl'),'/v3')" />
+			</else>
+		</filter>
+		
+		<!-- Setting up the REQUEST_HOST_HEADER property according to the api URL  -->
+		<property name="uri.var.hostHeader" expression="fn:substring-after(get-property('uri.var.apiUrl'),'https://')" />
+		<property name="uri.var.hostHeader" expression="fn:substring-before(get-property('uri.var.hostHeader'),'/v3')" />
+		
+		<property name="REQUEST_HOST_HEADER" expression="fn:concat(get-property('uri.var.hostHeader'),':443')" scope="axis2" />
+		<property name="messageType" value="application/json" scope="axis2" />
+
+	</sequence>
+</template>
