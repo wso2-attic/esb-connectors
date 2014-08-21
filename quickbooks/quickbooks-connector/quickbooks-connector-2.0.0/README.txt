@@ -63,9 +63,9 @@ STEPS:
 	
      xi) customerNameOptional - Give a name for the customer.
    
-    xii) vendorDisplayName1 - Give a name for the vendor.
+    xii) vendorDisplayName1 - Give a name for the vendor. Maximum width should be below 15 characters. 
    
-   xiii) vendorDisplayName2 - Give a name for the vendor.
+   xiii) vendorDisplayName2 - Give a name for the vendor. Maximum width should be below 15 characters. 
 	
 	xiv) itemNameMandatory - Give a name for the item.
 	
@@ -75,9 +75,9 @@ STEPS:
 	
    xvii) updatedOptionalItemName  - Give a string to update item name.
 
-  xviii) updatedMandatoryVendorTitle  - Give a string to update vendor title.
+  xviii) updatedMandatoryVendorTitle  - Give a string to update vendor title. Maximum width should be below 15 characters. 
 
-	xix) updatedOptionalVendorTitle  - Give a string to update vendor title.	
+	xix) updatedOptionalVendorTitle  - Give a string to update vendor title. Maximum width should be below 15 characters. 	
 	
 	 xx) customerTitle - Give a string to update customer title. Maximum width should be below 15 characters. 
 
