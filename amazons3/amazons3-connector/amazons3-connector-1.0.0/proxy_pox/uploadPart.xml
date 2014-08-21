@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="amazons3_uploadPart"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <amazons3.uploadPart>
+            <bucketUrl>{$url:bucketUrl}</bucketUrl>
+            <objectName>{$url:objectName}</objectName>
+            <uploadId>{$url:uploadId}</uploadId>
+            <partNumber>{$url:partNumber}</partNumber>
+         </amazons3.uploadPart>
+         <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_CODE" value="600401"/>
+                     <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_CODE" value="600404"/>
+                     <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <case regex="403">
+                     <property name="ERROR_CODE" value="600403"/>
+                     <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_CODE" value="600400"/>
+                     <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <case regex="500">
+                     <property name="ERROR_CODE" value="600500"/>
+                     <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <default>
+                     <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+                     <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </default>
+               </switch>
+               <sequence key="faultHandlerSeq"/>
+            </then>
+         </filter>
+         <respond/>
+      </inSequence>
+      <outSequence>
+         <log/>
+         <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>
+                                

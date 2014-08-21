@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="amazons3_getObject"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <property name="accessKeyId" expression="//accessKeyId/text()"/>
+         <property name="secretAccessKey" expression="//secretAccessKey/text()"/>
+         <property name="methodType" expression="//methodType/text()"/>
+         <property name="contentLength" expression="//contentLength/text()"/>
+         <property name="contentType" expression="//contentType/text()"/>
+         <property name="contentMD5" expression="//contentMD5/text()"/>
+         <property name="expect" expression="//expect/text()"/>
+         <property name="host" expression="//host/text()"/>
+         <property name="isXAmzDate" expression="//isXAmzDate/text()"/>
+         <property name="xAmzSecurityToken" expression="//xAmzSecurityToken/text()"/>
+         <property name="bucketName" expression="//bucketName/text()"/>
+         <property name="objectName" expression="//objectName/text()"/>
+         <property name="bucketUrl" expression="//bucketUrl/text()"/>
+         <property name="responseContentType" expression="//responseContentType/text()"/>
+         <property name="responseContentLanguage" expression="//responseContentLanguage/text()"/>
+         <property name="responseExpires" expression="//responseExpires/text()"/>
+         <property name="responseCacheControl" expression="//responseCacheControl/text()"/>
+         <property name="responseContentDisposition" expression="//responseContentDisposition/text()"/>
+         <property name="responseContentEncoding" expression="//responseContentEncoding/text()"/>
+         <property name="range" expression="//range/text()"/>
+         <property name="ifModifiedSince" expression="//ifModifiedSince/text()"/>
+         <property name="ifUnmodifiedSince" expression="//ifUnmodifiedSince/text()"/>
+         <property name="ifMatch" expression="//ifMatch/text()"/>
+         <property name="ifNoneMatch" expression="//ifNoneMatch/text()"/>
+         <amazons3.init>
+            <accessKeyId>{$ctx:accessKeyId}</accessKeyId>
+            <secretAccessKey>{$ctx:secretAccessKey}</secretAccessKey>
+            <methodType>{$ctx:methodType}</methodType>
+            <contentLength>{$ctx:contentLength}</contentLength>
+            <contentType>{$ctx:contentType}</contentType>
+            <contentMD5>{$ctx:contentMD5}</contentMD5>
+            <expect>{$ctx:expect}</expect>
+            <host>{$ctx:host}</host>
+            <isXAmzDate>{$ctx:isXAmzDate}</isXAmzDate>
+            <xAmzSecurityToken>{$ctx:xAmzSecurityToken}</xAmzSecurityToken>
+            <bucketName>{$ctx:bucketName}</bucketName>
+         </amazons3.init>
+         <amazons3.getObject>
+            <bucketUrl>{$ctx:bucketUrl}</bucketUrl>
+            <objectName>{$ctx:objectName}</objectName>
+            <responseContentType>{$ctx:responseContentType}</responseContentType>
+            <responseContentLanguage>{$ctx:responseContentLanguage}</responseContentLanguage>
+            <responseExpires>{$ctx:responseExpires}</responseExpires>
+            <responseCacheControl>{$ctx:responseCacheControl}</responseCacheControl>
+            <responseContentDisposition>{$ctx:responseContentDisposition}</responseContentDisposition>
+            <responseContentEncoding>{$ctx:responseContentEncoding}</responseContentEncoding>
+            <range>{$ctx:range}</range>
+            <ifModifiedSince>{$ctx:ifModifiedSince}</ifModifiedSince>
+            <ifUnmodifiedSince>{$ctx:ifUnmodifiedSince}</ifUnmodifiedSince>
+            <ifMatch>{$ctx:ifMatch}</ifMatch>
+            <ifNoneMatch>{$ctx:ifNoneMatch}</ifNoneMatch>
+         </amazons3.getObject>
+        <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_CODE" value="600401"/>					  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_CODE" value="600404"/>					  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+				  <case regex="403">
+                     <property name="ERROR_CODE" value="600403"/>					  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_CODE" value="600400"/>					  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <case regex="500">
+                     <property name="ERROR_CODE" value="600500"/>  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <default> 
+				     <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+                     <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </default>
+               </switch>
+               <sequence key="faultHandlerSeq" />
+            </then>
+         </filter>
+         <respond/>
+      </inSequence>
+      <outSequence>
+         <log/>
+         <send/>
+      </outSequence> 
+   </target>
+   <description/>
+</proxy>
+                                

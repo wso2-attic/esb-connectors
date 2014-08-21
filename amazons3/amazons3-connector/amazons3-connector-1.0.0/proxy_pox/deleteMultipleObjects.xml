@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="amazons3_deleteMultipleObjects"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence>
+         <property name="accessKeyId" expression="//accessKeyId/text()"/>
+         <property name="secretAccessKey" expression="//secretAccessKey/text()"/>
+         <property name="methodType" expression="//methodType/text()"/>
+         <property name="contentType" expression="//contentType/text()"/>
+         <property name="bucketName" expression="//bucketName/text()"/>
+         <property name="isXAmzDate" expression="//isXAmzDate/text()"/>
+         <property name="xAmzSecurityToken" expression="//xAmzSecurityToken/text()"/>
+         <property name="bucketUrl" expression="//bucketUrl/text()"/>
+         <property name="host" expression="//host/text()"/>
+         <property name="contentLength" expression="//contentLength/text()"/>
+         <property name="expect" expression="//expect/text()"/>
+         <property name="xAmzMfa" expression="//xAmzMfa/text()"/>
+         <property name="quiet" expression="//deleteConfig/Delete/Quiet/text()"/>
+         <property name="deleteConfig" expression="//deleteConfig/Delete/Object"/> 
+         <amazons3.init>
+            <accessKeyId>{$ctx:accessKeyId}</accessKeyId>
+            <secretAccessKey>{$ctx:secretAccessKey}</secretAccessKey>
+            <methodType>{$ctx:methodType}</methodType>
+            <contentType>{$ctx:contentType}</contentType>
+            <bucketName>{$ctx:bucketName}</bucketName>
+            <isXAmzDate>{$ctx:isXAmzDate}</isXAmzDate>
+            <xAmzSecurityToken>{$ctx:xAmzSecurityToken}</xAmzSecurityToken>
+            <host>{$ctx:host}</host>
+            <expect>{$ctx:expect}</expect>
+            <contentLength>{$ctx:contentLength}</contentLength>
+            <xAmzMfa>{$ctx:xAmzMfa}</xAmzMfa>
+         </amazons3.init>
+         <amazons3.deleteMultipleObjects>
+            <bucketUrl>{$ctx:bucketUrl}</bucketUrl>
+            <quiet>{$ctx:quiet}</quiet>
+            <deleteConfig>{$ctx:deleteConfig}</deleteConfig>
+         </amazons3.deleteMultipleObjects>
+         <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_CODE" value="600401"/>					  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_CODE" value="600404"/>					  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+				  <case regex="403">
+                     <property name="ERROR_CODE" value="600403"/>					  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_CODE" value="600400"/>					  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <case regex="500">
+                     <property name="ERROR_CODE" value="600500"/>  
+					 <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </case>
+                  <default> 
+				     <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+                     <property name="ERROR_MESSAGE" expression="json-eval($.Error.Code)"/>
+                     <property name="error_description" expression="json-eval($.Error.Message)"/>
+                  </default>
+               </switch>
+               <sequence key="faultHandlerSeq" />
+            </then>
+         </filter>
+         <respond/>
+      </inSequence>
+      <outSequence>
+         <log/>
+		 <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>
