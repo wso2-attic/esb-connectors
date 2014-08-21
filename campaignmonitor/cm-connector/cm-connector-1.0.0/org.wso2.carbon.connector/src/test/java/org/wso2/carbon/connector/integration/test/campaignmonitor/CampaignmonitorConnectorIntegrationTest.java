@@ -65,8 +65,8 @@ public class CampaignmonitorConnectorIntegrationTest extends ConnectorIntegratio
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createDraftCampaign_mandatory.json");
         
         // Adding the returned campaign id to property file
-        String campaignId = esbRestResponse.getBody().get("output").toString();
-        connectorProperties.put("campaignId", campaignId.substring(1, campaignId.length() - 1));
+        String campaignId = esbRestResponse.getBody().get("string").toString();
+        connectorProperties.put("campaignId", campaignId);
         
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/api/v3.1/campaigns/"
@@ -102,11 +102,11 @@ public class CampaignmonitorConnectorIntegrationTest extends ConnectorIntegratio
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createDraftCampaig_optional.json");
         
         // Adding the returned campaign id to property file
-        String campaignId = esbRestResponse.getBody().get("output").toString();
+        String campaignId = esbRestResponse.getBody().get("string").toString();
         
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/api/v3.1/campaigns/"
-                        + campaignId.substring(1, campaignId.length() - 1) + "/summary.json";
+                        + campaignId + "/summary.json";
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
         
         Assert.assertTrue(apiRestResponse.getBody().has("Recipients"));
@@ -132,10 +132,10 @@ public class CampaignmonitorConnectorIntegrationTest extends ConnectorIntegratio
                         + connectorProperties.getProperty("clientId") + ".json";
         RestResponse<JSONObject> apiRestResponse =
                 sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_createDraftCampaign_optional.json");
-        
-        Assert.assertEquals(esbRestResponse.getBody().get("Message").toString(),
+     
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Result").get("Message").toString(),
                 apiRestResponse.getBody().get("Message").toString());
-        Assert.assertEquals(esbRestResponse.getBody().get("Code").toString(), apiRestResponse.getBody().get("Code")
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Result").get("Code").toString(), apiRestResponse.getBody().get("Code")
                 .toString());
         
     }
