@@ -54,14 +54,23 @@ STEPS:
 	ii)  accessToken  - The access token obtained in step(5) which gives access to the API
 	iii) htmlUrl      - A valid url of a html page which doesn't have any javascript code. The below mentioned url can be used for this parameter.
 						http://www.karelia.com/support/sandvox/help/z/Raw_HTML.html
-	iv)  clientId     - A Id of a specific client in your account(Can retrieve client Ids via the "listClients" method).
-	v)   listId 	  - A Id of a subscriber list which is assosiated with the aforementioned client Id in parameter iv (Can retrieve subscriber list Ids via running the "listSubscriberLists" method).
+	iv)  clientId     - A Id of a specific client in your account. Follow the steps mentioned in below link to obtain the clientId from UI.
+						https://www.campaignmonitor.com/api/getting-started/#clientid
+						If the clientId is not available through the above steps, run the "listClients" method	to obtain the clientId.	
+	v)   listId 	  - A Id of a subscriber list which is assosiated with the aforementioned client Id in parameter iv. Follow the steps mentioned in below link to obtain the listId from UI.
+						https://www.campaignmonitor.com/api/getting-started/#listid
+						If the listId is not available through the above steps, run the "listSubscriberLists" method	to obtain the listId.	
 
-	
- 7. Navigate to "{CAMPAIGN_MONITOR_CONNECTOR_HOME}/campaignmonitor-connector/campaignmonitor-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 7. Create a "Segment" through the subscriber list referenced by listId, mentioned in step (6) -> (v).
+ 
+	i)   Navigate to subscriber list home page.
+	ii)	 Click "Segments" link which resides in the menu panel in right hand side.
+	iii) Create a new segment through "Create a new segment" link.
+ 
+ 8. Navigate to "{CAMPAIGN_MONITOR_CONNECTOR_HOME}/campaignmonitor-connector/campaignmonitor-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
 	  
- 8. Account Details
+ 9. Account Details
 	Username: wso2.connector.virtusa@hotmail.com
 	Password: 1qaz2wsx@
 	
