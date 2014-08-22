@@ -1,0 +1,229 @@
+<template name="createMemo" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="customFields" description="Custom field or data extension." />
+	<parameter name="docNumber" description="Reference number for the transaction." />
+	<parameter name="txnDate" description="The date entered by the user when this transaction occurred." />
+	<parameter name="departmentRef" description="Location of the transaction, as defined using location tracking in QuickBooks Online." />
+	<parameter name="currencyRef" description="Reference to the Currency in which all amounts on the associated transaction are expressed." />
+	<parameter name="exchangeRate" description="Currency exchange rate." />
+	<parameter name="privateNote" description="User entered, organization-private note about the transaction." />
+	<parameter name="line" description="A line item of a transaction." />
+	<parameter name="txnTaxDetail" description="Details of taxes charged on the transaction as a whole." />
+	<parameter name="customerRef" description="Reference to a Customer or job." />
+	<parameter name="customerMemo" description="User-entered message to the customer" />
+	<parameter name="billAddr" description="Bill-to address of the CreditMemo." />
+	<parameter name="shipAddr" description="Ship-to address of the CreditMemo." />
+	<parameter name="classRef" description="Reference to the Class associated with the transaction." />
+	<parameter name="salesTermRef" description="Reference to the SalesTerm associated with the transaction." />
+	<parameter name="globalTaxCalculation" description="Method in which tax is applied." />
+	<parameter name="totalAmt" description="Indicates the total amount of the transaction." />
+	<parameter name="homeTotalAmt" description="Total amount of the transaction in the home currency." />
+	<parameter name="applyTaxAfterDiscount" description="If false or null, calculate the sales tax first, and then apply the discount." />
+	<parameter name="printStatus" description="Printing status of the credit memo." />
+	<parameter name="emailStatus" description="Email status of the invoice." />
+	<parameter name="billEmail" description="Identifies the e-mail address where the invoice is sent. " />
+	<parameter name="balance" description="The balance reflecting any payments made against the transaction." />
+	<parameter name="paymentMethodRef" description="Reference to the PaymentMethod." />
+	<parameter name="depositToAccountRef" description="Asset account where the payment money is deposited." />
+	<parameter name="remainingCredit" description="Indicates the total credit amount still available to apply towards the payment." />
+
+	<sequence>
+		<property name="uri.var.customFields" expression="$func:customFields" />
+		<property name="uri.var.docNumber" expression="$func:docNumber" />
+		<property name="uri.var.txnDate" expression="$func:txnDate" />
+		<property name="uri.var.departmentRef" expression="$func:departmentRef" />
+		<property name="uri.var.currencyRef" expression="$func:currencyRef" />
+		<property name="uri.var.exchangeRate" expression="$func:exchangeRate" />
+		<property name="uri.var.privateNote" expression="$func:privateNote" />
+		<property name="uri.var.line" expression="$func:line" />
+		<property name="uri.var.txnTaxDetail" expression="$func:txnTaxDetail" />
+		<property name="uri.var.customerRef" expression="$func:customerRef" />
+		<property name="uri.var.customerMemo" expression="$func:customerMemo" />
+		<property name="uri.var.billAddr" expression="$func:billAddr" />
+		<property name="uri.var.classRef" expression="$func:classRef" />
+		<property name="uri.var.shipAddr" expression="$func:shipAddr" />
+		<property name="uri.var.salesTermRef" expression="$func:salesTermRef" />
+		<property name="uri.var.globalTaxCalculation" expression="$func:globalTaxCalculation" />
+		<property name="uri.var.totalAmt" expression="$func:totalAmt" />
+		<property name="uri.var.homeTotalAmt" expression="$func:homeTotalAmt" />
+		<property name="uri.var.applyTaxAfterDiscount" expression="$func:applyTaxAfterDiscount" />
+		<property name="uri.var.printStatus" expression="$func:printStatus" />
+		<property name="uri.var.emailStatus" expression="$func:emailStatus" />
+		<property name="uri.var.billEmail" expression="$func:billEmail" />
+		<property name="uri.var.balance" expression="$func:balance" />
+		<property name="uri.var.paymentMethodRef" expression="$func:paymentMethodRef" />
+		<property name="uri.var.depositToAccountRef" expression="$func:depositToAccountRef" />
+		<property name="uri.var.remainingCredit" expression="$func:remainingCredit" />
+		<property name="uri.var.uriRemainder" expression="fn:concat('/company/',get-property('uri.var.companyId'),'/creditmemo')" />
+		<property name="uri.var.params" value="" />
+		<property name="uri.var.method" value="POST" />
+
+		<!-- Authentication Header Setup and call the API -->
+		<class
+			name="org.wso2.carbon.connector.quickbooks.auth.QuickBooksOAuthSignpost" />
+
+		<filter source="boolean(get-property('auth'))" regex="true">
+			<then>
+				<property name="Authorization" expression="get-property('auth')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<!-- Building payload for mandatory params -->
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"Line": $1,
+				"CustomerRef": $2
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.line')" />
+				<arg expression="get-property('uri.var.customerRef')" />
+			</args>
+		</payloadFactory>
+
+		<!-- Building payload for optional params -->
+		<script language="js">
+		    <![CDATA[
+		    
+		    payload = mc.getPayloadJSON();
+		    var customField = mc.getProperty("uri.var.customField");
+		    var docNumber = mc.getProperty("uri.var.docNumber");
+		    var txnDate = mc.getProperty("uri.var.txnDate");
+		    var departmentRef = mc.getProperty("uri.var.departmentRef");
+		    var currencyRef = mc.getProperty("uri.var.currencyRef");
+		    var exchangeRate = mc.getProperty("uri.var.exchangeRate");
+		    var privateNote = mc.getProperty("uri.var.privateNote");
+		    var txnTaxDetail = mc.getProperty("uri.var.txnTaxDetail");
+		    var customerMemo = mc.getProperty("uri.var.customerMemo");
+		    var billAddr = mc.getProperty("uri.var.billAddr");
+		    var classRef = mc.getProperty("uri.var.classRef");
+		    var shipAddr = mc.getProperty("uri.var.shipAddr");
+		    var salesTermRef = mc.getProperty("uri.var.salesTermRef");
+		    var globalTaxCalculation = mc.getProperty("uri.var.globalTaxCalculation");
+		    var totalAmt = mc.getProperty("uri.var.totalAmt");
+		    var homeTotalAmt = mc.getProperty("uri.var.homeTotalAmt");
+		    var applyTaxAfterDiscount = mc.getProperty("uri.var.applyTaxAfterDiscount");
+		    var printStatus = mc.getProperty("uri.var.printStatus");
+		    var emailStatus = mc.getProperty("uri.var.emailStatus");
+		    var billEmail = mc.getProperty("uri.var.billEmail");
+		    var balance = mc.getProperty("uri.var.balance");
+		    var paymentMethodRef = mc.getProperty("uri.var.paymentMethodRef");
+		    var depositToAccountRef = mc.getProperty("uri.var.depositToAccountRef");
+		    var remainingCredit = mc.getProperty("uri.var.remainingCredit");
+		    
+		    if(customField!= null && customField != ''){
+		    	payload.CustomField = eval("("+ customField +")");
+		    }
+		    
+		    if(docNumber!= null && docNumber != ''){
+		    	payload.DocNumber = docNumber;
+		    }
+		    
+		    if(txnDate!= null && txnDate != ''){
+		    	payload.TxnDate = txnDate;
+		    }
+		    
+		    if(departmentRef!= null && departmentRef != ''){
+		    	payload.DepartmentRef = eval("("+ departmentRef +")");
+		    }
+		    
+		    if(currencyRef!= null && currencyRef != ''){
+		    	payload.CurrencyRef = eval("("+ currencyRef +")");
+		    }
+		    
+		    if(exchangeRate!= null && exchangeRate != ''){
+		    	payload.ExchangeRate = exchangeRate;
+		    }
+		    
+		    if(privateNote!= null && privateNote != ''){
+		    	payload.PrivateNote = privateNote;
+		    }
+		    
+		    if(txnTaxDetail!= null && txnTaxDetail != ''){
+		    	payload.TxnTaxDetail = eval("("+ txnTaxDetail +")");
+		    }
+		    
+		    if(customerMemo!= null && customerMemo != ''){
+		    	payload.CustomerMemo = eval("("+ customerMemo +")");
+		    }
+		    
+		    if(billAddr!= null && billAddr != ''){
+		    	payload.BillAddr = eval("("+ billAddr +")");
+		    }
+		    
+		    if(classRef!= null && classRef != ''){
+		    	payload.ClassRef = eval("("+ classRef +")");
+		    }
+		    
+		    if(shipAddr!= null && shipAddr != ''){
+		    	payload.ShipAddr = eval("("+ shipAddr +")");
+		    }
+		    
+		    if(salesTermRef!= null && salesTermRef != ''){
+		    	payload.SalesTermRef = eval("("+ salesTermRef +")");		    	
+		    }
+		    
+		    if(globalTaxCalculation!= null && globalTaxCalculation != ''){
+		    	payload.GlobalTaxCalculation = globalTaxCalculation;
+		    }
+		    
+		    if(totalAmt!= null && totalAmt != ''){
+		    	payload.TotalAmt = totalAmt;
+		    }
+		    
+		    if(homeTotalAmt!= null && homeTotalAmt != ''){
+		    	payload.HomeTotalAmt = homeTotalAmt;
+		    }
+		    
+		    if(applyTaxAfterDiscount!= null && applyTaxAfterDiscount != ''){
+		    	payload.ApplyTaxAfterDiscount = applyTaxAfterDiscount;
+		    }
+		    
+		    if(printStatus!= null && printStatus != ''){
+		    	payload.PrintStatus = printStatus;
+		    }
+		    
+		    if(emailStatus!= null && emailStatus != ''){
+		    	payload.EmailStatus = emailStatus;
+		    }
+		    
+		    if(billEmail!= null && billEmail != ''){
+		    	payload.BillEmail = eval("("+ billEmail +")");
+		    }
+		    
+		    if(balance!= null && balance != ''){
+		    	payload.Balance = balance;
+		    }
+		    
+		    if(paymentMethodRef!= null && paymentMethodRef != ''){
+		    	payload.PaymentMethodRef = paymentMethodRef;
+		    }
+		    
+		    if(depositToAccountRef!= null && depositToAccountRef != ''){
+		    	payload.DepositToAccountRef = eval("("+ depositToAccountRef +")");
+		    }
+		    
+		    if(remainingCredit!= null && remainingCredit != ''){
+		    	payload.RemainingCredit = remainingCredit;		    	
+		    }
+		    
+		    mc.setPayloadJSON(payload);
+		    
+			]]>
+		</script>
+		
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}{uri.var.uriRemainder}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="intuit_tid" scope="transport" action="remove" />
+		<header name="QBO-Version" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+	</sequence>
+</template>
