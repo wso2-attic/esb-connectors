@@ -57,6 +57,8 @@ STEPS:
 	ii)  Derive the API Key by following the instructions at "http://apidocs.callrail.com/".
 	iii) Create a new Company after creating an account and store the company ID for further reference.
 	iv)  Select the company and add numbers for both source tracker and session tracker and store the IDs for further reference.
+	Note: - To add a new session tracker number, select the Company >> select Numbers >> click Add Number >> add a new number under "Track Visitors & Keywords"
+ 	      - To add a new source tracker number, select the Company >> select Numbers >> click Add Number >> add a new number under "Track an Online Campaign" or "Track an Offline Campaign"	
 	v)   Place calls for each of the created numbers and store the call IDs for further reference.
 
  5. Update the CallRail properties file at location "{CALLRAIL_CONNECTOR_HOME}/callrail-connector/callrail-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
