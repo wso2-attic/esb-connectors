@@ -16,16 +16,6 @@ Product: Integration tests for WSO2 ESB Braintree connector
 Steps to follow in setting integration test.
  1.  Download ESB 4.8.1 from official website.
  2.  Deploy relevant patches, if applicable.
- 
-	Special Note: Created transactions can be refunded only after they are settled. Settlement of transaction is a scheduled backend process which takes around a day to be processed.
-	Due to this backend behavior, the transaction refunding functionality couldn't be incorporated successfully into the test suite. Therefore the methods,
-	'testRefundTransactionWithMandatoryParameters' and 'testRefundTransactionWithOptionalParameters' are made to fail with a meaningful comment as follows:
-
-	   'Braintree: Transaction needs to be settled before it can be refunded!
-		Settlement of Transaction is a batch process which is executed by automated Scheduler.
-		The following error is reported from the backend when trying to refund a transaction that has not yet been settled: ' followed by the SDK error message.
-		
-	The method(s) should be considered as passed if they fail with the above message. Any error messages apart from the above would indicate failure of the method(s).
 
 
 STEPS: 
