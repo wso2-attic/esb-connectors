@@ -1,0 +1,60 @@
+<template name="createDiscussion" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="projectId" 
+		description="Identifier of the project" />
+	<parameter name="name" 
+		description="The Discussion topic is a required field when creating a new discussion." />
+	<parameter name="discussionBody" 
+		description="The first message body is a required field when creating a new discussion." />
+	<parameter name="categoryId" 
+		description="The discussion category ID." />
+	<parameter name="visibility" 
+		description="Discussion visibility. 0 marks private and 1 stands for normal visibility." />
+	<parameter name="milestoneId" 
+		description="The ID of the parent Milestone." />
+
+	<sequence>
+
+		<property name="uri.var.projectId" expression="$func:projectId" />
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.discussionBody" expression="$func:discussionBody" />
+		<property name="uri.var.categoryId" expression="$func:categoryId" />
+		<property name="uri.var.visibility" expression="$func:visibility" />
+		<property name="uri.var.milestoneId" expression="$func:milestoneId" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"discussion[name]":"$1",
+				"discussion[body]":"$2",
+				"discussion[category_id]":"$3",
+				"discussion[visibility]":"$4",
+				"discussion[milestone_id]":"$5",
+				"submitted":"submitted"			
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.name')" />
+				<arg expression="get-property('uri.var.discussionBody')" />
+				<arg expression="get-property('uri.var.categoryId')" />
+				<arg expression="get-property('uri.var.visibility')" />
+				<arg expression="get-property('uri.var.milestoneId')" />
+			</args>
+		</payloadFactory>
+
+		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+		
+		<call>
+			<endpoint>
+				<http method="post" 
+					  uri-template="{uri.var.apiUrl}path_info=projects/{uri.var.projectId}/discussions/add" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+
+	</sequence>
+</template>
