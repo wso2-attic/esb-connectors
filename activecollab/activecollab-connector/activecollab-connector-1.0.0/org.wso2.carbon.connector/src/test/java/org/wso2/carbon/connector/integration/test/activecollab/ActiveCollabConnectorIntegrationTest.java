@@ -52,6 +52,32 @@ public class ActiveCollabConnectorIntegrationTest extends ConnectorIntegrationTe
         
         apiRequestHeadersMap.put("Content-Type", "application/x-www-form-urlencoded");
         
+        //setting an assignRoleId property.
+        setAssignRoleId();
+        
+    }
+    
+    /**
+     * This method will execute before test execution to set assignRoleId property.
+     */
+    private void setAssignRoleId() throws IOException, JSONException {
+    
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/api.php?auth_api_token="
+                        + connectorProperties.getProperty("apiToken") + "&format=json&path_info=info/roles/project";
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        String apiResponseArrayString = apiRestResponse.getBody().getString("output");
+        
+        JSONArray apiResponseArray = new JSONArray(apiResponseArrayString);
+        
+        if (apiResponseArray.length() > 0) {
+            String assignRoleId = apiResponseArray.getJSONObject(0).getString("id");
+            connectorProperties.put("assignRoleId", assignRoleId);
+        } else {
+            Assert.fail("Test execution skipped.Please create at least one project role.");
+        }
+        
     }
     
     /**
@@ -241,8 +267,9 @@ public class ActiveCollabConnectorIntegrationTest extends ConnectorIntegrationTe
         
         String apiResponseArrayString = apiRestResponse.getBody().getString("output");
         JSONArray apiResponseArray = new JSONArray(apiResponseArrayString);
- 
-        //checking whether the user Id is already assigned to the project or not. If already assigned, then fail the assertion
+        
+        // checking whether the user Id is already assigned to the project or not. If already assigned, then
+        // fail the assertion
         for (int i = 0; i < apiResponseArray.length(); i++) {
             if (connectorProperties.getProperty("assignUserIdMandatory").equals(
                     apiResponseArray.getJSONObject(i).getString("user_id"))) {
@@ -265,8 +292,9 @@ public class ActiveCollabConnectorIntegrationTest extends ConnectorIntegrationTe
         apiResponseArrayString = apiRestResponse.getBody().getString("output");
         apiResponseArray = new JSONArray(apiResponseArrayString);
         
-        //Checking whether the user is assigned properly.If the assigned user Id is found, assert the user object
-        for (int i = 0; i < apiResponseArray.length(); i++) {           
+        // Checking whether the user is assigned properly.If the assigned user Id is found, assert the user
+        // object
+        for (int i = 0; i < apiResponseArray.length(); i++) {
             if (esbUserId.equals(apiResponseArray.getJSONObject(i).getString("user_id"))) {
                 Assert.assertEquals(connectorProperties.getProperty("assignUserIdMandatory"), apiResponseArray
                         .getJSONObject(i).getString("user_id"));
@@ -295,7 +323,8 @@ public class ActiveCollabConnectorIntegrationTest extends ConnectorIntegrationTe
         String apiResponseArrayString = apiRestResponse.getBody().getString("output");
         JSONArray apiResponseArray = new JSONArray(apiResponseArrayString);
         
-        //checking whether the user Id is already assigned to the project or not. If already assigned, then fail the assertion
+        // checking whether the user Id is already assigned to the project or not. If already assigned, then
+        // fail the assertion
         for (int i = 0; i < apiResponseArray.length(); i++) {
             if (connectorProperties.getProperty("assignUserIdOptional").equals(
                     apiResponseArray.getJSONObject(i).getString("user_id"))) {
@@ -318,7 +347,8 @@ public class ActiveCollabConnectorIntegrationTest extends ConnectorIntegrationTe
         apiResponseArrayString = apiRestResponse.getBody().getString("output");
         apiResponseArray = new JSONArray(apiResponseArrayString);
         
-        //Checking whether the user is assigned properly.If the assigned user Id is found, assert the user object
+        // Checking whether the user is assigned properly.If the assigned user Id is found, assert the user
+        // object
         for (int i = 0; i < apiResponseArray.length(); i++) {
             
             if (esbUserId.equals(apiResponseArray.getJSONObject(i).getString("user_id"))) {
@@ -733,7 +763,7 @@ public class ActiveCollabConnectorIntegrationTest extends ConnectorIntegrationTe
                         + connectorProperties.getProperty("projectId") + "/milestones/" + milestoneIdOptional;
         
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-
+        
         SimpleDateFormat sdf = new SimpleDateFormat("MMM  d. yyyy");
         Date date = new Date();
         
