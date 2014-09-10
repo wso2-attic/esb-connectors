@@ -22,7 +22,7 @@ Steps to follow in setting integration test.
  
  2.  Deploy relevant patches, if applicable.
 
- 3.  Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Magento_Connector_Home}/magento-connector/magento-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 3.  Start the ESB seperately outside the "{Magento_Connector_Home}" directory.
 
  4.  Prerequisites for Magento Connector Integration Testing
 
