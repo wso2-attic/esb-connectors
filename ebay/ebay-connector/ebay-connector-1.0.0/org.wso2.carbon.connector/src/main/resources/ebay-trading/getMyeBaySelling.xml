@@ -1,0 +1,150 @@
+<template name="getMyeBaySelling" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="activeList"
+		description="Options for returning the list of items the user is actively selling." />
+	<parameter name="bidList"
+		description="Options for returning the  list of items on which there are bids." />
+	<parameter name="deletedFromSoldList"
+		description="Options for returning the  list of items the user sold and then deleted from their eBay page." />
+	<parameter name="deletedFromUnsoldList"
+		description="Options for returning the user either ended or did not sell and then deleted from their eBay page." />
+	<parameter name="hideVariations"
+		description="Whether to hid the Variations node from the result." />
+	<parameter name="scheduledList"
+		description="Options for returning the list of items the user has scheduled to sell but whose listings have not yet opened." />
+	<parameter name="sellingSummary"
+		description="Options for returning the summary of a user's buying activity." />
+	<parameter name="soldList"
+		description="Options for returning the list of items the user has sold." />
+	<parameter name="unsoldList"
+		description="Options for returning the list of items the user has listed, but whose listings have ended without being sold." />
+	<parameter name="detailLevel" description="The level of detail to return." />
+	<parameter name="outputSelector"
+		description="The selector to restrict data returned by the call." />
+	<sequence>
+		<property name="uri.var.activeList" expression="$func:activeList" />
+		<property name="uri.var.bidList" expression="$func:bidList" />
+		<property name="uri.var.deletedFromSoldList" expression="$func:deletedFromSoldList" />
+		<property name="uri.var.deletedFromUnsoldList" expression="$func:deletedFromUnsoldList" />
+		<property name="uri.var.hideVariations" expression="$func:hideVariations" />
+		<property name="uri.var.scheduledList" expression="$func:scheduledList" />
+		<property name="uri.var.sellingSummary" expression="$func:sellingSummary" />
+		<property name="uri.var.soldList" expression="$func:soldList" />
+		<property name="uri.var.unsoldList" expression="$func:unsoldList" />
+		<property name="uri.var.detailLevel" expression="$func:detailLevel" />
+		<property name="uri.var.outputSelector" expression="$func:outputSelector" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+					xmlns:ebl="urn:ebay:apis:eBLBaseComponents">
+					<soapenv:Header>
+						<ebl:RequesterCredentials>
+							<ebl:eBayAuthToken>$1</ebl:eBayAuthToken>
+						</ebl:RequesterCredentials>
+					</soapenv:Header>
+					<soapenv:Body>
+						<ebl:GetMyeBaySellingRequest>
+							<ebl:Version>$2</ebl:Version>
+							<ebl:ActiveList>$3</ebl:ActiveList>
+							<ebl:BidList>$4</ebl:BidList>
+							<ebl:DeletedFromSoldList>$5</ebl:DeletedFromSoldList>
+							<ebl:DeletedFromUnsoldList>$6</ebl:DeletedFromUnsoldList>
+							<ebl:ScheduledList>$7</ebl:ScheduledList>
+							<ebl:SellingSummary>$8</ebl:SellingSummary>
+							<ebl:SoldList>$9</ebl:SoldList>
+							<ebl:UnsoldList>$10</ebl:UnsoldList>
+						</ebl:GetMyeBaySellingRequest>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.authToken')" />
+				<arg expression="get-property('uri.var.version')" />
+				<arg expression="get-property('uri.var.activeList')" />
+				<arg expression="get-property('uri.var.bidList')" />
+				<arg expression="get-property('uri.var.deletedFromSoldList')" />
+				<arg expression="get-property('uri.var.deletedFromUnsoldList')" />
+				<arg expression="get-property('uri.var.scheduledList')" />
+				<arg expression="get-property('uri.var.sellingSummary')" />
+				<arg expression="get-property('uri.var.soldList')" />
+				<arg expression="get-property('uri.var.unsoldList')" />
+			</args>
+		</payloadFactory>
+		
+		<xslt key="ebay_removeRootElement.xslt" />
+		
+		<script language="js">
+			<![CDATA[
+		
+				//request body param variables
+		        var errorLanguage = mc.getProperty('uri.var.errorLanguage'); 
+				var messageId = mc.getProperty('uri.var.messageId'); 
+				var warningLevel = mc.getProperty('uri.var.warningLevel');
+				var detailLevel = mc.getProperty('uri.var.detailLevel');
+				var outputSelector = mc.getProperty('uri.var.outputSelector');
+				var hideVariations = mc.getProperty('uri.var.hideVariations');
+				var activeList = mc.getProperty('uri.var.activeList');
+				var bidList = mc.getProperty('uri.var.bidList');
+				var deletedFromSoldList = mc.getProperty('uri.var.deletedFromSoldList');
+				var deletedFromUnsoldList = mc.getProperty('uri.var.deletedFromUnsoldList');
+				var scheduledList = mc.getProperty('uri.var.scheduledList');
+				var sellingSummary = mc.getProperty('uri.var.sellingSummary');
+				var soldList = mc.getProperty('uri.var.soldList');
+				var unsoldList = mc.getProperty('uri.var.unsoldList');
+				   
+				var payload = mc.getPayloadXML();
+
+				
+				if (errorLanguage != null && errorLanguage != "") { 
+					payload.GetMyeBaySellingRequest += <ebl:ErrorLanguage xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{errorLanguage}</ebl:ErrorLanguage>; 
+				}
+				
+				if (messageId != null && messageId != "") { 
+					payload.GetMyeBaySellingRequest += <ebl:MessageID xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{messageId}</ebl:MessageID>; 
+				}
+				
+				if (warningLevel != null && warningLevel != "") { 
+					payload.GetMyeBaySellingRequest += <ebl:WarningLevel xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{warningLevel}</ebl:WarningLevel>; 
+				}
+				
+				if (detailLevel != null && detailLevel != "") {
+				 payload.GetMyeBaySellingRequest += <ebl:DetailLevel xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{detailLevel}</ebl:DetailLevel>;  
+				}
+				
+				if (outputSelector != null && outputSelector != "") {
+				 payload.GetMyeBaySellingRequest += <ebl:OutputSelector xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{outputSelector}</ebl:OutputSelector>;  
+				}
+				
+				if (hideVariations != null && hideVariations != "") {
+				 payload.GetMyeBaySellingRequest += <ebl:HideVariations xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{hideVariations}</ebl:HideVariations>;  
+				}  
+							
+				mc.setPayloadXML(payload);
+				
+			]]>
+		</script>
+		
+		
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.apiUrl'), '?')" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), 'callname=GetMyeBaySelling')" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;siteid=', get-property('uri.var.siteId'))" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;appid=', get-property('uri.var.appId'))" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;version=', get-property('uri.var.version'))" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;routing=', get-property('uri.var.routing'))" />
+
+		<header name="To" expression="get-property('uri.var.endpoint')" />
+		<header name="Action" value="GetMyeBaySelling" />
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove custom header information in response -->
+		<header name="X-EBAY-ESB-SITEID" scope="transport" action="remove" />
+		<header name="X-EBAY-ESB-CALL-NAME" scope="transport" action="remove" />
+		<header name="X-EBAY-ESB-GUID" scope="transport" action="remove" />
+		<header name="X-EBAY-API-SERVER-NAME" scope="transport" action="remove" />
+		
+	</sequence>
+</template>
