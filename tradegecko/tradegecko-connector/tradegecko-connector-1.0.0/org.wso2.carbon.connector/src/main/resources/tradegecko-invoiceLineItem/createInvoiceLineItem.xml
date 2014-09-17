@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="createInvoiceLineItem" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="quantity" description="The quantity for the line item." />
+	<parameter name="position" description="The position of the line item." />
+	<parameter name="invoiceId" description="The ID of the invoice to add the line item to." />
+	<parameter name="orderLineItemId" description="The ID of the line item to add." />
+	<parameter name="ledgerAccountId" description="The ID of the ledger account related to the invoice." />
+	
+	<sequence>
+		<property name="uri.var.quantity" expression="$func:quantity" />
+		<property name="uri.var.position" expression="$func:position" />
+		<property name="uri.var.invoiceId" expression="$func:invoiceId" />
+		<property name="uri.var.orderLineItemId" expression="$func:orderLineItemId" />
+		<property name="uri.var.ledgerAccountId" expression="$func:ledgerAccountId" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"invoice_line_item":{}
+				}
+			</format>
+		</payloadFactory>
+
+		<!-- Script mediator validate optional parameters and constructing the payload accordingly -->
+		<script language="js">
+		<![CDATA[
+		
+			//request body param variables
+			var invoiceId = mc.getProperty('uri.var.invoiceId');
+			var orderLineItemId = mc.getProperty('uri.var.orderLineItemId');
+			var quantity = mc.getProperty('uri.var.quantity');
+			var position = mc.getProperty('uri.var.position');
+			var ledgerAccountId = mc.getProperty('uri.var.ledgerAccountId');
+			
+			//Get the existing payload
+			payload = mc.getPayloadJSON();
+			
+			if (invoiceId != null && invoiceId != "") {
+				payload.invoice_line_item.invoice_id = "" + invoiceId;
+			}
+			
+			if (orderLineItemId != null && orderLineItemId != "") {
+				payload.invoice_line_item.order_line_item_id = "" + orderLineItemId;
+			}
+			
+			if (quantity != null && quantity != "") {
+				payload.invoice_line_item.quantity = "" + quantity;
+			}
+			
+			if (position != null && position != "") {
+				payload.invoice_line_item.position = "" + position;
+			}
+			
+			if (ledgerAccountId != null && ledgerAccountId != "") {
+				payload.invoice_line_item.ledger_account_id = "" + ledgerAccountId;
+			}
+			
+			//Set the newly constructed payload
+			mc.setPayloadJSON(payload);
+			
+		]]>
+		</script>
+
+		<header name="Content-Type" value="application/json" scope="transport" />
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/invoice_line_items/" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-Rate-Limit-Limit" scope="transport" action="remove" />
+		<header name="X-Rate-Limit-Remaining" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Xss-Protection" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-Rate-Limit-Reset" scope="transport" action="remove" />
+		<header name="X-Pagination" scope="transport" action="remove" />
+		<header name="Link" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Www-Authenticate" scope="transport" action="remove" />
+		<header name="Proxy-Support" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+
+	</sequence>
+</template>
