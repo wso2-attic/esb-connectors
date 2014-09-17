@@ -1,0 +1,65 @@
+<template name="addSubscribersToList" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="listId" description="Id of the subscriber list." />
+	<parameter name="subscribers" description="Subscribers to the list." />
+	<parameter name="resubscribe" description="Activate re-added to the list." />
+	<parameter name="queueSubscriptionBasedAutoResponders" description="Auto responder emails that are based on the subscription." />
+	<parameter name="restartSubscriptionBasedAutoresponders" description="Restart activate sequences." />
+	
+	<sequence>
+		<property name="uri.var.listId" expression="$func:listId" />
+		<property name="uri.var.subscribers" expression="$func:subscribers" />
+		<property name="uri.var.resubscribe" expression="$func:resubscribe" />
+		<property name="uri.var.queueSubscriptionBasedAutoResponders" expression="$func:queueSubscriptionBasedAutoResponders" />
+		<property name="uri.var.restartSubscriptionBasedAutoresponders" expression="$func:restartSubscriptionBasedAutoresponders" />
+		
+		<payloadFactory media-type="json">
+			<format>
+				 {}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.subscribers')" />
+			</args>
+		</payloadFactory>
+		
+		<script language="js">
+			<![CDATA[
+			
+				var subscribers=mc.getProperty("uri.var.subscribers");
+				var resubscribe = mc.getProperty("uri.var.resubscribe");
+				var queueSubscriptionBasedAutoResponders = mc.getProperty("uri.var.queueSubscriptionBasedAutoResponders");
+				var restartSubscriptionBasedAutoresponders = mc.getProperty("uri.var.restartSubscriptionBasedAutoresponders");
+				
+				payload = mc.getPayloadJSON();
+				
+				if(subscribers!=null && subscribers != ""){
+					payload.Subscribers= eval("("+ subscribers + ")");
+				}
+
+				if (resubscribe != null && resubscribe != "") {
+					payload.Resubscribe=eval("("+ resubscribe + ")");
+				}
+				
+				if (queueSubscriptionBasedAutoResponders != null && queueSubscriptionBasedAutoResponders != "") {
+					payload.QueueSubscriptionBasedAutoResponders=eval("("+ queueSubscriptionBasedAutoResponders + ")");
+				}
+				
+				if (restartSubscriptionBasedAutoresponders != null && restartSubscriptionBasedAutoresponders != "") {
+					payload.RestartSubscriptionBasedAutoresponders=eval("("+ restartSubscriptionBasedAutoresponders + ")");
+				}
+				print(payload);
+				mc.setPayloadJSON(payload);	
+			]]>
+		</script>
+		
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/api/v3.1/subscribers/{uri.var.listId}/import.json" />
+			</endpoint>
+		</call>
+		
+		<!-- Removing custom headers -->
+		<header name="P3P" action="remove" scope="transport" />
+		<header name="WWW-Authenticate" action="remove" scope="transport" />
+		<header name="X-CS-Node" action="remove" scope="transport"/>
+	</sequence>
+</template>
