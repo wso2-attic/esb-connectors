@@ -58,7 +58,7 @@ STEPS:
  
 	https://www.campaignmonitor.com/api/getting-started/#authenticating_with_oauth
 	
- 8. Required properties for Campaign Monitor Connector Integration Testing
+ 8. Update the Campaign Monitor properties file at location "<CAMPAIGN_MONITOR_CONNECTOR_HOME>/cm-connector/cm-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
    
 	i)   apiUrl		  				- The URL of Campaign Monitor api(https://api.createsend.com).
 	ii)  accessToken  				- The access token obtained in step(5) which gives access to the API
