@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="getSalary" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="isIncludeHistory" description="The boolean flag to include salary history in response." />
+
+	<sequence>
+	
+		<property name="uri.var.isIncludeHistory" expression="$func:isIncludeHistory" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"APIKey": "$1",
+					"Action": "GetSalaryDetail",
+					"EmployeeId": "$2",
+					"IsIncludeHistory": "$3"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.apiKey')" />
+				<arg expression="get-property('uri.var.employeeId')" />
+				<arg expression="get-property('uri.var.isIncludeHistory')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/Salary" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-AspNet-Version" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+		
+	</sequence>
+</template>

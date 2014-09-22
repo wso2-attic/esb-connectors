@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="updateAbsenceRecord" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="oldStartDate" description="The oldStartDate of the absence." />
+	<parameter name="oldEndDate" description="The oldEndDate of the absence." />
+	<parameter name="durationType" description="The duration type of the absence." />
+	<parameter name="reason" description="The reason for the absence." />
+	<parameter name="startDate" description="The start date of the absence period." />
+	<parameter name="endDate" description="The end date of the absence period." />
+	<parameter name="duration" description="The duration of the absence." />
+	<parameter name="partOfDay" description="The part of day of absence." />
+	<parameter name="absencePaidStatus" description="The absence paid status." />
+	<parameter name="emergencyLeave" description="The flag specifying whether absence is an emergency leave." />
+	<parameter name="addComments" description="The list of comments for the absence." />
+	<parameter name="addFiles" description="The list of files related to the absence." />
+	
+	<sequence>
+		<property expression="$func:oldStartDate" name="uri.var.oldStartDate" />
+		<property expression="$func:oldEndDate" name="uri.var.oldEndDate" />
+		<property expression="$func:durationType" name="uri.var.durationType" />
+		<property expression="$func:reason" name="uri.var.reason" />
+		<property expression="$func:startDate" name="uri.var.startDate" />
+		<property expression="$func:endDate" name="uri.var.endDate" />
+		<property expression="$func:duration" name="uri.var.duration" />
+		<property expression="$func:partOfDay" name="uri.var.partOfDay" />
+		<property expression="$func:absencePaidStatus" name="uri.var.absencePaidStatus" />
+		<property expression="$func:emergencyLeave" name="uri.var.emergencyLeave" />
+		<property expression="$func:addComments" name="uri.var.addComments" />
+		<property expression="$func:addFiles" name="uri.var.addFiles" />
+		
+		<payloadFactory media-type="json">
+			<format>
+				{
+				 "APIKey": "$1",
+				 "EmployeeId": "$2",
+				 "Action": "UpdateAbsence",
+				 "DurationType": "$3", 
+				 "Reason": "$4",
+				 "StartDate":"$5", 
+				 "EndDate": "$6", 
+				 "Duration": "$7",
+				 "OldStartDate": "$8", 
+				 "OldEndDate": "$9"  
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.apiKey')" />
+				<arg expression="get-property('uri.var.employeeId')" />
+				<arg expression="get-property('uri.var.durationType')" />
+				<arg expression="get-property('uri.var.reason')" />
+				<arg expression="get-property('uri.var.startDate')" />
+				<arg expression="get-property('uri.var.endDate')" />
+				<arg expression="get-property('uri.var.duration')" />
+				<arg expression="get-property('uri.var.oldStartDate')" />
+				<arg expression="get-property('uri.var.oldEndDate')" />
+			</args>
+		</payloadFactory> 
+		
+		<script language="js">
+        	<![CDATA[
+                    
+	            //request body param variables
+	            var payload = mc.getPayloadJSON();
+	            
+	            var partOfDay = mc.getProperty('uri.var.partOfDay');
+	            var absencePaidStatus = mc.getProperty('uri.var.absencePaidStatus');
+	            var emergencyLeave = mc.getProperty('uri.var.emergencyLeave');
+	            var addComments = mc.getProperty('uri.var.addComments');
+	            var addFiles = mc.getProperty('uri.var.addFiles');
+	            
+	            if(partOfDay != null && partOfDay != "") {
+	            	if(partOfDay==" "){
+						payload.PartOfDay="";
+					}else{
+					payload.PartOfDay = partOfDay;
+					}
+	            } 
+	            
+	            if(absencePaidStatus != null && absencePaidStatus != "") {
+	            	if(absencePaidStatus==" "){
+						payload.AbsencePaidStatus="";
+					}else{
+					payload.AbsencePaidStatus = absencePaidStatus;
+					}
+	            } 
+
+	            if(emergencyLeave != null && emergencyLeave != "") {
+	            	if(emergencyLeave==" "){
+						payload.EmergencyLeave="";
+					}else{
+					payload.EmergencyLeave = emergencyLeave;
+					}
+	            } 	          	          
+	            
+	            if (addComments != null && addComments != "") {
+                       payload.AddComments = eval("("+addComments+")"); 
+                }
+                
+                if (addFiles != null && addFiles != "") {
+                       payload.AddFiles = eval("("+addFiles+")"); 
+                } 
+	            mc.setPayloadJSON(payload); 
+        	]]>
+		</script>
+		
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/Absence" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-AspNet-Version" scope="transport" action="remove" />
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+	</sequence>
+</template>
