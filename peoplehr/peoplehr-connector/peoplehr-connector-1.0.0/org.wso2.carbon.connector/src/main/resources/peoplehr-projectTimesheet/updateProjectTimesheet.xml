@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<template name="updateProjectTimesheet" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="transactionId" description="The identifier of the transaction of creating the project time sheet." />
+	<parameter name="timesheetProject" description="The project name that the time sheet needs to be updated with." />
+	<parameter name="timesheetTask" description="Taskname that needs to be updated in the timesheet." />
+	<parameter name="timesheetDetail" description="Detail name that needs to be updated in the timesheet." />
+	<parameter name="startTime" description="Start time of the timesheet. Input format hh:mm." />
+	<parameter name="endTime" description="End time of the timesheet. Input format hh:mm." />
+	<parameter name="totalHours" description="Total number of hours.Should match Start and End time." />
+	<parameter name="quantity" description="The quantity of the timesheet." />
+	<parameter name="notes" description="Any additional details about the time sheet." />
+
+	<sequence>
+		<property expression="$func:transactionId" name="uri.var.transactionId" />
+		<property expression="$func:timesheetProject" name="uri.var.timesheetProject" />
+		<property expression="$func:timesheetTask" name="uri.var.timesheetTask" />
+		<property expression="$func:timesheetDetail" name="uri.var.timesheetDetail" />
+		<property expression="$func:startTime" name="uri.var.startTime" />
+		<property expression="$func:endTime" name="uri.var.endTime" />
+		<property expression="$func:totalHours" name="uri.var.totalHours" />
+		<property expression="$func:quantity" name="uri.var.quantity" />
+		<property expression="$func:notes" name="uri.var.notes" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"APIKey": "$1", 
+					"Action": "UpdateProjectTimesheet", 
+					"EmployeeId": "$2", 
+					"TransactionId" : "$3"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.apiKey')" />
+				<arg expression="get-property('uri.var.employeeId')" />
+				<arg expression="get-property('uri.var.transactionId')" />
+			</args>
+		</payloadFactory>
+		
+		<script language="js">
+        	<![CDATA[
+				var timesheetProject=mc.getProperty('uri.var.timesheetProject');
+				var timesheetTask=mc.getProperty('uri.var.timesheetTask');	
+				var timesheetDetail=mc.getProperty('uri.var.timesheetDetail');
+				var startTime=mc.getProperty('uri.var.startTime');	
+				var endTime=mc.getProperty('uri.var.endTime');	
+				var totalHours=mc.getProperty('uri.var.totalHours');	
+				var quantity=mc.getProperty('uri.var.quantity');	
+				var notes=mc.getProperty('uri.var.notes');					
+				var payload = mc.getPayloadJSON();
+				
+			    if(timesheetProject != null && timesheetProject != "") {
+	            	if(timesheetProject==" "){
+						payload.TimesheetProject="";
+					}else{
+					payload.TimesheetProject = timesheetProject;
+					}
+	            }
+	            
+	            if(timesheetTask != null && timesheetTask != "") {
+	            	if(timesheetTask==" "){
+						payload.TimesheetTask="";
+					}else{
+					payload.TimesheetTask = timesheetTask;
+					}
+	            } 
+				
+				if(timesheetDetail != null && timesheetDetail != "") {
+	            	if(timesheetDetail==" "){
+						payload.TimesheetDetail="";
+					}else{
+					payload.TimesheetDetail = timesheetDetail;
+					}
+	            } 
+	            
+	            if(startTime != null && startTime != "") {
+	            	if(startTime==" "){
+						payload.StartTime="";
+					}else{
+					payload.StartTime = startTime;
+					}
+	            } 
+										
+	            if(endTime != null && endTime != "") {
+	            	if(endTime==" "){
+						payload.EndTime="";
+					}else{
+					payload.EndTime = endTime;
+					}
+	            } 
+	            
+	            if(totalHours != null && totalHours != "") {
+	            	if(totalHours==" "){
+						payload.TotalHours="";
+					}else{
+					payload.TotalHours = totalHours;
+					}
+	            } 	            
+	
+	            if(quantity != null && quantity != "") {
+	            	if(quantity==" "){
+						payload.Quantity="";
+					}else{
+					payload.Quantity = quantity;
+					}
+	            }
+	            
+	            if(notes != null && notes != "") {
+	            	if(notes==" "){
+						payload.Notes="";
+					}else{
+					payload.Notes = notes;
+					}
+	            }
+			
+				mc.setPayloadJSON(payload);
+			]]>
+		</script>			
+		
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/ProjectTimesheet" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-AspNet-Version" scope="transport" action="remove" />
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>
