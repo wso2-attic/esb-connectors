@@ -29,8 +29,9 @@ Steps to follow in setting integration test.
  4. Create a PeopleHR trial account and derive the API Key.
 	i) 		Using the URL "http://www.trial.peoplehr.com/" create a PeopleHR trial account.
 	ii)		Login to the created People HR account and go to Settings >> API >> Under API Key Management >> Create an API Key.
-	iii)	Create at least one department and note the department name for further reference.
-	iv)		Create at least two projects and at least one task should be added to each of them. Keep the project names and the task names for further reference.
+	iii)	Create at least two projects and at least one task should be added for each of them. 
+			Go to Settings >> Timesheets >> Project/Task >> Select '+(Manage This List)' from the drop down list and add project/task.
+			Keep the project names and the task names for further reference.
 
  5. Update the PeopleHR properties file at location "{PeopleHR_Connector_Home}/peoplehr-connector/peoplehr-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
@@ -40,48 +41,33 @@ Steps to follow in setting integration test.
 	iv)		empIdOptional					- 	Use a unique employee ID.
 	v)		firstName						- 	Use a valid string as the first name of the employee.
 	vi)		lastName						-   Use a valid string as the last name of the employee.
-	vii)	gender			    			-   Use a valid gender value.
-	viii)	startDate			   			-   Use a valid date in the format of YYYY-MM-DD.
-	ix)	    jobRole			        		-   Use a valid job role to which the employee can be assigned.
-	x)	    location			    		-   Use a valid location where the employee can be appointed.
-	xi)	    department			    		-   Use a valid department where the employee can be appointed. Use the department name obtained under Step 4 iii).
-	xii)	empTitle			    		- 	Use a proper title for the employee (e.g:- Mr., Ms., Mr ).
-	xiii)	empEmail			    		- 	Use a valid and unique email for the employee.
-	xiv)	empDateOfBirth					- 	Use a valid date in the format of YYYY-MM-DD.
-	xv)	    effectiveFromDate				- 	Use a valid date in the format of YYYY-MM-DD.
-	xvi)	salaryType			    		- 	Use a proper salary type (e.g:-Annual, Monthly).
-	xvii)	salaryAmount					- 	Amount of the salary in the format of D.DDDD (D stands for a Digit).
-	xviii)	createSalaryComments			-   Use a comment for creating the salary for the employee.
-	xix)	projectTimesheetDate			- 	Use a valid date in the format of YYYY-MM-DD.
-	xx)	    timesheetProject				- 	Use the project name to which the time sheet is created for. Use a project name obtained under Step 4 iv).
-	xxi)	projectTimeSheetquantity		- 	Use a quantity with the format D.DD (D stands for a Digit).
-	xxii)	projectTimeSheetTask			- 	Use a valid task for the project time sheet. Use a task name obtained under 4 iv).
-	xxiii)	projectTimeSheetNotes			- 	Use some note to be added to project time sheet.
-	xxiv)	updatedTimesheetProject			- 	Use the project name to which the time sheet is created for.Use a project name obtained under Step 4 iv)which is not same as 'timesheetProject'.
-	xxv)	updatedprojectTimeSheetNotes	- 	Use some note to be added to project time sheet other than the string given for 'projectTimeSheetNotes'.
-	xxvi)	updatedProjectTimesheetQuantity	- 	Use a quantity with the format D.DD (D stands for a Digit).Provide a value different to 'projectTimeSheetquantity'.
-	xxvii)	updatedProjectTimesheetTask		- 	Use a valid task for the project time sheet.Use a task name obtained under 4 iv)other than the value given for 'projectTimeSheetTask'.
-	xxviii)	firstNameUpdated				- 	Use a valid string as the first name of the employee other than the value given for 'firstName'.
-	xxix)	lastNameUpdated					- 	Use a valid string as the last name of the employee other than the value given for 'lastName'.
-	xxx)	empEmailUpdated					- 	Use a valid and unique email for the employee other than the value given for 'empEmail'.
-	xxxi)	leaveStartDate					- 	Use a valid date in the format of YYYY-MM-DD.
-	xxxii)	leaveEndDate					-   Use a valid date in the format of YYYY-MM-DD. This should be a future date than 'leaveStartDate'.
-	xxxiii)	leaveNewStartDate				- 	Use a valid date in the format of YYYY-MM-DD. This date must be different than 'leaveStartDate'.
-	xxxiv)	leaveNewEndDate					- 	Use a valid date in the format of YYYY-MM-DD and the date must be different than 'leaveEndDate'. This should be a future date than 'leaveNewStartDate'.
-	xxxv)	leaveDuration					- 	Use the number of days that the leave consists.This should be the gap between the leaveStartDate and leaveEndDate.
-	xxxvi)	leavePaidStatus					- 	Use a valid leave paid status.
-	xxxvii)	leaveComment					- 	Mention a comment for the leave.
-	xxxviii)timesheetDate					- 	Use a valid date in the format of YYYY-MM-DD.
-	xxxix)	timesheetStartDate				- 	Use a valid date in the format of YYYY-MM-DD.
-	xl)  	timesheetEndDate				- 	Use a valid date in the format of YYYY-MM-DD. This should be a future date than the 'timesheetStartDate'.
-	xli)	timeIn1							- 	A valid time in the format of hh:mm.
-	xlii)	timesheetDateOpt				- 	Use a valid date in the format of YYYY-MM-DD.
-	xliii)	startDateOpt					-	Use a valid date in the format of YYYY-MM-DD.
-	xliv)	endDateOpt						- 	Use a valid date in the format of YYYY-MM-DD. This should be a future date than the 'startDateOpt'.
-	xlv)	timeIn1update					- 	A valid time in the format of hh:mm. This should be a different date than timeIn1.
-	xlvi)	comments						- 	Use a valid comment.
-
-	Note :- empIdMandatory, empIdOptional,empEmail and empEmailUpdated needs to be set with unique values before running the integration test teach time.
+	vii)	startDate			   			-   Use a valid working date in the format of YYYY-MM-DD.
+	viii)	jobRole			        		-   Use a valid job role to which the employee can be assigned.
+	ix)	    department			    		-   Use a valid department name where the employee can be appointed(if a non existing department name is used, then the department will be automatically created and be used).
+	x)	    empEmail			    		- 	Use a valid and unique email for the employee.
+	xi)	    empDateOfBirth					- 	Use a valid date in the format of YYYY-MM-DD.
+	xii)	effectiveFromDate				- 	Use a valid working date in the format of YYYY-MM-DD.
+	xiii)	salaryType			    		- 	Use a proper salary type (e.g:-Annual).
+	xiv)	salaryAmount					- 	Amount of the salary in the format of D.DDDD (D stands for a Digit).
+	xv)	    timesheetProject				- 	Use the project name to which the time sheet is created for. Use a project name obtained under Step 4 iii).
+	xvi)	projectTimeSheetquantity		- 	Use a quantity with the format D.DD (D stands for a Digit).
+	xvii)	projectTimeSheetTask			- 	Use a valid task for the project time sheet. Use a task name obtained under 4 iii).
+	xviii)	updatedTimesheetProject			- 	Use the project name to which the time sheet is created for.Use a project name obtained under Step 4 iii)which is not same as 'timesheetProject'.
+	xix)	updatedProjectTimesheetQuantity	- 	Use a quantity with the format D.DD (D stands for a Digit).Provide a value different to 'projectTimeSheetquantity'.
+	xx)	    updatedProjectTimesheetTask		- 	Use a valid task for the project time sheet.Use a task name obtained under 4 iii)other than the value given for 'projectTimeSheetTask'.
+	xxi)	firstNameUpdated				- 	Use a valid string as the first name of the employee other than the value given for 'firstName'.
+	xxii)	empEmailUpdated					- 	Use a valid and unique email for the employee other than the value given for 'empEmail'.
+	xxiii)	leavePaidStatus					- 	Use a valid leave paid status.
+	xxiv)	testComment						- 	Mention a valid string value for comments.
+	xxv)	timeIn1							- 	A valid time in the format of hh:mm.
+	xxvi)	timeIn1update					- 	A valid time in the format of hh:mm. This should be a different time than timeIn1.
+	xxvii)	leaveDate						- 	Use a valid future working date in the format of YYYY-MM-DD.
+	xxviii)	timesheetDate					- 	Use a valid future working date in the format of YYYY-MM-DD.
+	xxix)	timesheetDateOpt				- 	Use a valid future working date in the format of YYYY-MM-DD.
+	
+	Note :- 
+		1. empIdMandatory, empIdOptional,empEmail and empEmailUpdated needs to be set with unique values before running the integration test teach time.
+		2. leaveDate, timesheetDate and timesheetDateOpt should contain three different date values.
 	
  6. Navigate to "{PeopleHR_Connector_Home}/peoplehr-connector/peoplehr-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install

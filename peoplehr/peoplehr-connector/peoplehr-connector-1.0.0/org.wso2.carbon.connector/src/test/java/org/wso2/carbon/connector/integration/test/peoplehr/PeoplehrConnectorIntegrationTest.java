@@ -71,9 +71,6 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 apiRestResponse.getBody().getJSONObject("Result").getJSONObject("FirstName").getString("DisplayValue"));
         Assert.assertEquals(connectorProperties.getProperty("lastName"),
                 apiRestResponse.getBody().getJSONObject("Result").getJSONObject("LastName").getString("DisplayValue"));
-        Assert.assertEquals(connectorProperties.getProperty("gender"), apiRestResponse.getBody()
-                .getJSONObject("Result").getJSONObject("Gender").getString("DisplayValue"));
-        
     }
     
     /**
@@ -99,9 +96,6 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
         Assert.assertEquals(connectorProperties.getProperty("empDateOfBirth"),
                 apiRestResponse.getBody().getJSONObject("Result").getJSONObject("DateOfBirth")
                         .getString("DisplayValue"));
-        Assert.assertEquals(connectorProperties.getProperty("location"),
-                apiRestResponse.getBody().getJSONObject("Result").getJSONObject("Location").getString("DisplayValue"));
-        
     }
     
     /**
@@ -153,10 +147,6 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
         Assert.assertEquals(
                 esbRestResponse.getBody().getJSONObject("Result").getJSONObject("LastName").getString("DisplayValue"),
                 apiRestResponse.getBody().getJSONObject("Result").getJSONObject("LastName").getString("DisplayValue"));
-        Assert.assertEquals(
-                esbRestResponse.getBody().getJSONObject("Result").getJSONObject("Gender").getString("DisplayValue"),
-                apiRestResponse.getBody().getJSONObject("Result").getJSONObject("Gender").getString("DisplayValue"));
-        
     }
     
     /**
@@ -410,7 +400,7 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 .getBody().getJSONArray("Result").getJSONObject(0).getString("TimeIn1"));
         Assert.assertEquals(connectorProperties.getProperty("timesheetDate"),
                 apiRestResponse.getBody().getJSONArray("Result").getJSONObject(0).getString("TimesheetDate"));
-        Assert.assertEquals(connectorProperties.getProperty("comments"),
+        Assert.assertEquals(connectorProperties.getProperty("testComment"),
                 apiRestResponse.getBody().getJSONArray("Result").getJSONObject(0).getString("Comments"));
     }
     
@@ -460,8 +450,8 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
         Assert.assertEquals(esbRestResponse.getBody().getString("isError"), "false");
         Assert.assertEquals(apiRestResponse.getBody().getString("isError"), "false");
         
-        Assert.assertEquals(connectorProperties.getProperty("projectTimesheetDate"), apiRestResponse.getBody()
-                .getJSONObject("Result").getString("ProjectTimesheetDate"));
+        Assert.assertEquals(connectorProperties.getProperty("timesheetDate"),
+                apiRestResponse.getBody().getJSONObject("Result").getString("ProjectTimesheetDate"));
         Assert.assertEquals(connectorProperties.getProperty("timesheetProject"), apiRestResponse.getBody()
                 .getJSONObject("Result").getString("TimesheetProject"));
     }
@@ -493,8 +483,8 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 .getJSONObject("Result").getString("Quantity"));
         Assert.assertEquals(connectorProperties.getProperty("projectTimeSheetTask"), apiRestResponse.getBody()
                 .getJSONObject("Result").getString("TimesheetTask"));
-        Assert.assertEquals(connectorProperties.getProperty("projectTimeSheetNotes"), apiRestResponse.getBody()
-                .getJSONObject("Result").getString("Notes"));
+        Assert.assertEquals(connectorProperties.getProperty("testComment"),
+                apiRestResponse.getBody().getJSONObject("Result").getString("Notes"));
     }
     
     /**
@@ -564,7 +554,7 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
         Assert.assertEquals(esbRestResponse.getBody().get("Status"), apiRestResponse.getBody().get("Status"));
         Assert.assertEquals(
                 esbRestResponse.getBody().getJSONArray("Result").getJSONObject(0).get("ProjectTimesheetDate"),
-                connectorProperties.get("timesheetStartDate"));
+                connectorProperties.get("timesheetDate"));
     }
     
     /**
@@ -637,8 +627,8 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 .getBody().getJSONObject("Result").getString("Quantity"));
         Assert.assertEquals(connectorProperties.getProperty("updatedProjectTimesheetTask"), apiRestResponse.getBody()
                 .getJSONObject("Result").getString("TimesheetTask"));
-        Assert.assertEquals(connectorProperties.getProperty("updatedprojectTimeSheetNotes"), apiRestResponse.getBody()
-                .getJSONObject("Result").getString("Notes"));
+        Assert.assertEquals(connectorProperties.getProperty("testComment"),
+                apiRestResponse.getBody().getJSONObject("Result").getString("Notes"));
     }
     
     /**
@@ -657,9 +647,6 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> apiRestResponse =
                 sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap,
                         "api_updateProjectTimesheet_negative.json");
-        
-        System.out.println("esbRestResponse>>>>>" + esbRestResponse.getBody());
-        System.out.println("apiRestResponse>>>>>" + apiRestResponse.getBody());
         
         Assert.assertEquals(esbRestResponse.getBody().getString("isError"),
                 apiRestResponse.getBody().getString("isError"));
@@ -721,8 +708,8 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 apiRestResponse.getBody().getJSONArray("Result").getJSONObject(0).getString("SalaryType"));
         Assert.assertEquals(connectorProperties.getProperty("salaryAmount"),
                 apiRestResponse.getBody().getJSONArray("Result").getJSONObject(0).getString("SalaryAmount"));
-        Assert.assertEquals(connectorProperties.getProperty("createSalaryComments"), apiRestResponse.getBody()
-                .getJSONArray("Result").getJSONObject(0).getString("Comments"));
+        Assert.assertEquals(connectorProperties.getProperty("testComment"),
+                apiRestResponse.getBody().getJSONArray("Result").getJSONObject(0).getString("Comments"));
     }
     
     /**
@@ -813,9 +800,9 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_createAbsenceRecord_mandatory.json");
         
         Assert.assertFalse(Boolean.parseBoolean(esbRestResponse.getBody().getString("isError")));
-        Assert.assertEquals(connectorProperties.getProperty("leaveStartDate"),
+        Assert.assertEquals(connectorProperties.getProperty("leaveDate"),
                 apiRestResponse.getBody().getJSONArray("Result").getJSONObject(0).getString("StartDate"));
-        Assert.assertEquals(connectorProperties.getProperty("leaveEndDate"),
+        Assert.assertEquals(connectorProperties.getProperty("leaveDate"),
                 apiRestResponse.getBody().getJSONArray("Result").getJSONObject(0).getString("EndDate"));
     }
     
@@ -838,7 +825,7 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
         Assert.assertFalse(Boolean.parseBoolean(esbRestResponse.getBody().getString("isError")));
         Assert.assertEquals(connectorProperties.getProperty("leavePaidStatus"),
                 apiRestResponse.getBody().getJSONArray("Result").getJSONObject(0).getString("AbsencePaidStatus"));
-        Assert.assertEquals(connectorProperties.getProperty("leaveComment"),
+        Assert.assertEquals(connectorProperties.getProperty("testComment"),
                 apiRestResponse.getBody().getJSONArray("Result").getJSONObject(0).getJSONArray("Comments")
                         .getJSONObject(0).getString("Comments"));
     }
@@ -906,7 +893,7 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
         Assert.assertEquals(esbRestResponse.getBody().get("Message"), apiRestResponse.getBody().get("Message"));
         Assert.assertEquals(esbRestResponse.getBody().get("Status"), apiRestResponse.getBody().get("Status"));
         Assert.assertEquals(esbRestResponse.getBody().getJSONArray("Result").getJSONObject(0).get("StartDate"),
-                connectorProperties.get("leaveStartDate"));
+                connectorProperties.get("leaveDate"));
     }
     
     /**
@@ -948,8 +935,8 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
         
         Assert.assertFalse(Boolean.parseBoolean(esbRestResponse.getBody().getString("isError")));
         Assert.assertEquals(esbRestResponse.getBody().get("Status"), 0);
-        Assert.assertEquals(connectorProperties.get("leaveNewStartDate"),
-                apiRestResponse.getBody().getJSONArray("Result").getJSONObject(0).get("StartDate"));
+        Assert.assertEquals(connectorProperties.get("leaveDate"), apiRestResponse.getBody().getJSONArray("Result")
+                .getJSONObject(0).get("StartDate"));
     }
     
     /**
@@ -970,9 +957,9 @@ public class PeoplehrConnectorIntegrationTest extends ConnectorIntegrationTestBa
         
         Assert.assertFalse(Boolean.parseBoolean(esbRestResponse.getBody().getString("isError")));
         Assert.assertEquals(esbRestResponse.getBody().get("Status"), 0);
-        Assert.assertEquals(connectorProperties.get("leaveNewStartDate"),
-                apiRestResponse.getBody().getJSONArray("Result").getJSONObject(0).get("StartDate"));
-        Assert.assertEquals(connectorProperties.get("leaveComment"), apiRestResponse.getBody().getJSONArray("Result")
+        Assert.assertEquals(connectorProperties.get("leaveDate"), apiRestResponse.getBody().getJSONArray("Result")
+                .getJSONObject(0).get("StartDate"));
+        Assert.assertEquals(connectorProperties.get("testComment"), apiRestResponse.getBody().getJSONArray("Result")
                 .getJSONObject(0).getJSONArray("Comments").getJSONObject(0).get("Comments"));
     }
     
