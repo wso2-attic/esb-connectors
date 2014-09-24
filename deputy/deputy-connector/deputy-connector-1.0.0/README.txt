@@ -38,8 +38,8 @@ Steps to follow in setting integration test.
 	iv)		leaveEndDate					- 	Use a valid future date as the end date of the leave period. This shouldn't be a past value than 'leaveStartDate'. Follow the format DD/MM/YYYY.
 	v)		leaveStatus						- 	Use a valid status of a leave as documented in the API documentation.
 	vi)		leaveApprovalComment			-   Use a string value as the approval comment of the leave.
-	vii)	intStartTimestamp			    -   Use a valid UNIX timestamp.
-	viii)	intEndTimestamp			   		-   Use a valid UNIX timestamp.
+	vii)	intStartTimestamp			    -   Use a valid UNIX future timestamp.
+	viii)	intEndTimestamp			   		-   Use a valid UNIX future timestamp.
 	ix)	    intOpunitId			        	-   Use a valid Operational unit ID (Operational Unit 3 is valid and created by default).
 	x)	    blnPublish			    		-   Use a value 1 or 0 as the boolean value representing the roster is published.
 	xi)	    companyId			    		-   Use a valid company ID (Default is 1).
