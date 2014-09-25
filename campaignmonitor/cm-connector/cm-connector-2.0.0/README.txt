@@ -77,6 +77,11 @@ STEPS:
 	vii)  subscribersNameMandetory	- A name of the subscriber for mandatory case.
     viii) subscribersOptionalEmail	- An email of the subscriber for optional case.
     ix)   subscribersNameOptional	- A name of the subscriber for optional case.
+	
+	x)	  templateId				- An Id of a campaign template which is assosiated with the aforementioned client Id in parameter iv. Follow the steps mentioned in below link to obtain the correct templateId.
+									  https://api.createsend.com/api/v3.1/clients/{clientid}/templates.json
+									  If the template is not available, import a new template with the client using the the following link.
+                                      https://samliyanage.createsend.com/templates/#import		
 
  9. Create a "Segment" through the subscriber list referenced by listId, mentioned in step (6) -> (v).
  
