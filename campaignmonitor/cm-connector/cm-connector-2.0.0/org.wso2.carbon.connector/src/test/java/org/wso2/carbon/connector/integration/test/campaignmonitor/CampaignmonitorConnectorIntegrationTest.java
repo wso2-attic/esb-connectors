@@ -105,8 +105,7 @@ public class CampaignmonitorConnectorIntegrationTest extends ConnectorIntegratio
         String campaignId = esbRestResponse.getBody().get("string").toString();
         
         String apiEndPoint =
-                connectorProperties.getProperty("apiUrl") + "/api/v3.1/campaigns/"
-                        + campaignId + "/summary.json";
+                connectorProperties.getProperty("apiUrl") + "/api/v3.1/campaigns/" + campaignId + "/summary.json";
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
         
         Assert.assertTrue(apiRestResponse.getBody().has("Recipients"));
@@ -132,11 +131,11 @@ public class CampaignmonitorConnectorIntegrationTest extends ConnectorIntegratio
                         + connectorProperties.getProperty("clientId") + ".json";
         RestResponse<JSONObject> apiRestResponse =
                 sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_createDraftCampaign_optional.json");
-     
+        
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Result").get("Message").toString(),
                 apiRestResponse.getBody().get("Message").toString());
-        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Result").get("Code").toString(), apiRestResponse.getBody().get("Code")
-                .toString());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Result").get("Code").toString(), apiRestResponse
+                .getBody().get("Code").toString());
         
     }
     
@@ -259,13 +258,14 @@ public class CampaignmonitorConnectorIntegrationTest extends ConnectorIntegratio
                         "esb_listEmailCampaignClickers_optional.json");
         JSONArray esbResultsArray = esbRestResponse.getBody().getJSONArray("Results");
         
-        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/api/v3.1/campaigns/"
-                + connectorProperties.getProperty("campaignId") + "/clicks.json?pagesize=100";
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/api/v3.1/campaigns/"
+                        + connectorProperties.getProperty("campaignId") + "/clicks.json?pagesize=100";
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
         JSONArray apiResultsArray = apiRestResponse.getBody().getJSONArray("Results");
         
         Assert.assertEquals(esbRestResponse.getBody().get("TotalNumberOfRecords").toString(), apiRestResponse.getBody()
-                .get("TotalNumberOfRecords").toString());      
+                .get("TotalNumberOfRecords").toString());
         Assert.assertEquals(esbResultsArray.length(), apiResultsArray.length());
         if (esbResultsArray.length() > 0) {
             Assert.assertEquals(esbResultsArray.getJSONObject(0).get("EmailAddress").toString(), apiResultsArray
@@ -471,7 +471,7 @@ public class CampaignmonitorConnectorIntegrationTest extends ConnectorIntegratio
     /**
      * Positive test case for addSubscribersToList method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods={"testListSubscriberListsWithNegativeCase"}, description = "campaignmonitor {addSubscribersToList} integration test with mandatory parameters")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListSubscriberListsWithNegativeCase" }, description = "campaignmonitor {addSubscribersToList} integration test with mandatory parameters")
     public void testAddSubscribersToListWithMandatoryParameters() throws Exception {
     
         esbRequestHeadersMap.put("Action", "urn:addSubscribersToList");
@@ -483,17 +483,20 @@ public class CampaignmonitorConnectorIntegrationTest extends ConnectorIntegratio
         
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/api/v3.1/subscribers/"
-                        + connectorProperties.getProperty("listId") + ".json?email="+ connectorProperties.getProperty("subscribersMandatoryEmail");
+                        + connectorProperties.getProperty("listId") + ".json?email="
+                        + connectorProperties.getProperty("subscribersMandatoryEmail");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
         
-        Assert.assertEquals(connectorProperties.getProperty("subscribersMandatoryEmail"), apiRestResponse.getBody().get("EmailAddress").toString());
-        Assert.assertEquals(connectorProperties.getProperty("subscribersNameMandetory"), apiRestResponse.getBody().get("Name").toString());
+        Assert.assertEquals(connectorProperties.getProperty("subscribersMandatoryEmail"), apiRestResponse.getBody()
+                .get("EmailAddress").toString());
+        Assert.assertEquals(connectorProperties.getProperty("subscribersNameMandetory"),
+                apiRestResponse.getBody().get("Name").toString());
     }
     
     /**
      * Positive test case for addSubscribersToList method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods={"testAddSubscribersToListWithMandatoryParameters"}, description = "campaignmonitor {addSubscribersToList} integration test with optional parameters")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddSubscribersToListWithMandatoryParameters" }, description = "campaignmonitor {addSubscribersToList} integration test with optional parameters")
     public void testAddSubscribersToListWithOptionalParameters() throws Exception {
     
         esbRequestHeadersMap.put("Action", "urn:addSubscribersToList");
@@ -505,11 +508,14 @@ public class CampaignmonitorConnectorIntegrationTest extends ConnectorIntegratio
         
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/api/v3.1/subscribers/"
-                        + connectorProperties.getProperty("listId") + ".json?email="+ connectorProperties.getProperty("subscribersOptionalEmail");
+                        + connectorProperties.getProperty("listId") + ".json?email="
+                        + connectorProperties.getProperty("subscribersOptionalEmail");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
         
-        Assert.assertEquals(connectorProperties.getProperty("subscribersOptionalEmail"), apiRestResponse.getBody().get("EmailAddress").toString());
-        Assert.assertEquals(connectorProperties.getProperty("subscribersNameOptional"), apiRestResponse.getBody().get("Name").toString());
+        Assert.assertEquals(connectorProperties.getProperty("subscribersOptionalEmail"),
+                apiRestResponse.getBody().get("EmailAddress").toString());
+        Assert.assertEquals(connectorProperties.getProperty("subscribersNameOptional"),
+                apiRestResponse.getBody().get("Name").toString());
     }
     
     /**
@@ -522,8 +528,11 @@ public class CampaignmonitorConnectorIntegrationTest extends ConnectorIntegratio
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_addSubscribersToList_negative.json");
         
-        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/api/v3.1/subscribers/"+connectorProperties.getProperty("listId")+"/import.json";
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_addSubscribersToList_negative.json");
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/api/v3.1/subscribers/"
+                        + connectorProperties.getProperty("listId") + "/import.json";
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_addSubscribersToList_negative.json");
         
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 400);
@@ -531,5 +540,92 @@ public class CampaignmonitorConnectorIntegrationTest extends ConnectorIntegratio
                 .toString());
         Assert.assertEquals(esbRestResponse.getBody().get("Message").toString(),
                 apiRestResponse.getBody().get("Message").toString());
+    }
+
+    /**
+     * Positive test case for createCampaignFromTemplate method with mandatory parameters.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods={"testAddSubscribersToListNegativeCase"}, description = "campaignmonitor {createCampaignFromTemplate} integration test with mandatory parameters")
+    public void testCreateCampaignFromTemplateWithMandatoryParameters() throws Exception {
+    
+        esbRequestHeadersMap.put("Action", "urn:createCampaignFromTemplate");
+        
+        // Creating a unique name by appending the date string
+        connectorProperties.put("campaignNameForTemplate", "Campaign Test Name " + new Date().toString());
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "esb_createCampaignFromTemplate_mandatory.json");
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 201);
+        
+        String campaignId = esbRestResponse.getBody().get("output").toString().replaceAll("\"", "");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/api/v3.1/campaigns/" + campaignId + "/summary.json";
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertTrue(apiRestResponse.getBody().has("Recipients"));
+    }
+    
+    /**
+     * Positive test case for createCampaignFromTemplate method with optional parameters.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateCampaignFromTemplateWithMandatoryParameters" }, description = "campaignmonitor {createCampaignFromTemplate} integration test with optional parameters")
+    public void testCreateCampaignFromTemplateWithOptionalParameters() throws Exception {
+    
+        esbRequestHeadersMap.put("Action", "urn:createCampaignFromTemplate");
+        
+        // Creating a unique name by appending the date string
+        connectorProperties.put("campaignNameForTemplate", "Campaign Test Name " + new Date().toString());
+        
+        // Retrieving the segmentId
+        String apiEndPointForSegments =
+                connectorProperties.getProperty("apiUrl") + "/api/v3.1/lists/"
+                        + connectorProperties.getProperty("listId") + "/segments.json";
+        RestResponse<JSONObject> apiRestResponseForSegments =
+                sendJsonRestRequest(apiEndPointForSegments, "GET", apiRequestHeadersMap);
+        JSONArray segmentArray = new JSONArray(apiRestResponseForSegments.getBody().get("output").toString());
+        connectorProperties.put("segmentId", segmentArray.getJSONObject(0).get("SegmentID").toString());
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "esb_createCampaignFromTemplate_optional.json");
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 201);
+        
+        String campaignId = esbRestResponse.getBody().get("output").toString().replaceAll("\"", "");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/api/v3.1/campaigns/" + campaignId + "/summary.json";
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertTrue(apiRestResponse.getBody().has("Recipients"));
+    }
+    
+    /**
+     * Negative test case for createCampaignFromTemplate method.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateCampaignFromTemplateWithOptionalParameters" }, description = "campaignmonitor {createCampaignFromTemplate} integration test negative case")
+    public void testCreateCampaignFromTemplateNegativeCase() throws Exception {
+    
+        esbRequestHeadersMap.put("Action", "urn:createCampaignFromTemplate");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createCampaignFromTemplate_negative.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/api/v3.1/campaigns/"
+                        + connectorProperties.getProperty("clientId") + "/fromtemplate.json";
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_createCampaignFromTemplate_negative.json");
+        
+        Assert.assertEquals(esbRestResponse.getBody().get("Message").toString(),
+                apiRestResponse.getBody().get("Message").toString());
+        Assert.assertEquals(esbRestResponse.getBody().get("Code").toString(), apiRestResponse
+                .getBody().get("Code").toString());
+        
     }
 }
