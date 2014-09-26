@@ -58,10 +58,17 @@ STEPS:
  
 	https://www.campaignmonitor.com/api/getting-started/#authenticating_with_oauth
 	
- 8. Update the Campaign Monitor properties file at location "<CAMPAIGN_MONITOR_CONNECTOR_HOME>/cm-connector/cm-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 8. Follow the steps in the below link to obtain the templateId.
+ 
+    Use the URL "https://www.campaignmonitor.com/api/clients/#templates" instructions and obitain the correct templateId assosiated with the aforementioned client Id.
+	
+	If the templates are not available for the client, import a new template with the client using the the following link instructions.
+    https://{logged_account_site_address_place_here}.createsend.com/templates/#import	
+	
+ 9. Update the Campaign Monitor properties file at location "<CAMPAIGN_MONITOR_CONNECTOR_HOME>/cm-connector/cm-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
    
 	i)   apiUrl		  				- The URL of Campaign Monitor api(https://api.createsend.com).
-	ii)  accessToken  				- The access token obtained in step(5) which gives access to the API
+	ii)  accessToken  				- The access token obtained in step(7) which gives access to the API
 	iii) htmlUrl      				- A valid url of a html page which doesn't have any javascript code. The below mentioned url can be used for this parameter.
 									  http://www.karelia.com/support/sandvox/help/z/Raw_HTML.html
 	iv)  clientId     				- A Id of a specific client in your account. Follow the steps mentioned in below link to obtain the clientId from UI.
@@ -78,21 +85,18 @@ STEPS:
     viii) subscribersOptionalEmail	- An email of the subscriber for optional case.
     ix)   subscribersNameOptional	- A name of the subscriber for optional case.
 	
-	x)	  templateId				- An Id of a campaign template which is assosiated with the aforementioned client Id in parameter iv. Follow the steps mentioned in below link to obtain the correct templateId.
-									  https://api.createsend.com/api/v3.1/clients/{clientid}/templates.json
-									  If the template is not available, import a new template with the client using the the following link.
-                                      https://samliyanage.createsend.com/templates/#import		
+	x)	  templateId				- An Id of a campaign template obtained in step(8). 	
 
- 9. Create a "Segment" through the subscriber list referenced by listId, mentioned in step (6) -> (v).
+ 10. Create a "Segment" through the subscriber list referenced by listId, mentioned in step (6) -> (v).
  
 	i)   Navigate to subscriber list home page.
 	ii)	 Click "Segments" link which resides in the menu panel in right hand side.
 	iii) Create a new segment through "Create a new segment" link.
  
- 10. Navigate to "{CAMPAIGN_MONITOR_CONNECTOR_HOME}/campaignmonitor-connector/campaignmonitor-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 11. Navigate to "{CAMPAIGN_MONITOR_CONNECTOR_HOME}/campaignmonitor-connector/campaignmonitor-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
 	  
- 11. Account Details
+ 12. Account Details
 	Username: wso2.connector.virtusa@hotmail.com
 	Password: 1qaz2wsx@
 	
