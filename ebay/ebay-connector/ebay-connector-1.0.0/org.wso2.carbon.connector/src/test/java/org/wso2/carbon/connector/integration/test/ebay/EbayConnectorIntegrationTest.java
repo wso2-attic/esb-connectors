@@ -301,7 +301,8 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     /**
      * Positive test case for addItem method with mandatory parameters.
      */
-    @Test(dependsOnMethods = "testGetStoresNegativeCase", groups = { "wso2.esb" }, description = "eBay {addItem} integration test with mandatory parameters.")
+    @Test(dependsOnMethods = {"testGetStoresNegativeCase", "testSetPromotionalSaleWithMandatoryParameters"}, 
+    		groups = { "wso2.esb" }, description = "eBay {addItem} integration test with mandatory parameters.")
     public void testAddItemWithMandatoryParameters() throws Exception {
     
         String uuid = buildItemUUID();
@@ -429,17 +430,18 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     /**
      * Positive test case for setPromotionalSale method with mandatory parameters.
      */
-    @Test(dependsOnMethods = { "testAddItemNegativeCase" }, groups = { "wso2.esb" }, description = "Ebay {setPromotionalSale} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, description = "Ebay {setPromotionalSale} integration test with mandatory parameters.")
     public void testSetPromotionalSaleWithMandatoryParameters() throws Exception {
     
         Date currentDate = new Date();
-        String startDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(currentDate);
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(currentDate);
+        
+        String startDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(cal.getTime());
         
         parametersMap.put("PromotionalSaleStartTime", startDate);
         
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(currentDate);
-        cal.add(Calendar.DATE, 5);
+        cal.add(Calendar.DATE, 10);
         
         String endDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(cal.getTime());
         parametersMap.put("PromotionalSaleEndTime", endDate);
@@ -522,7 +524,8 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     /**
      * Positive test case for setPromotionalSaleListings method with mandatory parameters.
      */
-    @Test(dependsOnMethods = { "testSetPromotionalSaleNegativeCase" }, groups = { "wso2.esb" }, description = "Ebay {setPromotionalSaleListings} integration test with mandatory parameters.")
+    @Test(dependsOnMethods = { "testSetPromotionalSaleNegativeCase","testAddItemWithMandatoryParameters" }, 
+    		groups = { "wso2.esb" }, description = "Ebay {setPromotionalSaleListings} integration test with mandatory parameters.")
     public void testSetPromotionalSaleListingsWithMandatoryParameters() throws Exception {
     
         SOAPEnvelope esbSoapResponse =
@@ -548,7 +551,7 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
         
         OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse.getBody().toString());
         xPathExp =
-                "string(//ebl:PromotionalSaleDetails/ebl:PromotionalSale/PromotionalSaleItemIDArray/ItemID[0]/text())";
+                "string(//ebl:PromotionalSaleDetails/ebl:PromotionalSale/ebl:PromotionalSaleItemIDArray/ebl:ItemID/text())";
         String apiItemId = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
         
         Assert.assertEquals(apiItemId, connectorProperties.getProperty("itemIdMandatory"));
@@ -557,16 +560,38 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     /**
      * Positive test case for setPromotionalSaleListings method with optional parameters.
      */
-    @Test(dependsOnMethods = { "testSetPromotionalSaleListingsWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "Ebay {setPromotionalSaleListings} integration test with optional parameters.")
+    @Test(dependsOnMethods = { "testSetPromotionalSaleListingsWithMandatoryParameters" }, 
+    		groups = { "wso2.esb" }, description = "Ebay {setPromotionalSaleListings} integration test with optional parameters.")
     public void testSetPromotionalSaleListingsWithOptionalParameters() throws Exception {
-    
+    	
+    	String uuid = buildItemUUID();
+    	
+    	String addItemEndpoint = connectorProperties.getProperty("tradingApiUrl") + "?siteid=0&" + "appid="
+                + connectorProperties.getProperty("appId") + "&" + "routing="
+                + connectorProperties.getProperty("routing");
+        
+        parametersMap.put("uuidSecondary", uuid);
+    	//creating second item for listing
+    	SOAPEnvelope addItemResponse =
+                sendSOAPRequest(addItemEndpoint + "&callname=AddItem",
+                        "api_setPromotionalSaleListings_optional_addItem.xml", parametersMap, "AddItem",
+                        SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+    	
+    	OMElement addItemElement = AXIOMUtil.stringToOM(addItemResponse.getBody().toString());
+    	
+    	String xPathExp = "string(//ebl:ItemID/text())";
+        
+        String itemID = (String) xPathEvaluate(addItemElement, xPathExp, nameSpaceMap);
+        
+        connectorProperties.setProperty("itemIdSecondary", itemID);
+    	
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_setPromotionalSaleListings_optional.xml", parametersMap, "mediate",
                         SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         
         OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
         
-        String xPathExp = "string(//ebl:SetPromotionalSaleListingsResponse/ebl:Ack/text())";
+        xPathExp = "string(//ebl:SetPromotionalSaleListingsResponse/ebl:Ack/text())";
         String esbSuccess = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
         
         Assert.assertEquals(esbSuccess, "Success");
@@ -582,16 +607,18 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
                         SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         
         OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse.getBody().toString());
-        xPathExp = "count(//ebl:PromotionalSaleDetails/ebl:PromotionalSale/PromotionalSaleItemIDArray/ItemID";
-        String apiItemIdCount = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
+        xPathExp = "count(//ebl:PromotionalSaleDetails/ebl:PromotionalSale/ebl:PromotionalSaleItemIDArray/ebl:ItemID)";
+        double apiItemIdCount = (Double) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
         
-        boolean isAllFixedPriceItems = false;
+        log.info("apiItemIdCount==============" + apiItemIdCount);
         
-        if (Integer.parseInt(apiItemIdCount) > 1) {
-            isAllFixedPriceItems = true;
+        boolean isAllAuctionItems = false;
+        
+        if (apiItemIdCount > 1.0) {
+            isAllAuctionItems = true;
         }
         
-        Assert.assertTrue(isAllFixedPriceItems);
+        Assert.assertTrue(isAllAuctionItems);
     }
     
     /**
