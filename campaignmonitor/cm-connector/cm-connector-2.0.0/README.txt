@@ -87,7 +87,7 @@ STEPS:
 	
 	x)	  templateId				- An Id of a campaign template obtained in step(8). 	
 
- 10. Create a "Segment" through the subscriber list referenced by listId, mentioned in step (6) -> (v).
+ 10. Create a "Segment" through the subscriber list referenced by listId, mentioned in step (9) -> (v).
  
 	i)   Navigate to subscriber list home page.
 	ii)	 Click "Segments" link which resides in the menu panel in right hand side.
