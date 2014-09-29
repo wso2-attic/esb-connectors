@@ -35,7 +35,7 @@ Steps to follow in setting integration test.
 	ii)	 Get the DevID, AppID and CertID from the eBay Developer Account Home using the URL "https://developer.ebay.com/DevZone/account"
 	iii) Create an eBay sandbox account with eBay developer account[i] using the URL "https://developer.ebay.com/DevZone/sandboxuser/".
 	iv)  Open an eBay sandbox store with eBay sandbox account[iii] using the URL "http://stores.sandbox.ebay.com/" and choose a subscription level and subscribe to eBay Store.
-	v)   Create paypal sandbox test account using the URL "https://developer.paypal.com/webapps/developer/applications/accounts" and link it with the eBay developer sandbox account by giving ebay email address. 
+	v)   Create paypal sandbox test account using the URL "https://developer.paypal.com/webapps/developer/applications/accounts" and link it with the eBay developer sandbox account by giving ebay email address. Please make sure to select the payment card method as "Paypal" when the paypal sandbox account regitration.
     vi)  Get the Site Id and version from the eBay API Test Tool using the URL "https://developer.ebay.com/DevZone/build-test/test-tool/default.asp".
 	
 	
