@@ -1,0 +1,49 @@
+<template name="createComment" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="comment" description="The comment text" />
+	<parameter name="noteId" description="The Id of Note" />
+	<parameter name="taskId" description="The Id of Task" />
+	<sequence>
+	    
+		<property name="uri.var.comment" expression="$func:comment" />
+		<property name="uri.var.noteId" expression="$func:noteId" />
+		<property name="uri.var.taskId" expression="$func:taskId" />
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"comment":"$1"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.comment')" />
+			</args>
+		</payloadFactory>
+
+		<!--Construct payload for optional parameters -->
+		<script language="js">
+		  <![CDATA[
+	  				payload = mc.getPayloadJSON();
+	  				var noteId = mc.getProperty("uri.var.noteId");
+	  				var taskId = mc.getProperty("uri.var.taskId");
+	  				
+					if ( noteId != null && noteId != "") { 				
+						payload.nid = noteId;			
+					}
+					if ( taskId != null && taskId != "") { 				
+						payload.tid = taskId;			
+					}
+					
+					mc.setPayloadJSON(payload);	
+					
+			]]>
+		</script>
+		
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/comment" />
+			</endpoint>
+		</call>
+
+
+	</sequence>
+</template>
