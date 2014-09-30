@@ -1,0 +1,41 @@
+<template name="updateStockData" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="productId" description="The ID of the product." />
+	<parameter name="data" description="The data of catalogInventoryStockItemUpdateEntity type." />
+
+	<sequence>
+		<property name="uri.var.productId" expression="$func:productId" />
+		<property name="uri.var.data" expression="$func:data" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<catalogInventoryStockItemUpdate>
+					<sessionId>$1</sessionId>
+					<product>$2</product>
+					<data>$3</data>
+				</catalogInventoryStockItemUpdate>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.productId')" />
+				<arg expression="get-property('uri.var.data')" />
+			</args>
+		</payloadFactory>
+
+		<!-- Remove values element via XSLT -->
+		<xslt key="magento_removeRootElement.xslt" />
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>
