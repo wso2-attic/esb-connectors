@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="changeStatus" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="jobId" description="The unique ID of the Job Opening record for which the associated candidate status has to be changed." />
+	<parameter name="candidateIds" description="The comma separated candidate ids for which the status has to be changed, with respect to the job opening." />
+	<parameter name="candidateStatus" description="The status of the resume with respect to the job opening." />
+	<parameter name="comments" description="The comments for why the status is being changed." />
+
+	<sequence>
+		<property name="uri.var.jobId" expression="$func:jobId" />
+		<property name="uri.var.candidateIds" expression="$func:candidateIds" />
+		<property name="uri.var.candidateStatus" expression="$func:candidateStatus" />
+		<property name="uri.var.comments" expression="$func:comments" />
+
+		<payloadFactory media-type="json">
+				<format>
+					{
+						"authtoken": "$1",
+						"scope":     "$2",
+						"candidateIds": "$3",
+						"candidateStatus": "$4"
+					}
+				</format>
+				<args>
+					<arg expression="get-property('uri.var.authToken')" />
+					<arg expression="get-property('uri.var.scope')" />
+					<arg expression="get-property('uri.var.candidateIds')" />
+					<arg expression="get-property('uri.var.candidateStatus')" />
+				</args>
+			</payloadFactory>	
+	
+	
+			<script language="js">
+	            <![CDATA[
+	                    
+	        	//initializing the payload
+	        	var payload = mc.getPayloadJSON();
+	        	
+	            // initializing the optional parameters
+				var jobId = mc.getProperty("uri.var.jobId");
+				var comments = mc.getProperty("uri.var.comments");
+				
+				// adding the optional parameters to the payload
+				if (jobId != null && jobId != "") {
+					payload.jobId = jobId;
+				}
+				
+				if (comments != null && comments != "") {
+					payload.comments = comments;
+				}
+
+	        	mc.setPayloadJSON(payload); 
+	            ]]>
+
+			</script>
+		
+		    <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+		
+			<call>
+				<endpoint>
+					<http method="post" uri-template="{uri.var.apiUrl}/ats/private/{uri.var.responseFormat}/Candidates/changeStatus" />
+				</endpoint>
+			</call>
+			
+			<!-- Removing custom headers -->
+			<header name="Strict-Transport-Security" action="remove" scope="transport" />
+			<header name="X-XSS-Protection" action="remove" scope="transport" />
+			<header name="X-Content-Type-Options" action="remove" scope="transport" />
+			<header name="Pragma" action="remove" scope="transport" />
+			<header name="Cache-Control" action="remove" scope="transport" />
+		</sequence>
+</template>
