@@ -1,0 +1,42 @@
+<template name="updateCatalogProductTierPrice" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="productId" description="ID of the product or SKU to update." />
+	<parameter name="tierPrices" description="Array of catalog product tier price entity." />
+	<parameter name="identifierType" description="Defines whether the product ID or SKU is passed in the product parameter to update." />
+
+	<sequence>
+		<property name="uri.var.productId" expression="$func:productId" />
+		<property name="uri.var.tierPrices" expression="$func:tierPrices" />
+		<property name="uri.var.identifierType" expression="$func:identifierType" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<catalogProductAttributeTierPriceUpdate>
+					<sessionId>$1</sessionId>
+					<product>$2</product>
+					<tier_price>$3</tier_price>
+					<identifierType>$4</identifierType>
+				</catalogProductAttributeTierPriceUpdate>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.productId')" />
+				<arg expression="get-property('uri.var.tierPrices')" />
+				<arg expression="get-property('uri.var.identifierType')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>

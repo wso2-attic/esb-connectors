@@ -1,0 +1,53 @@
+<template name="createInvoice" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="orderIncrementId" description="The Order increment ID." />
+	<parameter name="itemsQty" description="The item quantity array." />
+	<parameter name="comment" description="The invoice comment." />
+	<parameter name="email" description="Send invoice on email." />
+	<parameter name="includeComment" description="Include comments in email." />
+
+	<sequence>
+		<property name="uri.var.orderIncrementId" expression="$func:orderIncrementId" />
+		<property name="uri.var.itemsQty" expression="$func:itemsQty" />
+		<property name="uri.var.comment" expression="$func:comment" />
+		<property name="uri.var.email" expression="$func:email" />
+		<property name="uri.var.includeComment" expression="$func:includeComment" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<salesOrderInvoiceCreate>
+					<sessionId>$1</sessionId>
+					<invoiceIncrementId>$2</invoiceIncrementId>
+					<itemsQty>$3</itemsQty>
+					<comment>$4</comment>
+					<email>$5</email>
+					<includeComment>$6</includeComment>
+				</salesOrderInvoiceCreate>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.orderIncrementId')" />
+				<arg expression="get-property('uri.var.itemsQty')" />
+				<arg expression="get-property('uri.var.comment')" />
+				<arg expression="get-property('uri.var.email')" />
+				<arg expression="get-property('uri.var.includeComment')" />
+			</args>
+		</payloadFactory>
+
+		<!-- Remove root element via XSLT -->
+		<xslt key="magento_removeRootElement.xslt" />
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>

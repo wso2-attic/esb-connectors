@@ -1,0 +1,46 @@
+<template name="addCommentToCreditMemo" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="creditmemoIncrementId" description="The credit memo increment ID." />
+	<parameter name="comment" description="The comment text." />
+	<parameter name="notifyCustomer" description="The notify customer by email flag." />
+	<parameter name="includeComment" description="The flag to include comment text into the email notification." />
+
+	<sequence>
+		<property name="uri.var.creditmemoIncrementId" expression="$func:creditmemoIncrementId" />
+		<property name="uri.var.comment" expression="$func:comment" />
+		<property name="uri.var.notifyCustomer" expression="$func:notifyCustomer" />
+		<property name="uri.var.includeComment" expression="$func:includeComment" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<salesOrderCreditmemoAddComment>
+					<sessionId>$1</sessionId>
+					<creditmemoIncrementId>$2</creditmemoIncrementId>
+					<comment>$3</comment>
+					<notifyCustomer>$4</notifyCustomer>
+					<includeComment>$5</includeComment>
+				</salesOrderCreditmemoAddComment>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.creditmemoIncrementId')" />
+				<arg expression="get-property('uri.var.comment')" />
+				<arg expression="get-property('uri.var.notifyCustomer')" />
+				<arg expression="get-property('uri.var.includeComment')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>

@@ -1,0 +1,37 @@
+<template name="createCustomer" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="customerData" description="The customer information to create new customer." />
+
+	<sequence>
+		<property name="uri.var.customerData" expression="$func:customerData" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<customerCustomerCreate>
+					<sessionId>$1</sessionId>
+					<customerData>$2</customerData>
+				</customerCustomerCreate>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.customerData')" />
+			</args>
+		</payloadFactory>
+
+		<!-- Remove root element via XSLT -->
+		<xslt key="magento_removeRootElement.xslt" />
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>

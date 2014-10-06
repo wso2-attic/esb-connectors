@@ -1,0 +1,45 @@
+<template name="setCartShippingMethod" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="quoteId" description="Shopping cart identifier." />
+	<parameter name="method" description="Shipping method code." />
+	<parameter name="storeId" description="Store view identifier or code." />
+
+	<sequence>
+		<property name="uri.var.quoteId" expression="$func:quoteId" />
+		<property name="uri.var.method" expression="$func:method" />
+		<property name="uri.var.storeId" expression="$func:storeId" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<shoppingCartShippingMethod>
+					<sessionId>$1</sessionId>
+					<quoteId>$2</quoteId>
+					<method>$3</method>
+					<storeId>$4</storeId>
+				</shoppingCartShippingMethod>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.quoteId')" />
+				<arg expression="get-property('uri.var.method')" />
+				<arg expression="get-property('uri.var.storeId')" />
+			</args>
+		</payloadFactory>
+
+		<!-- Remove root element via XSLT -->
+		<xslt key="magento_removeRootElement.xslt" />
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>
