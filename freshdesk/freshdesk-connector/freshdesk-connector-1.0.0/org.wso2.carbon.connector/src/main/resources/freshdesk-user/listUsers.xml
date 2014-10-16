@@ -1,0 +1,41 @@
+<template name="listUsers" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="query" description="The query request." />
+	<parameter name="state" description="The state of the user." />
+	<sequence>
+		<property name="uri.var.query" expression="$func:query" />
+		<property name="uri.var.state" expression="$func:state" />
+
+		<script language="js">
+    	<![CDATA[
+    		var query = mc.getProperty('uri.var.query');
+    		var state = mc.getProperty('uri.var.state');    	
+    		var queryString = ""; 
+			
+			if(query != null && query != "" ){
+				queryString+='query='+encodeURIComponent(query)+'&';
+			}
+			
+			if(state != null && state != ""){
+				queryString+='state=' +state+'&';
+			}
+			if(queryString != ""){
+				     queryString = '?' + queryString.substring(0,queryString.length-1);
+			}
+			mc.setProperty("uri.var.queryString", queryString);
+			
+    	]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}/contacts.{uri.var.format}{uri.var.queryString}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-Powered-By" scope="transport" action="remove" />
+
+	</sequence>
+</template>
