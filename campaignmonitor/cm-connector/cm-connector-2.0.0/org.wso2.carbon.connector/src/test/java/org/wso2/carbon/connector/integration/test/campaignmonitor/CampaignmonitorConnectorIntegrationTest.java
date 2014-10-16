@@ -42,7 +42,7 @@ public class CampaignmonitorConnectorIntegrationTest extends ConnectorIntegratio
     @BeforeClass(alwaysRun = true)
     public void setEnvironment() throws Exception {
     
-        init("campaignmonitor-connector-1.0.0");
+        init("campaignmonitor-connector-2.0.0");
         
         esbRequestHeadersMap.put("Accept-Charset", "UTF-8");
         esbRequestHeadersMap.put("Content-Type", "application/json");

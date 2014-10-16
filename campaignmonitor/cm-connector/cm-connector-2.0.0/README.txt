@@ -27,7 +27,7 @@ STEPS:
 
  3. Extract the certificate from browser by navigating to "https://www.campaignmonitor.com/" and place the certificate file in following locations. 
 
-	i)  "<CAMPAIGN_MONITOR_CONNECTOR_HOME>/campaignmonitor-connector/campaignmonitor-connector-1.0.0/org wso2.carbon.connector/src/test/resources/keystores/products"
+	i)  "<CAMPAIGN_MONITOR_CONNECTOR_HOME>/campaignmonitor-connector/campaignmonitor-connector-2.0.0/org wso2.carbon.connector/src/test/resources/keystores/products"
 
 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "campaignmonitor"' in command line to import campaign monitor certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from campaign monitor with  the extension, change it accordingly. Remove the copied certificate.
@@ -47,7 +47,7 @@ STEPS:
 
 	Note: Add the aforementioned message formatters and the message builder to the axis file, if they are not available by default.
  
- 5. Make sure that the ESB 4.8.1 zip file with latest patches  and the changes in step 1 and 2, is available at "{CAMPAIGN_MONITOR_CONNECTOR_HOME}/campaignmonitor-connector/campaignmonitor-connector-1.0.0/org.wso2.carbon.connector/repository/"	
+ 5. Make sure that the ESB 4.8.1 zip file with latest patches  and the changes in step 1 and 2, is available at "{CAMPAIGN_MONITOR_CONNECTOR_HOME}/campaignmonitor-connector/campaignmonitor-connector-2.0.0/org.wso2.carbon.connector/repository/"	
  
  6. Follow the below steps to create a campaign Monitor account.
 
@@ -93,7 +93,7 @@ STEPS:
 	ii)	 Click "Segments" link which resides in the menu panel in right hand side.
 	iii) Create a new segment through "Create a new segment" link.
  
- 11. Navigate to "{CAMPAIGN_MONITOR_CONNECTOR_HOME}/campaignmonitor-connector/campaignmonitor-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 11. Navigate to "{CAMPAIGN_MONITOR_CONNECTOR_HOME}/campaignmonitor-connector/campaignmonitor-connector-2.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
 	  
  12. Account Details
