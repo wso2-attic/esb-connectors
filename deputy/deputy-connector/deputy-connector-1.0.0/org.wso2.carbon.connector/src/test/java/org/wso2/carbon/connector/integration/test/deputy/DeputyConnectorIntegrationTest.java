@@ -524,4 +524,126 @@ public class DeputyConnectorIntegrationTest extends ConnectorIntegrationTestBase
                 .getBody().getJSONObject("error").getString("message"));
     }
     
+    /**
+     * Positive test case for queryObject method with mandatory parameters.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetObjectWithNegativeCase" }, description = "deputy {queryObject} integration test with mandatory parameters.")
+    public void testQueryObjectWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:queryObject");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_queryObject_mandatory.json");
+        JSONArray esbOutArray = new JSONArray(esbRestResponse.getBody().getString("output"));
+        
+        final String apiEndPoint =
+                apiRequestUrl + "/resource/Leave/QUERY";
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_queryObject_mandatory.json");
+        JSONArray apiOutArray = new JSONArray(apiRestResponse.getBody().getString("output"));
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(esbOutArray.getJSONObject(0).getString("DateStart"),
+        		apiOutArray.getJSONObject(0).getString("DateStart"));
+        Assert.assertEquals(esbOutArray.getJSONObject(0).getString("Id"),
+        		apiOutArray.getJSONObject(0).getString("Id"));
+    }
+    
+    /**
+     * Positive test case for queryObject method with optional parameters.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testQueryObjectWithMandatoryParameters" }, description = "deputy {queryObject} integration test with optional parameters.")
+    public void testQueryObjectWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:queryObject");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_queryObject_optional.json");
+        JSONArray esbOutArray = new JSONArray(esbRestResponse.getBody().getString("output"));
+        
+        final String apiEndPoint =
+                apiRequestUrl + "/resource/Leave/QUERY";
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_queryObject_optional.json");
+        JSONArray apiOutArray = new JSONArray(apiRestResponse.getBody().getString("output"));
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(esbOutArray.getJSONObject(0).getString("DateStart"),
+        		apiOutArray.getJSONObject(0).getString("DateStart"));
+        Assert.assertEquals(esbOutArray.getJSONObject(0).getString("Id"),
+        		apiOutArray.getJSONObject(0).getString("Id"));
+    }
+    
+    /**
+     * Negative test case for queryObject method.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testQueryObjectWithOptionalParameters" }, description = "deputy {queryObject} integration test with negative case.")
+    public void testQueryObjectWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:queryObject");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_queryObject_negative.json");
+        
+        final String apiEndPoint =
+                apiRequestUrl + "/resource/Leave/QUERY";
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_queryObject_negative.json");
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("error").getString("message"),
+        		apiRestResponse
+                .getBody().getJSONObject("error").getString("message"));
+    }
+    
+    /**
+     * Positive test case for updateObject method with optional parameters.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testQueryObjectWithNegativeCase" }, description = "deputy {updateObject} integration test with optional parameters.")
+    public void testUpdateObjectWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateObject");
+        connectorProperties.setProperty("employeeGender", "1");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateObject_optional.json");
+        
+        final String apiEndPoint =
+                apiRequestUrl + "/resource/Employee/" + connectorProperties.getProperty("employeeId");
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(connectorProperties.getProperty("employeeFirstName"),
+                apiRestResponse.getBody().getString("OtherName"));
+        Assert.assertEquals(connectorProperties.getProperty("employeeGender"),
+                apiRestResponse.getBody().getString("Gender"));
+    }
+    
+    /**
+     * Negative test case for updateObject method.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateObjectWithOptionalParameters" }, description = "deputy {updateObject} integration test with negative case.")
+    public void testUpdateObjectNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateObject");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateObject_negative.json");
+        
+        final String apiEndPoint = apiRequestUrl + "/resource/Employee/INVALID";
+        
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_updateObject_negative.json");
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 404);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 404);
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("error").getString("message"), apiRestResponse
+                .getBody().getJSONObject("error").getString("message"));
+    }
+    
 }

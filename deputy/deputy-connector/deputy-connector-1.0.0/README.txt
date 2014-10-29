@@ -22,7 +22,13 @@ Steps to follow in setting integration test.
 
  1. Download ESB 4.8.1 from official website.
 
- 2. Deploy relevant patches, if applicable.
+ 2. Deploy relevant patches, if applicable and the ESB should be configured as below.
+	 Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
+		
+		<messageFormatter contentType="text/html" 
+									class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+		<messageBuilder contentType="text/html" 
+									class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
  3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Deputy_Connector_Home}/deputy-connector/deputy-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
