@@ -19,6 +19,11 @@
 package org.wso2.carbon.connector.integration.test.deputy;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -554,9 +559,15 @@ public class DeputyConnectorIntegrationTest extends ConnectorIntegrationTestBase
      * Positive test case for queryObject method with optional parameters.
      */
     @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testQueryObjectWithMandatoryParameters" }, description = "deputy {queryObject} integration test with optional parameters.")
-    public void testQueryObjectWithOptionalParameters() throws IOException, JSONException {
+    public void testQueryObjectWithOptionalParameters() throws IOException, JSONException, ParseException {
     
         esbRequestHeadersMap.put("Action", "urn:queryObject");
+       
+		DateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+        Date convertedDate = (Date) formatter.parse(connectorProperties.getProperty("leaveStartDate"));
+        Calendar c = Calendar.getInstance();
+	    c.setTime(convertedDate);
+    	connectorProperties.setProperty("month", String.valueOf(c.get(Calendar.MONTH) + 1));
         
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_queryObject_optional.json");
