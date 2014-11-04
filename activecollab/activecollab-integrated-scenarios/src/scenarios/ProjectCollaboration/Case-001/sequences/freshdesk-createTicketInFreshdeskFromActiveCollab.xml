@@ -1,0 +1,76 @@
+<!--The sequence will create a Ticket in Freshdesk based on retreived ActiveCollab Task.
+	The sequence should be called subsequent to a call to activecollab-retrieveTaskFromActiveCollab as it extracts data from the response from activecollab-retrieveTaskFromActiveCollab-->
+<sequence name="freshdesk-createTicketInFreshdeskFromActiveCollab" xmlns="http://ws.apache.org/ns/synapse" >
+        <property name="uri.var.apiUrl" expression="get-property('freshdesk.apiUrl')" />
+        <property name="uri.var.format" value="json" />
+        <property name="uri.var.apiKey" expression="get-property('freshdesk.apiKey')" />
+		
+		<!--Extract data from the previous response which are specific to create a ticket in Freshdesk.-->
+        <property name="uri.var.projectName" expression="json-eval($.project.name)"/>
+        <property name="uri.var.taskName" expression="json-eval($.name)"/>		
+		<property name="uri.var.subject" expression="fn:concat(get-property('uri.var.projectName'),' - ',get-property('uri.var.taskName'))"/>	
+		<property name="uri.var.requesterName" expression="json-eval($.created_by.name)"/>	
+		
+		<!--Ticket status Mapping: (ActiveCollab,FreshDesk) = (0 - not complete, 2 - open), (1 - complete, 4 - resolved). Other possible values are 3-(Pending), 5-(Closed)-->
+        <property name="uri.var.status" expression="json-eval($.is_completed)"/>
+		<filter source="get-property('uri.var.status')" regex="0">
+			<then>
+				<property name="uri.var.status" value="2"/>
+			</then>
+			<else>
+				<property name="uri.var.status" value="4"/>
+			</else>
+		</filter>
+		
+		<!--Ticket source defaulted to 1-(Email). Other possible values are 2-(Portal), 3-(Phone), 4-(Forum), 5-(Twitter), 6-(Facebook), 7-(Chat)-->
+        <property name="uri.var.source" value="1"/>
+		
+		<!--Ticket type defaulted to 'Feature Request'-->
+        <property name="uri.var.ticketType" value="Feature Request"/>
+		
+		<!--Priority Mapping: (ActiveCollab,FreshDesk) = (-2,1), (-1,1), (0,2), (1,3), (2,4)-->
+		<switch source="get-property('uri.var.priority')">
+			<case regex="-2">
+				<property name="uri.var.priority" value="1" />
+			</case>
+			<case regex="-1">
+				<property name="uri.var.priority" value="1" />
+			</case>
+			<case regex="0">
+				<property name="uri.var.priority" value="2" />
+			</case>
+			<case regex="1">
+				<property name="uri.var.priority" value="3" />
+			</case>
+			<case regex="2">
+				<property name="uri.var.priority" value="4" />
+			</case>
+		</switch>
+		
+        <freshdesk.init>
+            <apiUrl>{$ctx:uri.var.apiUrl}</apiUrl>
+            <format>{$ctx:uri.var.format}</format>
+            <apiKey>{$ctx:uri.var.apiKey}</apiKey>
+        </freshdesk.init>
+        <freshdesk.createTicket>
+            <status>{$ctx:uri.var.status}</status>
+            <subject>{$ctx:uri.var.subject}</subject>
+            <requesterName>{$ctx:uri.var.requesterName}</requesterName>
+            <source>{$ctx:uri.var.source}</source>
+            <email>{$ctx:uri.var.requesterEmail}</email>
+            <ticketType>{$ctx:uri.var.ticketType}</ticketType>
+            <description>{$ctx:uri.var.description}</description>
+            <priority>{$ctx:uri.var.priority}</priority>
+        </freshdesk.createTicket>
+		
+		<!--Remove unwanted Headers from the ActiveCollab response-->
+		<header name="ETag" scope="transport" action="remove"/>
+		<header name="Status" scope="transport" action="remove"/>
+		<header name="Expires" scope="transport" action="remove"/>
+		<header name="Set-Cookie" scope="transport" action="remove"/>
+		<header name="Pragma" scope="transport" action="remove"/>
+		<header name="Cache-Control" scope="transport" action="remove"/>
+		<header name="Transfer-Encoding" scope="transport" action="remove"/>
+		<header name="Status" scope="transport" action="remove"/>
+
+    </sequence>

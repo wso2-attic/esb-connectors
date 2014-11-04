@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="activecollab_createTaskInGoogleTasks" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <property name="activecollabApiUrl" expression="json-eval($.activecollabApiUrl)" />
+         <property name="activecollabApiToken" expression="json-eval($.activecollabApiToken)" />
+         <property name="activecollabFormat" value="xml" />
+         <property name="activecollabProjectId" expression="json-eval($.activecollabProjectId)" />
+         <property name="activecollabTaskDuplicateTrackerFieldName" expression="json-eval($.activecollabTaskDuplicateTrackerFieldName)" />
+         <property name="googleTasksAccessToken" expression="json-eval($.googleTasksAccessToken)" />
+         <property name="googleTasksTasklistId" expression="json-eval($.googleTasksTasklistId)" />
+
+         <!-- List tasks in activecollab-->
+               <activecollab.init>
+                  <apiUrl>{$ctx:activecollabApiUrl}</apiUrl>
+                  <apiToken>{$ctx:activecollabApiToken}</apiToken>
+                  <format>{$ctx:activecollabFormat}</format>
+               </activecollab.init>
+               <activecollab.listTasks>
+                  <projectId>{$ctx:activecollabProjectId}</projectId>
+               </activecollab.listTasks>
+               <property name="messageType" value="application/xml" scope="axis2" />
+
+               <!-- Set error if no tasks retrieved -->
+               <filter xpath="0 = get-property('operation', 'taskCount')">
+                  <then>
+                     <property name="message" value="No Tasks were found." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+               </filter>
+               <property name="responseString" value="" scope="operation" />
+               <property name="taskCount" expression="count(//tasks/task)" scope="operation" />
+               <property name="index" expression="0" scope="operation" />
+
+               <!-- Tasks iterater -->
+               <iterate continueParent="true" id="tasksIterator" expression="//tasks/task" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="activecollabTaskId" expression="//task/task_id/text()" />
+                        <property name="activecollabCreatedDate" expression="//task/created_on/text()" />
+
+                        <!-- Format the created date to filter -->
+                        <script language="js"><![CDATA[
+                            var activecollabCreatedDate = mc.getProperty('activecollabCreatedDate');
+                            var activecollabCreatedDateFormated = "";
+
+                            if(activecollabCreatedDate != null && activecollabCreatedDate != "" ){
+                            activecollabCreatedDateFormated = activecollabCreatedDate.split(' ')[0];
+                            }
+
+                            mc.setProperty("activecollabCreatedDate", activecollabCreatedDateFormated);]]></script>
+
+                        <!-- Get system date to filter -->
+                        <property name="today" expression="get-property('SYSTEM_DATE', 'yyyy-MM-dd')" scope="default" />
+
+                        <!-- Call activecollab-createTaskInGoogleTasks template -->
+                            <call-template target="activecollab-createTaskInGoogleTasks">
+                             <with-param name="activecollabApiUrl" value="{$ctx:activecollabApiUrl}" />
+                             <with-param name="activecollabApiToken" value="{$ctx:activecollabApiToken}" />
+                             <with-param name="activecollabFormat" value="{$ctx:activecollabFormat}" />
+                             <with-param name="activecollabTaskId" value="{$ctx:activecollabTaskId}" />
+                             <with-param name="activecollabProjectId" value="{$ctx:activecollabProjectId}" />
+                             <with-param name="googleTasksAccessToken" value="{$ctx:googleTasksAccessToken}" />
+                             <with-param name="googleTasksTasklistId" value="{$ctx:googleTasksTasklistId}" />
+                             <with-param name="customValue" value="true" />
+                          </call-template>
+                          <property name="index" expression="get-property('operation','index') + 1" scope="operation" />
+                     </sequence>
+                  </target>
+               </iterate>
+
+         <!-- Check for all the iterations has completed -->
+         <filter xpath="get-property('operation', 'index') = get-property('operation', 'taskCount')">
+            <then>
+               <loopback />
+            </then>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>{
+              "Response":{
+             "activity":"activecollab-createTaskInGoogleTasks",
+              "activityResponse":[$1]
+              }
+            }</format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

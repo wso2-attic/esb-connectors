@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This template retrieves Contact details form ZohoCRM using contactId and then creates Client in Activecollab -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="activecollab-retrieveContactAndCreateClient">
+   <parameter name="zohoApiUrl" description="The Zoho API URL."/>
+   <parameter name="zohoAccessToken" description="Encrypted alphanumeric string to authenticate the Zoho credentials." />
+   <parameter name="zohoScope" description="Zoho CRM scope, Specify the value as crmapi."/>
+   <parameter name="zohoContactId" description="Zoho contact id which need to create client. "/>
+   <parameter name="zohoNewFormat" description="The newFormat, an integer determine weather null values should be excluded(1) or included(2)." />
+   <parameter name="zohoVersion" description="The API version."/>
+   <parameter name="activecollabApiToken" description="Encrypted alphanumeric string to authenticate the Activecollab credentials."/>
+   <parameter name="activecollabApiUrl" description="The Activecollab API URL."/>
+   <parameter name="activecollabPassword" description="The password for Activecollab client account."/>
+   <sequence>
+      
+		<property name="uri.var.zohoApiUrl" expression="$func:zohoApiUrl" />
+		<property name="uri.var.zohoAccessToken" expression="$func:zohoAccessToken" />
+		<property name="uri.var.zohoScope" expression="$func:zohoScope" />
+		<property name="uri.var.zohoContactId" expression="$func:zohoContactId" />
+		<property name="uri.var.zohoNewFormat" expression="$func:zohoNewFormat" />
+		<property name="uri.var.zohoVersion" expression="$func:zohoVersion" />
+		<property name="uri.var.activecollabApiToken" expression="$func:activecollabApiToken" />
+		<property name="uri.var.activecollabApiUrl" expression="$func:activecollabApiUrl" />
+		<property name="uri.var.activecollabPassword" expression="$func:activecollabPassword" />
+      
+		<!-- Retrieve Contact details from ZohoCRM -->
+		<zohocrm.init>
+			<apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+			<accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+			<scope>{$ctx:uri.var.zohoScope}</scope>
+		</zohocrm.init>
+		<zohocrm.getRecordsById>
+			<id>{$ctx:uri.var.zohoContactId}</id>
+			<newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+			<version>{$ctx:uri.var.zohoVersion}</version>
+			<moduleType>Contacts</moduleType>
+		</zohocrm.getRecordsById>
+	 
+		<property name="uri.var.contactAttributes" expression="json-eval($.response.result.Contacts.row.FL)" />
+	  
+		<!-- Extract required parameters from ZohoCRM getRecordsById response -->
+		<script language="js">var jsn = eval("(" + mc.getProperty("uri.var.contactAttributes") + ")");
+        		
+			for (var i = 0; i &lt; jsn.length ; i++) {
+					
+				if(jsn[i].val == "Email"){
+						mc.setProperty('uri.var.activecollabEmail', jsn[i].content);
+				}else if(jsn[i].val == "First Name"){
+						mc.setProperty('uri.var.activecollabFirstName', jsn[i].content);
+				}else if(jsn[i].val == "Last Name"){
+						mc.setProperty('uri.var.activecollabLastName', jsn[i].content);
+				}else if(jsn[i].val == "Phone"){
+						mc.setProperty('uri.var.activecollabPhoneWork', jsn[i].content);
+				}else if(jsn[i].val == "Mobile"){
+						mc.setProperty('uri.var.activecollabPhoneMobile', jsn[i].content);
+				}else if(jsn[i].val == "Title"){
+						mc.setProperty('uri.var.activecollabTitle', jsn[i].content);
+				}else if(jsn[i].val == "Account Name"){
+						mc.setProperty('uri.var.zohoAccountName', jsn[i].content);
+				}
+				
+			}</script>
+		<filter source="boolean(get-property('uri.var.activecollabApiToken'))" regex="true">
+			<then>
+				<!-- Calling activecollab-getCompanyIdByZohoAccountName template to validate Activecollab company name against ZohoCRM account name and retrieve Activecollab Company ID -->
+				<call-template target="activecollab-getCompanyIdByZohoAccountName">
+					<with-param name="activecollabApiUrl" value="{$ctx:uri.var.activecollabApiUrl}" />
+					<with-param name="activecollabApiToken" value="{$ctx:uri.var.activecollabApiToken}" />
+					<with-param name="zohoAccountName" value="{$ctx:uri.var.zohoAccountName}" />
+				</call-template>
+			  
+				<!-- Validate Activecollab Company Id -->
+				<filter source="boolean(get-property('uri.var.activecollabCompanyId'))" regex="true">
+					<then>
+						<!-- Create Activecollab client using ZohoCRM contact details -->
+						<activecollab.init>
+						   <apiUrl>{$ctx:uri.var.activecollabApiUrl}</apiUrl>
+						   <apiToken>{$ctx:uri.var.activecollabApiToken}</apiToken>
+						   <format>json</format>
+						</activecollab.init>
+						<activecollab.createClient>
+						   <lastName>{$ctx:uri.var.activecollabLastName}</lastName>
+						   <passwordRepeat>{$ctx:uri.var.activecollabPassword}</passwordRepeat>
+						   <type>Client</type>
+						   <password>{$ctx:uri.var.activecollabPassword}</password>
+						   <phoneWork>{$ctx:uri.var.activecollabPhoneWork}</phoneWork>
+						   <title>{$ctx:uri.var.activecollabTitle}</title>
+						   <phoneMobile>{$ctx:uri.var.activecollabPhoneMobile}</phoneMobile>
+						   <email>{$ctx:uri.var.activecollabEmail}</email>
+						   <companyId>{$ctx:uri.var.activecollabCompanyId}</companyId>
+						   <firstName>{$ctx:uri.var.activecollabFirstName}</firstName>
+						</activecollab.createClient>
+						
+						<property name="uri.var.activecollabClientId" expression="json-eval($.id)" />
+						
+						<!-- Check Activecollab Client is created -->
+						<filter source="boolean(get-property('uri.var.activecollabClientId'))" regex="true">
+						   <then>
+								<property name="uri.var.status" value="Success" />
+								<property name="uri.var.message" expression="fn:concat('Client Created successfully with the Client Id ',get-property('uri.var.activecollabClientId'),' .')" />
+						   </then>
+						   <else>
+								<property name="uri.var.status" value="Error" />
+								<property name="uri.var.message" expression="json-eval($.)" />
+						   </else>
+						</filter>
+						
+					</then>
+					<else>
+						<property name="uri.var.status" value="Error" />
+						<property name="uri.var.message" expression="fn:concat('Could not find Account name ',get-property('uri.var.zohoAccountName'),' in Activecollab.')" />
+						
+					</else>
+			  </filter>
+			</then>
+			<else>
+				<property name="uri.var.status" value="Skipped" />
+				<property name="uri.var.message" value="Activecollab API Token not provided."/>
+			</else>
+		</filter>
+		
+		<property name="uri.var.id" expression="fn:concat('contact_id:',get-property('uri.var.zohoContactId'))" />
+		<call-template target="responseHandlerTemplate">
+			<with-param name="id" value="{$ctx:uri.var.id}" />
+			<with-param name="status" value="{$ctx:uri.var.status}" />
+			<with-param name="message" value="{$ctx:uri.var.message}" />
+		</call-template>
+   </sequence>
+</template>

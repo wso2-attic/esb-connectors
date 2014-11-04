@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This template updates the following attributes of a task in ActiveCollab;
+      taskName, dueDate, taskBody and taskStatus -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="activecollab-updateTask">
+   <parameter name="activecollabApiUrl" description="Url to access the ActiveCollab API." />
+   <parameter name="activecollabApiToken" description="API token of the account." />
+   <parameter name="activecollabFormat" description="Format that the reponse is expected to be." />
+   <parameter name="activecollabProjectId" description="Unique identifier of a project." />
+   <parameter name="activecollabTaskId" description="Unique identifier of a task." />
+   <parameter name="taskName" description="The task name to be updated in ActiveCollab." />
+   <parameter name="taskBody" description="The task body to be updated in ActiveCollab." />
+   <parameter name="taskDueDate" description="The task due date to be updated in ActiveCollab." />
+   <parameter name="taskID" description="Id of the task to be processed." />
+   <parameter name="taskStatus" description="Status of the task to be processed." />
+   <sequence>
+      <property name="uri.var.activecollabApiUrl" expression="$func:activecollabApiUrl" />
+      <property name="uri.var.activecollabApiToken" expression="$func:activecollabApiToken" />
+      <property name="uri.var.activecollabFormat" expression="$func:activecollabFormat" />
+      <property name="uri.var.activecollabProjectId" expression="$func:activecollabProjectId" />
+      <property name="uri.var.activecollabTaskId" expression="$func:activecollabTaskId" />
+      <property name="uri.var.taskName" expression="$func:taskName" />
+      <property name="uri.var.taskBody" expression="$func:taskBody" />
+      <property name="uri.var.taskDueDate" expression="$func:taskDueDate" />
+      <property name="uri.var.taskID" expression="$func:taskID" />
+      <property name="uri.var.taskStatus" expression="$func:taskStatus" />
+
+      <!-- Set date format as needed to activecollab -->
+      <script language="js">
+       <![CDATA[
+       var taskDueDate = mc.getProperty('uri.var.taskDueDate');
+           var dueDate = "";
+
+           if (taskDueDate != null && taskDueDate != "") {
+               dueDate = taskDueDate.split('T')[0];
+           }
+           mc.setProperty("uri.var.taskDueDate", dueDate);]]>
+     </script>
+
+      <!-- Calling the Activecollab updateTask method -->
+      <filter source="boolean(get-property('uri.var.activecollabApiToken'))" regex="true">
+         <then>
+            <activecollab.init>
+               <apiUrl>{$ctx:uri.var.activecollabApiUrl}</apiUrl>
+               <apiToken>{$ctx:uri.var.activecollabApiToken}</apiToken>
+               <format>{$ctx:uri.var.activecollabFormat}</format>
+            </activecollab.init>
+            <activecollab.updateTask>
+               <taskId>{$ctx:uri.var.activecollabTaskId}</taskId>
+               <projectId>{$ctx:uri.var.activecollabProjectId}</projectId>
+               <name>{$ctx:uri.var.taskName}</name>
+               <taskBody>{$ctx:uri.var.taskBody}</taskBody>
+               <dueOn>{$ctx:uri.var.taskDueDate}</dueOn>
+            </activecollab.updateTask>
+            <property name="uri.var.id" expression="fn:concat('activecollab_task_id:',get-property('uri.var.activecollabTaskId'),',googleTasks_task_id:', get-property('uri.var.taskID'))" />
+            <filter source="$axis2:HTTP_SC" regex="2[0-9][0-9]">
+               <then>
+                  <property name="uri.var.status" value="Success" />
+                        <property name="uri.var.message" value="Task updated successfully." />
+               </then>
+               <else>
+                  <property name="uri.var.status" value="Error" />
+                        <property name="uri.var.message" expression="json-eval($.)" />
+               </else>
+            </filter>
+
+            <!-- Call completeContext method -->
+            <filter xpath="get-property('uri.var.taskStatus') = 'completed' ">
+               <then>
+                  <activecollab.init>
+                     <apiUrl>{$ctx:uri.var.activecollabApiUrl}</apiUrl>
+                     <apiToken>{$ctx:uri.var.activecollabApiToken}</apiToken>
+                     <format>{$ctx:uri.var.activecollabFormat}</format>
+                  </activecollab.init>
+                  <activecollab.completeContext>
+                     <taskId>{$ctx:uri.var.activecollabTaskId}</taskId>
+                     <projectId>{$ctx:uri.var.activecollabProjectId}</projectId>
+                  </activecollab.completeContext>
+                   <property name="uri.var.id" expression="fn:concat('activecollab_task_id:',get-property('uri.var.activecollabTaskId'),',googleTasks_task_id:', get-property('uri.var.taskID'))" />
+                  <filter source="$axis2:HTTP_SC" regex="2[0-9][0-9]">
+                     <then>
+                        <property name="uri.var.status" value="Success" />
+                        <property name="uri.var.message" value="Task updated successfully." />
+                     </then>
+                     <else>
+                        <property name="uri.var.status" value="Error" />
+                        <property name="uri.var.message" expression="json-eval($.)" />
+                     </else>
+                  </filter>
+               </then>
+            </filter>
+         </then>
+         <else>
+            <property name="uri.var.id" expression="fn:concat('activecollab_task_id:',get-property('uri.var.activecollabTaskId'),',googleTasks_task_id:', get-property('uri.var.taskID'))" />
+            <property name="uri.var.status" value="Skipped" />
+            <property name="uri.var.message" value="Access token is not provided for ActiveCollab." />
+         </else>
+      </filter>
+      
+      <call-template target="responseHandlerTemplate">
+         <with-param name="id" value="{$ctx:uri.var.id}" />
+         <with-param name="status" value="{$ctx:uri.var.status}" />
+         <with-param name="message" value="{$ctx:uri.var.message}" />
+      </call-template>
+   </sequence>
+</template>
