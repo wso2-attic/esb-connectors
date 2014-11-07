@@ -1,0 +1,43 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="apiUrl" description="The base url of the API" />
+	<parameter name="accessToken" description="The accessToken derived by OAuth2" />
+	<parameter name="accountId" description="The unique identifier of the account" />
+	<parameter name="userAgent" description="This is used by the API to store developer information" />
+	<parameter name="eTag" description="The etag of a previously given response" />
+	<parameter name="lastModifiedDate" description="The last modified date of the resource" />
+
+	<sequence>
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.accessToken" expression="$func:accessToken" />
+		<property name="uri.var.accountId" expression="$func:accountId" />
+		<property name="uri.var.userAgent" expression="$func:userAgent" />
+		<property name="uri.var.eTag" expression="$func:eTag" />
+		<property name="uri.var.lastModifiedDate" expression="$func:lastModifiedDate" />
+
+		<header name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))" scope="transport" />
+		<header name="User-Agent" expression="get-property('uri.var.userAgent')" scope="transport" />
+
+		<!-- Adding the If-None-Match and If-Modified-Since headers -->
+		<filter source="boolean(get-property('uri.var.eTag'))" regex="true">
+			<then>
+				<header name="If-None-Match" expression="get-property('uri.var.eTag')" scope="transport" />
+			</then>
+		</filter>
+		
+		<filter source="boolean(get-property('uri.var.lastModifiedDate'))" regex="true">
+			<then>
+				<header name="If-Modified-Since" expression="get-property('uri.var.lastModifiedDate')" scope="transport" />
+			</then>
+		</filter>
+
+		<!-- If the apiUrl is not specified, set the default value as https://basecamp.com/<accountId>/api/v1 -->
+		<filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+			<then>
+				<property name="uri.var.apiUrl" value="https://basecamp.com" />
+			</then>
+		</filter>
+
+		<property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/', get-property('uri.var.accountId'), '/api/v1')" />
+
+	</sequence>
+</template>
