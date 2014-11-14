@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="listCourseUsers" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="searchTerm" description="The partial name or full ID of the users to match and return in the results list."/>
+    <parameter name="userId" description="If included, the user will be queried and if the user is part of the users set, the page parameter will be modified so that the page containing user_id will be returned."/>
+    <parameter name="enrollmentType" description="When set, only return users where the user is enrolled as this type. This argument is ignored if enrollment_role is given."/>
+    <parameter name="enrollmentRole" description="When set, only return users enrolled with the specified course-level role."/>
+    <parameter name="include" description="Include optional details of each user being listed."/>
+    <parameter name="perPage" description="Number of entries to be returned in response to a list Request."/>
+	<parameter name="page" description="Number of the Page to return."/>
+    <parameter name="courseId" description="ID of the course whose users should be listed."/>
+    <sequence>
+        <property name="uri.var.searchTerm" expression="$func:searchTerm"/>
+        <property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.enrollmentType" expression="$func:enrollmentType"/>
+        <property name="uri.var.enrollmentRole" expression="$func:enrollmentRole"/>
+        <property name="uri.var.include" expression="$func:include"/>
+        <property name="uri.var.perPage" expression="$func:perPage"/>
+        <property name="uri.var.courseId" expression="$func:courseId"/>
+		<property name="uri.var.page" expression="$func:page"/>
+
+        <script language="js">
+            <![CDATA[
+                var enrollmentRole = mc.getProperty('uri.var.enrollmentRole');
+                var enrollmentType = mc.getProperty('uri.var.enrollmentType');
+                var include = mc.getProperty('uri.var.include');
+                var perPage = mc.getProperty('uri.var.perPage');
+                var page = mc.getProperty('uri.var.page');
+                var searchTerm = mc.getProperty('uri.var.searchTerm');
+                var userId = mc.getProperty('uri.var.userId');
+                
+                var urlQuery = '';
+                
+                if (enrollmentRole != null && enrollmentRole != ""){
+                    urlQuery += 'enrollment_role=' + enrollmentRole + '&';
+                }
+                
+                if (enrollmentType != null && enrollmentType != ""){
+                    urlQuery += 'enrollment_type=' + enrollmentType + '&';
+                }
+                
+                if (include != null && include.trim() != ""){
+					// If mulitple items are sent.
+					if(include.indexOf(',') != -1){
+						var includeItems = include.split(',');
+						for(var i=0; i<includeItems.length; i++){
+							includeItems[i] = includeItems[i].trim();
+							if(includeItems[i] != ""){
+								urlQuery += 'include[]=' + includeItems[i] + '&';
+							}
+						}
+					} else {
+						urlQuery += 'include[]=' + include.trim() + '&';
+					}
+                }
+                
+                if (perPage != null && perPage != ""){
+                    urlQuery += 'per_page=' + perPage + '&';
+                }
+				
+				if (page != null && page != ""){
+                    urlQuery += 'page=' + page + '&';
+                }
+                
+                if (searchTerm != null && searchTerm != ""){
+                    urlQuery += 'search_term=' + searchTerm + '&';
+                }
+                
+                if (userId != null && userId != ""){
+                    urlQuery += 'user_id=' + userId + '&';
+                }
+                
+                // Prefix the urlQuery with '?' and remove the trailing '&'
+                if (urlQuery != "") {
+                    urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+					mc.setProperty('uri.var.urlQuery', encodeURI(urlQuery));    
+                }                            
+                
+            ]]>
+        </script>
+
+        <call>
+            <endpoint>
+                <http method="get" uri-template="{uri.var.apiUrl}/courses/{uri.var.courseId}/users{uri.var.urlQuery}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="ETag" action="remove" scope="transport"/>
+        <header name="P3P" action="remove" scope="transport"/>
+        <header name="X-Canvas-Meta" action="remove" scope="transport"/>
+        <header name="X-Canvas-User-Id" action="remove" scope="transport"/>
+        <header name="X-Frame-Options" action="remove" scope="transport"/>
+        <header name="X-Rack-Cache" action="remove" scope="transport"/>
+        <header name="X-Request-Context-Id" action="remove" scope="transport"/>
+        <header name="X-Runtime" action="remove" scope="transport"/>
+        <header name="X-Session-Id" action="remove" scope="transport"/>
+        <header name="X-UA-Compatible" action="remove" scope="transport"/>
+        <header name="Via" action="remove" scope="transport"/>
+        <header name="WWW-Authenticate" action="remove" scope="transport"/>
+
+    </sequence>
+</template>
