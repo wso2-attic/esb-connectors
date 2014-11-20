@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="subscribe" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="threadId" description="Thread to (un)subscribe to."/>
+    <parameter name="email" description="Email of the person to subscrie to the Thread."/>
+    <parameter name="subscribe" description="Specify whether to subscribe or unsubscribe to a Thread."/>
+    <sequence>
+        <property name="uri.var.threadId" expression="$func:threadId"/>
+        <property name="uri.var.email" expression="$func:email"/>
+        <property name="uri.var.subscribe" expression="$func:subscribe"/>
+
+		<script language="js">
+            <![CDATA[ 
+				var subscribe = mc.getProperty('uri.var.subscribe');
+                var threadId = mc.getProperty('uri.var.threadId');
+                var email = mc.getProperty('uri.var.email');
+                var apiKey = mc.getProperty('uri.var.apiKey');
+				var apiSecret = mc.getProperty('uri.var.apiSecret'); 
+                var accessToken = mc.getProperty('uri.var.accessToken');               
+                var urlQuery = '';
+                
+				// Mandatory Query Parameters
+				
+                urlQuery += 'thread=' + threadId + '&';  
+                
+				// Optional Query Parameters 
+
+				if (apiKey != null && apiKey != ""){
+                    urlQuery += 'api_key=' + apiKey + '&';
+                }
+				
+				if (apiSecret != null && apiSecret != ""){
+                    urlQuery += 'api_secret=' + apiSecret + '&';
+                }
+				
+				if (accessToken != null && accessToken != ""){
+                    urlQuery += 'access_token=' + accessToken + '&';
+                }
+				
+                if (email != null && email != ""){
+					urlQuery += 'email=' + email + '&';
+                }
+                
+                // Prefix the urlQuery with '?' and remove the trailing '&'
+                urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+				mc.setProperty('uri.var.urlQuery', urlQuery); 
+				
+				if(subscribe != null && subscribe.toLowerCase() == "true"){
+					mc.setProperty('uri.var.subscribe', 'subscribe'); 
+				} else {
+					mc.setProperty('uri.var.subscribe', 'unsubscribe'); 
+				}
+                
+				// This is done so as to send an EMPTY payload on the POST body.
+                mc.setPayloadJSON(new Object());
+				
+            ]]>
+        </script>
+		
+		<!--This is done to make sure that the POST body is sent entirely Empty (Not even {})-->
+		<property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+		
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/threads/{uri.var.subscribe}.json{uri.var.urlQuery}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="X-Ratelimit-Remaining" action="remove" scope="transport"/>
+        <header name="X-User" action="remove" scope="transport"/>
+        <header name="X-Ratelimit-Limit" action="remove" scope="transport"/>
+        <header name="X-Frame-Options" action="remove" scope="transport"/>
+        <header name="p3p" action="remove" scope="transport"/>
+        <header name="X-Ratelimit-Reset" action="remove" scope="transport"/>
+        <header name="X-Served-By" action="remove" scope="transport"/>
+        <header name="X-Cache" action="remove" scope="transport"/>
+        <header name="X-Cache-Hits" action="remove" scope="transport"/>
+        <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+        <header name="X-XSS-Protection" action="remove" scope="transport"/>
+        <header name="Via" action="remove" scope="transport"/>
+        <header name="X-Varnish" action="remove" scope="transport"/>
+
+    </sequence>
+</template>
