@@ -1,4 +1,4 @@
-Product: Integration tests for WSO2 ESB Disqus connector
+nProduct: Integration tests for WSO2 ESB Disqus connector
 
 Pre-requisites:
 
@@ -43,15 +43,15 @@ Steps to follow in setting integration test.
     vi)	 Go to Admin page using URL "http://disqus.com/admin/"
 	vii) Click on the menu dropdown on the left hand corner and click on "Add new site". 
 	viii)Enter a Site name.
-	ix)  Enter an unique Disqus URL which could be used as the forumId in Step 5 - (iv).
-	x)   Select an appropriate category and click on the "Finish Registration" button.
+	ix)  Enter an unique Disqus URL (e.g. testforum), select an appropriate category and click on the "Finish Registration" button.
+	x)   Then the page will be redirect to your new unique URL like "https://testforum.disqus.com/admin/settings/install/". Keep sub-domain name to use as a forumId (e.g. testforum). 
  
  5. Update the Disqus properties file at location "{Disqus_Connector_Home}/disqus-connector/disqus-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i)		apiUrl				- API Url of Disqus
 	ii) 	apiKey				- Place API Key which you can find under step 4 [v]. 
 	iii)	accessToken			- Place Access Token which you can find under step 4 [v]. 
-	iv)		forumId				- Place unique Disqus URL name given in step 4 [ix].
+	iv)		forumId				- Place then forumId, which retrieved in step 4 [x].
 	v)		title				- Any title for new Thread.
 	vi)		message				- Message for new Thread.
 	vii)	esbSubscribeEmail	- Subscriber Email.
