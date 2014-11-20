@@ -1,4 +1,4 @@
-nProduct: Integration tests for WSO2 ESB Disqus connector
+Product: Integration tests for WSO2 ESB Disqus connector
 
 Pre-requisites:
 
