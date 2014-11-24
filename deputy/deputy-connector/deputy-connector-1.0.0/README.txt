@@ -13,11 +13,6 @@ Tested Platform:
  - UBUNTU 13.04
  - WSO2 ESB 4.8.1
 
-Note:
-	This test suite can be executed based on two scenarios.
-		1. Use the given test account and parameters at the end of the file.
-		2. Set up a new Deputy account and follow all the instruction given below in step 5.
-
 Steps to follow in setting integration test.
 
  1. Download ESB 4.8.1 from official website.
