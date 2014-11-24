@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The template gets a task from Activecollab and creates a corresponding record in GoogleTasks.-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="activecollab-createTaskInGoogleTasks">
+   <parameter name="googleTasksAccessToken" description="Access Token for the GoogleTasks OAuth 2.0 Authorization." />
+   <parameter name="googleTasksTasklistId" description="ID of the task list under which the task is to be created." />
+   <parameter name="activecollabApiUrl" description="Api url of the activecollab." />
+   <parameter name="activecollabApiToken" description="Api token of activecollab." />
+   <parameter name="activecollabFormat" description="Response format of activecollab." />
+   <parameter name="activecollabTaskId" description="Id of the task in activecollab." />
+   <parameter name="activecollabProjectId" description="Id of the project in activecollab." />
+   <sequence>
+      <property name="uri.var.googleTasksAccessToken" expression="$func:googleTasksAccessToken" />
+      <property name="uri.var.googleTasksTasklistId" expression="$func:googleTasksTasklistId" />
+      <property name="uri.var.activecollabApiUrl" expression="$func:activecollabApiUrl" />
+      <property name="uri.var.activecollabApiToken" expression="$func:activecollabApiToken" />
+      <property name="uri.var.activecollabFormat" expression="$func:activecollabFormat" />
+      <property name="uri.var.activecollabTaskId" expression="$func:activecollabTaskId" />
+      <property name="uri.var.activecollabProjectId" expression="$func:activecollabProjectId" />
+
+      <!-- Getting a Task from activecollab -->
+      <filter source="boolean(get-property('uri.var.activecollabApiToken'))" regex="true">
+         <then>
+            <activecollab.init>
+               <apiUrl>{$ctx:uri.var.activecollabApiUrl}</apiUrl>
+               <apiToken>{$ctx:uri.var.activecollabApiToken}</apiToken>
+               <format>{$ctx:uri.var.activecollabFormat}</format>
+            </activecollab.init>
+            <activecollab.getTask>
+               <taskId>{$ctx:uri.var.activecollabTaskId}</taskId>
+               <projectId>{$ctx:uri.var.activecollabProjectId}</projectId>
+            </activecollab.getTask>
+
+            <!-- Setting the properties adding to google tasks -->
+            <property name="uri.var.googleTasksTitle" expression="//task/name/text()" />
+            <property name="uri.var.googleTasksNotes" expression="//task/body/text()" />
+            <property name="uri.var.googleTasksDue" expression="//task/due_on/text()" />
+
+            <!-- Number of custom fields -->
+            <property name="uri.var.customeFieldsCount" expression=" count(//task/custom_fields/*)" />
+            <property name="messageType" value="application/json" scope="axis2" />
+            <property name="uri.var.customFields" expression="json-eval($.task.custom_fields)" />
+
+            <!-- Check custom field value and set date format as needed to google tasks -->
+            <script language="js">
+              <![CDATA[
+              var noOfCustomFields = mc.getProperty("uri.var.customeFieldsCount");
+              var googleTasksCFName = mc.getProperty("activecollabTaskDuplicateTrackerFieldName");
+              var activeCollabProjectId = mc.getProperty("uri.var.activecollabTaskId");
+              var customFields = eval("(" + mc.getProperty("uri.var.customFields") + ")");
+              var googleTasksDue = mc.getProperty('uri.var.googleTasksDue');
+              var dueDate = "";
+              for (var index = 1; index <= noOfCustomFields; index++) {
+                  if (customFields["custom_field_" + index].label == googleTasksCFName) {
+                      var alreadyAdded = customFields["custom_field_" + index].value;
+                      if (alreadyAdded == null) {
+                          mc.setProperty('uri.var.alreadyAdded', 'false');
+                          mc.setProperty('uri.var.customFieldIndicator', "custom_field_" + index);
+                      }else{
+                          mc.setProperty('uri.var.alreadyAdded', alreadyAdded );
+                      }
+                          break;
+                  }
+              }
+
+              if (googleTasksDue != null && googleTasksDue != "") {
+                  dueDate = googleTasksDue + 'T00:00:00.000Z';
+              }
+
+              mc.setProperty("uri.var.googleTasksDue", dueDate);]]>
+            </script>
+
+            <!-- Inserting task to google task -->
+            <filter xpath="get-property('uri.var.alreadyAdded') = 'false'">
+               <then>
+                  <filter source="boolean(get-property('uri.var.googleTasksAccessToken'))" regex="true">
+                     <then>
+                        <googletasks.init>
+                           <accessToken>{$ctx:uri.var.googleTasksAccessToken}</accessToken>
+                        </googletasks.init>
+                        <googletasks.insertTask>
+                           <tasklist_id>{$ctx:uri.var.googleTasksTasklistId}</tasklist_id>
+                           <title>{$ctx:uri.var.googleTasksTitle}</title>
+                           <due>{$ctx:uri.var.googleTasksDue}</due>
+                           <notes>{$ctx:uri.var.googleTasksNotes}</notes>
+                        </googletasks.insertTask>
+                        <property name="messageType" value="application/json" scope="axis2" />
+                        <property name="uri.var.googleTasksTaskId" expression="json-eval($.id)" />
+                        <property name="uri.var.googleTasksTaskName" expression="json-eval($.title)" />
+
+                        <!-- Check task is created on google tasks -->
+                        <filter source="boolean(get-property('uri.var.googleTasksTaskId'))" regex="true">
+                           <then>
+
+                            <property name="uri.var.customValue" expression="fn:concat('GoogleTasks_Id: ', get-property('uri.var.googleTasksTaskId'))" />
+
+                            <!-- Calling update coustom field sequence -->
+                              <sequence key="activecollab-updateCustomFieldInActiveCollab"/>
+                              <filter source="$axis2:HTTP_SC" regex="2[0-9][0-9]">
+                                 <then>
+                                    <property name="uri.var.status" value="Success" />
+                                    <property name="uri.var.message" value="Task has been successfully syncronized with googletasks." />
+                                 </then>
+                                 <else>
+                                  <!-- Delete task in google task if activecollab custom field is not updated -->
+                                    <googletasks.init>
+                                      <accessToken>{$ctx:uri.var.googleTasksAccessToken}</accessToken>
+                                    </googletasks.init>
+                                    <googletasks.deleteTask>
+                                       <tasklist_id>{$ctx:uri.var.googleTasksTasklistId}</tasklist_id>
+                                       <task_id>{$ctx:uri.var.googleTasksTaskId}</task_id>
+                                    </googletasks.deleteTask>
+                                    <filter source="$axis2:HTTP_SC" regex="2[0-9][0-9]">
+                                     <then>
+                                        <property name="uri.var.status" value="Skipped" />
+                                        <property name="uri.var.message" value="Task is not syncronized with googletasks." />
+                                     </then>
+                                     <else>
+                                        <property name="uri.var.status" value="Error" />
+                                        <property name="uri.var.message" expression="fn:concat('Task was successfully created in GoogleTasks. Please update (custom_field : ', get-property('uri.var.customFieldIndicator'), ', in activecollab with: ', get-property('uri.var.customValue'), ')')" />
+                                     </else>
+                                   </filter>
+                                 </else>
+                              </filter>
+                           </then>
+                           <else>
+                              <property name="uri.var.status" value="Error" />
+                              <property name="uri.var.message" expression="json-eval($.)" />
+                           </else>
+                        </filter>
+                     </then>
+                     <else>
+                        <property name="uri.var.status" value="Skipped" />
+                        <property name="uri.var.message" value="GoogleTasks Access Token is not provided in the request." />
+                     </else>
+                  </filter>
+               </then>
+               <else>
+                        <property name="uri.var.status" value="Skipped" />
+                        <property name="uri.var.message" value="Task has already been added to GoogleTasks." />
+               </else>
+            </filter>
+         </then>
+         <else>
+            <property name="uri.var.status" value="Skipped" />
+            <property name="uri.var.message" value="Activecollab api token is not provided in the request." />
+         </else>
+      </filter>
+      <property name="uri.var.id" expression="fn:concat('task_id:', get-property('uri.var.activecollabTaskId'))" />
+      <call-template target="responseHandlerTemplate">
+         <with-param name="id" value="{$ctx:uri.var.id}" />
+         <with-param name="status" value="{$ctx:uri.var.status}" />
+         <with-param name="message" value="{$ctx:uri.var.message}" />
+      </call-template>
+   </sequence>
+</template>

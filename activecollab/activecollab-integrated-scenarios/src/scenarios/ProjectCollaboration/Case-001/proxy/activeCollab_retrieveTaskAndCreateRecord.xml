@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--The following properties have been defined with prefix 'uri.var' since this proxy uses a ESB sequence to updateCustomFields,
+ which require the properties to be defined that way, as the sequence is being commonly used by templates, which define properties with prefix 'uri.var'.
+	uri.var.activecollabApiUrl
+	uri.var.activecollabApiToken
+	uri.var.activecollabProjectId
+	uri.var.activecollabTaskId
+	uri.var.customValue
+	uri.var.customFieldIndicator-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="activeCollab_retrieveTaskAndCreateRecord" transports="https,http" startOnLoad="true" trace="disable">
+    <description />
+    <target>
+        <inSequence onError="faultHandlerSeq">
+            <!--ActiveCollab Properties-->
+            <property name="uri.var.activecollabApiUrl" expression="json-eval($.activeCollabApiUrl)" scope="operation" />
+            <property name="uri.var.activecollabApiToken" expression="json-eval($.activeCollabApiToken)" scope="operation" />
+			
+            <!--Project level custom field that holds the corresponding Bugherd Project Name-->
+            <property name="activecollab.bugherdProjectCustomFieldName" expression="json-eval($.activeCollabBugherdProjectCustomFieldName)" scope="operation" />
+            <!--Task level custom field that holds the state whether the task has been already added to Bugherd/Freshdesk-->
+            <property name="activecollab.taskDuplicateTrackerFieldName" expression="json-eval($.activeCollabTaskDuplicateTrackerFieldName)" scope="operation" />
+            <!--Name given for Bug/Issue category for Tasks in ActiveCollab-->
+            <property name="activecollab.bugCategoryName" expression="json-eval($.activeCollabBugCategoryName)" scope="operation" />
+            <!--Name given for Supprt category for Tasks in ActiveCollab-->
+            <property name="activecollab.supportCategoryName" expression="json-eval($.activeCollabSupportCategoryName)" scope="operation" />
+            <!--NONE - Choose only the projects Specified in exemptProjects. Absence of the parameter or any other values would choose all the projects under the account and skip the projects specified in exemptProjects.-->
+            <property name="activecollab.projectSelection" expression="json-eval($.activeCollabProjectSelection)" scope="operation" />
+            <!--Skip/Select the tasks of the specified project(s) from being added to Bugherd/Freshdesk-->
+            <property name="activecollab.exemptProjects" expression="json-eval($.activeCollabExemptProjects)" scope="operation" />
+            <!--Skip/Select the tasks of the specified project(s) from being added to Bugherd-->
+            <property name="activecollab.skipAddingProjectsToBugherd" expression="json-eval($.activeCollabSkipAddingProjectsToBugherd)" scope="operation" />
+            <!--Skip/Select the tasks of the specified project(s) from being added to Freshdesk-->
+            <property name="activecollab.skipAddingProjectsToFreshdesk" expression="json-eval($.activeCollabSkipAddingProjectsToFreshDesk)" scope="operation" />
+            <!--Skip/Select completed tasks-->
+            <property name="activecollab.skipAddingCompletedTasksForProjects" expression="json-eval($.activeCollabSkipAddingCompletedTasksForProjects)" scope="operation" />
+			
+            <!--Freshdesk Properties-->
+            <property name="freshdesk.apiUrl" expression="json-eval($.freshdeskApiUrl)" scope="operation" />
+            <property name="freshdesk.apiKey" expression="json-eval($.freshdeskApiKey)" scope="operation" />
+			
+            <!--Bugherd Properties-->
+            <property name="bugherd.apiUrl" expression="json-eval($.bugHerdApiUrl)" scope="operation" />
+            <property name="bugherd.apiKey" expression="json-eval($.bugHerdApiKey)" scope="operation" />
+            <property name="bugherd.defaultProjectId" expression="json-eval($.bugHerdDefaultProjectId)" scope="operation" />
+			
+            <!--If the user doesn't specify the Category name for Bug/Issue, it will be defaulted to 'Bug/Issue'-->
+            <filter source="boolean(get-property('operation', 'activecollab.bugCategoryName'))" regex="false">
+                <then>
+                    <property name="activecollab.bugCategoryName" value="Bug/Issue" scope="operation" />
+                </then>
+            </filter>
+			
+            <!--If the user doesn't specify the Category name for Support tasks, it will be defaulted to 'Support'-->
+            <filter source="boolean(get-property('operation', 'activecollab.supportCategoryName'))" regex="false">
+                <then>
+                    <property name="activecollab.supportCategoryName" value="Support" scope="operation" />
+                </then>
+            </filter>
+			
+            <!--Check whether the apiUrl and apiToken are provided by the user.-->
+            <filter xpath="boolean(get-property('operation','uri.var.activecollabApiUrl'))
+							and boolean(get-property('operation','uri.var.activecollabApiToken'))">
+                <then>
+                    <!--Get the requried properties to Axis2 Scope from operation scope-->
+                    <property name="uri.var.activecollabApiUrl" expression="get-property('operation','uri.var.activecollabApiUrl') " />
+                    <property name="uri.var.activecollabApiToken" expression="get-property('operation','uri.var.activecollabApiToken')" />
+					
+                    <!--activeCollab.listProjects-->
+                    <activecollab.init>
+                        <apiUrl>{$ctx:uri.var.activecollabApiUrl}</apiUrl>
+                        <apiToken>{$ctx:uri.var.activecollabApiToken}</apiToken>
+                        <format>xml</format>
+                    </activecollab.init>
+                    <activecollab.listProjects>
+                        <isArchived>false</isArchived>
+                    </activecollab.listProjects>					
+					
+					<sequence key="activecollab-removeResponseHeaders" />
+					
+                    <!--Global Properties-->					
+                    <property name="noOfProjects" expression="count(//projects/project)" scope="operation" />
+                    <property name="projectIndex" expression="0" scope="operation" />
+                    <property name="noOfTasks" expression="0" scope="operation" />
+                    <property name="taskIndex" expression="0" scope="operation" />
+                    <property name="responseString" value="" scope="operation" />
+                    <property name="bugherdProjectIds" value="" scope="operation" />
+					
+                    <!--FOR EACH Projects : BEGIN-->
+                    <iterate continueParent="true" id="projects" expression="//projects/project" sequential="true">
+                        <target>
+                            <sequence>
+                                <!--Get all the properties to Axis2 Scope-->	
+                                <property name="uri.var.activecollabApiUrl" expression="get-property('operation','uri.var.activecollabApiUrl') " />
+                                <property name="uri.var.activecollabApiToken" expression="get-property('operation','uri.var.activecollabApiToken')" />
+                                <property name="activecollab.bugherdProjectCustomFieldName" expression="get-property('operation','activecollab.bugherdProjectCustomFieldName')" />
+                                <property name="activecollab.taskDuplicateTrackerFieldName" expression="get-property('operation','activecollab.taskDuplicateTrackerFieldName')" />
+                                <property name="activecollab.bugCategoryName" expression="get-property('operation','activecollab.bugCategoryName')" />
+                                <property name="activecollab.supportCategoryName" expression="get-property('operation','activecollab.supportCategoryName')" />
+                                <property name="activecollab.projectSelection" expression="fn:upper-case(get-property('operation','activecollab.projectSelection'))" />
+                                <property name="activecollab.exemptProjects" expression="get-property('operation','activecollab.exemptProjects')" />
+                                <property name="activecollab.skipAddingProjectsToBugherd" expression="get-property('operation','activecollab.skipAddingProjectsToBugherd')" />
+                                <property name="activecollab.skipAddingProjectsToFreshdesk" expression="get-property('operation','activecollab.skipAddingProjectsToFreshdesk')" />
+                                <property name="activecollab.skipAddingCompletedTasksForProjects" expression="get-property('operation','activecollab.skipAddingCompletedTasksForProjects')" />
+                                <property name="freshdesk.apiUrl" expression="get-property('operation','freshdesk.apiUrl')" />
+                                <property name="freshdesk.apiKey" expression="get-property('operation','freshdesk.apiKey')" />
+                                <property name="bugherd.apiUrl" expression="get-property('operation','bugherd.apiUrl')" />
+                                <property name="bugherd.apiKey" expression="get-property('operation','bugherd.apiKey')" />
+                                <property name="bugherd.defaultProjectId" expression="get-property('operation','bugherd.defaultProjectId')" />
+								
+								<!--Extract ProjectName and ProjectId from the Message.-->
+                                <property name="activecollab.projectName" expression="//project/name/text()" />
+                                <property name="uri.var.activecollabProjectId" expression="//project/id/text()" />
+								
+                                <!--Check whether the particular Project needs to be Processed/Skipped if it is specified as String/number.
+								Extract the bugherd ID if it is specified as well.-->
+                                <script language="js">
+											var exemptProjects = mc.getProperty("activecollab.exemptProjects");
+											var projectId = mc.getProperty("uri.var.activecollabProjectId");
+											var projectSelection = mc.getProperty("activecollab.projectSelection");
+											
+											var jsonArray = eval("(" + exemptProjects + ")");
+											
+											if(projectSelection == "NONE"){
+												mc.setProperty('proceed', 'false');
+											} else {
+												mc.setProperty('proceed', 'true');
+											}
+											
+											if(jsonArray.length != 0){
+												
+												for(var index = 0; index &lt; jsonArray.length; index++){
+													
+													// If the current value is an object
+													if(typeof jsonArray[index] == 'object'){	
+														// If the projectId is the required one
+														if(projectId == jsonArray[index].id){
+															if(projectSelection == "NONE"){
+																mc.setProperty('proceed', 'true');
+															} else {
+																mc.setProperty('proceed', 'false');
+															}
+															if(jsonArray[index]['bugherdId'] != null){
+																var bugherdId = '' + jsonArray[index]['bugherdId'];
+																mc.setProperty('bugherd.projectId', bugherdId.split('.')[0]);
+															}
+															break;
+														}
+													} else {
+														if(projectId == jsonArray[index]){
+															if(projectSelection == "NONE"){
+																mc.setProperty('proceed', 'true');
+															} else {
+																mc.setProperty('proceed', 'false');
+															}
+															break;
+														}
+													}													
+												}
+											}
+								</script>
+								
+								
+                                <filter xpath="get-property('proceed') = 'true'">
+                                    <then><!--PROJECT CONSIDERED: True-->
+									
+                                        <!--Try to extract the bugherd project ID from ActiveCollab project custom field only if the user has not explicitly provided it.-->
+                                        <filter source="boolean(get-property('bugherd.projectId'))" regex="false">
+                                            <then>
+                                                <property name="noOfProjectCustomFields" expression="count(//project/custom_fields/*)" />
+                                                <property name="messageType" value="application/json" scope="axis2" />
+                                                <property name="customFields" expression="json-eval($.project.custom_fields)" />
+                                                <!--Extract the Bugherd Project ID from Project custom field.-->
+                                                <script language="js">
+													var noOfCustomFields = mc.getProperty("noOfProjectCustomFields");
+													var bugherdProjectCustomFieldName = mc.getProperty("activecollab.bugherdProjectCustomFieldName");
+													var activeCollabProjectId = mc.getProperty("uri.var.activecollabProjectId");											
+													var customFields = eval("(" + mc.getProperty("customFields") + ")");
+													
+													for(var index=1; index &lt;= noOfCustomFields; index++){
+														if(customFields["custom_field_" + index].label == bugherdProjectCustomFieldName){
+															var bugherProjectId = '' + customFields["custom_field_" + index].value;
+															if(bugherProjectId != 'null'){
+																mc.setProperty('bugherd.projectId', bugherProjectId.split('.')[0]);
+															}
+															break;
+														}
+													}
+												</script>
+                                            </then>
+                                        </filter>
+										
+                                        <!--If the Bugherd Project ID is still null, get the default Bugherd Project ID if provided.-->
+                                        <filter source="boolean(get-property('bugherd.projectId'))" regex="false">
+                                            <then>
+                                                <filter source="boolean(get-property('bugherd.defaultProjectId'))" regex="true">
+                                                    <then>
+                                                        <property name="bugherd.projectId" expression="get-property('bugherd.defaultProjectId')" />
+                                                    </then>
+                                                </filter>
+                                            </then>
+                                        </filter>
+										
+                                        <!--Check whether the project tasks need to be skipped from being added to freshdesk, to bugherd.
+										Also it checks whether or not to add completed tasks to bugherd/freshdesk.-->
+                                        <property name="proceed.bugherd" value="true" />
+                                        <property name="proceed.freshdesk" value="true" />
+                                        <property name="skipCompletedTasks" value="false" />
+                                        <script language="js">var skipAddingProjectsToBugherd = mc.getProperty("activecollab.skipAddingProjectsToBugherd");
+											var skipAddingProjectsToFreshdesk = mc.getProperty("activecollab.skipAddingProjectsToFreshdesk");
+											var skipAddingCompletedTasksForProjects = mc.getProperty("activecollab.skipAddingCompletedTasksForProjects");
+											var projectId = mc.getProperty("uri.var.activecollabProjectId");
+											
+											// Check whether the tasks of current project should be skipped from adding to Bugherd.
+											var jsonArray = eval("(" + skipAddingProjectsToBugherd + ")");
+											
+											if(jsonArray.length != 0){
+												for(var index = 0; index &lt; jsonArray.length; index++){
+													if(projectId == jsonArray[index]){
+														mc.setProperty('proceed.bugherd', 'false');
+														break;
+													}
+												}
+											}
+											
+											// Check whether the tasks of current project should be skipped from adding to Freshdesk.
+											jsonArray = eval("(" + skipAddingProjectsToFreshdesk + ")");
+											if(jsonArray.length != 0){
+												for(var index = 0; index &lt; jsonArray.length; index++){
+													if(projectId == jsonArray[index]){
+														mc.setProperty('proceed.freshdesk', 'false');
+														break;
+													}
+												}
+											}
+											
+											// Check whether the completed tasks of current project should be skipped.
+											jsonArray = eval("(" + skipAddingCompletedTasksForProjects + ")");
+											if(jsonArray.length != 0){
+												for(var index = 0; index &lt; jsonArray.length; index++){
+													if(projectId == jsonArray[index]){
+														mc.setProperty('skipCompletedTasks', 'true');
+														break;
+													}
+												}
+											}
+										</script>
+										
+										<!--If the project tasks has not been skipped from to both Bugherd and Freshdesk-->
+                                        <filter xpath="get-property('proceed.bugherd') = 'true' or get-property('proceed.freshdesk') = 'true'">
+                                            <then><!--PROJECT CONSIDERED: True-->
+											
+                                                <!--activeCollab.listProjects-->
+                                                <activecollab.init>
+                                                    <apiUrl>{$ctx:uri.var.activecollabApiUrl}</apiUrl>
+                                                    <apiToken>{$ctx:uri.var.activecollabApiToken}</apiToken>
+                                                    <format>xml</format>
+                                                </activecollab.init>
+                                                <activecollab.listTasks>
+                                                    <isArchived>false</isArchived>
+                                                    <projectId>{$ctx:uri.var.activecollabProjectId}</projectId>
+                                                </activecollab.listTasks>
+												
+												<sequence key="activecollab-removeResponseHeaders" />
+												
+                                                <!--Update the No. of tasks to be Processed with each list of tasks.-->
+                                                <property name="noOfTasks" expression="get-property('operation','noOfTasks') + count(//tasks/task)" scope="operation" />
+												
+                                                <!--Increment the Project Index-->
+                                                <property name="projectIndex" expression="get-property('operation','projectIndex') + 1" scope="operation" />
+												
+                                                <!--FOR EACH Tasks: BEGIN-->
+                                                <iterate continueParent="true" id="tasks" expression="//tasks/task" sequential="true">
+                                                    <target>
+                                                        <sequence>
+                                                            <!--Extracting Task specific information from the message-->
+                                                            <property name="uri.var.activecollabTaskId" expression="//task/task_id/text()" />
+                                                            <property name="activecollab.taskName" expression="//task/name/text()" />
+                                                            <property name="activecollab.taskCompleted" expression="//task/is_completed/text()" />
+															
+                                                            <!--Check whether the task has been already added or whether it is a new task-->
+                                                            <property name="noOfTaskCustomFields" expression="count(//task/custom_fields/*)" />
+                                                            <property name="messageType" value="application/json" scope="axis2" />
+                                                            <property name="customFields" expression="json-eval($.task.custom_fields)" />
+                                                            <script language="js">
+																var noOfCustomFields = mc.getProperty("noOfTaskCustomFields");															
+																var taskDuplicateTrackerFieldName = mc.getProperty("activecollab.taskDuplicateTrackerFieldName");																
+																var customFields = eval("(" + mc.getProperty("customFields") + ")");																
+																for(var index=1; index &lt;= noOfCustomFields; index++){
+																	if(customFields["custom_field_" + index].label == taskDuplicateTrackerFieldName){
+																		var customFieldValue = customFields["custom_field_" + index].value;
+																		if(customFieldValue == null){
+																			mc.setProperty('alreadyAdded', 'false');
+																			mc.setProperty('uri.var.customFieldIndicator', "custom_field_" + index);
+																		} else {
+																			mc.setProperty('alreadyAdded', 'true');
+																			mc.setProperty('existingValue', customFieldValue);
+																		}
+																		break;
+																	}
+																}
+															</script>
+															<!--Set the ID element for the response handler.-->
+                                                            <property name="id" expression="fn:concat('project_id:', get-property('uri.var.activecollabProjectId'), ',project_name:', get-property('activecollab.projectName'), ',task_id:', get-property('uri.var.activecollabTaskId'), ',task_name:', get-property('activecollab.taskName'))" />
+                                                            <filter xpath="get-property('alreadyAdded') = 'false'">
+                                                                <then>
+                                                                    <!--If the task is-->
+                                                                    <filter xpath="get-property('skipCompletedTasks') = 'true'
+																				and get-property('activecollab.taskCompleted') = '1'">
+                                                                        <then>
+                                                                            <!--If the task is completed and specified to be exempted from adding to Bugherd/Freshdesk.-->
+                                                                            <!--Response to the User-->
+                                                                            <property name="message" value="Task was skipped since the user has specified to skip adding completed tasks to Freshdesk/Bugherd." />
+                                                                            <property name="status" value="Skipped" />
+                                                                        </then>
+                                                                        <else>
+                                                                            <!--Retrieve the particular task.-->
+                                                                            <sequence key="activecollab-retrieveTaskFromActiveCollab" />
+																			
+                                                                            <property name="statusIndicator" value="false" />
+																			
+                                                                            <!--Check whether the task should be/could be added to Bugherd.-->																			
+                                                                            <filter xpath="fn:lower-case(get-property('uri.var.responseCategoryName')) = fn:lower-case(get-property('activecollab.bugCategoryName'))
+																							and boolean(get-property('proceed.bugherd'))
+																							and get-property('proceed.bugherd') = 'true'
+																							and boolean(get-property('bugherd.apiKey')) 
+																							and boolean(get-property('bugherd.apiUrl'))">
+                                                                                <then>
+                                                                                    <property name="statusIndicator" value="true" />
+                                                                                    <filter source="boolean(get-property('bugherd.projectId'))" regex="true">
+                                                                                        <then>
+                                                                                            <!--Create Bug in Bugherd-->
+                                                                                            <sequence key="bugherd-createBugInBugherdFromActiveCollab" />
+																							
+                                                                                            <property name="bugherd.taskId" expression="json-eval($.task.id)" />
+                                                                                            <filter source="boolean(get-property('bugherd.taskId'))" regex="true">
+                                                                                                <then><!--If creation is success-->
+                                                                                                    <property name="bugherd.taskDescription" expression="json-eval($.task.description)" />
+                                                                                                    <property name="uri.var.customValue" expression="fn:concat('Bugherd Task ID - ', get-property('bugherd.taskId'))" />
+                                                                                                    
+																									<sequence key="activecollab-updateCustomFieldInActiveCollab"/>
+																									
+																									<property name="updatedTaskId" expression="json-eval($.task_id)"/>
+																									<filter source="boolean(get-property('updatedTaskId'))" regex="true">
+																									  <then><!--If updation is a success-->
+																										 <property name="message" expression="fn:concat('Added to Bugherd ( Bug ID:', get-property('bugherd.taskId'), ' | Bug Description: ', get-property('bugherd.taskDescription'), ' )')"/>
+																										 <property name="status" value="Success"/>
+																									  </then>
+																									  <else><!--If updation is a failure-->
+																										 <property name="message" expression="fn:concat('Task was successfully added to Bugherd. Unknown error occured while updating the custom field of the task in ActiveCollab. Please update the task manually as follows: (custom_field : ', get-property('customFieldIndicator'), ', value: ', get-property('customValue'), ')')"/>
+																										 <property name="status" value="Error"/>
+																									  </else>
+																								   </filter>
+                                                                                                </then>
+                                                                                                <else><!--If creation is a failure-->
+																									<property name="apiResponse" expression="json-eval($)" />
+																									<script language="js">
+																										<![CDATA[
+																											var messageObject = new Object();
+																											
+																											messageObject["description"] = "Unknown error occured while adding the task to Bugherd.";
+																											messageObject["response_from_bugherd"] = eval("(" + mc.getProperty('apiResponse') + ")");
+																											
+																											mc.setPayloadJSON(messageObject);
+																										]]>			
+																									</script>
+																									<property name="message" expression="json-eval($)" />
+                                                                                                    <property name="status" value="Error" />
+                                                                                                </else>
+                                                                                            </filter>
+                                                                                        </then>
+                                                                                        <else>
+                                                                                            <!--If the Bugherd Project ID cannot be retrieved.-->
+                                                                                            <property name="message" value="Task cannot be added to Bugherd since the Bugherd Project ID for the ActiveCollab Project couldn't be retrieved!" />
+                                                                                            <property name="status" value="Failure" />
+                                                                                        </else>
+                                                                                    </filter>
+                                                                                </then>
+                                                                            </filter>
+																			
+                                                                            <!--Check whether the task should be/could be added to Bugherd.-->
+                                                                            <filter xpath="fn:lower-case(get-property('uri.var.responseCategoryName')) = fn:lower-case(get-property('activecollab.supportCategoryName'))
+																							and boolean(get-property('proceed.freshdesk'))
+																							and get-property('proceed.freshdesk') = 'true'
+																							and boolean(get-property('freshdesk.apiUrl'))
+																							and boolean(get-property('freshdesk.apiKey'))">
+                                                                                <then>
+                                                                                    <property name="statusIndicator" value="true" />
+                                                                                    <!--Create Ticket in Freshdesk.-->
+                                                                                    <sequence key="freshdesk-createTicketInFreshdeskFromActiveCollab" />
+																					
+                                                                                    <property name="freshdesk.taskId" expression="json-eval($.helpdesk_ticket.id)" />
+                                                                                    <filter source="boolean(get-property('freshdesk.taskId'))" regex="true">
+                                                                                        <then><!--If creation is success-->
+                                                                                            <property name="freshdesk.taskDescription" expression="json-eval($.helpdesk_ticket.description)" />
+                                                                                            <property name="uri.var.customValue" expression="fn:concat('Freshdesk Ticket ID - ', get-property('freshdesk.taskId'))" />
+                                                                                            
+																							<sequence key="activecollab-updateCustomFieldInActiveCollab"/>																							
+																							
+																							 <property name="updatedTaskId" expression="json-eval($.task_id)"/>
+																							 <filter source="boolean(get-property('updatedTaskId'))" regex="true">
+																								<then><!--If updation is success-->
+																								   <property name="message" expression="fn:concat('Added to Freshdesk ( Ticket ID:', get-property('freshdesk.taskId'), ' | Ticket Description: ', get-property('freshdesk.taskDescription'), ' )')"/>
+																								   <property name="status" value="Success"/>
+																								</then>
+																								<else><!--If updation is failure-->
+																								   <property name="message" expression="fn:concat('Task was successfully added to Freshdesk. Unknown error occured while updating the custom field of the task in ActiveCollab. Please update the custom_field of the task manually as follows: (custom_field : ', get-property('customFieldIndicator'), ', value: ', get-property('customValue'), ')')"/>
+																								   <property name="status" value="Error"/>
+																								</else>
+																							 </filter>
+                                                                                        </then>
+                                                                                        <else><!--If creation is a failure-->
+																							<property name="apiResponse" expression="json-eval($)" />
+																							<script language="js">
+																										<![CDATA[
+																											var messageObject = new Object();
+																											
+																											messageObject["description"] = "Unknown error occured while adding the task to Freshdesk.";
+																											messageObject["response_from_freshdesk"] = eval("(" + mc.getProperty('apiResponse') + ")");
+																											
+																											mc.setPayloadJSON(messageObject);
+																										]]>			
+																							</script>
+																							<property name="message" expression="json-eval($)" />
+                                                                                            <property name="status" value="Error" />
+                                                                                        </else>
+                                                                                    </filter>
+                                                                                </then>
+                                                                            </filter>
+																			
+                                                                            <!--If the task was not added to both APIs-->
+                                                                            <filter xpath="get-property('statusIndicator') = 'false'">																				
+                                                                                <then>
+                                                                                    <property name="status" value="Skipped" />																					
+																					<filter source="boolean(get-property('uri.var.responseCategoryName'))" regex="true">																				
+																						<then><!--If the retrieved category name has some non-empty value.-->
+																							<filter xpath="fn:lower-case(get-property('uri.var.responseCategoryName')) != fn:lower-case(get-property('activecollab.bugCategoryName'))
+																										and fn:lower-case(get-property('uri.var.responseCategoryName')) != fn:lower-case(get-property('activecollab.supportCategoryName'))">																				
+																								<then><!--If the retrieved category name doesn't belong to both Bug AND Support-->
+																									<property name="message" value="The task doesn't belong to neither Bug category nor Support Category." />
+																								</then>
+																								<else><!--If the retrieved category name belongs to either Bug or Category-->
+																									<filter xpath="fn:lower-case(get-property('uri.var.responseCategoryName')) = fn:lower-case(get-property('activecollab.bugCategoryName'))">																				
+																										<then><!--If the retrieved category name belongs to Bug-->
+																											<filter xpath="get-property('bugherd.apiKey') = '' or get-property('bugherd.apiUrl') = ''">																				
+																												<then><!--If the user has not provided Bugherd ApiUrl or ApiKey-->
+																													<property name="status" value="Failure" />		
+																													<property name="message" value="BugHerd ApiUrl and/or ApiKey is missing in the request." />
+																												</then>
+																												<else><!--The last option would be that he wants to skip the project from being added to Bugherd.-->
+																													<property name="message" value="User has explicitly specified to skip adding the task to Bugherd." />
+																												</else>
+																											</filter>
+																										</then>
+																										<else><!--If the retrieved category name belongs to Support-->
+																											<filter xpath="get-property('freshdesk.apiKey') = '' or get-property('freshdesk.apiUrl') = ''">																				
+																												<then><!--If the user has not provided Freshdesk ApiUrl or ApiKey-->
+																													<property name="status" value="Failure" />		
+																													<property name="message" value="Freshdesk ApiUrl and/or ApiKey is missing in the request." />
+																												</then>
+																												<else><!--The last option would be that he wants to skip the project from being added to Freshdesk.-->
+																													<property name="message" value="User has explicitly specified to skip adding the task to Freshdesk." />
+																												</else>
+																											</filter>
+																										</else>
+																									</filter>
+																								</else>
+																							</filter>
+																						</then>
+																						<else><!--If the retrieved category name is null or empty.-->
+																							<property name="message" value="The task is not categorized." />
+																						</else>
+																					</filter>
+                                                                                </then>
+                                                                            </filter>
+                                                                        </else>
+                                                                    </filter>
+                                                                </then>
+                                                                <else>
+                                                                    <!--If the task was already added.-->
+                                                                    <property name="message" expression="fn:concat('The task was already added to Bugherd/FreshDesk. ', get-property('existingValue'))" />
+                                                                    <property name="status" value="Already added" />
+                                                                </else>
+                                                            </filter>
+															
+															<!--Call the responseHandler template-->
+                                                            <call-template target="responseHandlerTemplate">
+                                                                <with-param name="id" value="{$ctx:id}" />
+                                                                <with-param name="status" value="{$ctx:status}" />
+                                                                <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+															
+                                                            <!--Increment the Task Index-->
+                                                            <property name="taskIndex" expression="get-property('operation','taskIndex') + 1" scope="operation" />
+                                                        </sequence>
+                                                    </target>
+                                                </iterate><!--FOR EACH Tasks: END-->
+                                            </then><!--PROJECT CONSIDERED: True-->
+											
+                                            <else><!--PROJECT CONSIDERED: False-->
+                                                <property name="projectIndex" expression="get-property('operation','projectIndex') + 1" scope="operation" />
+                                            </else><!--PROJECT CONSIDERED: False-->
+											
+                                        </filter>
+                                    </then><!--PROJECT CONSIDERED: True-->
+									
+                                    <else>
+                                        <!--PROJECT CONSIDERED: False-->
+                                        <property name="projectIndex" expression="get-property('operation','projectIndex') + 1" scope="operation" />
+                                    </else><!--PROJECT CONSIDERED: False-->
+									
+                                </filter>
+                            </sequence>
+                        </target>
+                    </iterate><!--FOR EACH Projects : END-->
+					
+                    <!--Loopback only if all Tasks of all Projects are fully Processed.-->
+                    <filter xpath="get-property('operation', 'projectIndex') = get-property('operation', 'noOfProjects')         and get-property('operation', 'taskIndex') = get-property('operation', 'noOfTasks')">
+                        <then>
+                            <loopback />
+                        </then>
+                    </filter>
+					
+                </then>
+                <else>
+                    <!--If the apiUrl and apiToken are not provided by the user.-->
+                    <payloadFactory media-type="json">
+                        <format>{
+							"Response":{
+								"activity":"activecollab-createRecordInFreshDeskOrBugherdForAtiveCollabTasks",
+								"activityResponse":"Unable to continue. Please proide apiUrl and apiToken for ActiveCollab."
+							}
+						}</format>
+                    </payloadFactory>
+                    <property name="messageType" value="application/json" scope="axis2" />
+                    <respond />
+                </else>
+            </filter>
+            
+        </inSequence>
+        <outSequence>
+            <payloadFactory media-type="json">
+                <format>{
+						"Response":{
+							"activity":"activecollab-createRecordInFreshDeskOrBugherdForAtiveCollabTasks",
+							"activityResponse":[$1]
+						}
+					}</format>
+                <args>
+                    <arg expression="get-property('operation','responseString')" />
+                </args>
+            </payloadFactory>
+            <property name="messageType" value="application/json" scope="axis2" />
+            <send />
+        </outSequence>
+    </target>
+</proxy>

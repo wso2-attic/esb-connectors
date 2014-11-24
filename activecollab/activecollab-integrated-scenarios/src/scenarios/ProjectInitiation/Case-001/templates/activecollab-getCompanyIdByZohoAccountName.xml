@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--The template validate and retrieve Activecollab company id against ZohoCRM Account name .-->
+<template xmlns="http://ws.apache.org/ns/synapse"
+          name="activecollab-getCompanyIdByZohoAccountName">
+   <parameter name="activecollabApiUrl" description="The Activecollab API URL."/>
+   <parameter name="activecollabApiToken" description="Encrypted alphanumeric string to authenticate the Activecollab credentials."/>
+   <parameter name="zohoAccountName" description="The ZohoCRM account name."/>
+   
+   <sequence>
+      <property name="uri.var.activecollabApiUrl"
+                expression="$func:activecollabApiUrl"/>
+      <property name="uri.var.activecollabApiToken"
+                expression="$func:activecollabApiToken"/>
+      <property name="uri.var.zohoAccountName"
+                expression="$func:zohoAccountName"/>
+	 
+     
+      <activecollab.init>
+         <apiUrl>{$ctx:uri.var.activecollabApiUrl}</apiUrl>
+         <apiToken>{$ctx:uri.var.activecollabApiToken}</apiToken>
+         <format>json</format>
+      </activecollab.init>
+      <activecollab.listCompanies/>
+	 
+		<script language="js">
+			var companies = mc.getPayloadJSON();
+			var zohoAccountName = mc.getProperty("uri.var.zohoAccountName");
+			
+			for(var i = 0; i &lt; companies.length ; i++ ){
+				var company=companies[i];
+				
+				
+				if(company.name == zohoAccountName){
+					mc.setProperty('uri.var.activecollabCompanyId',""+company.id);
+					
+					
+				}
+				
+			}
+		</script>
+	</sequence>
+</template>

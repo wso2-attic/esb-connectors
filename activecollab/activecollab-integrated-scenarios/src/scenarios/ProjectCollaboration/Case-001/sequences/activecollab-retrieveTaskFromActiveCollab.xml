@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--The Sequence will retrieve a task from ActiveCollab given the projectId and taskId.
+	It also extracts following data into axis2-scoped properties which can be used by successive templates/proxies.
+	uri.var.requesterEmail
+	uri.var.priority
+	uri.var.createdDate
+	uri.var.creatorName
+	uri.var.taskLink
+	uri.var.body
+	uri.var.estimatedValue
+	uri.var.estimatedJobType
+	uri.var.description
+	uri.var.responseCategoryName-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="activecollab-retrieveTaskFromActiveCollab">
+    
+	<activecollab.init>
+        <apiUrl>{$ctx:uri.var.activecollabApiUrl}</apiUrl>
+        <apiToken>{$ctx:uri.var.activecollabApiToken}</apiToken>
+        <format>json</format>
+    </activecollab.init>
+    <activecollab.getTask>
+        <taskId>{$ctx:uri.var.activecollabTaskId}</taskId>
+        <projectId>{$ctx:uri.var.activecollabProjectId}</projectId>
+    </activecollab.getTask>
+    
+	<sequence key="activecollab-removeResponseHeaders" />
+    
+	<!--Extract properties commonly required by both the APIs FreshDesk and BugHerd-->
+    <property name="uri.var.requesterEmail" expression="json-eval($.created_by.email)" />
+    <property name="uri.var.priority" expression="json-eval($.priority)" />
+    
+	<!--Parameters extracted to build the Description-->
+    <property name="uri.var.createdDate" expression="json-eval($.created_on.formatted_gmt)" />
+    <property name="uri.var.creatorName" expression="json-eval($.created_by.name)" />
+    <property name="uri.var.taskLink" expression="json-eval($.permalink)" />
+    <property name="uri.var.body" expression="json-eval($.body)" />
+    <property name="uri.var.estimatedValue" expression="json-eval($.estimate.value)" />
+    
+	<!--If the Estimate value is not specified for the ActiveCollab task, set it to 'Not specified'-->
+    <filter source="boolean(get-property('uri.var.estimatedValue'))" regex="false">
+        <then>
+            <property name="uri.var.estimatedValue" value="Not specified" />
+        </then>
+    </filter>
+    <property name="uri.var.estimatedJobType" expression="json-eval($.estimate.job_type_name)" />
+    
+	<!--If the Estimated work type is not specified for the ActiveCollab task, set it to 'Not specified'-->
+    <filter source="boolean(get-property('uri.var.estimatedJobType'))" regex="false">
+        <then>
+            <property name="uri.var.estimatedJobType" value="Not specified" />
+        </then>
+    </filter>
+    
+	<!--Comprehensive Description including description, creator information, Link for task in Active Collab, Task type and estimated hours-->
+    <property name="uri.var.description" expression="fn:concat('Description - ', get-property('uri.var.body'),
+	', Created by - ', get-property('uri.var.creatorName'),
+	', Created on - ', get-property('uri.var.createdDate'),
+	', Task Link - ', get-property('uri.var.taskLink'),
+	', Estimated Task Job Type - ', get-property('uri.var.estimatedJobType'),
+	', Estimated Time(h) - ', get-property('uri.var.estimatedValue'))" />
+	
+	<!--Remove the HTML tags coming along with the ActiveCollab task body-->
+	<script language="js">
+			<![CDATA[
+				var description = mc.getProperty('uri.var.description');
+				description = description.replace("<p>", "");
+				description = description.replace("</p>", "");
+				mc.setProperty('uri.var.description', description);
+			]]>			
+	</script>
+    
+	<!--Get the Task category name into a property-->
+    <property name="uri.var.responseCategoryName" expression="json-eval($.category.name)" />
+</sequence>

@@ -1,0 +1,76 @@
+<template name="assignMembers" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="projectId" 
+		description="Identifier of the project." />
+	<parameter name="users" 
+		description="An array of users that you want to add to the project." />
+	<parameter name="roleId" 
+		description="The ID of the project role that the user will have in the project." />
+	<parameter name="permissions" 
+		description="An array of permissions for different sections that this user should have in the project." />
+
+	<sequence>
+
+		<property name="uri.var.projectId" expression="$func:projectId" />
+		<property name="uri.var.users" expression="$func:users" />
+		<property name="uri.var.roleId" expression="$func:roleId" />
+		<property name="uri.var.permissions" expression="$func:permissions" />
+
+		<script language="js">
+             <![CDATA[
+                        	         		           		           
+		            var users = mc.getProperty("uri.var.users");
+		            var roleId = mc.getProperty("uri.var.roleId");
+		            var permissions = mc.getProperty("uri.var.permissions");
+		            
+		            var payload = {};
+		            
+		            payload ["submitted"] = "submitted";
+		     
+				    if ( users != null && users != "") { 
+	                   var usersArray=eval("("+users+")");
+	                   
+	                   for(var i=0;i<usersArray.length; ++i){
+	                       var elem = usersArray[i];
+	                       var name = "users[" + i + "]";
+	                                 
+	                       payload [name] = elem ;		                   
+	                   }
+				    }				    
+				      
+		           	if (roleId != null && roleId != ""){
+	  					payload ["project_permissions[role_id]"] = roleId;
+	  				}
+		           	
+				    if ( permissions != null && permissions != "") { 
+				    
+	                   var permissionsArray=eval("("+permissions+")");
+	                   
+	                   for(var i=0;i<permissionsArray.length; ++i){	                   
+	                       var permissionObject = permissionsArray[i];
+	                       
+	                       for(var permissionType in permissionObject){
+	                       		var name = "project_permissions[permissions]["+permissionType+"]";
+	                        	payload [name] = permissionObject[permissionType] ;	
+	                       }  
+	                   }
+				    }		           			           					     				     				      
+				    mc.setPayloadJSON(payload);
+            ]]>
+		</script>
+
+		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}path_info=projects/{uri.var.projectId}/people/add" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove response custom header information -->
+        <header name="X-XSS-Protection" scope="transport" action="remove" />
+        <header name="X-Powered-By" scope="transport" action="remove" />
+        <header name="X-Content-Type-Options" scope="transport" action="remove" />			
+
+	</sequence>
+</template>

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="activeCollab_retrievePotentialsAndInitiateProject"
+       transports="https http"
+       startOnLoad="true"
+       trace="disable">
+   <description/>
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <property name="zohoApiUrl" expression="json-eval($.zohoApiUrl)"/>
+         <property name="zohoAccessToken" expression="json-eval($.zohoAccessToken)"/>
+         <property name="zohoScope" expression="json-eval($.zohoScope)"/>
+         <property name="zohoNewFormat" expression="json-eval($.zohoNewFormat)"/>
+         <property name="zohoVersion" expression="json-eval($.zohoVersion)"/>
+         <property name="zohoStatus" expression="json-eval($.zohoStatus)"/>
+         <property name="activecollabApiUrl" expression="json-eval($.activecollabApiUrl)"/>
+         <property name="activecollabApiToken"
+                   expression="json-eval($.activecollabApiToken)"/>
+		<property name="index" value="0" scope="operation"/>
+		<property name="responseString" value="" scope="operation"/>
+		
+		<!-- Retrieve all Potentials from ZohoCRM -->
+		<script language="js">
+		 var currentDate=new Date();
+		 var previousDate = new Date(currentDate.getFullYear(),currentDate.getMonth(),currentDate.getDate()-1);
+		 var dateString=previousDate.getFullYear() + "-" + Number(previousDate.getMonth()+1) + "-" + previousDate.getDate() +" 00:00:00";
+		 mc.setProperty('lastModifiedTime', dateString);
+		 
+		 </script>
+		 
+         <zohocrm.init>
+            <scope>{$ctx:zohoScope}</scope>
+            <accessToken>{$ctx:zohoAccessToken}</accessToken>
+            <apiUrl>{$ctx:zohoApiUrl}</apiUrl>
+         </zohocrm.init>
+         <zohocrm.getRecords>
+            <newFormat>{$ctx:zohoNewFormat}</newFormat>
+            <version>{$ctx:zohoVersion}</version>
+            <moduleType>Potentials</moduleType>
+			<lastModifiedTime>{$ctx:lastModifiedTime}</lastModifiedTime>
+         </zohocrm.getRecords>
+		
+
+		 <property name="messageType" value="application/xml" scope="axis2"/>
+		 
+		 <property name="potentialsCount"
+                   expression="count(//response/result/Potentials/row)"
+                   scope="operation"/>
+		<!-- Checking if there are any potentials to be process, else skipping. -->	
+		<filter xpath="0 != get-property('operation', 'potentialsCount')">
+				<then>
+					<iterate continueParent="true"
+						  id="potentialsIterator"
+						  preservePayload="true"
+						  expression="//response/result/Potentials/row"
+						  sequential="true">
+					<target>
+					   <sequence>
+							
+							<property name="zohoPotentialId" expression="//FL[1]/content/text()"/>
+						 <!-- Calling activecollab-retrievePotentialsAndInitiateProject template to create projects in Activecollab-->    
+							<call-template target="activecollab-retrievePotentialsAndInitiateProject">
+								<with-param name="zohoApiUrl" value="{$ctx:zohoApiUrl}"/>
+								<with-param name="zohoAccessToken" value="{$ctx:zohoAccessToken}"/>
+								<with-param name="zohoScope" value="{$ctx:zohoScope}"/>
+								<with-param name="zohoPotentialId" value="{$ctx:zohoPotentialId}"/>
+								<with-param name="zohoNewFormat" value="{$ctx:zohoNewFormat}"/>
+								<with-param name="zohoVersion" value="{$ctx:zohoVersion}"/>
+								<with-param name="zohoStatus" value="{$ctx:zohoStatus}"/>
+								<with-param name="activecollabApiToken" value="{$ctx:activecollabApiToken}"/>
+								<with-param name="activecollabApiUrl" value="{$ctx:activecollabApiUrl}"/>
+								
+							</call-template> 
+							<property name="index" expression="get-property('operation','index') + 1" scope="operation"/>
+						</sequence>
+					</target>
+				 </iterate>	
+				<filter xpath="get-property('operation','index') = get-property('operation', 'potentialsCount')" >
+					<then>
+						<loopback />
+					</then>
+				</filter>		
+			</then>
+			<else>
+				<property name="idParam" value=" " />
+				<property name="status" value="Skipped" />
+				<property name="message" value="No potentials were found." />
+					
+				<call-template target="responseHandlerTemplate">
+					<with-param name="id" value="{$ctx:idParam}" />
+					<with-param name="status" value="{$ctx:status}" />
+					<with-param name="message" value="{$ctx:message}" />
+				</call-template>
+					
+				<loopback />
+			</else>
+		</filter>	
+			
+		</inSequence>
+		<outSequence>
+        <property name="messageType" value="application/json" scope="axis2"/>
+         
+        
+		<payloadFactory media-type="json">
+            <format>
+				{
+				"Response":{
+					"activity":"activecollab-createProjectFromZohoPotentials",
+					"activityResponse":[$1]
+				}
+				}
+			</format>
+            <args>
+				
+                <arg evaluator="xml" expression="get-property('operation', 'responseString')"/>
+            </args>
+        </payloadFactory>
+		
+        <send/>
+      </outSequence>
+   </target>
+</proxy>
