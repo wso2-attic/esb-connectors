@@ -35,11 +35,11 @@ Steps to follow when executing the Test Suite:
 	i) 		Using the URL "https://login.mailchimp.com/signup?" create a MailChimp online account.
 	ii)		Once an account is created a verification mail will be send to your mail account. Please click the Active Account URL link in the mail.
 	iii) 	Once you have click the mail link it would take you to another page to finalize your MailChimp account creation.
-	iii)	Use the credentails given by you to login into MailChimp account and Click your profile name to expand the Account Panel, and choose Account.
-	iv)		Click the Extras drop-down menu and choose API keys.
-	v)		Copy an existing API key or click the Create A Key button.
-    vi)		Name your key descriptively, so you know what application uses that key.
-	vii) 	Create atleast two Lists in the Mailchimp account you created before executing the Test Suite for the first time.
+	iv)	    Use the credentails given by you to login into MailChimp account and Click your profile name to expand the Account Panel, and choose Account.
+	v)		Click the Extras drop-down menu and choose API keys.
+	vi)		Copy an existing API key or click the Create A Key button.
+    vii)	Name your key descriptively, so you know what application uses that key.
+	viii) 	Create atleast two Lists in the Mailchimp account you created before executing the Test Suite for the first time.
 			(Once you login to your Mailchimp account, on your Welcome Screen, click on Lists on the left pane and then Click Create List to create lists)
 
 			
