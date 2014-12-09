@@ -1,0 +1,36 @@
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="faultHandlerSeq">
+		<property name="fault_string" expression="//*[local-name()='faultstring']"/>
+		<property name="error_message" expression="//*[local-name()='DetailedMessage']"/>
+		
+	   <payloadFactory media-type="xml">
+		  <format>
+			  <error_detail xmlns="">
+				<fault_string>$1</fault_string>
+				<error_message>$2</error_message>
+			  </error_detail>
+		  </format>
+		  <args>
+			 <arg expression="fn:concat('Ebay ',fn:lower-case(get-property('fault_string')))"/>
+			 <arg expression="get-property('error_message')"/>
+		  </args>
+       </payloadFactory>
+		
+	   <property name="errorDetails" expression="//error_detail/*"/>
+	   
+	   <makefault version="soap11">
+			 <code xmlns:soap11Env="http://schemas.xmlsoap.org/soap/envelope/" value="soap11Env:VersionMismatch"></code>
+			 <reason xmlns:ns="http://org.apache.synapse/xsd" expression="get-property('errorDetails')"></reason>
+       </makefault>
+	   
+	   <!-- Remove custom header information in response -->
+	   <header name="X-EBAY-ESB-SITEID" scope="transport" action="remove" />
+	   <header name="X-EBAY-ESB-CALL-NAME" scope="transport" action="remove" />
+	   <header name="X-EBAY-ESB-GUID" scope="transport" action="remove" />
+	   <header name="X-EBAY-API-SERVER-NAME" scope="transport" action="remove" />
+	  
+       <property name="RESPONSE" value="true"></property>
+       <header xmlns:ns="http://org.apache.synapse/xsd" name="To" expression="get-property('ReplyTo')"></header>
+       <property name="messageType" value="application/json" scope="axis2"></property>
+	  
+       <respond></respond>
+</sequence>

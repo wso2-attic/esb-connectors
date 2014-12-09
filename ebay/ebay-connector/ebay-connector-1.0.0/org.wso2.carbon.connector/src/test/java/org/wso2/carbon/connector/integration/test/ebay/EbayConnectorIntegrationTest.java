@@ -54,6 +54,8 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     private String tradingApiEndpoint;
     
     private String shoppingApiEndpoint;
+	
+	private long timeOut;
     
     /**
      * Set up the environment.
@@ -74,6 +76,7 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
                         + connectorProperties.getProperty("routing");
         
         shoppingApiEndpoint = connectorProperties.getProperty("shoppingApiUrl");
+		timeOut=Long.parseLong(connectorProperties.getProperty("timeOut"));
         
         apiRequestHeadersMap.putAll(esbRequestHeadersMap);
     }
@@ -83,7 +86,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(priority = 1, groups = { "wso2.esb" }, description = "Ebay {setStoreCategories} integration test with mandatory parameters.")
     public void testSetStoreCategoriesWithMandatoryParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_setStoreCategories_mandatory.xml", null, "mediate",
                         SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
@@ -126,7 +131,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testSetStoreCategoriesWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "Ebay {setStoreCategories} integration test with optional parameters.")
     public void testSetStoreCategoriesWithOptionalParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_setStoreCategories_optional.xml", null, "mediate",
                         SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
@@ -160,7 +167,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testSetStoreCategoriesWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Ebay {setStoreCategories} integration test negative case.")
     public void testSetStoreCategoriesNegativeCase() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         String apiFaultString = "apiFaultString";
         String apiErrorCode = "apiErrorCode";
         String esbFaultString = "esbFaultString";
@@ -192,7 +201,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testSetStoreCategoriesNegativeCase" }, groups = { "wso2.esb" }, description = "eBay {getStores} integration test with mandatory parameters.")
     public void testGetStoresWithMandatoryParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_getStores_mandatory.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);
@@ -230,7 +241,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testGetStoresWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "eBay {getStores} integration test with optional parameters.")
     public void testGetStoresWithOptionalParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_getStores_optional.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);
@@ -268,7 +281,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testGetStoresWithOptionalParameters" }, groups = { "wso2.esb" }, description = "eBay {getStores} integration test with negative case.")
     public void testGetStoresNegativeCase() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_getStores_negative.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);
@@ -304,7 +319,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     @Test(dependsOnMethods = {"testGetStoresNegativeCase", "testSetPromotionalSaleWithMandatoryParameters"}, 
     		groups = { "wso2.esb" }, description = "eBay {addItem} integration test with mandatory parameters.")
     public void testAddItemWithMandatoryParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         String uuid = buildItemUUID();
         
         parametersMap.put("uuid", uuid);
@@ -345,7 +362,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testAddItemWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "eBay {addItem} integration test with optional parameters.")
     public void testAddItemWithOptionalParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         String uuid = buildItemUUID();
         
         parametersMap.put("uuid", uuid);
@@ -393,7 +412,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testAddItemWithOptionalParameters" }, groups = { "wso2.esb" }, description = "eBay {addItem} integration test negative case.")
     public void testAddItemNegativeCase() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         String uuid = buildItemUUID() + "inv";
         
         parametersMap.put("uuid", uuid);
@@ -432,7 +453,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(groups = { "wso2.esb" }, description = "Ebay {setPromotionalSale} integration test with mandatory parameters.")
     public void testSetPromotionalSaleWithMandatoryParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         Date currentDate = new Date();
         Calendar cal = Calendar.getInstance();
         cal.setTime(currentDate);
@@ -481,7 +504,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testSetPromotionalSaleWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "Ebay {setPromotionalSale} integration test negative case.")
     public void testSetPromotionalSaleNegativeCase() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         String apiFaultString = "apiFaultString";
         String apiErrorCode = "apiErrorCode";
         String esbFaultString = "esbFaultString";
@@ -527,7 +552,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     @Test(dependsOnMethods = { "testSetPromotionalSaleNegativeCase","testAddItemWithMandatoryParameters" }, 
     		groups = { "wso2.esb" }, description = "Ebay {setPromotionalSaleListings} integration test with mandatory parameters.")
     public void testSetPromotionalSaleListingsWithMandatoryParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_setPromotionalSaleListings_mandatory.xml", parametersMap, "mediate",
                         SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
@@ -563,7 +590,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     @Test(dependsOnMethods = { "testSetPromotionalSaleListingsWithMandatoryParameters" }, 
     		groups = { "wso2.esb" }, description = "Ebay {setPromotionalSaleListings} integration test with optional parameters.")
     public void testSetPromotionalSaleListingsWithOptionalParameters() throws Exception {
-    	
+		
+		Thread.sleep(timeOut);
+		
     	String uuid = buildItemUUID();
     	
     	String addItemEndpoint = connectorProperties.getProperty("tradingApiUrl") + "?siteid=0&" + "appid="
@@ -626,7 +655,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testSetPromotionalSaleListingsWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Ebay {setPromotionalSaleListings} integration test negative case.")
     public void testSetPromotionalSaleListingsNegativeCase() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         String apiFaultString = "apiFaultString";
         String apiErrorCode = "apiErrorCode";
         String esbFaultString = "esbFaultString";
@@ -660,7 +691,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testSetPromotionalSaleListingsNegativeCase" }, groups = { "wso2.esb" }, description = "eBay {getAdFormatLeads} integration test with mandatory parameters.")
     public void testGetAdFormatLeadsWithMandatoryParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_getAdFormatLeads_mandatory.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);
@@ -691,7 +724,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testGetAdFormatLeadsWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "eBay {getAdFormatLeads} integration test with optional parameters.")
     public void testGetAdFormatLeadsWithOptionalParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_getAdFormatLeads_optional.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);
@@ -722,7 +757,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testGetAdFormatLeadsWithOptionalParameters" }, groups = { "wso2.esb" }, description = "eBay {getAdFormatLeads} integration test with negative case.")
     public void testGetAdFormatLeadsNegativeCase() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_getAdFormatLeads_negative.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);
@@ -757,7 +794,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testGetAdFormatLeadsNegativeCase" }, groups = { "wso2.esb" }, description = "eBay {getMyeBaySelling} integration test with optional parameters.")
     public void testGetMyeBaySellingWithOptionalParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_getMyeBaySelling_optional.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);
@@ -795,7 +834,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testGetMyeBaySellingWithOptionalParameters" }, groups = { "wso2.esb" }, description = "eBay {getMyeBaySelling} negative test case.")
     public void testGetMyeBaySellingNegativeCase() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         String apiFaultString = "apiFaultString";
         String apiErrorCode = "apiErrorCode";
         String esbFaultString = "esbFaultString";
@@ -827,7 +868,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods={"testAddItemWithMandatoryParameters"}, groups = { "wso2.esb" }, description = "eBay {getItem} integration test with mandatory parameters.")
     public void testGetItemWithMandatoryParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_getItem_mandatory.xml", parametersMap, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);
@@ -864,7 +907,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testAddItemWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "eBay {getItem} integration test with optional parameters.")
     public void testGetItemWithOptionalParameters() throws Exception {
-          
+		
+		Thread.sleep(timeOut);
+			
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_getItem_optional.xml", parametersMap, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);
@@ -903,7 +948,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     @Test(dependsOnMethods = { "testAddItemWithMandatoryParameters" }, groups = { "wso2.esb" }, 
     		description = "eBay {getItem} integration test with negative case.")
     public void testGetItemNegativeCase() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_getItem_negative.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);
@@ -938,7 +985,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testGetMyeBaySellingNegativeCase" }, groups = { "wso2.esb" }, description = "eBay {findProducts} integration test with mandatory parameters.")
     public void testFindProductsWithMandatoryParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         connectorProperties.setProperty("query", "apple");
         
         SOAPEnvelope esbSoapResponse =
@@ -971,7 +1020,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testFindProductsWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "eBay {findProducts} integration test with optional parameters.")
     public void testFindProductsWithOptionalParameters() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         connectorProperties.setProperty("productSort", "Title");
         connectorProperties.setProperty("availableItemOnly", "true");
         
@@ -1012,7 +1063,9 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(dependsOnMethods = { "testFindProductsWithOptionalParameters" }, groups = { "wso2.esb" }, description = "eBay {findProducts} integration test with negative case.")
     public void testFindProductsNegativeCase() throws Exception {
-    
+		
+		Thread.sleep(timeOut);
+		
         SOAPEnvelope esbSoapResponse =
                 sendSOAPRequest(proxyUrl, "esb_findProducts_negative.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);

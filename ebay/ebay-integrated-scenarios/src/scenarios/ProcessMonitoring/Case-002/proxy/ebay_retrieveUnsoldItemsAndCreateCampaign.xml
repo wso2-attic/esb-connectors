@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="ebay_retrieveUnsoldItemsAndCreateCampaign" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq"> 
+      	
+      	 <!--eBay Trading related properties-->
+         <property name="ebayApiUrl" expression="json-eval($.ebayApiUrl)"/>
+         <property name="ebayAppId" expression="json-eval($.ebayAppId)"/>
+         <property name="ebayVersion" expression="json-eval($.ebayVersion)"/>
+         <property name="ebayRouting" expression="json-eval($.ebayRouting)"/>
+         <property name="ebaySiteId" expression="json-eval($.ebaySiteId)"/>
+         <property name="ebayAuthToken" expression="json-eval($.ebayAuthToken)"/>
+         <property name="ebayMessageId" expression="json-eval($.ebayMessageId)"/>
+         <property name="ebayErrorLanguage" expression="json-eval($.ebayErrorLanguage)"/>
+         <property name="ebayWarningLevel" expression="json-eval($.ebayWarningLevel)"/>
+         <property name="ebayDetailLevel" expression="json-eval($.ebayDetailLevel)"/>
+         
+         <!--Campaign Monitor related properties-->
+         <property name="cmApiUrl" expression="json-eval($.cmApiUrl)"/>
+         <property name="cmAccessToken" expression="json-eval($.cmAccessToken)"/>
+         <property name="cmClientId" expression="json-eval($.cmClientId)"/>
+         <property name="cmName" expression="json-eval($.cmName)"/>
+         <property name="cmSubject" expression="json-eval($.cmSubject)"/>
+         <property name="cmFromName" expression="json-eval($.cmFromName)"/>
+         <property name="cmReplyTo" expression="json-eval($.cmReplyTo)"/>
+         <property name="cmFromEmail" expression="json-eval($.cmFromEmail)"/>
+         <property name="cmListIds" expression="json-eval($.cmListIds)"/>
+         <property name="cmSegmentIds" expression="json-eval($.cmSegmentIds)"/>
+         <property name="cmTemplateId" expression="json-eval($.cmTemplateId)"/>
+         <property name="responseString" value="" scope="operation"/>
+         
+         <payloadFactory media-type="xml">
+	         <format>
+					<ebl:ebayActiveList xmlns:ebl="urn:ebay:apis:eBLBaseComponents">
+						<ebl:values>
+							<ebl:Include>true</ebl:Include>
+						</ebl:values>
+					</ebl:ebayActiveList>
+			 </format>
+         </payloadFactory>
+         
+         <property name="ebayActiveList" expression="//ebl:ebayActiveList/*"  xmlns:ebl="urn:ebay:apis:eBLBaseComponents"/>
+         
+         <!--Call eBay getMyEbaySellig method to retrieve active  item list-->
+         <ebay.init-trading>
+            <apiUrl>{$ctx:ebayApiUrl}</apiUrl>
+            <appId>{$ctx:ebayAppId}</appId>
+            <routing>{$ctx:ebayRouting}</routing>
+            <authToken>{$ctx:ebayAuthToken}</authToken>
+            <siteId>{$ctx:ebaySiteId}</siteId>
+            <warningLevel>{$ctx:ebayWarningLevel}</warningLevel>
+            <messageId>{$ctx:ebayMessageId}</messageId>
+            <errorLanguage>{$ctx:ebayErrorLanguage}</errorLanguage>
+            <version>{$ctx:ebayVersion}</version>
+         </ebay.init-trading>
+         <ebay.getMyeBaySelling>
+            <activeList>{$ctx:ebayActiveList}</activeList>
+         </ebay.getMyeBaySelling>
+         
+         <property name="ack" expression="//ebl:Ack" xmlns:ebl="urn:ebay:apis:eBLBaseComponents"/>
+         <filter source="boolean(get-property('ack'))" regex="Failure">
+	         <then>
+		         <property name="messageType" value="application/json" scope="axis2"/>
+				 <property name="status" expression="get-property('ack')" />
+				 <property name="message" expression="json-eval($.Envelope.Body.)" />
+							
+				 <call-template target="responseHandlerTemplate">
+					 <with-param name="id" value="{$ctx:uri.var.id}" />
+					 <with-param name="status" value="{$ctx:status}" />
+					 <with-param name="message" value="{$ctx:message}" />
+				 </call-template>
+		         <loopback/>
+	         </then>
+         </filter>
+         
+         <property name="itemCount" expression="count(//ebl:ItemArray/ebl:Item)" xmlns:ebl="urn:ebay:apis:eBLBaseComponents"  scope="operation"/>
+         <property name="itemIndex" expression="0" scope="operation"/>
+         <property name="itemContent" value="" scope="operation"/>
+         <property name="proceed" value="false" scope="operation"/>
+         <property name="itemIds" value="" scope="operation"/>
+         
+         <!--FOR EACH ActiveItems : BEGIN-->
+         <iterate continueParent="true" id="items" expression="//ebl:ItemArray/ebl:Item" sequential="true" xmlns:ebl="urn:ebay:apis:eBLBaseComponents">
+            <target>
+               <sequence>
+               
+               	  <!--Extract ActiveItem Details from the Message.-->
+                  <property name="itemTitle" expression="//ebl:Item/ebl:Title/text()"/>
+                  <property name="itemUrl" expression="//ebl:Item/ebl:ListingDetails/ebl:ViewItemURL/text()"/>
+                  <property name="itemId" expression="//ebl:Item/ebl:ItemID/text()"/>
+                  
+                  <!--Call ebay.getItem to retrieve active item picture URL and item quantity sold.-->
+                  <ebay.init-trading>
+                     <apiUrl>{$ctx:ebayApiUrl}</apiUrl>
+                     <appId>{$ctx:ebayAppId}</appId>
+                     <routing>{$ctx:ebayRouting}</routing>
+                     <authToken>{$ctx:ebayAuthToken}</authToken>
+                     <siteId>{$ctx:ebaySiteId}</siteId>
+                     <warningLevel>{$ctx:ebayWarningLevel}</warningLevel>
+                     <messageId>{$ctx:ebayMessageId}</messageId>
+                     <errorLanguage>{$ctx:ebayErrorLanguage}</errorLanguage>
+                     <version>{$ctx:ebayVersion}</version>
+                  </ebay.init-trading>
+                  <ebay.getItem>
+                     <itemId>{$ctx:itemId}</itemId>
+                     <detailLevel>{$ctx:ebayDetailLevel}</detailLevel>
+                  </ebay.getItem>
+                  
+                  <!--Extract Item Picture URL and the item quantity sold amount from the Message.-->
+                  <property name="pictureUrl" expression="//ebl:Item/ebl:PictureDetails/ebl:ExternalPictureURL/text()"/>
+                  <property name="itemQuantitySold" expression="//ebl:Item/ebl:SellingStatus/ebl:QuantitySold/text()"/>
+				  <property name="listingType" expression="//ebl:Item/ebl:ListingType"/>
+                  
+                  <filter xpath="get-property('itemQuantitySold') = 0">
+	                  <then>
+						<filter xpath="get-property('listingType')!='LeadGeneration'">
+							<then>
+							  <property name="itemIds" expression="fn:concat(get-property('operation','itemIds'), get-property('itemId'), ',')" scope="operation"/>
+							  <payloadFactory media-type="json">
+								 <format>
+											{
+												"item":{
+													"Layout": "$1",
+													"Singlelines": [
+													  {
+														"Content": "$1",
+														"Href": "$2"
+													  }
+													],
+													"Multilines": [
+													  {
+														"Content": "$2"
+													  }
+													],
+													"Images": [
+													  {
+														"Content": "$3",
+														"Alt": "$1",
+														"Href": "$2"
+													  }
+													]
+												 }
+											 }
+								 </format>
+								 <args>
+									<arg evaluator="xml" expression="get-property('itemTitle')"/>
+									<arg evaluator="xml" expression="get-property('itemUrl')"/>
+									<arg evaluator="xml" expression="get-property('pictureUrl')"/>
+								 </args>
+							  </payloadFactory>
+							  
+							  <property name="item" expression="json-eval($.item)"/>
+							  <property name="itemContent" expression="fn:concat(get-property('operation','itemContent'), get-property('item'), ',')" scope="operation"/>
+							  <property name="proceed" expression="get-property('operation','proceed')" scope="operation"/>
+							</then>
+						</filter>
+					  </then>
+                  </filter>
+                  <property name="itemIndex" expression="get-property('operation','itemIndex') + 1" scope="operation"/>
+               </sequence>
+            </target>
+         </iterate>
+         <!--FOR EACH ActiveItems : END-->
+         
+         <filter xpath="get-property('operation','itemIndex' ) = get-property('operation','itemCount' ) and get-property('operation','itemIndex' ) >0">
+            <then>
+               <property name="itemContent" expression="fn:substring(get-property('operation','itemContent'),1,fn:string-length(get-property('operation','itemContent'))-1)" scope="operation"/>
+               <property name="itemIds" expression="fn:substring(get-property('operation','itemIds'),1,fn:string-length(get-property('operation','itemIds'))-1)" scope="operation"/>
+               <property name="id" expression="fn:concat('{item_ids:[',get-property('operation','itemIds'),']}')"/>
+               
+               <payloadFactory media-type="json">
+                  <format>
+							{
+								"templateContent": {
+									"Repeaters": [
+										{
+											"Items": [$1]
+										}
+									]
+								}
+							}
+				  </format>
+                  <args>
+                     <arg evaluator="xml" expression="get-property('operation','itemContent')"/>
+                  </args>
+               </payloadFactory>
+               
+               <property name="cmTemplateContent" expression="json-eval($.templateContent)"/>
+               
+               <filter source="boolean(get-property('operation','itemContent'))" regex="true">
+                  <then>
+                     
+					 <property name="messageType" value="application/json" scope="axis2"/>
+                     
+					 <filter source="boolean(get-property('cmAccessToken'))" regex="false">
+						 <then>           
+							<property name="status" value="Skipped" />
+							<property name="message" value="Please provide campaign monitor authentication token." />		
+						 </then>
+						 <else>
+							 <!-- Call template cm-createCampaignFromTemplate to create a campaign for the active items.-->
+							 <call-template target="ebay-publishItemDetailsOnSocialMedia">
+								(
+									<with-param name="cmApiUrl" value="{$ctx:cmApiUrl}"/> |
+									<with-param name="cmAccessToken" value="{$ctx:cmAccessToken}"/> |
+									<with-param name="cmClientId" value="{$ctx:cmClientId}"/> |
+									<with-param name="cmName" value="{$ctx:cmName}"/> |
+									<with-param name="cmSubject" value="{$ctx:cmSubject}"/> |
+									<with-param name="cmFromName" value="{$ctx:cmFromName}"/> |
+									<with-param name="cmFromEmail" value="{$ctx:cmFromEmail}"/> |
+									<with-param name="cmReplyTo" value="{$ctx:cmReplyTo}"/> |
+									<with-param name="cmListIds" value="{$ctx:cmListIds}"/> |
+									<with-param name="cmSegmentIds" value="{$ctx:cmSegmentIds}"/> |
+									<with-param name="cmTemplateId" value="{$ctx:cmTemplateId}"/> |
+									<with-param name="cmTemplateContent" value="{$ctx:cmTemplateContent}"/> |
+								) *
+							 </call-template>
+							 <call-template target="responseHandlerTemplate">
+								<with-param name="activity" value="campaignMonitor_createCampaign" />
+								<with-param name="id" value="{$ctx:idParam}" />
+								<with-param name="status" value="{$ctx:status}" />
+								<with-param name="message" value="{$ctx:message}" />
+							 </call-template>
+							 <loopback/>
+						 </else>
+					</filter>
+                  </then>
+                  <else>
+                     <property name="status" value="Skipped"/>
+                     <property name="message" value="There is no active item(s) to create a campaign."/>
+                  </else>
+               </filter>
+               <call-template target="responseHandlerTemplate">
+				  <with-param name="activity" value="campaignMonitor_createCampaignFromTemplate" />
+                  <with-param name="id" value="{$ctx:uri.var.id}"/>
+                  <with-param name="status" value="{$ctx:status}"/>
+                  <with-param name="message" value="{$ctx:message}"/>
+               </call-template>
+               <loopback/>
+            </then>
+         </filter>
+         
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2"/>
+         <payloadFactory media-type="json">
+            <format>
+				{
+					"Response":{
+						"process":"ebay_retrieveAndCreateItem",
+						"activityResponse":[$1]
+					}
+				}
+			</format>
+            <args>
+               <arg evaluator="xml"
+                    expression="get-property('operation', 'responseString')"/>
+            </args>
+         </payloadFactory>
+         <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>
+                                
