@@ -1,0 +1,84 @@
+<template name="createCampaign" xmlns="http://ws.apache.org/ns/synapse">
+
+  <parameter name="surveyId" description="Id of the survey."/>
+  <parameter name="type" description="Type of the campaign."/>
+  <parameter name="name" description="Name of the campaign."/>
+  <parameter name="language" description="Language of the campaign."/>
+  <parameter name="status" description="Status of the campaign."/>
+  <parameter name="slug" description="Slug for the campaign."/>
+  <parameter name="subType" description="Subtype for the campaign."/>
+  <parameter name="tokenVariables" description="Token variables for the campaign."/>
+  <sequence>
+
+    <property name="uri.var.surveyId" expression="$func:surveyId"/>
+    <property name="uri.var.type" expression="$func:type"/>
+    <property name="uri.var.name" expression="$func:name"/>
+    <property name="uri.var.language" expression="$func:language"/>
+    <property name="uri.var.status" expression="$func:status"/>
+    <property name="uri.var.slug" expression="$func:slug"/>
+    <property name="uri.var.subType" expression="$func:subType"/>
+    <property name="uri.var.tokenVariables" expression="$func:tokenVariables"/>
+    
+    <payloadFactory media-type="json">
+		<format>
+			{
+				"type" : "$1", 
+				"name" : "$2"
+			}
+		</format>
+		<args>
+			<arg expression="get-property('uri.var.type')" />
+			<arg expression="get-property('uri.var.name')" />
+		</args>
+	</payloadFactory>
+    
+    <script language="js">
+            <![CDATA[
+                var language = mc.getProperty('uri.var.language');
+                var status = mc.getProperty('uri.var.status');
+                var slug = mc.getProperty('uri.var.slug');
+                var subType = mc.getProperty('uri.var.subType');
+                var tokenVariables = mc.getProperty('uri.var.tokenVariables');
+                
+                payload = mc.getPayloadJSON();
+                
+                if (language != null && language!= ""){
+                	payload.language = language;
+                }
+                
+                if (status != null && status!= ""){
+                	payload.status = status;
+                }
+               
+                if (slug != null && slug!= ""){
+                	payload.slug = slug;
+                }
+                
+                if (subType != null && subType != ""){
+                	payload.subtype = subType;
+                }
+                
+                if (tokenVariables != null && tokenVariables != ""){
+                	payload.tokenvariables = tokenVariables;
+                }
+               
+               	mc.setPayloadJSON(payload);
+                
+          ]]>
+      </script>
+    
+    <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+    
+    <call>
+      <endpoint>
+        <http method="put" uri-template="{uri.var.apiUrl}/survey/{uri.var.surveyId}/surveycampaign{uri.var.authParam}" />
+      </endpoint>
+    </call>
+    
+    <!-- Remove custom Headers from the API Response -->
+	<header name="Vary" action="remove" scope="transport" />
+	<header name="Via" action="remove" scope="transport" />
+	<header name="X-Powered-By" action="remove" scope="transport" />
+    
+  </sequence>
+</template>

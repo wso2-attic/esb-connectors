@@ -1,0 +1,112 @@
+<template name="updateSurvey" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="surveyId" description="Id of the survey which needs to be updated." />
+	<parameter name="title" description="The survey title." />
+	<parameter name="status"
+		description="The survey status. (Launched, Closed, Deleted)." />
+	<parameter name="theme" description="The id of survey theme." />
+	<parameter name="team" description="The id of survey team." />
+	<parameter name="options" description="The internal title of the survey." />
+	<parameter name="blockBy"
+		description="The Duplicate protection type (IP, COOKIE, null)" />
+	<parameter name="copy"
+		description="Flag to create new survey using same setting. Default value is false." />
+	<parameter name="pollOptions"
+		description="The option values for survey polls as json array." />
+	<parameter name="pollType"
+		description="The poll type of survey poll (radio, image, ranking)." />
+	<sequence>
+
+		<property name="uri.var.surveyId" expression="$func:surveyId" />
+		<property name="uri.var.title" expression="$func:title" />
+		<property name="uri.var.status" expression="$func:status" />
+		<property name="uri.var.theme" expression="$func:theme" />
+		<property name="uri.var.team" expression="$func:team" />
+		<property name="uri.var.options" expression="$func:options" />
+		<property name="uri.var.blockBy" expression="$func:blockBy" />
+		<property name="uri.var.copy" expression="$func:copy" />
+		<property name="uri.var.pollOptions" expression="$func:pollOptions" />
+		<property name="uri.var.pollType" expression="$func:pollType" />
+
+
+		<script language="js">
+		  			<![CDATA[
+		  				
+		  		    var title = mc.getProperty("uri.var.title");
+		  		    var copy = mc.getProperty("uri.var.copy");
+	  				var theme = mc.getProperty("uri.var.theme");		  				
+	  				var status = mc.getProperty("uri.var.status");
+	  				var team = mc.getProperty("uri.var.team");
+	  				var options = mc.getProperty("uri.var.options");
+	  				var blockBy = mc.getProperty("uri.var.blockBy");
+	  				var pollOptions = ''+mc.getProperty("uri.var.pollOptions");
+	  				var pollType = mc.getProperty("uri.var.pollType");
+	  					  				
+	  				
+	  				var	payload = {};
+	  				
+	  				if (title != null && title != ""){
+	  					payload ["title"] = title;
+	  				}
+	  				if (copy != null && copy != ""){
+	  					payload ["copy"] = copy;
+	  				}
+	  				
+	  				if (status != null && status != ""){
+	  					payload ["status"] = status;
+	  				}
+	  				if (theme != null && theme != ""){
+	  					payload ["theme"] = theme;
+	  				}
+	  				if (team != null && team != ""){
+	  					payload ["team"] = team;
+	  				}
+	  				if (options != null && options != ""){
+	  					payload ["options[internal_title]"] = options;
+	  				}
+	  				if (blockBy != null && blockBy != ""){
+	  					payload ["blockby"] = blockBy;
+	  				}
+	  				
+	  				if (pollOptions != null && pollOptions != "" && pollOptions.charAt(0)=='[' && pollOptions.charAt(pollOptions.length-1)==']'){
+	  					
+	  					pollOptions = eval("("+pollOptions+")");
+	  					
+	  					var optionsParam = '';
+	  					for(var i=0; i < pollOptions.length; i++){
+								 
+								optionsParam += 'polloptions['+ i +']='+ pollOptions[i] + '&';
+						}
+						
+						if(optionsParam != ""){
+								optionsParam = optionsParam.substring(0, optionsParam.length-1);
+								payload ["polloptions"] = optionsParam;
+	  					}
+	  					
+	  					
+	  				}
+	  				if (pollType != null && pollType != ""){
+	  					payload ["polltype"] = pollType;
+	  				}
+	  				
+	  				
+	  				mc.setPayloadJSON(payload);
+					]]>
+		</script>
+		<property name="messageType" value="application/x-www-form-urlencoded"
+			scope="axis2" />
+		<property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2"
+			type="BOOLEAN" />
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/survey/{uri.var.surveyId}{uri.var.authParam}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom Headers from the API Response -->
+		<header name="Vary" action="remove" scope="transport" />
+		<header name="Via" action="remove" scope="transport" />
+		<header name="X-Powered-By" action="remove" scope="transport" />
+	</sequence>
+</template>
