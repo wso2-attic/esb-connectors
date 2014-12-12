@@ -33,7 +33,7 @@ Steps to follow in setting integration test.
 			
 		ii) Once it is completed create a new survey and click on the test tab in the menu bar.Create at least 10 test responses by clicking 'Generate Test Responses'.
 		
-		ii) Create one or more contact lists and add more than one contacts for each contact list.
+		iii) Create one or more contact lists and add more than one contacts for each contact list.
 		
 
  5. Update the SurveyGizmo properties file at location "{surveygizmo_connector_Home}/surveygizmo-connector/surveygizmo-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
