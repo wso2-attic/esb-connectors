@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="getCourse" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="accountId" description="ID of the Canvas admin account to which the course belongs to."/>
+    <parameter name="courseId" description="ID of the course whose users should be listed."/>
+    <parameter name="include" description="Include optional details of the course that is being retrieved."/>
+    <sequence>
+        <property name="uri.var.accountId" expression="$func:accountId"/>
+        <property name="uri.var.courseId" expression="$func:courseId"/>
+        <property name="uri.var.include" expression="$func:include"/>
+
+        <filter source="boolean(get-property('uri.var.accountId'))" regex="true">
+            <then>
+                <property name="uri.var.account" expression="fn:concat('/accounts/', get-property('uri.var.accountId'))"/>
+            </then>
+            <else>
+                <property name="uri.var.account" value=""/>
+            </else>
+        </filter>
+
+        <script language="js">
+            <![CDATA[
+                var include = mc.getProperty('uri.var.include');
+                
+                var urlQuery = '';
+                
+                if (include != null && include.trim() != ""){
+					// If mulitple items are sent.
+					if(include.indexOf(',') != -1){
+						var includeItems = include.split(',');
+						for(var i=0; i<includeItems.length; i++){
+							includeItems[i] = includeItems[i].trim();
+							if(includeItems[i] != ""){
+								urlQuery += 'include[]=' + includeItems[i] + '&';
+							}
+						}
+					} else {
+						urlQuery += 'include[]=' + include.trim() + '&';
+					}
+                }
+                
+                // Prefix the urlQuery with '?' and remove the trailing '&'
+                if (urlQuery != "") {
+                    urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+					mc.setProperty('uri.var.urlQuery', urlQuery);    
+                }   
+                
+            ]]>
+        </script>
+
+        <call>
+            <endpoint>
+                <http method="get" uri-template="{uri.var.apiUrl}{uri.var.account}/courses/{uri.var.courseId}{uri.var.urlQuery}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="ETag" action="remove" scope="transport"/>
+        <header name="P3P" action="remove" scope="transport"/>
+        <header name="X-Canvas-Meta" action="remove" scope="transport"/>
+        <header name="X-Canvas-User-Id" action="remove" scope="transport"/>
+        <header name="X-Frame-Options" action="remove" scope="transport"/>
+        <header name="X-Rack-Cache" action="remove" scope="transport"/>
+        <header name="X-Request-Context-Id" action="remove" scope="transport"/>
+        <header name="X-Runtime" action="remove" scope="transport"/>
+        <header name="X-Session-Id" action="remove" scope="transport"/>
+        <header name="X-UA-Compatible" action="remove" scope="transport"/>
+        <header name="Via" action="remove" scope="transport"/>
+        <header name="WWW-Authenticate" action="remove" scope="transport"/>
+
+    </sequence>
+</template>

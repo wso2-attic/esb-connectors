@@ -1,0 +1,78 @@
+Product: Integration tests for WSO2 ESB Canvas connector
+
+Pre-requisites:
+
+ - Maven 3.x
+ - Java 1.6 or above
+ - The org.wso2.esb.integration.integration-base project is required. The test suite has been configured to download this project automatically. If the automatic download fails, download the following project and compile it using the mvn clean install command to update your local repository:
+   https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
+
+Tested Platform: 
+
+ - Microsoft WINDOWS V-7
+ - UBUNTU 13.04
+ - WSO2 ESB 4.8.1
+
+Note:
+	This test suite can be executed based on two scenarios.
+		1. Use the given test account and parameters at the end of the file.
+		2. Set up a new Canvas account and follow all the instruction given below in step 5.
+
+Steps to follow in setting integration test.
+
+ 1. Download ESB 4.8.1 from official website.
+ 
+ 2. Deploy relevant patches, if applicable.
+ 
+ 3. The ESB should be configured as below.
+	i) Please make sure that the below mentioned Axis configurations are enabled (/repository/conf/axis2/axis2.xml).
+		
+		Message Formatter :
+		<messageFormatter contentType="multipart/form-data" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+						
+		Message Builder :
+		<messageBuilder contentType="multipart/form-data" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+	
+	ii) Please make sure that the below mentioned Axis configurations are disabled (if already enabled).(/repository/conf/axis2/axis2.xml).
+	
+		Message Formatter :
+		<messageFormatter contentType="multipart/form-data" class="org.apache.axis2.transport.http.MultipartFormDataFormatter"/>
+						
+		Message Builder :
+		<messageBuilder contentType="multipart/form-data" class="org.apache.axis2.builder.MultipartFormDataBuilder"/>
+
+ 4. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Canvas_Connector_Home}/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector/repository/".
+
+ 5. Prerequisites for Canvas Connector Integration Testing
+
+		i) 	Create a Canvas account using the URL "https://canvas.instructure.com/register_from_website".
+			Note: Sign-up as a Teacher account (Select "I'm a Teacher" option) when the creating a new Canvas account.
+			
+		ii) After the  account creation verified, create a new course by selecting "Start a New Course" option on canvas main dashboard (Make sure to check "Make course publicly visible" option during the course creation).
+		
+		iii) Retrieve a new access token from canvas dashboard "settings" tab, by selecting "New Access Token" option. 
+
+ 6. Update the Canvas properties file at location "{Canvas_Connector_Home}/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+	
+	i)		apiUrl					-	Use the API URL as "https://canvas.instructure.com".
+	ii)		accessToken				-	Place the created access token in step 5 [iii].
+	iii)	calenderEventStartDate	-	Date for create calendar event start (The date must be a future date and date format should be as '2014-10-21').
+	iv)		eventTitle				-	Title for create event.
+	v)		eventDescription		-	Description for the event creation.
+	vi)		attachmentFileName		-	Attached file name for the create entry optional case (e.g.:github.txt).This file should be at location "{Canvas_Connector_Home}\canvas-connector\canvas-connector-1.0.0\org.wso2.carbon.connector\src\test\resources\artifacts\ESB\config\resources\canvas"
+	vii)	entryMessage			-	Message text for create entry optional case. 
+	viii)	title					-	Title for create discussion topic.
+	ix)		message					-	Message text for create discussion topic optional case.
+	x)		entryMessage			-	Message text for update entry.
+	xi)		courseName				-	Course name for create course optional case (e.g.: Java Messaging Services).
+	xii)	courseCode				-	Short course code for create course optional case (e.g.:JMS).
+	
+	
+ 7. Navigate to "{Canvas_Connector_Home}/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+      $ mvn clean install
+
+
+ NOTE : Following are the credentials for the Canvas account used for integration tests.
+ 
+	    email=wso2connector.abdera@gmail.com
+	    password=1qaz2wsx@
