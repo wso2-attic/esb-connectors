@@ -42,20 +42,21 @@ Steps to follow in setting integration test.
  
  5. Update the eBay properties file at location "{Ebay_Connector_Home}/ebay-connector/ebay-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
-	i)		authToken 					- Generate an ebay auth token with developer DevID, AppID and CertID by using the URL "https://developer.ebay.com/DevZone/account/tokens/default.aspx".	
-	ii) 	siteId						- Place the site Id that used to create a ebay store (step 4[vi]). 
-	iii)	version						- Place the eBay API Compatibility level version (step 4[vi]). 
-	iv)		appId						- Place the eBay developer account application Id (step 4[ii]).
-	v)		tradingApiUrl				- Place the eBay trading api URL.
-	vi)		shoppingApiUrl				- Place the eBay shopping api URL.
-	vii)	routing						- Specify the routing as default.
-	viii)	nameMandatory				- Name for the create store catagory with mandatory parameters.
-	ix)		nameOptional				- Name for the create store catagory with optional parameters.
-	x)		addItemTitle				- Title for the create item with mandatory parameters.
-	xi)		addItemTitleOptional 		- Title for the create item with optional parameters.
-	xii)	paypalEmailAddress			- eBay sandbox account linked paypal sandbox test account email address (step 4[v]). 
-	xiii)	userId						- eBay sanbox account Id (e.g.: testuser_username).
-	xiv)	addItemTitleForSalesListing - Title for secondary item in Promotional Sales Listings.
+	i)		authToken 						- Generate an ebay auth token with developer DevID, AppID and CertID by using the URL "https://developer.ebay.com/DevZone/account/tokens/default.aspx".	
+	ii) 	siteId							- Place the site Id that used to create a ebay store (step 4[vi]). 
+	iii)	version							- Place the eBay API Compatibility level version (step 4[vi]). 
+	iv)		appId							- Place the eBay developer account application Id (step 4[ii]).
+	v)		tradingApiUrl					- Place the eBay trading api URL.
+	vi)		shoppingApiUrl					- Place the eBay shopping api URL.
+	vii)	routing							- Specify the routing as default.
+	viii)	nameMandatory					- Name for the create store catagory with mandatory parameters.
+	ix)		nameOptional					- Name for the create store catagory with optional parameters.
+	x)		addItemTitle					- Title for the create item with mandatory parameters.
+	xi)		addItemTitleOptional 			- Title for the create item with optional parameters.
+	xii)	addItemTitlePromotionalListing 	- Title for the create item to list as promotional sale listing with optional parameters.
+	xiii)	paypalEmailAddress				- eBay sandbox account linked paypal sandbox test account email address (step 4[v]). 
+	xiv)	userId							- eBay sanbox account Id (e.g.: testuser_username).
+	xv)		addItemTitleForSalesListing 	- Title for secondary item in Promotional Sales Listings.
 
  6. Navigate to "{Ebay_Connector_Home}/ebay-connector/ebay-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install

@@ -582,6 +582,7 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
         String apiItemId = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
         
         Assert.assertEquals(apiItemId, connectorProperties.getProperty("itemIdMandatory"));
+
     }
     
     /**
@@ -595,33 +596,36 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
 		
     	String uuid = buildItemUUID();
     	
-    	String addItemEndpoint = connectorProperties.getProperty("tradingApiUrl") + "?siteid=0&" + "appid="
-                + connectorProperties.getProperty("appId") + "&" + "routing="
-                + connectorProperties.getProperty("routing");
-        
-        parametersMap.put("uuidSecondary", uuid);
-    	//creating second item for listing
-    	SOAPEnvelope addItemResponse =
-                sendSOAPRequest(addItemEndpoint + "&callname=AddItem",
-                        "api_setPromotionalSaleListings_optional_addItem.xml", parametersMap, "AddItem",
-                        SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
     	
-    	OMElement addItemElement = AXIOMUtil.stringToOM(addItemResponse.getBody().toString());
+    	parametersMap.put("uuidOptional", uuid);
     	
-    	String xPathExp = "string(//ebl:ItemID/text())";
-        
-        String itemID = (String) xPathEvaluate(addItemElement, xPathExp, nameSpaceMap);
-        
-        connectorProperties.setProperty("itemIdSecondary", itemID);
-    	
-        SOAPEnvelope esbSoapResponse =
-                sendSOAPRequest(proxyUrl, "esb_setPromotionalSaleListings_optional.xml", parametersMap, "mediate",
-                        SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+    	//Create item to set as promotional item.
+    	SOAPEnvelope esbSoapResponse =
+                sendSOAPRequest(proxyUrl, "esb_addItem_promotional.xml", parametersMap, "mediate", SOAP_HEADER_XPATH_EXP,
+                        SOAP_BODY_XPATH_EXP);
         
         OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
         
-        xPathExp = "string(//ebl:SetPromotionalSaleListingsResponse/ebl:Ack/text())";
+        String xPathExp = "string(//ebl:Ack/text())";
         String esbSuccess = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
+        
+        Assert.assertEquals(esbSuccess, "Success");
+        
+        xPathExp = "string(//ebl:ItemID/text())";
+        
+        String itemID = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
+        
+        parametersMap.put("itemID", itemID);
+        connectorProperties.setProperty("itemIdSecondary", itemID);
+    	
+         esbSoapResponse =
+                sendSOAPRequest(proxyUrl, "esb_setPromotionalSaleListings_optional.xml", parametersMap, "mediate",
+                        SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
+        
+         esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
+        
+        xPathExp = "string(//ebl:SetPromotionalSaleListingsResponse/ebl:Ack/text())";
+         esbSuccess = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
         
         Assert.assertEquals(esbSuccess, "Success");
         
@@ -638,8 +642,6 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
         OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse.getBody().toString());
         xPathExp = "count(//ebl:PromotionalSaleDetails/ebl:PromotionalSale/ebl:PromotionalSaleItemIDArray/ebl:ItemID)";
         double apiItemIdCount = (Double) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
-        
-        log.info("apiItemIdCount==============" + apiItemIdCount);
         
         boolean isAllAuctionItems = false;
         
