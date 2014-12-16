@@ -197,15 +197,15 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     }
     
     /**
-     * Positive test case for getStores method with mandatory parameters.
+     * Positive test case for getStore method with mandatory parameters.
      */
-    @Test(dependsOnMethods = { "testSetStoreCategoriesNegativeCase" }, groups = { "wso2.esb" }, description = "eBay {getStores} integration test with mandatory parameters.")
-    public void testGetStoresWithMandatoryParameters() throws Exception {
+    @Test(dependsOnMethods = { "testSetStoreCategoriesNegativeCase" }, groups = { "wso2.esb" }, description = "eBay {getStore} integration test with mandatory parameters.")
+    public void testGetStoreWithMandatoryParameters() throws Exception {
 		
 		Thread.sleep(timeOut);
 		
         SOAPEnvelope esbSoapResponse =
-                sendSOAPRequest(proxyUrl, "esb_getStores_mandatory.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
+                sendSOAPRequest(proxyUrl, "esb_getStore_mandatory.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);
         
         OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
@@ -219,7 +219,7 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
         String esbStoreName = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
         
         SOAPEnvelope apiSoapResponse =
-                sendSOAPRequest(tradingApiEndpoint + "&callname=GetStore", "api_getStores_mandatory.xml", null,
+                sendSOAPRequest(tradingApiEndpoint + "&callname=GetStore", "api_getStore_mandatory.xml", null,
                         "GetStore", SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         
         OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse.getBody().toString());
@@ -237,15 +237,15 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     }
     
     /**
-     * Positive test case for getStores method with optional parameters.
+     * Positive test case for getStore method with optional parameters.
      */
-    @Test(dependsOnMethods = { "testGetStoresWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "eBay {getStores} integration test with optional parameters.")
-    public void testGetStoresWithOptionalParameters() throws Exception {
+    @Test(dependsOnMethods = { "testGetStoreWithMandatoryParameters" }, groups = { "wso2.esb" }, description = "eBay {getStore} integration test with optional parameters.")
+    public void testGetStoreWithOptionalParameters() throws Exception {
 		
 		Thread.sleep(timeOut);
 		
         SOAPEnvelope esbSoapResponse =
-                sendSOAPRequest(proxyUrl, "esb_getStores_optional.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
+                sendSOAPRequest(proxyUrl, "esb_getStore_optional.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);
         
         OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
@@ -259,7 +259,7 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
         String esbStoreName = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
         
         SOAPEnvelope apiSoapResponse =
-                sendSOAPRequest(tradingApiEndpoint + "&callname=GetStore", "api_getStores_optional.xml", null,
+                sendSOAPRequest(tradingApiEndpoint + "&callname=GetStore", "api_getStore_optional.xml", null,
                         "GetStore", SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         
         OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse.getBody().toString());
@@ -277,15 +277,15 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     }
     
     /**
-     * Negative test case for getStores method.
+     * Negative test case for getStore method.
      */
-    @Test(dependsOnMethods = { "testGetStoresWithOptionalParameters" }, groups = { "wso2.esb" }, description = "eBay {getStores} integration test with negative case.")
-    public void testGetStoresNegativeCase() throws Exception {
+    @Test(dependsOnMethods = { "testGetStoreWithOptionalParameters" }, groups = { "wso2.esb" }, description = "eBay {getStore} integration test with negative case.")
+    public void testGetStoreNegativeCase() throws Exception {
 		
 		Thread.sleep(timeOut);
 		
         SOAPEnvelope esbSoapResponse =
-                sendSOAPRequest(proxyUrl, "esb_getStores_negative.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
+                sendSOAPRequest(proxyUrl, "esb_getStore_negative.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
                         SOAP_BODY_XPATH_EXP);
         
         OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
@@ -297,7 +297,7 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
         String esbShortMessage = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
         
         SOAPEnvelope apiSoapResponse =
-                sendSOAPRequest(tradingApiEndpoint + "&callname=GetStore", "api_getStores_negative.xml", null,
+                sendSOAPRequest(tradingApiEndpoint + "&callname=GetStore", "api_getStore_negative.xml", null,
                         "GetStore", SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         
         OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse.getBody().toString());
@@ -316,7 +316,7 @@ public class EbayConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     /**
      * Positive test case for addItem method with mandatory parameters.
      */
-    @Test(dependsOnMethods = {"testGetStoresNegativeCase", "testSetPromotionalSaleWithMandatoryParameters"}, 
+    @Test(dependsOnMethods = {"testGetStoreNegativeCase", "testSetPromotionalSaleWithMandatoryParameters"}, 
     		groups = { "wso2.esb" }, description = "eBay {addItem} integration test with mandatory parameters.")
     public void testAddItemWithMandatoryParameters() throws Exception {
 		
