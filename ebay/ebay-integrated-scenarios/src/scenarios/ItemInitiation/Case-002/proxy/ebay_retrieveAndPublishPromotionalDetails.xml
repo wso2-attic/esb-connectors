@@ -1,0 +1,544 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="ebay_retrieveAndPublishPromotionalDetails"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+    <target>
+      <inSequence onError="faultHandlerSeq">
+		
+        <!-- ebay set promotional sale related properties -->
+		<property name="ebayApiUrl" expression="json-eval($.ebayApiUrl)"/>
+        <property name="ebayAppId" expression="json-eval($.ebayAppId)"/>
+        <property name="ebayVersion" expression="json-eval($.ebayVersion)"/>
+        <property name="ebayRouting" expression="json-eval($.ebayRouting)"/>
+        <property name="ebaySiteId" expression="json-eval($.ebaySiteId)"/>
+        <property name="ebayAuthToken" expression="json-eval($.ebayAuthToken)"/>
+        <property name="ebayMessageId" expression="json-eval($.ebayMessageId)"/>
+        <property name="ebayErrorLanguage" expression="json-eval($.ebayErrorLanguage)"/>
+        <property name="ebayWarningLevel" expression="json-eval($.ebayWarningLevel)"/>
+        <property name="ebayAction" expression="json-eval($.ebayAction)"/>
+
+        <!-- ebay set promotional sale second level properties -->
+        <property name="ebayPromotionalSaleName" expression="json-eval($.ebayPromotionalSaleName)"/>
+        <property name="ebayDiscountType" expression="json-eval($.ebayDiscountType)"/>
+        <property name="ebayDiscountValue" expression="json-eval($.ebayDiscountValue)"/>
+        <property name="ebayPromotionalSaleStartTime" expression="json-eval($.ebayPromotionalSaleStartTime)"/>
+        <property name="ebayPromotionalSaleEndTime" expression="json-eval($.ebayPromotionalSaleEndTime)"/>
+        <property name="ebayPromotionalSaleType" expression="json-eval($.ebayPromotionalSaleType)"/>
+
+        <!-- ebay set promotional sale listings related properties -->
+        <property name="ebayAllAuctionItems" expression="json-eval($.ebayAllAuctionItems)"/>
+        <property name="ebayAllFixedPriceItems" expression="json-eval($.ebayAllFixedPriceItems)"/>
+        <property name="ebayAllStoreInventoryItems" expression="json-eval($.ebayAllStoreInventoryItems)"/>
+        <property name="ebayCategoryID" expression="json-eval($.ebayCategoryID)"/>
+        <property name="ebayStoreCategoryID" expression="json-eval($.ebayStoreCategoryID)"/>
+        <property name="ebayPromotionalSaleItemIDArray" expression="json-eval($.ebayPromotionalSaleItemIDArray[*])"/>
+
+        <!-- ebay getItem related properties -->
+        <property name="ebayDetailLevel" expression="json-eval($.ebayDetailLevel)"/>
+        <property name="ebayIncludeItemCompatibilityList" expression="json-eval($.ebayIncludeItemCompatibilityList)"/>
+        <property name="ebayIncludeItemSpecifics" expression="json-eval($.ebayIncludeItemSpecifics)"/>
+        <property name="ebayIncludeTaxTable" expression="json-eval($.ebayIncludeTaxTable)"/>
+        <property name="ebayIncludeWatchCount" expression="json-eval($.ebayIncludeWatchCount)"/>
+        <property name="ebaySku" expression="json-eval($.ebaySku)"/>
+        <property name="ebayTransactionID" expression="json-eval($.ebayTransactionID)"/>
+        <property name="ebayVariationSKU" expression="json-eval($.ebayVariationSKU)"/>
+        <property name="ebayVariationSpecifics" expression="json-eval($.ebayVariationSpecifics)"/>
+
+        <!-- Campaign Monitor createCampaignFromTemplate related properties -->
+        <property name="cmAccessToken" expression="json-eval($.cmAccessToken)"/>
+        <property name="cmApiUrl" expression="json-eval($.cmApiUrl)"/>
+        <property name="cmTemplateId" expression="json-eval($.cmTemplateId)"/>
+        <property name="cmSegmentIds" expression="json-eval($.cmSegmentIds)"/>
+        <property name="cmReplyTo" expression="json-eval($.cmReplyTo)"/>
+        <property name="cmSubject" expression="json-eval($.cmSubject)"/>
+        <property name="cmName" expression="json-eval($.cmName)"/>
+        <property name="cmFromEmail" expression="json-eval($.cmFromEmail)"/>
+        <property name="cmListIds" expression="json-eval($.cmListIds)"/>
+        <property name="cmFromName" expression="json-eval($.cmFromName)"/>
+        <property name="cmClientId" expression="json-eval($.cmClientId)"/>
+
+        <!-- Facebook createPost method related properties -->
+        <property name="fbApiUrl" expression="json-eval($.fbApiUrl)"/>
+        <property name="fbAccessToken" expression="json-eval($.fbAccessToken)"/>
+        <property name="fbConnection" expression="json-eval($.fbConnection)"/>
+        <property name="fbLink" expression="json-eval($.fbLink)"/>
+        <property name="fbPicture" expression="json-eval($.fbPicture)"/>
+        <property name="fbName" expression="json-eval($.fbName)"/>
+        <property name="fbCaption" expression="json-eval($.fbCaption)"/>
+        <property name="fbDescription" expression="json-eval($.fbDescription)"/>
+        <property name="fbActions" expression="json-eval($.fbActions)"/>
+        <property name="fbPlace" expression="json-eval($.fbPlace)"/>
+        <property name="fbTags" expression="json-eval($.fbTags)"/>
+        <property name="fbPrivacy" expression="json-eval($.fbPrivacy)"/>
+        <property name="fbObjectAttachment" expression="json-eval($.fbObjectAttachment)"/>
+
+		<property name="responseString" value="" scope="operation"/>
+		<property name="idParam" value="" />
+	
+		<property name="FORCE_ERROR_ON_SOAP_FAULT" value="true"/>
+		
+		<!-- Check whether promotional sale item ids are provided from the request -->
+		<filter source="boolean(get-property('ebayPromotionalSaleItemIDArray'))" regex="false">
+			<then>
+				<property name="status" value="Error" />
+				<property name="message" value="Please provide at least one promotional sale item ID." />
+				
+				<!-- Calling the response handler template to output custom error message when promotional items not provided from request -->
+				<call-template target="responseHandlerTemplate">
+					<with-param name="activity" value="ebay_createPromotionalSale" />
+					<with-param name="id" value="{$ctx:idParam}" />
+					<with-param name="status" value="{$ctx:status}" />
+					<with-param name="message" value="{$ctx:message}" />
+				</call-template>
+				
+				<loopback/>
+			</then>
+			<else>
+				<!-- Script mediator to construct the itemID xml array which embedded inside values tag -->
+				<script language="js">
+					<![CDATA[
+						 
+						var promotionalSaleItemIDs = mc.getProperty("ebayPromotionalSaleItemIDArray");
+						
+						// Check whether the promotionalSaleItemIDs is a JSON array or not before evaluating the promotionalSaleItemIDArray JSON array.
+						if(promotionalSaleItemIDs.charCodeAt(0) != '91' && promotionalSaleItemIDs.charCodeAt(promotionalSaleItemIDs.length-1) != '93'){
+							mc.setProperty("isItemArray", "false");
+						} else {
+							var itemIdArray = eval("(" + promotionalSaleItemIDs + ")");
+							var itemIdXmlArray = "<ebl:values xmlns:ebl='urn:ebay:apis:eBLBaseComponents'>";
+							var itemsLength = itemIdArray.length;
+
+							//Iterate each and every item IDs received from request.
+							for(var index = 0; index < itemsLength; index++){
+								if(itemIdArray[index] != ""){
+									var itemId = itemIdArray[index];
+									itemIdXmlArray += "<ebl:ItemID xmlns:ebl='urn:ebay:apis:eBLBaseComponents'>" + itemId + "</ebl:ItemID>";
+								}
+							}
+							 
+							mc.setProperty("itemCount", itemsLength);
+							itemIdXmlArray += "</ebl:values>";
+							 
+							//Setting the item ID xml array into a property.
+							mc.setProperty("ebayPromotionalSaleItemIDs", itemIdXmlArray);;
+						}   
+					]]>
+				</script>
+				
+				<!-- Check whether user has provided a valid json array of promotional sale item IDs -->
+				<filter source="get-property('isItemArray')" regex="false">
+					<then>
+						<property name="status" value="Error" />
+						<property name="message" value="Please provide promotional sale item IDs as a JSON array." />
+						
+						<!-- Calling the response handler template to output custom error message when promotional items not provided from request -->
+						<call-template target="responseHandlerTemplate">
+							<with-param name="activity" value="ebay_createPromotionalSale" />
+							<with-param name="id" value="{$ctx:idParam}" />
+							<with-param name="status" value="{$ctx:status}" />
+							<with-param name="message" value="{$ctx:message}" />
+						</call-template>
+						
+						<loopback/>
+					</then>
+				</filter>
+				
+				<!-- Check whether user provided json array of promotional sale item IDs has at least one item -->
+				<filter xpath="get-property('itemCount') = 0">
+					<then>
+						<property name="status" value="Error" />
+						<property name="message" value="Please provide at least one promotional sale item ID." />
+						
+						<!-- Calling the response handler template to output custom error message when promotional items not provided from request -->
+						<call-template target="responseHandlerTemplate">
+							<with-param name="activity" value="ebay_createPromotionalSale" />
+							<with-param name="id" value="{$ctx:idParam}" />
+							<with-param name="status" value="{$ctx:status}" />
+							<with-param name="message" value="{$ctx:message}" />
+						</call-template>
+						
+						<loopback/>
+					</then>
+					<else>
+						<property name="idParam" expression="fn:concat('{PromotionalSaleItemIDs:',get-property('ebayPromotionalSaleItemIDArray'),'}')" />
+						
+						<!-- Creating payload for promotionalSaleDetails using second level properties -->
+						<payloadFactory media-type="xml">
+							<format>
+								<ebl:promotionalSaleDetails xmlns:ebl="urn:ebay:apis:eBLBaseComponents">
+									<ebl:values>
+										<ebl:PromotionalSaleName>$1</ebl:PromotionalSaleName>
+										<ebl:DiscountType>$2</ebl:DiscountType>
+										<ebl:DiscountValue>$3</ebl:DiscountValue>
+										<ebl:PromotionalSaleStartTime>$4</ebl:PromotionalSaleStartTime>
+										<ebl:PromotionalSaleEndTime>$5</ebl:PromotionalSaleEndTime>
+										<ebl:PromotionalSaleType>$6</ebl:PromotionalSaleType>
+									</ebl:values>
+								</ebl:promotionalSaleDetails>
+							</format>
+							<args>
+							  <arg expression="get-property('ebayPromotionalSaleName')" />
+							  <arg expression="get-property('ebayDiscountType')" />
+							  <arg expression="get-property('ebayDiscountValue')" />
+							  <arg expression="get-property('ebayPromotionalSaleStartTime')" />
+							  <arg expression="get-property('ebayPromotionalSaleEndTime')" />
+							  <arg expression="get-property('ebayPromotionalSaleType')" />
+							</args>
+						</payloadFactory>
+						
+						<!-- Get promotional sale details from the current payload -->
+						<property name="ebayPromotionalSaleDetails" xmlns:ebl="urn:ebay:apis:eBLBaseComponents" expression="//ebl:promotionalSaleDetails/*" />
+						
+						<!-- Setting up a ebay promotional sale without promotional items -->
+						<ebay.init-trading>
+							<apiUrl>{$ctx:ebayApiUrl}</apiUrl>
+							<appId>{$ctx:ebayAppId}</appId>
+							<version>{$ctx:ebayVersion}</version>
+							<routing>{$ctx:ebayRouting}</routing>
+							<siteId>{$ctx:ebaySiteId}</siteId>
+							<authToken>{$ctx:ebayAuthToken}</authToken>
+							<messageId>{$ctx:ebayMessageId}</messageId>
+							<errorLanguage>{$ctx:ebayErrorLanguage}</errorLanguage>
+							<warningLevel>{$ctx:ebayWarningLevel}</warningLevel>
+						</ebay.init-trading>
+						<ebay.setPromotionalSale>
+							<action>{$ctx:ebayAction}</action>
+							<promotionalSaleDetails>{$ctx:ebayPromotionalSaleDetails}</promotionalSaleDetails>
+						</ebay.setPromotionalSale>
+
+						<!-- Retrieve the acknowledgement code that indicates the response status in setPromotionalSale -->
+						<property name="setPromotionalSaleAck" xmlns:ebl="urn:ebay:apis:eBLBaseComponents" expression="//ebl:Ack/text()"/>
+						
+						<!-- Check whether promotional sale creation is unsuccessful before proceed with other API calls -->   
+						<filter xpath="((get-property('setPromotionalSaleAck') = 'CustomCode') or (get-property('setPromotionalSaleAck') = 'Failure'))">
+							<then>
+								<property name="messageType" value="application/json" scope="axis2"/>
+								<property name="status" expression="get-property('setPromotionalSaleAck')" />
+								<property name="message" expression="json-eval($.)" />
+								
+								<!-- Calling the response handler template to output unsuccessful message of promotional sale creation -->
+								<call-template target="responseHandlerTemplate">
+									<with-param name="activity" value="ebay_createPromotionalSale" />
+									<with-param name="id" value="{$ctx:idParam}" />
+									<with-param name="status" value="{$ctx:status}" />
+									<with-param name="message" value="{$ctx:message}" />
+								</call-template>
+								
+								<loopback/>
+							</then>
+							<else>
+								<!-- Retrieve the ID from a successfully created promotional sale -->
+								<property name="ebayPromotionalSaleId" xmlns:ebl="urn:ebay:apis:eBLBaseComponents" expression="//ebl:PromotionalSaleID/text()" />
+							
+								<!-- Get promotional sale item IDs xml array from the ebayPromotionalSaleItemIDs property -->
+								<property name="ebayPromotionalSaleItemIDs" expression="get-property('ebayPromotionalSaleItemIDs')" />
+								
+								<!-- Adding item listings into created promotional sale in ebay -->
+								<ebay.init-trading>
+									<apiUrl>{$ctx:ebayApiUrl}</apiUrl>
+									<appId>{$ctx:ebayAppId}</appId>
+									<version>{$ctx:ebayVersion}</version>
+									<routing>{$ctx:ebayRouting}</routing>
+									<siteId>{$ctx:ebaySiteId}</siteId>
+									<authToken>{$ctx:ebayAuthToken}</authToken>
+									<messageId>{$ctx:ebayMessageId}</messageId>
+									<errorLanguage>{$ctx:ebayErrorLanguage}</errorLanguage>
+									<warningLevel>{$ctx:ebayWarningLevel}</warningLevel>
+								</ebay.init-trading>
+								<ebay.setPromotionalSaleListings>
+									<action>{$ctx:ebayAction}</action>
+									<allAuctionItems>{$ctx:ebayAllAuctionItems}</allAuctionItems>
+									<allFixedPriceItems>{$ctx:ebayAllFixedPriceItems}</allFixedPriceItems>
+									<allStoreInventoryItems>{$ctx:ebayAllStoreInventoryItems}</allStoreInventoryItems>
+									<categoryID>{$ctx:ebayCategoryID}</categoryID>
+									<promotionalSaleID>{$ctx:ebayPromotionalSaleId}</promotionalSaleID>
+									<promotionalSaleItemIDArray>{$ctx:ebayPromotionalSaleItemIDs}</promotionalSaleItemIDArray>
+									<storeCategoryID>{$ctx:ebayStoreCategoryID}</storeCategoryID>
+								</ebay.setPromotionalSaleListings>
+								
+								<!-- Retrieve the acknowledgement code that indicates the response status of setPromotionalSaleListings in ebay -->
+								<property name="setPromotionalSaleListingsAck" xmlns:ebl="urn:ebay:apis:eBLBaseComponents" expression="//ebl:Ack/text()"/>
+								
+								<!-- Check whether the creation of promotional sale listings unsuccessful before proceed with other API calls -->   
+								<filter xpath="((get-property('setPromotionalSaleListingsAck') = 'CustomCode') or (get-property('setPromotionalSaleListingsAck') = 'Failure'))" >
+									<then>
+										<property name="messageType" value="application/json" scope="axis2"/>
+										<property name="status" expression="get-property('setPromotionalSaleListingsAck')" />
+										<property name="message" expression="json-eval($.)" />
+										
+										<!-- Calling the response handler template to output unsuccessful message of promotional sale listings creation -->
+										<call-template target="responseHandlerTemplate">
+											<with-param name="activity" value="ebay_createPromotionalSale" />
+											<with-param name="id" value="{$ctx:idParam}" />
+											<with-param name="status" value="{$ctx:status}" />
+											<with-param name="message" value="{$ctx:message}" />
+										</call-template>
+										
+										<loopback/>
+									</then>
+									<else>
+										<!-- Built common message when both operations of setPromotionalSale and setPromotionalSaleListings successfully processed -->
+										<property name="status" value="Success" />
+										<property name="message" expression="fn:concat('Promotional sale items were successfully added to promotional sale with id ',get-property('ebayPromotionalSaleId'),'.')" />
+										
+										<!-- Calling the response handler template to output successful message of promotional sale listings creation -->
+										<call-template target="responseHandlerTemplate">
+											<with-param name="activity" value="ebay_createPromotionalSale" />
+											<with-param name="id" value="{$ctx:idParam}" />
+											<with-param name="status" value="{$ctx:status}" />
+											<with-param name="message" value="{$ctx:message}" />
+										</call-template>
+										
+										<!-- Initialize whole items payload with a empty string -->
+										<property name="itemsContent" value="" scope="operation"/>
+								
+										<!-- Initialize whole item payload with a empty string -->
+										<property name="itemContent" value="" scope="operation"/>
+										
+										<!-- Initialize the facebook wall post message body with a empty string -->
+										<property name="fbMessageBody" value="" scope="operation"/>
+										
+										<!-- To keep the iterated item index as property -->
+										<property name="itemIndex" value="0" scope="operation"/>
+										
+										<!-- Construct the new payload with item ids -->
+										<payloadFactory media-type="xml">
+											<format>
+												<ebl:promotionalSaleItemIDArray xmlns:ebl="urn:ebay:apis:eBLBaseComponents">$1</ebl:promotionalSaleItemIDArray>
+											</format>
+											<args>
+												<arg expression="get-property('ebayPromotionalSaleItemIDs')" />
+											</args>
+										</payloadFactory>
+										
+										<!-- Iterate item IDs and get item details for each and every item by passing item ID -->
+										<iterate id="itemIdIterator" xmlns:ebl="urn:ebay:apis:eBLBaseComponents" preservePayload="true" continueParent="true" expression="//ebl:values/*" sequential="true">
+											<target>
+												<sequence> 
+													<property name="ebayItemId" xmlns:ebl="urn:ebay:apis:eBLBaseComponents" expression="//ebl:ItemID/text()"/>
+													
+													<!-- eBay getItem details -->
+													<ebay.init-trading>
+														<apiUrl>{$ctx:ebayApiUrl}</apiUrl>
+														<appId>{$ctx:ebayAppId}</appId>
+														<version>{$ctx:ebayVersion}</version>
+														<routing>{$ctx:ebayRouting}</routing>
+														<siteId>{$ctx:ebaySiteId}</siteId>
+														<authToken>{$ctx:ebayAuthToken}</authToken>
+														<messageId>{$ctx:ebayMessageId}</messageId>
+														<errorLanguage>{$ctx:ebayErrorLanguage}</errorLanguage>
+														<warningLevel>{$ctx:ebayWarningLevel}</warningLevel>
+													</ebay.init-trading>
+													<ebay.getItem>
+														<itemId>{$ctx:ebayItemId}</itemId>
+														<detailLevel>{$ctx:ebayDetailLevel}</detailLevel>
+														<includeItemCompatibilityList>{$ctx:ebayIncludeItemCompatibilityList}</includeItemCompatibilityList>
+														<includeItemSpecifics>{$ctx:ebayIncludeItemSpecifics}</includeItemSpecifics>
+														<includeTaxTable>{$ctx:ebayIncludeTaxTable}</includeTaxTable>
+														<includeWatchCount>{$ctx:ebayIncludeWatchCount}</includeWatchCount>
+														<sku>{$ctx:ebaySku}</sku>
+														<transactionID>{$ctx:ebayTransactionID}</transactionID>
+														<variationSKU>{$ctx:ebayVariationSKU}</variationSKU>
+														<variationSpecifics>{$ctx:ebayVariationSpecifics}</variationSpecifics>
+													</ebay.getItem>
+
+													<!-- Getting required item details into individual properties to create draft campaign -->
+													<property name="title" expression="//*[local-name()='Title']" scope="operation"/>
+													<property name="viewItemURL" expression="//*[local-name()='ViewItemURL']" scope="operation"/>
+													<property name="description" expression="//*[local-name()='Description']" scope="operation"/>
+													<property name="pictureURL" expression="//*[local-name()='PictureURL']" scope="operation"/>
+													
+													<!-- Concatenate each and every item title and item URL to construct facebook message body to do a wall post for all promoted items -->
+													<property name="fbMessageBody" expression="fn:concat(get-property('operation','fbMessageBody'),' ',get-property('operation','title'),'-',get-property('operation','viewItemURL'),',')" scope="operation"/>
+													
+													<!-- Create a json payload for campaign monitor for single item in ebay -->
+													<payloadFactory media-type="json">
+														<format>{
+																	"item": {
+																		"Layout": "$1",
+																		"Singlelines": [
+																				{
+																					"Content": "$2",
+																					"Href": "$3"
+																				}
+																		],
+																		"Multilines": [
+																				{
+																					"Content": "$4"
+																				}
+																		],
+																		"Images": [
+																				{
+																					"Content": "$5",
+																					"Alt": "$6",
+																					"Href": "$7"
+																				}
+																		]
+																	}
+																}
+														</format>
+														<args>
+														  <arg expression="get-property('operation','title')" />
+														  <arg expression="get-property('operation','title')" />
+														  <arg expression="get-property('operation','viewItemURL')" />
+														  <arg expression="get-property('operation','description')" />
+														  <arg expression="get-property('operation','pictureURL')" />
+														  <arg expression="get-property('operation','title')" />
+														  <arg expression="get-property('operation','viewItemURL')" />
+														</args>
+													</payloadFactory>
+
+													<!-- Getting the current payload as a string -->
+													<property name="itemContent" expression="json-eval($.item)" scope="operation"/>
+
+													<!-- Appending each and every item payload with a comma -->
+													<property name="itemsContent" expression="fn:concat(get-property('operation','itemsContent'),get-property('operation','itemContent'),',')" scope="operation" />
+													
+													<!-- Increment the item index by one -->
+													<property name="itemIndex" expression="get-property('operation','itemIndex') + 1" scope="operation"/>
+												</sequence>
+											</target>
+										</iterate>
+										
+										<!-- Restrict execution the rest of API calls until last item to iterator performs getItem details and payload construction for all the ebay items -->
+										<filter xpath="get-property('operation','itemIndex') = get-property('itemCount')" >
+											<then>
+												<!-- Remove the last comma appended at the end of the last item payload -->
+												<property name="itemsContent" expression="fn:substring(get-property('operation', 'itemsContent'), 1, fn:string-length(get-property('operation','itemsContent'))-1)" scope="operation"/>
+												
+												<!-- Create a payload with every appended repeaters items to campaign creation for all promotional items -->
+												<payloadFactory media-type="json">
+													<format>
+														{
+															"templateContent": {
+																"Repeaters": [
+																		{
+																			"Items": [$1]
+																		}
+																]
+															}
+														}       
+													</format>
+													<args>
+														<arg expression="get-property('operation','itemsContent')" />       
+													</args>
+												</payloadFactory>
+												
+												<!-- Get the whole template content into a property from the payload -->
+												<property name="cmTemplateContent" expression="json-eval($.templateContent)"/>
+
+												<!-- Remove the last comma appended at the end of the last facebook message body -->
+												<property name="fbMessageBody" expression="fn:substring(get-property('operation', 'fbMessageBody'),0,fn:string-length(get-property('operation','fbMessageBody')))" />
+												
+												<!-- If campaign monitor access token is not available, give custom error message otherwise proceed with campaign monitor call -->
+												<filter source="boolean(get-property('cmAccessToken'))" regex="false">
+													<then>           
+														<property name="status" value="Skipped" />
+														<property name="message" value="Please provide campaign monitor authentication token." />
+													</then>
+													<else>
+														<!-- Call the cm-createCampaignFromTemplate of both campaign monitor and facebook to create a campaign and wall post for ebay promotional sale items -->
+														<call-template target="ebay-publishItemDetailsOnSocialMedia">
+															<!-- parameter values will be passed on to a sequence template -->
+															(
+															<with-param name="cmApiUrl" value="{$ctx:cmApiUrl}"/> |
+															<with-param name="cmAccessToken" value="{$ctx:cmAccessToken}"/> |
+															<with-param name="cmClientId" value="{$ctx:cmClientId}"/> |
+															<with-param name="cmName" value="{$ctx:cmName}"/> |
+															<with-param name="cmSubject" value="{$ctx:cmSubject}"/> |
+															<with-param name="cmFromName" value="{$ctx:cmFromName}"/> |
+															<with-param name="cmFromEmail" value="{$ctx:cmFromEmail}"/> |
+															<with-param name="cmReplyTo" value="{$ctx:cmReplyTo}"/> |
+															<with-param name="cmListIds" value="{$ctx:cmListIds}"/> |
+															<with-param name="cmSegmentIds" value="{$ctx:cmSegmentIds}"/> |
+															<with-param name="cmTemplateId" value="{$ctx:cmTemplateId}"/> |
+															<with-param name="cmTemplateContent" value="{$ctx:cmTemplateContent}"/> |
+															) *
+														</call-template>
+													</else>
+												</filter>
+												
+												<!-- Calling the response handler template to give detailed message of campaign creation with promotional sale details -->
+												<call-template target="responseHandlerTemplate">
+													<with-param name="activity" value="campaignMonitor_createCampaign" />
+													<with-param name="id" value="{$ctx:idParam}" />
+													<with-param name="status" value="{$ctx:status}" />
+													<with-param name="message" value="{$ctx:message}" />
+												</call-template>
+												
+												<!-- If facebook access token is not available, give custom error message otherwise proceed with facebook wall post creation call -->
+												<filter source="boolean(get-property('fbAccessToken'))" regex="false">
+													<then>           
+														<property name="status" value="Skipped" />
+														<property name="message" value="Please provide facebook authentication token." />
+													</then>
+													<else>
+														<property name="cmAccessToken" value="" />
+														<!-- Call the cm-createCampaignFromTemplate of both campaign monitor and facebook to create a campaign and wall post for ebay promotional sale items -->
+														<call-template target="ebay-publishItemDetailsOnSocialMedia">
+															<!-- parameter values will be passed on to a sequence template -->
+															(
+															<with-param name="cmAccessToken" value="{$ctx:cmAccessToken}"/> |
+															<with-param name="fbApiUrl" value="{$ctx:fbApiUrl}"/> |
+															<with-param name="fbAccessToken" value="{$ctx:fbAccessToken}"/> |
+															<with-param name="fbConnection" value="{$ctx:fbConnection}"/> |
+															<with-param name="fbMessageBody" value="{$ctx:fbMessageBody}"/> |
+															<with-param name="fbLink" value="{$ctx:fbLink}"/> |
+															<with-param name="fbPicture" value="{$ctx:fbPicture}"/> |
+															<with-param name="fbName" value="{$ctx:fbName}"/> |
+															<with-param name="fbCaption" value="{$ctx:fbCaption}"/> |
+															<with-param name="fbDescription" value="{$ctx:fbDescription}"/> |
+															<with-param name="fbActions" value="{$ctx:fbActions}"/> |
+															<with-param name="fbPlace" value="{$ctx:fbPlace}"/> |
+															<with-param name="fbTags" value="{$ctx:fbTags}"/> |
+															<with-param name="fbPrivacy" value="{$ctx:fbPrivacy}"/> |
+															<with-param name="fbObjectAttachment" value="{$ctx:fbObjectAttachment}"/> |
+															) *
+														</call-template>
+													</else>
+												</filter>
+												
+												<!-- Calling the response handler template to give detailed message of posting promotional sale details of ebay on sellers wall in facebook -->
+												<call-template target="responseHandlerTemplate">
+													<with-param name="activity" value="facebook_createWallPost" />
+													<with-param name="id" value="{$ctx:idParam}" />
+													<with-param name="status" value="{$ctx:status}" />
+													<with-param name="message" value="{$ctx:message}" />
+												</call-template>
+												
+												<loopback/>
+											</then>
+										</filter>
+									</else>
+								</filter>
+							</else>
+						</filter>
+					</else>
+				</filter>
+			</else>
+		</filter>
+	  </inSequence>
+      <outSequence>
+            <property name="messageType" value="application/json" scope="axis2"/>
+			<payloadFactory media-type="json">
+				<format>
+					{
+						"Response":{
+							"process":"ebay_retrieveAndPublishPromotionalDetails",
+							"activityResponse":[$1]
+						}
+					}
+				</format>
+				<args>
+					<arg evaluator="xml" expression="get-property('operation', 'responseString')"/>
+				</args>
+			</payloadFactory>
+        <send/>
+      </outSequence>
+    </target>
+    <description/>
+</proxy>
+                                

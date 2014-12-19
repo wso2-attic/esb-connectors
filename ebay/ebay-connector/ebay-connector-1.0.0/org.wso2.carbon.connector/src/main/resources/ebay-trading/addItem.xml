@@ -1,0 +1,90 @@
+<template name="addItem" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="item" description="The item to be added." />
+	<parameter name="detailLevel" description="The level of detail to return." />
+	<sequence>
+		<property name="uri.var.item" expression="$func:item" />
+		<property name="uri.var.detailLevel" expression="$func:detailLevel" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+					xmlns:ebl="urn:ebay:apis:eBLBaseComponents">
+					<soapenv:Header>
+						<ebl:RequesterCredentials>
+							<ebl:eBayAuthToken>$1</ebl:eBayAuthToken>
+						</ebl:RequesterCredentials>
+					</soapenv:Header>
+					<soapenv:Body>
+						<ebl:AddItemRequest>
+							<ebl:Version>$2</ebl:Version>
+							<ebl:Item>$3</ebl:Item>
+						</ebl:AddItemRequest>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.authToken')" />
+				<arg expression="get-property('uri.var.version')" />
+				<arg expression="get-property('uri.var.item')" />
+			</args>
+		</payloadFactory>
+		
+		<!-- Remove root element via XSLT -->
+		<xslt key="ebay_removeRootElement.xslt" />
+		
+		<script language="js">
+			<![CDATA[
+		
+				//request body param variables
+		        var errorLanguage = mc.getProperty('uri.var.errorLanguage'); 
+				var messageId = mc.getProperty('uri.var.messageId'); 
+				var warningLevel = mc.getProperty('uri.var.warningLevel');
+				var detailLevel = mc.getProperty('uri.var.detailLevel');
+				   
+				var payload = mc.getPayloadXML();
+				
+				if (errorLanguage != null && errorLanguage != "") { 
+					payload.AddItemRequest += <ebl:ErrorLanguage xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{errorLanguage}</ebl:ErrorLanguage>; 
+				}
+				
+				if (messageId != null && messageId != "") { 
+					payload.AddItemRequest += <ebl:MessageID xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{messageId}</ebl:MessageID>; 
+				}
+				
+				if (warningLevel != null && warningLevel != "") { 
+					payload.AddItemRequest += <ebl:WarningLevel xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{warningLevel}</ebl:WarningLevel>; 
+				}
+				
+				if (detailLevel != null && detailLevel != "") {
+				 payload.AddItemRequest += <ebl:DetailLevel xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{detailLevel}</ebl:DetailLevel>;  
+				} 
+							
+				mc.setPayloadXML(payload);
+				
+			]]>
+		</script>
+		
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.apiUrl'), '?')" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), 'callname=AddItem')" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;siteid=', get-property('uri.var.siteId'))" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;appid=', get-property('uri.var.appId'))" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;version=', get-property('uri.var.version'))" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;routing=', get-property('uri.var.routing'))" />
+
+		<header name="To" expression="get-property('uri.var.endpoint')" />
+		<header name="Action" value="AddItem" />
+		
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove custom header information in response -->
+		<header name="X-EBAY-ESB-SITEID" scope="transport" action="remove" />
+		<header name="X-EBAY-ESB-CALL-NAME" scope="transport" action="remove" />
+		<header name="X-EBAY-ESB-GUID" scope="transport" action="remove" />
+		<header name="X-EBAY-API-SERVER-NAME" scope="transport" action="remove" />
+		
+	</sequence>
+</template>
