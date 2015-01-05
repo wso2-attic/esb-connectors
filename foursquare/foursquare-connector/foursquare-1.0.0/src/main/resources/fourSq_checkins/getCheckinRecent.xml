@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template xmlns="http://ws.apache.org/ns/synapse" name="getCheckinRecent">
+
+
+
+    <!--optional parameters-->
+    <parameter name="ll" description="Latitude and longitude of the user's location, so response can include distance-optional" />
+    <parameter name="limit" description="Number of results to return-optional" />
+    <parameter name="afterTimeStamp" description="Seconds after which to look for checkins-optional" />
+
+
+    <sequence>
+        <property name="HTTP_METHOD" value="GET" scope="axis2" type="STRING"/>
+        <property name="Accept-Encoding" scope="transport" action="remove" value=""/>
+        <property name="messageType" value="application/json" scope="axis2" type="STRING"/>
+
+        <!-- optional parameters -->
+       <property name="uri.var.ll" expression="$func:ll" scope="default" type="STRING"/>
+        <property name="uri.var.limit" expression="$func:limit" scope="default" type="STRING" />
+        <property name="uri.var.afterTimeStamp" expression="$func:afterTimeStamp" type="STRING" scope="default"/>
+        <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;ll=', get-property('uri.var.ll'))"/>
+
+
+
+        <filter
+                xpath="get-property('uri.var.limit') = '' or  not(string(get-property('uri.var.limit')))" >
+            <then>
+                <property name="uri.var.limit" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;limit=', get-property('uri.var.limit'))"/>
+            </else>
+        </filter>
+
+        <filter
+                xpath="get-property('uri.var.afterTimeStamp') = '' or  not(string(get-property('uri.var.afterTimeStamp')))" >
+            <then>
+                <property name="uri.var.afterTimeStamp" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;afterTimestamp=', get-property('uri.var.afterTimeStamp'))"/>
+            </else>
+        </filter>
+
+
+        <payloadFactory media-type="xml">
+            <format>
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                    <soapenv:Header/>
+                    <soapenv:Body/>
+                </soapenv:Envelope>
+            </format>
+            <args/>
+        </payloadFactory>
+        <property name="messageType" value="application/json" scope="axis2" />
+        <property name="uri.var.parameters" expression="get-property('parameters')"/>
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="{uri.var.foursquare.apiUrl}/v2/checkins/recent?v=20140626{uri.var.parameters}&amp;oauth_token={uri.var.foursquare.accessToken}" />
+            </endpoint>
+        </call>
+    </sequence>
+
+
+
+</template>
