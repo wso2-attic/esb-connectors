@@ -4,7 +4,8 @@ Pre-requisites:
 
  - Maven 3.x
  - Java 1.6 or above
- - org.wso2.esb.integration.integration-base is rquired. this test suite has been configred to download this automatically. however if its fail download following project and compile using mvn clean install command to update your local repository.
+ - org.wso2.esb.integration.integration-base is required. this test suite has been configured to download this automatically.
+   however if its fail download following project and compile using mvn clean install command to update your local repository.
    https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
 
 Tested Platform:
@@ -14,14 +15,11 @@ Tested Platform:
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{PATH_TO_SOURCE_BUNDLE}/evernote-connector/evernote-connector-1.0.0/org.wso2.carbon.connector/repository/"
-
+ 1. Make sure the ESB 4.8.1 zip file at "{PATH_TO_SOURCE_BUNDLE}/evernote-connector/evernote-connector-1.0.0/org.wso2.carbon.connector/repository/"
 
  2. Create a Evernote account and derive the developer token:
 	i) 	Using the URL "http://evernote.com/sign-up/" create a Evernote account.
 	ii) Derive the developer token,notestore url and developer token type from https://www.evernote.com/api/DeveloperToken.action.
-
-
 
  3. Update the Evernote properties file at location "{PATH_TO_SOURCE_BUNDLE}/evernote-connector/evernote-connector-1.0.0/src/test/resources/artifacts/ESB/connector/config" as below.
 
