@@ -1,0 +1,50 @@
+s<?xml version="1.0" encoding="UTF-8"?>
+<template name="getUserMediaRecent" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter description="Count of media to return." name="count"/>
+    <!-- <parameter description="Return media later than this min_id." name="min_id"/>
+     <parameter description="Return media earlier than this max_id." name="max_id"/>-->
+    <parameter description="Return media before this UNIX timestamp." name="max_timestamp"/>
+    <parameter description="Return media after this UNIX timestamp." name="min_timestamp"/>
+    <parameter description="The user ID." name="user_id"/>
+    <sequence>
+        <property expression="$func:count" name="uri.var.count"/>
+        <!--<property expression="$func:min_id" name="uri.var.min_id"/>
+        <property expression="$func:max_id" name="uri.var.max_id"/>-->
+        <property expression="$func:max_timestamp" name="uri.var.max_timestamp"/>
+        <property expression="$func:min_timestamp" name="uri.var.min_timestamp"/>
+        <property expression="$func:user_id" name="uri.var.user_id"/>
+        <property action="remove" name="Accept-Encoding" scope="transport"/>
+        <filter xpath="get-property('uri.var.count') = '' or  (not(string(get-property('uri.var.count'))))">
+            <then>
+                <property name="uri.var.count" value="5"/>
+            </then>
+        </filter>
+
+        <filter xpath="get-property('uri.var.max_timestamp') = '' or  (not(string(get-property('uri.var.max_timestamp'))))">
+            <then>
+                <property name="uri.var.max_timestamp" value="5"/>
+            </then>
+        </filter>
+        <filter xpath="get-property('uri.var.min_timestamp') = '' or  (not(string(get-property('uri.var.min_timestamp'))))">
+            <then>
+                <property name="uri.var.min_timestamp" value="1"/>
+            </then>
+        </filter>
+        <payloadFactory media-type="xml">
+            <format>
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                    <soapenv:Header/>
+                    <soapenv:Body/>
+                </soapenv:Envelope>
+            </format>
+            <args/>
+        </payloadFactory>
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="https://api.instagram.com/v1/users/{uri.var.user_id}/media/recent/?access_token={uri.var.access_token}&amp;count={uri.var.count}&amp;max_timestamp={uri.var.max_timestamp}&amp;min_timestamp={uri.var.min_timestamp}"/>
+            </endpoint>
+        </call>
+        <property name="messageType" scope="axis2" value="application/json"/>
+    </sequence>
+</template>
