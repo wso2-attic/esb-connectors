@@ -18,7 +18,7 @@ Tested Platform:
 STEPS: 
  
  
- 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{PATH_TO_SOURCE_BUNDLE}/instagram-connector/instagram-connector-1.0.0/org.wso2.carbon.connector/repository/" 
+ 1. Make sure the ESB 4.8.1 zip at "{PATH_TO_SOURCE_BUNDLE}/instagram-connector/instagram-connector-1.0.0/org.wso2.carbon.connector/repository/"
   
  
  2. Create a Instagram account and derive the access token: 
