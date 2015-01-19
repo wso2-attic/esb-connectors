@@ -1,0 +1,73 @@
+<template name="searchMessages" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="messageIds" description="The list of message IDs upto 10." />
+	<parameter name="date" description="Message date submission." />
+	<parameter name="to" description="A recipient number." />
+
+	<sequence>
+		<property name="uri.var.messageIds" expression="$func:messageIds" />
+		<property name="uri.var.date" expression="$func:date" />
+		<property name="uri.var.to" expression="$func:to" />
+
+		<script language="js">
+		    <![CDATA[
+		    
+		    	var date=mc.getProperty('uri.var.date');
+		    	var to=mc.getProperty('uri.var.to');
+		    	var messageIds=mc.getProperty('uri.var.messageIds');
+		    	var query="";
+		    	
+		    	//search by recipient and date
+		    	    	    	
+		    	if(date != null && date != "") {
+		    		query = 'date=' + date + '&';
+		    	}
+		    	
+		    	if(to != null && to != "") {
+		    		query += 'to=' + to + '&';
+		    	}
+		    	
+		    	//search by ids
+		    	//if one or more message ids are provided, then iterate through them and append to the url parameters    
+		    		
+		    	if(messageIds != null && messageIds != "") {
+		    		messageIds = eval("(" + messageIds + ")");
+		    		
+		    		for(i = 0; i < messageIds.length; i++) {
+		    			query += 'ids=' + messageIds[i] + "&";
+		    		}
+		    	}  
+		    	
+		    	if(query != "") {
+		    		query = query.substring(0,query.length-1);
+		    	}
+		    	
+		    	mc.setProperty('uri.var.query',query);    
+		    
+		    ]]>
+		</script>
+
+		<!-- If the responseType type is not specified as xml, set the default 
+			value as application/json -->
+		<filter source="get-property('uri.var.responseType')" regex="xml">
+			<then>
+				<header name="Accept" value="application/xml" scope="transport" />
+			</then>
+			<else>
+				<header name="Accept" value="application/json" scope="transport" />
+			</else>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}/search/messages{uri.var.authParams}&amp;{uri.var.query}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+
+	</sequence>
+</template>

@@ -1,0 +1,76 @@
+<template name="searchInboundNumbers" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="country" description="The country code to search." />
+	<parameter name="pattern" description="The pattern for searching with the search strategy" />
+	<parameter name="searchPattern" description="The strategy for matching pattern." />
+	<parameter name="features" description="The comma seperated available features to search." />
+	<parameter name="index" description="The page number to retrieve." />
+	<parameter name="size" description="The size of a response page." />
+
+	<sequence>
+		<property name="uri.var.country" expression="$func:country" />
+		<property name="uri.var.pattern" expression="$func:pattern" />
+		<property name="uri.var.searchPattern" expression="$func:searchPattern" />
+		<property name="uri.var.features" expression="$func:features" />
+		<property name="uri.var.index" expression="$func:index" />
+		<property name="uri.var.size" expression="$func:size" />
+		<property name="uri.var.optParams" value="" />
+
+		<!-- If the responseType type is not XML, set the default value to JSON -->
+		<filter source="get-property('uri.var.responseType')" regex="xml">
+			<then>
+				<header name="Accept" value="application/xml" scope="transport" />
+			</then>
+			<else>
+				<header name="Accept" value="application/json" scope="transport" />
+			</else>
+		</filter>
+
+		<script language="js">
+			<![CDATA[
+				
+				var optParams = mc.getProperty('uri.var.optParams');
+				var pattern = mc.getProperty('uri.var.pattern');
+				var searchPattern = mc.getProperty('uri.var.searchPattern');
+				var features = mc.getProperty('uri.var.features');
+				var index = mc.getProperty('uri.var.index');
+				var size = mc.getProperty('uri.var.size');
+				
+				if (pattern != null && pattern != "") {
+					optParams = optParams + "&pattern=" + pattern;
+				}
+				
+				if (searchPattern != null && searchPattern != "") {
+					optParams = optParams + "&search_pattern=" + searchPattern;
+				}
+				
+				if (features != null && features != "") {
+					optParams = optParams + "&features=" + features;
+				}
+				
+				if (index != null && index != "") {
+					optParams = optParams + "&index=" + index;
+				}
+				
+				if (size != null && size != "") {
+					optParams = optParams + "&size=" + size;
+				}
+				
+				mc.setProperty('uri.var.optParams', optParams);
+				
+			]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}/number/search{uri.var.authParams}&amp;country={uri.var.country}{uri.var.optParams}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+
+	</sequence>
+</template>

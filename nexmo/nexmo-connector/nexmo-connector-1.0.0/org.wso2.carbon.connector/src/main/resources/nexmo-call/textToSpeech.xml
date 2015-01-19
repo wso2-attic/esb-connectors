@@ -1,0 +1,114 @@
+<template name="textToSpeech" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="to" description="The phone number of the recipient." />
+	<parameter name="from" description="The phone number of the sender." />
+	<parameter name="text" description="The text message." />
+	<parameter name="language" description="The language used to read the message." />
+	<parameter name="voice" description="The voice type." />
+	<parameter name="repeat" description="The number of time that the message repeat." />
+	<parameter name="machineDetection" description="How to behave when an answering." />
+	<parameter name="machineTimeout"
+		description="The time allocated to analyze if the call has been answered by a machine." />
+	<parameter name="callback"
+		description="The URL to which Nexmo will send a request when the call ends to notify your application." />
+	<parameter name="callbackMethod" description="The HTTP method for your callback." />
+
+	<sequence>
+		<property name="uri.var.to" expression="$func:to" />
+		<property name="uri.var.from" expression="$func:from" />
+		<property name="uri.var.text" expression="$func:text" />
+		<property name="uri.var.language" expression="$func:language" />
+		<property name="uri.var.voice" expression="$func:voice" />
+		<property name="uri.var.repeat" expression="$func:repeat" />
+		<property name="uri.var.machineDetection" expression="$func:machineDetection" />
+		<property name="uri.var.machineTimeout" expression="$func:machineTimeout" />
+		<property name="uri.var.callback" expression="$func:callback" />
+		<property name="uri.var.callbackMethod" expression="$func:callbackMethod" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"to":"$1",
+				"text":"$2"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.to')" />
+				<arg expression="get-property('uri.var.text')" />
+			</args>
+		</payloadFactory>
+
+		<!--Construct payload for optional parameters -->
+		<script language="js">
+		  <![CDATA[
+	  				payload = mc.getPayloadJSON();
+					var from = mc.getProperty("uri.var.from");
+					var language = mc.getProperty("uri.var.language");
+					var voice = mc.getProperty("uri.var.voice");
+					var repeat = mc.getProperty("uri.var.repeat");
+					var machineDetection = mc.getProperty("uri.var.machineDetection");
+					var machineTimeout = mc.getProperty("uri.var.machineTimeout");
+					var callback = mc.getProperty("uri.var.callback");
+					var callbackMethod = mc.getProperty("uri.var.callbackMethod");
+									
+					if ( from != null && from != "") { 				
+						payload.from = from ;	
+					}
+					
+					if ( language != null && language != "") { 				
+						payload.lg = language;			
+					}
+					
+					if ( voice != null && voice != "") { 				
+						payload.voice = voice;			
+					}		
+					
+					if ( repeat != null && repeat != "") { 				
+						payload.repeat = repeat;			
+					}
+					
+					if ( machineDetection != null && machineDetection != "") { 				
+						payload.machine_detection = machineDetection ;	
+					}
+					
+					if ( machineTimeout != null && machineTimeout != "") { 				
+						payload.machine_timeout = machineTimeout;			
+					}
+					
+					if ( callback != null && callback != "") { 				
+						payload.callback = callback;			
+					}		
+					
+					if ( callbackMethod != null && callbackMethod != "") { 				
+						payload.callback_method = callbackMethod;			
+					}						
+					
+					mc.setPayloadJSON(payload);	
+			]]>
+		</script>
+
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+
+		<!-- If the responseType type is not XML, set the default value to JSON -->
+		<filter source="get-property('uri.var.responseType')" regex="xml">
+			<then>
+				<property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/tts/xml')" />
+			</then>
+			<else>
+				<property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/tts/json')" />
+			</else>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}{uri.var.authParams}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+
+	</sequence>
+</template>
