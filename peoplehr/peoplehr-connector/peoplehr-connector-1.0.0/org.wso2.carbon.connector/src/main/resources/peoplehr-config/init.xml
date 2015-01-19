@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="apiUrl" description="The URL of the PeopleHR REST API." />
+	<parameter name="apiKey" description="The apiKey associated for the user account." />
+	<parameter name="employeeId" description="The ID of the employee." />
+
+	<sequence>
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.apiKey" expression="$func:apiKey" />
+		<property name="uri.var.employeeId" expression="$func:employeeId" />
+
+		<!-- If the apiUrl is not specified, set the default value as https://api.peoplehr.net -->
+		<filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+			<then>
+				<property name="uri.var.apiUrl" value="https://api.peoplehr.net" />
+
+			</then>
+			<else>
+				<property name="uri.var.apiUrl" expression="get-property('uri.var.apiUrl')" />
+			</else>
+		</filter>
+		
+		<!-- Setting up the REQUEST_HOST_HEADER property according to the api URL  -->
+		<property name="uri.var.hostHeader" expression="fn:substring-after(get-property('uri.var.apiUrl'),'https://')" />
+		
+		<property name="REQUEST_HOST_HEADER" expression="fn:concat(get-property('uri.var.hostHeader'),':443')" scope="axis2" />
+
+		<!-- Header information in request -->
+		<header name="Content-Type" value="application/json" scope="transport" />
+
+	</sequence>
+</template>
