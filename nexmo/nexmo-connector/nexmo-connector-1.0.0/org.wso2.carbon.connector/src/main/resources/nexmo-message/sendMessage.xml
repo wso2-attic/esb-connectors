@@ -1,0 +1,116 @@
+<template name="sendMessage" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="from" description="Address of the sender." />
+	<parameter name="to" description="Mobile number in international format and one reciepient per request." />
+	<parameter name="text" description="Body of the text message." />
+	<parameter name="type" description="Tyepe of the message. 'default' for text message." />
+	<parameter name="statusReportReq" description="Set to 1 if require to recieve a delivery report for the mesage." />
+	<parameter name="clientRef" description="Any reference string can be included here." />
+	<parameter name="networkCode" description="Force the recipient network operator MCCMNC." />
+	<parameter name="vcard" description="vcard text body correctly formatted." />
+	<parameter name="vcal" description="vcal text body correctly formatted." />
+	<parameter name="msgLifeSpan" description="Message life span in milliseconds." />
+	<parameter name="messageClass" description="Set to 0 for Flash SMS." />
+
+	<sequence>
+		<property name="uri.var.from" expression="$func:from" />
+		<property name="uri.var.to" expression="$func:to" />
+		<property name="uri.var.text" expression="$func:text" />
+		<property name="uri.var.type" expression="$func:type" />
+		<property name="uri.var.statusReportReq" expression="$func:statusReportReq" />
+		<property name="uri.var.clientRef" expression="$func:clientRef" />
+		<property name="uri.var.networkCode" expression="$func:networkCode" />
+		<property name="uri.var.vcard" expression="$func:vcard" />
+		<property name="uri.var.vcal" expression="$func:vcal" />
+		<property name="uri.var.msgLifeSpan" expression="$func:msgLifeSpan" />
+		<property name="uri.var.messageClass" expression="$func:messageClass" />
+
+		<script language="js">
+			<![CDATA[
+				
+				var payload = {};
+								
+				var apiKey=mc.getProperty('uri.var.apiKey');
+				var apiSecret=mc.getProperty('uri.var.apiSecret');
+				var from=mc.getProperty('uri.var.from');
+				var to=mc.getProperty('uri.var.to');
+				var text=mc.getProperty('uri.var.text');							
+		    	var type=mc.getProperty('uri.var.type');
+		    	var statusReportReq=mc.getProperty('uri.var.statusReportReq');
+		    	var clientRef=mc.getProperty('uri.var.clientRef');
+		    	var networkCode=mc.getProperty('uri.var.networkCode');
+		    	var vcard=mc.getProperty('uri.var.vcard');
+		    	var vcal=mc.getProperty('uri.var.vcal');
+		    	var msgLifeSpan=mc.getProperty('uri.var.msgLifeSpan');
+		    	var messageClass=mc.getProperty('uri.var.messageClass');
+				
+				//setting required params to the payload
+	  			payload ["api_key"] = apiKey;
+	  			payload ["api_secret"] = apiSecret;
+	  			payload ["from"] = from;
+	  			payload ["to"] = to;
+	  			payload ["text"] = text;
+				
+				//setting optional params
+								
+				if (type != null && type != "") {
+	            	payload ["type"] = type; 
+	            }  
+	             	            
+				if (statusReportReq != null && statusReportReq != "") {
+	            	payload ["status-report-req"] = statusReportReq; 
+	            } 
+	            
+				if (clientRef != null && clientRef != "") {
+	            	payload ["client-ref"] = clientRef; 
+	            } 	            
+	            
+				if (networkCode != null && networkCode != "") {
+	            	payload ["network-code"] = networkCode; 
+	            } 	
+	         		
+				if (vcard != null && vcard != "") {
+	            	payload.vcard = vcard; 
+	            } 
+	            
+				if (vcal != null && vcal != "") {
+	            	payload.vcal = vcal; 
+	            } 	
+	            	
+				if (msgLifeSpan != null && msgLifeSpan != "") {
+	            	payload.ttl = msgLifeSpan; 
+	            }	 
+	                                   		                                    
+				if (messageClass != null && messageClass != "") {
+	            	payload ["message-class"] = messageClass; 
+	            } 
+				
+				mc.setPayloadJSON(payload);				
+			]]>
+		</script>
+
+		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+		
+		<!-- If the responseType type is not XML, set the default value to JSON -->
+		<filter source="get-property('uri.var.responseType')" regex="xml">
+			<then>
+				<property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/sms/xml')" />
+			</then>
+			<else>
+				<property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/sms/json')" />
+			</else>
+		</filter>				
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+
+	</sequence>
+</template>
