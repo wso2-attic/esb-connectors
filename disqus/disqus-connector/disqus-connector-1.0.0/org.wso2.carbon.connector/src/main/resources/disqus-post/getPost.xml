@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="getPost" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="related" description="Specify relations to include with your response. Choices - forum, thread"/>
+    <parameter name="postId" description="ID of the Post to retrieve."/>
+    <sequence>
+        <property name="uri.var.related" expression="$func:related"/>
+        <property name="uri.var.postId" expression="$func:postId"/>
+
+        <script language="js">
+            <![CDATA[
+                var related = mc.getProperty('uri.var.related');
+				var postId = mc.getProperty('uri.var.postId');
+				var apiKey = mc.getProperty('uri.var.apiKey');
+				var apiSecret = mc.getProperty('uri.var.apiSecret');
+                var accessToken = mc.getProperty('uri.var.accessToken');
+                var urlQuery = '';
+                
+				urlQuery += 'post=' + postId + '&';
+				
+				if (apiKey != null && apiKey != ""){
+                    urlQuery += 'api_key=' + apiKey + '&';
+                }
+				
+				if (apiSecret != null && apiSecret != ""){
+                    urlQuery += 'api_secret=' + apiSecret + '&';
+                }
+				
+				if (accessToken != null && accessToken != ""){
+                    urlQuery += 'access_token=' + accessToken + '&';
+                }
+				
+                if (related != null && related != ""){
+					// If mulitple items are sent.
+					if(related.indexOf(',') != -1){
+						var relatedItems = related.split(',');
+						for(var i=0; i<relatedItems.length; i++){
+							if(relatedItems[i] != ""){
+								urlQuery += 'related=' + relatedItems[i] + '&';
+							}
+						}
+					} else {
+						urlQuery += 'related=' + related + '&';
+					}
+                }                
+                
+                if(urlQuery != ""){
+                	// Prefix the urlQuery with '?' and remove the trailing '&'
+                	urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+                }                
+				mc.setProperty('uri.var.urlQuery', urlQuery);
+				
+            ]]>
+        </script>
+        
+        <call>
+            <endpoint>
+                <http method="get" uri-template="{uri.var.apiUrl}/posts/details.json{uri.var.urlQuery}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="X-Ratelimit-Remaining" action="remove" scope="transport"/>
+        <header name="X-User" action="remove" scope="transport"/>
+        <header name="X-Ratelimit-Limit" action="remove" scope="transport"/>
+        <header name="X-Frame-Options" action="remove" scope="transport"/>
+        <header name="p3p" action="remove" scope="transport"/>
+        <header name="X-Ratelimit-Reset" action="remove" scope="transport"/>
+        <header name="X-Served-By" action="remove" scope="transport"/>
+        <header name="X-Cache" action="remove" scope="transport"/>
+        <header name="X-Cache-Hits" action="remove" scope="transport"/>
+        <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+        <header name="X-XSS-Protection" action="remove" scope="transport"/>
+        <header name="Via" action="remove" scope="transport"/>
+        <header name="X-Varnish" action="remove" scope="transport"/>
+
+    </sequence>
+</template>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="listForumUsers" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="forumId" description="ID of the Disqus Forum to retrieve."/>
+    <parameter name="cursor" description="Pagnination parameter."/>
+    <parameter name="limit" description="Maximum number of posts to return."/>
+    <parameter name="order" description="Order of entries returned. Choices: asc, desc(default)"/>
+    <parameter name="sinceId" description="Return user joined since the given date ID."/>
+    <sequence>
+        <property name="uri.var.forumId" expression="$func:forumId"/>
+        <property name="uri.var.cursor" expression="$func:cursor"/>
+        <property name="uri.var.limit" expression="$func:limit"/>
+        <property name="uri.var.order" expression="$func:order"/>
+        <property name="uri.var.sinceId" expression="$func:sinceId"/>
+
+        <script language="js">
+            <![CDATA[
+                var apiKey = mc.getProperty('uri.var.apiKey');
+				var apiSecret = mc.getProperty('uri.var.apiSecret');
+                var accessToken = mc.getProperty('uri.var.accessToken');
+                var cursor = mc.getProperty('uri.var.cursor');
+                var forumId = mc.getProperty('uri.var.forumId');
+                var limit = mc.getProperty('uri.var.limit');
+                var order = mc.getProperty('uri.var.order');
+                var sinceId = mc.getProperty('uri.var.sinceId');                
+                var urlQuery = '';
+                
+				// Mandatory Query Parameters
+				
+                urlQuery += 'forum=' + forumId + '&';		
+                
+				// Optional Query Parameters
+				
+				if (apiKey != null && apiKey != ""){
+                    urlQuery += 'api_key=' + apiKey + '&';
+                }
+				
+				if (apiSecret != null && apiSecret != ""){
+                    urlQuery += 'api_secret=' + apiSecret + '&';
+                }
+				
+				if (accessToken != null && accessToken != ""){
+                    urlQuery += 'access_token=' + accessToken + '&';
+                }		
+				
+                if (cursor != null && cursor != ""){
+                    urlQuery += 'cursor=' + encodeURIComponent(cursor) + '&';
+                }
+                
+                if (limit != null && limit != ""){
+                    urlQuery += 'limit=' + limit + '&';
+                }
+                
+                if (order != null && order != ""){
+                    urlQuery += 'order=' + order + '&';
+                }
+                
+                if (sinceId != null && sinceId != ""){
+                    urlQuery += 'since_id=' + encodeURIComponent(sinceId) + '&';
+                }
+                
+                // Prefix the urlQuery with '?' and remove the trailing '&'
+                urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+				mc.setProperty('uri.var.urlQuery', urlQuery);  
+                
+            ]]>
+        </script>
+
+        <call>
+            <endpoint>
+                <http method="get" uri-template="{uri.var.apiUrl}/forums/listUsers.json{uri.var.urlQuery}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="X-Ratelimit-Remaining" action="remove" scope="transport"/>
+        <header name="X-User" action="remove" scope="transport"/>
+        <header name="X-Ratelimit-Limit" action="remove" scope="transport"/>
+        <header name="X-Frame-Options" action="remove" scope="transport"/>
+        <header name="p3p" action="remove" scope="transport"/>
+        <header name="X-Ratelimit-Reset" action="remove" scope="transport"/>
+        <header name="X-Served-By" action="remove" scope="transport"/>
+        <header name="X-Cache" action="remove" scope="transport"/>
+        <header name="X-Cache-Hits" action="remove" scope="transport"/>
+        <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+        <header name="X-XSS-Protection" action="remove" scope="transport"/>
+        <header name="Via" action="remove" scope="transport"/>
+        <header name="X-Varnish" action="remove" scope="transport"/>
+
+    </sequence>
+</template>
