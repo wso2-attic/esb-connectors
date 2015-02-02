@@ -1,0 +1,31 @@
+<template name="getOutboundPricing" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="country"
+		description="The country code of which the outbound pricing should be retrieved." />
+
+	<sequence>
+		<property name="uri.var.country" expression="$func:country" />
+
+		<!-- If the responseType type is not XML, set the default value to JSON -->
+		<filter source="get-property('uri.var.responseType')" regex="xml">
+			<then>
+				<header name="Accept" value="application/xml" scope="transport" />
+			</then>
+			<else>
+				<header name="Accept" value="application/json" scope="transport" />
+			</else>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}/account/get-pricing/outbound{uri.var.authParams}&amp;country={uri.var.country}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+
+	</sequence>
+</template>

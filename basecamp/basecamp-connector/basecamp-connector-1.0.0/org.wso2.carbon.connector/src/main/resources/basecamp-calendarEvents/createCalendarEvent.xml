@@ -1,0 +1,108 @@
+<template name="createCalendarEvent" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="containerType" description="The type of the container (either calendar or project)" />
+	<parameter name="containerId" description="The unique identifier of the container" />
+	<parameter name="summary" description="The summary of the event" />
+	<parameter name="description" description="The description of the event" />
+	<parameter name="isAllDay" description="Specifies whether the event spans throughout the day" />
+	<parameter name="startsAt" description="The starting time" />
+	<parameter name="endsAt" description="The ending time" />
+	<parameter name="remindsAt" description="The reminder time" />
+
+	<sequence>
+		<property name="uri.var.containerType" expression="$func:containerType" />
+		<property name="uri.var.containerId" expression="$func:containerId" />
+		<property name="uri.var.summary" expression="$func:summary" />
+		<property name="uri.var.description" expression="$func:description" />
+		<property name="uri.var.isAllDay" expression="$func:isAllDay" />
+		<property name="uri.var.startsAt" expression="$func:startsAt" />
+		<property name="uri.var.endsAt" expression="$func:endsAt" />
+		<property name="uri.var.remindsAt" expression="$func:remindsAt" />
+
+
+		<payloadFactory media-type="json">
+			<format>
+				{}
+			</format>
+		</payloadFactory>
+
+		<!-- Construct payload for optional parameters -->
+		<script language="js">
+			<![CDATA[
+			
+				//payload variables
+				var summary = mc.getProperty("uri.var.summary");
+				var description = mc.getProperty("uri.var.description");
+				var isAllDay = mc.getProperty("uri.var.isAllDay");
+				var startsAt = mc.getProperty("uri.var.startsAt");
+				var endsAt = mc.getProperty("uri.var.endsAt");
+				var remindsAt = mc.getProperty("uri.var.remindsAt");
+				
+				payload = mc.getPayloadJSON();
+			
+				if (summary != null && summary != "") {
+					payload.summary = summary;
+				}
+				
+				if (description != null && description != "") {
+					payload.description = description;
+				}
+				
+				if (isAllDay != null && isAllDay != "") {
+					payload.all_day = isAllDay;
+				}
+				
+				if (startsAt != null && startsAt != "") {
+					payload.starts_at = startsAt;
+				}
+				
+				if (endsAt != null && endsAt != "") {
+					payload.ends_at = endsAt;
+				}
+
+				if (remindsAt != null && remindsAt != "") {
+					payload.remind_at = remindsAt;
+				}
+												
+				mc.setPayloadJSON(payload);	
+			]]>
+		</script>
+
+		<filter source="get-property('uri.var.containerType')" regex="(?!^(calendars|projects)$).*">
+			<then>
+				<payloadFactory media-type="json">
+					<format>
+						{
+						"error_code":"700013",
+						"error_message":"Invalid value for containerType parameter, Supported values are [calendars | projects]"}
+						}
+					</format>
+				</payloadFactory>
+				
+				<header name="Authorization" scope="transport" action="remove" />
+				<header name="Status" scope="transport" action="remove" />
+				<header name="Host" scope="transport" action="remove" />
+				<property name="HTTP_SC" value="400" scope="axis2" />
+				<respond></respond>
+			</then>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/{uri.var.containerType}/{uri.var.containerId}/calendar_events.json'" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Queue-Time" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Timing-Allow-Origin" scope="transport" action="remove" />
+		<header name="X-Asset-Paths" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+		
+	</sequence>
+</template>

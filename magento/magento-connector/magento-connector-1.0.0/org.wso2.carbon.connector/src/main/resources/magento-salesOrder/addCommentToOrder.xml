@@ -1,0 +1,46 @@
+<template name="addCommentToOrder" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="orderIncrementId" description="The Order increment identifier." />
+	<parameter name="status" description="The order status." />
+	<parameter name="comment" description="The order comment." />
+	<parameter name="notify" description="The Notification flag." />
+
+	<sequence>
+		<property name="uri.var.orderIncrementId" expression="$func:orderIncrementId" />
+		<property name="uri.var.status" expression="$func:status" />
+		<property name="uri.var.comment" expression="$func:comment" />
+		<property name="uri.var.notify" expression="$func:notify" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<salesOrderAddComment>
+					<sessionId>$1</sessionId>
+					<orderIncrementId>$2</orderIncrementId>
+					<status>$3</status>
+					<comment>$4</comment>
+					<notify>$5</notify>
+				</salesOrderAddComment>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.orderIncrementId')" />
+				<arg expression="get-property('uri.var.status')" />
+				<arg expression="get-property('uri.var.comment')" />
+				<arg expression="get-property('uri.var.notify')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>

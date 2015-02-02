@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="listPosts" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="threadId" description="ID of the Disqus Forum to retrieve."/>
+    <parameter name="forumId" description="ID of the Disqus Forum to retrieve."/>
+    <parameter name="since" description="Unix timestamp (or ISO datetime standard)"/>
+    <parameter name="related" description="Specify relations to include with your response. Choices - thread."/>
+    <parameter name="cursor" description="Pagnination parameter."/>
+    <parameter name="limit" description="Maximum number of posts to return."/>
+    <parameter name="query" description="Query to filter the lists which are returned as part of the response."/>
+    <parameter name="include" description="Choices: unapproved, approved(default), spam, deleted, flagged, highlighted"/>
+    <parameter name="order" description="Order of entries returned. Choices: asc, desc(default)"/>
+    <parameter name="categoryId" description="ID of the category whose Posts should be retrieved."/>
+    <parameter name="interval" description="Interval of Posts. Chose betweeen: 1h, 6h, 12h, 1d, 3d, 7d, 30d, 60d, 90d."/>
+    <parameter name="offset" description="Offset from the interval."/>
+    <parameter name="userId" description="ID of the User whose posts are to be retrieved."/>
+    <parameter name="popular" description="Whether to pick the popular posts."/>
+    <sequence>
+        <property name="uri.var.threadId" expression="$func:threadId"/>
+        <property name="uri.var.forumId" expression="$func:forumId"/>
+        <property name="uri.var.since" expression="$func:since"/>
+        <property name="uri.var.related" expression="$func:related"/>
+        <property name="uri.var.cursor" expression="$func:cursor"/>
+        <property name="uri.var.limit" expression="$func:limit"/>
+        <property name="uri.var.query" expression="$func:query"/>
+        <property name="uri.var.include" expression="$func:include"/>
+        <property name="uri.var.order" expression="$func:order"/>
+        <property name="uri.var.categoryId" expression="$func:categoryId"/>
+        <property name="uri.var.interval" expression="$func:interval"/>
+        <property name="uri.var.offset" expression="$func:offset"/>
+        <property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.popular" expression="$func:popular"/>
+
+        <script language="js">
+            <![CDATA[
+                var categoryId = mc.getProperty('uri.var.categoryId');
+                var accessToken = mc.getProperty('uri.var.accessToken');
+                var popular = mc.getProperty('uri.var.popular');
+                var cursor = mc.getProperty('uri.var.cursor');
+                var forumId = mc.getProperty('uri.var.forumId');
+                var include = mc.getProperty('uri.var.include');
+                var limit = mc.getProperty('uri.var.limit');
+                var order = mc.getProperty('uri.var.order');
+                var query = mc.getProperty('uri.var.query');
+                var related = mc.getProperty('uri.var.related');
+                var since = mc.getProperty('uri.var.since');
+                var apiKey = mc.getProperty('uri.var.apiKey');   
+				var apiSecret = mc.getProperty('uri.var.apiSecret');
+                var interval = mc.getProperty('uri.var.interval');
+                var offset = mc.getProperty('uri.var.offset');     
+                var threadId = mc.getProperty('uri.var.threadId');
+               	var userId = mc.getProperty('uri.var.userId');
+                var urlQuery = '';
+				
+				if (apiKey != null && apiKey != ""){
+                    urlQuery += 'api_key=' + apiKey + '&';
+                }
+				
+				if (apiSecret != null && apiSecret != ""){
+                    urlQuery += 'api_secret=' + apiSecret + '&';
+                }
+                
+                if (query != null && query != ""){
+                    urlQuery += 'query=' + encodeURIComponent(query) + '&';
+                }
+                
+                if (accessToken != null && accessToken != ""){
+                    urlQuery += 'access_token=' + accessToken + '&';
+                }
+                
+                if (cursor != null && cursor != ""){
+                    urlQuery += 'cursor=' + encodeURIComponent(cursor) + '&';
+                }
+                
+                if (since != null && since != ""){
+                    urlQuery += 'since=' + encodeURIComponent(since) + '&';
+                }
+				
+                if (categoryId != null && categoryId != ""){
+                    urlQuery += 'category=' + categoryId + '&';
+                }
+                
+                if (userId != null && userId != ""){
+                    urlQuery += 'user=' + userId + '&';
+                }
+                
+                if (limit != null && limit != ""){
+                    urlQuery += 'limit=' + limit + '&';
+                }
+                
+                if (order != null && order != ""){
+                    urlQuery += 'order=' + order + '&';
+                }
+                
+                if (interval != null && interval != ""){
+                    urlQuery += 'interval=' + interval + '&';
+                }
+                
+                if (offset != null && offset != ""){
+                    urlQuery += 'offset=' + offset + '&';
+                }
+                
+                // Multi valued.
+                
+                if (threadId != null && threadId != ""){
+					// If mulitple items are sent.
+					if(threadId.indexOf(',') != -1){
+						var threadIdItems = threadId.split(',');
+						for(var i=0; i<threadIdItems.length; i++){
+							if(threadIdItems[i] != ""){
+								urlQuery += 'thread=' + threadIdItems[i] + '&';
+							}
+						}
+					} else {
+						urlQuery += 'thread=' + threadId + '&';
+					}
+                }
+                
+                if (forumId != null && forumId != ""){
+					// If mulitple items are sent.
+					if(forumId.indexOf(',') != -1){
+						var forumIdItems = forumId.split(',');
+						for(var i=0; i<forumIdItems.length; i++){
+							if(forumIdItems[i] != ""){
+								urlQuery += 'forum=' + forumIdItems[i] + '&';
+							}
+						}
+					} else {
+						urlQuery += 'forum=' + forumId + '&';
+					}
+                }
+                
+                if (include != null && include != ""){
+					// If mulitple items are sent.
+					if(include.indexOf(',') != -1){
+						var includeItems = include.split(',');
+						for(var i=0; i<includeItems.length; i++){
+							if(includeItems[i] != ""){
+								urlQuery += 'include=' + includeItems[i] + '&';
+							}
+						}
+					} else {
+						urlQuery += 'include=' + include + '&';
+					}
+                }
+                
+                if (related != null && related != ""){
+					// If mulitple items are sent.
+					if(related.indexOf(',') != -1){
+						var relatedItems = related.split(',');
+						for(var i=0; i<relatedItems.length; i++){
+							if(relatedItems[i] != ""){
+								urlQuery += 'related=' + relatedItems[i] + '&';
+							}
+						}
+					} else {
+						urlQuery += 'related=' + related + '&';
+					}
+                }
+                
+                // Prefix the urlQuery with '?' and remove the trailing '&'
+                urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+				mc.setProperty('uri.var.urlQuery', urlQuery);                                              
+                
+				// Choose the endpoint based on the given input. Precedence: popular, thread, category, forum, user.
+				if(popular != null && popular.toLowerCase() == "true"){
+					// Set for popular endpoint
+					mc.setProperty('uri.var.endpoint', 'posts/listPopular.json'); 
+				} else if(threadId != null && threadId != "") {
+					// Set for threads endpoint
+					mc.setProperty('uri.var.endpoint', 'threads/listPosts.json'); 
+				} else if(categoryId != null && categoryId != "") {
+					// Set for categories endpoint
+					mc.setProperty('uri.var.endpoint', 'categories/listPosts.json'); 
+				} else if(forumId != null && forumId != "") {
+					// Set for forums endpoint
+					mc.setProperty('uri.var.endpoint', 'forums/listPosts.json'); 
+				} else {
+					// Set for users endpoint
+					mc.setProperty('uri.var.endpoint', 'users/listPosts.json'); 
+				}
+				
+            ]]>
+        </script>
+
+        <call>
+            <endpoint>
+                <http method="get" uri-template="{uri.var.apiUrl}/{uri.var.endpoint}{uri.var.urlQuery}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="X-Ratelimit-Remaining" action="remove" scope="transport"/>
+        <header name="X-User" action="remove" scope="transport"/>
+        <header name="X-Ratelimit-Limit" action="remove" scope="transport"/>
+        <header name="X-Frame-Options" action="remove" scope="transport"/>
+        <header name="p3p" action="remove" scope="transport"/>
+        <header name="X-Ratelimit-Reset" action="remove" scope="transport"/>
+        <header name="X-Served-By" action="remove" scope="transport"/>
+        <header name="X-Cache" action="remove" scope="transport"/>
+        <header name="X-Cache-Hits" action="remove" scope="transport"/>
+        <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+        <header name="X-XSS-Protection" action="remove" scope="transport"/>
+        <header name="Via" action="remove" scope="transport"/>
+        <header name="X-Varnish" action="remove" scope="transport"/>
+
+    </sequence>
+</template>

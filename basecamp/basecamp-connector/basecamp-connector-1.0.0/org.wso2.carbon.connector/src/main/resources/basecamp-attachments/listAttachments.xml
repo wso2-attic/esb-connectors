@@ -1,0 +1,69 @@
+<template name="listAttachments" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="projectId" description="The project identifier from which attachments are listed" />
+	<parameter name="page" description="The page number for pagination" />
+	<parameter name="sort" description="The sorting type to sort the results" />
+
+	<sequence>
+		<property name="uri.var.projectId" expression="$func:projectId" />
+		<property name="uri.var.page" expression="$func:page" />
+		<property name="uri.var.sort" expression="$func:sort" />
+
+		<script language="js">
+			<![CDATA[
+			
+				//construct url
+				var apiUrl = mc.getProperty("uri.var.apiUrl");
+				var projectId = mc.getProperty("uri.var.projectId");
+				var page = mc.getProperty("uri.var.page");
+				var sort = mc.getProperty("uri.var.sort");
+
+				//Changes the end points to get either project specific attachments 
+				//or all of them depending on the presence of project Id
+			
+				if (projectId != null && projectId != "") {
+					apiUrl += '/projects/' + projectId;
+				}
+				
+				apiUrl += '/attachments.json';
+				
+				var urlQuery = "";
+				
+				// Append query parameters
+				if(sort != null && sort != "") {
+					urlQuery += 'sort=' + encodeURIComponent(sort) + '&';
+				}
+				
+				if(page != null && page != "") {
+					urlQuery += 'page=' + page + '&';
+				}
+				
+				if(urlQuery != ""){
+					apiUrl += '?' + urlQuery.substring(0, urlQuery.length-1);
+				}
+				
+				mc.setProperty("uri.var.apiUrl", apiUrl);
+				
+			]]>
+		</script>
+
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Queue-Time" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Timing-Allow-Origin" scope="transport" action="remove" />
+		<header name="X-Asset-Paths" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+
+	</sequence>
+</template>

@@ -1,0 +1,53 @@
+<template name="createBucketPolicy" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="bucketUrl" description="End point URL of the request." />
+	<parameter name="bucketPolicy" description="Policy that will be created for the bucket." />
+
+	<sequence>
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+		<property name="uri.var.bucketPolicy" expression="$func:bucketPolicy" />
+		<property name="uri.var.uriRemainder" value="/?policy" />
+
+		<!-- Authentication Header Setup -->
+		<class name="org.wso2.carbon.connector.amazons3.auth.AmazonS3AuthConnector" />
+				
+		<filter xpath="(string(get-property('date'))) and get-property('date') != ''">  
+			<then>
+				<property name="Date" expression="get-property('date')" scope="transport" type="STRING" />
+			</then>
+		</filter> 
+		
+		<filter xpath="(string(get-property('isXAmzDateValue'))) and get-property('isXAmzDateValue') != ''">   
+			<then>
+				<property name="x-amz-date" expression="get-property('isXAmzDateValue')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('authenticationCode'))) and get-property('authenticationCode') != ''">    
+			<then>
+				<property name="Authorization" expression="get-property('authenticationCode')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<payloadFactory media-type="json">
+			<format>$1</format>
+			<args>
+				<arg expression="get-property('uri.var.bucketPolicy')" />
+			</args>
+		</payloadFactory>
+
+		<property name="messageType" value="application/json" scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="put" uri-template="{uri.var.bucketUrl}{uri.var.uriRemainder}" />
+			</endpoint>
+		</call> 
+
+		<!-- Remove response custom header information -->
+		<header name="x-amz-id-2" scope="transport" action="remove" />
+		<header name="x-amz-request-id" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" /> 
+		
+	</sequence>
+</template>

@@ -1,0 +1,150 @@
+<template name="getItem" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="itemId" description="The ID of the Item to be retrieved." />
+	<parameter name="detailLevel" description="The level of detail to return." />
+	<parameter name="includeItemCompatibilityList" description="Whether to retrieve Parts Compatibility information." />
+	<parameter name="includeItemSpecifics" description="Whether to return item specifics." />
+	<parameter name="includeTaxTable" description="Whether to return the associated tax table." />
+	<parameter name="includeWatchCount" description="Whether to incluide the watch count." />
+	<parameter name="sku" description="SKU of the item." />
+	<parameter name="transactionID" description="Transaction ID of the transaction associated with the item." />
+	<parameter name="variationSKU" description="Variation-level SKU that uniquely identifies a Variation within the listing identified by ItemID." />
+	<parameter name="variationSpecifics" description="Name-value pairs that identify one or more Variations within the listing identified by ItemID." />
+	<sequence>
+		<property name="uri.var.itemId" expression="$func:itemId" />
+		<property name="uri.var.detailLevel" expression="$func:detailLevel" />
+		<property name="uri.var.includeItemCompatibilityList" expression="$func:includeItemCompatibilityList" />
+		<property name="uri.var.includeItemSpecifics" expression="$func:includeItemSpecifics" />
+		<property name="uri.var.includeTaxTable" expression="$func:includeTaxTable" />
+		<property name="uri.var.includeWatchCount" expression="$func:includeWatchCount" />
+		<property name="uri.var.sku" expression="$func:sku" />
+		<property name="uri.var.transactionID" expression="$func:transactionID" />
+		<property name="uri.var.variationSKU" expression="$func:variationSKU" />
+		<property name="uri.var.variationSpecifics" expression="$func:variationSpecifics" />
+		
+		
+		<payloadFactory media-type="xml">
+			<format>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+					xmlns:ebl="urn:ebay:apis:eBLBaseComponents">
+					<soapenv:Header>
+						<ebl:RequesterCredentials>
+							<ebl:eBayAuthToken>$1</ebl:eBayAuthToken>
+						</ebl:RequesterCredentials>
+					</soapenv:Header>
+					<soapenv:Body>
+						<ebl:GetItemRequest>
+							<ebl:Version>$2</ebl:Version>
+							<ebl:ItemID>$3</ebl:ItemID>
+						</ebl:GetItemRequest>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.authToken')" />
+				<arg expression="get-property('uri.var.version')" />
+				<arg expression="get-property('uri.var.itemId')" />
+			</args>
+		</payloadFactory>
+		
+		<!-- Remove root element via XSLT -->
+		<xslt key="ebay_removeRootElement.xslt" />
+		
+		<script language="js">
+			<![CDATA[
+		
+				//request body param variables
+		        var errorLanguage = mc.getProperty('uri.var.errorLanguage'); 
+				var messageId = mc.getProperty('uri.var.messageId'); 
+				var warningLevel = mc.getProperty('uri.var.warningLevel');
+				var detailLevel = mc.getProperty('uri.var.detailLevel');
+				
+				var includeItemCompatibilityList = mc.getProperty('uri.var.includeItemCompatibilityList');
+				var includeItemSpecifics = mc.getProperty('uri.var.includeItemSpecifics');
+				var includeTaxTable = mc.getProperty('uri.var.includeTaxTable');
+				var includeWatchCount = mc.getProperty('uri.var.includeWatchCount');
+				var sku = mc.getProperty('uri.var.sku');
+				var transactionID = mc.getProperty('uri.var.transactionID');
+				var variationSKU = mc.getProperty('uri.var.variationSKU');
+				var variationSpecifics = mc.getProperty('uri.var.variationSpecifics');
+				   
+				var payload = mc.getPayloadXML();
+				
+				if (errorLanguage != null && errorLanguage != "") { 
+					payload.GetItemRequest += <ebl:ErrorLanguage xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{errorLanguage}</ebl:ErrorLanguage>; 
+				}
+				
+				if (messageId != null && messageId != "") { 
+					payload.GetItemRequest += <ebl:MessageID xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{messageId}</ebl:MessageID>; 
+				}
+				
+				if (warningLevel != null && warningLevel != "") { 
+					payload.GetItemRequest += <ebl:WarningLevel xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{warningLevel}</ebl:WarningLevel>; 
+				}
+				
+				if (detailLevel != null && detailLevel != "") {
+				 payload.GetItemRequest += <ebl:DetailLevel xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{detailLevel}</ebl:DetailLevel>;  
+				}
+				
+				if (includeItemCompatibilityList != null && includeItemCompatibilityList != "") {
+				 payload.GetItemRequest += <ebl:IncludeItemCompatibilityList xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{includeItemCompatibilityList}</ebl:IncludeItemCompatibilityList>;  
+				} 
+				
+				if (includeItemSpecifics != null && includeItemSpecifics != "") {
+				 payload.GetItemRequest += <ebl:IncludeItemSpecifics xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{includeItemSpecifics}</ebl:IncludeItemSpecifics>;  
+				} 
+				
+				if (includeTaxTable != null && includeTaxTable != "") {
+				 payload.GetItemRequest += <ebl:IncludeTaxTable xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{includeTaxTable}</ebl:IncludeTaxTable>;  
+				} 
+				
+				if (includeWatchCount != null && includeWatchCount != "") {
+				 payload.GetItemRequest += <ebl:IncludeWatchCount xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{includeWatchCount}</ebl:IncludeWatchCount>;  
+				} 
+				
+				if (sku != null && sku != "") {
+				 payload.GetItemRequest += <ebl:SKU xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{sku}</ebl:SKU>;  
+				} 
+				
+				if (transactionID != null && transactionID != "") {
+				 payload.GetItemRequest += <ebl:TransactionID xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{transactionID}</ebl:TransactionID>;  
+				} 
+				
+				if (variationSKU != null && variationSKU != "") {
+				 payload.GetItemRequest += <ebl:VariationSKU xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{variationSKU}</ebl:VariationSKU>;  
+				} 
+				
+				if (variationSpecifics != null && variationSpecifics != "") {
+				 payload.GetItemRequest += <ebl:VariationSpecifics xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{variationSpecifics}</ebl:VariationSpecifics>;  
+				} 
+				 
+							
+				mc.setPayloadXML(payload);
+				
+			]]>
+		</script>
+		
+		
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.apiUrl'), '?')" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), 'callname=GetItem')" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;siteid=', get-property('uri.var.siteId'))" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;appid=', get-property('uri.var.appId'))" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;version=', get-property('uri.var.version'))" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;routing=', get-property('uri.var.routing'))" />
+
+		<header name="To" expression="get-property('uri.var.endpoint')" />
+		<header name="Action" value="GetItem" />
+		
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove custom header information in response -->
+		<header name="X-EBAY-ESB-SITEID" scope="transport" action="remove" />
+		<header name="X-EBAY-ESB-CALL-NAME" scope="transport" action="remove" />
+		<header name="X-EBAY-ESB-GUID" scope="transport" action="remove" />
+		<header name="X-EBAY-API-SERVER-NAME" scope="transport" action="remove" />
+		
+	</sequence>
+</template>

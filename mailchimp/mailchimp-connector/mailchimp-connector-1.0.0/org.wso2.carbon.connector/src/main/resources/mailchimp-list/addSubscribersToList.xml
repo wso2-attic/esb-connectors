@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="addSubscribersToList" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="listId" description="The list ID to connect to."/>
+    <parameter name="batch" description="An array of structs for each address to subscribe to the List."/>
+    <parameter name="doubleOptin" description="Flag to control whether to send an opt-in confirmation email - defaults to true."/>
+    <parameter name="updateExisting" description="Flag to control whether to update members that are already subscribed to the list or to return an error, defaults to false (return error)."/>
+    <parameter name="replaceInterests" description="Flag to determine whether we replace the interest groups with the updated groups provided, or we add the provided groups to the member's interest groups (optional, defaults to true)."/>
+    <sequence>
+        <property name="uri.var.listId" expression="$func:listId" />
+        <property name="uri.var.batch" expression="$func:batch" />
+        <property name="uri.var.doubleOptin" expression="$func:doubleOptin" />
+        <property name="uri.var.updateExisting" expression="$func:updateExisting" />
+        <property name="uri.var.replaceInterests" expression="$func:replaceInterests" />
+
+        <payloadFactory media-type="json">
+            <format>
+                {
+                    "id": "$1",
+                    "batch": $2,
+                    "apikey": "$3"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.listId')"/>
+                <arg expression="get-property('uri.var.batch')"/>
+				<arg expression="get-property('uri.var.apiKey')"/>
+            </args>
+        </payloadFactory>
+
+        <script language="js">
+            <![CDATA[
+                var jsonPayload = mc.getPayloadJSON();
+                
+                var doubleOptin = mc.getProperty('uri.var.doubleOptin');
+                var replaceInterests = mc.getProperty('uri.var.replaceInterests');
+                var updateExisting = mc.getProperty('uri.var.updateExisting');
+				
+                if (doubleOptin != null && doubleOptin != ""){
+                    jsonPayload["double_optin"] = doubleOptin;
+                }
+                
+                if (replaceInterests != null && replaceInterests != ""){
+                    jsonPayload["replace_interests"] = replaceInterests;
+                }
+                
+                if (updateExisting != null && updateExisting != ""){
+                    jsonPayload["update_existing"] = updateExisting;
+                }
+                
+                mc.setPayloadJSON(jsonPayload);
+            ]]>
+        </script>
+		
+		<!--MailChimp API expects Content-Length Header-->
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/lists/batch-subscribe.{uri.var.format}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+         <header name="X-N" action="remove" scope="transport"/>
+        <header name="X-MailChimp-API-Error-Code" action="remove" scope="transport"/>
+
+    </sequence>
+</template>

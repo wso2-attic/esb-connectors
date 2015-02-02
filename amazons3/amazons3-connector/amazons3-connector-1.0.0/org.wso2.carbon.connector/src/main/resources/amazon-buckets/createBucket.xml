@@ -1,0 +1,85 @@
+<template name="createBucket" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="bucketUrl" description="Url of the bucket" />
+	<parameter name="bucketRegion" description="The region for created bucket" />
+
+	<sequence>
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+		<property name="uri.var.bucketRegion" expression="$func:bucketRegion" />
+		<property name="uri.var.uriRemainder" value="/" />
+
+		<!-- Authentication Header Setup -->
+		<class name="org.wso2.carbon.connector.amazons3.auth.AmazonS3AuthConnector" />
+
+		<filter
+			xpath="(string(get-property('date'))) and get-property('date') != ''">
+			<then>
+				<property name="Date" expression="get-property('date')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter
+			xpath="(string(get-property('isXAmzDateValue'))) and get-property('isXAmzDateValue') != ''">
+			<then>
+				<property name="x-amz-date" expression="get-property('isXAmzDateValue')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter
+			xpath="(string(get-property('authenticationCode'))) and get-property('authenticationCode') != ''">
+			<then>
+				<property name="Authorization" expression="get-property('authenticationCode')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter
+			xpath="(string(get-property('uri.var.bucketRegion'))) and get-property('uri.var.bucketRegion') != ''">
+			<then>
+				<payloadFactory media-type="xml">
+					<format>
+						<CreateBucketConfiguration
+							xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+							<LocationConstraint>$1</LocationConstraint>
+						</CreateBucketConfiguration>
+					</format>
+					<args>
+						<arg expression="get-property('uri.var.bucketRegion')" />
+					</args>
+				</payloadFactory>
+			</then>
+			<else>
+				<!-- Apply Default Bucket Region -->
+				<payloadFactory media-type="xml">
+					<format>
+						<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+							<soapenv:Header />
+							<soapenv:Body />
+						</soapenv:Envelope>
+					</format>
+					<args />
+				</payloadFactory>
+				<property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN" />
+			</else>
+		</filter>
+	
+		<call>
+			<endpoint>
+				<http method="put" uri-template="{uri.var.bucketUrl}{uri.var.uriRemainder}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="x-amz-date" scope="transport" action="remove" />
+		<header name="Authorization" scope="transport" action="remove" />
+		<header name="nnCoection" scope="transport" action="remove" />
+		<header name="x-amz-id-2" scope="transport" action="remove" />
+		<header name="x-amz-request-id" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" /> 
+		<header name="Via" scope="transport" action="remove" />
+
+	</sequence>
+
+</template>

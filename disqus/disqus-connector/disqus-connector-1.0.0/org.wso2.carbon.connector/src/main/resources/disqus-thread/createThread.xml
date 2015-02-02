@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="createThread" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="forumId" description="ID of the Disqus Forum to retrieve."/>
+    <parameter name="title" description="Title of the Thread to create."/>
+    <parameter name="categoryId" description="ID of the category to create the Thread in."/>
+    <parameter name="url" description="URL (defined by RFC 3986)"/>
+    <parameter name="date" description="Unix timestamp (or ISO datetime standard)"/>
+    <parameter name="message" description="Message to put in the created Thread."/>
+    <parameter name="identifier" description="An identifier. Maximum length of 300"/>
+    <parameter name="slug" description="Alpha-numeric slug"/>
+    <sequence>
+        <property name="uri.var.forumId" expression="$func:forumId"/>
+        <property name="uri.var.title" expression="$func:title"/>
+        <property name="uri.var.categoryId" expression="$func:categoryId"/>
+        <property name="uri.var.url" expression="$func:url"/>
+        <property name="uri.var.date" expression="$func:date"/>
+        <property name="uri.var.message" expression="$func:message"/>
+        <property name="uri.var.identifier" expression="$func:identifier"/>
+        <property name="uri.var.slug" expression="$func:slug"/>
+
+        <script language="js">
+            <![CDATA[                
+                var categoryId = mc.getProperty('uri.var.categoryId');
+                var date = mc.getProperty('uri.var.date');
+                var identifier = mc.getProperty('uri.var.identifier');
+                var message = mc.getProperty('uri.var.message');
+                var slug = mc.getProperty('uri.var.slug');
+                var url = mc.getProperty('uri.var.url');
+                var accessToken = mc.getProperty('uri.var.accessToken');
+                var apiKey = mc.getProperty('uri.var.apiKey');
+				var apiSecret = mc.getProperty('uri.var.apiSecret');
+                var forumId = mc.getProperty('uri.var.forumId');
+                var title = mc.getProperty('uri.var.title');                
+                var urlQuery = '';
+                
+				// Mandatory Query Parameters
+				
+                urlQuery += 'forum=' + forumId + '&';                
+                urlQuery += 'title=' + encodeURIComponent(title) + '&';     
+
+				// Optional Query Parameters	
+				
+				if (apiKey != null && apiKey != ""){
+                    urlQuery += 'api_key=' + apiKey + '&';
+                }
+				
+				if (apiSecret != null && apiSecret != ""){
+                    urlQuery += 'api_secret=' + apiSecret + '&';
+                }	
+				
+				if (accessToken != null && accessToken != ""){
+                    urlQuery += 'access_token=' + accessToken + '&';
+                }		
+                
+                if (categoryId != null && categoryId != ""){
+					urlQuery += 'category=' + categoryId + '&';
+                }
+                
+                if (date != null && date != ""){
+					urlQuery += 'date=' + encodeURIComponent(date) + '&'; 
+                }
+                
+                if (identifier != null && identifier != ""){
+					urlQuery += 'identifier=' + encodeURIComponent(identifier) + '&'; 
+                }
+                
+                if (message != null && message != ""){
+					urlQuery += 'message=' + encodeURIComponent(message) + '&'; 
+                }
+                
+                if (slug != null && slug != ""){
+					urlQuery += 'slug=' + encodeURIComponent(slug) + '&'; 
+                }
+                
+                if (url != null && url != ""){
+					urlQuery += 'url=' + encodeURIComponent(url) + '&';
+                }
+                
+                // Prefix the urlQuery with '?' and remove the trailing '&'
+                urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+				mc.setProperty('uri.var.urlQuery', urlQuery);                                              
+                
+				// This is done so as to send an EMPTY payload on the POST body.
+                mc.setPayloadJSON(new Object());
+            ]]>
+        </script>
+
+		<!--This is done to make sure that the POST body is sent entirely Empty (Not even {})-->
+		<property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+		
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/threads/create.json{uri.var.urlQuery}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="X-Ratelimit-Remaining" action="remove" scope="transport"/>
+        <header name="X-User" action="remove" scope="transport"/>
+        <header name="X-Ratelimit-Limit" action="remove" scope="transport"/>
+        <header name="X-Frame-Options" action="remove" scope="transport"/>
+        <header name="p3p" action="remove" scope="transport"/>
+        <header name="X-Ratelimit-Reset" action="remove" scope="transport"/>
+        <header name="X-Served-By" action="remove" scope="transport"/>
+        <header name="X-Cache" action="remove" scope="transport"/>
+        <header name="X-Cache-Hits" action="remove" scope="transport"/>
+        <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+        <header name="X-XSS-Protection" action="remove" scope="transport"/>
+        <header name="Via" action="remove" scope="transport"/>
+        <header name="X-Varnish" action="remove" scope="transport"/>
+
+    </sequence>
+</template>

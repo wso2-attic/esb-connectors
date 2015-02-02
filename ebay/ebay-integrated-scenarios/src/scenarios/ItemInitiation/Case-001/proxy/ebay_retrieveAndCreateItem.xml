@@ -1,0 +1,267 @@
+<?xml version="1.0" ?>
+<proxy name="ebay_retrieveAndCreateItem" startOnLoad="true" statistics="disable" trace="disable" transports="https,http" xmlns="http://ws.apache.org/ns/synapse">
+    <target>
+        <inSequence onError="faultHandlerSeq">
+
+            <property name="tradegeckoApiUrl" expression="json-eval($.tradegeckoApiUrl)" />
+            <property name="tradegeckoAccessToken" expression="json-eval($.tradegeckoAccessToken)" />
+
+            <property name="ebayApiUrl" expression="json-eval($.ebayApiUrl)" />
+            <property name="ebayAppId" expression="json-eval($.ebayAppId)" />
+            <property name="ebayVersion" expression="json-eval($.ebayVersion)" />
+            <property name="ebayRouting" expression="json-eval($.ebayRouting)" />
+            <property name="ebaySiteId" expression="json-eval($.ebaySiteId)" />
+            <property name="ebayAuthToken" expression="json-eval($.ebayAuthToken)" />
+            <property name="ebayMessageId" expression="json-eval($.ebayMessageId)" />
+            <property name="ebayErrorLanguage" expression="json-eval($.ebayErrorLanguage)" />
+            <property name="ebayWarningLevel" expression="json-eval($.ebayWarningLevel)" />
+
+            <property name="productCount" expression="count(//items/data)" scope="operation" />
+			<property name="responseString" value="" scope="operation"/>
+            <property name="productIndex" value="0"  scope="operation" /> 
+
+           
+			<!--FOR EACH Product : BEGIN-->
+
+             <iterate continueParent="true" id="variants" expression="//items/data" sequential="true">
+                <target>
+                  <sequence>
+                    <property name="variantId" expression="//data/tradegeckoVariantId/text()" />
+                    
+                    <property name="ebayCategoryId" expression="//data/ebayProductDetails/categoryId/text()" />
+                    <property name="ebayConditionId" expression="//data/ebayProductDetails/conditionId/text()" />
+                    <property name="ebayCountry" expression="//data/ebayProductDetails/country/text()" />
+                    <property name="ebayCurrency" expression="//data/ebayProductDetails/currency/text()" />
+                    <property name="ebayPictureUrlBackup" expression="//data/ebayProductDetails/pictureUrl/text()" />
+                    <property name="ebayListingDuration" expression="//data/ebayProductDetails/listingDuration/text()" />
+                    <property name="ebayListingType" expression="//data/ebayProductDetails/listingType/text()" />
+                    <property name="ebayPaymentMethods" expression="//data/ebayProductDetails/paymentMethods/text()" />
+                    <property name="ebayPaypalEmailAddress" expression="//data/ebayProductDetails/paypalEmailAddress/text()" />
+                    <property name="ebayPostalCode" expression="//data/ebayProductDetails/postalCode/text()" />
+                    <property name="ebayReturnsAcceptedOption" expression="//data/ebayProductDetails/returnsAcceptedOption/text()" />
+                    <property name="ebayRefundOption" expression="//data/ebayProductDetails/refundOption/text()" />
+                    <property name="ebayReturnsDescription" expression="//data/ebayProductDetails/returnsDescription/text()" />
+                    <property name="ebayReturnsWithinOption" expression="//data/ebayProductDetails/returnsWithinOption/text()" />
+                    <property name="ebayShippingCostPaidByOption" expression="//data/ebayProductDetails/shippingCostPaidByOption/text()" />
+                    <property name="ebayShippingType" expression="//data/ebayProductDetails/shippingType/text()" />
+                    <property name="ebayShippingServicePriority" expression="//data/ebayProductDetails/shippingServicePriority/text()" />
+                    <property name="ebayShippingService" expression="//data/ebayProductDetails/shippingService/text()" />
+                    <property name="ebayShippingServiceCost" expression="//data/ebayProductDetails/shippingServiceCost/text()" />
+                    <property name="ebaySite" expression="//data/ebayProductDetails/site/text()" />
+					<property name="ebayDispatchTimeMax" expression="//data/ebayProductDetails/dispatchTimeMax/text()" />
+ 
+					<property name="id" expression="fn:concat('variant_id:',get-property('variantId'))" />
+					<filter  source="boolean(get-property('variantId'))" regex="false">
+                        <then>
+                            
+							<property name="status" value="Error" />
+							<property name="message" value="Please provide TreadeGecko Variant Id." />
+			
+							
+                        </then>
+						<else>
+                    
+							<tradegecko.init>
+							  <apiUrl>{$ctx:tradegeckoApiUrl}</apiUrl>
+							  <accessToken>{$ctx:tradegeckoAccessToken}</accessToken>
+							</tradegecko.init>
+							<tradegecko.getProduct>
+								<id>{$ctx:variantId}</id>
+								<getProductBy>variantId</getProductBy>
+							</tradegecko.getProduct>
+							
+							<!-- remove TreadeGecko Response Headers -->
+							<sequence key="tradegecko-removeResponseHeaders" />
+							
+							<property  name="variantDetails" expression="json-eval($.variant)"/>
+							
+							<!-- if variant details are not available at TreadGecko -->
+							<filter  source="boolean(get-property('variantDetails'))" regex="false">
+								<then>
+									<filter source="$axis2:HTTP_SC" regex="401">
+										<then>
+											<property name="status" value="Error" />
+											<property name="message" value="Invalid access token."  />
+										</then>
+										<else>
+											<property name="status" value="Error" />
+											<property name="message" expression="json-eval($.)"  />
+										</else>
+									</filter>
+									
+								</then>
+								<else>
+
+									<property name="tradegeckoProductId" expression="json-eval($.variant.product_id)" />
+									<property name="ebayTitle" expression="json-eval($.variant.name)" />
+									<property name="ebayDescription" expression="json-eval($.variant.description)" />
+									<property name="ebayQuantity" expression="json-eval($.variant.stock_on_hand)" />
+									<property name="ebayStartPrice" expression="json-eval($.variant.retail_price)" />
+									
+									
+									<script language="js">
+									<![CDATA[     
+										var jsonPayload=mc.getPayloadJSON();
+										var optVal={};
+										optVal['opt1'] = jsonPayload.variant.opt1;
+										optVal['opt2'] = jsonPayload.variant.opt2;
+										optVal['opt3'] = jsonPayload.variant.opt3;
+										
+										mc.setProperty('optVal',optVal);
+											
+									]]>
+									</script>
+									<tradegecko.init>
+										<apiUrl>{$ctx:tradegeckoApiUrl}</apiUrl>
+										<accessToken>{$ctx:tradegeckoAccessToken}</accessToken>
+									</tradegecko.init>
+									<tradegecko.getProduct>
+										<id>{$ctx:tradegeckoProductId}</id>
+										<getProductBy>productid</getProductBy>
+									</tradegecko.getProduct>
+									
+									<!-- remove TreadeGecko Response Headers -->
+									<sequence key="tradegecko-removeResponseHeaders" />
+									
+									<script language="js">
+									<![CDATA[     
+										var jsonPayload=mc.getPayloadJSON();
+										var optVal=mc.getProperty('optVal');
+										var nameValueList = "";
+										
+										var opt={};
+										opt['opt1'] = jsonPayload.product.opt1;
+										opt['opt2'] = jsonPayload.product.opt2;
+										opt['opt3'] = jsonPayload.product.opt3;
+										
+										for (var key in opt) {
+											var optName=opt[key];
+											var optValue=optVal[key];
+											if(optName != null && optName !='' && optValue != null && optValue !=''){
+												
+												nameValueList +="<ebl:NameValueList xmlns:ebl='urn:ebay:apis:eBLBaseComponents'><ebl:Name>"+optName+"</ebl:Name><ebl:Value>"+optValue+"</ebl:Value></ebl:NameValueList>";
+											}
+										}
+										
+										var keyListString="abcdef0123456789";
+										var uuidString="";
+											for (var i = 0; i < 32; i++) {
+												var randomnumber = Math.floor((Math.random() * keyListString.length));
+            	
+												uuidString= uuidString+ keyListString[randomnumber];
+											}
+										
+										mc.setProperty('ebayUuid',uuidString);
+										mc.setProperty('itemSpecifics',nameValueList);
+											
+									]]>
+									</script>
+									
+									<!-- remove TreadeGecko Response Headers -->
+									<sequence key="tradegecko-removeResponseHeaders" />
+									
+									<property name="ebayPictureUrl" expression="json-eval($.product.image_url)" />
+									
+									<filter xpath="get-property('ebayPictureUrl')!='null'">
+										<then>
+											<property name="ebayPictureUrl" expression="fn:concat('http://',fn:substring-after(get-property('ebayPictureUrl'),'https://'))" />
+										</then>
+									  <else>
+										<property name="ebayPictureUrl" expression="get-property('ebayPictureUrlBackup')" />
+									  </else>
+									</filter>
+									
+									
+									
+									<call-template target="ebay-addItemToeBay">
+									   <!-- parameter values will be passed on to a sequence template -->
+									   (
+									   <with-param name="apiUrl" value="{$ctx:ebayApiUrl}" /> |
+									   <with-param name="appId" value="{$ctx:ebayAppId}" /> |
+									   <with-param name="version" value="{$ctx:ebayVersion}" /> |
+									   <with-param name="routing" value="{$ctx:ebayRouting}" /> |
+									   <with-param name="siteId" value="{$ctx:ebaySiteId}" /> |
+									   <with-param name="authToken" value="{$ctx:ebayAuthToken}" /> |
+									   <with-param name="messageId" value="{$ctx:ebayMessageId}" /> |
+									   <with-param name="errorLanguage" value="{$ctx:ebayErrorLanguage}" /> |
+									   <with-param name="warningLevel" value="{$ctx:ebayWarningLevel}" /> |
+
+									   <with-param name="title" value="{$ctx:ebayTitle}" /> |
+									   <with-param name="description" value="{$ctx:ebayDescription}" /> |
+									   <with-param name="categoryID" value="{$ctx:ebayCategoryId}" /> |
+									   <with-param name="startPrice" value="{$ctx:ebayStartPrice}" /> |
+									   <with-param name="conditionId" value="{$ctx:ebayConditionId}" /> |
+									   <with-param name="country" value="{$ctx:ebayCountry}" /> |
+									   <with-param name="currency" value="{$ctx:ebayCurrency}" /> |
+									   <with-param name="listingDuration" value="{$ctx:ebayListingDuration}" /> |
+									   <with-param name="listingType" value="{$ctx:ebayListingType}" /> |
+									   <with-param name="paymentMethods" value="{$ctx:ebayPaymentMethods}" /> |
+									   <with-param name="paypalEmailAddress" value="{$ctx:ebayPaypalEmailAddress}" /> |
+									   <with-param name="pictureUrl" value="{$ctx:ebayPictureUrl}" /> |
+									   <with-param name="postalCode" value="{$ctx:ebayPostalCode}" /> |
+									   <with-param name="quantity" value="{$ctx:ebayQuantity}" /> |
+									   <with-param name="returnsAcceptedOption" value="{$ctx:ebayReturnsAcceptedOption}" /> |
+									   <with-param name="refundOption" value="{$ctx:ebayRefundOption}" /> |
+									   <with-param name="returnsDescription" value="{$ctx:ebayReturnsDescription}" /> |
+									   <with-param name="returnsWithinOption" value="{$ctx:ebayReturnsWithinOption}" /> |
+									   <with-param name="shippingCostPaidByOption" value="{$ctx:ebayShippingCostPaidByOption}" /> |
+									   <with-param name="shippingType" value="{$ctx:ebayShippingType}" /> |
+									   <with-param name="shippingServicePriority" value="{$ctx:ebayShippingServicePriority}" /> |
+									   <with-param name="shippingService" value="{$ctx:ebayShippingService}" /> |
+									   <with-param name="shippingServiceCost" value="{$ctx:ebayShippingServiceCost}" /> |
+									   <with-param name="site" value="{$ctx:ebaySite}" /> |
+									   <with-param name="uuid" value="{$ctx:ebayUuid}" /> |
+									   <with-param name="dispatchTimeMax" value="{$ctx:ebayDispatchTimeMax}" /> |
+									   <with-param name="itemSpecifics" value="{$ctx:itemSpecifics}" /> |
+
+									   ) *
+									</call-template>
+							
+				
+								
+								</else>
+							
+							</filter>
+						</else>
+					</filter>
+					<!-- Call to responseHandlerTemplate after each iteration --> 
+					<call-template target="responseHandlerTemplate">
+							<with-param name="id" value="{$ctx:id}" />
+							<with-param name="status" value="{$ctx:status}" />
+							<with-param name="message" value="{$ctx:message}" />
+					</call-template>
+                    <property name="productIndex" expression="get-property('operation','productIndex') + 1" scope="operation" />
+                   
+                  </sequence>
+                </target>
+            </iterate>
+         
+			<filter xpath="get-property('operation','productCount') = get-property('operation','productIndex')">
+				<then>
+					<loopback />
+				</then>
+			</filter>
+        </inSequence>
+        <outSequence>
+          <property name="messageType" value="application/json" scope="axis2"/>
+         
+        
+		<payloadFactory media-type="json">
+            <format>
+				{
+				"Response":{
+					"process":"ebay_retrieveAndCreateItem",
+					"activityResponse":[$1]
+				}
+				}
+			</format>
+            <args>
+				
+                <arg evaluator="xml" expression="get-property('operation', 'responseString')"/>
+            </args>
+        </payloadFactory>
+		
+        <send/>
+        </outSequence>
+    </target>
+</proxy>

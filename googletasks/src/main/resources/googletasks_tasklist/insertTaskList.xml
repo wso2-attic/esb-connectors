@@ -1,0 +1,33 @@
+<template xmlns="http://ws.apache.org/ns/synapse" name="insertTaskList">
+
+	<parameter name="title" description="Title of the new task list." />
+
+	<sequence>
+		<property name="messageType" value="application/json" scope="axis2" />
+
+		<header name="Content-Type" value="application/json" scope="transport" />
+
+		<!-- JSON payload that contains required arguments for the Tasklists: insert -->
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"title": "$1"
+				}
+			</format>
+			<args>
+				<arg evaluator="xml" expression="$func:title" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="https://www.googleapis.com/tasks/v1/users/@me/lists" />
+			</endpoint>
+		</call>
+		<!-- Remove response custom header information -->
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+	</sequence>
+</template>

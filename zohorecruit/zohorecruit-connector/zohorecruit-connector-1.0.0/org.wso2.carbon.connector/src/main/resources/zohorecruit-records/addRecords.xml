@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="addRecords" xmlns="http://ws.apache.org/ns/synapse">
+		<parameter name="module" description="The module specifies the which section entries should be added. e.g. JobOpenings, Candidates, Clients, ClientContacts." />
+		<parameter name="xmlData" description="The data to be used when create a record in JobOpenings, Candidates, Clients and ClientContacts." />
+		<parameter name="duplicateCheck" description="The duplicateCheck is used to confirm, whether the record exists or not. e.g. value '1' for error and '2' for update." />
+		<parameter name="emailAlert" description="The emailAlert flag is used to trigger, whether an email should be send or not on record insertion." />
+
+		<sequence>
+			<property name="uri.var.module" expression="$func:module" />
+			<property name="uri.var.xmlData" expression="$func:xmlData" />
+			<property name="uri.var.duplicateCheck" expression="$func:duplicateCheck" />
+			<property name="uri.var.emailAlert" expression="$func:emailAlert" />
+				
+			<payloadFactory media-type="json">
+				<format>
+					{
+						"authtoken": "$1",
+						"scope":     "$2"
+					}
+				</format>
+				<args>
+					<arg expression="get-property('uri.var.authToken')" />
+					<arg expression="get-property('uri.var.scope')" />
+				</args>
+			</payloadFactory>	
+	
+	
+			<script language="js">
+	                   <![CDATA[
+	                    
+	        	//initializing the payload
+	        	var payload = mc.getPayloadJSON();
+	        	
+	        	// initializing the variables    
+				var xmlData = mc.getProperty('uri.var.xmlData');
+	        	
+	            // initialzing the optional parameters
+				var duplicateCheck = mc.getProperty("uri.var.duplicateCheck");
+				var emailAlert = mc.getProperty("uri.var.emailAlert");
+				
+				// adding the optional parameters to the payload
+				if (duplicateCheck != null && duplicateCheck != "") {
+					payload.duplicateCheck = duplicateCheck;
+				}
+				
+				if (emailAlert != null && emailAlert != "") {
+					payload.emailAlert = emailAlert;
+				}
+	        
+	        	// replacing the double quotes with single quotes in order to save the payload. 
+	        	xmlData = xmlData.replace("\"", "'");
+	        
+	        	payload.xmlData = xmlData;
+	        	mc.setPayloadJSON(payload); 
+	                    ]]>
+
+			</script>
+		
+		    <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+		
+			<call>
+				<endpoint>
+					<http method="post" uri-template="{uri.var.apiUrl}/ats/private/{uri.var.responseFormat}/{uri.var.module}/addRecords" />
+				</endpoint>
+			</call>
+			
+			<!-- Removing custom headers -->
+			<header name="Strict-Transport-Security" action="remove" scope="transport" />
+			<header name="X-XSS-Protection" action="remove" scope="transport" />
+			<header name="X-Content-Type-Options" action="remove" scope="transport" />
+			<header name="Pragma" action="remove" scope="transport" />
+			<header name="Cache-Control" action="remove" scope="transport" />		
+		</sequence>
+</template>

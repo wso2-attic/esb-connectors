@@ -1,0 +1,59 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="apiUser" description="The username for the magento web service API." />
+	<parameter name="apiKey" description="The API key associated with the username." />
+	<parameter name="apiUrl" descriptin="URL of the Magento SOAP API." />
+
+	<sequence>
+		<property name="uri.var.apiUser" expression="$func:apiUser" />
+		<property name="uri.var.apiKey" expression="$func:apiKey" />
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+					xmlns:urn="urn:Magento">
+					<soapenv:Header />
+					<soapenv:Body>
+						<urn:login soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+							<username xsi:type="xsd:string">$1</username>
+							<apiKey xsi:type="xsd:string">$2</apiKey>
+						</urn:login>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.apiUser')" />
+				<arg expression="get-property('uri.var.apiKey')" />
+			</args>
+		</payloadFactory>
+
+		<header name="To" expression="get-property('uri.var.apiUrl')" />
+		<header name="Action" value="urn:Mage_Api_Model_Server_V2_HandlerAction" />
+
+		<property name="FORCE_ERROR_ON_SOAP_FAULT" value="true" />
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Content-Encoding" scope="transport" action="remove" />
+		
+		 <property expression="//loginReturn/text()" name="uri.var.sessionId" type="STRING" />
+		
+		<header name="Accept-Encoding" value="gzip,deflate" scope="transport"/>
+		<header name="To" expression="get-property('uri.var.apiUrl')" />
+		<header name="Action" value="urn:Mage_Api_Model_Server_V2_HandlerAction" />
+		
+		<property name="FORCE_ERROR_ON_SOAP_FAULT" value="false" />
+
+		
+
+	</sequence>
+</template>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="createEmployee" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="companyId" description="The ID of the company." />
+	<parameter name="firstName" description="The first name of the employee." />
+	<parameter name="lastName" description="The last name of the employee." />
+	<parameter name="email" description="The email address of the employee." />
+	<parameter name="roleId" description="The role ID of the employee." />
+	<parameter name="dateOfBirth" description="The date of birth of the employee." />
+	<parameter name="mobilePhone" description="The mobile phone number." />
+	
+	<sequence>
+		<property name="uri.var.companyId" expression="$func:companyId" />
+		<property name="uri.var.firstName" expression="$func:firstName" />
+		<property name="uri.var.lastName" expression="$func:lastName" />
+		<property name="uri.var.email" expression="$func:email" />
+		<property name="uri.var.roleId" expression="$func:roleId" />
+		<property name="uri.var.dateOfBirth" expression="$func:dateOfBirth" />
+		<property name="uri.var.mobilePhone" expression="$func:mobilePhone" />
+		
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"intCompanyId": "$1",
+					"strFirstName": "$2",
+					"strLastName": "$3"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.companyId')" />
+				<arg expression="get-property('uri.var.firstName')" />
+				<arg expression="get-property('uri.var.lastName')" />
+			</args>
+		</payloadFactory>
+		
+		<script language="js">
+        	<![CDATA[
+                    
+	            // Set optional parameters
+	            var payload = mc.getPayloadJSON();
+	                
+	            var strEmail = mc.getProperty('uri.var.email');
+	            var intRoleId = mc.getProperty('uri.var.roleId');
+	            var strDob = mc.getProperty('uri.var.dateOfBirth');
+	            var strMobilePhone = mc.getProperty('uri.var.mobilePhone');
+	                            
+                if (strEmail != null && strEmail != "") {
+                       payload.strEmail = strEmail; 
+                }
+                
+                if (intRoleId != null && intRoleId != "") {
+                       payload.intRoleId = intRoleId; 
+                }
+                
+                if (strDob != null && strDob != "") {
+                       payload.strDob = strDob; 
+                }
+                
+                if (strMobilePhone != null && strMobilePhone != "") {
+                       payload.strMobilePhone = strMobilePhone; 
+                }
+
+	            mc.setPayloadJSON(payload); 
+                      
+        	]]>
+		</script>
+		
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/addemployee" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove custom header information in response -->
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Server-UnixTime" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+		
+	</sequence>
+</template>

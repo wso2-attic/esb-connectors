@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="queryObject" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="objectName" description="The name of the object type." />
+	<parameter name="query" description="The Query string for the retrieval." />
+
+	<sequence>
+		<property name="uri.var.objectName" expression="$func:objectName" />
+		<property name="uri.var.query" expression="$func:query" />
+
+		<script language="js">
+        	<![CDATA[
+        	
+        		var query = mc.getProperty("uri.var.query");
+        		   
+	            // Set the entire payload
+	            payload = mc.getPayloadJSON();
+	             
+	            if (query != null && query != "") {
+	            
+	            	try {
+	            		payload = eval("("+ query +")");
+	            	} catch (err) {
+	            		payload = eval("({})");
+	            	}
+                } else {
+                	payload = eval("({})");
+                }
+                
+                mc.setPayloadJSON(payload); 
+                      
+        	]]>
+		</script>
+		
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/resource/{uri.var.objectName}/QUERY" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Server-UnixTime" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>

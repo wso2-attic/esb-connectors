@@ -1,0 +1,73 @@
+<template name="getSearchRecords" xmlns="http://ws.apache.org/ns/synapse">
+  <parameter name="newFormat" description="The newFormat, an integer determine weather null valus should be excluded(1) or included(2)"/>
+  <parameter name="selectColumns" description="Coloumns selected"/>
+  <parameter name="fromIndex" description="From Which index"/>
+  <parameter name="toIndex" description="Until which index"/>
+  <parameter name="moduleType" description="The type of the module"/>
+  <parameter name="searchCondition" description="The search Condition"/>
+  <parameter name="version" description="The API version"/>
+  <sequence>
+    <property name="uri.var.newFormat" expression="$func:newFormat"/>
+    <property name="uri.var.selectColumns" expression="$func:selectColumns"/>
+    <property name="uri.var.fromIndex" expression="$func:fromIndex"/>
+    <property name="uri.var.toIndex" expression="$func:toIndex"/>
+    <property name="uri.var.moduleType" expression="$func:moduleType"/>
+    <property name="uri.var.searchCondition" expression="$func:searchCondition"/>
+    <property name="uri.var.version" expression="$func:version"/>
+    
+    
+  <script language="js">
+			<![CDATA[ 
+			
+				// Generate url with parameters
+				var version = mc.getProperty('uri.var.version');
+				var searchCondition = mc.getProperty('uri.var.searchCondition');
+				var newFormat = mc.getProperty('uri.var.newFormat');
+				var selectColumns = mc.getProperty('uri.var.selectColumns');
+				var fromIndex = mc.getProperty('uri.var.fromIndex');
+				var toIndex = mc.getProperty('uri.var.toIndex');
+				var urlQuery = mc.getProperty('uri.var.urlQuery');
+				var moduleType = mc.getProperty('uri.var.moduleType');
+				
+				//Append mandatory url parameters
+				urlQuery += 'selectColumns=' + encodeURIComponent(selectColumns) + '&';
+				urlQuery += 'searchCondition=' + encodeURIComponent(searchCondition) + '&';
+				
+				//Append optional url parameters
+				
+				if(newFormat != null && newFormat != "") {
+					urlQuery += 'newFormat=' + newFormat + '&';
+				}
+				
+				if(toIndex != null && toIndex != "") {
+					urlQuery += 'toIndex=' + toIndex + '&';
+				}
+
+				if(fromIndex != null && fromIndex != "") {
+					urlQuery += 'fromIndex=' + fromIndex + '&';
+				}
+				
+				if(version != null && version != "") {
+					urlQuery += 'version=' + version + '&';
+				}
+						
+				urlQuery = '/' + encodeURIComponent(moduleType) + '/getSearchRecords?' + urlQuery.substring(0, urlQuery.length-1);
+				mc.setProperty('uri.var.urlQuery', urlQuery);
+							
+			]]></script>
+    <call>
+      <endpoint>
+        <http method="get" uri-template="{uri.var.apiUrl}/crm/private/json{uri.var.urlQuery}"/>
+      </endpoint>
+    </call>
+    
+    <!-- Removing custom headers -->
+     <header name="Strict-Transport-Security" action="remove" scope="transport"/>
+     <header name="X-XSS-Protection" action="remove" scope="transport"/>
+     <header name="X-Download-Options" action="remove" scope="transport"/>
+     <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+     <header name="Pragma" action="remove" scope="transport"/>
+     <header name="Cache-Control" action="remove" scope="transport"/>
+    
+  </sequence>
+</template>

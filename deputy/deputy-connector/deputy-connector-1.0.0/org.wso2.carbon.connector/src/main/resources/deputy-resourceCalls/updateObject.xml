@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="updateObject" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="objectName" description="The name of the object type." />
+	<parameter name="objectId" description="The ID of the object." />
+	<parameter name="object" description="The object details to be updated." />
+
+	<sequence>
+		<property name="uri.var.objectName" expression="$func:objectName" />
+		<property name="uri.var.objectId" expression="$func:objectId" />
+		<property name="uri.var.object" expression="$func:object" />
+
+		<script language="js">
+        	<![CDATA[
+        	
+        		var object = mc.getProperty("uri.var.object");
+        		   
+	            // Set the entire payload
+	            payload = mc.getPayloadJSON();
+	             
+	            if (object != null && object != "") {
+	            
+	            	try {
+	            		payload = eval("("+ object +")");
+	            	} catch (err) {
+	            		payload = eval("({})");
+	            	}
+                } else {
+                	payload = eval("({})");
+                }
+                
+                mc.setPayloadJSON(payload); 
+                      
+        	]]>
+		</script>
+		
+		<call>
+			<endpoint>
+				<http method="put" uri-template="{uri.var.apiUrl}/resource/{uri.var.objectName}/{uri.var.objectId}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Server-UnixTime" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>

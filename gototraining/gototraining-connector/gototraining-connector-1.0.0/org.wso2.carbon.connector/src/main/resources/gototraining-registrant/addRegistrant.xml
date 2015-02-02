@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="addRegistrant" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="email" description="Email of registrant."/>
+    <parameter name="givenName" description="First name of user."/>
+    <parameter name="surname" description="Last name of user."/>
+    <parameter name="trainingKey" description="Key of the training to add the registrant to."/>
+    <sequence>
+        <property name="uri.var.email" expression="$func:email"/>
+        <property name="uri.var.givenName" expression="$func:givenName"/>
+        <property name="uri.var.surname" expression="$func:surname"/>
+        <property name="uri.var.trainingKey" expression="$func:trainingKey"/>
+
+        <payloadFactory media-type="json">
+            <format>
+                {
+                    "email": "$1",
+                    "surname": "$2",
+                    "givenName": "$3"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.email')"/>
+                <arg expression="get-property('uri.var.surname')"/>
+                <arg expression="get-property('uri.var.givenName')"/>
+            </args>
+        </payloadFactory>
+
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/organizers/{uri.var.organizerKey}/trainings/{uri.var.trainingKey}/registrants"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="Access-Control-Allow-Headers" action="remove" scope="transport"/>
+        <header name="Access-Control-Allow-Methods" action="remove" scope="transport"/>
+        <header name="Access-Control-Allow-Origin" action="remove" scope="transport"/>
+        <header name="Access-Control-Max-Age" action="remove" scope="transport"/>
+
+    </sequence>
+</template>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="updateRecords" xmlns="http://ws.apache.org/ns/synapse">		
+		<parameter name="module" description="The module specifies the which section entries should be added. e.g. JobOpenings, Candidates, Clients, ClientContacts." />
+		<parameter name="id" description="The record id to update a record." />
+		<parameter name="xmlData" description="The data to be used when updating a record in JobOpenings, Candidates, Clients and ClientContacts." />
+
+		<sequence>
+			<property name="uri.var.module" expression="$func:module" />
+			<property name="uri.var.id" expression="$func:id" />
+			<property name="uri.var.xmlData" expression="$func:xmlData" />
+			
+			<payloadFactory media-type="json">
+				<format>
+					{
+						"authtoken": "$1",
+						"scope":     "$2"
+					}
+				</format>
+				<args>
+					<arg expression="get-property('uri.var.authToken')" />
+					<arg expression="get-property('uri.var.scope')" />
+				</args>
+			</payloadFactory>	
+	
+	
+			<script language="js">
+	            <![CDATA[
+	                    
+	        		//initializing the payload
+	        		var payload = mc.getPayloadJSON();
+	        	
+	        		// initializing the variables
+	        		var id = mc.getProperty('uri.var.id');    
+					var xmlData = mc.getProperty('uri.var.xmlData');
+	        
+	        		// replacing the double quotes with single quotes in order to save the payload. 
+	        		xmlData = xmlData.replace("\"", "'");
+	        
+	        		payload.id = id;
+	        		payload.xmlData = xmlData;
+	        		mc.setPayloadJSON(payload); 
+	            ]]>
+
+			</script>
+		
+		    <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+		
+			<call>
+				<endpoint>
+					<http method="post" uri-template="{uri.var.apiUrl}/ats/private/{uri.var.responseFormat}/{uri.var.module}/updateRecords" />
+				</endpoint>
+			</call>
+			
+			<!-- Removing custom headers -->
+			<header name="Strict-Transport-Security" action="remove" scope="transport" />
+			<header name="X-XSS-Protection" action="remove" scope="transport" />
+			<header name="X-Content-Type-Options" action="remove" scope="transport" />
+			<header name="Pragma" action="remove" scope="transport" />
+			<header name="Cache-Control" action="remove" scope="transport" />
+	</sequence>
+</template>

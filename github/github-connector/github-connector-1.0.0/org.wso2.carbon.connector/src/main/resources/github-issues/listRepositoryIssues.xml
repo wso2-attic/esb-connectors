@@ -1,0 +1,122 @@
+<template name="listRepositoryIssues" xmlns="http://ws.apache.org/ns/synapse">
+
+  <parameter name="owner" description="The name of the owner of the repository."/>
+  <parameter name="repo" description="The name of the repository."/>
+  <parameter name="milestone" description="The milestone number.Integer or none or * values are accepted."/>
+  <parameter name="state" description="the state of the issues to return."/>
+  <parameter name="assignee" description="Name of the user.A valid username or none or * values are accepted."/>
+  <parameter name="creator" description="The user that created the issue."/>
+  <parameter name="mentioned" description="A user that’s mentioned in the issue."/>
+  <parameter name="labels" description="A list of comma separated label names."/>
+  <parameter name="sort" description="What to sort results by. Can be either created, updated, comments."/>
+  <parameter name="direction" description="The direction of the sort. Can be either asc or desc."/>
+  <parameter name="since" description="Only issues updated at or after this time are returned.Follow ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ."/>
+
+  <sequence>
+
+    <property name="uri.var.owner" expression="$func:owner"/>
+    <property name="uri.var.repo" expression="$func:repo"/>
+    <property name="uri.var.milestone" expression="$func:milestone"/>
+    <property name="uri.var.state" expression="$func:state"/>
+    <property name="uri.var.assignee" expression="$func:assignee"/>
+    <property name="uri.var.creator" expression="$func:creator"/>
+    <property name="uri.var.mentioned" expression="$func:mentioned"/>
+    <property name="uri.var.labels" expression="$func:labels"/>
+    <property name="uri.var.sort" expression="$func:sort"/>
+    <property name="uri.var.direction" expression="$func:direction"/>
+    <property name="uri.var.since" expression="$func:since"/>
+    <property name="uri.var.urlQuery" value="" />
+    <script language="js">
+        <![CDATA[                    
+               
+                var milestone = mc.getProperty("uri.var.milestone");
+                var state = mc.getProperty("uri.var.state"); 
+                var assignee = mc.getProperty("uri.var.assignee");
+                var creator = mc.getProperty("uri.var.creator"); 
+                var mentioned = mc.getProperty("uri.var.mentioned"); 
+                var labels = mc.getProperty("uri.var.labels"); 
+                var sort = mc.getProperty("uri.var.sort"); 
+                var direction = mc.getProperty("uri.var.direction"); 
+                var since = mc.getProperty("uri.var.since"); 
+                
+                var urlQuery = "";
+                               
+                  // constructing the optional url parameters 
+                  // milestone must be a number of a milestone or '*' or 'none' thus url encoding is not required                                                                                                                                                    
+                  if (milestone!=null && milestone!= ""){
+                     urlQuery+='milestone='+ milestone +'&';
+                  }
+                  
+                  //state should be 'open', 'closed' or 'all' thus url encoding is not required
+                  if (state!=null && state!= ""){
+                     urlQuery+='state=' + state + '&';
+                  }
+                  
+                  //must be a valid username, '*' or 'none' thus url encoding is not required
+                  if (assignee!=null && assignee!= ""){
+                     urlQuery+='assignee='+ assignee +'&';
+                  }
+                  
+                  //must be the username of the user who created the issue thus url encoding is not required
+                  if (creator!=null && creator!= ""){
+                     urlQuery+='creator='+ creator +'&';
+                  }
+                  
+                  //must be a username that is mentioend in the issue thus url encoding is not required
+                  if (mentioned!=null && mentioned!= ""){
+                     urlQuery+='mentioned='+ mentioned +'&';
+                  }
+                  
+                  //A list of comma separated label names. may include special characters to url encode
+                  if (labels!=null && labels!= ""){
+                     urlQuery+='labels='+ encodeURIComponent(labels) +'&';
+                  }
+                  
+                  //can be either 'created','updated','comments' thus url encoding is not required
+                  if (sort!=null && sort!= ""){
+                     urlQuery+='sort='+ sort +'&';
+                  }                  
+	               
+	              //Can be either 'asc' or 'desc' thus url encoding is not required  
+                  if (direction!=null && direction!= ""){
+                     urlQuery+='direction='+ direction +'&';
+                  }   
+                  
+                  //This is a timestamp in ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ thus url encoding is not required
+                  if (since!=null && since!= ""){
+                     urlQuery+='since='+ since +'&';
+                  }  
+                  	                                
+				  if(urlQuery!=""){
+				     urlQuery = '?' + urlQuery.substring(0,urlQuery.length-1);
+				  }
+				
+				  mc.setProperty('uri.var.urlQuery', urlQuery);		            	                                                                                                                                                                                            
+               ]]>
+    </script>
+
+    <call>
+      <endpoint>
+        <http method="get" uri-template="{uri.var.apiUrl}/repos/{uri.var.owner}/{uri.var.repo}/issues{uri.var.urlQuery}"/>
+      </endpoint>
+    </call>
+    
+    <!-- Remove response custom header information -->
+ 	<header name="Access-Control-Expose-Headers" scope="transport" action="remove" />
+    <header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+    <header name="X-XSS-Protection" scope="transport" action="remove" />
+    <header name="X-RateLimit-Reset" scope="transport" action="remove" />
+    <header name="X-GitHub-Request-Id" scope="transport" action="remove" />
+    <header name="X-Content-Type-Options" scope="transport" action="remove" />
+    <header name="X-Frame-Options" scope="transport" action="remove" />
+    <header name="X-OAuth-Scopes" scope="transport" action="remove" />
+    <header name="X-Accepted-OAuth-Scopes" scope="transport" action="remove" />
+    <header name="X-GitHub-Media-Type" scope="transport" action="remove" />
+    <header name="X-Served-By" scope="transport" action="remove" />
+    <header name="X-RateLimit-Limit" scope="transport" action="remove" />
+    <header name="Vary" scope="transport" action="remove" />
+    <header name="Access-Control-Allow-Credentials" scope="transport" action="remove" />
+	<header name="Content-Security-Policy" scope="transport" action="remove" />    
+    
+  </sequence>
+</template>

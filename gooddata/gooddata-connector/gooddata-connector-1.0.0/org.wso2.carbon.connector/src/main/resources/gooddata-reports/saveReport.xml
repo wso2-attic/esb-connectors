@@ -1,0 +1,59 @@
+<template name="saveReport" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="projectId" description="The project identifier to save the report to" />
+	<parameter name="content" description="The content, an object containing the domains and definitions" />
+	<parameter name="meta" description="The meta, an object containing the meta data of the report to be saved" />
+	<sequence>
+		<property name="uri.var.projectId" expression="$func:projectId" />
+		<property name="uri.var.content" expression="$func:content" />
+		<property name="uri.var.meta" expression="$func:meta" />
+
+		<!-- Building request payload with mandatory params -->
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"report":{ "meta": $1 }
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.meta')" />
+			</args>
+		</payloadFactory>
+
+		<script language="js">
+        	<![CDATA[
+        				        
+		        //request body param variables
+				var content = mc.getProperty("uri.var.content");
+				
+				if (content != null && content != "") {
+					var payload = mc.getPayloadJSON();
+					payload.report.content = eval("(" + content + ")");
+					mc.setPayloadJSON(payload);
+				}
+																		
+			]]>
+		</script>
+
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+		
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/gdc/md/{uri.var.projectId}/obj" />
+			</endpoint>
+		</call>
+		
+   	<!-- Remove response custom header information -->
+	<header name="P3P" scope="transport" action="remove" />
+	<header name="Pragma" scope="transport" action="remove" />
+	<header name="Expires" scope="transport" action="remove" />		
+	<header name="X-Varnish" scope="transport" action="remove"/>
+    <header name="X-GDC-REQUEST-TIME" scope="transport" action="remove"/>
+    <header name="Age" scope="transport" action="remove"/>
+    <header name="Via" scope="transport" action="remove"/>
+    <header name="X-GDC-LOG-HEADER" scope="transport" action="remove"/>
+    <header name="Accept-Ranges" scope="transport" action="remove"/>
+    <header name="X-GDC-REQUEST" scope="transport" action="remove"/>
+    <header name="WWW-Authenticate" scope="transport" action="remove" />
+    
+	</sequence>
+</template>

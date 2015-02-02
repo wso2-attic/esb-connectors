@@ -1,0 +1,118 @@
+<template name="makeCall" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="from" description="A voice enabled inbound number associated with the account." />
+	<parameter name="to" description="The phone number in international format." />
+	<parameter name="machineDetection" description="The way to behave when answering." />
+	<parameter name="machineTimeout" description="The Time used to distinguish between human and machine events." />
+	<parameter name="answerUrl" description="The VoiceXML response URL which is used as voice of the call." />
+	<parameter name="answerMethod" description="The HTTP method for calling the answerUrl." />
+	<parameter name="errorUrl" description="The URL which is called when an error occurred." />
+	<parameter name="errorMethod" description="The HTTP method for calling the errorUrl." />
+	<parameter name="statusUrl" description="The URL which is called with the status of the call." />
+	<parameter name="statusMethod" description="The HTTP method for calling the statusUrl." />
+
+	<sequence>
+		<property name="uri.var.from" expression="$func:from" />
+		<property name="uri.var.to" expression="$func:to" />
+		<property name="uri.var.machineDetection" expression="$func:machineDetection" />
+		<property name="uri.var.machineTimeout" expression="$func:machineTimeout" />
+		<property name="uri.var.answerUrl" expression="$func:answerUrl" />
+		<property name="uri.var.answerMethod" expression="$func:answerMethod" />
+		<property name="uri.var.errorUrl" expression="$func:errorUrl" />
+		<property name="uri.var.errorMethod" expression="$func:errorMethod" />
+		<property name="uri.var.statusUrl" expression="$func:statusUrl" />
+		<property name="uri.var.statusMethod" expression="$func:statusMethod" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"api_key": "$1",
+					"api_secret": "$2",
+					"to": "$3",
+					"answer_url": "$4"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.apiKey')" />
+				<arg expression="get-property('uri.var.apiSecret')" />
+				<arg expression="get-property('uri.var.to')" />
+				<arg expression="get-property('uri.var.answerUrl')" />
+			</args>
+		</payloadFactory>
+
+		<script language="js">
+			<![CDATA[
+				
+				var payload = mc.getPayloadJSON();
+				
+				var from = mc.getProperty('uri.var.from');
+				var machineDetection = mc.getProperty('uri.var.machineDetection');
+				var machineTimeout = mc.getProperty('uri.var.machineTimeout');
+				var answerMethod = mc.getProperty('uri.var.answerMethod');
+				var errorUrl = mc.getProperty('uri.var.errorUrl');
+				var errorMethod = mc.getProperty('uri.var.errorMethod');
+				var statusUrl = mc.getProperty('uri.var.statusUrl');
+				var statusMethod = mc.getProperty('uri.var.statusMethod');
+				
+				if (from != null && from != "") {
+	            	payload.from = from; 
+	            }   
+	            
+	            if (machineDetection != null && machineDetection != "") {
+	            	payload.machine_detection = machineDetection; 
+	            }
+	            
+	            if (machineTimeout != null && machineTimeout != "") {
+	            	payload.machine_timeout = machineTimeout; 
+	            }
+	            
+	            if (answerMethod != null && answerMethod != "") {
+	            	payload.answer_method = answerMethod; 
+	            }
+	            
+	            if (errorUrl != null && errorUrl != "") {
+	            	payload.error_url = errorUrl; 
+	            }
+	            
+	            if (errorMethod != null && errorMethod != "") {
+	            	payload.error_method = errorMethod; 
+	            }
+	            
+	            if (statusUrl != null && statusUrl != "") {
+	            	payload.status_url = statusUrl; 
+	            }
+	            
+	            if (statusMethod != null && statusMethod != "") {
+	            	payload.status_method = statusMethod; 
+	            }
+				
+				mc.setPayloadJSON(payload);
+				
+			]]>
+		</script>
+
+		<!-- If the responseType type is not XML, set the default value to JSON -->
+		<filter source="get-property('uri.var.responseType')" regex="xml">
+			<then>
+				<property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/call/xml')" />
+			</then>
+			<else>
+				<property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/call/json')" />
+			</else>
+		</filter>
+
+		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+
+	</sequence>
+</template>

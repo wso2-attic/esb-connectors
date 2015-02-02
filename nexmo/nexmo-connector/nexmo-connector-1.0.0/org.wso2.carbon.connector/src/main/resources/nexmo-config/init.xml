@@ -1,0 +1,30 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="apiUrl" description="The url to access the Nexmo API." />
+	<parameter name="apiKey" description="The apiKey of a valid Nexmo account." />
+	<parameter name="apiSecret" description="The apiSecret of a valid Nexmo account." />
+	<parameter name="responseType" description="The response type of the method call." />
+
+	<sequence>
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.apiKey" expression="$func:apiKey" />
+		<property name="uri.var.apiSecret" expression="$func:apiSecret" />
+		<property name="uri.var.responseType" expression="$func:responseType" />
+		<property name="uri.var.authParams"
+			expression="fn:concat('?api_key=', get-property('uri.var.apiKey'), '&amp;api_secret=', get-property('uri.var.apiSecret'))" />
+
+		<!-- If the apiUrl is not specified, set the default value as https://rest.nexmo.com -->
+		<filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+			<then>
+				<property name="uri.var.apiUrl" value="https://rest.nexmo.com" />
+			</then>
+		</filter>
+
+		<!-- Setting up the REQUEST_HOST_HEADER property according to the api URL -->
+		<property name="uri.var.hostHeader"
+			expression="fn:substring-after(get-property('uri.var.apiUrl'),'https://')" />
+		<property name="REQUEST_HOST_HEADER"
+			expression="fn:concat(get-property('uri.var.hostHeader'),':443')"
+			scope="axis2" />
+
+	</sequence>
+</template>

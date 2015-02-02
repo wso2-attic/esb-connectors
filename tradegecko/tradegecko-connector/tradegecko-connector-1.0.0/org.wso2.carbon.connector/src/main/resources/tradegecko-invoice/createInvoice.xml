@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="createInvoice" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="orderId" description="Unique order id for invoice." />
+	<parameter name="billingAddressId" description="Unique billing address id for invoice." />
+	<parameter name="shippingAddressId" description="Unique shipping address id for invoice." />
+	<parameter name="paymentTermId" description="Unique payment term id for invoice." />
+	<parameter name="invoicedAt" description="Invoice begin date." />
+	<parameter name="dueAt" description="Invoice end date." />
+	<parameter name="notes" description="Special notes for invoice." />
+	<parameter name="invoiceLineItems" description="Seperate invoice line items." />
+
+	<sequence>
+		<property name="uri.var.orderId" expression="$func:orderId" />
+		<property name="uri.var.billingAddressId" expression="$func:billingAddressId" />
+		<property name="uri.var.shippingAddressId" expression="$func:shippingAddressId" />
+		<property name="uri.var.paymentTermId" expression="$func:paymentTermId" />
+		<property name="uri.var.invoicedAt" expression="$func:invoicedAt" />
+		<property name="uri.var.dueAt" expression="$func:dueAt" />
+		<property name="uri.var.notes" expression="$func:notes" />
+		<property name="uri.var.invoiceLineItems" expression="$func:invoiceLineItems" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"invoice": {
+						"invoiced_at":"$1",
+						"due_at":"$2",
+						"notes":"$3"
+					}
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.invoicedAt')" />
+				<arg expression="get-property('uri.var.dueAt')" />
+				<arg expression="get-property('uri.var.notes')" />
+			</args>
+		</payloadFactory>
+		
+		<!-- Script mediator validate optional parameters and constructing the payload accordingly -->
+		<script language="js">
+		<![CDATA[
+		
+			//request body param variables
+			var orderId = mc.getProperty('uri.var.orderId');
+			var billingAddressId = mc.getProperty('uri.var.billingAddressId');
+			var shippingAddressId = mc.getProperty('uri.var.shippingAddressId');
+			var paymentTermId = mc.getProperty('uri.var.paymentTermId');
+			var invoiceLineItems = mc.getProperty('uri.var.invoiceLineItems');
+			
+			//Get the existing payload
+			payload = mc.getPayloadJSON();
+			
+			if (orderId != null && orderId != "") {
+				payload.invoice.order_id = "" + orderId;
+			}
+			
+			if (billingAddressId != null && billingAddressId != "") {
+				payload.invoice.billing_address_id = "" + billingAddressId;
+			}
+			
+			if (shippingAddressId != null && shippingAddressId != "") {
+				payload.invoice.shipping_address_id = "" + shippingAddressId;
+			}
+			
+			if (paymentTermId != null && paymentTermId != "") {
+				payload.invoice.payment_term_id = "" + paymentTermId;
+			}
+			
+			if (invoiceLineItems != null && invoiceLineItems != "") {
+				payload.invoice.invoice_line_items = eval("("+invoiceLineItems+")");
+			}
+			
+			//Set the newly constructed payload
+			mc.setPayloadJSON(payload);
+			
+		]]>
+		</script>
+		
+		<header name="Content-Type" value="application/json" scope="transport" />
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/invoices/" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove custom header information in response -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-Rate-Limit-Limit" scope="transport" action="remove" />
+		<header name="X-Rate-Limit-Remaining" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Xss-Protection" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-Rate-Limit-Reset" scope="transport" action="remove" />
+		<header name="X-Pagination" scope="transport" action="remove" />
+		<header name="Link" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Www-Authenticate" scope="transport" action="remove" />
+		<header name="Proxy-Support" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+		
+	</sequence>
+</template>

@@ -1,0 +1,51 @@
+<template name="deleteEvent" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Required parameters -->
+	<parameter name="calendarId" description="Calendar identifier." />
+	<parameter name="eventId" description="Recurring event identifier." />
+
+	<!-- Optional parameters -->
+	<parameter name="sendNotifications" description="Whether to send notifications about the deletion of the event." />
+	
+	<sequence>
+		
+		<property name="uri.var.calendarId" expression="$func:calendarId" />
+		<property name="uri.var.eventId" expression="$func:eventId" />
+		<property name="uri.var.sendNotifications" expression="$func:sendNotifications" />
+		
+		<script language="js"><![CDATA[ 
+			
+			//url param variables
+	        var eventId = encodeURIComponent(mc.getProperty("uri.var.eventId"));
+	        var sendNotifications = mc.getProperty('uri.var.sendNotifications');
+	        var calendarId = encodeURIComponent(mc.getProperty("uri.var.calendarId"));
+	        
+			//url param processing start	
+			mc.setProperty('uri.var.calendarId', calendarId);
+			mc.setProperty('uri.var.eventId', eventId);
+			var urlParamString = '';
+			
+			if (sendNotifications != "" && sendNotifications != null) {
+					urlParamString = '?sendNotifications=' + encodeURIComponent(sendNotifications);
+			}
+			
+			mc.setProperty('uri.var.encodedParams', urlParamString);
+			//url param processing end
+			
+		]]></script>
+		
+		<call>
+			<endpoint>
+				<http method="delete" uri-template="{uri.var.apiUrl}/calendar/v3/calendars/{uri.var.calendarId}/events/{uri.var.eventId}{uri.var.encodedParams}" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove response custom header information -->
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+        <header name="X-XSS-Protection" scope="transport" action="remove" />
+        <header name="Alternate-Protocol" scope="transport" action="remove" />
+        <header name="X-Content-Type-Options" scope="transport" action="remove" />
+		
+	</sequence>
+	
+</template>

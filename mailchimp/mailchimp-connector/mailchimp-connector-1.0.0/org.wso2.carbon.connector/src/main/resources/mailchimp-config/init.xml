@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="apiUrl" description="Base endpoint URL of MailChimp API."/>
+    <parameter name="format" description="Format of the Response expected from the API. It can be either JSON or XML."/>
+    <parameter name="apiKey" description="API Authentication Key to access the MailChimp API."/>
+    <sequence>
+        <property name="uri.var.apiUrl" expression="$func:apiUrl" />
+        <property name="uri.var.format" expression="$func:format" />
+        <property name="uri.var.apiKey" expression="$func:apiKey" />
+
+        <filter source="boolean(get-property('uri.var.apiUrl'))" regex="true">
+            <then>
+                <property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/2.0')"/>
+            </then>
+            <else>
+                <property name="uri.var.apiUrl" value="https://us9.api.mailchimp.com/2.0"/>
+            </else>
+        </filter>
+
+        <!-- If the value is not sent as part of the Request, it will be defaulted to JSON. -->
+        <filter source="boolean(get-property('uri.var.format'))" regex="false">
+            <then>
+                <property name="uri.var.format" value="json"/>
+            </then>
+        </filter>
+
+    </sequence>
+</template>

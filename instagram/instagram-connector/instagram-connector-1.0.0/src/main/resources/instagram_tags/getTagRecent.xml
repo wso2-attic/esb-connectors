@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2014-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ Licensed under the Apache License, Version 2.0 (the "License");
+~ you may not use this file except in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~      http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing, software
+~ distributed under the License is distributed on an "AS IS" BASIS,
+~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~ See the License for the specific language governing permissions and
+~ limitations under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="getTagRecent">
+    <parameter name="tag_name" description="Tag Name"/>
+    <parameter name="max_id" description="Return media earlier than this max_id.s."/>
+    <parameter name="min_id" description="Return media later than this min_id."/>
+
+    <sequence>
+        <property name="uri.var.tag_name" expression="$func:tag_name"/>
+        <property name="uri.var.min_id" expression="$func:min_id"/>
+        <property name="uri.var.max_id" expression="$func:max_id"/>
+        <property name="Accept-Encoding" action="remove" scope="transport"/>
+
+        <filter
+                xpath="get-property('uri.var.tag_name') = '' or  (not(string(get-property('uri.var.tag_name'))))">
+            <then>
+                <property name="uri.var.tag_name" value="0"/>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.min_id') = '' or  (not(string(get-property('uri.var.min_id'))))">
+            <then>
+                <property name="uri.var.min_id" value="0"/>
+            </then>
+        </filter>
+
+        <filter
+                xpath="get-property('uri.var.max_id') = '' or  (not(string(get-property('uri.var.max_id'))))">
+            <then>
+                <property name="uri.var.max_id" value="1"/>
+            </then>
+        </filter>
+        <payloadFactory media-type="xml">
+            <format>
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                    <soapenv:Header/>
+                    <soapenv:Body>
+                    </soapenv:Body>
+                </soapenv:Envelope>
+            </format>
+            <args/>
+        </payloadFactory>
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="https://api.instagram.com/v1/tags/{uri.var.tag_name}/media/recent?max_id={uri.var.max_id}&amp;min_id={uri.var.min_id}&amp;access_token={uri.var.access_token}"/>
+            </endpoint>
+        </call>
+        <property name="messageType" value="application/json" scope="axis2"/>
+    </sequence>
+</template>
+

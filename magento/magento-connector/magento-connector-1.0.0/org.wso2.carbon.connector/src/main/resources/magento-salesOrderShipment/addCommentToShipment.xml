@@ -1,0 +1,46 @@
+<template name="addCommentToShipment" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="shipmentIncrementId" description="The shipment increment ID." />
+	<parameter name="comment" description="The shipment comment." />
+	<parameter name="email" description="The flag to send emails." />
+	<parameter name="includeInEmail" description="The flag to include comment in email." />
+
+	<sequence>
+		<property name="uri.var.shipmentIncrementId" expression="$func:shipmentIncrementId" />
+		<property name="uri.var.comment" expression="$func:comment" />
+		<property name="uri.var.email" expression="$func:email" />
+		<property name="uri.var.includeInEmail" expression="$func:includeInEmail" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<salesOrderShipmentAddComment>
+					<sessionId>$1</sessionId>
+					<shipmentIncrementId>$2</shipmentIncrementId>
+					<comment>$3</comment>
+					<email>$4</email>
+					<includeInEmail>$5</includeInEmail>
+				</salesOrderShipmentAddComment>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.shipmentIncrementId')" />
+				<arg expression="get-property('uri.var.comment')" />
+				<arg expression="get-property('uri.var.email')" />
+				<arg expression="get-property('uri.var.includeInEmail')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>

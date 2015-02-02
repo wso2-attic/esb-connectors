@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="getRecords" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="module" description="The module specifies the which section entries should be added. e.g. JobOpenings, Candidates, Clients, ClientContacts." />
+	<parameter name="fromIndex" description="The index position, which specifies the starting point of seraching records." />
+	<parameter name="toIndex" description="The index position, which specifies the ending point for seraching records." />
+	<parameter name="sortColumnString" description="The column to be used to sort records." />
+	<parameter name="sortOrderString" description="The sorting order of the selected column." />
+	<parameter name="searchCondition" description="The searching criteria for retrieving the records." />
+	<parameter name="selectColumns" description="The select columns for displaying records." />
+
+	<sequence>
+		<property name="uri.var.module" expression="$func:module" />
+		<property name="uri.var.fromIndex" expression="$func:fromIndex" />
+		<property name="uri.var.toIndex" expression="$func:toIndex" />
+		<property name="uri.var.sortColumnString" expression="$func:sortColumnString" />
+		<property name="uri.var.sortOrderString" expression="$func:sortOrderString" />
+		<property name="uri.var.searchCondition" expression="$func:searchCondition" />
+		<property name="uri.var.selectColumns" expression="$func:selectColumns" />
+		
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"authtoken": "$1",
+					"scope":     "$2"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.authToken')" />
+				<arg expression="get-property('uri.var.scope')" />
+			</args>
+		</payloadFactory>
+		
+		
+		<script language="js">
+	    
+	     <![CDATA[
+	        // initializing the variables    
+	        var fromIndex = mc.getProperty("uri.var.fromIndex");
+			var toIndex = mc.getProperty("uri.var.toIndex");
+			var sortColumnString = mc.getProperty("uri.var.sortColumnString");
+			var sortOrderString = mc.getProperty("uri.var.sortOrderString");
+			var searchCondition = mc.getProperty("uri.var.searchCondition");
+			var selectColumns = mc.getProperty("uri.var.selectColumns");
+			
+			//initializing the payload
+	        var payload = mc.getPayloadJSON();
+	        
+	        // adding the optional parameters to the payload
+			if (fromIndex != null && fromIndex != "") {
+				payload.fromIndex = fromIndex;
+			}
+				
+			if(toIndex != null && toIndex != "") {
+				payload.toIndex = toIndex;
+			}
+				
+			if(sortColumnString != null && sortColumnString != "") {
+				payload.sortColumnString = sortColumnString;
+			}
+				
+			if(sortOrderString != null && sortOrderString != "") {
+				payload.sortOrderString = sortOrderString;
+			}
+				
+			if(searchCondition != null && searchCondition != "") {
+				payload.searchCondition = searchCondition;
+			}
+				
+			if(selectColumns != null && selectColumns != "") {
+				payload.selectColumns = selectColumns;
+			}
+						
+			mc.setPayloadJSON(payload); 
+			                                     
+	       ]]>
+
+		</script>
+		
+		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+		
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/ats/private/{uri.var.responseFormat}/{uri.var.module}/getRecords" />
+			</endpoint>
+		</call>
+			
+		<!-- Removing custom headers -->
+		<header name="Strict-Transport-Security" action="remove" scope="transport" />
+		<header name="X-XSS-Protection" action="remove" scope="transport" />
+		<header name="X-Content-Type-Options" action="remove" scope="transport" />
+		<header name="Pragma" action="remove" scope="transport" />
+		<header name="Cache-Control" action="remove" scope="transport" />
+	</sequence>
+</template>

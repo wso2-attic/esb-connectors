@@ -1,0 +1,47 @@
+<template name="listTopics" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="projectId" description="The project identifier from which attachments are listed" />
+	<parameter name="page" description="The page number for pagination" />
+
+	<sequence>
+		<property name="uri.var.projectId" expression="$func:projectId" />
+		<property name="uri.var.page" expression="$func:page" />
+
+		<!-- Changes the end points to get either project specific attachments or all of them depending on the presence of project 
+			Id -->
+		<filter source="boolean(get-property('uri.var.projectId'))" regex="true">
+			<then>
+				<property name="uri.var.apiUrl"
+					expression="fn:concat(get-property('uri.var.apiUrl'), '/projects/', get-property('uri.var.projectId') , '/topics.json')" />
+			</then>
+			<else>
+				<property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/topics.json')" />
+			</else>
+		</filter>
+
+		<!-- adds optional query parameter, page -->
+		<filter source="boolean(get-property('uri.var.page'))" regex="true">
+			<then>
+				<property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '?page=', get-property('uri.var.page'))" />
+			</then>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Queue-Time" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Timing-Allow-Origin" scope="transport" action="remove" />
+		<header name="X-Asset-Paths" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+
+	</sequence>
+</template>

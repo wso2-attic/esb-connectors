@@ -1,0 +1,48 @@
+<template name="sendMessage" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="delaySeconds"
+		description="Integer, The number of seconds (0 to 900 - 15 minutes) to delay a specific message" />
+	<parameter name="messageAttributes"
+		description="Message attributes consisting a Name, Type, and Value per each attribute" />
+	<parameter name="queueId" description="The unique identifier of the queue" />
+	<parameter name="queueName" description="The name of the queue" />
+	<parameter name="messageBody" description="The body of the message" />
+	<sequence>
+		<property name="uri.var.delaySeconds" expression="$func:delaySeconds" />
+		<property name="uri.var.messageAttributes" expression="$func:messageAttributes" />
+		<property name="uri.var.queueId" expression="$func:queueId" />
+		<property name="uri.var.urlQueueName" expression="$func:queueName" />
+		<property name="uri.var.messageBody" expression="$func:messageBody" />
+		<property name="uri.var.action" value="SendMessage" />
+		<class
+			name="org.wso2.carbon.connector.amazonsqs.auth.AmazonSQSAuthConnector" />
+
+		<!-- Add authorization and date header parameters -->
+		<header name="Authorization" scope="transport"
+			expression="get-property('uri.var.authorizationHeader')" />
+		<header name="x-amz-date" scope="transport"
+			expression="get-property('uri.var.amzDate')" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				$1
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.requestPayload')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}{uri.var.httpRequestUri}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information -->
+		<header name="Proxy-Connection" scope="transport" action="remove" />
+		<header name="x-amzn-RequestId" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+
+	</sequence>
+</template>

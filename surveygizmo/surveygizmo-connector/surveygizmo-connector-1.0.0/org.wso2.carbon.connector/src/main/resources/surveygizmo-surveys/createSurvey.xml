@@ -1,0 +1,111 @@
+<template name="createSurvey" xmlns="http://ws.apache.org/ns/synapse">
+  
+  <parameter name="title" description="The survey title."/>
+  <parameter name="type" description="The survey type (survey, form, poll, quiz)."/>
+  <parameter name="status" description="The survey status. (Launched, Closed, Deleted)."/>
+  <parameter name="theme" description="The id of survey theme."/>
+  <parameter name="team" description="The id of survey team."/>
+  <parameter name="options" description="The internal title of the survey."/>
+  <parameter name="blockBy" description="The Duplicate protection type (IP, COOKIE, null)"/>
+  <parameter name="pollOptions" description="The option values for survey polls as json array."/>
+  <parameter name="pollType" description="The poll type of survey poll (radio, image, ranking)."/>
+  <parameter name="pollWidth" description="The poll width of the survey."/>
+  <sequence>
+    
+    <property name="uri.var.title" expression="$func:title"/>
+    <property name="uri.var.type" expression="$func:type"/>
+    <property name="uri.var.status" expression="$func:status"/>
+    <property name="uri.var.theme" expression="$func:theme"/>
+    <property name="uri.var.team" expression="$func:team"/>
+    <property name="uri.var.options" expression="$func:options"/>
+    <property name="uri.var.blockBy" expression="$func:blockBy"/>
+    <property name="uri.var.pollOptions" expression="$func:pollOptions"/>
+    <property name="uri.var.pollType" expression="$func:pollType"/>
+    <property name="uri.var.pollWidth" expression="$func:pollWidth"/>
+    
+    <payloadFactory media-type="json">
+		<format>
+			{
+			"title":"$1",
+			"type":"$2"
+			}
+		</format>
+		<args>
+			<arg expression="get-property('uri.var.title')" />
+			<arg expression="get-property('uri.var.type')" />
+		</args>
+	</payloadFactory>
+	
+	<script language="js">
+		  			<![CDATA[
+		  				  				
+	  				var status = mc.getProperty("uri.var.status");
+	  				var theme = mc.getProperty("uri.var.theme");
+	  				var team = mc.getProperty("uri.var.team");
+	  				var options = mc.getProperty("uri.var.options");
+	  				var blockBy = mc.getProperty("uri.var.blockBy");
+	  				var pollOptions = ''+mc.getProperty("uri.var.pollOptions");
+	  				var pollType = mc.getProperty("uri.var.pollType");
+	  				var pollWidth = mc.getProperty("uri.var.pollWidth");	  				
+	  				
+	  				var	payload = mc.getPayloadJSON();
+	  				
+	  				if (status != null && status != ""){
+	  					payload ["status"] = status;
+	  				}
+	  				if (theme != null && theme != ""){
+	  					payload ["theme"] = theme;
+	  				}
+	  				if (team != null && team != ""){
+	  					payload ["team"] = team;
+	  				}
+	  				if (options != null && options != ""){
+	  					payload ["options[internal_title]"] = options;
+	  				}
+	  				if (blockBy != null && blockBy != ""){
+	  					payload ["blockby"] = blockBy;
+	  				}
+	  				
+	  				if (pollOptions != null && pollOptions != "" && pollOptions.charAt(0)=='[' && pollOptions.charAt(pollOptions.length-1)==']'){
+	  					
+	  					pollOptions = eval("("+pollOptions+")");
+	  					
+	  					var optionsParam = '';
+	  					for(var i=0; i < pollOptions.length; i++){
+								 
+								optionsParam += 'polloptions['+ i +']='+ pollOptions[i] + '&';
+						}
+						
+						if(optionsParam != ""){
+								optionsParam = optionsParam.substring(0, optionsParam.length-1);
+								payload ["polloptions"] = optionsParam;
+	  					}
+	  					
+	  					
+	  				}
+	  				if (pollType != null && pollType != ""){
+	  					payload ["polltype"] = pollType;
+	  				}
+	  				if (pollWidth != null && pollWidth != ""){
+	  					payload ["pollwidth"] = pollWidth;
+	  				}
+	  				
+	  				mc.setPayloadJSON(payload);
+					]]>
+		</script>
+    
+    <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+    
+    <call>
+      <endpoint>
+        <http method="put" uri-template="{uri.var.apiUrl}/survey{uri.var.authParam}"/>
+      </endpoint>
+    </call>
+    
+    <!-- Remove custom Headers from the API Response -->
+		<header name="Vary" action="remove" scope="transport" />
+		<header name="Via" action="remove" scope="transport" />
+		<header name="X-Powered-By" action="remove" scope="transport" />
+		
+  </sequence>
+</template>

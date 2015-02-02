@@ -1,0 +1,119 @@
+<template name="listIssues" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="offset" description="The offset skip this number of issues in response." />
+	<parameter name="limit" description="Number of issues per page." />
+	<parameter name="sort" description="Column to sort with ascending or descending." />
+	<parameter name="projectId" description="Get issues from the project with the given id." />
+	<parameter name="subprojectId" description="Get issues from the subproject with the given id." />
+	<parameter name="trackerId" description="Get issues from the tracker with the given id." />
+	<parameter name="statusId" description="Get issues with the given status id only." />
+	<parameter name="assignedToId" description="Get issues which are assigned to the given user id." />
+	<parameter name="cf" description="Get issues with the given value for custom field with an id." />
+	<parameter name="createdOn" description="Project created date for date range query." />
+	<parameter name="updatedOn" description="Project updated date for date range query." />
+
+	<sequence>
+		<property name="uri.var.offset" expression="$func:offset" />
+		<property name="uri.var.limit" expression="$func:limit" />
+		<property name="uri.var.sort" expression="$func:sort" />
+		<property name="uri.var.projectId" expression="$func:projectId" />
+		<property name="uri.var.subprojectId" expression="$func:subprojectId" />
+		<property name="uri.var.trackerId" expression="$func:trackerId" />
+		<property name="uri.var.statusId" expression="$func:statusId" />
+		<property name="uri.var.assignedToId" expression="$func:assignedToId" />
+		<property name="uri.var.cf" expression="$func:cf" />
+		<property name="uri.var.createdOn" expression="$func:createdOn" />
+		<property name="uri.var.updatedOn" expression="$func:updatedOn" />
+		<property name="uri.var.query" value="?" />
+
+		<!-- Optional parameters for the List Issues -->
+
+		<filter xpath="(string(get-property('uri.var.projectId'))) and get-property('uri.var.projectId') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'project_id=',get-property('uri.var.projectId'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.trackerId'))) and get-property('uri.var.trackerId') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'tracker_id=',get-property('uri.var.trackerId'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.assignedToId'))) and get-property('uri.var.assignedToId') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'assigned_to_id=',get-property('uri.var.assignedToId'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.statusId'))) and get-property('uri.var.statusId') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'status_id=',get-property('uri.var.statusId'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.cf'))) and get-property('uri.var.cf') != ''">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'cf_1=',get-property('uri.var.cf'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.sort'))) and get-property('uri.var.sort') != ''">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'sort=',get-property('uri.var.sort'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.offset'))) and get-property('uri.var.offset') != ''">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'offset=',get-property('uri.var.offset'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.limit'))) and get-property('uri.var.limit') != ''">
+			<then>
+				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'limit=',get-property('uri.var.limit'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.subprojectId'))) and get-property('uri.var.subprojectId') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'subproject_id=',get-property('uri.var.subprojectId'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.createdOn'))) and get-property('uri.var.createdOn') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'created_on=',get-property('uri.var.createdOn'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.updatedOn'))) and get-property('uri.var.updatedOn') != ''">
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'updated_on=',get-property('uri.var.updatedOn'),'&amp;')" />
+			</then>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}/issues.{uri.var.responseType}{uri.var.query}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="ETag" scope="transport" action="remove" />
+		<header name="X-UA-Compatible" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Rack-Cache" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+
+	</sequence>
+</template>

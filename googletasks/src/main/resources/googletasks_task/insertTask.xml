@@ -1,0 +1,109 @@
+<template xmlns="http://ws.apache.org/ns/synapse" name="insertTask">
+	<parameter name="tasklist_id"
+		description="ID of the task list in which the task to be created is stored" />
+
+	<parameter name="title" description="Title of the new task" />
+	<parameter name="completed" description="Completion day of the task." />
+	<parameter name="deleted" description="Flag indicating if the task is deleted." />
+	<parameter name="due" description="Due date of the new task." />
+	<parameter name="hidden" description="Flag indicating if the task is hidden." />
+	<parameter name="notes" description="Notes." />
+	<parameter name="position" description="Position of the new task." />
+	<parameter name="status" description="Status of the new task." />
+
+	<!-- Optional Parameters -->
+	<parameter name="parent"
+		description="Parent task identifier. If the task is created at the top level, this parameter is omitted. " />
+	<parameter name="previous"
+		description="Previous sibling task identifier. If the task is created at the first position among its siblings, this parameter is omitted. " />
+
+	<sequence>
+		<property name="tasklist_id" expression="$func:tasklist_id"
+			type="STRING" />
+		<property name="messageType" value="application/json" scope="axis2" />
+		<property name="parent" expression="$func:parent" type="STRING" />
+		<property name="previous" expression="$func:previous" type="STRING" />
+
+		<property name="title" expression="$func:title" type="STRING" />
+		<property name="completed" expression="$func:completed" type="STRING" />
+		<property name="deleted" expression="$func:deleted" type="STRING" />
+		<property name="due" expression="$func:due" type="STRING" />
+		<property name="hidden" expression="$func:hidden" type="STRING" />
+		<property name="notes" expression="$func:notes" type="STRING" />
+		<property name="position" expression="$func:position" type="STRING" />
+		<property name="status" expression="$func:status" type="STRING" />
+
+		<!-- Building the URL with the parameters for the API method -->
+		<filter
+			xpath="(not(get-property('parent') = '' or (not(string(get-property('parent'))))))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'parent=',get-property('parent'),'&amp;')" />
+			</then>
+		</filter>
+		<filter
+			xpath="(not(get-property('previous') = '' or (not(string(get-property('previous'))))))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'previous=',get-property('previous'),'&amp;')" />
+			</then>
+		</filter>
+
+		<property name="uri.var.apiUri"
+			expression="fn:concat('https://www.googleapis.com/tasks/v1/lists/',get-property('tasklist_id'),'/tasks')" />
+
+		<!-- JSON payload that contains required arguments for the Tasks: insert -->
+		<payloadFactory media-type="json">
+			<format>
+			</format>
+		</payloadFactory>
+		<script language="js"><![CDATA[		
+			var title=mc.getProperty('title');
+			var completed=mc.getProperty('completed');
+			var deleted=mc.getProperty('deleted');
+			var due=mc.getProperty('due');
+			var hidden=mc.getProperty('hidden');
+			var notes=mc.getProperty('notes');
+			var position=mc.getProperty('position');
+			var status=mc.getProperty('status');
+			
+			payload = mc.getPayloadJSON();
+			
+			if(title != null && title != ""){
+				payload.title = title;
+			}
+			if(completed != null && completed != ""){
+				payload.completed = completed;
+			}
+			if(deleted != null && deleted != ""){
+				payload.deleted = deleted;
+			}
+			if(due != null && due != ""){
+				payload.due = due;
+			}
+			if(hidden != null && hidden != ""){
+				payload.hidden = hidden;
+			}
+			if(notes != null && notes != ""){
+				payload.notes = notes;
+			}
+			if(position != null && position != ""){
+				payload.position = position;
+			}
+			if(status != null && status != ""){
+				payload.status = status;
+			}
+			
+           mc.setPayloadJSON(payload);
+         ]]></script>
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUri}?{uri.var.apiParameters}" />
+			</endpoint>
+		</call>
+		<!-- Remove response custom header information -->
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+	</sequence>
+</template>

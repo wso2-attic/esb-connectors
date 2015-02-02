@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="activecollab_updateTaskInActivecollab" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- GoogleTasks taskList parameters-->
+         <property name="googleTasksAccessToken" expression="json-eval($.googleTasksAccessToken)" />
+         <property name="googleTasksTasklistId" expression="json-eval($.googleTasksTasklistId)" />
+
+         <!-- TaskIdMap -->
+         <property name="tasksIdMap" expression="json-eval($.tasksIdMap)" />
+
+         <!-- activecollab updateTask parameters -->
+         <property name="activecollabApiUrl" expression="json-eval($.activecollabApiUrl)" />
+         <property name="activecollabApiToken" expression="json-eval($.activecollabApiToken)" />
+         <property name="activecollabFormat" expression="json-eval($.activecollabFormat)" />
+         <property name="activecollabProjectId" expression="json-eval($.activecollabProjectId)" />
+
+         <!-- Response related parameters-->
+         <property name="responseString" value="" scope="operation" />
+         <property name="index" value="0" scope="operation" />
+
+         <!-- Call listTask method in google tasks -->
+               <googletasks.init>
+                  <accessToken>{$ctx:googleTasksAccessToken}</accessToken>
+               </googletasks.init>
+               <googletasks.listTasks>
+                  <tasklist_id>{$ctx:googleTasksTasklistId}</tasklist_id>
+               </googletasks.listTasks>
+
+               <property name="messageType" value="application/xml" scope="axis2" />
+
+               <!-- Setting Task Item count -->
+               <property name="itemsCount" expression="count(//items)" scope="operation" />
+
+               <!-- Set error if no tasks retrieved -->
+               <filter xpath="0 = get-property('operation', 'itemsCount')">
+                  <then>
+                      <property name="message" value="No Tasks were found." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+               </filter>
+
+               <!-- Remove unwanted headers -->
+               <header name="X-Frame-Options" scope="transport" action="remove" />
+               <header name="X-XSS-Protection" scope="transport" action="remove" />
+               <header name="Pragma" scope="transport" action="remove" />
+               <header name="X-Frame-Options" scope="transport" action="remove" />
+               <header name="ETag" scope="transport" action="remove" />
+               <header name="User-Agent" scope="transport" action="remove" />
+               <header name="Alternate-Protocol" scope="transport" action="remove" />
+               <header name="Content-Encoding" scope="transport" action="remove" />
+
+         <!-- Tasks iterater -->
+         <iterate continueParent="true" id="tasksIterator" expression="//items" sequential="true">
+            <target>
+               <sequence>
+
+                <!-- Setting the properties adding to activecollab -->
+                  <property name="taskID" expression="//id/text()" />
+                  <property name="taskName" expression="//title/text()" />
+                  <property name="taskBody" expression="//notes/text()" />
+                  <property name="taskDueDate" expression="//due/text()" />
+                  <property name="taskStatus" expression="//status/text()" />
+                  <property name="updatedDate" expression="//items/updated/text()" />
+                  <property name="activecollabTaskId" value="" />
+
+                  <!-- Format the updated date to filter and get mapping activecollab task id from taskIdMap -->
+                  <script language="js"><![CDATA[var updatedDate = mc.getProperty('updatedDate');
+                        var updatedDateFormated = "";
+                        var tasksIdMap = eval("(" + mc.getProperty('tasksIdMap') + ")");
+                        var taskID = mc.getProperty('taskID');
+                        var activecollabTaskId = mc.getProperty('activecollabTaskId');
+                        var aTaskId = "";
+
+                        if (updatedDate != null && updatedDate != "") {
+                            updatedDateFormated = updatedDate.split('T')[0];
+                        }
+
+                        aTaskId = tasksIdMap[taskID];
+
+                        mc.setProperty("updatedDate", updatedDateFormated); 
+                        mc.setProperty("activecollabTaskId", aTaskId);]]></script>
+                  <!-- Get updated date and system date to filter the tasks -->  
+                  <property name="dateUpdated" expression="get-property('updatedDate')" />
+                  <property name="today" expression="get-property('SYSTEM_DATE', 'yyyy-MM-dd')" scope="default" />
+                  <!-- filter the tasks according to updated date -->
+                  <filter xpath="get-property('today') = get-property('dateUpdated')">
+                    <then>
+
+                      <!-- filter the tasks according to activecollab task id -->
+                      <filter xpath="get-property('activecollabTaskId') != 'undefined'">
+                      <then>
+                        <call-template target="activecollab-updateTask">
+                           <with-param name="activecollabApiUrl" value="{$ctx:activecollabApiUrl}" />
+                           <with-param name="activecollabApiToken" value="{$ctx:activecollabApiToken}" />
+                           <with-param name="activecollabFormat" value="{$ctx:activecollabFormat}" />
+                           <with-param name="activecollabProjectId" value="{$ctx:activecollabProjectId}" />
+                           <with-param name="activecollabTaskId" value="{$ctx:activecollabTaskId}" />
+                           <with-param name="taskName" value="{$ctx:taskName}" />
+                           <with-param name="taskBody" value="{$ctx:taskBody}" />
+                           <with-param name="taskDueDate" value="{$ctx:taskDueDate}" />
+                           <with-param name="taskStatus" value="{$ctx:taskStatus}" />
+                           <with-param name="taskID" value="{$ctx:taskID}" />
+                        </call-template>
+                      </then>
+                      <else>
+                              <property name="message" expression="fn:concat('For google task id: ', get-property('taskID'), ' corresponding Activecollab task id was not found in the request')" />
+                              <property name="id" expression="fn:concat('googleTasks_task_id:', get-property('taskID'))" />
+                              <call-template target="responseHandlerTemplate">
+                                <with-param name="id" value="{$ctx:id}" />
+                                <with-param name="status" value="Skipped" />
+                                <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </else>
+                     </filter>
+                   </then>
+                   <else>
+                              <property name="message" value="No updates found for today" />
+                              <property name="id" expression="fn:concat('googleTasks_task_id:', get-property('taskID'))" />
+                              <call-template target="responseHandlerTemplate">
+                                <with-param name="id" value="{$ctx:id}" />
+                                <with-param name="status" value="Skipped" />
+                                <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </else>
+                  </filter>
+                  <property name="index" expression="get-property('operation','index') + 1" scope="operation" />
+               </sequence>
+            </target>
+         </iterate>
+
+         <!-- Check for all the iterations has completed -->
+         <filter xpath="get-property('operation', 'index') = get-property('operation', 'itemsCount')">
+            <then>
+               <loopback />
+            </then>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>{
+              "Response":{
+             "activity":"activecollab-updateTaskInActivecollab",
+              "activityResponse":[$1]
+              }
+            }</format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

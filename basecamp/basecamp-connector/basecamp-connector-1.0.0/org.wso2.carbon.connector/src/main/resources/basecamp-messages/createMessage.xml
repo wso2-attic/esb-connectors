@@ -1,0 +1,71 @@
+<template name="createMessage" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="projectId" description="The unique identifier of the project" />
+	<parameter name="subject" description="The subject of the message" />
+	<parameter name="content" description="The content of the message" />
+	<parameter name="subscribers" description="The subscribers of the message" />
+	<parameter name="attachments" description="The attachments sent along with the message" />
+
+	<sequence>
+		<property name="uri.var.projectId" expression="$func:projectId" />
+		<property name="uri.var.subject" expression="$func:subject" />
+		<property name="uri.var.content" expression="$func:content" />
+		<property name="uri.var.subscribers" expression="$func:subscribers" />
+		<property name="uri.var.attachments" expression="$func:attachments" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"content":"$1"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.content')" />
+			</args>
+		</payloadFactory>
+
+		<!-- Construct payload for optional parameters -->
+		<script language="js">
+		<![CDATA[
+		
+			//payload variables
+			var subject = mc.getProperty("uri.var.subject");
+			var subscribers = mc.getProperty("uri.var.subscribers");
+			var attachments = mc.getProperty("uri.var.attachments");
+			
+			payload = mc.getPayloadJSON();
+		
+			if (subject != null && subject != "") {
+				payload.subject = subject;
+			}
+			
+			if (subscribers != null && subscribers != "") {
+				payload.subscribers = eval("(" + subscribers + ")");
+			}
+			
+			if (attachments != null && attachments != "") {
+				payload.attachments = eval("(" + attachments + ")");
+			}
+			mc.setPayloadJSON(payload);	
+		]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/projects/{uri.var.projectId}/messages.json" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Queue-Time" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Timing-Allow-Origin" scope="transport" action="remove" />
+		<header name="X-Asset-Paths" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+
+	</sequence>
+</template>

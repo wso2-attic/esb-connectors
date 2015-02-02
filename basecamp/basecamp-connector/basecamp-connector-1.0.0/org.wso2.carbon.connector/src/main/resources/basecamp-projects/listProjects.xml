@@ -1,0 +1,35 @@
+<template name="listProjects" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="isArchived" description="This parameter decides whether to return the archived projects or not" />
+
+	<sequence>
+		<property name="uri.var.isArchived" expression="$func:isArchived" />
+
+		<filter source="get-property('uri.var.isArchived')" regex="true">
+			<then>
+				<property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/projects/archived.json')" />
+			</then>
+			<else>
+				<property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/projects.json')" />
+			</else>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Queue-Time" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Timing-Allow-Origin" scope="transport" action="remove" />
+		<header name="X-Asset-Paths" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+
+	</sequence>
+</template>

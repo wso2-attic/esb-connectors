@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="createSalary" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="effectiveFrom" description="Date from when the salary will be effective." />
+	<parameter name="salaryType" description="Type of the salary." />
+	<parameter name="paymentFrequency" description="How frequently the payment will be given" />
+	<parameter name="salaryAmount" description="Amount of the salary." />
+	<parameter name="currencyCode" description="The relevent currency code." />
+	<parameter name="changeReason" description="The reason why the salary is being changed." />
+	<parameter name="comments" description="Any additional comments can go here." />
+	<parameter name="deductions" description="Details about the deductions from the salary." />
+	<parameter name="entitlements" description="Details about the entitlements to the salary." />
+
+	<sequence>
+		<property expression="$func:effectiveFrom" name="uri.var.effectiveFrom" />
+		<property expression="$func:salaryType" name="uri.var.salaryType" />
+		<property expression="$func:paymentFrequency" name="uri.var.paymentFrequency" />
+		<property expression="$func:salaryAmount" name="uri.var.salaryAmount" />
+		<property expression="$func:currencyCode" name="uri.var.currencyCode" />
+		<property expression="$func:changeReason" name="uri.var.changeReason" />
+		<property expression="$func:comments" name="uri.var.comments" />
+		<property expression="$func:deductions" name="uri.var.deductions" />
+		<property expression="$func:entitlements" name="uri.var.entitlements" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"APIKey": "$1", 
+					"Action": "CreateNewSalary", 
+					"EmployeeId": "$2", 
+					"EffectiveFrom": "$3", 
+					"SalaryType": "$4", 
+					"PaymentFrequency": "$5", 
+					"SalaryAmount": "$6", 
+					"CurrencyCode":"$7", 
+					"ChangeReason": "$8", 
+					"Comments": "$9"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.apiKey')" />
+				<arg expression="get-property('uri.var.employeeId')" />
+				<arg expression="get-property('uri.var.effectiveFrom')" />
+				<arg expression="get-property('uri.var.salaryType')" />
+				<arg expression="get-property('uri.var.paymentFrequency')" />
+				<arg expression="get-property('uri.var.salaryAmount')" />
+				<arg expression="get-property('uri.var.currencyCode')" />
+				<arg expression="get-property('uri.var.changeReason')" />
+				<arg expression="get-property('uri.var.comments')" />
+			</args>
+		</payloadFactory>
+		
+		<script language="js">
+        	<![CDATA[
+        	//Checking the optional paramters and create the payload accordingly
+				var deductions=mc.getProperty('uri.var.deductions');
+				var entitlements=mc.getProperty('uri.var.entitlements');			
+				var payload = mc.getPayloadJSON();
+				
+				if (deductions != null && deductions != "") {
+					payload.Deductions = eval("("+deductions+")");	
+				}
+				
+				if (entitlements != null && entitlements != "") {
+					payload.Entitlements = eval("("+entitlements+")");	
+				} 
+				
+				mc.setPayloadJSON(payload);
+			]]>
+		</script>	
+		
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/Salary" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-AspNet-Version" scope="transport" action="remove" />
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+	</sequence>
+</template>

@@ -1,0 +1,44 @@
+<template name="getBuckets" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="apiUrl" description="Amazon S3 API Url." />
+	
+	<sequence>
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		
+		<!-- Authentication Header Setup --> 		
+		<class name="org.wso2.carbon.connector.amazons3.auth.AmazonS3AuthConnector" />
+
+		<filter xpath="(string(get-property('date'))) and get-property('date') != ''">  
+			<then>
+				<property name="Date" expression="get-property('date')" scope="transport" type="STRING" />
+			</then>
+		</filter> 
+		
+		<filter xpath="(string(get-property('isXAmzDateValue'))) and get-property('isXAmzDateValue') != ''">   
+			<then>
+				<property name="x-amz-date" expression="get-property('isXAmzDateValue')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('authenticationCode'))) and get-property('authenticationCode') != ''">    
+			<then>
+				<property name="Authorization" expression="get-property('authenticationCode')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}/" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove response custom header information -->
+		<header name="x-amz-date" scope="transport" action="remove" />
+		<header name="Authorization" scope="transport" action="remove" />
+	    <header name="Expect" scope="transport" action="remove" />
+		<header name="x-amz-id-2" scope="transport" action="remove" />
+		<header name="x-amz-request-id" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+		 
+	</sequence>
+</template>

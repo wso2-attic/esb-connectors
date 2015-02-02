@@ -1,0 +1,38 @@
+<template name="getCatalogProductTierPriceInfo" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="productId" description="ID of the product or SKU." />
+	<parameter name="identifierType" description="Defines whether the product ID or SKU is passed in the product parameter." />
+
+	<sequence>
+		<property name="uri.var.productId" expression="$func:productId" />
+		<property name="uri.var.identifierType" expression="$func:identifierType" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<catalogProductAttributeTierPriceInfo>
+					<sessionId>$1</sessionId>
+					<product>$2</product>
+					<identifierType>$3</identifierType>
+				</catalogProductAttributeTierPriceInfo>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.productId')" />
+				<arg expression="get-property('uri.var.identifierType')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>

@@ -1,0 +1,37 @@
+<template name="listStockData" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="products" description="List of product IDs or SKUs." />
+
+	<sequence>
+		<property name="uri.var.products" expression="$func:products" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<catalogInventoryStockItemList>
+					<sessionId>$1</sessionId>
+					<products>$2</products>
+				</catalogInventoryStockItemList>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.products')" />
+			</args>
+		</payloadFactory>
+
+		<!-- Remove values element via XSLT -->
+		<xslt key="magento_removeRootElement.xslt" />
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>
