@@ -1,0 +1,50 @@
+<template name="createShipment" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="orderIncrementId" description="The ID of the order." />
+	<parameter name="itemsQty" description="The quantity of items." />
+	<parameter name="comment" description="An optional comment." />
+	<parameter name="email" description="Flag on whether to send a notification email to the customer." />
+	<parameter name="includeComment" description="Flag on whether to include the comment in the email to the customer." />
+
+	<sequence>
+		<property name="uri.var.orderIncrementId" expression="$func:orderIncrementId" />
+		<property name="uri.var.itemsQty" expression="$func:itemsQty" />
+		<property name="uri.var.comment" expression="$func:comment" />
+		<property name="uri.var.email" expression="$func:email" />
+		<property name="uri.var.includeComment" expression="$func:includeComment" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<salesOrderShipmentCreate>
+					<sessionId>$1</sessionId>
+					<orderIncrementId>$2</orderIncrementId>
+					<itemsQty>$3</itemsQty>
+					<comment>$4</comment>
+					<email>$5</email>
+					<includeComment>$6</includeComment>
+				</salesOrderShipmentCreate>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.sessionId')" />
+				<arg expression="get-property('uri.var.orderIncrementId')" />
+				<arg expression="get-property('uri.var.itemsQty')" />
+				<arg expression="get-property('uri.var.comment')" />
+				<arg expression="get-property('uri.var.email')" />
+				<arg expression="get-property('uri.var.includeComment')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+
+	</sequence>
+</template>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="createGroupPost" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="groupId" description="Unique identifier of the group" />
+	<parameter name="message" description="The main body of the post" />
+	<parameter name="link" description="The URL of a link to attach to the post" />
+	<parameter name="picture"
+		description="Post thumbnail image (can only be used if link is specified)" />
+	<parameter name="name"
+		description="Post name (can only be used if link is specified)" />
+	<parameter name="caption"
+		description="Post caption (can only be used if link is specified)" />
+	<parameter name="description"
+		description="Post description (can only be used if link is specified)" />
+
+	<sequence>
+
+		<property name="uri.var.groupId" expression="$func:groupId" />
+		<property name="uri.var.message" expression="$func:message" />
+		<property name="uri.var.link" expression="$func:link" />
+		<property name="uri.var.picture" expression="$func:picture" />
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.caption" expression="$func:caption" />
+		<property name="uri.var.description" expression="$func:description" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"access_token":"$1"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.accessToken')" />
+			</args>
+		</payloadFactory>
+
+		<script language="js"><![CDATA[
+		
+			var message=mc.getProperty('uri.var.message');
+			var link=mc.getProperty('uri.var.link');
+			var picture=mc.getProperty('uri.var.picture');
+			var name=mc.getProperty('uri.var.name');
+			var caption=mc.getProperty('uri.var.caption');
+			var description=mc.getProperty('uri.var.description');
+			
+			payload = mc.getPayloadJSON();
+			
+			if(message != null && message != ""){
+				payload.message = message;
+			}
+			
+			if(link !=null && link != ""){
+				payload.link=link;
+				
+				if(picture != null && picture != ""){
+				payload.picture = picture;
+			}
+			
+			if(name !=null && name != ""){
+				payload.name=name;
+			}
+			
+			if(caption !=null && caption != ""){
+				payload.caption=caption;
+			}
+			
+			if(description !=null && description != ""){
+				payload.description=description;
+			}
+			}	
+			
+           mc.setPayloadJSON(payload);
+         ]]></script>
+		<property name="messageType" value="application/x-www-form-urlencoded"
+			scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/{uri.var.groupId}/feed" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-FB-Debug" scope="transport" action="remove" />
+		<header name="X-FB-Rev" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+
+	</sequence>
+</template>

@@ -1,0 +1,150 @@
+<?xml version="1.0" ?>
+<!-- This template responsible for creating a campaign in campaign monitor and creating a wall post in facebook 
+     according to given access token of campaign monitor & facebook with other parameters -->
+<template name="ebay-publishItemDetailsOnSocialMedia" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Campaign monitor related template parameters -->
+	<parameter name="cmApiUrl" description="API url of campaign monitor." />
+	<parameter name="cmAccessToken" description="The access token to authorize the requests to campaign monitor." />
+	<parameter name="cmClientId" description="The id of the client for whom the campaign should be created." />
+	<parameter name="cmName" description="Name of the campaign." />
+	<parameter name="cmSubject" description="Subject of the campaign." />
+	<parameter name="cmFromName" description="Campaign senders name." />
+	<parameter name="cmFromEmail" description="Campaign senders email." />
+	<parameter name="cmReplyTo" description="Email address to reply for the campaign." />
+	<parameter name="cmListIds" description="List of subscribers ids." />
+	<parameter name="cmSegmentIds" description="List of segment Ids." />
+	<parameter name="cmTemplateId" description="Id of the template." />
+	<parameter name="cmTemplateContent" description="Content of the campaign template." />
+
+	<!-- Facebook related template parameters -->
+	<parameter name="fbApiUrl" description="API url of Facebook." />
+	<parameter name="fbAccessToken" description="Access token which provides temporary, secure access to Facebook APIs." />
+	<parameter name="fbConnection" description="The connection which belongs to an object." />
+	<parameter name="fbMessageBody" description="The main message body of the post." />
+	<parameter name="fbLink" description="The URL of a link to attach to the post." />
+	<parameter name="fbPicture" description="Determines the preview image associated with the link." />
+	<parameter name="fbName" description="Overwrites the title of the link preview." />
+	<parameter name="fbCaption" description="Overwrites the caption under the title in the link preview." />
+	<parameter name="fbDescription" description="Overwrites the description in the link preview." />
+	<parameter name="fbActions" description="The action links attached to the post." />
+	<parameter name="fbPlace" description="Page ID of a location associated with this post." />
+	<parameter name="fbTags" description="List of user IDs of people tagged in this post." />
+	<parameter name="fbPrivacy" description="Determines the privacy settings of the post." />
+	<parameter name="fbObjectAttachment" description="Facebook ID for an existing picture in the person's photo albums to use as the thumbnail image." />
+
+    <sequence>
+		<!-- Campaign monitor related template properties -->
+		<property name="uri.var.cmApiUrl" expression="$func:cmApiUrl"/>
+		<property name="uri.var.cmAccessToken" expression="$func:cmAccessToken"/>
+		<property name="uri.var.cmClientId" expression="$func:cmClientId"/>
+		<property name="uri.var.cmName" expression="$func:cmName"/>
+		<property name="uri.var.cmSubject" expression="$func:cmSubject"/>
+		<property name="uri.var.cmFromName" expression="$func:cmFromName"/>
+		<property name="uri.var.cmFromEmail" expression="$func:cmFromEmail"/>
+		<property name="uri.var.cmReplyTo" expression="$func:cmReplyTo"/>
+		<property name="uri.var.cmListIds" expression="$func:cmListIds"/>
+		<property name="uri.var.cmSegmentIds" expression="$func:cmSegmentIds"/>
+		<property name="uri.var.cmTemplateId" expression="$func:cmTemplateId"/>
+		<property name="uri.var.cmTemplateContent" expression="$func:cmTemplateContent"/>
+	
+		<!-- Facebook related template properties -->
+		<property name="uri.var.fbApiUrl" expression="$func:fbApiUrl" />
+		<property name="uri.var.fbAccessToken" expression="$func:fbAccessToken" />
+		<property name="uri.var.fbConnection" expression="$func:fbConnection" />
+		<property name="uri.var.fbMessageBody" expression="$func:fbMessageBody" />
+		<property name="uri.var.fbLink" expression="$func:fbLink" />
+		<property name="uri.var.fbPicture" expression="$func:fbPicture" />
+		<property name="uri.var.fbName" expression="$func:fbName" />
+		<property name="uri.var.fbCaption" expression="$func:fbCaption" />
+		<property name="uri.var.fbDescription" expression="$func:fbDescription" />
+		<property name="uri.var.fbActions" expression="$func:fbActions" />
+		<property name="uri.var.fbPlace" expression="$func:fbPlace" />
+		<property name="uri.var.fbTags" expression="$func:fbTags" />
+		<property name="uri.var.fbPrivacy" expression="$func:fbPrivacy" />
+		<property name="uri.var.fbObjectAttachment" expression="$func:fbObjectAttachment" />
+
+		<property name="messageType" value="application/json" scope="axis2"/>
+		
+		<!-- If campaign monitor access token is available proceed with campaign monitor call -->
+		<filter source="boolean(get-property('uri.var.cmAccessToken'))" regex="true">
+            <then>           
+				<!-- Calling the campaign monitor connector -->
+				<campaignmonitor.init>
+					<apiUrl>{$ctx:uri.var.cmApiUrl}</apiUrl>
+					<accessToken>{$ctx:uri.var.cmAccessToken}</accessToken>
+				</campaignmonitor.init>
+				<campaignmonitor.createCampaignFromTemplate>
+					<clientId>{$ctx:uri.var.cmClientId}</clientId>
+					<name>{$ctx:uri.var.cmName}</name>
+					<subject>{$ctx:uri.var.cmSubject}</subject>
+					<fromName>{$ctx:uri.var.cmFromName}</fromName>
+					<fromEmail>{$ctx:uri.var.cmFromEmail}</fromEmail>
+					<replyTo>{$ctx:uri.var.cmReplyTo}</replyTo>
+					<listIds>{$ctx:uri.var.cmListIds}</listIds>
+					<segmentIds>{$ctx:uri.var.cmSegmentIds}</segmentIds>
+					<templateId>{$ctx:uri.var.cmTemplateId}</templateId>
+					<templateContent>{$ctx:uri.var.cmTemplateContent}</templateContent>
+				</campaignmonitor.createCampaignFromTemplate>
+				
+				<!-- Getting the created campaign id -->
+				<property name="campaignId" value="" />
+							
+				<!-- According to successful or unsuccessful response status code construct the custom messages -->
+				<filter source="$axis2:HTTP_SC" regex="201">
+					<then>
+						<property name="status" value="Success" />
+						<property name="message" expression="fn:concat('Campaign was successfully created with campaign id ',get-property('campaignId'),'.')" />
+					</then>
+					<else>				
+						<property name="messageType" value="application/json" scope="axis2"/>
+						<property name="status" value="Error" />
+						<property name="message" expression="json-eval($.)" />
+					</else>
+				</filter>
+            </then>
+		</filter>
+		
+		<!-- If facebook access token is available proceed with facebook wall post creation call -->
+		<filter source="boolean(get-property('uri.var.fbAccessToken'))" regex="true">
+            <then>           
+				<!-- Calling the facebook connector -->
+				<facebook.init>
+					<apiUrl>{$ctx:uri.var.fbApiUrl}</apiUrl>
+					<accessToken>{$ctx:uri.var.fbAccessToken}</accessToken>
+					<connection>{$ctx:uri.var.fbConnection}</connection> 
+				</facebook.init>
+				<facebook.createPost> 
+					<message>{$ctx:uri.var.fbMessageBody}</message> 
+					<link>{$ctx:uri.var.fbLink}</link> 
+					<picture>{$ctx:uri.var.fbPicture}</picture>
+					<name>{$ctx:uri.var.fbName}</name>
+					<caption>{$ctx:uri.var.fbCaption}</caption>
+					<description>{$ctx:uri.var.fbDescription}</description>
+					<actions>{$ctx:uri.var.fbActions}</actions> 
+					<place>{$ctx:uri.var.fbPlace}</place> 
+					<tags>{$ctx:uri.var.fbTags}</tags> 
+					<privacy>{$ctx:uri.var.fbPrivacy}</privacy> 
+					<objectAttachment>{$ctx:uri.var.fbObjectAttachment}</objectAttachment>  
+				</facebook.createPost>
+				
+				<!-- Getting the created wall post id -->
+				<property name="fbPostId" expression="json-eval($.id)" />
+							
+				<!-- According to availability of created post id construct the custom messages -->
+				<filter source="boolean(get-property('fbPostId'))" regex="true">
+					<then>				
+						<property name="status" value="Success" />
+						<property name="message" expression="fn:concat('Facebook wall post was successfully created with wall post id ',get-property('fbPostId'),'.')" />
+					</then>
+					<else>
+						<property name="messageType" value="application/json" scope="axis2"/>
+						<property name="status" value="Error" />
+						<property name="message" expression="json-eval($.)" />
+					</else>
+				</filter>
+            </then>
+		</filter>
+
+    </sequence>
+</template>

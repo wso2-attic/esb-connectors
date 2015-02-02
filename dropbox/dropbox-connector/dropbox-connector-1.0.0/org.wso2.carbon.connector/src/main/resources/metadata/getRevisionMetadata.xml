@@ -1,0 +1,51 @@
+<template name="getRevisionMetadata" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Optional parameters -->
+	<parameter name="revLimit" description="Number of recent revisions to be returned.Default is 10." />
+	<parameter name="locale" description="Metadata size field translated based on this locale." />
+
+	<sequence>
+		
+		<property name="uri.var.revLimit" expression="$func:revLimit"/>
+		<property name="uri.var.locale" expression="$func:locale" />
+
+		<script language="js">
+        	<![CDATA[
+                    
+                    var revLimit = mc.getProperty('uri.var.revLimit');
+                    var locale = mc.getProperty('uri.var.locale');
+                    var query = "";
+                                        					           
+					if (revLimit != null && revLimit != "") {
+						query += "rev_limit=" + revLimit + "&";												
+					}
+					
+					if (locale != null && locale != "") {
+						query += "locale=" + locale + "&";	
+					}
+					
+					if(query!=null && query!=""){
+					    query = '?' + query.substring(0,query.length-1);
+					}
+					
+					mc.setProperty('uri.var.query', query);					
+        	]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}/1/revisions/{uri.var.root}/{uri.var.path}{uri.var.query}" />
+			</endpoint>
+		</call>
+
+		<header name="x-server-response-time" scope="transport" action="remove" />
+		<header name="x-frame-options" scope="transport" action="remove" />
+		<header name="x-dropbox-http-protocol" scope="transport" action="remove" />
+		<header name="x-dropbox-request-id" scope="transport" action="remove" />
+		<header name="X-RequestId" scope="transport" action="remove" />
+		<header name="set-cookie" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+
+	</sequence>
+</template>

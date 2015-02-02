@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="updateTraining" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="update" description="Value used to select the particular endpoint."/>
+	<parameter name="name" description="Name of the training."/>
+    <parameter name="description" description="Description of the training."/>
+    <parameter name="organizers" description="Array of user keys."/>
+    <parameter name="notifyOrganizers" description="Notify by email change of organizers."/>
+    <parameter name="disableWebRegistration" description="Disable web registration."/>
+    <parameter name="disableConfirmationEmail" description="Disable confirmation emails."/>
+    <parameter name="timeZone" description="Time zone of the training."/>
+    <parameter name="times" description="Start and End time for the training."/>
+    <parameter name="notifyRegistrants" description="Notify registrants via email of change to training. Default is true."/>
+    <parameter name="notifyTrainers" description="Notify trainers via email of change to training. Default is true."/>
+    <parameter name="trainingKey" description="Key of the training to retrieve details about."/>
+    <sequence>
+        <property name="uri.var.trainingKey" expression="$func:trainingKey"/>
+		<property name="uri.var.update" expression="$func:update"/>
+        <property name="uri.var.name" expression="$func:name"/>
+        <property name="uri.var.description" expression="$func:description"/>
+        <property name="uri.var.organizers" expression="$func:organizers"/>
+        <property name="uri.var.notifyOrganizers" expression="$func:notifyOrganizers"/>
+        <property name="uri.var.disableWebRegistration" expression="$func:disableWebRegistration"/>
+        <property name="uri.var.disableConfirmationEmail" expression="$func:disableConfirmationEmail"/>
+        <property name="uri.var.timeZone" expression="$func:timeZone"/>
+        <property name="uri.var.times" expression="$func:times"/>
+        <property name="uri.var.notifyRegistrants" expression="$func:notifyRegistrants"/>
+        <property name="uri.var.notifyTrainers" expression="$func:notifyTrainers"/>
+
+        <script language="js">
+            <![CDATA[
+                var jsonPayload = new Object();   
+				
+				var update = mc.getProperty('uri.var.update');
+                var description = mc.getProperty('uri.var.description');
+                var disableWebRegistration = mc.getProperty('uri.var.disableWebRegistration');
+                var name = mc.getProperty('uri.var.name');
+                var disableConfirmationEmail = mc.getProperty('uri.var.disableConfirmationEmail');
+                var notifyOrganizers = mc.getProperty('uri.var.notifyOrganizers');
+                var notifyRegistrants = mc.getProperty('uri.var.notifyRegistrants');
+                var notifyTrainers = mc.getProperty('uri.var.notifyTrainers');
+                var organizers = mc.getProperty('uri.var.organizers');
+                var timeZone = mc.getProperty('uri.var.timeZone');
+                var times = mc.getProperty('uri.var.times');
+				
+				// Organizers endpoint
+				if(update != null && update.toLowerCase() == "organizers"){
+					if (notifyOrganizers != null && notifyOrganizers != ""){
+						jsonPayload["notifyOrganizers"] = notifyOrganizers;
+					}
+					
+					// Mandatory to be supplied.
+					jsonPayload["organizers"] = eval("(" + organizers + ")");
+					
+					mc.setProperty('uri.var.endpoint', '/organizers');
+				}
+				// Registration Setting endpoint
+				else if (update != null && update.toLowerCase() == "registrationsettings"){
+					if (disableWebRegistration != null && disableWebRegistration != ""){
+						jsonPayload["disableWebRegistration"] = disableWebRegistration;
+					}
+					
+					if (disableConfirmationEmail != null && disableConfirmationEmail != ""){
+						jsonPayload["disableConfirmationEmail"] = disableConfirmationEmail;
+					}
+					
+					mc.setProperty('uri.var.endpoint', '/registrationSettings');
+				}
+				// Times endpoint
+				else if (update != null && update.toLowerCase() == "times"){
+					if (notifyRegistrants != null && notifyRegistrants != ""){
+						jsonPayload["notifyRegistrants"] = notifyRegistrants;
+					}
+					
+					if (notifyTrainers != null && notifyTrainers != ""){
+						jsonPayload["notifyTrainers"] = notifyTrainers;
+					}
+					
+					// Mandatory to be supplied.
+					jsonPayload["timeZone"] = timeZone;	
+					
+					// Mandatory to be supplied.					
+					jsonPayload["times"] = eval("(" + times + ")");
+					
+					mc.setProperty('uri.var.endpoint', '/times');
+				}
+				// NameDescription endpoint.
+				else if (update != null && update.toLowerCase() == "namedescription") {
+					// Mandatory to be supplied.
+					jsonPayload["description"] = description;
+					
+					// Mandatory to be supplied.
+					jsonPayload["name"] = name;
+					
+					mc.setProperty('uri.var.endpoint', '/nameDescription');    
+				}               
+                
+                mc.setPayloadJSON(jsonPayload);
+            ]]>
+        </script>
+
+        <call>
+            <endpoint>
+                <http method="put" uri-template="{uri.var.apiUrl}/organizers/{uri.var.organizerKey}/trainings/{uri.var.trainingKey}{uri.var.endpoint}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="Access-Control-Allow-Headers" action="remove" scope="transport"/>
+        <header name="Access-Control-Allow-Methods" action="remove" scope="transport"/>
+        <header name="Access-Control-Allow-Origin" action="remove" scope="transport"/>
+        <header name="Access-Control-Max-Age" action="remove" scope="transport"/>
+
+    </sequence>
+</template>

@@ -1,0 +1,31 @@
+<template name="listTasks" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="projectId" 
+		description="The unique identifier of a project." />
+	<parameter name="isArchived" 
+		description="If set to true, only the archived tasks will be retrieved." />
+	
+	<sequence>
+		<property name="uri.var.projectId" expression="$func:projectId" />
+		<property name="uri.var.isArchived" expression="$func:isArchived" />
+		<property name="uri.var.functionRemainder" value="" />
+
+		<filter source="get-property('uri.var.isArchived')" regex="true">
+			<then>
+				<property name="uri.var.functionRemainder" value="/archive" />
+			</then>
+		</filter>
+		
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}path_info=projects/{uri.var.projectId}/tasks{uri.var.functionRemainder}" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove response custom header information -->
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+
+	</sequence>
+</template>

@@ -1,0 +1,89 @@
+<template name="createPageEvent" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="pageId" description="Unique identifier of the page" />
+	<parameter name="name" description="The name of the event" />
+	<parameter name="startTime" description="The start time of the event" />
+	<parameter name="endTime" description="The end time of the event" />
+	<parameter name="description" description="Event description" />
+	<parameter name="location"
+		description="Where the event is located as an arbitrary descriptive string" />
+	<parameter name="locationId"
+		description="Where the event is located as the page ID of a specific place" />
+	<parameter name="ticketUri"
+		description="URI of a page where attendees can buy tickets to this event" />
+	<parameter name="noFeedStory"
+		description="Whether the feed story generated when the event is created is suppressed or not" />
+	<sequence>
+		<property name="uri.var.pageId" expression="$func:pageId" />
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.startTime" expression="$func:startTime" />
+		<property name="uri.var.endTime" expression="$func:endTime" />
+		<property name="uri.var.description" expression="$func:description" />
+		<property name="uri.var.location" expression="$func:location" />
+		<property name="uri.var.locationId" expression="$func:locationId" />
+		<property name="uri.var.ticketUri" expression="$func:ticketUri" />
+		<property name="uri.var.noFeedStory" expression="$func:noFeedStory" />
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"access_token":"$1",
+				"name":"$2",
+				"start_time":"$3"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.accessToken')" />
+				<arg expression="get-property('uri.var.name')" />
+				<arg expression="get-property('uri.var.startTime')" />
+			</args>
+		</payloadFactory>
+		<script language="js"><![CDATA[
+		
+			var endTime=mc.getProperty('uri.var.endTime');
+			var description=mc.getProperty('uri.var.description');
+			var location=mc.getProperty('uri.var.location');
+			var locationId=mc.getProperty('uri.var.locationId');
+			var ticketUri=mc.getProperty('uri.var.ticketUri');
+			var noFeedStory=mc.getProperty('uri.var.noFeedStory');
+			
+			payload = mc.getPayloadJSON();
+			
+			if(endTime !=null && endTime != ""){
+				payload.end_time=endTime;
+			}
+					
+			if(description != null && description != ""){
+				payload.description = description;
+			}
+			
+			if(location !=null && location != ""){
+				payload.location=location;
+			}
+			
+			if(locationId !=null && locationId != ""){
+				payload.location_id=locationId;
+			}
+            
+            if(ticketUri !=null && ticketUri != ""){
+				payload.ticket_uri=ticketUri;
+			}
+			
+			if(noFeedStory !=null && noFeedStory != ""){
+				payload.no_feed_story=noFeedStory;
+			}
+               
+           
+           mc.setPayloadJSON(payload);
+         ]]></script>
+		<property name="messageType" value="application/x-www-form-urlencoded"
+			scope="axis2" />
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/{uri.var.pageId}/events" />
+			</endpoint>
+		</call>
+		<!-- Remove response custom header information -->
+		<header name="X-FB-Debug" scope="transport" action="remove" />
+		<header name="X-FB-Rev" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+	</sequence>
+</template>

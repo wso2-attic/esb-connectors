@@ -1,0 +1,67 @@
+<template name="updatePayment" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="paymentId" description="Payment ID to update." />
+	<parameter name="amount" description="Payment amount to update." />
+	<parameter name="currencyCode" description="Payment currency code to update." />
+	<parameter name="notes" description="Payment internal notes to update." />
+
+	<sequence>
+		<property name="uri.var.paymentId" expression="$func:paymentId" />
+		<property name="uri.var.amount" expression="$func:amount" />
+		<property name="uri.var.currencyCode" expression="$func:currencyCode" />
+		<property name="uri.var.notes" expression="$func:notes" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<request xmlns="" method="payment.update">
+					<payment>
+						<payment_id>$1</payment_id>
+					</payment>
+				</request>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.paymentId')" />
+			</args>
+		</payloadFactory>
+
+		<script language="js">
+			<![CDATA[
+			
+				//request body param variables
+				var amount = mc.getProperty('uri.var.amount');
+		        var currencyCode = mc.getProperty('uri.var.currencyCode');
+		        var notes = mc.getProperty('uri.var.notes');
+			
+				//Get the existing payload
+				var payload = mc.getPayloadXML();
+				
+				if (amount != null && amount != "") {
+					payload.payment.amount = amount;
+				}
+				
+				if (currencyCode != null && currencyCode != "") {
+					payload.payment.currency_code = currencyCode;
+				}
+				
+				if (notes != null && notes != "") {
+					payload.payment.notes = notes;
+				}
+				
+				//Set the newly constructed payload
+				mc.setPayloadXML(payload);
+				
+			]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/api/2.1/xml-in" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+
+	</sequence>
+</template>

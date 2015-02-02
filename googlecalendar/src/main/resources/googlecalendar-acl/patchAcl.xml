@@ -1,0 +1,101 @@
+<template name="patchAcl" xmlns="http://ws.apache.org/ns/synapse">
+	<!-- Required parameters -->
+	<parameter name="calendarId" description="Calendar identifier." />
+	<parameter name="ruleId" description="ACL rule identifier." />
+
+	<!-- Optional parameters -->
+	<parameter name="fields" description="Selector specifying which fields to include in a partial response." />
+	<parameter name="etag" description="ETag of the resource." />
+	<parameter name="id" description="Identifier of the ACL rule." />
+	<parameter name="kind" description="Type of the resource. Sample value calendar#aclRule" />
+	<parameter name="role" description="The role assigned to the scope." />
+	<parameter name="scope" description="The scope of the rule.An Object containing type and value attributes." />
+
+	<sequence>
+		<property name="uri.var.calendarId" expression="$func:calendarId" />
+		<property name="uri.var.ruleId" expression="$func:ruleId" />
+		<property name="uri.var.fields" expression="$func:fields" />
+		<property name="uri.var.role" expression="$func:role" />
+		<property name="uri.var.scope" expression="$func:scope" />
+		<property name="uri.var.etag" expression="$func:etag" />
+		<property name="uri.var.id" expression="$func:id" />
+		<property name="uri.var.kind" expression="$func:kind" />
+		
+	    <!-- Building request with mandatory params -->
+		<payloadFactory media-type="json">
+			<format>
+				{}
+			</format>
+		</payloadFactory>		
+
+		<script language="js">
+        	<![CDATA[
+        		
+        		//url parameters
+        		var calendarId = encodeURIComponent(mc.getProperty("uri.var.calendarId"));
+		        var ruleId = encodeURIComponent(mc.getProperty("uri.var.ruleId"));
+		        var fields = mc.getProperty("uri.var.fields");
+        				        
+		        //request body param variables
+		        var role = mc.getProperty('uri.var.role');
+		        var scope = mc.getProperty('uri.var.scope');
+				var etag = mc.getProperty('uri.var.etag');
+				var id= mc.getProperty('uri.var.id');
+				var kind= mc.getProperty('uri.var.kind');			        		 
+		        
+		        //url param processing start
+		       	mc.setProperty('uri.var.calendarId', calendarId);
+				mc.setProperty('uri.var.ruleId', ruleId);
+		        var urlParamString = '';
+		           
+				if (fields != null && fields != "") {
+					urlParamString = '?fields=' + encodeURIComponent(fields);
+				}
+				
+				mc.setProperty('uri.var.urlParamString', urlParamString);
+				//url param processing end
+		        	        		       		       			         				
+				//request body param processing start
+				var payload = mc.getPayloadJSON();
+				
+				if (role != null && role != "") {
+					payload.role = role;
+				}
+				
+				if (scope != "" && scope != null) {  
+					payload.scope = eval("("+scope+")"); // evaluate scope as an object		
+				}
+								
+				if (etag != null && etag != "") {
+					payload.etag = etag;
+				}
+				
+				if (id != null && id != "") {
+					payload.id = id;
+				}
+				
+				if (kind != null && kind != "") {
+					payload.kind = kind;
+				}
+																		
+				mc.setPayloadJSON(payload);
+				//request body param processing end
+				
+			]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="patch"
+					uri-template="{uri.var.apiUrl}/calendar/v3/calendars/{uri.var.calendarId}/acl/{uri.var.ruleId}{uri.var.urlParamString}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="Alternate-Protocol" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+
+	</sequence>
+</template>

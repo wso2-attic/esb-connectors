@@ -1,0 +1,67 @@
+<template name="createSearchQuery" xmlns="http://ws.apache.org/ns/synapse">
+  <parameter name="query" description="The query string"/>
+  <parameter name="from" description="Start time for the search"/>
+  <parameter name="until" description="End time for the search"/>
+  <parameter name="order" description="Direction of results returned"/>
+  <parameter name="size" description="Number of rows returned by search"/>
+  
+  <sequence>
+  
+    <property name="uri.var.query" expression="$func:query"/>
+    <property name="uri.var.from" expression="$func:from"/>
+    <property name="uri.var.until" expression="$func:until"/>
+    <property name="uri.var.order" expression="$func:order"/>
+    <property name="uri.var.size" expression="$func:size"/>
+	
+		<script language="js">
+			<![CDATA[ 
+			
+				var query = mc.getProperty('uri.var.query');
+				var from = mc.getProperty('uri.var.from');
+				var until = mc.getProperty('uri.var.until'); 
+				var order = mc.getProperty('uri.var.order');
+				var size = mc.getProperty('uri.var.size');
+				var urlQuery = "";
+				
+				// Append query parameters
+				if(query != null && query != "") {
+					urlQuery += 'query=' + encodeURIComponent(query) + '&';
+				}
+				
+				if(from != null && from != "") {
+					urlQuery += 'from=' + encodeURIComponent(from) + '&';
+				}
+				
+				if(until != null && until != "") {
+					urlQuery += 'until=' + encodeURIComponent(until) + '&';
+				}
+				
+				if(order != null && order != "") {
+					urlQuery += 'order=' + encodeURIComponent(order) + '&';
+				}
+				
+				if(size != null && size != "") {
+					urlQuery += 'size=' + size + '&';
+				}
+				
+				if(urlQuery!=""){
+				urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+				mc.setProperty('uri.var.urlQuery', urlQuery);
+				}
+				
+							
+			]]></script> 
+	
+    <call>
+      <endpoint>
+        <http method="get" uri-template="{uri.var.apiUrl}/search{uri.var.urlQuery}"/>
+      </endpoint>
+    </call>
+    
+    		<!-- Remove response custom header information -->
+		<header name="X-Varnish" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+  </sequence>
+</template>

@@ -1,0 +1,43 @@
+<template name="deleteMessage" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="receiptHandle"
+		description="A list of receipt handles for the messages to be deleted" />
+	<parameter name="queueId" description="The unique identifier of the queue" />
+	<parameter name="queueName" description="The name of the queue" />
+
+	<sequence>
+		<property name="uri.var.receiptHandle" expression="$func:receiptHandle" />
+		<property name="uri.var.queueId" expression="$func:queueId" />
+		<property name="uri.var.urlQueueName" expression="$func:queueName" />
+		<property name="uri.var.action" value="DeleteMessage" />
+		<class
+			name="org.wso2.carbon.connector.amazonsqs.auth.AmazonSQSAuthConnector" />
+
+		<!-- Add authorization and date header parameters -->
+		<header name="Authorization" scope="transport"
+			expression="get-property('uri.var.authorizationHeader')" />
+		<header name="x-amz-date" scope="transport"
+			expression="get-property('uri.var.amzDate')" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				$1
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.requestPayload')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}{uri.var.httpRequestUri}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information -->
+		<header name="Proxy-Connection" scope="transport" action="remove" />
+		<header name="x-amzn-RequestId" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+	</sequence>
+</template>

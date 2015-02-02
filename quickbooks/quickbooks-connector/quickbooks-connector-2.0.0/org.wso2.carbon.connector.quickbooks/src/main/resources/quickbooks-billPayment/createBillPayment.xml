@@ -1,0 +1,149 @@
+<template name="createBillPayment" xmlns="http://ws.apache.org/ns/synapse">
+ 
+  <!-- required parameters -->
+  <parameter name="vendorRef" description="Specifies the vendor reference for this transaction"/>
+  <parameter name="payType" description="The payment type."/>
+  
+  <!-- optional parameters -->
+  <parameter name="docNumber" description="Reference number for the transaction."/>
+  <parameter name="txnDate" description="The date entered by the user when this transaction occurred."/>
+  <parameter name="departmentRef" description="Location of the transaction."/>
+  <parameter name="currencyRef" description="Reference to the Currency in which all amounts on the associated transaction are expressed."/>
+  <parameter name="exchangeRate" description="Currency exchange rate."/>
+  <parameter name="privateNote" description="User entered, organization-private note about the transaction."/>
+  <parameter name="line" description="A line item of a transaction."/>
+  <parameter name="aPAccountRef" description="Specifies to which AP account the VendorCredit is credited."/>
+  <parameter name="checkPayment" description="Check payment details for both payments to vendors and payments from customers."/>
+  <parameter name="creditCardPayment" description="Credit card information."/>
+  <parameter name="totalAmt" description="Indicates the total amount of the entity associated."/>
+  <parameter name="processBillPayment" description="Indicates that the payment should be processed by merchant account service."/>
+  
+  <sequence>
+    <property name="uri.var.docNumber" expression="$func:docNumber"/>
+    <property name="uri.var.txnDate" expression="$func:txnDate"/>
+    <property name="uri.var.departmentRef" expression="$func:departmentRef"/>
+    <property name="uri.var.currencyRef" expression="$func:currencyRef"/>
+    <property name="uri.var.exchangeRate" expression="$func:exchangeRate"/>
+    <property name="uri.var.privateNote" expression="$func:privateNote"/>
+    <property name="uri.var.line" expression="$func:line"/>
+    <property name="uri.var.vendorRef" expression="$func:vendorRef"/>
+    <property name="uri.var.aPAccountRef" expression="$func:aPAccountRef"/>
+    <property name="uri.var.payType" expression="$func:payType"/>
+    <property name="uri.var.checkPayment" expression="$func:checkPayment"/>
+    <property name="uri.var.creditCardPayment" expression="$func:creditCardPayment"/>
+    <property name="uri.var.totalAmt" expression="$func:totalAmt"/>
+    <property name="uri.var.processBillPayment" expression="$func:processBillPayment"/>
+	<property name="uri.var.uriRemainder" expression="fn:concat('/company/',get-property('uri.var.companyId'),'/billpayment')" />
+	<property name="uri.var.params" value="" />
+	<property name="uri.var.method" value="POST" />
+		   
+	<!-- Authentication Header Setup and call the API -->
+	<class
+		name="org.wso2.carbon.connector.quickbooks.auth.QuickBooksOAuthSignpost" />
+
+	<filter source="boolean(get-property('auth'))" regex="true">
+		<then>
+			<property name="Authorization" expression="get-property('auth')"
+				scope="transport" type="STRING" />
+		</then>
+	</filter>
+	
+			<payloadFactory media-type="json">
+				<format>
+					{
+						"VendorRef": $1,
+						"PayType": "$2"
+					}
+				</format>
+				<args>
+					<arg expression="get-property('uri.var.vendorRef')" />
+					<arg expression="get-property('uri.var.payType')" />
+				</args>
+			</payloadFactory>
+	
+	<script language="js">
+                    <![CDATA[
+                    
+                      //request body param variables
+                      var payload = mc.getPayloadJSON();
+                          
+                       var docNumber = mc.getProperty('uri.var.docNumber');
+					   var txnDate = mc.getProperty('uri.var.txnDate');
+					   var departmentRef = mc.getProperty('uri.var.departmentRef');
+					   var currencyRef = mc.getProperty('uri.var.currencyRef');
+					   var exchangeRate = mc.getProperty('uri.var.exchangeRate');
+					   var line = mc.getProperty('uri.var.line');
+					   var privateNote = mc.getProperty('uri.var.privateNote');					  
+					   var aPAccountRef = mc.getProperty('uri.var.aPAccountRef');
+					   var checkPayment = mc.getProperty('uri.var.checkPayment');
+					   var creditCardPayment = mc.getProperty('uri.var.creditCardPayment');
+					   var totalAmt = mc.getProperty('uri.var.totalAmt');
+					   var processBillPayment = mc.getProperty('uri.var.processBillPayment');
+					                         
+                        if (docNumber != null && docNumber != "") {
+                               payload.DocNumber= docNumber;
+                        }  
+                        
+                        if (txnDate != null && txnDate != "") {
+                               payload.TxnDate= txnDate;
+                        }                       
+                        
+                        if (departmentRef != null && departmentRef != "") {
+                               payload.DepartmentRef = eval("("+departmentRef+")"); 
+                        }                         
+                        
+                        if (currencyRef != null && currencyRef != "") {
+                               payload.CurrencyRef = eval("("+currencyRef+")"); 
+                        }       
+                        
+                        if (exchangeRate != null && exchangeRate != "") {
+                               payload.ExchangeRate= exchangeRate;
+                        } 
+                        		
+                        if (line != null && line != "") {
+                               payload.Line = eval("("+line+")"); 
+                        } 
+   
+                        if (privateNote != null && privateNote != "") {
+                               payload.PrivateNote= privateNote;
+                        }                                                                    
+                                                
+                        if (aPAccountRef != null && aPAccountRef != "") {
+                               payload.APAccountRef = eval("("+aPAccountRef+")"); 
+                        }                                                                                         
+                        
+                        if (checkPayment != null && checkPayment != "") {
+                               payload.CheckPayment = eval("("+checkPayment+")"); 
+                        }
+                                                                   
+                        if (creditCardPayment != null && creditCardPayment != "") {
+                               payload.CreditCardPayment = eval("("+creditCardPayment+")"); 
+                        }  
+                        
+                        if (totalAmt != null && totalAmt != "") {
+                               payload.TotalAmt= totalAmt;
+                        }        
+                                                                  
+                        if (processBillPayment != null && processBillPayment != "") {
+                               payload.ProcessBillPayment= processBillPayment;
+                        }                         
+                                                                                                                
+                        mc.setPayloadJSON(payload); 
+                    ]]>
+
+	</script>
+
+	<call>
+		<endpoint>
+			<http method="post" uri-template="{uri.var.apiUrl}{uri.var.uriRemainder}" />
+		</endpoint>
+	</call>
+	
+	<!-- Remove response custom header information -->
+	<header name="intuit_tid" scope="transport" action="remove" />
+	<header name="QBO-Version" scope="transport" action="remove" />
+	<header name="Vary" scope="transport" action="remove" />
+	<header name="Via" scope="transport" action="remove" />	
+  
+  </sequence>
+</template>

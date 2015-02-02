@@ -1,0 +1,90 @@
+<template name="getObjectMetaData" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="bucketUrl" description="End point URL of the request." />
+	<parameter name="objectName" description="The name of the object to retrieve metadata for." />
+	<parameter name="range" description="Downloads the specified range bytes of an object." />
+	<parameter name="ifModifiedSince" description="Return the object only if it has been modified since the specified time, otherwise return a 304." />
+	<parameter name="ifUnmodifiedSince" description="Return the object only if it has not been modified since the specified time, otherwise return a 412." />
+	<parameter name="ifMatch" description="Return the object only if its entity tag ETag is the same as the one specified; otherwise, return a 412." />
+	<parameter name="ifNoneMatch" description="Return the object only if its entity tag ETag is different from the one specified; otherwise, return a 304." />
+
+	<sequence>
+
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+		<property name="uri.var.range" expression="$func:range" />
+		<property name="uri.var.ifModifiedSince" expression="$func:ifModifiedSince" />
+		<property name="uri.var.ifUnmodifiedSince" expression="$func:ifUnmodifiedSince" />
+		<property name="uri.var.ifMatch" expression="$func:ifMatch" />
+		<property name="uri.var.ifNoneMatch" expression="$func:ifNoneMatch" /> 
+		<property name="uri.var.objectName" expression="$func:objectName" />
+		<property name="uri.var.uriRemainder" expression="fn:concat('/',get-property('uri.var.objectName'))" />
+		
+		<!-- Authentication Header Setup -->
+		<class name="org.wso2.carbon.connector.amazons3.auth.AmazonS3AuthConnector" />
+		  
+		<filter xpath="(string(get-property('date'))) and get-property('date') != ''">  
+			<then>
+				<property name="Date" expression="get-property('date')" scope="transport" type="STRING" />
+			</then>
+		</filter> 
+		
+		<filter xpath="(string(get-property('isXAmzDateValue'))) and get-property('isXAmzDateValue') != ''">   
+			<then>
+				<property name="x-amz-date" expression="get-property('isXAmzDateValue')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('authenticationCode'))) and get-property('authenticationCode') != ''">    
+			<then>
+				<property name="Authorization" expression="get-property('authenticationCode')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.range'))) and get-property('uri.var.range') != ''">
+			<then>
+				<property name="Range" expression="get-property('uri.var.range')" scope="transport"
+					type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.ifModifiedSince'))) and get-property('uri.var.ifModifiedSince') != ''"> 
+			<then>
+				<property name="If-Modified-Since" expression="get-property('uri.var.ifModifiedSince')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.ifUnmodifiedSince'))) and get-property('uri.var.ifUnmodifiedSince') != ''"> 
+			<then>
+				<property name="If-Unmodified-Since" expression="get-property('uri.var.ifUnmodifiedSince')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.ifMatch'))) and get-property('uri.var.ifMatch') != ''"> 
+			<then>
+				<property name="If-Match" expression="get-property('uri.var.ifMatch')" scope="transport"
+					type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.ifNoneMatch'))) and get-property('uri.var.ifNoneMatch') != ''"> 
+			<then>
+				<property name="If-None-Match" expression="get-property('uri.var.ifNoneMatch')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="head" uri-template="{uri.var.bucketUrl}{uri.var.uriRemainder}" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove response custom header information -->
+		<header name="x-amz-id-2" scope="transport" action="remove" />
+		<header name="x-amz-request-id" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+		<header name="ETag" scope="transport" action="remove" />
+		
+	</sequence>
+</template>

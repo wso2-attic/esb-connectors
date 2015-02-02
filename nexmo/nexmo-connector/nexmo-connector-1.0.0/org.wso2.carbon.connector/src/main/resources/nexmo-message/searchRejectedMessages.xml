@@ -1,0 +1,37 @@
+<template name="searchRejectedMessages" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="date" description="The message submission date of the rejected messages." />
+	<parameter name="to" description="The recipient number to which the messages got rejected." />
+
+	<sequence>
+		<property name="uri.var.date" expression="$func:date" />
+		<property name="uri.var.to" expression="$func:to" />
+		<property name="uri.var.toParam" value="" />
+
+		<!-- If the responseType type is not XML, set the default value to JSON -->
+		<filter source="get-property('uri.var.responseType')" regex="xml">
+			<then>
+				<header name="Accept" value="application/xml" scope="transport" />
+			</then>
+			<else>
+				<header name="Accept" value="application/json" scope="transport" />
+			</else>
+		</filter>
+
+		<filter source="boolean(get-property('uri.var.to'))" regex="true">
+			<property name="uri.var.toParam" expression="fn:concat('&amp;to=',get-property('uri.var.to'))" />
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}/search/rejections{uri.var.authParams}&amp;date={uri.var.date}{uri.var.toParam}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+
+	</sequence>
+</template>

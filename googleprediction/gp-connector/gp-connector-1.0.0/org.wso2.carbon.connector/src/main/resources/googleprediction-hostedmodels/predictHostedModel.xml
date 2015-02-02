@@ -1,0 +1,49 @@
+<template name="predictHostedModel" xmlns="http://ws.apache.org/ns/synapse">
+
+  <parameter name="hostedModelName" description="The name of a hosted model."/>
+  <parameter name="csvInstance" description="A list of input features, these can be strings or doubles."/>
+  
+  <sequence> 
+    
+    <property name="uri.var.hostedModelName" expression="$func:hostedModelName"/>
+    <property name="uri.var.csvInstance" expression="$func:csvInstance"/>
+    
+    <payloadFactory media-type="json">
+      <format>
+        {}
+      </format>
+    </payloadFactory>
+    
+    <script language="js">
+    	<![CDATA[
+    		var csvInstance = mc.getProperty('uri.var.csvInstance');
+    		
+    		payload = mc.getPayloadJSON();
+			if(csvInstance != null && csvInstance != ""){
+				payload.input = new Object();    		
+				payload.input.csvInstance = eval(""+csvInstance+"");
+			}    	
+    		mc.setPayloadJSON(payload);
+    	]]>
+    </script>
+    
+    <call>
+      <endpoint>
+        <http method="post" uri-template="{uri.var.apiUrl}/prediction/v1.6/projects/{uri.var.project}/hostedmodels/{uri.var.hostedModelName}/predict"/>
+      </endpoint>
+    </call>
+    
+    <header name="ETag" scope="transport" action="remove"/>
+    <header name="X-Frame-Options" scope="transport" action="remove"/>
+    <header name="X-XSS-Protection" scope="transport" action="remove"/>
+    <header name="Alternate-Protocol" scope="transport" action="remove"/>
+    <header name="X-Content-Type-Options" scope="transport" action="remove"/>
+    <header name="Via" scope="transport" action="remove"/>  
+    <header name="Expires" scope="transport" action="remove"/>        
+    <header name="Pragma" scope="transport" action="remove"/>
+	<header name="WWW-Authenticate" scope="transport" action="remove"/>        
+	<header name="Proxy-Support" scope="transport" action="remove"/>        	
+    
+  </sequence>
+  
+</template>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="createRoster" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="startTimestamp" description="The startTimestamp of the roster to be created." />
+	<parameter name="endTimestamp" description="The endTimestamp of the roster to be created." />
+	<parameter name="employeeId" description="The rosterEmployee id to be created." />
+	<parameter name="publish" description="The is shift published for roster to be created." />
+	<parameter name="mealbreakMinute" description="Number of minutes you have a mealbreak for." />
+	<parameter name="opUnitId" description="The department/area ID for creating." />
+	
+	<sequence>
+		<property expression="$func:startTimestamp" name="uri.var.startTimestamp" />
+		<property expression="$func:endTimestamp" name="uri.var.endTimestamp" />
+		<property expression="$func:employeeId" name="uri.var.employeeId" />
+		<property expression="$func:publish" name="uri.var.publish" />
+		<property expression="$func:mealbreakMinute" name="uri.var.mealbreakMinute" />
+		<property expression="$func:opUnitId" name="uri.var.opUnitId" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"intStartTimestamp": "$1",
+					"intEndTimestamp": "$2",
+					"intRosterEmployee": "$3",
+					"intOpunitId": "$4"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.startTimestamp')" />
+				<arg expression="get-property('uri.var.endTimestamp')" />
+				<arg expression="get-property('uri.var.employeeId')" />
+				<arg expression="get-property('uri.var.opUnitId')" />
+			</args>
+		</payloadFactory>
+
+		<script language="js">
+				<![CDATA[
+                    
+				// Set optional parameters
+	            var payload = mc.getPayloadJSON();
+
+				var publish = mc.getProperty('uri.var.publish');
+				var mealbreakMinute = mc.getProperty('uri.var.mealbreakMinute');
+
+				if (publish != null && publish != "") {
+                       payload.blnPublish  = publish; 
+                }
+                 
+				if (mealbreakMinute != null && mealbreakMinute != "") {
+                       payload.intMealbreakMinute  = mealbreakMinute;
+				}
+
+	            mc.setPayloadJSON(payload); 
+                      
+        	]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/supervise/roster" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Server-UnixTime" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+		
+	</sequence>
+</template>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--The sequence will create a Bug in Bugherd based on retreived ActiveCollab Task.
+	The sequence should be called subsequent to a call to activecollab-retrieveTaskFromActiveCollab as it extracts data from the response from activecollab-retrieveTaskFromActiveCollab-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="bugherd-createBugInBugherdFromActiveCollab">
+    <property name="uri.var.apiUrl" expression="get-property('bugherd.apiUrl')" />
+    <property name="uri.var.apiKey" expression="get-property('bugherd.apiKey')" />
+    <property name="uri.var.projectId" expression="get-property('bugherd.projectId')" />
+	
+    <!--Extract data from the previous response which are specific to create a bug in Bugherd.-->
+    <property name="uri.var.assignedToEmail" expression="json-eval($.assignee.email)" />
+    
+	<!--Bug status Mapping: (ActiveCollab, Bugherd) = (0 - not complete, doing), (1 - complete, done). Other possible values are 'todo', 'backlog' and 'closed'-->
+    <property name="uri.var.status" expression="json-eval($.is_completed)" />    
+	<filter source="get-property('uri.var.status')" regex="0">
+        <then>
+            <property name="uri.var.status" value="doing" />
+        </then>
+        <else>
+            <property name="uri.var.status" value="done" />
+        </else>
+    </filter>
+    
+	<!--Priority Mapping: (ActiveCollab,Bugherd) = (-2,minor), (-1,minor), (0,normal), (1,important), (2,critical)-->
+    <switch source="get-property('uri.var.priority')">
+        <case regex="-2">
+            <property name="uri.var.priority" value="minor" />
+        </case>
+        <case regex="-1">
+            <property name="uri.var.priority" value="minor" />
+        </case>
+        <case regex="0">
+            <property name="uri.var.priority" value="normal" />
+        </case>
+        <case regex="1">
+            <property name="uri.var.priority" value="important" />
+        </case>
+        <case regex="2">
+            <property name="uri.var.priority" value="critical" />
+        </case>
+    </switch>
+    
+	<script language="js"><![CDATA[var task = new Object();
+				
+				task["status"] = mc.getProperty("uri.var.status");
+				task["description"] = mc.getProperty("uri.var.description");
+				task["assigned_to_email"] = mc.getProperty("uri.var.assignedToEmail");
+				task["requester_email"] = mc.getProperty("uri.var.requesterEmail");
+				task["priority"] = mc.getProperty("uri.var.priority");
+				
+				mc.setPayloadJSON(task);]]>
+	</script>
+	
+    <property name="uri.var.taskObject" expression="json-eval($)" />
+	
+    <bugherd.init>
+        <apiUrl>{$ctx:uri.var.apiUrl}</apiUrl>
+        <projectId>{$ctx:uri.var.projectId}</projectId>
+        <apiKey>{$ctx:uri.var.apiKey}</apiKey>
+    </bugherd.init>
+    <bugherd.createProjectTask>
+        <task>{$ctx:uri.var.taskObject}</task>
+    </bugherd.createProjectTask>
+	
+</sequence>

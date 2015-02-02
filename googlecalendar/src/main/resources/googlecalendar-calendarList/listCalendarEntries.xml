@@ -1,0 +1,73 @@
+<template name="listCalendarEntries" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Optional parameters -->
+	<parameter name="fields" description="Selector specifying which fields to include in a partial response." />
+	<parameter name="maxResults" description="Maximum number of entries returned on one result page." />
+	<parameter name="minAccessRole" description="The minimum access role for the user in the returned entires." />
+	<parameter name="pageToken" description="Token specifying which result page to return." />
+	<parameter name="isShowHidden" description="Whether to show hidden entries." />
+
+	<sequence>
+		<property name="uri.var.fields" expression="$func:fields" />
+		<property name="uri.var.maxResults" expression="$func:maxResults"/>	
+		<property name="uri.var.minAccessRole" expression="$func:minAccessRole" />
+		<property name="uri.var.pageToken" expression="$func:pageToken" />
+		<property name="uri.var.isShowHidden" expression="$func:isShowHidden" />
+						
+		<script language="js">
+        	<![CDATA[
+                    
+                    //encoding url param variables
+                    var fields = mc.getProperty('uri.var.fields');
+                    var maxResults = mc.getProperty('uri.var.maxResults');
+                    var minAccessRole = mc.getProperty('uri.var.minAccessRole');
+                    var pageToken = mc.getProperty('uri.var.pageToken');
+                    var isShowHidden = mc.getProperty('uri.var.isShowHidden');
+					
+					//url param processing start
+			        var urlParamString = '';
+			           
+					if (fields != null && fields != "") {
+						urlParamString = '&fields=' + encodeURIComponent(fields);
+					}
+					
+					if (maxResults != null && maxResults != "") {
+						urlParamString += '&maxResults=' + maxResults;
+					}
+					
+					if (minAccessRole != null && minAccessRole != "") {
+						urlParamString += '&minAccessRole=' + encodeURIComponent(minAccessRole);
+					}
+					
+					if (pageToken != null && pageToken != "") {
+						urlParamString += '&pageToken=' + encodeURIComponent(pageToken);
+					}
+					
+					if (isShowHidden != null && isShowHidden != "") {
+						urlParamString += '&showHidden=' + encodeURIComponent(isShowHidden);
+					}
+					
+					if(urlParamString != '') {
+						urlParamString = '?' + urlParamString.substring(1);
+					}
+					
+					mc.setProperty('uri.var.urlParamString', urlParamString);
+					//url param processing end
+					
+        	]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}/calendar/v3/users/me/calendarList{uri.var.urlParamString}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="Alternate-Protocol" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+				
+	</sequence>
+</template>

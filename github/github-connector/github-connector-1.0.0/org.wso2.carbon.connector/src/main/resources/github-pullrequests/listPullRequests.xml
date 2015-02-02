@@ -1,0 +1,81 @@
+<template name="listPullRequests" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="owner" description="The owner of the repository." />
+	<parameter name="repo" description="The corresponding repository." />
+	<parameter name="state" description="State of the pull request." />
+	<parameter name="head" description="Filter pulls by head user and branch name." />
+	<parameter name="base" description="Filter pulls by base branch name." />
+	<parameter name="sort" description="What to sort results by." />
+	<parameter name="direction" description="The direction of the sorting." />
+
+	<sequence>
+		<property name="uri.var.owner" expression="$func:owner" />
+		<property name="uri.var.repo" expression="$func:repo" />
+		<property name="uri.var.state" expression="$func:state" />
+		<property name="uri.var.head" expression="$func:head" />
+		<property name="uri.var.base" expression="$func:base" />
+		<property name="uri.var.sort" expression="$func:sort" />
+		<property name="uri.var.direction" expression="$func:direction" />
+		<property name="uri.var.urlQuery" value="" />
+		<script language="js">
+			<![CDATA[ 
+			
+				var state = mc.getProperty('uri.var.state');
+				var head = mc.getProperty('uri.var.head');
+				var base = mc.getProperty('uri.var.base');
+				var sort = mc.getProperty('uri.var.sort'); 
+				var direction = mc.getProperty('uri.var.direction');
+				var urlQuery ="";
+				
+				if(state != null && state != "") {
+					urlQuery += 'state=' + encodeURIComponent(state) + '&';
+				}
+				
+				if(head != null && head != "") {
+					urlQuery += 'head=' + encodeURIComponent(head) + '&';
+				}
+				
+				if(base != null && base != "") {
+					urlQuery += 'base=' + encodeURIComponent(base) + '&';
+				}
+				
+				if(sort != null && sort != "") {
+					urlQuery += 'sort=' + encodeURIComponent(sort) + '&';
+				}
+				
+				if(direction != null && direction != "") {
+					urlQuery += 'direction=' + encodeURIComponent(direction) + '&';
+				}
+				
+				if(urlQuery!=""){
+				urlQuery = '?' + urlQuery.substring(0,urlQuery.length-1);
+				mc.setProperty('uri.var.urlQuery', urlQuery);
+				}			
+				
+	]]></script>
+
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}/repos/{uri.var.owner}/{uri.var.repo}/pulls{uri.var.urlQuery}" />
+			</endpoint>
+		</call>
+
+		<header name="Access-Control-Expose-Headers" scope="transport" action="remove" />
+		<header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-RateLimit-Reset" scope="transport" action="remove" />
+		<header name="X-GitHub-Request-Id" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-Accepted-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-GitHub-Media-Type" scope="transport" action="remove" />
+		<header name="X-Served-By" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="X-RateLimit-Limit" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Credentials" scope="transport" action="remove" />
+		<header name="Content-Security-Policy" scope="transport" action="remove" />
+
+	</sequence>
+</template>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="getPost" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="blogID" />
+	<parameter name="postID" />
+	<parameter name="maxComments" />
+	<parameter name="view" />
+	<parameter name="fields" />
+	<sequence>
+		<property expression="$func:blogID" name="uri.var.blog_id"
+			scope="default" type="STRING" />
+		<property expression="$func:postID" name="uri.var.post_id"
+			scope="default" type="STRING" />
+		<property expression="$func:maxComments" name="uri.var.max_comments"
+			scope="default" type="STRING" />
+		<property expression="$func:view" name="uri.var.view" scope="default"
+			type="STRING" />
+		<property expression="$func:fields" name="uri.var.fields"
+			scope="default" type="STRING" />
+		<property value="" name="uri.var.options" scope="default"
+			type="STRING" />
+		<filter
+			xpath="not(get-property('uri.var.fields') = '') and  string(get-property('uri.var.fields'))">
+			<then>
+				<property name="uri.var.options"
+					expression="concat(get-property('uri.var.options'),'&amp;fields&#61;',get-property('uri.var.fields')) " />
+			</then>
+		</filter>
+		<filter
+			xpath="not(get-property('uri.var.max_comments') = '') and  string(get-property('uri.var.max_comments'))">
+			<then>
+				<property name="uri.var.options"
+					expression="concat(get-property('uri.var.options'),'&amp;maxComments&#61;',get-property('uri.var.max_comments')) " />
+			</then>
+		</filter>
+		<filter
+			xpath="not(get-property('uri.var.view') = '') and  string(get-property('uri.var.view'))">
+			<then>
+				<property name="uri.var.options"
+					expression="concat(get-property('uri.var.options'),'&amp;view&#61;',get-property('uri.var.view')) " />
+			</then>
+		</filter>
+		<filter
+			xpath="get-property('uri.var.access_token') = '' or  (not(string(get-property('uri.var.access_token'))))">
+			<then>
+				<property name="uri.var.access_s"
+					expression="concat('key&#61;',get-property('uri.var.api_key'))" />
+			</then>
+			<else>
+				<property name="uri.var.access_s"
+					expression="concat('access_token&#61;',get-property('uri.var.access_token')) " />
+			</else>
+		</filter>
+		<property action="remove" name="Accept-Encoding" scope="transport" />
+		<payloadFactory media-type="json">
+			<format>
+				{ }
+			</format>
+			<args />
+		</payloadFactory>
+		<property name="messageType" scope="axis2" value="application/json" />
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="https://www.googleapis.com/blogger/v{uri.var.api_version}/blogs/{uri.var.blog_id}/posts/{uri.var.post_id}?{uri.var.access_s}{uri.var.options}"></http>
+			</endpoint>
+			</call>
+			<header name="etag" scope="transport" action="remove" />
+	</sequence>
+</template>

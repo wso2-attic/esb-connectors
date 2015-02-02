@@ -1,0 +1,56 @@
+<template name="sendEstimateByEmail" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="estimateId" description="Estimate ID for send email to associated clients." />
+	<parameter name="subject" description="Subject of the email." />
+	<parameter name="message" description="Message body of the email." />
+
+	<sequence>
+		<property name="uri.var.estimateId" expression="$func:estimateId" />
+		<property name="uri.var.subject" expression="$func:subject" />
+		<property name="uri.var.message" expression="$func:message" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<request xmlns="" method="estimate.sendByEmail">
+					<estimate_id>$1</estimate_id>
+				</request>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.estimateId')" />
+			</args>
+		</payloadFactory>
+
+		<script language="js">
+			<![CDATA[
+			
+				//request body param variables
+		        var subject = mc.getProperty('uri.var.subject');
+				var message = mc.getProperty('uri.var.message');
+				
+				var payload = mc.getPayloadXML();
+				
+				if (subject != null && subject != "") {
+					payload.subject = subject;
+				}
+				
+				if (message != null && message != "") {
+					payload.message = message;
+				}
+								
+				mc.setPayloadXML(payload);
+				
+			]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/api/2.1/xml-in" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+
+	</sequence>
+</template>

@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="ebay_retrieveAndUpdateSoldListItemsStocks" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+    <target>
+        <inSequence onError="faultHandlerSeq">
+            <!--eBay Trading related properties-->
+            <property name="ebayApiUrl" expression="json-eval($.ebayApiUrl)"/>
+			<property name="ebayAppId" expression="json-eval($.ebayAppId)"/>
+			<property name="ebayVersion" expression="json-eval($.ebayVersion)"/>
+			<property name="ebayRouting" expression="json-eval($.ebayRouting)"/>
+			<property name="ebaySiteId" expression="json-eval($.ebaySiteId)"/>
+			<property name="ebayAuthToken" expression="json-eval($.ebayAuthToken)"/>
+			<property name="ebayMessageId" expression="json-eval($.ebayMessageId)"/>
+			<property name="ebayErrorLanguage" expression="json-eval($.ebayErrorLanguage)"/>
+			<property name="ebayWarningLevel" expression="json-eval($.ebayWarningLevel)"/>
+			
+			<!--Tradegecko related properties-->
+			<property name="tradegeckoApiUrl" expression="json-eval($.tradegeckoApiUrl)"/>
+			<property name="tradegeckoAccessToken" expression="json-eval($.tradegeckoAccessToken)"/>
+			<property name="tradegeckoAdjustmentNumber" expression="json-eval($.tradegeckoAdjustmentNumber)"/>
+			<property name="tradegeckoNotes" expression="json-eval($.tradegeckoNotes)"/>
+			<property name="tradegeckoReason" expression="json-eval($.tradegeckoReason)"/>
+			<property name="tradegeckoStockLocationId" expression="json-eval($.tradegeckoStockLocationId)"/>
+			
+			<!-- Campaign Monitor related properties -->
+			<property name="cmAccessToken" expression="json-eval($.cmAccessToken)"/>
+			<property name="cmApiUrl" expression="json-eval($.cmApiUrl)"/>
+			<property name="cmListId" expression="json-eval($.cmListId)"/>
+			
+			<!-- Mapping list of the Tradegecko product variants with eBay item Ids. -->
+			<property name="itemsMap" expression="json-eval($.itemsMap)"/>
+          
+			
+			<script language="js">
+				 var currentDate=new Date();
+				 var currentday=""+currentDate.getDate();
+				 if(currentday.length==1){
+					currentday="0"+currentday;
+				 }
+				 var dateString=currentDate.getFullYear() + "-" + Number(currentDate.getMonth()+1) + "-" + currentday ;
+				 mc.setProperty('currentTime', dateString);
+		 	</script>
+		 	
+		 	<payloadFactory media-type="xml">
+		        <format>
+						<ebl:ebaySoldList xmlns:ebl="urn:ebay:apis:eBLBaseComponents">
+							<ebl:values>
+								<ebl:Include>true</ebl:Include>
+								<ebl:IncludeNotes>true</ebl:IncludeNotes>
+							</ebl:values>
+						</ebl:ebaySoldList>
+				</format>
+        	</payloadFactory>
+         
+         	<property name="ebaySoldList" expression="//ebl:ebaySoldList/*"  xmlns:ebl="urn:ebay:apis:eBLBaseComponents"/>
+			
+			<!--Call eBay getMyEbaySellig method to retrieve sold items-->
+			<ebay.init-trading>
+				<apiUrl>{$ctx:ebayApiUrl}</apiUrl>
+				<appId>{$ctx:ebayAppId}</appId>
+				<routing>{$ctx:ebayRouting}</routing>
+				<authToken>{$ctx:ebayAuthToken}</authToken>
+				<siteId>{$ctx:ebaySiteId}</siteId>
+				<warningLevel>{$ctx:ebayWarningLevel}</warningLevel>
+				<messageId>{$ctx:ebayMessageId}</messageId>
+				<errorLanguage>{$ctx:ebayErrorLanguage}</errorLanguage>
+				<version>{$ctx:ebayVersion}</version>
+			</ebay.init-trading>
+			<ebay.getMyeBaySelling>
+				<soldList>{$ctx:ebaySoldList}</soldList>
+			</ebay.getMyeBaySelling>
+			
+			<property name="ack" expression="//ebl:Ack"  xmlns:ebl="urn:ebay:apis:eBLBaseComponents"/>
+            <filter source="boolean(get-property('ack'))" regex="Failure">
+                <then>
+                    <property name="messageType" value="application/json" scope="axis2"/>
+					<property name="status" expression="get-property('ack')" />
+					<property name="message" expression="json-eval($.Envelope.Body.)" />
+					
+					<call-template target="responseHandlerTemplate">
+						<with-param name="id" value="{$ctx:id}" />
+						<with-param name="status" value="{$ctx:status}" />
+						<with-param name="message" value="{$ctx:message}" />
+					</call-template>
+                    <loopback/>
+                </then>
+            </filter>
+			
+			<!--Operation scoped Properties to keep track of Global Parameters.-->
+           <property name="buyersCount" expression="count(//ebl:OrderTransactionArray/ebl:OrderTransaction)" 
+						xmlns:ebl="urn:ebay:apis:eBLBaseComponents" scope="operation" />	
+		   <property name="transactionCount" expression="0" scope="operation" />
+			<property name="transactionIndex" expression="0" scope="operation" />
+			
+           <property name="stockAdjustmentLineItems" value="" scope="operation" />
+           <property name="subscribers" value="" scope="operation" />
+		   <property name="transactionIds" value="" scope="operation"/>
+		            
+		   
+		   <filter xpath="get-property('operation','buyersCount' ) = 0">
+			<then>
+				<property name="id" value="" />
+				<property name="status" value="Skipped" />
+				<property name="message" value="No transaction(s) found." />
+				
+				<call-template target="responseHandlerTemplate">
+					<with-param name="activity" value="campaignMonitor_addSubscribersToList" />
+					<with-param name="id" value="{$ctx:id}" />
+					<with-param name="status" value="{$ctx:status}" />
+					<with-param name="message" value="{$ctx:message}" />
+				</call-template>
+				<loopback/>
+			</then>
+		   <else>
+		   
+           <!--FOR EACH SoldItems : BEGIN-->
+            <iterate continueParent="true" id="buyers" expression="//ebl:OrderTransactionArray/ebl:OrderTransaction"
+					sequential="true" xmlns:ebl="urn:ebay:apis:eBLBaseComponents" >
+	            <target>
+		            <sequence>					
+						<!--Extract SoldListItem Details from the Message.-->
+						<property name="userId" expression="//ebl:Transaction[1]/ebl:Buyer/ebl:UserID/text()" xmlns:ebl="urn:ebay:apis:eBLBaseComponents" scope="operation" />
+						<property name="buyerEmail" expression="//ebl:Transaction[1]/ebl:Buyer/ebl:Email/text()" xmlns:ebl="urn:ebay:apis:eBLBaseComponents" scope="operation"/>
+						
+							
+						<property name="transactionCount" expression="get-property('operation','transactionCount') + count(//ebl:Transaction)" scope="operation"/>
+								
+								<iterate continueParent="true" id="transactions" expression="//ebl:Transaction" sequential="true" xmlns:ebl="urn:ebay:apis:eBLBaseComponents" >
+									<target>
+										<sequence>
+											<property name="transactionCreatedDateTemp" expression="//ebl:Transaction/ebl:CreatedDate/text()"  xmlns:ebl="urn:ebay:apis:eBLBaseComponents"/>
+											<property name="transactionCreatedDate" expression="fn:substring-before(get-property('transactionCreatedDateTemp'),'T')"  xmlns:ebl="urn:ebay:apis:eBLBaseComponents"/>
+										
+											<filter xpath="get-property('currentTime' ) = get-property('transactionCreatedDate')">
+												<then>
+													<property name="currentTransactionId" expression="//ebl:TransactionID/text()" xmlns:ebl="urn:ebay:apis:eBLBaseComponents"/>
+													
+													<property name="itemId" expression="//ebl:ItemID/text()" xmlns:ebl="urn:ebay:apis:eBLBaseComponents"/>
+													<property name="quantitySold" expression="//ebl:QuantityPurchased/text()" xmlns:ebl="urn:ebay:apis:eBLBaseComponents"/>
+															
+															<script language="js">
+																<![CDATA[
+																	var itemId = mc.getProperty('itemId');
+																	var itemsMap = eval("(" + mc.getProperty('itemsMap') + ")");
+																	var varientId = "";
+																	varientId = itemsMap[itemId];
+											
+																	mc.setProperty("varientId", varientId); 
+																]]>
+															</script>
+													<filter xpath="get-property('varientId')='undefined'">
+														<then>
+															<property name="status" value="Skipped" />
+															<property name="message" expression="fn:concat('Mapping variant id in tradegecko for the eBay item id ',get-property('itemId'),' cannot be found in the request.')" />
+															<property name="id" expression="fn:concat('{transaction_ids:[',get-property('currentTransactionId'),']}')" />
+															<call-template target="responseHandlerTemplate">
+																<with-param name="activity" value="tradegecko_stockAdjustment" />
+																<with-param name="id" value="{$ctx:id}" />
+																<with-param name="status" value="{$ctx:status}" />
+																<with-param name="message" value="{$ctx:message}" />
+															</call-template>
+														</then>
+														<else>
+															<property name="transactionIds" expression="fn:concat(get-property('operation','transactionIds'), get-property('currentTransactionId'), ',')" scope="operation"/>
+															<property name="stockAdjustmentLineItems" expression="fn:concat(get-property('operation','stockAdjustmentLineItems'), '{ &quot;quantity&quot; : -', get-property('quantitySold'), ' , &quot;variant_id&quot; : &quot;', get-property('varientId'), '&quot; },')" scope="operation" />
+														
+															<!--Concatanate and build the subscribers array.-->
+															<property name="subscribers" expression="fn:concat(get-property('operation','subscribers'), '{ &quot;EmailAddress&quot; : &quot;', get-property('operation','buyerEmail'), '&quot; , &quot;Name&quot; : &quot;', get-property('operation','userId'), '&quot; },')" scope="operation" />
+														</else>
+													</filter>
+												</then>
+											</filter>	
+											<property name="transactionIndex" expression="get-property('operation','transactionIndex') + 1" scope="operation" />
+											
+											<property name="transactionCount" expression="get-property('operation','transactionCount')"/>
+											<property name="transactionIndex" expression="get-property('operation','transactionIndex')"/>
+											
+										</sequence>
+									</target>
+								</iterate>								
+		            </sequence>
+	            </target>
+            </iterate>
+			<!--FOR EACH SoldItems : END-->
+			
+			
+			<filter xpath="get-property('operation','transactionCount') = get-property('operation','transactionIndex')">
+			   <then>
+
+					<property name="subscribers" expression="fn:substring(get-property('operation','subscribers'), 1, fn:string-length(get-property('operation','subscribers'))-1)" />
+					<property name="id" expression="fn:substring(get-property('operation','transactionIds'), 1, fn:string-length(get-property('operation','transactionIds'))-1)" />
+					
+					<property name="id" expression="fn:concat('{transaction_ids:[',get-property('id'),']}')" />
+					
+					<payloadFactory media-type="json">
+						<format>
+							{
+								"subscribers": [$1]
+							}
+						</format>
+						<args>
+							<arg expression="get-property('subscribers')" />
+						</args>
+		            </payloadFactory>
+		            
+		            <property name="cmSubscribers" expression="json-eval($.subscribers)" />
+					
+					<filter source="boolean(get-property('subscribers'))" regex="true">
+						<then>
+							
+							<property name="messageType" value="application/json" scope="axis2" />
+							<!-- Call Campaign Monitor addSubscriberToList method to import buyers contact information -->
+							<campaignmonitor.init>
+								<accessToken>{$ctx:cmAccessToken}</accessToken>
+								<apiUrl>{$ctx:cmApiUrl}</apiUrl>
+							</campaignmonitor.init>
+							<campaignmonitor.addSubscribersToList>
+								<listId>{$ctx:cmListId}</listId>
+								<subscribers>{$ctx:cmSubscribers}</subscribers>
+								<resubscribe>true</resubscribe>
+								<queueSubscriptionBasedAutoResponders>true</queueSubscriptionBasedAutoResponders>
+								<restartSubscriptionBasedAutoresponders>true</restartSubscriptionBasedAutoresponders>
+							</campaignmonitor.addSubscribersToList>
+							
+							
+							<property name="totalUniqueEmailsSubmitted" expression="json-eval($.TotalUniqueEmailsSubmitted)" />
+							<filter source="boolean(get-property('totalUniqueEmailsSubmitted'))" regex="true">
+							   <then>
+									<property name="status" value="Success" />
+									<property name="message" expression="json-eval($.)" />
+							   </then>
+							   <else>
+									<property name="status" value="Error" />
+									<property name="message" expression="json-eval($.)"  />
+							   </else>
+							</filter>
+						</then>
+						<else>
+							<property name="status" value="Skipped" />
+							<property name="message" value="No Subscriber(s) to add." />
+						</else>
+					</filter>
+					<call-template target="responseHandlerTemplate">
+						<with-param name="activity" value="campaignMonitor_addSubscribersToList" />
+						<with-param name="id" value="{$ctx:id}" />
+						<with-param name="status" value="{$ctx:status}" />
+						<with-param name="message" value="{$ctx:message}" />
+					</call-template>
+					
+					<property name="stockAdjustmentLineItems" expression="fn:substring(get-property('operation','stockAdjustmentLineItems'), 1, fn:string-length(get-property('operation','stockAdjustmentLineItems'))-1)" />
+					
+					<payloadFactory media-type="json">
+						<format>
+							{
+								"StockAdjustmentLineItemsArray": [$1]
+							}
+						</format>
+						<args>
+							<arg expression="get-property('stockAdjustmentLineItems')" />
+						</args>
+					</payloadFactory>
+					
+					<property name="tradegeckoStockAdjustmentLineItems" expression="json-eval($.StockAdjustmentLineItemsArray)"/>	
+					
+					<filter source="boolean(get-property('stockAdjustmentLineItems'))" regex="true">
+						<then>
+							<!-- Call Tradegecko createStockAdjustment method -->
+							<property name="messageType" value="application/json" scope="axis2" />
+							<tradegecko.init>
+								<apiUrl>{$ctx:tradegeckoApiUrl}</apiUrl>
+								<accessToken>{$ctx:tradegeckoAccessToken}</accessToken>
+							</tradegecko.init>
+							<tradegecko.createStockAdjustment>
+								<adjustmentNumber>{$ctx:tradegeckoAdjustmentNumber}</adjustmentNumber>
+								<notes>{$ctx:tradegeckoNotes}</notes>
+								<reason>{$ctx:tradegeckoReason}</reason>
+								<stockAdjustmentLineItems>{$ctx:tradegeckoStockAdjustmentLineItems}</stockAdjustmentLineItems>
+								<stockLocationId>{$ctx:tradegeckoStockLocationId}</stockLocationId>
+							</tradegecko.createStockAdjustment>
+							
+						<property name="stockAdjustmentsResult" expression="json-eval($.stock_adjustment)" />
+						<filter source="boolean(get-property('stockAdjustmentsResult'))" regex="true">
+						   <then>
+								<property name="status" value="Success" />
+								<property name="message" value="Item stock adjustment added successfully." />
+						   </then>
+						   <else>
+								<filter source="$axis2:HTTP_SC" regex="401">
+									<then>
+										<property name="status" value="Error" />
+										<property name="message" value="Invalid access token."  />
+									</then>
+									<else>
+										<property name="status" value="Error" />
+										<property name="message" expression="json-eval($.)"  />
+									</else>
+								</filter>
+						   </else>
+						</filter>						
+						</then>
+						<else>
+							<property name="status" value="Skipped" />
+							<property name="message" value="No Stock Adjustments" />
+						</else>
+					</filter>
+							
+					<call-template target="responseHandlerTemplate">
+						<with-param name="activity" value="tradegecko_stockAdjustment" />
+						<with-param name="id" value="{$ctx:id}" />
+						<with-param name="status" value="{$ctx:status}" />
+						<with-param name="message" value="{$ctx:message}" />
+					</call-template>
+					
+					<loopback/>
+				</then>
+            </filter>
+			</else>
+		   </filter>
+        </inSequence>
+        <outSequence>
+          <property name="messageType" value="application/json" scope="axis2" />
+            <payloadFactory media-type="json">
+            <format>
+				{
+					"Response":{
+						"process":"ebay_retrieveAndUpdateSoldItemsStocks",
+						"activityResponse":[$1]
+					}
+				}
+			</format>
+            <args>
+                <arg expression="get-property('operation', 'responseString')"/>
+            </args>
+        </payloadFactory>
+         <send/>
+        </outSequence>
+    </target>
+    <description/>
+</proxy>

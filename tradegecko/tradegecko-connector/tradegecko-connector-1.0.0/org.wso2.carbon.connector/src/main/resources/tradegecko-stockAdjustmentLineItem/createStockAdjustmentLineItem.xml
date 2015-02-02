@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="createStockAdjustmentLineItem" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="stockAdjustmentId" description="ID of the parent stock adjustment." />
+	<parameter name="variantId" description="Variant ID for the line item." />
+	<parameter name="quantity" description="Quantity for stock line item." />
+	<parameter name="position" description="The position of the line item." />
+	<parameter name="stockAdjustmentLineItemId" description="Line item ID to be changed." />
+
+	<sequence>
+		<property name="uri.var.stockAdjustmentId" expression="$func:stockAdjustmentId" />
+		<property name="uri.var.variantId" expression="$func:variantId" />
+		<property name="uri.var.quantity" expression="$func:quantity" />
+		<property name="uri.var.position" expression="$func:position" />
+		<property name="uri.var.stockAdjustmentLineItemId" expression="$func:stockAdjustmentLineItemId" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"stock_adjustment_line_item":{}
+				}
+			</format>
+		</payloadFactory>
+
+		<!-- Script mediator validate optional parameters and constructing the payload accordingly -->
+		<script language="js">
+		<![CDATA[
+		
+			//request body param variables
+			var stockAdjustmentId = mc.getProperty('uri.var.stockAdjustmentId');
+			var variantId = mc.getProperty('uri.var.variantId');
+			var quantity = mc.getProperty('uri.var.quantity');
+			var position = mc.getProperty('uri.var.position');
+			var stockAdjustmentLineItemId = mc.getProperty('uri.var.stockAdjustmentLineItemId');
+			
+			//Get the existing payload
+			payload = mc.getPayloadJSON();
+			
+			if (stockAdjustmentId != null && stockAdjustmentId != "") {
+				payload.stock_adjustment_line_item.stock_adjustment_id = "" + stockAdjustmentId;
+			}
+			
+			if (variantId != null && variantId != "") {
+				payload.stock_adjustment_line_item.variant_id = "" + variantId;
+			}
+			
+			if (quantity != null && quantity != "") {
+				payload.stock_adjustment_line_item.quantity = "" + quantity;
+			}
+			
+			if (position != null && position != "") {
+				payload.stock_adjustment_line_item.position = "" + position;
+			}
+			
+			if (stockAdjustmentLineItemId != null && stockAdjustmentLineItemId != "") {
+				payload.stock_adjustment_line_item.id = "" + stockAdjustmentLineItemId;
+			}
+			
+			//Set the newly constructed payload
+			mc.setPayloadJSON(payload);
+			
+		]]>
+		</script>
+
+		<header name="Content-Type" value="application/json" scope="transport" />
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/stock_adjustment_line_items/" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="X-Rate-Limit-Limit" scope="transport" action="remove" />
+		<header name="X-Rate-Limit-Remaining" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Xss-Protection" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-Rate-Limit-Reset" scope="transport" action="remove" />
+		<header name="X-Pagination" scope="transport" action="remove" />
+		<header name="Link" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Www-Authenticate" scope="transport" action="remove" />
+		<header name="Proxy-Support" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+
+	</sequence>
+</template>

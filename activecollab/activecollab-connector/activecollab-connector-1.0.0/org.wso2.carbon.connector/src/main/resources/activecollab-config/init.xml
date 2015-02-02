@@ -1,0 +1,36 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="apiUrl" 
+		description="The url to access the ActiveCollab API." />
+	<parameter name="apiToken" 
+		description="The api token of the account." />
+	<parameter name="format" 
+		description="The format that the reponse is expected to be." />
+
+	<sequence>
+
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.apiToken" expression="$func:apiToken" />
+		<property name="uri.var.format" expression="$func:format" />
+		<property name="uri.var.hostHeader" value="" />
+		
+		<!-- Setting up the REQUEST_HOST_HEADER property according to the api URL  -->
+		<property name="uri.var.hostHeader" expression="fn:substring-after(get-property('uri.var.apiUrl'),'https://')" />
+		
+		
+		<property name="REQUEST_HOST_HEADER" expression="fn:concat(get-property('uri.var.hostHeader'),':443')" scope="axis2" />
+
+		<property name="uri.var.apiUrl"
+			expression="fn:concat(get-property('uri.var.apiUrl'), '/api.php?', 'auth_api_token=', 
+						get-property('uri.var.apiToken'), '&amp;')" />
+
+		<filter source="boolean(get-property('uri.var.format'))" regex="true">
+			<then>
+				<property name="uri.var.apiUrl"
+					expression="fn:concat(get-property('uri.var.apiUrl'), 'format=', 
+								get-property('uri.var.format'), '&amp;')" />
+			</then>
+		</filter>
+
+	</sequence>
+</template>

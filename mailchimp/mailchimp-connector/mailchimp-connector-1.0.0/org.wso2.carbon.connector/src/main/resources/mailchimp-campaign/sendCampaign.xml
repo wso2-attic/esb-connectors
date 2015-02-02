@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="sendCampaign" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="campaignId" description="ID of the campaign to send."/>
+    <sequence>
+        <property name="uri.var.campaignId" expression="$func:campaignId" />
+
+        <payloadFactory media-type="json">
+            <format>
+                {
+                    "cid": "$1",
+                    "apikey": "$2"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.campaignId')"/>
+				<arg expression="get-property('uri.var.apiKey')"/>
+            </args>
+        </payloadFactory>
+		
+		<!--MailChimp API expects Content-Length Header-->
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/campaigns/send.{uri.var.format}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+         <header name="X-N" action="remove" scope="transport"/>
+        <header name="X-MailChimp-API-Error-Code" action="remove" scope="transport"/>
+
+    </sequence>
+</template>

@@ -1,0 +1,101 @@
+<template name="listMultipartUploads" xmlns="http://ws.apache.org/ns/synapse"> 
+	
+	<parameter name="bucketUrl" description="End point URL of the request." />
+	
+	<parameter name="delimiter" description="Character use to group keys." />
+	<parameter name="encodingType" description="Encode the response and specifies the encoding method to use." />
+	<parameter name="maxUploads" description="Number of uploads that can be returned in a response." />
+	<parameter name="keyMarker" description="Specifies the multipart upload after which listing should begin." />
+	<parameter name="prefix" description="Lists in-progress uploads only for those keys that begin with the specified prefix." />
+	<parameter name="uploadIdMarker" description="Specifies the multipart upload after which listing should begin." />
+	 
+	<sequence>
+		<property name="uri.var.bucketUrl" expression="$func:bucketUrl" />
+		<property name="uri.var.delimiter" expression="$func:delimiter" />
+		<property name="uri.var.encodingType" expression="$func:encodingType" />
+		<property name="uri.var.maxUploads" expression="$func:maxUploads" />
+		<property name="uri.var.keyMarker" expression="$func:keyMarker" />
+		<property name="uri.var.prefix" expression="$func:prefix" />
+		<property name="uri.var.uploadIdMarker" expression="$func:uploadIdMarker" />
+		
+		<!-- Authentication Header Setup -->
+		<property name="uri.var.uriRemainder" value="/?uploads" />
+		<property name="uri.var.query" value="&amp;" />
+		
+		<class name="org.wso2.carbon.connector.amazons3.auth.AmazonS3AuthConnector" />
+		   
+		<!-- Properties Assigned in AmazonS3AuthConnector --> 		
+		<filter xpath="(string(get-property('date'))) and get-property('date') != ''">  
+			<then>
+				<property name="Date" expression="get-property('date')" scope="transport" type="STRING" />
+			</then>
+		</filter> 
+		
+		<filter xpath="(string(get-property('isXAmzDateValue'))) and get-property('isXAmzDateValue') != ''">   
+			<then>
+				<property name="x-amz-date" expression="get-property('isXAmzDateValue')" scope="transport" type="STRING" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('authenticationCode'))) and get-property('authenticationCode') != ''">    
+			<then>
+				<property name="Authorization" expression="get-property('authenticationCode')" scope="transport" type="STRING" />
+			</then>
+		</filter>  
+		
+		<!-- Building Custom Query -->   
+		<filter xpath="(string(get-property('uri.var.delimiter'))) and get-property('uri.var.delimiter') != ''">  
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'delimiter=',get-property('uri.var.delimiter'),'&amp;')" />
+			</then>
+		</filter>
+		
+		<filter xpath="(string(get-property('uri.var.encodingType'))) and get-property('uri.var.encodingType') != ''">  
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'encoding-type=',get-property('uri.var.encodingType'),'&amp;')" />
+			</then>
+		</filter>
+		
+		<filter xpath="(string(get-property('uri.var.maxUploads'))) and get-property('uri.var.maxUploads') != ''">  
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'max-uploads=',get-property('uri.var.maxUploads'),'&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="(string(get-property('uri.var.keyMarker'))) and get-property('uri.var.keyMarker') != ''">  
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'key-marker=',get-property('uri.var.keyMarker'),'&amp;')" />
+			</then>
+		</filter>
+		
+		<filter xpath="(string(get-property('uri.var.prefix'))) and get-property('uri.var.prefix') != ''">  
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'prefix=',get-property('uri.var.prefix'),'&amp;')" />
+			</then>
+		</filter>
+		
+		<filter xpath="(string(get-property('uri.var.uploadIdMarker'))) and get-property('uri.var.uploadIdMarker') != ''">  
+			<then>
+				<property name="uri.var.query"
+					expression="fn:concat(get-property('uri.var.query'),'upload-id-marker=',get-property('uri.var.uploadIdMarker'),'&amp;')" />
+			</then>
+		</filter> 
+		  
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.bucketUrl}{uri.var.uriRemainder}{uri.var.query}" />
+			</endpoint>
+		</call>  
+ 
+		<!-- Remove response custom header information -->
+		<header name="x-amz-id-2" scope="transport" action="remove" />
+		<header name="x-amz-request-id" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+
+	</sequence>
+</template>

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="search" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="search" description="Search terms used for matching users/courses/groups"/>
+    <parameter name="context" description="Limit the search to a particular course/group."/>
+    <parameter name="exclude" description="Array of ids to exclude from the search."/>
+    <parameter name="type" description="Limit the search just to users or contexts (groups/courses)."/>
+    <parameter name="userId" description="Search for a specific user id. This ignores the other above parameters, and will never return more than one result."/>
+    <parameter name="fromConversationId" description="This parameter allows to specify a conversation that will be referenced for a shared context -- if both the current user and the searched user are in the conversation, the user will be returned. This is used to start new side conversations."/>
+    <parameter name="permissions" description="Array of permission strings to be checked for each matched context."/>
+    <parameter name="perPage" description="Number of entries to be returned in response to a list Request."/>
+	<parameter name="page" description="Number of the Page to return."/>
+    <sequence>
+        <property name="uri.var.search" expression="$func:search"/>
+        <property name="uri.var.context" expression="$func:context"/>
+        <property name="uri.var.exclude" expression="$func:exclude"/>
+        <property name="uri.var.type" expression="$func:type"/>
+        <property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.fromConversationId" expression="$func:fromConversationId"/>
+        <property name="uri.var.permissions" expression="$func:permissions"/>
+        <property name="uri.var.perPage" expression="$func:perPage"/>
+		<property name="uri.var.page" expression="$func:page"/>
+
+        <script language="js">
+            <![CDATA[
+                var context = mc.getProperty('uri.var.context');
+                var exclude = mc.getProperty('uri.var.exclude');
+                var fromConversationId = mc.getProperty('uri.var.fromConversationId');
+                var permissions = mc.getProperty('uri.var.permissions');
+                var search = mc.getProperty('uri.var.search');
+                var type = mc.getProperty('uri.var.type');
+                var userId = mc.getProperty('uri.var.userId');
+                var perPage = mc.getProperty('uri.var.perPage');
+                var page = mc.getProperty('uri.var.page');
+                
+                var urlQuery = '';
+                
+                if (context != null && context != ""){
+                    urlQuery += 'context=' + context + '&';
+                }
+                
+                if (exclude != null && exclude.trim() != ""){
+                    // If mulitple items are sent.
+					if(exclude.indexOf(',') != -1){
+						var excludeItems = exclude.split(',');
+						for(var i=0; i<excludeItems.length; i++){
+							excludeItems[i] = excludeItems[i].trim();
+							if(excludeItems[i] != ""){
+								urlQuery += 'exclude[]=' + excludeItems[i] + '&';
+							}
+						}
+					} else {
+						urlQuery += 'exclude[]=' + exclude.trim() + '&';
+					}
+                }
+                
+                if (fromConversationId != null && fromConversationId != ""){
+                    urlQuery += 'from_conversation_id=' + fromConversationId + '&';
+                }
+                
+                if (permissions != null && permissions.trim() != ""){
+                    // If mulitple items are sent.
+					if(permissions.indexOf(',') != -1){
+						var permissionItems = permissions.split(',');
+						for(var i=0; i<permissionItems.length; i++){
+							permissionItems[i] = permissionItems[i].trim();
+							if(permissionItems[i] != ""){
+								urlQuery += '&permissions[]=' + permissionItems[i] + '&';
+							}
+						}
+					} else {
+						urlQuery += 'permissions[]=' + permissions.trim() + '&';
+					}
+                }
+                
+                if (search != null && search != ""){
+                    urlQuery += 'search=' + search + '&';
+                }
+                
+                if (type != null && type != ""){
+                    urlQuery += 'type=' + type + '&';
+                }
+                
+                if (userId != null && userId != ""){
+                    urlQuery += 'user_id=' + userId + '&';
+                }
+                
+                if (perPage != null && perPage != ""){
+                    urlQuery += 'per_page=' + perPage + '&';
+                }
+				
+				if (page != null && page != ""){
+                    urlQuery += 'page=' + page + '&';
+                }
+                
+                // Prefix the urlQuery with '?' and remove the trailing '&'
+                if (urlQuery != "") {
+                    urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+					mc.setProperty('uri.var.urlQuery', encodeURI(urlQuery));    
+                }         
+                
+            ]]>
+        </script>
+
+        <call>
+            <endpoint>
+                <http method="get" uri-template="{uri.var.apiUrl}/search/recipients{uri.var.urlQuery}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="ETag" action="remove" scope="transport"/>
+        <header name="P3P" action="remove" scope="transport"/>
+        <header name="X-Canvas-Meta" action="remove" scope="transport"/>
+        <header name="X-Canvas-User-Id" action="remove" scope="transport"/>
+        <header name="X-Frame-Options" action="remove" scope="transport"/>
+        <header name="X-Rack-Cache" action="remove" scope="transport"/>
+        <header name="X-Request-Context-Id" action="remove" scope="transport"/>
+        <header name="X-Runtime" action="remove" scope="transport"/>
+        <header name="X-Session-Id" action="remove" scope="transport"/>
+        <header name="X-UA-Compatible" action="remove" scope="transport"/>
+        <header name="Via" action="remove" scope="transport"/>
+        <header name="WWW-Authenticate" action="remove" scope="transport"/>
+
+    </sequence>
+</template>

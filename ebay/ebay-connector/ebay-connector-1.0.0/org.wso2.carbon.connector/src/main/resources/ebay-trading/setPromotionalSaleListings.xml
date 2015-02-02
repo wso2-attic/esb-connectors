@@ -1,0 +1,126 @@
+<template name="setPromotionalSaleListings" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="action" description="The type of action (Add or Delete) for one or more listings from the promotional sale." />
+	<parameter name="allAuctionItems" description="Whether all auction listings are added to the promotional sale." />
+	<parameter name="allFixedPriceItems" description="Whether all fixed price listings are added to the promotional sale.." />
+	<parameter name="allStoreInventoryItems" description="Whether all store inventory items are added to the promotional sale.." />
+	<parameter name="categoryID" description="Category id to include all active items in this eBay category are added to the promotional sale." />
+	<parameter name="promotionalSaleID" description="The unique identifier of the seller's promotional sale based on action value." />
+	<parameter name="promotionalSaleItemIDArray" description="Container consisting of one or more ItemID values based on the Action value." />
+	<parameter name="storeCategoryID" description="Store category id to include all active items in this store category to the promotional sale." />
+
+	<sequence>
+		<property name="uri.var.action" expression="$func:action" />
+		<property name="uri.var.allAuctionItems" expression="$func:allAuctionItems" />
+		<property name="uri.var.allFixedPriceItems" expression="$func:allFixedPriceItems" />
+		<property name="uri.var.allStoreInventoryItems" expression="$func:allStoreInventoryItems" />
+		<property name="uri.var.categoryID" expression="$func:categoryID" />
+		<property name="uri.var.promotionalSaleID" expression="$func:promotionalSaleID" />
+		<property name="uri.var.promotionalSaleItemIDArray" expression="$func:promotionalSaleItemIDArray" />
+		<property name="uri.var.storeCategoryID" expression="$func:storeCategoryID" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ebl="urn:ebay:apis:eBLBaseComponents">
+					<soapenv:Header>
+						<ebl:RequesterCredentials>
+							<ebl:eBayAuthToken>$1</ebl:eBayAuthToken>
+						</ebl:RequesterCredentials>
+					</soapenv:Header>
+					<soapenv:Body>
+						<ebl:SetPromotionalSaleListingsRequest>
+							<ebl:Action EnumType="ModifyActionCodeType">$2</ebl:Action>
+							<ebl:PromotionalSaleID>$3</ebl:PromotionalSaleID>
+							<ebl:PromotionalSaleItemIDArray ComplexType="ItemIDArrayType">$4</ebl:PromotionalSaleItemIDArray>
+							<ebl:Version>$5</ebl:Version>
+						</ebl:SetPromotionalSaleListingsRequest>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.authToken')" />
+				<arg expression="get-property('uri.var.action')" />
+				<arg expression="get-property('uri.var.promotionalSaleID')" />
+				<arg expression="get-property('uri.var.promotionalSaleItemIDArray')" />
+				<arg expression="get-property('uri.var.version')" />
+			</args>
+		</payloadFactory>
+		
+		<!-- Remove root element via XSLT -->
+		<xslt key="ebay_removeRootElement.xslt" />
+
+		<script language="js">
+                <![CDATA[
+                     
+                     var allAuctionItems = mc.getProperty('uri.var.allAuctionItems');
+                     var allFixedPriceItems = mc.getProperty('uri.var.allFixedPriceItems');
+                     var allStoreInventoryItems = mc.getProperty('uri.var.allStoreInventoryItems');
+                     var categoryID = mc.getProperty('uri.var.categoryID');
+                     var storeCategoryID = mc.getProperty('uri.var.storeCategoryID');
+                     var errorLanguage = mc.getProperty('uri.var.errorLanguage');
+                     var messageId = mc.getProperty('uri.var.messageId');
+                     var warningLevel = mc.getProperty('uri.var.warningLevel');
+                              
+                     var payload = mc.getPayloadXML();
+                       
+                     if (allAuctionItems != null && allAuctionItems != "") { 
+                         payload.SetPromotionalSaleListingsRequest += <ebl:AllAuctionItems xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{allAuctionItems}</ebl:AllAuctionItems>; 
+                     }
+                     
+                     if (allFixedPriceItems != null && allFixedPriceItems != "") { 
+                         payload.SetPromotionalSaleListingsRequest += <ebl:AllFixedPriceItems xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{allFixedPriceItems}</ebl:AllFixedPriceItems>; 
+                     }
+                     
+                     if (allStoreInventoryItems != null && allStoreInventoryItems != "") { 
+                         payload.SetPromotionalSaleListingsRequest += <ebl:AllStoreInventoryItems xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{allStoreInventoryItems}</ebl:AllStoreInventoryItems>; 
+                     }
+                     
+                     if (categoryID != null && categoryID != "") { 
+                         payload.SetPromotionalSaleListingsRequest += <ebl:CategoryID xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{categoryID}</ebl:CategoryID>; 
+                     }
+                     
+                     if (storeCategoryID != null && storeCategoryID != "") { 
+                         payload.SetPromotionalSaleListingsRequest += <ebl:StoreCategoryID xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{storeCategoryID}</ebl:StoreCategoryID>; 
+                     }
+                       
+                     if (errorLanguage != null && errorLanguage != "") { 
+                         payload.SetPromotionalSaleListingsRequest += <ebl:ErrorLanguage xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{errorLanguage}</ebl:ErrorLanguage>; 
+                     }
+                     
+                     if (messageId != null && messageId != "") { 
+                         payload.SetPromotionalSaleListingsRequest += <ebl:MessageID xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{messageId}</ebl:MessageID>; 
+                     }
+                           
+                     if (warningLevel != null && warningLevel != "") {
+                         payload.SetPromotionalSaleListingsRequest += <ebl:WarningLevel xmlns:ebl="urn:ebay:apis:eBLBaseComponents">{warningLevel}</ebl:WarningLevel>;  
+                     } 
+                                                       
+                     mc.setPayloadXML(payload);
+                           
+                ]]>
+		</script>
+
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.apiUrl'), '?')" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), 'callname=SetPromotionalSaleListings')" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;siteid=', get-property('uri.var.siteId'))" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;appid=', get-property('uri.var.appId'))" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;version=', get-property('uri.var.version'))" />
+		<property name="uri.var.endpoint" expression="fn:concat(get-property('uri.var.endpoint'), '&amp;routing=', get-property('uri.var.routing'))" />
+
+		<header name="To" expression="get-property('uri.var.endpoint')" />
+
+		<header name="Action" value="SetPromotionalSaleListings" />
+
+		<call>
+			<endpoint>
+				<default format="soap11" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="X-EBAY-API-SERVER-NAME" scope="transport" action="remove" />
+		<header name="X-EBAY-ESB-CALL-NAME" scope="transport" action="remove" />
+		<header name="X-EBAY-ESB-GUID" scope="transport" action="remove" />
+		<header name="X-EBAY-ESB-SITEID" scope="transport" action="remove" />
+
+	</sequence>
+</template>

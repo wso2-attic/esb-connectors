@@ -1,0 +1,47 @@
+<template name="updateProject" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="name" description="The project name." />
+	<parameter name="identifier" description="The project identifier." />
+	<parameter name="description" description="The project description." />
+	<parameter name="id" description="The project id." />
+
+	<sequence>
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.identifier" expression="$func:identifier" />
+		<property name="uri.var.description" expression="$func:description" />
+		<property name="uri.var.id" expression="$func:id" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"project":{
+				"name": "$1",
+				"identifier": "$2",
+				"description": "$3"
+				}
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.name')" />
+				<arg expression="get-property('uri.var.identifier')" />
+				<arg expression="get-property('uri.var.description')" />
+			</args>
+		</payloadFactory>
+
+		<header name="Content-Type" value="application/json" scope="transport" />
+
+		<call>
+			<endpoint>
+				<http method="put" uri-template="{uri.var.apiUrl}/projects/{uri.var.id}.{uri.var.responseType}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="ETag" scope="transport" action="remove" />
+		<header name="X-UA-Compatible" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Rack-Cache" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+	</sequence>
+</template>
