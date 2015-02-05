@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+*  Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="getTask">
+    <parameter name="taskId" description="The id of the task"/>
+    <parameter name="getFiles" description="Include files of the task(boolean,true/false)"/>
+    <parameter name="dataSet" description="Include Smaller data sets of the task/not"/>
+    <parameter name="nestSubTasks" description="Include completed sub tasks nested within the parent task(boolean,true/false)"/>
+    <parameter name="includeCompletedSubTasks" description="Include completed sub tasks(boolean,true/false)"/>
+    <sequence>
+        <property name="uri.var.taskId" expression="$func:taskId"/>
+        <property name="uri.var.getFiles" expression="$func:getFiles"/>
+        <property name="uri.var.dataSet" expression="$func:dataSet"/>
+        <property name="uri.var.nestSubTasks" expression="$func:nestSubTasks"/>
+        <property name="uri.var.includeCompletedSubTasks" expression="$func:includeCompletedSubTasks"/>
+        <property name="uri.var.optionalParameters" value=""/>
+        <filter
+                xpath="get-property('uri.var.getFiles') = '' or  not(string(get-property('uri.var.getFiles')))">
+            <then>
+                <property name="uri.var.getFiles" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;getFiles=', get-property('uri.var.getFiles'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.dataSet') = '' or  not(string(get-property('uri.var.dataSet')))">
+            <then>
+                <property name="uri.var.dataSet" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;dataSet=', get-property('uri.var.dataSet'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.nestSubTasks') = '' or  not(string(get-property('uri.var.nestSubTasks')))">
+            <then>
+                <property name="uri.var.nestSubTasks" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;nestSubTasks=', get-property('uri.var.nestSubTasks'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.includeCompletedSubTasks') = '' or  not(string(get-property('uri.var.includeCompletedSubTasks')))">
+            <then>
+                <property name="uri.var.includeCompletedSubTasks" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;includeCompletedSubtasks=', get-property('uri.var.includeCompletedSubTasks'))"/>
+            </else>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="{uri.var.teamwork.apiUrl}/tasks/{uri.var.taskId}.json?{uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+        <header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+        <header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+        <header name="ETag" scope="transport" action="remove" />
+        <header name="P3P" scope="transport" action="remove" />
+        <header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+        <header name="X-lastUpdated" scope="transport" action="remove" />
+        <header name="twserver" scope="transport" action="remove" />
+        <header name="X-RateLimit-Limit" scope="transport" action="remove" />
+        <header name="X-Page" scope="transport" action="remove" />
+        <header name="X-Pages" scope="transport" action="remove" />
+        <header name="X-Records" scope="transport" action="remove" />
+    </sequence>
+</template>

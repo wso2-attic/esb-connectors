@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+*  Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="updateEvent">
+    <parameter name="eventId" description="The id of the event"/>
+    <parameter name="start" description="The start time of the event"/>
+    <parameter name="end" description="The end time of the event"/>
+    <parameter name="allDay" description="The event last all day(boolean,true/false)"/>
+    <parameter name="title" description="The title of the event"/>
+    <parameter name="description" description="The description of the event"/>
+    <parameter name="where" description="The venue of the event"/>
+    <parameter name="type" description="The type of the event"/>
+    <parameter name="projectId" description="The project id of the event"/>
+    <parameter name="showAsBusy" description="show as busy(boolean,true/false)"/>
+    <parameter name="id" description="The numeric calendarEventType id"/>
+    <parameter name="attendingUserIds" description="The attending user ids of the event"/>
+    <parameter name="notifyUserIds" description="The notify user ids of the event"/>
+    <parameter name="attendeesCanEdit" description="attendees can edit(boolean,true/false)"/>
+    <parameter name="projectUsersCanEdit" description="project users can edit(boolean,true/false)"/>
+    <parameter name="reminderType" description="The reminder type of the event(sms,email)"/>
+    <parameter name="period" description="The period of the event(minutes,hours,days,weeks)"/>
+    <parameter name="before" description="The numeric value of time to remind"/>
+    <sequence>
+        <property name="uri.var.eventId" expression="$func:eventId"/>
+        <property name="uri.var.start" expression="$func:start"/>
+        <property name="uri.var.end" expression="$func:end"/>
+        <property name="uri.var.allDay" expression="$func:allDay"/>
+        <property name="uri.var.title" expression="$func:title"/>
+        <property name="uri.var.description" expression="$func:description"/>
+        <property name="uri.var.where" expression="$func:where"/>
+        <property name="uri.var.type" expression="$func:type"/>
+        <property name="uri.var.projectId" expression="$func:projectId"/>
+        <property name="uri.var.showAsBusy" expression="$func:showAsBusy"/>
+        <property name="uri.var.id" expression="$func:id"/>
+        <property name="uri.var.attendingUserIds" expression="$func:attendingUserIds"/>
+        <property name="uri.var.notifyUserIds" expression="$func:notifyUserIds"/>
+        <property name="uri.var.attendeesCanEdit" expression="$func:attendeesCanEdit"/>
+        <property name="uri.var.projectUsersCanEdit" expression="$func:projectUsersCanEdit"/>
+        <property name="uri.var.reminderType" expression="$func:reminderType"/>
+        <property name="uri.var.period" expression="$func:period"/>
+        <property name="uri.var.before" expression="$func:before"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "event" : {
+                "start" : "$1",
+                "end" : "$2",
+                "all-day" : "$3",
+                "title" : "$4",
+                "description" : "$5",
+                "where" : "$6",
+                "privacy" : {
+                "type" : "$7"
+                },
+                "project-id" : "$8",
+                "show-as-busy":"$9",
+                "type" : {
+                "id" : "$10"
+                },
+                "attending-user-ids":"$11",
+                "notify-user-ids":"$12",
+                "attendees-can-edit":"$13",
+                "project-users-can-edit":"$14",
+                "reminders" : [
+                {
+                "type":"$15",
+                "period":"$16",
+                "before":"$17"
+                }
+                ]
+                }
+                }
+            </format>
+            <args>
+                <arg evaluator="xml" expression="$func:start"/>
+                <arg evaluator="xml" expression="$func:end"/>
+                <arg evaluator="xml" expression="$func:allDay"/>
+                <arg evaluator="xml" expression="$func:title"/>
+                <arg evaluator="xml" expression="$func:description"/>
+                <arg evaluator="xml" expression="$func:where"/>
+                <arg evaluator="xml" expression="$func:type"/>
+                <arg evaluator="xml" expression="$func:projectId"/>
+                <arg evaluator="xml" expression="$func:showAsBusy"/>
+                <arg evaluator="xml" expression="$func:id"/>
+                <arg evaluator="xml" expression="$func:attendingUserIds"/>
+                <arg evaluator="xml" expression="$func:notifyUserIds"/>
+                <arg evaluator="xml" expression="$func:attendeesCanEdit"/>
+                <arg evaluator="xml" expression="$func:projectUsersCanEdit"/>
+                <arg evaluator="xml" expression="$func:reminderType"/>
+                <arg evaluator="xml" expression="$func:period"/>
+                <arg evaluator="xml" expression="$func:before"/>
+            </args>
+        </payloadFactory>
+        <script language="js"><![CDATA[
+            //request body param variables
+            var description=mc.getProperty('uri.var.description');
+            var where=mc.getProperty('uri.var.where');
+            //Get the existing payload
+            var payload = mc.getPayloadJSON();
+            if (!description  || description == "") {
+					delete payload.event.description;
+            }
+            if (!where || where == "") {
+                delete payload.event.where;
+            }
+            //Set the newly constructed payload
+		    mc.setPayloadJSON(payload);
+        ]]>
+        </script>
+        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
+        <property name="FORCE_HTTP_1.0" value="true" scope="axis2"></property>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"></property>
+        <call>
+            <endpoint>
+                <http method="PUT"
+                      uri-template="{uri.var.teamwork.apiUrl}/calendarevents/{uri.var.eventId}.json"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="Access-Control-Allow-Headers" scope="transport" action="remove"/>
+        <header name="Access-Control-Allow-Methods" scope="transport" action="remove"/>
+        <header name="Access-Control-Allow-Origin" scope="transport" action="remove"/>
+        <header name="ETag" scope="transport" action="remove"/>
+        <header name="P3P" scope="transport" action="remove"/>
+        <header name="X-RateLimit-Remaining" scope="transport" action="remove"/>
+        <header name="X-lastUpdated" scope="transport" action="remove"/>
+        <header name="twserver" scope="transport" action="remove"/>
+        <header name="X-RateLimit-Limit" scope="transport" action="remove"/>
+    </sequence>
+</template>

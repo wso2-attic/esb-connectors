@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+*  Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="updateTask">
+    <parameter name="taskId" description="The id of the task"/>
+    <parameter name="content" description="The name of the task you are adding"/>
+    <parameter name="notify" description="Set true to notify people assigned to this task by email"/>
+    <parameter name="description" description="The description of the task"/>
+    <parameter name="dueDate" description="The dueDate of the task(YYYYMMDD)"/>
+    <parameter name="startDate" description="The startDate of the task(YYYYMMDD)"/>
+    <parameter name="private" description="The private status of the task"/>
+    <parameter name="priority" description="The priority of the task(low/medium/high)"/>
+    <parameter name="progress" description="The progress of the task (0 to 90)"/>
+    <parameter name="estimatedMinutes" description="The estimated number of minutes for a task to be completed "/>
+    <parameter name="responsiblePartyId" description="The responsible party id of the task"/>
+    <parameter name="attachments" description="The attachments of the task"/>
+    <parameter name="taskListId" description="The task list id of the task"/>
+    <parameter name="pendingFileAttachments" description="The pending file attachments of the task"/>
+        <sequence>
+        <property name="uri.var.taskId" expression="$func:taskId"/>
+        <property name="uri.var.content" expression="$func:content"/>
+        <property name="uri.var.notify" expression="$func:notify"/>
+        <property name="uri.var.description" expression="$func:description"/>
+        <property name="uri.var.dueDate" expression="$func:dueDate"/>
+        <property name="uri.var.startDate" expression="$func:startDate"/>
+        <property name="uri.var.private" expression="$func:private"/>
+        <property name="uri.var.priority" expression="$func:priority"/>
+        <property name="uri.var.progress" expression="$func:progress"/>
+        <property name="uri.var.estimatedMinutes" expression="$func:estimatedMinutes"/>
+        <property name="uri.var.responsiblePartyId" expression="$func:responsiblePartyId"/>
+        <property name="uri.var.attachments" expression="$func:attachments"/>
+        <property name="uri.var.taskListId" expression="$func:taskListId"/>
+        <property name="uri.var.pendingFileAttachments" expression="$func:pendingFileAttachments"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                    "todo-item": {
+                        "content": "$1",
+                        "notify": "$2",
+                        "description": "$3",
+                        "due-date": "$4",
+                        "start-date": "$5",
+                        "private": "$6",
+                        "priority": "$7",
+                        "progress": "$8",
+                        "estimated-minutes": "$9",
+                        "responsible-party-id": "$10",
+                        "attachments": [$11],
+                        "tasklistId": "$12",
+                        "pendingFileAttachments": "$13"
+
+
+                    }
+                }
+            </format>
+            <args>
+                <arg evaluator="xml" expression="$func:content"/>
+                <arg evaluator="xml" expression="$func:notify"/>
+                <arg evaluator="xml" expression="$func:description"/>
+                <arg evaluator="xml" expression="$func:dueDate"/>
+                <arg evaluator="xml" expression="$func:startDate"/>
+                <arg evaluator="xml" expression="$func:private"/>
+                <arg evaluator="xml" expression="$func:priority"/>
+                <arg evaluator="xml" expression="$func:progress"/>
+                <arg evaluator="xml" expression="$func:estimatedMinutes"/>
+                <arg evaluator="xml" expression="$func:responsiblePartyId"/>
+                <arg evaluator="xml" expression="$func:attachments"/>
+                <arg evaluator="xml" expression="$func:taskListId"/>
+                <arg evaluator="xml" expression="$func:pendingFileAttachments"/>
+            </args>
+        </payloadFactory>
+            <script language="js"><![CDATA[
+            //request body param variables
+            var notify=mc.getProperty('uri.var.notify');
+            var description=mc.getProperty('uri.var.description');
+            var dueDate=mc.getProperty('uri.var.dueDate');
+            var startDate=mc.getProperty('uri.var.startDate');
+            var privateStatus=mc.getProperty('uri.var.private');
+            var priority=mc.getProperty('uri.var.priority');
+            var progress=mc.getProperty('uri.var.progress');
+            var estimatedMinutes=mc.getProperty('uri.var.estimatedMinutes');
+            var responsiblePartyId=mc.getProperty('uri.var.responsiblePartyId');
+            var attachments=mc.getProperty('uri.var.attachments');
+            var taskListId=mc.getProperty('uri.var.taskListId');
+            var pendingFileAttachments=mc.getProperty('uri.var.pendingFileAttachments');
+            //Get the existing payload
+            var payload = mc.getPayloadJSON();
+            if (!notify || notify == "") {
+                delete payload['todo-item']['notify'];
+            }
+            if (!description || description != "") {
+                delete payload['todo-item']['description'];
+            }
+            if (!dueDate || dueDate == "") {
+               delete payload['todo-item']['due-date'];
+            }
+            if (!startDate || startDate == "") {
+               delete payload['todo-item']['start-date'];
+            }
+            if (!privateStatus  || privateStatus == "") {
+                delete payload['todo-item']["private"];
+            }
+            if (!priority || priority == "") {
+                delete payload['todo-item']['priority'];
+            }
+            if (!progress || progress == "") {
+                delete payload['todo-item']['progress'];
+            }
+            if (!estimatedMinutes  || estimatedMinutes == "") {
+               delete payload['todo-item']['estimated-minutes'];
+            }
+            if (!responsiblePartyId  || responsiblePartyId == "") {
+               delete payload['todo-item']['responsible-party-id'];
+            }
+            if (!attachments || attachments == "") {
+                delete payload['todo-item']['attachments'];
+            }
+            if (!taskListId || taskListId == "") {
+                delete payload['todo-item']['tasklistId'];
+            }
+            if (!pendingFileAttachments || pendingFileAttachments == "") {
+                delete payload['todo-item']['pendingFileAttachments'];
+            }
+            //Set the newly constructed payload
+		    mc.setPayloadJSON(payload);
+        ]]>
+        </script>
+        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
+        <property name="FORCE_HTTP_1.0" value="true" scope="axis2"></property>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"></property>
+        <call>
+            <endpoint>
+                <http method="PUT"
+                      uri-template="{uri.var.teamwork.apiUrl}/tasks/{uri.var.taskId}.json"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+        <header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+        <header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+        <header name="ETag" scope="transport" action="remove" />
+        <header name="P3P" scope="transport" action="remove" />
+        <header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+        <header name="X-lastUpdated" scope="transport" action="remove" />
+        <header name="twserver" scope="transport" action="remove" />
+        <header name="X-RateLimit-Limit" scope="transport" action="remove" />
+    </sequence>
+</template>

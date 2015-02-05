@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+*  Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="getAllTimeEntries">
+    <parameter name="page" description="The page no"/>
+    <parameter name="fromDate" description="The start date to retrieve from(YYYYMMDD)"/>
+    <parameter name="fromTime" description="The start time only if fromDate is passed(HH:MM)"/>
+    <parameter name="toDate" description="The end date to retrieve to(YYYYMMDD)"/>
+    <parameter name="toTime" description="The end time only if toDate is passed(HH:MM)"/>
+    <parameter name="sortOrder" description="The order to sort the returned data"/>
+    <parameter name="userId" description="Return time logs for a specific user id"/>
+    <sequence>
+        <property name="uri.var.page" expression="$func:page"/>
+        <property name="uri.var.fromDate" expression="$func:fromDate"/>
+        <property name="uri.var.fromTime" expression="$func:fromTime"/>
+        <property name="uri.var.toDate" expression="$func:toDate"/>
+        <property name="uri.var.toTime" expression="$func:toTime"/>
+        <property name="uri.var.sortOrder" expression="$func:sortOrder"/>
+        <property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.optionalParameters" value=""/>
+        <filter
+                xpath="get-property('uri.var.fromDate') = '' or  not(string(get-property('uri.var.fromDate')))">
+            <then>
+                <property name="uri.var.fromDate" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;fromdate=', get-property('uri.var.fromDate'))"/>
+                <filter
+                        xpath="get-property('uri.var.fromTime') = '' or  not(string(get-property('uri.var.fromTime')))">
+                    <then>
+                        <property name="uri.var.fromTime" value=""/>
+                    </then>
+                    <else>
+                        <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;fromtime=', get-property('uri.var.fromTime'))"/>
+                    </else>
+                </filter>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.page') = '' or  not(string(get-property('uri.var.page')))">
+            <then>
+                <property name="uri.var.page" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;page=', get-property('uri.var.page'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.toDate') = '' or  not(string(get-property('uri.var.toDate')))">
+            <then>
+                <property name="uri.var.toDate" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;todate=', get-property('uri.var.toDate'))"/>
+                <filter
+                        xpath="get-property('uri.var.toTime') = '' or  not(string(get-property('uri.var.toTime')))">
+                    <then>
+                        <property name="uri.var.toTime" value=""/>
+                    </then>
+                    <else>
+                        <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;totime=', get-property('uri.var.toTime'))"/>
+                    </else>
+                </filter>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.sortOrder') = '' or  not(string(get-property('uri.var.sortOrder')))">
+            <then>
+                <property name="uri.var.sortOrder" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;sortorder=', get-property('uri.var.sortOrder'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.userId') = '' or  not(string(get-property('uri.var.userId')))">
+            <then>
+                <property name="uri.var.userId" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;userId=', get-property('uri.var.userId'))"/>
+            </else>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="{uri.var.teamwork.apiUrl}/time_entries.json?{uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+        <header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+        <header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+        <header name="ETag" scope="transport" action="remove" />
+        <header name="P3P" scope="transport" action="remove" />
+        <header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+        <header name="X-lastUpdated" scope="transport" action="remove" />
+        <header name="twserver" scope="transport" action="remove" />
+        <header name="X-RateLimit-Limit" scope="transport" action="remove" />
+        <header name="X-Page" scope="transport" action="remove" />
+        <header name="X-Pages" scope="transport" action="remove" />
+        <header name="X-Records" scope="transport" action="remove" />
+    </sequence>
+</template>

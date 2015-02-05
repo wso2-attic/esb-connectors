@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+*  Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="createCompany">
+    <parameter name="name" description="The name of the company"/>
+    <parameter name="addressOne" description="The address of the company"/>
+    <parameter name="addressTwo" description="The address of the company"/>
+    <parameter name="zip" description="The zip code of the company"/>
+    <parameter name="city" description="The city of the company"/>
+    <parameter name="state" description="The state of the company"/>
+    <parameter name="countryCode" description="The country code of the company"/>
+    <parameter name="phone" description="The phone number of the company"/>
+    <parameter name="fax" description="The fax number of the company"/>
+    <parameter name="website" description="The website address of the company"/>
+    <sequence>
+        <property name="uri.var.name" expression="$func:name"/>
+        <property name="uri.var.addressOne" expression="$func:addressOne"/>
+        <property name="uri.var.addressTwo" expression="$func:addressTwo"/>
+        <property name="uri.var.zip" expression="$func:zip"/>
+        <property name="uri.var.city" expression="$func:city"/>
+        <property name="uri.var.state" expression="$func:state"/>
+        <property name="uri.var.countryCode" expression="$func:countryCode"/>
+        <property name="uri.var.phone" expression="$func:phone"/>
+        <property name="uri.var.fax" expression="$func:fax"/>
+        <property name="uri.var.website" expression="$func:website"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "company": {
+                "name": "$1",
+                "address_one": "$2",
+                "address_two": "$3",
+                "zip": "$4",
+                "city": "$5",
+                "state": "$6",
+                "countrycode": "$7",
+                "phone": "$8",
+                "fax": "$9",
+                "website": "$10"
+                }
+                }
+            </format>
+            <args>
+                <arg evaluator="xml" expression="$func:name"/>
+                <arg evaluator="xml" expression="$func:addressOne"/>
+                <arg evaluator="xml" expression="$func:addressTwo"/>
+                <arg evaluator="xml" expression="$func:zip"/>
+                <arg evaluator="xml" expression="$func:city"/>
+                <arg evaluator="xml" expression="$func:state"/>
+                <arg evaluator="xml" expression="$func:countryCode"/>
+                <arg evaluator="xml" expression="$func:phone"/>
+                <arg evaluator="xml" expression="$func:fax"/>
+                <arg evaluator="xml" expression="$func:website"/>
+            </args>
+        </payloadFactory>
+        <script language="js"><![CDATA[
+            //request body param variables
+            var addressOne=mc.getProperty('uri.var.addressOne');
+            var addressTwo=mc.getProperty('uri.var.addressTwo');
+            var zip=mc.getProperty('uri.var.zip');
+            var city=mc.getProperty('uri.var.city');
+            var state=mc.getProperty('uri.var.state');
+            var countryCode=mc.getProperty('uri.var.countryCode');
+            var phone=mc.getProperty('uri.var.phone');
+            var fax=mc.getProperty('uri.var.fax');
+            var website=mc.getProperty('uri.var.website');
+            //Get the existing payload
+            var payload = mc.getPayloadJSON();
+            if (!addressOne || addressOne == "") {
+                delete payload.company.address_one;
+            }
+            if (!addressTwo || addressTwo != "") {
+               delete payload.company.address_two;
+            }
+            if (!zip || zip == "") {
+                delete payload.company.zip;
+            }
+            if (!city || city == "") {
+                delete payload.company.city;
+            }
+            if (!state  || state == "") {
+                delete payload.company.state;
+            }
+             if (!countryCode  || countryCode == "") {
+                delete payload.company.countrycode;
+            }
+            if (!fax || fax == "") {
+                delete payload.company.fax;
+            }
+             if (!phone || phone == "") {
+                delete payload.company.phone;
+            }
+            if (!website || website == "") {
+                delete payload.company.website;
+            }
+            //Set the newly constructed payload
+		    mc.setPayloadJSON(payload);
+        ]]>
+        </script>
+        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
+        <property name="FORCE_HTTP_1.0" value="true" scope="axis2"></property>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"></property>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.teamwork.apiUrl}/companies.json"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+        <header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+        <header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+        <header name="ETag" scope="transport" action="remove" />
+        <header name="P3P" scope="transport" action="remove" />
+        <header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+        <header name="X-lastUpdated" scope="transport" action="remove" />
+        <header name="twserver" scope="transport" action="remove" />
+        <header name="X-RateLimit-Limit" scope="transport" action="remove" />
+    </sequence>
+</template>

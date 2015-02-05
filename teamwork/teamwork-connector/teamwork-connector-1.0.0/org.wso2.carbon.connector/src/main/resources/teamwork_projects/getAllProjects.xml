@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+*  Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="getAllProjects">
+    <parameter name="status" description="The name of the company"/>
+    <parameter name="updatedAfterDate" description="The date of update(YYYYMMDD)"/>
+    <parameter name="updatedAfterTime" description="The time of update(HH:MM)"/>
+    <parameter name="orderBy" description="The order of the projects"/>
+    <parameter name="createdAfterDate" description="The date of creation(YYYYMMDD)"/>
+    <parameter name="createdAfterTime" description="The time of creation(HH:MM)"/>
+    <parameter name="includePeople" description="Show the people associated with the requested project(boolean,true/false)"/>
+    <parameter name="page" description="The page no"/>
+    <sequence>
+        <property name="uri.var.status" expression="$func:status"/>
+        <property name="uri.var.updatedAfterDate" expression="$func:updatedAfterDate"/>
+        <property name="uri.var.updatedAfterTime" expression="$func:updatedAfterTime"/>
+        <property name="uri.var.orderBy" expression="$func:orderBy"/>
+        <property name="uri.var.createdAfterDate" expression="$func:createdAfterDate"/>
+        <property name="uri.var.createdAfterTime" expression="$func:createdAfterTime"/>
+        <property name="uri.var.includePeople" expression="$func:includePeople"/>
+        <property name="uri.var.page" expression="$func:page"/>
+        <property name="uri.var.optionalParameters" value=""/>
+        <filter
+                xpath="get-property('uri.var.status') = '' or  not(string(get-property('uri.var.status')))">
+            <then>
+                <property name="uri.var.status" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;status=', get-property('uri.var.status'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.updatedAfterDate') = '' or  not(string(get-property('uri.var.updatedAfterDate')))">
+            <then>
+                <property name="uri.var.updatedAfterDate" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;updatedAfterDate=', get-property('uri.var.updatedAfterDate'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.updatedAfterTime') = '' or  not(string(get-property('uri.var.updatedAfterTime')))">
+            <then>
+                <property name="uri.var.updatedAfterTime" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;updatedAfterTime=', get-property('uri.var.updatedAfterTime'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.orderBy') = '' or  not(string(get-property('uri.var.orderBy')))">
+            <then>
+                <property name="uri.var.orderBy" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;orderby=', get-property('uri.var.orderBy'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.createdAfterDate') = '' or  not(string(get-property('uri.var.createdAfterDate')))">
+            <then>
+                <property name="uri.var.createdAfterDate" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;createdAfterDate=', get-property('uri.var.createdAfterDate'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.createdAfterTime') = '' or  not(string(get-property('uri.var.createdAfterTime')))">
+            <then>
+                <property name="uri.var.createdAfterTime" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;createdAfterTime=', get-property('uri.var.createdAfterTime'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.includePeople') = '' or  not(string(get-property('uri.var.includePeople')))">
+            <then>
+                <property name="uri.var.includePeople" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;includePeople=', get-property('uri.var.includePeople'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.page') = '' or  not(string(get-property('uri.var.page')))">
+            <then>
+                <property name="uri.var.page" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;page=', get-property('uri.var.page'))"/>
+            </else>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="{uri.var.teamwork.apiUrl}/projects.json?{uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+        <header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+        <header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+        <header name="ETag" scope="transport" action="remove" />
+        <header name="P3P" scope="transport" action="remove" />
+        <header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+        <header name="X-lastUpdated" scope="transport" action="remove" />
+        <header name="twserver" scope="transport" action="remove" />
+        <header name="X-RateLimit-Limit" scope="transport" action="remove" />
+        <header name="X-Page" scope="transport" action="remove" />
+        <header name="X-Pages" scope="transport" action="remove" />
+        <header name="X-Records" scope="transport" action="remove" />
+    </sequence>
+</template>

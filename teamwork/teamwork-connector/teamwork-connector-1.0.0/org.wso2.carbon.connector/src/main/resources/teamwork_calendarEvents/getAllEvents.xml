@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+*  Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="getAllEvents">
+    <parameter name="startDate" description="The start date of the event(YYYYMMDD)"/>
+    <parameter name="endDate" description="The end date of the event(YYYYMMDD)"/>
+    <parameter name="showDeleted" description="Show the deleted events(boolean,true/false)"/>
+    <parameter name="updatedAfterDate" description="The date of events updated"/>
+    <parameter name="page" description="The page no"/>
+    <sequence>
+        <property name="uri.var.startDate" expression="$func:startDate"/>
+        <property name="uri.var.endDate" expression="$func:endDate"/>
+        <property name="uri.var.showDeleted" expression="$func:showDeleted"/>
+        <property name="uri.var.updatedAfterDate" expression="$func:updatedAfterDate"/>
+        <property name="uri.var.page" expression="$func:page"/>
+        <property name="uri.var.optionalParameters" value=""/>
+        <filter
+                xpath="get-property('uri.var.showDeleted') = '' or  not(string(get-property('uri.var.showDeleted')))">
+            <then>
+                <property name="uri.var.showDeleted" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;showDeleted=', get-property('uri.var.showDeleted'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.updatedAfterDate') = '' or  not(string(get-property('uri.var.updatedAfterDate')))">
+            <then>
+                <property name="uri.var.updatedAfterDate" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;updatedAfterDate=', get-property('uri.var.updatedAfterDate'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.page') = '' or  not(string(get-property('uri.var.page')))">
+            <then>
+                <property name="uri.var.page" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;page=', get-property('uri.var.page'))"/>
+            </else>
+        </filter>
+
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="{uri.var.teamwork.apiUrl}/calendarevents.json?startdate={uri.var.startDate}&amp;endDate={uri.var.endDate}{uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+        <header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+        <header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+        <header name="ETag" scope="transport" action="remove" />
+        <header name="P3P" scope="transport" action="remove" />
+        <header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+        <header name="X-lastUpdated" scope="transport" action="remove" />
+        <header name="twserver" scope="transport" action="remove" />
+        <header name="X-RateLimit-Limit" scope="transport" action="remove" />
+    </sequence>
+</template>
