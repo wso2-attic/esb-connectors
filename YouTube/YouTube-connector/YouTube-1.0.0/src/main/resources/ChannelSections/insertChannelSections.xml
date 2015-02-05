@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ WSO2 Inc. licenses this file to you under the Apache License,
+ Version 2.0 (the "License"); you may not use this file except
+ in compliance with the License.
+ You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+-->
+<template name="insertChannelSections" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="part"
+               description="Identifies the properties that the write operation will set"/>
+    <parameter name="onBehalfOfContentOwner"
+               description="Indicates that the request's authorization credentials identify a YouTube CMS user"/>
+    <parameter name="onBehalfOfContentOwnerChannel"
+               description="Specifies the YouTube channel ID of the channel to which a video is being added"/>
+    <parameter name="fields" description="Specifying which fields to include in a partial response"/>
+    <parameter name="optionalParameters" description="Concatination of optional parameters"/>
+    <parameter name="type" description="The channel section's type"/>
+    <parameter name="style" description="The format in which the channel section displays"/>
+    <parameter name="title" description="The section's title"/>
+    <parameter name="position" description="The section's position on the channel page"/>
+    <parameter name="playlists"
+               description="A list of one or more playlist Ids that are featured in a channel section"/>
+    <parameter name="channels" description="A list of one or more channel IDs that are featured in a channel section"/>
+    <sequence>
+        <property name="uri.var.part" expression="$func:part"/>
+        <property name="uri.var.onBehalfOfContentOwner" expression="$func:onBehalfOfContentOwner"/>
+        <property name="uri.var.onBehalfOfContentOwnerChannel" expression="$func:onBehalfOfContentOwnerChannel"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <property name="parameters" value=""/>
+        <property name="uri.var.type" expression="$func:type"/>
+        <property name="uri.var.style" expression="$func:style"/>
+        <property name="uri.var.title" expression="$func:title"/>
+        <property name="uri.var.position" expression="$func:position"/>
+        <property name="uri.var.playlists" expression="$func:playlists"/>
+        <property name="uri.var.channels" expression="$func:channels"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                    "snippet":
+                    {
+                        "type":"$1",
+                        "style":"$2",
+                        "title":"$3",
+                        "position":"$4"
+                    },
+                    "contentDetails":
+                    {
+                        "playlists":["$5"],
+                        "channels":["$6"]
+                    }
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.type')"/>
+                <arg expression="get-property('uri.var.style')"/>
+                <arg expression="get-property('uri.var.title')"/>
+                <arg expression="get-property('uri.var.position')"/>
+                <arg expression="get-property('uri.var.playlists')"/>
+                <arg expression="get-property('uri.var.channels')"/>
+            </args>
+        </payloadFactory>
+        <filter
+                xpath="get-property('uri.var.title') = '' or (not(string(get-property('uri.var.title'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+						delete payload.snippet.title;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.position') = '' or (not(string(get-property('uri.var.position'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+						delete payload.snippet.position;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.playlists') = '' or (not(string(get-property('uri.var.playlists'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+						delete payload.contentDetails.playlists
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.channels') = '' or (not(string(get-property('uri.var.channels'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+						delete payload.contentDetails.channels
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <script language="js"><![CDATA[
+            var payload = mc.getPayloadJSON();
+            var contentDetails = payload.contentDetails;
+            var count=(count_obj(contentDetails))
+            function count_obj(pos){
+                var i = 0;
+                for(var key in pos){
+                    ++i;
+                }
+                return i;
+            }
+            if(count == 0)
+            {
+                delete payload.contentDetails;
+                mc.setPayloadJSON(payload);
+            }
+		    ]]>
+        </script>
+        <filter
+                xpath="get-property('uri.var.onBehalfOfContentOwner') = '' or  not(string(get-property('uri.var.onBehalfOfContentOwner')))">
+            <then>
+                <property name="uri.var.onBehalfOfContentOwner" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;onBehalfOfContentOwner=', get-property('uri.var.onBehalfOfContentOwner'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.onBehalfOfContentOwnerChannel') = '' or  not(string(get-property('uri.var.onBehalfOfContentOwnerChannel')))">
+            <then>
+                <property name="uri.var.onBehalfOfContentOwnerChannel" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;onBehalfOfContentOwnerChannel=', get-property('uri.var.onBehalfOfContentOwnerChannel'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.fields') = '' or  not(string(get-property('uri.var.fields')))">
+            <then>
+                <property name="uri.var.fields" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;fields=', get-property('uri.var.fields'))"/>
+            </else>
+        </filter>
+        <property name="uri.var.optionalParameters" expression="get-property('parameters')"/>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.apiUrl}/channelSections?part={uri.var.part}{uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

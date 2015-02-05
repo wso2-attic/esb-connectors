@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ WSO2 Inc. licenses this file to you under the Apache License,
+ Version 2.0 (the "License"); you may not use this file except
+ in compliance with the License.
+ You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+-->
+<template name="updateLiveBroadcasts" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="part"
+               description="List of one or more activity resource properties that the API response will include"/>
+    <parameter name="onBehalfOfContentOwner"
+               description="Indicates that the user who is acting on behalf of the content owner"/>
+    <parameter name="onBehalfOfContentOwnerChannel"
+               description="Specifies the YouTube channel ID of the channel to which a video is being added"/>
+    <parameter name="fields" description="Specifying which fields to include in a partial response"/>
+    <parameter name="optionalParameters"
+               description="Concatination of optional parameters"/>
+    
+    <parameter name="scheduledEndTime"
+               description="Date and time that the broadcast is scheduled to end"/>
+    <parameter name="scheduledStartTime"
+               description="Concatination of optional parameters"/>
+    <parameter name="title"
+               description="Date and time that the broadcast is scheduled to start"/>
+    <parameter name="description"
+               description="The broadcast's description"/>
+    <parameter name="broadcastStreamDelayMs"
+               description="Determines the length of the live broadcast delay"/>
+    <parameter name="enableMonitorStream"
+               description="Determines whether the monitor stream is enabled for the broadcast"/>
+    <parameter name="enableDvr"
+               description="Determines whether viewers can access DVR controls while watching the video"/>
+    <parameter name="enableContentEncryption"
+               description="Indicates whether YouTube should enable content encryption for the broadcast"/>
+    <parameter name="enableEmbed"
+               description="Indicates whether the broadcast video can be played in an embedded player"/>
+    <parameter name="recordFromStart"
+               description="Indicates whether YouTube will automatically start recording the broadcast after the event's status changes to live"/>
+    <parameter name="startWithSlate"
+               description="indicates whether the broadcast should automatically begin with a slate when you update the broadcast's status to live"/>
+    <parameter name="enableClosedCaptions"
+               description="Indicates whether closed captioning is enabled for this broadcast"/>
+    <parameter name="privacyStatus"
+               description="The broadcast's privacy status public or private"/>
+    <parameter name="id"
+               description="The ID that YouTube assigns to uniquely identify the broadcast"/>
+    <sequence>
+        <property name="uri.var.part" expression="$func:part"/>
+        <property name="uri.var.onBehalfOfContentOwner" expression="$func:onBehalfOfContentOwner"/>
+        <property name="uri.var.onBehalfOfContentOwnerChannel" expression="$func:onBehalfOfContentOwnerChannel"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <property name="parameters" value=""/>
+        <property name="uri.var.scheduledEndTime" expression="$func:scheduledEndTime"/>
+        <property name="uri.var.scheduledStartTime" expression="$func:scheduledStartTime"/>
+        <property name="uri.var.title" expression="$func:title"/>
+        <property name="uri.var.description" expression="$func:description"/>
+        <property name="uri.var.broadcastStreamDelayMs" expression="$func:broadcastStreamDelayMs"/>
+        <property name="uri.var.enableMonitorStream" expression="$func:enableMonitorStream"/>
+        <property name="uri.var.enableDvr" expression="$func:enableDvr"/>
+        <property name="uri.var.enableContentEncryption" expression="$func:enableContentEncryption"/>
+        <property name="uri.var.enableEmbed" expression="$func:enableEmbed"/>
+        <property name="uri.var.recordFromStart" expression="$func:recordFromStart"/>
+        <property name="uri.var.startWithSlate" expression="$func:startWithSlate"/>
+        <property name="uri.var.enableClosedCaptions" expression="$func:enableClosedCaptions"/>
+        <property name="uri.var.privacyStatus" expression="$func:privacyStatus"/>
+        <property name="uri.var.id" expression="$func:id"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                    "snippet":
+                    {
+                        "scheduledEndTime":"$1",
+                        "scheduledStartTime":"$2",
+                        "title":"$3",
+                        "description":"$4"
+                    },
+                    "contentDetails":
+                    {
+                        "monitorStream":
+                        {
+                            "broadcastStreamDelayMs":"45",
+                            "enableMonitorStream":"$6"
+                        },
+                        "enableDvr":"$7",
+                        "enableContentEncryption":"$8",
+                        "enableEmbed":"$9",
+                        "recordFromStart":"$10",
+                        "startWithSlate":"$11",
+                        "enableClosedCaptions":"$12"
+                        },
+                        "status":
+                        {
+                        "privacyStatus":"$13"
+                    },
+                    "id":"$14"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.scheduledEndTime')"/>
+                <arg expression="get-property('uri.var.scheduledStartTime')"/>
+                <arg expression="get-property('uri.var.title')"/>
+                <arg expression="get-property('uri.var.description')"/>
+                <arg expression="get-property('uri.var.broadcastStreamDelayMs')"/>
+                <arg expression="get-property('uri.var.enableMonitorStream')"/>
+                <arg expression="get-property('uri.var.enableDvr')"/>
+                <arg expression="get-property('uri.var.enableContentEncryption')"/>
+                <arg expression="get-property('uri.var.enableEmbed')"/>
+                <arg expression="get-property('uri.var.recordFromStart')"/>
+                <arg expression="get-property('uri.var.startWithSlate')"/>
+                <arg expression="get-property('uri.var.enableClosedCaptions')"/>
+                <arg expression="get-property('uri.var.privacyStatus')"/>
+                <arg expression="get-property('uri.var.id')"/>
+            </args>
+        </payloadFactory>
+        <filter
+                xpath="get-property('uri.var.description') = '' or (not(string(get-property('uri.var.description'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.snippet.description;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.broadcastStreamDelayMs') = '' or (not(string(get-property('uri.var.broadcastStreamDelayMs'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.contentDetails.monitorStream.broadcastStreamDelayMs;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.enableMonitorStream') = '' or (not(string(get-property('uri.var.enableMonitorStream'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.contentDetails.monitorStream.enableMonitorStream;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <script language="js"><![CDATA[
+            var payload = mc.getPayloadJSON();
+            var monitorStream = payload.contentDetails.monitorStream;
+            var count=(count_obj(monitorStream))
+            function count_obj(pos){
+                var i = 0;
+                for(var key in pos){
+                    ++i;
+                }
+                return i;
+            }
+            if(count == 0)
+            {
+                delete payload.monitorStream;
+                mc.setPayloadJSON(payload);
+            }
+		    ]]>
+        </script>
+        <filter
+                xpath="get-property('uri.var.enableDvr') = '' or (not(string(get-property('uri.var.enableDvr'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.contentDetails.enableDvr;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.enableContentEncryption') = '' or (not(string(get-property('uri.var.enableContentEncryption'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.contentDetails.enableContentEncryption;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.enableEmbed') = '' or (not(string(get-property('uri.var.enableEmbed'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.contentDetails.enableEmbed;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.recordFromStart') = '' or (not(string(get-property('uri.var.recordFromStart'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.contentDetails.recordFromStart;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.startWithSlate') = '' or (not(string(get-property('uri.var.startWithSlate'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.contentDetails.startWithSlate;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.enableClosedCaptions') = '' or (not(string(get-property('uri.var.enableClosedCaptions'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.contentDetails.enableClosedCaptions;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <script language="js"><![CDATA[
+            var payload = mc.getPayloadJSON();
+            var contentDetails = payload.contentDetails;
+            var count=(count_obj(contentDetails))
+            function count_obj(pos){
+                var i = 0;
+                for(var key in pos){
+                    ++i;
+                }
+                return i;
+            }
+            if(count == 0)
+            {
+                delete payload.contentDetails;
+                mc.setPayloadJSON(payload);
+            }
+		    ]]>
+        </script>
+        <filter
+                xpath="get-property('uri.var.fields') = '' or  not(string(get-property('uri.var.fields')))">
+            <then>
+                <property name="uri.var.fields" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;fields=', get-property('uri.var.fields'))"/>
+            </else>
+        </filter>
+        <property name="uri.var.optionalParameters" expression="get-property('parameters')"/>
+        <call>
+            <endpoint>
+                <http method="PUT"
+                      uri-template="{uri.var.apiUrl}/liveBroadcasts?part={uri.var.part}&amp;{uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ WSO2 Inc. licenses this file to you under the Apache License,
+ Version 2.0 (the "License"); you may not use this file except
+ in compliance with the License.
+ You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+-->
+<template name="insertPlaylistItems" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="part"
+               description="List of one or more activity resource properties that the API response will include"/>
+    <parameter name="onBehalfOfContentOwner"
+               description="Instruct the API to only return channels managed by the content owner"/>
+    <parameter name="fields" description="Specifying which fields to include in a partial response"/>
+    <parameter name="optionalParameters"
+               description="Concatination of optional parameters"/>
+    <parameter name="playlistId" description="The ID that YouTube uses to uniquely identify the playlist that the playlist item is in"/>
+    <parameter name="kind" description="The kind, or type, of the referred resource"/>
+    <parameter name="videoId" 
+               description="If the snippet.resourceId.kind property's value is youtube#video, then this property will be videoId in the playlist"/>
+    <parameter name="position" description="The order in which the item appears in the playlist"/>
+    <parameter name="note" description="A user-generated note for this item"/>
+    <parameter name="startAt" description="The time, measured in seconds from the start of the video, when the video should start playing"/>
+    <parameter name="endAt" description="The time, measured in seconds from the start of the video, when the video should stop playing"/>
+    <sequence>
+        <property name="uri.var.part" expression="$func:part"/>
+        <property name="uri.var.onBehalfOfContentOwner" expression="$func:onBehalfOfContentOwner"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <property name="parameters" value=""/>
+        <property name="uri.var.playlistId" expression="$func:playlistId"/>
+        <property name="uri.var.kind" expression="$func:kind"/>
+        <property name="uri.var.videoId" expression="$func:videoId"/>
+        <property name="uri.var.position" expression="$func:position"/>
+        <property name="uri.var.note" expression="$func:note"/>
+        <property name="uri.var.startAt" expression="$func:startAt"/>
+        <property name="uri.var.endAt" expression="$func:endAt"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                    "snippet":
+                    {
+                        "playlistId":"$1",
+                        "resourceId":
+                        {
+                            "kind":"$2",
+                            "videoId":"$3"
+                        },
+                        "position":"$4"
+                    },
+                    "contentDetails":
+                    {
+                        "note":"$5",
+                        "startAt":"$6",
+                        "endAt":"$7"
+                    }
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.playlistId')"/>
+                <arg expression="get-property('uri.var.kind')"/>
+                <arg expression="get-property('uri.var.videoId')"/>
+                <arg expression="get-property('uri.var.position')"/>
+                <arg expression="get-property('uri.var.note')"/>
+                <arg expression="get-property('uri.var.startAt')"/>
+                <arg expression="get-property('uri.var.endAt')"/>
+            </args>
+        </payloadFactory>
+        <filter
+                xpath="get-property('uri.var.kind') = '' or (not(string(get-property('uri.var.kind'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.snippet.resourceId.resourceId.kind
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.videoId') = '' or (not(string(get-property('uri.var.videoId'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.snippet.resourceId.resourceId.videoId
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.position') = '' or (not(string(get-property('uri.var.position'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.snippet.position;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.note') = '' or (not(string(get-property('uri.var.note'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.contentDetails.note
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.startAt') = '' or (not(string(get-property('uri.var.startAt'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.contentDetails.startAt;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.endAt') = '' or (not(string(get-property('uri.var.endAt'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.contentDetails.endAt
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <script language="js"><![CDATA[
+            var payload = mc.getPayloadJSON();
+            var contentDetails = payload.contentDetails;
+            var count=(count_obj(contentDetails))
+            function count_obj(str){
+                var i = 0;
+                for(var key in str){
+                    ++i;
+                }
+                return i;
+            }
+            if(count == 0)
+            {
+                delete payload.contentDetails;
+                mc.setPayloadJSON(payload);
+            }
+            ]]>
+        </script>
+        <filter
+                xpath="get-property('uri.var.fields') = '' or  not(string(get-property('uri.var.fields')))">
+            <then>
+                <property name="uri.var.fields" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;fields=', get-property('uri.var.fields'))"/>
+            </else>
+        </filter>
+        <property name="uri.var.optionalParameters" expression="get-property('parameters')"/>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.apiUrl}/playlistItems?part={uri.var.part}{uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

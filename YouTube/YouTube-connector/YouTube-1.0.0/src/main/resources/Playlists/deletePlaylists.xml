@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ WSO2 Inc. licenses this file to you under the Apache License,
+ Version 2.0 (the "License"); you may not use this file except
+ in compliance with the License.
+ You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+-->
+<template name="deletePlaylists" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="id" description="Specifies the playlist item's ID."/>
+    <parameter name="onBehalfOfContentOwner"
+               description="Indicates that the user who is acting on behalf of the content owner"/>
+    <parameter name="optionalParameters"
+               description="Concatination of optional parameters"/>
+    <sequence>
+        <property name="uri.var.id" expression="$func:id"/>
+        <property name="uri.var.onBehalfOfContentOwner" expression="$func:onBehalfOfContentOwner"/>
+        <property name="parameters" value=""/>
+        <filter
+                xpath="get-property('uri.var.onBehalfOfContentOwner') = '' or  not(string(get-property('uri.var.onBehalfOfContentOwner')))">
+            <then>
+                <property name="uri.var.onBehalfOfContentOwner" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;onBehalfOfContentOwner=', get-property('uri.var.onBehalfOfContentOwner'))"/>
+            </else>
+        </filter>
+        <property name="uri.var.optionalParameters" expression="get-property('parameters')"/>
+        <call>
+            <endpoint>
+                <http method="DELETE"
+                      uri-template="{uri.var.apiUrl}/playlists?id={uri.var.id}{uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

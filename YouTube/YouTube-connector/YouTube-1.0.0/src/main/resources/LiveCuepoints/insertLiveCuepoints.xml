@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ WSO2 Inc. licenses this file to you under the Apache License,
+ Version 2.0 (the "License"); you may not use this file except
+ in compliance with the License.
+ You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+-->
+<template name="insertLiveCuepoints" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="channelId"
+               description="Identifies the channel that owns the broadcast into which the cuepoint is being inserted"/>
+    <parameter name="onBehalfOfContentOwner"
+               description="Indicates that the user who is acting on behalf of the content owner"/>
+    
+    <parameter name="fields" description="Specifying which fields to include in a partial response"/>
+    <parameter name="optionalParameters"
+               description="Concatination of optional parameters"/>
+    
+    <parameter name="broadcastId"
+               description="The ID that YouTube assigns to uniquely identify the broadcast into which the cuepoint is being inserted"/>
+    <parameter name="cueType"
+               description="The cuepoint's type"/>
+    <parameter name="offsetTimeMs"
+               description="This value specifies a point in time in the video when viewers should see an ad or in-stream slate"/>
+    <parameter name="durationSecs"
+               description="The cuepoint's duration, in seconds"/>
+    <parameter name="walltime"
+               description="This value specifies the wall clock time at which the cuepoint should be inserted"/>
+
+    <sequence>
+        <property name="uri.var.channelId" expression="$func:channelId"/>
+        <property name="uri.var.onBehalfOfContentOwner" expression="$func:onBehalfOfContentOwner"/>
+
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <property name="parameters" value=""/>
+        <property name="uri.var.broadcastId" expression="$func:broadcastId"/>
+        <property name="uri.var.cueType" expression="$func:cueType"/>
+        <property name="uri.var.offsetTimeMs" expression="$func:offsetTimeMs"/>
+        <property name="uri.var.durationSecs" expression="$func:durationSecs"/>
+        <property name="uri.var.walltime" expression="$func:walltime"/>
+
+        <payloadFactory media-type="json">
+            <format>
+                {
+                    "broadcastId":"$1",
+                    "settings":
+                    {
+                        "cueType":"$2",
+                        "offsetTimeMs":"$3",
+                        "durationSecs":"$4",
+                        "walltime":"$5"
+                    }
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.broadcastId')"/>
+                <arg expression="get-property('uri.var.cueType')"/>
+                <arg expression="get-property('uri.var.offsetTimeMs')"/>
+                <arg expression="get-property('uri.var.durationSecs')"/>
+                <arg expression="get-property('uri.var.walltime')"/>
+                
+            </args>
+        </payloadFactory>
+        <filter
+                xpath="get-property('uri.var.offsetTimeMs') = '' or (not(string(get-property('uri.var.offsetTimeMs'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.settings.offsetTimeMs;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.durationSecs') = '' or (not(string(get-property('uri.var.durationSecs'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.settings.durationSecs;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.walltime') = '' or (not(string(get-property('uri.var.walltime'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.settings.walltime;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.fields') = '' or  not(string(get-property('uri.var.fields')))">
+            <then>
+                <property name="uri.var.fields" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;fields=', get-property('uri.var.fields'))"/>
+            </else>
+        </filter>
+        <property name="uri.var.optionalParameters" expression="get-property('parameters')"/>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.apiUrl}/liveBroadcasts?channelId={uri.var.channelId}{uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

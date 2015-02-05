@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ WSO2 Inc. licenses this file to you under the Apache License,
+ Version 2.0 (the "License"); you may not use this file except
+ in compliance with the License.
+ You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+-->
+<template name="insertPlaylists" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="part"
+               description="List of one or more activity resource properties that the API response will include"/>
+    <parameter name="onBehalfOfContentOwner" description="Specifying which fields to include in a partial response"/>
+    <parameter name="onBehalfOfContentOwnerChannel"
+               description="Indicates that the user who is acting on behalf of the content owner"/>
+    <parameter name="fields" description="Specifying which fields to include in a partial response"/>
+    <parameter name="optionalParameters"
+               description="Concatination of optional parameters"/>
+    <parameter name="title" description="The playlist's title"/>
+    <parameter name="description" description="The playlist's description"/>
+    <parameter name="privacyStatus" description="The playlist's privacy status, public or private"/>
+    <parameter name="tags" description="Keyword tags associated with the playlist"/>
+    <sequence>
+        <property name="uri.var.part" expression="$func:part"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <property name="parameters" value=""/>
+        <property name="uri.var.title" expression="$func:title"/>
+        <property name="uri.var.description" expression="$func:description"/>
+        <property name="uri.var.tags" expression="$func:tags"/>
+        <property name="uri.var.privacyStatus" expression="$func:privacyStatus"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                    "snippet":
+                    {
+                        "title":"$1",
+                        "description":"$2",
+                        "tags":["$3"]
+                    },
+                    "status":
+                    {
+                        "privacyStatus":"$4"
+                    }
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.title')"/>
+                <arg expression="get-property('uri.var.description')"/>
+                <arg expression="get-property('uri.var.tags')"/>
+                <arg expression="get-property('uri.var.privacyStatus')"/>
+            </args>
+        </payloadFactory>
+        <filter
+                xpath="get-property('uri.var.description') = '' or (not(string(get-property('uri.var.description'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.snippet.description;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.tags') = '' or (not(string(get-property('uri.var.tags'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.snippet.tags;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.privacyStatus') = '' or (not(string(get-property('uri.var.privacyStatus'))))">
+            <then>
+                <script language="js"><![CDATA[
+					    var payload = mc.getPayloadJSON();
+                        delete payload.status.privacyStatus;
+						mc.setPayloadJSON(payload);
+					]]>
+                </script>
+            </then>
+        </filter>
+        <script language="js"><![CDATA[
+            var payload = mc.getPayloadJSON();
+            var status = payload.status;
+            var count=(count_obj(status))
+            function count_obj(str){
+                var i = 0;
+                for(var key in str){
+                    ++i;
+                }
+                return i;
+            }
+            if(count == 0)
+            {
+                delete payload.status;
+                mc.setPayloadJSON(payload);
+            }
+			]]>
+        </script>
+        <filter
+                xpath="get-property('uri.var.fields') = '' or  not(string(get-property('uri.var.fields')))">
+            <then>
+                <property name="uri.var.fields" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;fields=', get-property('uri.var.fields'))"/>
+            </else>
+        </filter>
+        <property name="uri.var.optionalParameters" expression="get-property('parameters')"/>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.apiUrl}/playlists?part={uri.var.part}{uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>
