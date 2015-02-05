@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~ http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied. See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+<template name="uploadSlideshow" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="slideshowTitle" description="Number of results to return per page"/>
+    <parameter name="slideshowSrcfile" description="slideshow file"/>
+    <parameter name="uploadUrl" description="String containing an url pointing to the power point file"/>
+    <parameter name="slideshowDescription" description="Description of slideshow"/>
+    <parameter name="slideshowTags" description="Tags should be comma separated"/>
+    <parameter name="makeSrcPublic" description="If you want users to be able to download the ppt file or not"/>
+    <parameter name="makeSlideshowPrivate" description="If you want to make the slideshow private or not"/>
+    <parameter name="generateSecretUrl" description="Generate a secret URL for the slideshow"/>
+    <parameter name="allowEmbeds" description="Allow to embed the slideshow"/>
+    <parameter name="shareWithContacts" description="Set the slideshow to view contacts"/>
+    <sequence>
+        <property name="uri.var.slideshowTitle" expression="$func:slideshowTitle"/>
+        <property name="uri.var.slideshowSrcfile" expression="$func:slideshowSrcfile"/>
+        <property name="uri.var.uploadUrl" expression="$func:uploadUrl"/>
+        <property name="uri.var.slideshowDescription" expression="$func:slideshowDescription"/>
+        <property name="uri.var.slideshowTags" expression="$func:slideshowTags"/>
+        <property name="uri.var.makeSrcPublic" expression="$func:makeSrcPublic"/>
+        <property name="uri.var.makeSlideshowPrivate" expression="$func:makeSlideshowPrivate"/>
+        <property name="uri.var.generateSecretUrl" expression="$func:generateSecretUrl"/>
+        <property name="uri.var.allowEmbeds" expression="$func:allowEmbeds"/>
+        <property name="uri.var.shareWithContacts" expression="$func:shareWithContacts"/>
+        <property name="uri.var.uploadRequiredParameters"
+                  expression="fn:concat('slideshow_title=',get-property('uri.var.slideshowTitle'),'&amp;slideshow_srcfile=',get-property('uri.var.slideshowSrcfile'),'&amp;upload_url=',get-property('uri.var.uploadUrl'))"/>
+        <filter
+                xpath="(not(get-property('uri.var.slideshowDescription') = '' or  (not(string(get-property('uri.var.slideshowDescription'))))))">
+            <then>
+                <property name="uri.var.optionalParams"
+                          expression="fn:concat(get-property('uri.var.optionalParams'),'&amp;slideshow_description=',get-property('uri.var.slideshowDescription'))"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.slideshowTags') = '' or  (not(string(get-property('uri.var.slideshowTags'))))))">
+            <then>
+                <property name="uri.var.optionalParams"
+                          expression="fn:concat(get-property('uri.var.optionalParams'),'&amp;slideshow_tags=',get-property('uri.var.slideshowTags'))"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.makeSrcPublic') = '' or  (not(string(get-property('uri.var.makeSrcPublic'))))))">
+            <then>
+                <property name="uri.var.optionalParams"
+                          expression="fn:concat(get-property('uri.var.optionalParams'),'&amp;make_src_public=',get-property('uri.var.makeSrcPublic'))"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.makeSlideshowPrivate') = '' or  (not(string(get-property('uri.var.makeSlideshowPrivate'))))))">
+            <then>
+                <property name="uri.var.optionalParams"
+                          expression="fn:concat(get-property('uri.var.optionalParams'),'&amp;make_slideshow_private=',get-property('uri.var.makeSlideshowPrivate'))"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.generateSecretUrl') = '' or  (not(string(get-property('uri.var.generateSecretUrl'))))))">
+            <then>
+                <property name="uri.var.optionalParams"
+                          expression="fn:concat(get-property('uri.var.optionalParams'),'&amp;generateSecretUrl=',get-property('uri.var.generateSecretUrl'))"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.allowEmbeds') = '' or  (not(string(get-property('uri.var.allowEmbeds'))))))">
+            <then>
+                <property name="uri.var.optionalParams"
+                          expression="fn:concat(get-property('uri.var.optionalParams'),'&amp;allow_embeds=',get-property('uri.var.allowEmbeds'))"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.shareWithContacts') = '' or  (not(string(get-property('uri.var.shareWithContacts'))))))">
+            <then>
+                <property name="uri.var.optionalParams"
+                          expression="fn:concat(get-property('uri.var.optionalParams'),'&amp;share_with_contacts=',get-property('uri.var.shareWithContacts'))"/>
+            </then>
+        </filter>
+        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"/>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/upload_slideshow?{uri.var.requiredParameters}&amp;{uri.var.autentication}&amp;{uri.var.uploadRequiredParameters}{uri.var.optionalParams}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

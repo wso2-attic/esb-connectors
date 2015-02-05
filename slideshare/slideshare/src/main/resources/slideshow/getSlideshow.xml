@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~ http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied. See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+<template name="getSlideshow" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="slideshowId" description="Id of slideshow"/>
+    <parameter name="slideshowUrl" description="Url of slideshow"/>
+    <parameter name="exclude_tags" description="Exclude tags from the detailed information"/>
+    <parameter name="detailed" description="Whether or not to include optional information"/>
+    <sequence>
+        <property name="uri.var.slideshowId" expression="$func:slideshowId"/>
+        <property name="uri.var.slideshowUrl" expression="$func:slideshowUrl"/>
+        <property name="uri.var.excludeTags" expression="$func:excludeTags"/>
+        <property name="uri.var.detailed" expression="$func:detailed"/>
+        <property name="uri.var.getRequiredParameters"
+                  expression="fn:concat('slideshowId=',get-property('uri.var.slideshowId'),'&amp;slideshow_url=',get-property('uri.var.slideshowUrl'))"/>
+        <filter
+                xpath="(not(get-property('uri.var.username') = '' or  (not(string(get-property('uri.var.username'))))))">
+            <then>
+                <property name="uri.var.optionalParams"
+                          expression="fn:concat(get-property('uri.var.optionalParams'),'&amp;username=',get-property('uri.var.username'))"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.password') = '' or  (not(string(get-property('uri.var.password'))))))">
+            <then>
+                <property name="uri.var.optionalParams"
+                          expression="fn:concat(get-property('uri.var.optionalParams'),'&amp;password=',get-property('uri.var.password'))"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.excludeTags') = '' or  (not(string(get-property('uri.var.excludeTags'))))))">
+            <then>
+                <property name="uri.var.optionalParams"
+                          expression="fn:concat(get-property('uri.var.optionalParams'),'&amp;exclude_tags=',get-property('uri.var.excludeTags'))"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.detailed') = '' or  (not(string(get-property('uri.var.detailed'))))))">
+            <then>
+                <property name="uri.var.optionalParams"
+                          expression="fn:concat(get-property('uri.var.optionalParams'),'&amp;detailed=',get-property('uri.var.detailed'))"/>
+            </then>
+        </filter>
+        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"/>
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="{uri.var.apiUrl}/get_slideshow?{uri.var.requiredParameters}&amp;{uri.var.getRequiredParameters}{uri.var.optionalParams}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>
