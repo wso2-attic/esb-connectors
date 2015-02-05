@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template name="getListAllApplicationFeeRefunds" xmlns="http://ws.apache.org/ns/synapse">
+   <!-- Required parameters -->
+   <parameter name="applicationFeeId" description="The ID of the application fee whose refunds will be retrieved"/>
+   <!-- Optional parameters -->
+   <parameter name="endingBefore" description="A cursor for use in pagination"/>
+   <parameter name="limit" description="A limit on the number of objects to be returned"/>
+   <parameter name="startingAfter" description="A cursor for use in pagination"/>
+   <parameter name="apiParameters" description="parameter to concatenate  the other parameters"/>
+
+   <sequence>
+      <property name="uri.var.applicationFeeId" expression="$func:applicationFeeId"/>
+      <property name="uri.var.endingBefore" expression="$func:endingBefore"/>
+      <property name="uri.var.limit" expression="$func:limit"/>
+      <property name="uri.var.startingAfter" expression="$func:startingAfter"/>
+      <property name="uri.var.apiParameters" value=""/>
+
+      <filter xpath="(not(get-property('uri.var.limit') = '' or (not(string(get-property('uri.var.limit'))))))">
+         <then>
+            <property name="uri.var.apiParameters"
+                      expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;limit=',get-property('uri.var.limit'))"/>
+         </then>
+      </filter>
+
+      <filter
+            xpath="(not(get-property('uri.var.startingAfter') = '' or (not(string(get-property('uri.var.startingAfter'))))))">
+         <then>
+            <property name="uri.var.apiParameters"
+                      expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;starting_after=',get-property('uri.var.startingAfter'))"/>
+         </then>
+      </filter>
+
+      <filter
+            xpath="(not(get-property('uri.var.endingBefore') = '' or (not(string(get-property('uri.var.endingBefore'))))))">
+         <then>
+            <property name="uri.var.apiParameters"
+                      expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;ending_before=',get-property('uri.var.endingBefore'))"/>
+         </then>
+      </filter>
+
+      <call>
+         <endpoint>
+            <http method="get"
+                  uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/application_fees/{uri.var.applicationFeeId}/refunds?{uri.var.apiParameters}"/>
+         </endpoint>
+      </call>
+   </sequence>
+</template>

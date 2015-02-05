@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template name="createANewCharge" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="card" description="A card to be charged. "/>
+   <parameter name="customer" description="The ID of an existing customer that will be charged in this request"/>
+   <parameter name="amount" description="Amount to charge the card"/>
+   <parameter name="currency" description="3-letter ISO code for currency."/>
+   <parameter name="description" description="description of the charge"/>
+   <parameter name="receiptEmail" description="The email address to send this charge's receipt to"/>
+   <parameter name="capture" description="The identifier of the capture to subscribe the customer to"/>
+   <parameter name="statementDescription"
+              description="An arbitrary string to be displayed alongside your company name on your customer's credit card statement"/>
+   <parameter name="applicationFee"
+              description="A fee in cents that will be applied to the charge and transferred to the application owner's Stripe account"/>
+   <!--parameters for card library -->
+   <parameter name="cardNumber" description="The card number, as a string without any separators"/>
+   <parameter name="expMonth" description="card's expiration month"/>
+   <parameter name="expYear" description="card's expiration year"/>
+   <parameter name="cvc" description="Card security code"/>
+   <parameter name="name" description="Cardholder's full name"/>
+   <parameter name="addressLine1" description="Address line 1"/>
+   <parameter name="addressLine2" description="Address line 2"/>
+   <parameter name="city" description="city of the address"/>
+   <parameter name="zip" description="zip of the address"/>
+   <parameter name="state" description="state of the address"/>
+   <parameter name="country" description="country of the address"/>
+   <!--parameters for shipping -->
+   <parameter name="shippingName" description="Recipient name"/>
+   <parameter name="shippingPhone" description="Recipient phone"/>
+   <parameter name="shippingAddressLine1" description="Shipping address address line 1"/>
+   <parameter name="shippingAddressLine2" description="Shipping address address line 2"/>
+   <parameter name="shippingAddressCity" description="city of the shipping address"/>
+   <parameter name="shippingAddressState" description="state of the shipping address"/>
+   <parameter name="shippingAddressPostalCode" description="postal code of the shipping address"/>
+   <parameter name="shippingAddressCountry" description="country of the shipping address"/>
+   <parameter name="metadata" description="A set of key/value pairs that you can attach to a customer object."/>
+   <sequence>
+      <property name="uri.var.customer" expression="$func:customer"/>
+      <property name="uri.var.card" expression="$func:card"/>
+      <property name="uri.var.amount" expression="$func:amount"/>
+      <property name="uri.var.currency" expression="$func:currency"/>
+      <property name="uri.var.description" expression="$func:description"/>
+      <property name="uri.var.receiptEmail" expression="$func:receiptEmail"/>
+      <property name="uri.var.capture" expression="$func:capture"/>
+      <property name="uri.var.statementDescription" expression="$func:statementDescription"/>
+      <property name="uri.var.applicationFee" expression="$func:applicationFee"/>
+      <property name="uri.var.metadata" expression="$func:metadata"/>
+      <property name="uri.var.cardNumber" expression="$func:cardNumber"/>
+      <property name="uri.var.expMonth" expression="$func:expMonth"/>
+      <property name="uri.var.expYear" expression="$func:expYear"/>
+      <property name="uri.var.cvc" expression="$func:cvc"/>
+      <property name="uri.var.name" expression="$func:name"/>
+      <property name="uri.var.addressLine1" expression="$func:addressLine1"/>
+      <property name="uri.var.addressLine2" expression="$func:addressLine2"/>
+      <property name="uri.var.city" expression="$func:city"/>
+      <property name="uri.var.zip" expression="$func:zip"/>
+      <property name="uri.var.state" expression="$func:state"/>
+      <property name="uri.var.country" expression="$func:country"/>
+      <property name="uri.var.shippingName" expression="$func:shippingName"/>
+      <property name="uri.var.shippingPhone" expression="$func:shippingPhone"/>
+      <property name="uri.var.shippingAddressLine1" expression="$func:shippingAddressLine1"/>
+      <property name="uri.var.shippingAddressLine2" expression="$func:shippingAddressLine2"/>
+      <property name="uri.var.shippingAddressCity" expression="$func:shippingAddressCity"/>
+      <property name="uri.var.shippingAddressState" expression="$func:shippingAddressState"/>
+      <property name="uri.var.shippingAddressPostalCode" expression="$func:shippingAddressPostalCode"/>
+      <property name="uri.var.shippingAddressCountry" expression="$func:shippingAddressCountry"/>
+      <payloadFactory media-type="json">
+         <format>
+            {
+
+            }
+         </format>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+				//request body param variables
+				var card = mc.getProperty('uri.var.card');
+				var customer = mc.getProperty('uri.var.customer');
+				var cardNumber = mc.getProperty('uri.var.cardNumber');
+				var expMonth = mc.getProperty('uri.var.expMonth');
+				var expYear = mc.getProperty('uri.var.expYear');
+				var cvc = mc.getProperty('uri.var.cvc');
+				var name = mc.getProperty('uri.var.name');
+				var addressLine1 = mc.getProperty('uri.var.addressLine1');
+				var addressLine2 = mc.getProperty('uri.var.addressLine2');
+				var city = mc.getProperty('uri.var.city');
+				var zip = mc.getProperty('uri.var.zip');
+			    var state = mc.getProperty('uri.var.state');
+				var country = mc.getProperty('uri.var.country');
+				var amount = mc.getProperty('uri.var.amount');
+				var currency = mc.getProperty('uri.var.currency');
+				var description = mc.getProperty('uri.var.description');
+				var receiptEmail = mc.getProperty('uri.var.receiptEmail');
+				var capture = mc.getProperty('uri.var.capture');
+				var statementDescription = mc.getProperty('uri.var.statementDescription');
+				var applicationFee = mc.getProperty('uri.var.applicationFee');
+                var metadata= mc.getProperty('uri.var.metadata');
+                var shippingName = mc.getProperty('uri.var.shippingName');
+				var shippingPhone = mc.getProperty('uri.var.shippingPhone');
+				var shippingAddressLine1 = mc.getProperty('uri.var.shippingAddressLine1');
+				var shippingAddressLine2 = mc.getProperty('uri.var.shippingAddressLine2');
+				var shippingAddressCity = mc.getProperty('uri.var.shippingAddressCity');
+				var shippingAddressState = mc.getProperty('uri.var.shippingAddressState');
+				var shippingAddressPostalCode = mc.getProperty('uri.var.shippingAddressPostalCode');
+				var shippingAddressCountry = mc.getProperty('uri.var.shippingAddressCountry');
+                //Get the existing payload
+				var payload = mc.getPayloadJSON();
+				if (customer != null && customer != "") {
+					payload["customer"]=customer;
+				}
+				else{
+					if (card != null && card != "") {
+						payload["card"]=card;
+					}
+					else{
+                        if (cardNumber != null && cardNumber != "") {
+                            payload["card[number]"]=cardNumber;
+                        }
+                        if (expMonth != null && expMonth != "") {
+                            payload["card[exp_month]"]=expMonth;
+                        }
+                        if (expYear != null && expYear != "") {
+                            payload["card[exp_year]"] = expYear;
+                        }
+                        if (cvc != null && cvc != "") {
+                            payload["card[cvc]"] = cvc;
+                        }
+                        if (name != null && name != "") {
+                            payload["card[name]"] = name;
+                        }
+                        if (addressLine1 != null && addressLine1 != "") {
+                            payload["card[address_line1]"] = addressLine1;
+                        }
+                        if (addressLine2 != null && addressLine2 != "") {
+                            payload["card[address_line2]"] = addressLine2;
+                        }
+                        if (city != null && city != "") {
+                            payload["card[city]"] = city;
+                        }
+                        if (zip != null && zip != "") {
+                            payload["card[zip]"] = zip;
+                        }
+                        if (state != null && state != "") {
+                            payload["card[state]"] = state;
+                        }
+                        if (country != null && country != "") {
+                            payload["card[country]"] = country;
+                        }
+                     }
+				}
+                if (amount != null && amount != "") {
+                        payload["amount"] = amount;
+                }
+                if (currency != null && currency != "") {
+                        payload["currency"] = currency;
+                }
+                if (description != null && description != "") {
+                        payload["description"] = description;
+                }
+                if (receiptEmail != null && receiptEmail != "") {
+                        payload["receipt_email"] = receiptEmail;
+                }
+                if (capture != null && capture != "") {
+                        payload["capture"] = capture;
+                }
+                if (statementDescription != null && statementDescription != "") {
+                        payload["statement_description"] = statementDescription;
+                }
+                 if (applicationFee != null && applicationFee != "") {
+                        payload["application_fee"] = applicationFee;
+                }
+                if (shippingName != null && shippingName != "") {
+                    payload["shipping[name]"]=shippingName;
+                }
+                if (shippingPhone != null && shippingPhone != "") {
+                    payload["shipping[phone]"]=shippingPhone;
+                }
+                if (shippingAddressLine1 != null && shippingAddressLine1 != "") {
+                    payload["shipping[address[line1]]"] = shippingAddressLine1;
+                }
+                if (shippingAddressLine2 != null && shippingAddressLine2 != "") {
+                    payload["shipping[address[line2]]"] = shippingAddressLine2;
+                }
+
+                if (shippingAddressCity != null && shippingAddressCity != "") {
+                    payload["shipping[address[city]]"] = shippingAddressCity;
+                }
+                if (shippingAddressState != null && shippingAddressState != "") {
+                    payload["shipping[address[state]]"] = shippingAddressState;
+                }
+                if (shippingAddressPostalCode != null && shippingAddressPostalCode != "") {
+                    payload["shipping[address[postal_code]]"] = shippingAddressPostalCode;
+                }
+                if (shippingAddressCountry != null && shippingAddressCountry != "") {
+                    payload["shipping[address[country]]"] = shippingAddressCountry;
+                }
+                if (metadata != null && metadata != "") {
+                    var txt = '{"metadataList":'+metadata+'}';
+                    var query="";
+                    var obj = eval ("(" + txt + ")");
+                    for(var key in obj.metadataList){
+                       payload["metadata["+key+"]"]=obj.metadataList[key];
+                    }
+		        }
+				//Set the newly constructed payload
+				mc.setPayloadJSON(payload);
+			]]>
+      </script>
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+      <call>
+         <endpoint>
+            <http method="post"
+                  uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/charges"/>
+         </endpoint>
+      </call>
+   </sequence>
+</template>

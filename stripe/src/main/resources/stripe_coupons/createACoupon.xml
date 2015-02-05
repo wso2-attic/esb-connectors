@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template name="createACoupon" xmlns="http://ws.apache.org/ns/synapse">
+   <!-- Required parameters -->
+   <parameter name="duration" description="Specifies how long the discount will be in effect"/>
+   <!-- Optional parameters -->
+   <parameter name="couponId" description="Unique string of your choice that will be used to identify this coupon when applying it a customer"/>
+   <parameter name="amountOff" description="The amount to subtract from an invoice total"/>
+   <parameter name="percentOff" description="percentage that represents the discount the coupon will apply"/>
+   <parameter name="currency" description="Currency of the amount_off parameter"/>
+   <parameter name="durationInMonths" description="The number of months the discount will be in effect"/>
+   <parameter name="maxRedemptions" description="The number of times the coupon can be redeemed before it’s no longer valid"/>
+   <parameter name="redeemBy"
+              description="Unix timestamp specifying the last time at which the coupon can be redeemed"/>
+   <parameter name="metadata" description="A set of key/value pairs that you can attach to a coupon object."/>
+
+   <sequence>
+      <property name="uri.var.duration" expression="$func:duration"/>
+      <property name="uri.var.amountOff" expression="$func:amountOff"/>
+      <property name="uri.var.percentOff" expression="$func:percentOff"/>
+      <property name="uri.var.currency" expression="$func:currency"/>
+      <property name="uri.var.durationInMonths" expression="$func:durationInMonths"/>
+      <property name="uri.var.maxRedemptions" expression="$func:maxRedemptions"/>
+      <property name="uri.var.couponId" expression="$func:couponId"/>
+      <property name="uri.var.redeemBy" expression="$func:redeemBy"/>
+      <property name="uri.var.metadata" expression="$func:metadata"/>
+      <filter xpath="get-property('uri.var.duration') = 'repeating'">
+         <then>
+            <filter xpath="(get-property('uri.var.amountOff') = '' or (not(string(get-property('uri.var.amountOff')))))">
+               <then>
+                  <payloadFactory media-type="json">
+                     <format>
+                        {
+                        "duration":"$1",
+                        "percent_off":"$2",
+                        "duration_in_months":"$3"
+                        }
+                     </format>
+                     <args>
+                        <arg expression="get-property('uri.var.duration')" />
+                        <arg expression="get-property('uri.var.percentOff')" />
+                        <arg expression="get-property('uri.var.durationInMonths')" />
+                     </args>
+                  </payloadFactory>
+               </then>
+               <else>
+                  <payloadFactory media-type="json">
+                     <format>
+                        {
+                        "duration":"$1",
+                        "amount_off":"$2",
+                        "duration_in_months":"$3",
+                        "currency":"$4"
+                        }
+                     </format>
+                     <args>
+                        <arg expression="get-property('uri.var.duration')" />
+                        <arg expression="get-property('uri.var.amountOff')" />
+                        <arg expression="get-property('uri.var.durationInMonths')" />
+                        <arg expression="get-property('uri.var.currency')" />
+                     </args>
+                  </payloadFactory>
+               </else>
+            </filter>
+         </then>
+         <else>
+            <filter xpath="(get-property('uri.var.amountOff') = '' or (not(string(get-property('uri.var.amountOff')))))">
+               <then>
+                  <payloadFactory media-type="json">
+                     <format>
+                        {
+                        "duration":"$1",
+                        "percent_off":"$2"
+                        }
+                     </format>
+                     <args>
+                        <arg expression="get-property('uri.var.duration')" />
+                        <arg expression="get-property('uri.var.percentOff')" />
+                     </args>
+                  </payloadFactory>
+               </then>
+               <else>
+                  <payloadFactory media-type="json">
+                     <format>
+                        {
+                        "duration":"$1",
+                        "amount_off":"$2",
+                        "currency":"$3"
+                        }
+                     </format>
+                     <args>
+                        <arg expression="get-property('uri.var.duration')" />
+                        <arg expression="get-property('uri.var.amountOff')" />
+                        <arg expression="get-property('uri.var.currency')" />
+                     </args>
+                  </payloadFactory>
+               </else>
+            </filter>
+         </else>
+      </filter>
+
+      <script language="js">
+         <![CDATA[
+				//request body param variables
+				var couponId = mc.getProperty('uri.var.couponId');
+				var maxRedemptions = mc.getProperty('uri.var.maxRedemptions');
+				var redeemBy = mc.getProperty('uri.var.redeemBy');
+            var metadata= mc.getProperty('uri.var.metadata');
+
+            //Get the existing payload
+				var payload = mc.getPayloadJSON();
+
+				if (maxRedemptions != null && maxRedemptions != "") {
+					payload["max_redemptions"]=card;
+				}
+            if (couponId != null && couponId != "") {
+               payload["id"]=couponId;
+            }
+            if (redeemBy != null && redeemBy != "") {
+               payload["redeem_by"]=redeemBy;
+            }
+            if (metadata != null && metadata != "") {
+               var txt = '{"metadataList":'+metadata+'}';
+               var query="";
+               var obj = eval ("(" + txt + ")");
+               for(var key in obj.metadataList){
+                  payload["metadata["+key+"]"]=obj.metadataList[key];
+               }
+		      }
+
+				//Set the newly constructed payload
+				mc.setPayloadJSON(payload);
+			]]>
+      </script>
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+      <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+      <call>
+         <endpoint>
+            <http method="post"
+                  uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/coupons"/>
+         </endpoint>
+      </call>
+   </sequence>
+</template>

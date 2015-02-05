@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template name="createANewCardForACustomer" xmlns="http://ws.apache.org/ns/synapse">
+   <!-- Required parameters -->
+   <parameter name="customerId" description="The identifier of the customer or recipient to create it on"/>
+   <parameter name="card" description="token id of the card"/>
+   <parameter name="cardNumber" description="The card number, as a string without any separators"/>
+   <parameter name="expMonth" description="card's expiration month"/>
+   <parameter name="expYear" description="card's expiration year"/>
+   <parameter name="cvc" description="Card security code"/>
+   <parameter name="name" description="Cardholder's full name"/>
+   <parameter name="addressLine1" description="Address line 1"/>
+   <parameter name="addressLine2" description="Address line 2"/>
+   <parameter name="city" description="city of the address"/>
+   <parameter name="zip" description="zip of the address"/>
+   <parameter name="state" description="state of the address"/>
+   <parameter name="country" description="country of the address"/>
+   <sequence>
+      <property name="uri.var.customerId" expression="$func:customerId"/>
+      <property name="uri.var.card" expression="$func:card"/>
+      <property name="uri.var.cardNumber" expression="$func:cardNumber"/>
+      <property name="uri.var.expMonth" expression="$func:expMonth"/>
+      <property name="uri.var.expYear" expression="$func:expYear"/>
+      <property name="uri.var.cvc" expression="$func:cvc"/>
+      <property name="uri.var.name" expression="$func:name"/>
+      <property name="uri.var.addressLine1" expression="$func:addressLine1"/>
+      <property name="uri.var.addressLine2" expression="$func:addressLine2"/>
+      <property name="uri.var.city" expression="$func:city"/>
+      <property name="uri.var.zip" expression="$func:zip"/>
+      <property name="uri.var.state" expression="$func:state"/>
+      <property name="uri.var.country" expression="$func:country"/>
+      <payloadFactory media-type="json">
+         <format>
+            {
+
+            }
+         </format>
+      </payloadFactory>
+      <script language="js"><![CDATA[
+            //request body param variables
+            var card = mc.getProperty('uri.var.card');
+            var cardNumber=mc.getProperty('uri.var.cardNumber');
+            var expMonth=mc.getProperty('uri.var.expMonth');
+            var expYear=mc.getProperty('uri.var.expYear');
+            var cvc=mc.getProperty('uri.var.cvc');
+            var name=mc.getProperty('uri.var.name');
+            var addressLine1=mc.getProperty('uri.var.addressLine1');
+            var addressLine2=mc.getProperty('uri.var.addressLine2');
+            var city=mc.getProperty('uri.var.city');
+            var zip=mc.getProperty('uri.var.zip');
+            var state=mc.getProperty('uri.var.state');
+            var country=mc.getProperty('uri.var.country');
+
+            //Get the existing payload
+            var payload = mc.getPayloadJSON();
+
+            if (card != null && card != "") {
+					payload["card"]=card;
+				}
+				else{
+                    if (cardNumber != null && cardNumber != "") {
+                        payload["card[number]"]=cardNumber;
+                    }
+                    if (expMonth != null && expMonth != "") {
+                        payload["card[exp_month]"]=expMonth;
+                    }
+                    if (expYear != null && expYear != "") {
+                        payload["card[exp_year]"] = expYear;
+                    }
+                    if (cvc != null && cvc != "") {
+                        payload["card[cvc]"] = cvc;
+                    }
+                    if (name != null && name != "") {
+                        payload["card[name]"] = name;
+                    }
+                    if (addressLine1 != null && addressLine1 != "") {
+                        payload["card[address_line1]"] = addressLine1;
+                    }
+                    if (addressLine2 != null && addressLine2 != "") {
+                        payload["card[address_line2]"] = addressLine2;
+                    }
+                    if (city != null && city != "") {
+                        payload["card[city]"] = city;
+                    }
+                    if (zip != null && zip != "") {
+                        payload["card[zip]"] = zip;
+                    }
+                    if (state != null && state != "") {
+                        payload["card[state]"] = state;
+                    }
+                    if (country != null && country != "") {
+                        payload["card[country]"] = country;
+                    }
+                }
+            //Set the newly constructed payload
+		    mc.setPayloadJSON(payload);
+        ]]>
+      </script>
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+      <call>
+         <endpoint>
+            <http method="post"
+                  uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/customers/{uri.var.customerId}/cards?{uri.var.apiParameters}"/>
+         </endpoint>
+      </call>
+   </sequence>
+</template>

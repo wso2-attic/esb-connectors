@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template name="getAccessTokenFromCode" xmlns="http://ws.apache.org/ns/synapse">
+   <!-- Required parameters -->
+   <parameter name="code" description="The value of the code"/>
+   <parameter name="redirectUri"
+              description="Same redirect_uri that you passed to get code."/>
+   <parameter name="clientSecret"
+              description="Value of your API Key given when you registered your application with Stripe."/>
+   <parameter name="grantType" description="Token response type. Value must be set to code."/>
+   <parameter name="scope" description="Token response type. Value must be set to code."/>
+   <sequence>
+      <property name="uri.var.code" expression="$func:code"/>
+      <property name="uri.var.redirectUri" expression="$func:redirectUri"/>
+      <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
+      <property name="uri.var.grantType" expression="$func:grantType"/>
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "grant_type":"$1",
+            "code":"$2",
+            "redirect_uri":"$3",
+            "client_secret":"$4"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('grantType')"/>
+            <arg expression="get-property('code')"/>
+            <arg expression="get-property('redirectUri')"/>
+            <arg expression="get-property('clientSecret')"/>
+         </args>
+      </payloadFactory>
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+      <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="https://connect.stripe.com/oauth/token"/>
+         </endpoint>
+      </call>
+      <filter source="$axis2:HTTP_SC" regex="[2][0][0]">
+         <then>
+            <property name="accessToken" expression="json-eval($.access_token)"/>
+            <property name="refreshToken" expression="json-eval($.refresh_token)"/>
+            <header name="Authorization" expression="fn:concat('Bearer ',get-property('accessToken'))"
+                    scope="transport"/>
+         </then>
+      </filter>
+   </sequence>
+</template>

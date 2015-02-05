@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template name="createANewPlan" xmlns="http://ws.apache.org/ns/synapse">
+   <!--mandatory parameters-->
+   <parameter name="planId" description="Unique string of your choice"/>
+   <parameter name="amount" description="Amount of the charge to be applied"/>
+   <parameter name="currency" description=": 3-letter ISO code for currency"/>
+   <parameter name="interval" description="Specifies billing frequency "/>
+   <parameter name="name" description="Name of the plan"/>
+   <!--optional parameters-->
+   <parameter name="intervalCount" description="The number of intervals between each subscription billing."/>
+   <parameter name="trialPeriodDays" description="Specifies a trial period in days"/>
+   <parameter name="statementDescription" description="statement description of the plan"/>
+   <parameter name="metadata" description="A set of key/value pairs that you can attach to a customer object."/>
+   <sequence>
+      <property name="uri.var.planId" expression="$func:planId"/>
+      <property name="uri.var.amount" expression="$func:amount"/>
+      <property name="uri.var.currency" expression="$func:currency"/>
+      <property name="uri.var.interval" expression="$func:interval"/>
+      <property name="uri.var.name" expression="$func:name"/>
+      <property name="uri.var.intervalCount" expression="$func:intervalCount"/>
+      <property name="uri.var.trialPeriodDays" expression="$func:trialPeriodDays"/>
+      <property name="uri.var.statementDescription" expression="$func:statementDescription"/>
+      <property name="uri.var.metadata" expression="$func:metadata"/>
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "id":"$1",
+            "amount":"$2",
+            "currency":"$3",
+            "interval":"$4",
+            "name":"$5"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.planId')"/>
+            <arg expression="get-property('uri.var.amount')"/>
+            <arg expression="get-property('uri.var.currency')"/>
+            <arg expression="get-property('uri.var.interval')"/>
+            <arg expression="get-property('uri.var.name')"/>
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+				//request body param variables
+				var intervalCount = mc.getProperty('uri.var.intervalCount');
+				var trialPeriodDays = mc.getProperty('uri.var.trialPeriodDays');
+				var statementDescription = mc.getProperty('uri.var.statementDescription');
+                var metadata= mc.getProperty('uri.var.metadata');
+                //Get the existing payload
+				var payload = mc.getPayloadJSON();
+                if (intervalCount != null && intervalCount != "") {
+                    payload["interval_count"] = intervalCount;
+                }
+                if (trialPeriodDays != null && trialPeriodDays != "") {
+                    payload["trial_period_days"] = trialPeriodDays;
+                }
+                if (statementDescription != null && statementDescription != "") {
+                    payload["statement_description"] = statementDescription;
+                }
+                if (metadata != null && metadata != "") {
+                    var txt = '{"metadataList":'+metadata+'}';
+                    var query="";
+                    var obj = eval ("(" + txt + ")");
+                    for(var key in obj.metadataList){
+                       payload["metadata["+key+"]"]=obj.metadataList[key];
+                    }
+		        }
+				//Set the newly constructed payload
+				mc.setPayloadJSON(payload);
+			]]>
+      </script>
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+      <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+      <call>
+         <endpoint>
+            <http method="post"
+                  uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/plans"/>
+         </endpoint>
+      </call>
+
+   </sequence>
+</template>

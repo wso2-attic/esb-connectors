@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template name="captureACharge" xmlns="http://ws.apache.org/ns/synapse">
+   <!-- Required parameters -->
+   <parameter name="chargeId" description="The identifier of the charge to be added capture"/>
+   <!-- Optional parameters -->
+   <parameter name="amount" description="The amount to capture"/>
+   <parameter name="applicationFee" description="An application fee to add on to this charge"/>
+   <parameter name="receiptEmail" description="The email address to send this charge’s receipt to"/>
+   <sequence>
+      <property name="uri.var.chargeId" expression="$func:chargeId"/>
+      <property name="uri.var.amount" expression="$func:amount"/>
+      <property name="uri.var.applicationFee" expression="$func:applicationFee"/>
+      <property name="uri.var.receiptEmail" expression="$func:receiptEmail"/>
+      <payloadFactory media-type="json">
+         <format>
+            {
+
+            }
+         </format>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+				//request body param variables
+				var amount = mc.getProperty('uri.var.amount');
+				var applicationFee = mc.getProperty('uri.var.applicationFee');
+				var receiptEmail = mc.getProperty('uri.var.receiptEmail');
+				var expMonth = mc.getProperty('uri.var.expMonth');
+				var expYear = mc.getProperty('uri.var.expYear');
+				var cvc = mc.getProperty('uri.var.cvc');
+				var name = mc.getProperty('uri.var.name');
+				var addressLine1 = mc.getProperty('uri.var.addressLine1');
+				var addressLine2 = mc.getProperty('uri.var.addressLine2');
+				var city = mc.getProperty('uri.var.city');
+				var zip = mc.getProperty('uri.var.zip');
+			    var state = mc.getProperty('uri.var.state');
+				var country = mc.getProperty('uri.var.country');
+				var amount = mc.getProperty('uri.var.amount');
+				var currency = mc.getProperty('uri.var.currency');
+				var description = mc.getProperty('uri.var.description');
+				var receiptEmail = mc.getProperty('uri.var.receiptEmail');
+				var capture = mc.getProperty('uri.var.capture');
+				var statementDescription = mc.getProperty('uri.var.statementDescription');
+				var applicationFee = mc.getProperty('uri.var.applicationFee');
+                var metadata= mc.getProperty('uri.var.metadata');
+                var shippingName = mc.getProperty('uri.var.shippingName');
+				var shippingPhone = mc.getProperty('uri.var.shippingPhone');
+				var shippingAddressLine1 = mc.getProperty('uri.var.shippingAddressLine1');
+				var shippingAddressLine2 = mc.getProperty('uri.var.shippingAddressLine2');
+				var shippingAddressCity = mc.getProperty('uri.var.shippingAddressCity');
+				var shippingAddressState = mc.getProperty('uri.var.shippingAddressState');
+				var shippingAddressPostalCode = mc.getProperty('uri.var.shippingAddressPostalCode');
+				var shippingAddressCountry = mc.getProperty('uri.var.shippingAddressCountry');
+                //Get the existing payload
+				var payload = mc.getPayloadJSON();
+				if (amount != null && amount != "") {
+					payload["amount"]=amount;
+				}
+				if (applicationFee != null && applicationFee != "") {
+                    payload["application_fee"]=applicationFee;
+                }
+                if (receiptEmail != null && receiptEmail != "") {
+                    payload["receipt_email"]=receiptEmail;
+                }
+				//Set the newly constructed payload
+				mc.setPayloadJSON(payload);
+			]]>
+      </script>
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+      <call>
+         <endpoint>
+            <http method="post"
+                  uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/charges/{uri.var.chargeId}/capture?{uri.var.apiParameters}"/>
+         </endpoint>
+      </call>
+   </sequence>
+</template>
