@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~  Copyright (c) 2005-2014, WSO2 Inc. (http://wso2.com) All Rights Reserved.
+~
+~  WSO2 Inc. licenses this file to you under the Apache License,
+~  Version 2.0 (the "License"); you may not use this file except
+~  in compliance with the License.
+~  You may obtain a copy of the License at
+~
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~  Unless required by applicable law or agreed to in writing,
+~  software distributed under the License is distributed on an
+~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~  KIND, either express or implied.  See the License for the
+~  specific language governing permissions and limitations
+~  under the License.
+-->
+<template name="getTaggedPosts" xmlns="http://ws.apache.org/ns/synapse">
+
+    <parameter name="consumerKey"/>
+    
+    <parameter name="tag"/>
+    <parameter name="before"/>
+    <parameter name="limit"/>
+    <parameter name="filter"/>
+    
+    
+	<sequence>
+	
+		<property name="tumblr.oauth.consumerKey" expression="$func:oauthConsumerKey" scope="default" type="STRING"/>
+
+        <property name="uri.var.tag" expression="$func:tag" scope="default" type="STRING"/>
+        <property name="uri.var.before" expression="$func:before" scope="default" type="STRING"/>
+        <property name="uri.var.limit" expression="$func:limit" scope="default" type="STRING"/>
+        <property name="uri.var.filter" expression="$func:filter" scope="default" type="STRING"/>
+        
+        <!-- Create tumblr rest endpoint uri api key param -->
+        <property name="uri.var.apiKey" expression="get-property('tumblr.oauth.consumerKey')"/>  
+        
+        <property name="uri.var.finalUrl" expression="fn:concat('http://api.tumblr.com/v2/tagged?api_key=',
+        														get-property('uri.var.apiKey'))"/>
+        
+        <filter xpath="not(get-property('uri.var.tag') = '' or  (not(string(get-property('uri.var.tag')))))">
+        	<then>
+        		<property name="uri.var.finalUrl" expression="fn:concat(get-property('uri.var.finalUrl'),
+        																'&amp;tag=', 
+        																get-property('uri.var.tag'))"/>
+        	</then>
+        </filter>
+        <filter xpath="not(get-property('uri.var.before') = '' or  (not(string(get-property('uri.var.before')))))">
+        	<then>
+        		<property name="uri.var.finalUrl" expression="fn:concat(get-property('uri.var.finalUrl'),
+        																'&amp;before=', 
+        																get-property('uri.var.before'))"/>
+        	</then>
+        </filter>
+        <filter xpath="not(get-property('uri.var.limit') = '' or  (not(string(get-property('uri.var.limit')))))">
+        	<then>
+        		<property name="uri.var.finalUrl" expression="fn:concat(get-property('uri.var.finalUrl'),
+        																'&amp;limit=', 
+        																get-property('uri.var.limit'))"/>
+        	</then>
+        </filter>
+        <filter xpath="not(get-property('uri.var.filter') = '' or  (not(string(get-property('uri.var.filter')))))">
+        	<then>
+        		<property name="uri.var.finalUrl" expression="fn:concat(get-property('uri.var.finalUrl'),
+        																'&amp;filter=', 
+        																get-property('uri.var.filter'))"/>
+        	</then>
+        </filter>
+        
+        <call>
+	        <endpoint>
+	        	<http method="GET" 
+	        			uri-template="{uri.var.finalUrl}"/>
+	        </endpoint>
+	    </call>
+        
+             
+	</sequence>
+</template>
