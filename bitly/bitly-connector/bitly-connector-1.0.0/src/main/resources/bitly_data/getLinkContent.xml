@@ -1,0 +1,60 @@
+<!--
+~ Copyright 2005-2014 WSO2, Inc. (http://wso2.com)
+~
+~ Licensed under the Apache License, Version 2.0 (the "License");
+~ you may not use this file except in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~ http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing, software
+~ distributed under the License is distributed on an "AS IS" BASIS,
+~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~ See the License for the specific language governing permissions and
+~ limitations under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="getLinkContent">
+
+    <parameter name="bitlyLinkforContent" description="a bitly linkt " />
+    <parameter name="contentType"
+               description="(Optional)specifies whether to return the content as html or plain text " />
+
+
+    <sequence>
+        <property name="uri.var.bitlyLinkforContent" expression="$func:bitlyLinkforContent" />
+        <property name="uri.var.contentType" expression="$func:contentType" />
+
+        <property name="Accept-Encoding" action="remove" scope="transport" />
+
+
+        <filter
+                xpath="get-property('uri.var.contentType') = '' or (not(string(get-property('uri.var.contentType'))))">
+            <then>
+                <property name="uri.var.contentType" value="html" />
+            </then>
+
+        </filter>
+
+        <payloadFactory media-type="xml">
+            <format>
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                    <soapenv:Header/>
+                    <soapenv:Body >
+
+                    </soapenv:Body>
+                </soapenv:Envelope>
+            </format>
+            <args/>
+
+        </payloadFactory>
+
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="https://api-ssl.bitly.com/v3/link/content?access_token={uri.var.bitly.accessToken}&amp;link={uri.var.bitlyLinkforContent}&amp;content_type={uri.var.contentType}" />
+            </endpoint>
+
+        </call>
+        <property name="messageType" value="application/json" scope="axis2" />
+    </sequence>
+</template>

@@ -1,0 +1,77 @@
+<!--
+~ Copyright 2005-2014 WSO2, Inc. (http://wso2.com)
+~
+~ Licensed under the Apache License, Version 2.0 (the "License");
+~ you may not use this file except in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~ http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing, software
+~ distributed under the License is distributed on an "AS IS" BASIS,
+~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~ See the License for the specific language governing permissions and
+~ limitations under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="getSearch">
+
+    <parameter name="query"
+               description="string to query for " />
+
+    <parameter name="noOfLinks"
+               description="How many Links do you want " />
+
+    <parameter name="offSet"
+               description="(Optional)which result to start with " />
+
+    <parameter name="returnLangISOCodeTwo"
+               description="(Optional)favor results in this language (two letter ISO code)" />
+
+    <sequence>
+        <property name="uri.var.query" expression="$func:query" />
+        <property name="uri.var.noOfLinks" expression="$func:noOfLinks" />
+        <property name="uri.var.offSet" expression="$func:offSet" />
+        <property name="uri.var.returnLangISOCodeTwo" expression="$func:returnLangISOCodeTwo" />
+
+        <property name="Accept-Encoding" action="remove" scope="transport" />
+
+
+        <filter
+                xpath="get-property('uri.var.offSet') = '' or (not(string(get-property('uri.var.offSet'))))">
+            <then>
+                <property name="uri.var.offSet" value="0" />
+            </then>
+
+        </filter>
+
+        <filter
+                xpath="get-property('uri.var.returnLangISOCodeTwo') = '' or (not(string(get-property('uri.var.returnLangISOCodeTwo'))))">
+            <then>
+                <property name="uri.var.returnLangISOCodeTwo" value="en" />
+            </then>
+
+        </filter>
+
+        <payloadFactory media-type="xml">
+            <format>
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                    <soapenv:Header/>
+                    <soapenv:Body >
+
+                    </soapenv:Body>
+                </soapenv:Envelope>
+            </format>
+            <args/>
+
+        </payloadFactory>
+
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="https://api-ssl.bitly.com/v3/search?access_token={uri.var.bitly.accessToken}&amp;limit={uri.var.noOfLinks}&amp;query={uri.var.query}&amp;offset={uri.var.offSet}&amp;lang={uri.var.returnLangISOCodeTwo}&amp;fields=aggregate_link%2Ctitle%2Curl" />
+            </endpoint>
+
+        </call>
+        <property name="messageType" value="application/json" scope="axis2" />
+    </sequence>
+</template>

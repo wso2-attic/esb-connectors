@@ -1,0 +1,67 @@
+<!--
+        ~ Copyright 2005-2014 WSO2, Inc. (http://wso2.com)
+        ~
+        ~ Licensed under the Apache License, Version 2.0 (the "License");
+        ~ you may not use this file except in compliance with the License.
+        ~ You may obtain a copy of the License at
+        ~
+        ~ http://www.apache.org/licenses/LICENSE-2.0
+        ~
+        ~ Unless required by applicable law or agreed to in writing, software
+        ~ distributed under the License is distributed on an "AS IS" BASIS,
+        ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        ~ See the License for the specific language governing permissions and
+        ~ limitations under the License.
+        -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="addLinkToBundle">
+
+    <parameter name="toBundleLink"
+               description="the URL corresponding to the bundle to which the link will be added " />
+
+    <parameter name="addBitlyLink"
+               description="the URL to be added to the specified bundle " />
+
+    <parameter name="bundleTitle"
+               description="optional-the title of the bundle to be created " />
+
+
+    <sequence>
+
+        <property name="uri.var.toBundleLink" expression="$func:toBundleLink" />
+        <property name="uri.var.addBitlyLink" expression="$func:addBitlyLink" />
+        <property name="uri.var.bundleTitle" expression="$func:bundleTitle"/>
+
+        <filter
+                xpath="(not(get-property('uri.var.bundleTitle'))) = '' or (not(string(get-property('uri.var.bundleTitle'))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;title=',get-property('uri.var.bundleTitle'))" />
+            </then>
+
+        </filter>
+
+        <property name="Accept-Encoding" action="remove" scope="transport" />
+        <payloadFactory media-type="xml">
+            <format>
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                    <soapenv:Header/>
+                    <soapenv:Body >
+
+                    </soapenv:Body>
+                </soapenv:Envelope>
+            </format>
+            <args/>
+
+        </payloadFactory>
+
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="https://api-ssl.bitly.com/v3/bundle/link_add?access_token={uri.var.bitly.accessToken}&amp;bundle_link={uri.var.toBundleLink}&amp;link={uri.var.addBitlyLink}&amp;{uri.var.apiParameters}" />
+            </endpoint>
+
+        </call>
+        <property name="messageType" value="application/json" scope="axis2" />
+    </sequence>
+</template>
+
