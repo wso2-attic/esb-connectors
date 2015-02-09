@@ -27,5 +27,6 @@ public class GoogleSpreadsheetConstants {
     public static final String GOOGLE_SPREADSHEET_USER_USERNAME = "googlespreadsheet.user.username";
     public static final String GOOGLE_SPREADSHEET_USER_PASSWORD = "googlespreadsheet.user.password";
 	public static final String GOOGLE_AUTH_INSTANCE = "GOOGLE_AUTH_INSTANCE";
+	public static final String GOOGLE_SPREADSHEET_USER_REFRESH_TOKEN = "googlespreadsheet.user.oauth.refreshToken";
     
 }

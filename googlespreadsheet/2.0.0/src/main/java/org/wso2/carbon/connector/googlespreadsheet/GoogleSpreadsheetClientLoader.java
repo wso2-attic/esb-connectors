@@ -71,6 +71,39 @@ public class GoogleSpreadsheetClientLoader {
 			                              messageContext.getProperty(GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_ACCESS_TOKEN_SECRET)
 			                                            .toString(), spreadsheetService);
 		}
+		else if (messageContext
+				.getProperty(GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_CONSUMER_KEY) != null
+				&& messageContext
+						.getProperty(GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_CONSUMER_SECRET) != null
+				&& messageContext
+						.getProperty(GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_ACCESS_TOKEN) != null
+				&& messageContext
+						.getProperty(GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_REFRESH_TOKEN) != null) {
+			// Create the google spreadsheet service first.
+			GoogleSpreadsheetService gssService = new GoogleSpreadsheetService();
+			spreadsheetService = gssService.getSpreadsheetService();
+
+			// Then perform the OAuth 2 Authorization here.
+			GoogleSpreadsheetOAuth2Authentication gssOAuth2Authentication = new GoogleSpreadsheetOAuth2Authentication();
+			gssOAuth2Authentication
+					.loginOAuth2(
+							messageContext
+									.getProperty(
+											GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_CONSUMER_KEY)
+									.toString(),
+							messageContext
+									.getProperty(
+											GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_CONSUMER_SECRET)
+									.toString(),
+							messageContext
+									.getProperty(
+											GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_ACCESS_TOKEN)
+									.toString(),
+							messageContext
+									.getProperty(
+											GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_REFRESH_TOKEN)
+									.toString(), spreadsheetService);
+		}
 		axis2MsgCtx.getOperationContext()
 		           .setProperty(GoogleSpreadsheetConstants.GOOGLE_AUTH_INSTANCE, spreadsheetService);
 		return spreadsheetService;

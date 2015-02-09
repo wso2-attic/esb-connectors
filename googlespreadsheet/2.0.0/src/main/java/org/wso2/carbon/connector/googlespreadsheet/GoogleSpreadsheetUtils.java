@@ -17,6 +17,8 @@
 */
 package org.wso2.carbon.connector.googlespreadsheet;
 
+import java.util.Map;
+
 import org.apache.axiom.om.OMAbstractFactory;
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.OMFactory;
@@ -25,13 +27,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.MessageContext;
 import org.apache.synapse.SynapseConstants;
-import org.apache.synapse.SynapseException;
-import org.apache.synapse.SynapseLog;
 import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.wso2.carbon.connector.core.util.ConnectorUtils;
-
-import javax.xml.namespace.QName;
-import java.util.Map;
 
 public class GoogleSpreadsheetUtils {
 
@@ -47,6 +44,13 @@ public class GoogleSpreadsheetUtils {
 	        ctxt.setProperty(GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_ACCESS_TOKEN, accessToken);
 	        ctxt.setProperty(GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_ACCESS_TOKEN_SECRET, accessTokenSecret);
 	    }
+	    
+	    public static void storeLoginUserOAuth2(MessageContext ctxt, String consumerKey, String consumerSecret, String accessToken, String refreshToken) {
+	        ctxt.setProperty(GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_CONSUMER_KEY, consumerKey);
+	        ctxt.setProperty(GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_CONSUMER_SECRET, consumerSecret);
+	        ctxt.setProperty(GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_ACCESS_TOKEN, accessToken);
+	        ctxt.setProperty(GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_REFRESH_TOKEN, refreshToken);
+		}
 	    
 	    public static void storeLoginUsernamePassword(MessageContext ctxt, String userName, String password){
 	        ctxt.setProperty(GoogleSpreadsheetConstants.GOOGLE_SPREADSHEET_USER_USERNAME, userName);
