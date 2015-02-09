@@ -1,0 +1,179 @@
+<template name="sendEmail" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="name" description="Name of the email campaign" />
+	<parameter name="from" description="From address from which the email campaign will be sent" />
+	<parameter name="fromLabel" description="The from label for the email campaign" />
+	<parameter name="replyTo" description="The reply to email address in the email campaign" />
+	<parameter name="subject" description="Subject of the email campaign" />
+	<parameter name="message" description="Body of the message" />
+	<parameter name="streetAddress" description="Street address of the sender" />
+	<parameter name="company" description="Name of the company" />
+	<parameter name="locality" description="City of the sender" />
+	<parameter name="region" description="State of the sender" />
+	<parameter name="postalCode" description="Postal code of the sender" />
+	<parameter name="unsubscribeMessage" description="Unsubscribe message, required for compliance purposes" />
+	<parameter name="listIds" description="Array of list ids to send the email to" />
+	<parameter name="scheduledAt" description="Date flag to specify when to send the email" />
+
+	<sequence>
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.from" expression="$func:from" />
+		<property name="uri.var.fromLabel" expression="$func:fromLabel" />
+		<property name="uri.var.replyTo" expression="$func:replyTo" />
+		<property name="uri.var.subject" expression="$func:subject" />
+		<property name="uri.var.message" expression="$func:message" />
+		<property name="uri.var.streetAddress" expression="$func:streetAddress" />
+		<property name="uri.var.company" expression="$func:company" />
+		<property name="uri.var.locality" expression="$func:locality" />
+		<property name="uri.var.region" expression="$func:region" />
+		<property name="uri.var.postalCode" expression="$func:postalCode" />
+		<property name="uri.var.unsubscribeMessage" expression="$func:unsubscribeMessage" />
+		<property name="uri.var.listIds" expression="$func:listIds" />
+		<property name="uri.var.scheduledAt" expression="$func:scheduledAt" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{}
+			</format> 
+		</payloadFactory>
+
+		<script language="js">
+			<![CDATA[
+					 
+					var name = mc.getProperty('uri.var.name');  
+					var from = mc.getProperty('uri.var.from'); 
+					var fromLabel = mc.getProperty('uri.var.fromLabel'); 
+					var replyTo = mc.getProperty('uri.var.replyTo'); 
+					var subject = mc.getProperty('uri.var.subject'); 
+					var message = mc.getProperty('uri.var.message'); 
+					var streetAddress = mc.getProperty('uri.var.streetAddress'); 
+					var company = mc.getProperty('uri.var.company'); 
+					var locality = mc.getProperty('uri.var.locality'); 
+					var region = mc.getProperty('uri.var.region'); 
+					var postalCode = mc.getProperty('uri.var.postalCode'); 
+					var unsubscribeMessage = mc.getProperty('uri.var.unsubscribeMessage'); 
+					 
+					payload = mc.getPayloadJSON();
+					 		
+					if(name != null && name != ""){
+						payload.name = name;
+					} 
+					
+					if(from != null && from != ""){
+						payload.from_address = from;
+					}
+					
+					if(fromLabel != null && fromLabel != ""){
+						payload.from_label = fromLabel;
+					}
+					
+					if(replyTo != null && replyTo != ""){
+						payload.reply_to = replyTo;
+					}
+					
+					if(subject != null && subject != ""){
+						payload.subject = subject;
+					}
+					
+					if(message != null && message != ""){
+						payload.message = message;
+					} 
+					
+					if(streetAddress != null && streetAddress != ""){
+						payload.street_address = streetAddress;
+					}
+					
+					if(company != null && company != ""){
+						payload.company = company;
+					}
+					
+					if(locality != null && locality != ""){
+						payload.locality = locality;
+					}
+					
+					if(region != null && region != ""){
+						payload.region = region;
+					}
+					
+					if(postalCode != null && postalCode != ""){
+						payload.postal_code = postalCode;
+					}
+					
+					if(unsubscribeMessage != null && unsubscribeMessage != ""){
+						payload.unsubscribe_message = unsubscribeMessage;
+					}
+					 
+		            mc.setPayloadJSON(payload);
+		         ]]>
+		</script>
+
+		<!-- API call for creating the email message -->
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/messages/emails" />
+			</endpoint>
+		</call>
+
+		<property xmlns:ns="http://org.apache.synapse/xsd" name="uri.var.status" expression="$axis2:HTTP_SC" />  
+		
+		<filter xpath="get-property('uri.var.status') = '201'">
+			<then>
+
+				<!-- Assigning the url returned after the creation of email message -->
+				<property name="uri.var.launchEmailUrl" expression="json-eval($.url)" />
+
+				<payloadFactory media-type="json">
+					<format>
+						{}
+					</format> 
+				</payloadFactory>
+
+				<script language="js">
+					<![CDATA[ 
+						var listIds = mc.getProperty('uri.var.listIds'); 
+						var scheduledAt = mc.getProperty('uri.var.scheduledAt');  
+						 
+						payload = mc.getPayloadJSON(); 
+						
+						if(listIds != null && listIds != ""){
+							payload.list_ids = eval("("+ listIds +")");
+						}
+						
+						if(scheduledAt != null && scheduledAt != ""){
+							payload.scheduled_at = scheduledAt;
+						} 
+						  
+			            mc.setPayloadJSON(payload);
+		        	 ]]>
+				</script>
+
+				<!-- API call for launching the email message -->
+				<property name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))" scope="transport" type="STRING" />
+				<property name="Content-Type" value="application/json" scope="transport" type="STRING" />
+				 
+				<call>
+					<endpoint>
+						<http method="post" uri-template="{uri.var.launchEmailUrl}" />
+					</endpoint>
+				</call>
+			</then>
+		</filter>
+
+		<!-- Remove response custom header information -->
+		<header name="X-Runtime" scope="transport" action="remove" />
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+		<header name="ETag" scope="transport" action="remove" />
+		<header name="X-UA-Compatible" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Mashery-Responder" scope="transport" action="remove" />
+		<header name="X-Rack-Cache" scope="transport" action="remove" />
+		<header name="X-Powered-By" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="X-Mashery-Error-Code" scope="transport" action="remove" /> 
+
+	</sequence>
+</template> 
+
+

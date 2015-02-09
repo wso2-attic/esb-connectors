@@ -1,0 +1,35 @@
+<template name="listContacts" xmlns="http://ws.apache.org/ns/synapse">
+  <parameter name="listId" description="ID of the List whose members will be listed"/>
+  <parameter name="type" description="Type takes in basic, standard"/>
+  <sequence>
+    <property name="uri.var.listId" expression="$func:listId"/>
+	<property name="uri.var.type" expression="$func:type"/>
+    <property name="uri.var.query" value="" />
+	
+	<filter xpath="(string(get-property('uri.var.type'))) and get-property('uri.var.type') != ''">
+		<then>
+			<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'?type=',get-property('uri.var.type'))" />
+		</then>
+	</filter>  
+    
+    <call>
+      <endpoint>
+        <http method="get" uri-template="{uri.var.apiUrl}/lists/{uri.var.listId}/contacts{uri.var.query}"/>
+      </endpoint>
+    </call>
+    
+    <!-- Remove response custom header information -->
+	<header name="ETag" scope="transport" action="remove" />
+	<header name="Via" scope="transport" action="remove" />
+	<header name="strict-transport-security" scope="transport" action="remove" /> 
+	<header name="x-mashery-responder" scope="transport" action="remove" /> 
+	<header name="x-powered-by" scope="transport" action="remove" />
+	<header name="x-rack-cache" scope="transport" action="remove" /> 
+	<header name="x-request-id" scope="transport" action="remove" /> 	
+	<header name="x-runtime" scope="transport" action="remove" /> 	
+	<header name="x-ua-compatible" scope="transport" action="remove" />
+	<header name="WWW-Authenticate" scope="transport" action="remove" />
+	<header name="X-Mashery-Error-Code" scope="transport" action="remove" />	
+	
+  </sequence>
+</template>
