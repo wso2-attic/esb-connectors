@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~  Copyright (c) 2005-2014, WSO2 Inc. (http://wso2.com) All Rights Reserved.
+~
+~  WSO2 Inc. licenses this file to you under the Apache License,
+~  Version 2.0 (the "License"); you may not use this file except
+~  in compliance with the License.
+~  You may obtain a copy of the License at
+~
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~  Unless required by applicable law or agreed to in writing,
+~  software distributed under the License is distributed on an
+~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~  KIND, either express or implied.  See the License for the
+~  specific language governing permissions and limitations
+~  under the License.
+-->
+
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="username" />
+    <parameter name="password" />
+
+    <parameter name="client_id" />
+    <parameter name="client_secret" />
+    <parameter name="uri"/>
+    <parameter name="authType" description="select Authentication type {Basic|Bearer}"/>
+
+    <sequence>
+        <property name="delicious.username" expression="$func:username" />
+        <property name="delicious.password" expression="$func:password" />
+        <property name="delicious.client_id" expression="$func:client_id"/>
+        <property name="delicious.client_secret" expression="$func:client_secret"/>
+        <property name="delicious.authType" expression="$func:authType"/>
+
+
+
+        <filter xpath="(get-property('delicious.authType') = 'Bearer' )">
+            <then>
+
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;client_id=',get-property('delicious.client_id'))" />
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;client_secret=',get-property('delicious.client_secret'))" />
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;grant_type=credentials')" />
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;username=',get-property('delicious.username'))" />
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;password=',get-property('delicious.password'))" />
+
+                <call>
+                    <endpoint>
+                        <http method="POST" uri-template="https://avosapi.delicious.com/api/v1/oauth/token?{uri.var.apiParameters}" />
+                    </endpoint>
+                </call>
+
+                <property name="delicious.accessToken" expression="json-eval($.access_token)"/>
+
+                <property name="Authorization"
+                          expression="fn:concat('Bearer ', get-property('delicious.accessToken'))"
+                          scope="transport"
+                          type="STRING" />
+            </then>
+
+            <else>
+                <property name="delicious.for.auth"
+                          expression="fn:concat($ctx:delicious.username,':',$ctx:delicious.password)" />
+
+                <property name="Authorization"
+                          expression="fn:concat('Basic ', base64Encode($ctx:delicious.for.auth))"
+                          scope="transport" />
+            </else>
+        </filter>
+
+
+        <property name="uri.var.delicious.url" expression="$func:uri" />
+
+    </sequence>
+</template>

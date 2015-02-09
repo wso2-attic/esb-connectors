@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~  Copyright (c) 2005-2014, WSO2 Inc. (http://wso2.com) All Rights Reserved.
+~
+~  WSO2 Inc. licenses this file to you under the Apache License,
+~  Version 2.0 (the "License"); you may not use this file except
+~  in compliance with the License.
+~  You may obtain a copy of the License at
+~
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~  Unless required by applicable law or agreed to in writing,
+~  software distributed under the License is distributed on an
+~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~  KIND, either express or implied.  See the License for the
+~  specific language governing permissions and limitations
+~  under the License.
+-->
+
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="delicious"
+       transports="http,https"
+       startOnLoad="true"
+       trace="disable"
+       statistics="disable">
+    <target>
+        <inSequence>
+
+            <property name="uri" expression="json-eval($.json_payload.Apiurl)"/>
+            <property name="password" expression="json-eval($.json_payload.password)"/>
+            <property name="username" expression="json-eval($.json_payload.username)"/>
+            <property name="method" expression="json-eval($.json_payload.method)"/>
+
+
+            <filter xpath="(get-property('method') = 'postGetAllwithOauth' )">
+                <then>
+                    <property name="client_id" expression="json-eval($.json_payload.client_id)"/>
+                    <property name="client_secret" expression="json-eval($.json_payload.client_secret)"/>
+                    <property name="authType" expression="json-eval($.json_payload.authType)"/>
+                </then>
+
+                <else>
+                    <property name="authType" value="Basic"/>
+                </else>
+            </filter>
+
+            <delicious.init>
+
+            	<client_id>{$ctx:client_id}</client_id>
+            	<client_secret>{$ctx:client_secret}</client_secret>
+  		        <username>{$ctx:username}</username>
+               	<password>{$ctx:password}</password>
+               	<authType>{$ctx:authType}</authType>
+                <uri>{$ctx:uri}</uri>
+
+            </delicious.init>
+
+
+            <switch source="get-property('method')">
+
+                <case regex="postGetAll">
+                    <property name="testType" expression="json-eval($.json_payload.testType)"/>
+                    <filter
+                            xpath="(get-property('testType') = 'optional' )">
+                        <then>
+                            <property name="tag_separator" expression="json-eval($.json_payload.tag_separator)"/>
+                            <property name="results" expression="json-eval($.json_payload.results)"/>
+                        </then>
+                    </filter>
+
+                    <delicious.getAllPosts>
+                        <tag_separator>{$ctx:tag_separator}</tag_separator>
+                        <results>{$ctx:results}</results>
+                    </delicious.getAllPosts>
+                </case>
+
+                <case regex="postGetAllwithOauth">
+                    <delicious.getAllPosts/>
+                </case>
+
+                <case regex="addNewPost">
+                    <property name="inputUrl" expression="json-eval($.json_payload.inputUrl)"/>
+                    <property name="inputDescription" expression="json-eval($.json_payload.inputDescription)"/>
+                    <property name="testType" expression="json-eval($.json_payload.testType)"/>
+
+                    <filter
+                            xpath="(get-property('testType') = 'optional' )">
+                        <then>
+                            <property name="inputExtended" expression="json-eval($.json_payload.inputExtended)"/>
+                            <property name="inputTags" expression="json-eval($.json_payload.inputTags)"/>
+                        </then>
+                    </filter>
+
+                    <delicious.addNewPost>
+                        <url>{$ctx:inputUrl}</url>
+                        <description>{$ctx:inputDescription}</description>
+                        <extended>{$ctx:inputExtended}</extended>
+                        <tags>{$ctx:inputTags}</tags>
+                    </delicious.addNewPost>
+                </case>
+
+                <case regex="postAllHashes">
+                    <delicious.postAllHashes/>
+                </case>
+
+                <case regex="getDates">
+
+                    <property name="testType" expression="json-eval($.json_payload.testType)"/>
+
+                    <filter
+                            xpath="(get-property('testType') = 'optional' )">
+                        <then>
+                            <property name="tag" expression="json-eval($.json_payload.tag)"/>
+                        </then>
+                    </filter>
+
+                    <delicious.getAllPostsDates>
+                        <tag>{$ctx:tag}</tag>
+                    </delicious.getAllPostsDates>
+                </case>
+
+                <case regex="deletePost">
+                    <property name="delUrl" expression="json-eval($.json_payload.delUrl)"/>
+                    <delicious.deletePost>
+                        <url>{$ctx:delUrl}</url>
+                    </delicious.deletePost>
+                </case>
+
+                <case regex="getPosts">
+
+                    <property name="testType" expression="json-eval($.json_payload.testType)"/>
+
+                    <filter
+                            xpath="(get-property('testType') = 'optional' )">
+                        <then>
+                            <property name="tag_separator" expression="json-eval($.json_payload.tag_separator)"/>
+                            <property name="tag" expression="json-eval($.json_payload.tag)"/>
+                            <property name="meta" expression="json-eval($.json_payload.meta)"/>
+                        </then>
+                    </filter>
+
+                    <delicious.getPosts>
+                        <tag>{$ctx:tag}</tag>
+                        <tag_separator>{$ctx:tag_separator}</tag_separator>
+                        <meta>{$ctx:meta}</meta>
+                    </delicious.getPosts>
+                </case>
+
+                <case regex="getRecentPosts">
+                    <property name="testType" expression="json-eval($.json_payload.testType)"/>
+                    <filter
+                            xpath="(get-property('testType') = 'optional' )">
+                        <then>
+                            <property name="tag" expression="json-eval($.json_payload.tag)"/>
+                            <property name="count" expression="json-eval($.json_payload.count)"/>
+                        </then>
+                    </filter>
+
+                    <delicious.getRecentPosts>
+                        <tag>{$ctx:tag}</tag>
+                        <count>{$ctx:count}</count>
+                    </delicious.getRecentPosts>
+                </case>
+
+                <case regex="suggestPopularTags">
+                    <property name="url" expression="json-eval($.json_payload.url)"/>
+                    <delicious.suggestPopularTags>
+                        <url>{$ctx:url}</url>
+                    </delicious.suggestPopularTags>
+                </case>
+
+                <case regex="lastUpdatedTime">
+                    <delicious.lastUpdatedTime/>
+                </case>
+
+                <case regex="getTags">
+                    <delicious.getTags/>
+                </case>
+
+                <case regex="allTagsBundles">
+                    <property name="testType" expression="json-eval($.json_payload.testType)"/>
+
+                    <filter
+                            xpath="(get-property('testType') = 'optional' )">
+                        <then>
+                            <property name="bundle" expression="json-eval($.json_payload.bundle)"/>
+                        </then>
+                    </filter>
+
+                    <delicious.allTagsBundles>
+                        <bundle>{$ctx:bundle}</bundle>
+                    </delicious.allTagsBundles>
+                </case>
+
+                <case regex="setTagsBundles">
+                    <property name="bundle" expression="json-eval($.json_payload.bundle)"/>
+                    <property name="tags" expression="json-eval($.json_payload.tags)"/>
+                    <delicious.setTagsBundles>
+                        <bundle>{$ctx:bundle}</bundle>
+                        <tags>{$ctx:tags}</tags>
+                    </delicious.setTagsBundles>
+                </case>
+
+                <case regex="deleteTagsBundles">
+                    <property name="bundle" expression="json-eval($.json_payload.delBundle)"/>
+                    <delicious.deleteTagsBundles>
+                        <bundle>{$ctx:bundle}</bundle>
+                    </delicious.deleteTagsBundles>
+                </case>
+
+            </switch>
+            <log level="full"></log>
+            <respond/>
+        </inSequence>
+        <outSequence>
+            <send/>
+        </outSequence>
+        <faultSequence/>
+    </target>
+</proxy>

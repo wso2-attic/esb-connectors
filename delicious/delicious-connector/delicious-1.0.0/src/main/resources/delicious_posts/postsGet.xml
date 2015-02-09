@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~  Copyright (c) 2005-2014, WSO2 Inc. (http://wso2.com) All Rights Reserved.
+~
+~  WSO2 Inc. licenses this file to you under the Apache License,
+~  Version 2.0 (the "License"); you may not use this file except
+~  in compliance with the License.
+~  You may obtain a copy of the License at
+~
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~  Unless required by applicable law or agreed to in writing,
+~  software distributed under the License is distributed on an
+~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~  KIND, either express or implied.  See the License for the
+~  specific language governing permissions and limitations
+~  under the License.
+-->
+
+<template name="getPosts" xmlns="http://ws.apache.org/ns/synapse">
+
+    <parameter name="tag" description="{TAG}+{TAG}+...+{TAG} optional — Filter by this tag"/>
+    <parameter name="dt" description="{CCYY-MM-DDThh:mm:ssZ} optional — Filter by this date"/>
+    <parameter name="url" description="optional — The url of the item"/>
+    <parameter name="hashes" description="{MD5}+{MD5}+...+{MD5} optional — Fetch multiple bookmarks by one or more URL MD5s"/>
+    <parameter name="meta" description="{yes} optional — Include change detection signatures on each item in a ‘meta’ attribute"/>
+    <parameter name="tag_separator" description="{comma} optional — Use commas instead of spaces to separate tags"/>
+
+    <sequence>
+
+        <property name="uri.var.gettag" expression="$func:tag" type="STRING"/>
+        <property name="uri.var.getdt" expression="$func:dt" type="STRING"/>
+        <property name="uri.var.geturl" expression="$func:url" type="STRING"/>
+        <property name="uri.var.gethashes" expression="$func:hashes" type="STRING"/>
+        <property name="uri.var.getmeta" expression="$func:meta" type="STRING"/>
+        <property name="uri.var.gettag_separator" expression="$func:tag_separator" type="STRING"/>
+
+
+
+        <filter
+                xpath="(not(get-property('uri.var.gettag') = '' or (not(string(get-property('uri.var.gettag'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;tag=',get-property('uri.var.gettag'))" />
+            </then>
+        </filter>
+
+        <filter
+                xpath="(not(get-property('uri.var.getdt') = '' or (not(string(get-property('uri.var.getdt'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;dt=',get-property('uri.var.getdt'))" />
+            </then>
+        </filter>
+
+        <filter
+                xpath="(not(get-property('uri.var.geturl') = '' or (not(string(get-property('uri.var.geturl'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;url=',get-property('uri.var.geturl'))" />
+            </then>
+        </filter>
+
+        <filter
+                xpath="(not(get-property('uri.var.gethashes') = '' or (not(string(get-property('uri.var.gethashes'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;hashes=',get-property('uri.var.gethashes'))" />
+            </then>
+        </filter>
+
+        <filter
+                xpath="(not(get-property('uri.var.gettag_separator') = '' or (not(string(get-property('uri.var.gettag_separator'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;tag_separator=',get-property('uri.var.gettag_separator'))" />
+            </then>
+        </filter>
+
+        <filter
+                xpath="(not(get-property('uri.var.getmeta') = '' or (not(string(get-property('uri.var.getmeta'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;meta=',get-property('uri.var.getmeta'))" />
+            </then>
+        </filter>
+
+        <property name="Accept-Encoding" value="deflate" scope="transport" />
+
+        <call>
+            <endpoint>
+                <http method="GET" uri-template="{uri.var.delicious.url}/v1/posts/get?{uri.var.apiParameters}" />
+            </endpoint>
+        </call>
+    </sequence>
+</template>
