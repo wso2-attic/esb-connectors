@@ -1,0 +1,308 @@
+<template name="createCommit" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="message" description="The commit message." />
+	<parameter name="parents" description="The SHAs of the commits that were the parents of this commit." />
+	<parameter name="author" description="A hash containing information about the author of the commit" />
+	<parameter name="commiter" description="a hash containing information about the commiter of the commit" />
+	<parameter name="owner" description="The owner of the repository." />
+	<parameter name="repo" description="The corresponding repository." />
+	<parameter name="tree" description="Objects specifying a tree structure." />
+	<parameter name="baseTree" description="The SHA1 of the tree you want to update with new data." />
+	<parameter name="createOrUpdateReference" description="This parameter is used to decide whether to update an existing referance or to create a new referance." />
+	<parameter name="ref" description="The name of the fully qualified reference." />
+	<parameter name="force" description="Indicates whether to force the update or to make sure the update is a fast-forward update." />
+
+	<sequence>
+
+		<property name="uri.var.message" expression="$func:message" />
+		<property name="uri.var.parents" expression="$func:parents" />
+		<property name="uri.var.author" expression="$func:author" />
+		<property name="uri.var.commiter" expression="$func:commiter" />
+		<property name="uri.var.owner" expression="$func:owner" />
+		<property name="uri.var.repo" expression="$func:repo" />
+		<property name="uri.var.tree" expression="$func:tree" />
+		<property name="uri.var.baseTree" expression="$func:baseTree" />
+		<property name="uri.var.createOrUpdateReference" expression="$func:createOrUpdateReference" />
+		<property name="uri.var.ref" expression="$func:ref" />
+		<property name="uri.var.force" expression="$func:force" />
+
+		<!-- Calling the createTree method -->
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"tree":$1
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.tree')" />
+			</args>
+		</payloadFactory>
+
+		<script language="js"><![CDATA[
+	
+		var baseTree=mc.getProperty('uri.var.baseTree');		
+		payload = mc.getPayloadJSON();
+		
+		if(baseTree != null && baseTree != ""){
+			payload.base_tree = baseTree;
+		}
+		
+        mc.setPayloadJSON(payload);
+        ]]></script>
+
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/repos/{uri.var.owner}/{uri.var.repo}/git/trees" />
+			</endpoint>
+		</call>
+
+		<!-- tree sha and the complete output derived from the createTree api call -->
+		<property name="uri.var.treeSha" expression="json-eval($.sha)" />
+		<property name="uri.var.treeOutput" expression="json-eval($)" />
+
+		<!-- Removing unnecessary headers -->
+		<header name="Access-Control-Expose-Headers" scope="transport" action="remove" />
+		<header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-RateLimit-Reset" scope="transport" action="remove" />
+		<header name="X-GitHub-Request-Id" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-Accepted-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-GitHub-Media-Type" scope="transport" action="remove" />
+		<header name="X-Served-By" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="X-RateLimit-Limit" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Credentials" scope="transport" action="remove" />
+		<header name="Content-Security-Policy" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+
+		<filter source="get-property('transport','Status')" regex="(?!^201 Created$).*">
+			<then>
+			    <header name="Status" scope="transport" action="remove" />
+				<respond></respond>
+			</then>
+		</filter>
+
+		<!-- Removing unnecessary headers before the createCommit method call -->
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Content-Length" scope="transport" action="remove" />
+		<header name="Date" scope="transport" action="remove" />
+		<header name="Content-Type" scope="transport" action="remove" />
+		<header name="ETag" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+		<header name="Server" scope="transport" action="remove" />
+		<header name="Status" scope="transport" action="remove" />
+
+		<!-- Calling the reference update/delete method based on the uri.var.createOrUpdateReference 
+			property value -->
+		<header name="Authorization"
+			expression="fn:concat('token ', get-property('uri.var.accessToken'))"
+			scope="transport" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"message":"$1",
+				"tree":"$2",
+				"parents":$3
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.message')" />
+				<arg expression="get-property('uri.var.treeSha')" />
+				<arg expression="get-property('uri.var.parents')" />
+			</args>
+		</payloadFactory>
+
+		<script language="js"><![CDATA[
+		var author=mc.getProperty('uri.var.author');
+		var commiter=mc.getProperty('uri.var.commiter');
+
+		payload = mc.getPayloadJSON();
+		
+		if(author != null && author != ""){
+			payload.author = eval("("+ author +")");
+		}
+		if(commiter != null && commiter != ""){
+			payload.commiter = eval("("+ commiter +")");
+		}
+        mc.setPayloadJSON(payload);
+        ]]></script>
+
+
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/repos/{uri.var.owner}/{uri.var.repo}/git/commits" />
+			</endpoint>
+		</call>
+
+		<!-- complete output and the commit sha derived from the createTree method 
+			call -->
+		<property name="uri.var.commitSha" expression="json-eval($.sha)" />
+		<property name="uri.var.commitOutput" expression="json-eval($)" />
+		
+		<!-- Removing unnecessary headers -->
+		<header name="Access-Control-Expose-Headers" scope="transport" action="remove" />
+		<header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-RateLimit-Reset" scope="transport" action="remove" />
+		<header name="X-GitHub-Request-Id" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-Accepted-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-GitHub-Media-Type" scope="transport" action="remove" />
+		<header name="X-Served-By" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="X-RateLimit-Limit" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Credentials" scope="transport" action="remove" />
+		<header name="Content-Security-Policy" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+		
+		<filter source="get-property('transport','Status')" regex="(?!^201 Created$).*">
+			<then>
+
+				<payloadFactory media-type="json">
+					<format>
+						{
+						"tree":$1,
+						"commit":$2
+						}
+					</format>
+					<args>
+						<arg expression="get-property('uri.var.treeOutput')" />
+						<arg expression="get-property('uri.var.commitOutput')" />
+					</args>
+				</payloadFactory>
+				<header name="Status" scope="transport" action="remove" />
+				<respond></respond>
+			</then>
+		</filter>
+
+		<!-- Removing unnecessary headers before the reference update/create call -->
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Content-Length" scope="transport" action="remove" />
+		<header name="Date" scope="transport" action="remove" />
+		<header name="Content-Type" scope="transport" action="remove" />
+		<header name="ETag" scope="transport" action="remove" />
+		<header name="Location" scope="transport" action="remove" />
+		<header name="Server" scope="transport" action="remove" />
+		<header name="Status" scope="transport" action="remove" />
+
+		<!-- Calling the reference update/delete method based on the uri.var.createOrUpdateReference 
+			property value -->
+		<header name="Authorization"
+				expression="fn:concat('token ', get-property('uri.var.accessToken'))"
+				scope="transport" />
+
+		<filter source="get-property('uri.var.createOrUpdateReference')"
+				regex="create">
+			<then>
+				<payloadFactory media-type="json">
+					<format>
+						{
+						"ref":"$1",
+						"sha":"$2"
+						}
+					</format>
+					<args>
+						<arg expression="get-property('uri.var.ref')" />
+						<arg expression="get-property('uri.var.commitSha')" />
+					</args>
+				</payloadFactory>
+
+				<call>
+					<endpoint>
+						<http method="post"
+							uri-template="{uri.var.apiUrl}/repos/{uri.var.owner}/{uri.var.repo}/git/refs" />
+					</endpoint>
+				</call>
+			</then>
+		</filter>
+		<filter source="get-property('uri.var.createOrUpdateReference')" regex="update">
+			<then>
+				<payloadFactory media-type="json">
+					<format>
+						{
+						"sha":"$1",
+						"force":"$2"
+						}
+					</format>
+					<args>
+						<arg expression="get-property('uri.var.commitSha')" />
+						<arg expression="get-property('uri.var.force')" />
+					</args>
+				</payloadFactory>
+
+				<call>
+					<endpoint>
+						<http method="post"
+							uri-template="{uri.var.apiUrl}/repos/{uri.var.owner}/{uri.var.repo}/git/{uri.var.ref}" />
+					</endpoint>
+				</call>
+			</then>
+		</filter>
+		<filter source="get-property('uri.var.createOrUpdateReference')" regex="(?!^(update|create)$).*">
+			<then>
+			<header name="Authorization" scope="transport" action="remove" />
+				<payloadFactory media-type="json">
+					<format>
+						{
+						"tree":$1,
+						"commit":$2,
+						"reference":{"error_code":"700013",
+									"error_message":"Invalid value for createOrUpdateReference parameter"}
+						}
+					</format>
+					<args>
+						<arg expression="get-property('uri.var.treeOutput')" />
+						<arg expression="get-property('uri.var.commitOutput')" />
+					</args>
+				</payloadFactory>
+				<header name="Status" scope="transport" action="remove" />
+				<property name="HTTP_SC" value="400" scope="axis2" />
+				<respond></respond>
+			</then>
+		</filter>
+		<!-- complete output of reference update or create -->
+		<property name="uri.var.referenceOutput" expression="json-eval($)" />
+
+		<!-- Removing unnecessary headers after the reference update/create call -->
+		<header name="Access-Control-Expose-Headers" scope="transport" action="remove" />
+		<header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-RateLimit-Reset" scope="transport" action="remove" />
+		<header name="X-GitHub-Request-Id" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-Accepted-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-GitHub-Media-Type" scope="transport" action="remove" />
+		<header name="X-Served-By" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="X-RateLimit-Limit" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Credentials" scope="transport" action="remove" />
+		<header name="Content-Security-Policy" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"tree":$1,
+				"commit":$2,
+				"reference":$3
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.treeOutput')" />
+				<arg expression="get-property('uri.var.commitOutput')" />
+				<arg expression="get-property('uri.var.referenceOutput')" />
+			</args>
+		</payloadFactory>
+
+	</sequence>
+</template>

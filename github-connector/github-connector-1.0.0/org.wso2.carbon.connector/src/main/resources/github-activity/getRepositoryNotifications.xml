@@ -1,0 +1,68 @@
+<template name="getRepositoryNotifications" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="owner" description="The name of the owner of the repository." />
+	<parameter name="repo" description="The name of the repository." />
+	<parameter name="all" description="If true, show notifications marked as read. Default: false." />
+	<parameter name="participating" description="If true, only shows notifications in which the user is directly participating or mentioned. Default: false." />
+	<parameter name="since" description="Filters out any notifications updated before the given time. This is a timestamp in ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ. Default: Time.now." />
+
+	<sequence>
+		<property name="uri.var.owner" expression="$func:owner" />
+		<property name="uri.var.repo" expression="$func:repo" />
+		<property name="uri.var.all" expression="$func:all" />
+		<property name="uri.var.participating" expression="$func:participating" />
+		<property name="uri.var.since" expression="$func:since" />
+
+		<script language="js">
+        	<![CDATA[
+                    
+                    var all = mc.getProperty('uri.var.all');
+                    var participating = mc.getProperty('uri.var.participating');
+                    var since = mc.getProperty('uri.var.since');                   
+                    var urlQuery = "";
+                    
+                    if (all != null && all !="" ){
+                    	urlQuery += 'all=' + all + '&';
+                    }                                       					           
+					if (participating != null && participating != "" ) {
+						urlQuery += 'participating=' + participating + '&';												
+					}					
+					if (since != null && since != "" ) {
+						urlQuery += 'since=' + since + '&';	
+					}					
+					if (urlQuery != ""){
+					
+						urlQuery = '?' + urlQuery.substring(0,urlQuery.length-1);						
+						mc.setProperty('uri.var.urlQuery', urlQuery);
+					}
+												
+        	]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}/repos/{uri.var.owner}/{uri.var.repo}/notifications{uri.var.urlQuery}" />
+			</endpoint>
+		</call>
+
+		<header name="Access-Control-Expose-Headers" scope="transport" action="remove" />
+		<header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-RateLimit-Reset" scope="transport" action="remove" />
+		<header name="X-GitHub-Request-Id" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-Accepted-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-GitHub-Media-Type" scope="transport" action="remove" />
+		<header name="X-Served-By" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="X-RateLimit-Limit" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Credentials" scope="transport" action="remove" />
+		<header name="Content-Security-Policy" scope="transport" action="remove" />
+		<header name="Link" scope="transport" action="remove" />
+		<header name="X-Poll-Interval" scope="transport" action="remove" />
+		
+	</sequence>
+</template>

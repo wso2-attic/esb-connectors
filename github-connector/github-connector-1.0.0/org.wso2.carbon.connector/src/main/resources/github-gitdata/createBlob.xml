@@ -1,0 +1,65 @@
+<template name="createBlob" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="owner" description="The owner of the repository." />
+	<parameter name="repo" description="The corresponding repository." />
+	<parameter name="content" description="The content of the blob." />
+	<parameter name="encoding" description="The encoding type." />
+	
+	<sequence>
+	
+		<property name="uri.var.owner" expression="$func:owner" />
+		<property name="uri.var.repo" expression="$func:repo" />
+		<property name="uri.var.content" expression="$func:content" />
+		<property name="uri.var.encoding" expression="$func:encoding" />
+		
+		<payloadFactory media-type="json">
+			<format>
+				{
+				}
+			</format>
+			<args>
+			</args>
+		</payloadFactory>
+		
+		<script language="js">
+        <![CDATA[     
+                payload = mc.getPayloadJSON();               
+                var content = mc.getProperty("uri.var.content"); 
+                var encoding = mc.getProperty("uri.var.encoding");
+			
+				if(content != null){
+					payload.content = content;
+				}
+				
+				if(encoding != null && encoding != ""){
+					payload.encoding = encoding;
+				}
+				
+	          	 mc.setPayloadJSON(payload);                                     
+               ]]>
+		</script>
+		
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/repos/{uri.var.owner}/{uri.var.repo}/git/blobs" />
+			</endpoint>
+		</call>
+		
+		<header name="Access-Control-Expose-Headers" scope="transport" action="remove" />
+		<header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+		<header name="X-RateLimit-Reset" scope="transport" action="remove" />
+		<header name="X-GitHub-Request-Id" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Options" scope="transport" action="remove" />
+		<header name="X-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-Accepted-OAuth-Scopes" scope="transport" action="remove" />
+		<header name="X-GitHub-Media-Type" scope="transport" action="remove" />
+		<header name="X-Served-By" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="X-RateLimit-Limit" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Credentials" scope="transport" action="remove" />
+        <header name="Content-Security-Policy" scope="transport" action="remove" />
+	</sequence>
+</template>
