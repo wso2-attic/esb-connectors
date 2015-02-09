@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template xmlns="http://ws.apache.org/ns/synapse" name="markAsRead">
+
+
+
+    <!--optional parameters -Query parameters-->
+    <parameter name="context"/>
+    <parameter name="http_envelope"/>
+    <parameter name="pretty"/>
+    <parameter name="meta"/>
+    <parameter name="fields"/>
+    <parameter name="callback"/>
+
+    <!--mandatory request parameters-->
+    <parameter name="counts"/>
+
+    <sequence>
+        <property name="HTTP_METHOD" value="POST" scope="axis2" type="STRING"/>
+
+
+        <property name="uri.var.context" expression="$func:context" scope="default" type="STRING"/>
+        <property name="uri.var.http_envelope" expression="$func:http_envelope" scope="default" type="BOOLEAN"/>
+        <property name="uri.var.pretty" expression="$func:pretty" scope="default" type="BOOLEAN"/>
+        <property name="uri.var.meta" expression="$func:meta" scope="default" type="STRING"/>
+        <property name="uri.var.fields" expression="$func:fields" scope="default" type="STRING"/>
+        <property name="uri.var.callback" expression="$func:callback" scope="default" type="STRING"/>
+        <property name="uri.var.counts" expression="$func:counts" scope="default" type="STRING"/>
+
+        <property name="uri.var.query" value="" scope="default" type="STRING"/>
+
+
+        <!--context-->
+        <filter
+                xpath="not(get-property('uri.var.context') = '') and string(get-property('uri.var.context'))">
+            <then>
+                <property name="uri.var.query"
+                          expression="concat(get-property('uri.var.query'), '&amp;context=',get-property('uri.var.context')) " />
+            </then>
+        </filter>
+        <!--http_envelope-->
+        <filter
+                xpath="not(get-property('uri.var.http_envelope') = '') and boolean(get-property('uri.var.http_envelope'))">
+            <then>
+                <property name="uri.var.query"
+                          expression="concat(get-property('uri.var.query'), '&amp;http_envelope=',get-property('uri.var.http_envelope')) " />
+            </then>
+        </filter>
+        <!--pretty-->
+        <filter
+                xpath="not(get-property('uri.var.pretty') = '') and boolean(get-property('uri.var.pretty'))">
+            <then>
+                <property name="uri.var.query"
+                          expression="concat(get-property('uri.var.query'), '&amp;pretty=',get-property('uri.var.pretty')) " />
+            </then>
+        </filter>
+        <!--meta-->
+        <filter
+                xpath="not(get-property('uri.var.meta') = '') and string(get-property('uri.var.meta'))">
+            <then>
+                <property name="uri.var.query"
+                          expression="concat(get-property('uri.var.query'), '&amp;meta=',get-property('uri.var.meta')) " />
+            </then>
+        </filter>
+        <!--fields-->
+        <filter
+                xpath="not(get-property('uri.var.fields') = '') and string(get-property('uri.var.fields'))">
+            <then>
+                <property name="uri.var.query"
+                          expression="concat(get-property('uri.var.query'), '&amp;fields=',get-property('uri.var.fields')) " />
+            </then>
+        </filter>
+        <!--callback-->
+        <filter
+                xpath="not(get-property('uri.var.callback') = '') and string(get-property('uri.var.callback'))">
+            <then>
+                <property name="uri.var.query"
+                          expression="concat(get-property('uri.var.query'), '&amp;callback=',get-property('uri.var.callback')) " />
+            </then>
+        </filter>
+
+
+        <payloadFactory media-type="json">
+            <format>
+                { }
+            </format>
+            <args></args>
+        </payloadFactory>
+        <script language="js"><![CDATA[
+                var counts= mc.getProperty('uri.var.counts');
+
+                payload = mc.getPayloadJSON();
+
+                if(counts != null && counts != "")
+                    payload.counts= counts;
+
+                mc.setPayloadJSON(payload);
+                ]]></script>
+        <property name="messageType" scope="axis2" value="application/json" />
+
+        <property name="uri.var.wp_api_uri" expression="fn:concat('https://public-api.wordpress.com/rest/v1/notifications/read?' , get-property('uri.var.query'))" scope="default" type="STRING"/>
+
+
+        <call>
+            <endpoint>
+                <http method="POST" uri-template="{uri.var.wp_api_uri}" />
+            </endpoint>
+        </call>
+    </sequence>
+</template>
