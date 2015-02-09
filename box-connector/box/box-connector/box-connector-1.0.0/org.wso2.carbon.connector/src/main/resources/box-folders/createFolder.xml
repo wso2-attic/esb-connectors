@@ -1,0 +1,28 @@
+<template name="createFolder" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="name" description="The desired name for the folder" />
+	<parameter name="parentId" description="The parent folder" />
+	<sequence>
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.parentId" expression="$func:parentId" />
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"name":"$1",
+				"parent":{"id":"$2"}
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.name')" />
+				<arg expression="get-property('uri.var.parentId')" />
+			</args>
+		</payloadFactory>
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/2.0/folders{uri.var.fields}" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove response custom header information -->
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+	</sequence>
+</template>
