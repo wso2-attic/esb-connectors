@@ -1,0 +1,40 @@
+<template name="createEndpoint" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="customUserData" description="Arbitrary user data to associate with the endpoint." />
+	<parameter name="platformApplicationArn" description="PlatformApplicationArn returned from CreatePlatformApplication is used to create a an endpoint." />
+	<parameter name="token" description="Unique identifier created by the notification service for an app on a device." />
+
+	<sequence>
+		<property name="uri.var.action" value="CreatePlatformEndpoint" />
+		<property name="uri.var.customUserData" expression="$func:customUserData" />
+		<property name="uri.var.platformApplicationArn" expression="$func:platformApplicationArn" />
+		<property name="uri.var.token" expression="$func:token" />
+		
+		<class name="org.wso2.carbon.connector.amazonsns.auth.AmazonSNSAuthConnector" />
+
+		<!-- Add authorization and date header parameters -->
+		<header name="Authorization" scope="transport" expression="get-property('uri.var.authorizationHeader')" />
+		<header name="x-amz-date" scope="transport" expression="get-property('uri.var.amzDate')" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<root>
+					$1
+				</root>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.requestPayload')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}{uri.var.httpRequestUri}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="x-amzn-RequestId" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+
+	</sequence>
+</template>

@@ -1,0 +1,44 @@
+<template name="publish" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="message" description="The message you want to send to the topic." />
+	<parameter name="messageStructure" description="Value is json if want to send a different message for each protocol." />
+	<parameter name="subject" description="The subject line when the message is delivered to email endpoints." />
+	<parameter name="targetArn" description="Either TopicArn or EndpointArn. But not both." />
+	<parameter name="topicArn" description="The topic you want to publish to." />
+	
+	<sequence>
+		<property name="uri.var.action" value="Publish" />
+		<property name="uri.var.message" expression="$func:message" />
+		<property name="uri.var.messageStructure" expression="$func:messageStructure" />
+		<property name="uri.var.subject" expression="$func:subject" />
+		<property name="uri.var.targetArn" expression="$func:targetArn" />
+		<property name="uri.var.topicArn" expression="$func:topicArn" />
+		
+		<class name="org.wso2.carbon.connector.amazonsns.auth.AmazonSNSAuthConnector" />
+
+		<!-- Add authorization and date header parameters -->
+		<header name="Authorization" scope="transport" expression="get-property('uri.var.authorizationHeader')" />
+		<header name="x-amz-date" scope="transport" expression="get-property('uri.var.amzDate')" />
+		
+		<payloadFactory media-type="xml">
+			<format>
+				<root>
+					$1
+				</root>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.requestPayload')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}{uri.var.httpRequestUri}" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove custom header information in response -->
+		<header name="x-amzn-RequestId" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+		
+	</sequence>
+</template>

@@ -1,0 +1,40 @@
+<template name="confirmSubscription" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="authenticateOnUnsubscribe" description="This enables or disables authenticating on unsubscribe." />
+	<parameter name="token" description="The short-lived token sent to an endpoint during the Subscribe action." />
+	<parameter name="topicArn" description="The ARN of the topic." />
+	
+	<sequence>
+		<property name="uri.var.action" value="ConfirmSubscription" />
+		<property name="uri.var.authenticateOnUnsubscribe" expression="$func:authenticateOnUnsubscribe" />
+		<property name="uri.var.token" expression="$func:token" />
+		<property name="uri.var.topicArn" expression="$func:topicArn" />
+		
+		<class name="org.wso2.carbon.connector.amazonsns.auth.AmazonSNSAuthConnector" />
+
+		<!-- Add authorization and date header parameters -->
+		<header name="Authorization" scope="transport" expression="get-property('uri.var.authorizationHeader')" />
+		<header name="x-amz-date" scope="transport" expression="get-property('uri.var.amzDate')" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<root>
+					$1
+				</root>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.requestPayload')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}{uri.var.httpRequestUri}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom header information in response -->
+		<header name="x-amzn-RequestId" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+		
+	</sequence>
+</template>
