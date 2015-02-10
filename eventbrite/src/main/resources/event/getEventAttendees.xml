@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied.  See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+<template name="getEventAttendees" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="eventId" description="Id of the event"/>
+    <parameter name="status" description="Status of attendee attending,not_attending"/>
+    <parameter name="changedSince" description="Timestamp value to receive Attendee records that have been changed since the timestamp"/>
+    <parameter name="expand" description="Shows promotional_code or assigned_number"/>
+    <sequence>
+        <property name="uri.var.eventId" expression="$func:eventId"/>
+        <property name="uri.var.status" expression="$func:status"/>
+        <property name="uri.var.changedSince" expression="$func:changedSince"/>
+        <property name="uri.var.expand" expression="$func:expand"/>
+        <filter xpath="(not(get-property('uri.var.status') = '' or (not(string(get-property('uri.var.status'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'status=',get-property('uri.var.status'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.changedSince') = '' or (not(string(get-property('uri.var.changedSince'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'changed_since=',get-property('uri.var.changedSince'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.expand') = '' or (not(string(get-property('uri.var.expand'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'expand=',get-property('uri.var.expand'),'&amp;')"/>
+            </then>
+        </filter>
+        <header name="Content-Type" scope="transport" action="remove"/>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.eventbrite.apiUrl}/events/{uri.var.eventId}/attendees/?{uri.var.apiParameters}token={uri.var.eventbrite.accessToken}"/>
+                <property name="Accept" value="*/*" scope="transport"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

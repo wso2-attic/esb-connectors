@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied.  See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="createSpecificContactListDetails">
+    <parameter name="userId" description="Id of the user to create contact list details"/>
+    <parameter name="contactListId" description="Id of the contact list to create contact"/>
+    <parameter name="email" description="Email for creating a new contact in the Contact List"/>
+    <parameter name="firstName" description="First name for creating a new contact in the Contact List"/>
+    <parameter name="lastName" description="Last name for creating a new contact in the Contact List"/>
+    <sequence>
+        <property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.contactListId" expression="$func:contactListId"/>
+        <property name="uri.var.email" expression="$func:email"/>
+        <property name="uri.var.firstName" expression="$func:firstName"/>
+        <property name="uri.var.lastName" expression="$func:lastName"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "contact.email": "$1",
+                "contact.first_name": "$2",
+                "contact.last_name": "$3"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.email')"/>
+                <arg expression="get-property('uri.var.firstName')"/>
+                <arg expression="get-property('uri.var.lastName')"/>
+            </args>
+        </payloadFactory>
+        <filter xpath="get-property('uri.var.firstName') = '' or (not(string(get-property('uri.var.firstName'))))">
+            <then>
+                <script language="js"><![CDATA[
+                    payload = mc.getPayloadJSON();
+                            delete payload["contact.first_name"];
+                            mc.setPayloadJSON(payload);
+                    ]]>
+                </script>
+            </then>
+        </filter>
+        <filter xpath="get-property('uri.var.lastName') = '' or (not(string(get-property('uri.var.lastName'))))">
+            <then>
+                <script language="js"><![CDATA[
+                    payload = mc.getPayloadJSON();
+                            delete payload["contact.last_name"];
+                            mc.setPayloadJSON(payload);
+                    ]]>
+                </script>
+            </then>
+        </filter>
+        <property name="messageType" value="application/json"
+                  scope="axis2"/>
+        <header name="Content-Type" value="application/json" scope="transport"/>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+        <header name="Content-Type" value="application/x-www-form-urlencoded" scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.eventbrite.apiUrl}/users/{uri.var.userId}/contact_lists/{uri.var.contactListId}/contacts/?token={uri.var.eventbrite.accessToken}"/>
+                <property name="Accept" value="*/*" scope="transport"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>
+
+
+
+
+  
+
+
+
+    
+
+     
