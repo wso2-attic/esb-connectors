@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="listContacts" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="query"
+      description="Wildcard search for contacts matching the query string. Fields searched are name, first_name, last_name, title, phone_numbers, email_addresses and addresses." />
+   <parameter name="type" description="One of [Company, Person], returns only contacts of that type." />
+   <parameter name="firstName" description="Wildcard search for person first_name matching first_name string." />
+   <parameter name="lastName" description="Wildcard search for person last_name matching last_name string." />
+   <parameter name="name" description="Wildcard search for company or person's full name matching string." />
+   <parameter name="companyId" description="Returns employees that belong to the given company id." />
+   <parameter name="mattersStatus"
+      description="One of [All, Open, Closed, Pending, None], returns only contacts which are clients that have a least one matter." />
+   <parameter name="offset" description="Returns records with an id greater than the offset." />
+   <parameter name="limit" description="The maximum number of records to be returned. (int, default 1000)" />
+   <parameter name="createdSince" description="Returns records created on or after the date. (date, ISO 8601 format)" />
+   <parameter name="updatedSince" description="Returns records updated on or after the date. (date, ISO 8601 format)" />
+   <sequence>
+      <property name="uri.var.query" expression="$func:query" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.firstName" expression="$func:firstName" />
+      <property name="uri.var.lastName" expression="$func:lastName" />
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.companyId" expression="$func:companyId" />
+      <property name="uri.var.mattersStatus" expression="$func:mattersStatus" />
+      <property name="uri.var.offset" expression="$func:offset" />
+      <property name="uri.var.limit" expression="$func:limit" />
+      <property name="uri.var.createdSince" expression="$func:createdSince" />
+      <property name="uri.var.updatedSince" expression="$func:updatedSince" />
+
+      <script language="js">
+         <![CDATA[
+            var companyId = mc.getProperty('uri.var.companyId');
+            var createdSince = mc.getProperty('uri.var.createdSince');
+            var firstName = mc.getProperty('uri.var.firstName');
+            var lastName = mc.getProperty('uri.var.lastName');
+            var limit = mc.getProperty('uri.var.limit');
+            var mattersStatus = mc.getProperty('uri.var.mattersStatus');
+            var name = mc.getProperty('uri.var.name');
+            var offset = mc.getProperty('uri.var.offset');
+            var query = mc.getProperty('uri.var.query');
+            var type = mc.getProperty('uri.var.type');
+            var updatedSince = mc.getProperty('uri.var.updatedSince');
+            
+            var urlQuery = '';
+            
+            if (companyId != null && companyId != ""){
+               urlQuery += 'company_id=' + companyId + '&';
+            }
+            
+            if (createdSince != null && createdSince != ""){
+               urlQuery += 'created_since=' + encodeURIComponent(createdSince) + '&';
+            }
+            
+            if (firstName != null && firstName != ""){
+               urlQuery += 'first_name=' + encodeURIComponent(firstName) + '&';
+            }
+            
+            if (lastName != null && lastName != ""){
+               urlQuery += 'last_name=' + encodeURIComponent(lastName) + '&';
+            }
+            
+            if (limit != null && limit != ""){
+               urlQuery += 'limit=' + limit + '&';
+            }
+            
+            if (mattersStatus != null && mattersStatus != ""){
+               urlQuery += 'matters_status=' + encodeURIComponent(mattersStatus) + '&';
+            }
+            
+            if (name != null && name != ""){
+               urlQuery += 'name=' + encodeURIComponent(name) + '&';
+            }
+            
+            if (offset != null && offset != ""){
+               urlQuery += 'offset=' + encodeURIComponent(offset) + '&';
+            }
+            
+            if (query != null && query != ""){
+               urlQuery += 'query=' + encodeURIComponent(query) + '&';
+            }
+            
+            if (type != null && type != ""){
+               urlQuery += 'type=' + type + '&';
+            }
+            
+            if (updatedSince != null && updatedSince != ""){
+               urlQuery += 'updated_since=' + encodeURIComponent(updatedSince) + '&';
+            }
+            
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+            
+         ]]>
+      </script>
+
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/contacts{uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="Status" action="remove" scope="transport" />
+
+   </sequence>
+</template>

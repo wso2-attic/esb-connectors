@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="listTasks" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="query" description="How to query tasks, either 'All' (default), 'AssignedToMe', 'AssignedByMe' or 'Matters'." />
+   <parameter name="priority" description="Priority of tasks to show, either 'High', 'Normal', or 'Low'." />
+   <parameter name="matterId" description="Limit the tasks to only those belonging to this matter." />
+   <parameter name="isStatuteOfLimitations"
+      description="If 'true' this parameter will filter the tasks which represent if a statute of limitations has been satisified or not. If 'false' this parameter will filter the tasks which do NOT represent if a statute of limitations have been satisified." />
+   <parameter name="assigneeId"
+      description="Scopes the tasks to those assigned to the given user, use 'not-me' to return tasks that are not assigned to the current user." />
+   <parameter name="assigneeType"
+      description="Scopes the tasks to those of the specified type. Must be one of 'User' or 'Contact'. If assignee_id is provided, but assignee_type is not, 'User' will be assumed for assignee_type." />
+   <parameter name="assignerId"
+      description="Scopes the tasks to those assigned by the given user, use 'not-me' to return tasks that do not belong to current user." />
+   <parameter name="dateRange"
+      description="Date range of tasks to show, either 'all' (default), 'due_this_week', 'due_today', 'due_tomorrow', 'overdue'." />
+   <parameter name="completed" description="Scopes the tasks to those that are complete ('true') or incomplete ('false')." />
+   <parameter name="taskPermission"
+      description="Scopes the tasks to those that are private only ('private'), or public only ('public'). It returns all tasks by default." />
+   <parameter name="optionalFields" description="Include data for associated objects. Currently supported: 'time_entries'." />
+   <parameter name="updatedSince" description="Returns records updated on or after the date. (date, ISO 8601 format)" />
+   <parameter name="createdSince" description="Returns records created on or after the date. (date, ISO 8601 format)" />
+   <parameter name="limit" description="The maximum number of records to be returned. (int, default 1000)" />
+   <parameter name="offset" description="Returns records with an id greater than the offset." />
+   <sequence>
+      <property name="uri.var.query" expression="$func:query" />
+      <property name="uri.var.priority" expression="$func:priority" />
+      <property name="uri.var.matterId" expression="$func:matterId" />
+      <property name="uri.var.isStatuteOfLimitations" expression="$func:isStatuteOfLimitations" />
+      <property name="uri.var.assigneeId" expression="$func:assigneeId" />
+      <property name="uri.var.assigneeType" expression="$func:assigneeType" />
+      <property name="uri.var.assignerId" expression="$func:assignerId" />
+      <property name="uri.var.dateRange" expression="$func:dateRange" />
+      <property name="uri.var.completed" expression="$func:completed" />
+      <property name="uri.var.taskPermission" expression="$func:taskPermission" />
+      <property name="uri.var.optionalFields" expression="$func:optionalFields" />
+      <property name="uri.var.updatedSince" expression="$func:updatedSince" />
+      <property name="uri.var.createdSince" expression="$func:createdSince" />
+      <property name="uri.var.limit" expression="$func:limit" />
+      <property name="uri.var.offset" expression="$func:offset" />
+
+      <script language="js">
+         <![CDATA[
+            var assigneeId = mc.getProperty('uri.var.assigneeId');
+            var assigneeType = mc.getProperty('uri.var.assigneeType');
+            var assignerId = mc.getProperty('uri.var.assignerId');
+            var completed = mc.getProperty('uri.var.completed');
+            var createdSince = mc.getProperty('uri.var.createdSince');
+            var dateRange = mc.getProperty('uri.var.dateRange');
+            var isStatuteOfLimitations = mc.getProperty('uri.var.isStatuteOfLimitations');
+            var limit = mc.getProperty('uri.var.limit');
+            var matterId = mc.getProperty('uri.var.matterId');
+            var offset = mc.getProperty('uri.var.offset');
+            var optionalFields = mc.getProperty('uri.var.optionalFields');
+            var priority = mc.getProperty('uri.var.priority');
+            var query = mc.getProperty('uri.var.query');
+            var taskPermission = mc.getProperty('uri.var.taskPermission');
+            var updatedSince = mc.getProperty('uri.var.updatedSince');
+            
+            var urlQuery = '';
+            
+            if (assigneeId != null && assigneeId != ""){
+               urlQuery += 'assignee_id=' + assigneeId + '&';
+            }
+            
+            if (assigneeType != null && assigneeType != ""){
+               urlQuery += 'assignee_type=' + assigneeType + '&';
+            }
+            
+            if (assignerId != null && assignerId != ""){
+               urlQuery += 'assigner_id=' + assignerId + '&';
+            }
+            
+            if (completed != null && completed != ""){
+               urlQuery += 'completed=' + completed + '&';
+            }
+            
+            if (createdSince != null && createdSince != ""){
+               urlQuery += 'created_since=' + encodeURIComponent(createdSince) + '&';
+            }
+            
+            if (dateRange != null && dateRange != ""){
+               urlQuery += 'date_range=' + dateRange + '&';
+            }
+            
+            if (isStatuteOfLimitations != null && isStatuteOfLimitations != ""){
+               urlQuery += 'is_statute_of_limitations=' + isStatuteOfLimitations + '&';
+            }
+            
+            if (limit != null && limit != ""){
+               urlQuery += 'limit=' + limit + '&';
+            }
+            
+            if (matterId != null && matterId != ""){
+               urlQuery += 'matter_id=' + matterId + '&';
+            }
+            
+            if (offset != null && offset != ""){
+               urlQuery += 'offset=' + encodeURIComponent(offset) + '&';
+            }
+            
+            if (optionalFields != null && optionalFields != ""){
+               urlQuery += 'optional_fields=' + optionalFields + '&';
+            }
+            
+            if (priority != null && priority != ""){
+               urlQuery += 'priority=' + priority + '&';
+            }
+            
+            if (query != null && query != ""){
+               urlQuery += 'query=' + query + '&';
+            }
+            
+            if (taskPermission != null && taskPermission != ""){
+               urlQuery += 'task_permission=' + taskPermission + '&';
+            }
+            
+            if (updatedSince != null && updatedSince != ""){
+               urlQuery += 'updated_since=' + encodeURIComponent(updatedSince) + '&';
+            }
+            
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+            
+         ]]>
+      </script>
+
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/tasks{uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="Status" action="remove" scope="transport" />
+
+   </sequence>
+</template>
