@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="listUsers" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="query" description="The query request." />
+   <parameter name="state" description="The state of the user." />
+   
+   <sequence>
+      <property name="uri.var.query" expression="$func:query" />
+      <property name="uri.var.state" expression="$func:state" />
+
+      <script language="js">
+      <![CDATA[
+         var query = mc.getProperty('uri.var.query');
+         var state = mc.getProperty('uri.var.state');    	
+         var queryString = ""; 
+         
+         if(query != null && query != "" ){
+            queryString+='query='+encodeURIComponent(query)+'&';
+         }
+         
+         if(state != null && state != ""){
+            queryString+='state=' +state+'&';
+         }
+         
+         if(queryString != ""){
+            queryString = '?' + queryString.substring(0,queryString.length-1);
+         }
+         
+         mc.setProperty("uri.var.queryString", queryString);
+         
+      ]]>
+      </script>
+
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/contacts.{uri.var.format}{uri.var.queryString}" />
+         </endpoint>
+      </call>
+
+      <!-- Remove response custom header information -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="X-Powered-By" scope="transport" action="remove" />
+
+   </sequence>
+</template>
