@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+
+<template name="createLeave" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="xmlData" description="The data to be used when creating the leave" />
+   <sequence>
+      <property name="uri.var.xmlData" expression="$func:xmlData" />
+
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "authtoken": "$1"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.authToken')" />
+         </args>
+      </payloadFactory>
+
+
+      <script language="js">
+         <![CDATA[
+	                    
+	        //initializing the payload
+	        var payload = mc.getPayloadJSON();
+	        
+	        // initializing the variables    
+			  var xmlData = mc.getProperty('uri.var.xmlData');
+	        
+	        // replacing the double quotes with single quotes in order to save the payload. 
+	        xmlData = xmlData.replace("\"", "'");
+	        
+	        payload.xmlData = xmlData;
+	        mc.setPayloadJSON(payload); 
+         ]]>
+
+      </script>
+
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/people/api/leave/records" />
+         </endpoint>
+      </call>
+
+      <!-- Removing custom headers -->
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="Content-Disposition" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+
+   </sequence>
+</template>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+
+<template name="updateRecord" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="recordId" description="The record Identifier to update the record" />
+   <parameter name="inputData" description="The data to be inserted either in XML or JSON format" />
+   <parameter name="formLinkName" description="Specifies the form to fetch views from" />
+   <parameter name="inputType" description="Type of the inputData, either 'xml' or 'json'" />
+   <sequence>
+      <property name="uri.var.recordId" expression="$func:recordId" />
+      <property name="uri.var.inputData" expression="$func:inputData" />
+      <property name="uri.var.formLinkName" expression="$func:formLinkName" />
+      <property name="uri.var.inputType" expression="$func:inputType" />
+
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "authtoken": "$1",
+            "recordId":"$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.authToken')" />
+            <arg expression="get-property('uri.var.recordId')" />
+         </args>
+      </payloadFactory>
+
+      <script language="js">
+        <![CDATA[
+	                    
+	        //initializing the payload
+	        var payload = mc.getPayloadJSON();
+	        
+	        // initializing the variables    
+			  var inputData = mc.getProperty('uri.var.inputData');
+	        var formLinkName = mc.getProperty('uri.var.formLinkName');
+	        var inputType = mc.getProperty('uri.var.inputType');
+           
+	        // replacing the double quotes with single quotes in order to save the payload. 
+	        inputData = inputData.replace("\"", "'");
+	        
+	        payload.inputData = inputData;
+	        mc.setProperty('uri.var.formLinkName' , encodeURIComponent(formLinkName));  
+           mc.setProperty('uri.var.inputType' , encodeURIComponent(inputType));                                               
+	        mc.setPayloadJSON(payload); 
+        ]]>
+
+      </script>
+
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/people/api/forms/{uri.var.inputType}/{uri.var.formLinkName}/updateRecord" />
+         </endpoint>
+      </call>
+
+      <!-- Removing custom headers -->
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="Content-Disposition" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+
+   </sequence>
+</template>
