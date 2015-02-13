@@ -81,8 +81,8 @@ STEPS:
 	v)    employeeId 		- Employee ID of the account user (Obtained via step 7).
 	vi)   fromLeaveDateESB	- A date string in the following format,dd-mmm-yyyy.
 	vii)  toLeaveDateESB    - A date string in the following format,dd-mmm-yyyy.
-	viii) fromLeaveDateAPI	- A date string in the following format,dd-mmm-yyyy. Make sure this is different to the fromLeaveDateESB given in step vii.
-	ix)   toLeaveDateAPI	- A date string in the following format,dd-mmm-yyyy. Make sure this is different to the toLeaveDateESB given in step viii
+	viii) fromLeaveDateAPI	- A date string in the following format,dd-mmm-yyyy. Make sure this is different to the fromLeaveDateESB given in step vi.
+	ix)   toLeaveDateAPI	- A date string in the following format,dd-mmm-yyyy. Make sure this is different to the toLeaveDateESB given in step vii.
  
  9. Navigate to "{ZOHO_PEOPLE_CONNECTOR_HOME}/zohopeople-connector/zohopeople-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
