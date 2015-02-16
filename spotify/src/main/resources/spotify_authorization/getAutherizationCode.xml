@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="getAutherizationCode" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- Required parameters -->
+
+    <parameter name="client_id"
+               description="The client ID provided to you by Spotify when you register your application" />
+    <parameter name="response_type"
+               description="Set it to 'code'" />
+    <parameter name="redirect_uri"
+               description="The URI to redirect to after the user grants/denies permission" />
+    <parameter name="state"
+               description="The state can be useful for correlating requests and responses" />
+    <parameter name="scope"
+               description="If no scopes are specified, authorization will be granted only to access publicly available information" />
+    <parameter name="show_dialog" description="Whether or not to force the user to approve the app again if they’ve already done so" />
+
+
+    <sequence>
+        <property name="uri.var.client_id" expression="$func:client_id" />
+        <property name="uri.var.response_type" expression="$func:response_type" />
+        <property name="uri.var.redirect_uri" expression="$func:redirect_uri" />
+        <property name="uri.var.state" expression="$func:state" />
+        <property name="uri.var.scope" expression="$func:scope" />
+        <property name="uri.var.show_dialog" expression="$func:show_dialog" />
+
+        <filter xpath="(not(get-property('uri.var.state') = '' or (not(string(get-property('uri.var.state'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;state=',get-property('uri.var.state'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.scope') = '' or (not(string(get-property('uri.var.scope'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;scope=',get-property('uri.var.scope'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.show_dialog') = '' or (not(string(get-property('uri.var.show_dialog'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;show_dialog=',get-property('uri.var.show_dialog'))"/>
+            </then>
+        </filter>
+       <call>
+            <endpoint>
+                <!--<http method="get" uri-template="https://accounts.spotify.com/authorize/?client_id={uri.var.client_id}&amp;response_type={uri.var.response_type}&amp;redirect_uri={uri.var.redirect_uri}{uri.var.apiParameters}" />-->
+                <http method="get" uri-template="https://accounts.spotify.com/authorize/?client_id=f043fec58a584539ba94c0c588136712&amp;response_type=code&amp;redirect_uri=http://localhost:8888/callback&amp;scope=user-read-private" />
+
+            </endpoint>
+        </call>
+
+        <filter source="$axis2:HTTP_SC" regex="[2][0][0]">
+            <then>
+                <property name="code" expression="json-eval($.code)" />
+
+            </then>
+        </filter>
+
+    </sequence>
+</template>

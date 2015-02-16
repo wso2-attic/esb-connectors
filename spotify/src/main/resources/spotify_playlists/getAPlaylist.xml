@@ -1,0 +1,28 @@
+<template name="getAPlaylist" xmlns="http://ws.apache.org/ns/synapse">
+
+    <parameter name="userId" description="The user's Spotify user ID." />
+    <parameter name="playListId" description="The Spotify ID for the playlist." />
+
+    <!-- Optional parameters-->
+    <parameter name="fields" description="list of the fields to return" />
+
+    <sequence>
+        <property name="uri.var.userId" expression="$func:userId" />
+        <property name="uri.var.playListId" expression="$func:playListId" />
+
+        <property name="uri.var.fields" expression="$func:fields" />
+
+        <filter xpath="(not(get-property('uri.var.fields') = '' or (not(string(get-property('uri.var.fields'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'fields=',get-property('uri.var.fields'))"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/users/{uri.var.userId}/playlists/{uri.var.playListId}?{uri.var.apiParameters} " />
+            </endpoint>
+        </call>
+    </sequence>
+</template>

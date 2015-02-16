@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="getAnAlbumsTracks" xmlns="http://ws.apache.org/ns/synapse">
+
+    <parameter name="albumId"
+               description="Id of the album of which metadata is requested to be retrived" />
+    <!--Optional parameters-->
+    <parameter name="spotifylimit"
+               description="number of tracks to return" />
+    <parameter name="spotifyoffset"
+               description="index of the first track to return" />
+
+
+    <sequence>
+        <property name="uri.var.albumId" expression="$func:albumId" />
+
+        <property name="uri.var.spotifyoffset" expression="$func:spotifyoffset" />
+        <property name="uri.var.spotifylimit" expression="$func:spotifylimit" />
+
+        <filter xpath="(not(get-property('uri.var.spotifylimit') = '' or (not(string(get-property('uri.var.spotifylimit'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;limit=',get-property('uri.var.spotifylimit'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.spotifyoffset') = '' or (not(string(get-property('uri.var.spotifyoffset'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;offset=',get-property('uri.var.spotifyoffset'))"/>
+            </then>
+        </filter>
+        <property name="uri.var.optionalParameters" expression="get-property('parameters')" />
+
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/albums/{uri.var.albumId}/tracks?{uri.var.apiParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>
