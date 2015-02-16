@@ -1,10 +1,12 @@
 package org.wso2.carbon.connector.integration.test.stripe;
 
 import java.lang.String;
+import java.lang.System;
 import java.net.URL;
 import java.util.Properties;
 import javax.activation.DataHandler;
 
+import net.minidev.json.JSONArray;
 import org.apache.axis2.context.ConfigurationContext;
 import org.json.JSONObject;
 import org.testng.Assert;
@@ -214,18 +216,21 @@ public class StripeConnectorIntegrationTest extends ESBIntegrationTest {
       JSONObject jsonResponse;
       try {
          jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+         JSONObject jsonObject = new JSONObject(jsonString);
          Assert.assertTrue(jsonResponse.getJSONObject("bank_account").has("id"));
          Assert.assertEquals(jsonResponse.getString("object"), "token");
+         Assert.assertEquals(jsonResponse.getJSONObject("bank_account").getString("country"), jsonObject.get("country"));
+         Assert.assertEquals(jsonResponse.getJSONObject("bank_account").getString("routing_number"), jsonObject.get("routingNumber"));
+
       } finally {
          proxyAdmin.deleteProxy(methodName);
       }
-
    }
 
    /**
-    * Negative test case for CreateABankToken method.
+    * Negative test case for createTokenForBankAccount method.
     */
-   @Test(enabled = false, groups = {"wso2.esb"}, description = "stripe {CreateABankToken} integration test with negative case.")
+   @Test(enabled = false, groups = {"wso2.esb"}, description = "stripe {createTokenForBankAccount} integration test with negative case.")
    public void testCreateACardTokenWithNegativeCase() throws Exception {
       String jsonRequestFilePath = pathToRequestsDirectory + "createABankAccountToken_Negative.txt";
       String methodName = "stripe_createTokenForBankAccount";
@@ -303,12 +308,9 @@ public class StripeConnectorIntegrationTest extends ESBIntegrationTest {
          JSONObject jsonObject = new JSONObject(jsonString);
          Assert.assertEquals(jsonResponse.getString("description"), jsonObject.get("description"));
          Assert.assertEquals(jsonResponse.getString("object"), "customer");
-
       } finally {
-
          proxyAdmin.deleteProxy(methodName);
       }
-
    }
 
    /**
@@ -328,6 +330,44 @@ public class StripeConnectorIntegrationTest extends ESBIntegrationTest {
          JSONObject jsonObject = new JSONObject(jsonString);
          Assert.assertEquals(jsonResponse.getString("description"), jsonObject.get("description"));
          Assert.assertEquals(jsonResponse.getString("email"), jsonObject.get("email"));
+         Assert.assertEquals(jsonResponse.getJSONObject("metadata").getString("checked"), jsonObject.getJSONObject("metadata").get("checked"));
+         Assert.assertEquals(jsonResponse.getString("account_balance"), jsonObject.get("accountBalance"));
+         Assert.assertEquals(jsonResponse.getJSONObject("discount").getJSONObject("coupon").getString("id"), jsonObject.get("coupon"));
+        // JSONArray jsonArray=jsonResponse.getJSONObject("subscriptions").getJSONArray("data");
+         System.out.print(jsonResponse.getJSONObject("subscriptions")+"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+        // Assert.assertEquals(jsonArray[0].getJSONObject("plan").getString("id"), jsonObject.get("plan"));
+
+      } finally {
+         proxyAdmin.deleteProxy(methodName);
+      }
+   }
+
+   /**
+    * Positive test case with plan for createANewCustomer method.
+    */
+   @Test(enabled = false, groups = {"wso2.esb"}, description = "stripe {createANewCustomer} integration test with plan optional parameters.")
+   public void testCreateANewCustomerWithPlanOptionalParameter() throws Exception {
+      String jsonRequestFilePath = pathToRequestsDirectory + "createANewCustomer_WithPlan.txt";
+      String methodName = "stripe_createANewCustomer";
+      final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+      String modifiedJsonString = String.format(jsonString, stripeConnectorProperties.getProperty("apiKey"));
+      final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+      proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+      JSONObject jsonResponse;
+      try {
+         jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+         JSONObject jsonObject = new JSONObject(jsonString);
+         Assert.assertEquals(jsonResponse.getString("description"), jsonObject.get("description"));
+         Assert.assertEquals(jsonResponse.getString("email"), jsonObject.get("email"));
+         Assert.assertEquals(jsonResponse.getJSONObject("metadata").getString("checked"),
+               jsonObject.getJSONObject("metadata").get("checked"));
+         Assert.assertTrue(jsonResponse.has("id"));
+         Assert.assertEquals(jsonResponse.getJSONObject("subscriptions").getJSONArray("data").getJSONObject(0).getJSONObject("plan").getString("id"),
+               jsonObject.get("plan"));
+         Assert.assertEquals(jsonResponse.getJSONObject("subscriptions").getJSONArray("data").getJSONObject(0).getString("trial_end"),
+               jsonObject.get("trialEnd"));
+         Assert.assertEquals(jsonResponse.getJSONObject("subscriptions").getJSONArray("data").getJSONObject(0).getString("quantity"),
+               jsonObject.get("quantity"));
       } finally {
          proxyAdmin.deleteProxy(methodName);
       }
@@ -348,7 +388,7 @@ public class StripeConnectorIntegrationTest extends ESBIntegrationTest {
       try {
          jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
          JSONObject jsonObject = new JSONObject(jsonString);
-         Assert.assertEquals(jsonResponse.getJSONObject("error").getString("message"), "Invalid token id: " + jsonObject.get("card"));
+         Assert.assertEquals(jsonResponse.getJSONObject("error").getString("message"), "There is no token with ID " + jsonObject.get("card")+".");
       } finally {
          proxyAdmin.deleteProxy(methodName);
       }
@@ -605,7 +645,7 @@ public class StripeConnectorIntegrationTest extends ESBIntegrationTest {
    /**
     * Positive test case with optional parameters for createANewCharge method.
     */
-   @Test(enabled = true, groups = {"wso2.esb"}, description = "stripe {createANewCharge} integration test with optional parameters.")
+   @Test(enabled = false, groups = {"wso2.esb"}, description = "stripe {createANewCharge} integration test with optional parameters.")
    public void testCreateANewChargeWithOptionalParameter() throws Exception {
       String jsonRequestFilePath = pathToRequestsDirectory + "createANewCharge_Optional.txt";
       String methodName = "stripe_createANewCharge";
@@ -1017,8 +1057,7 @@ public class StripeConnectorIntegrationTest extends ESBIntegrationTest {
    }
 
    /**
-    * //     * Positive test case for deleteAnExistingCard method.
-    * //
+   * Positive test case for deleteAnExistingCard method.
     */
    @Test(enabled = false, groups = {"wso2.esb"}, description = "stripe {deleteAnExistingCard} integration test with positive case.")
    public void testDeleteAnExistingCardWithPositiveCase() throws Exception {
@@ -1970,7 +2009,7 @@ public class StripeConnectorIntegrationTest extends ESBIntegrationTest {
    /**
     * Positive test case with optional parameters for createAnInvoice method.
     */
-   @Test(enabled = false, groups = {"wso2.esb"}, description = "stripe {createAnInvoice} integration test with optional parameters.")
+   @Test(enabled = true, groups = {"wso2.esb"}, description = "stripe {createAnInvoice} integration test with optional parameters.")
    public void testCreateAnInvoiceWithOptionalParameter() throws Exception {
       String jsonRequestFilePath = pathToRequestsDirectory + "createAnInvoice_Optional.txt";
       String methodName = "stripe_createAnInvoice";
@@ -1985,6 +2024,9 @@ public class StripeConnectorIntegrationTest extends ESBIntegrationTest {
          Assert.assertEquals(jsonResponse.getString("customer"), jsonObject.get("customer"));
          Assert.assertEquals(jsonResponse.getString("object"), "invoice");
          Assert.assertEquals(jsonResponse.getString("description"), jsonObject.get("description"));
+         Assert.assertEquals(jsonResponse.getString("statement_descriptor"), jsonObject.get("statementDescriptor"));
+         Assert.assertEquals(jsonResponse.getString("subscription"), jsonObject.get("subscription"));
+         Assert.assertEquals(jsonResponse.getString("tax_percent"), jsonObject.get("taxPercent"));
          Assert.assertEquals(jsonResponse.getJSONObject("metadata").getString("checked"), jsonObject.getJSONObject("metadata").get("checked"));
       } finally {
          proxyAdmin.deleteProxy(methodName);
@@ -2390,6 +2432,8 @@ public class StripeConnectorIntegrationTest extends ESBIntegrationTest {
          Assert.assertEquals(jsonResponse.getString("currency"), jsonObject.get("currency"));
          Assert.assertEquals(jsonResponse.getString("recipient"), jsonObject.get("recipient"));
          Assert.assertEquals(jsonResponse.getString("description"), jsonObject.get("description"));
+         Assert.assertEquals(jsonResponse.getString("statement_descriptor"), jsonObject.get("statementDescriptor"));
+         Assert.assertEquals(jsonResponse.getJSONObject("bank_account").getString("id"), jsonObject.get("bankAccount"));
          Assert.assertEquals(jsonResponse.getJSONObject("metadata").getString("checked"), jsonObject.getJSONObject("metadata").get("checked"));
       } finally {
          proxyAdmin.deleteProxy(methodName);
