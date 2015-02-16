@@ -333,10 +333,6 @@ public class StripeConnectorIntegrationTest extends ESBIntegrationTest {
          Assert.assertEquals(jsonResponse.getJSONObject("metadata").getString("checked"), jsonObject.getJSONObject("metadata").get("checked"));
          Assert.assertEquals(jsonResponse.getString("account_balance"), jsonObject.get("accountBalance"));
          Assert.assertEquals(jsonResponse.getJSONObject("discount").getJSONObject("coupon").getString("id"), jsonObject.get("coupon"));
-        // JSONArray jsonArray=jsonResponse.getJSONObject("subscriptions").getJSONArray("data");
-         System.out.print(jsonResponse.getJSONObject("subscriptions")+"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-        // Assert.assertEquals(jsonArray[0].getJSONObject("plan").getString("id"), jsonObject.get("plan"));
-
       } finally {
          proxyAdmin.deleteProxy(methodName);
       }
