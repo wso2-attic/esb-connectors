@@ -17,16 +17,17 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 * under the License.
 -->
 <template name="createATransfer" xmlns="http://ws.apache.org/ns/synapse">
-   <parameter name="card" description="token id of the card"/>
+   <parameter name="card" description="Token id of the card"/>
    <parameter name="amount" description="The amount to transfer"/>
-   <parameter name="currency" description="discount amount to be applied to all recurring charges"/>
-   <parameter name="description" description="description of the transfer"/>
+   <parameter name="currency" description="Discount amount to be applied to all recurring charges"/>
+   <parameter name="description" description="Description of the transfer"/>
    <parameter name="recipient"
               description="The ID of an existing, verified recipient that the money will be transferred to in this request"/>
-   <parameter name="bankAccount" description="recipient's bank account"/>
+   <parameter name="bankAccount" description="Recipient's bank account"/>
    <parameter name="statementDescriptor"
-              description="description need to be attached with recipient's bank or card statement"/>
+              description="Description need to be attached with recipient's bank or card statement"/>
    <parameter name="metadata" description="A set of key/value pairs that you can attach to a transfer object."/>
+
    <sequence>
       <property name="uri.var.card" expression="$func:card"/>
       <property name="uri.var.amount" expression="$func:amount"/>
@@ -36,6 +37,7 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
       <property name="uri.var.bankAccount" expression="$func:bankAccount"/>
       <property name="uri.var.statementDescriptor" expression="$func:statementDescriptor"/>
       <property name="uri.var.metadata" expression="$func:metadata"/>
+
       <payloadFactory media-type="json">
          <format>
             {
@@ -50,6 +52,7 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
             <arg expression="get-property('uri.var.currency')"/>
          </args>
       </payloadFactory>
+
       <script language="js">
          <![CDATA[
 				//request body param variables
@@ -58,28 +61,34 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 				var description = mc.getProperty('uri.var.description');
 				var bankAccount = mc.getProperty('uri.var.bankAccount');
 				var statementDescriptor = mc.getProperty('uri.var.statementDescriptor');
+
             //Get the existing payload
 				var payload = mc.getPayloadJSON();
+
 				if (card != null && card != "") {
 					payload["card"]=card;
 				}
-                if (description != null && description != "") {
-                        payload["description"] = description;
-                }
-                if (bankAccount != null && bankAccount != "") {
-                        payload["bank_account"] = bankAccount;
-                }
-                if (statementDescriptor != null && statementDescriptor != "") {
-                        payload["statement_descriptor"] = statementDescriptor;
-                }
-                if (metadata != null && metadata != "") {
-                    var txt = '{"metadataList":'+metadata+'}';
-                    var query="";
-                    var obj = eval ("(" + txt + ")");
-                    for(var key in obj.metadataList){
-                       payload["metadata["+key+"]"]=obj.metadataList[key];
-                    }
-		        }
+
+            if (description != null && description != "") {
+               payload["description"] = description;
+            }
+
+            if (bankAccount != null && bankAccount != "") {
+               payload["bank_account"] = bankAccount;
+            }
+
+            if (statementDescriptor != null && statementDescriptor != "") {
+               payload["statement_descriptor"] = statementDescriptor;
+            }
+
+            if (metadata != null && metadata != "") {
+               var txt = '{"metadataList":'+metadata+'}';
+               var query="";
+               var obj = eval ("(" + txt + ")");
+               for(var key in obj.metadataList){
+                  payload["metadata["+key+"]"]=obj.metadataList[key];
+               }
+		      }
 				//Set the newly constructed payload
 				mc.setPayloadJSON(payload);
 
@@ -87,12 +96,12 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
       </script>
       <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
       <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+
       <call>
          <endpoint>
             <http method="post"
                   uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/transfers"/>
          </endpoint>
       </call>
-
    </sequence>
 </template>

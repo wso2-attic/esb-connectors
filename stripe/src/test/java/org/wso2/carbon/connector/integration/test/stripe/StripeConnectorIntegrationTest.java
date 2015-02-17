@@ -670,7 +670,7 @@ public class StripeConnectorIntegrationTest extends ESBIntegrationTest {
    /**
     * Positive test case with optional parameters for createANewCharge method.
     */
-   @Test(enabled = false, groups = {"wso2.esb"}, description = "stripe {createANewCharge} integration test with optional parameters.")
+   @Test(enabled = true, groups = {"wso2.esb"}, description = "stripe {createANewCharge} integration test with optional parameters.")
    public void testCreateANewChargeWithApplicationFeeParameter() throws Exception {
       String jsonRequestFilePath = pathToRequestsDirectory + "createANewCharge_WithApplicationFee.txt";
       String methodName = "stripe_createANewCharge_WithAuthToken";
@@ -2005,7 +2005,7 @@ public class StripeConnectorIntegrationTest extends ESBIntegrationTest {
    /**
     * Positive test case with optional parameters for createAnInvoice method.
     */
-   @Test(enabled = true, groups = {"wso2.esb"}, description = "stripe {createAnInvoice} integration test with optional parameters.")
+   @Test(enabled = false, groups = {"wso2.esb"}, description = "stripe {createAnInvoice} integration test with optional parameters.")
    public void testCreateAnInvoiceWithOptionalParameter() throws Exception {
       String jsonRequestFilePath = pathToRequestsDirectory + "createAnInvoice_Optional.txt";
       String methodName = "stripe_createAnInvoice";
