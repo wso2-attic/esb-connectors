@@ -21,18 +21,22 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
    <parameter name="customer" description="The identifier of the customer to whom the invoice is created."/>
    <parameter name="applicationFee"
               description="A fee that will be applied to the invoice and transferred to the application owner’s Stripe account."/>
-   <parameter name="description" description="description about the invoice"/>
-   <parameter name="statementDescription"
+   <parameter name="description" description="Description about the invoice"/>
+   <parameter name="statementDescriptor"
               description="Extra information about a charge for the customer’s credit card statement."/>
    <parameter name="metadata" description="A set of key/value pairs that you can attach to a refund object. "/>
    <parameter name="subscription" description="The ID of the subscription to invoice. "/>
+   <parameter name="taxPercent" description="The percent tax rate applied to the invoice. "/>
+
    <sequence>
       <property name="uri.var.customer" expression="$func:customer"/>
       <property name="uri.var.applicationFee" expression="$func:applicationFee"/>
       <property name="uri.var.description" expression="$func:description"/>
-      <property name="uri.var.statementDescription" expression="$func:statementDescription"/>
+      <property name="uri.var.statementDescriptor" expression="$func:statementDescriptor"/>
       <property name="uri.var.metadata" expression="$func:metadata"/>
       <property name="uri.var.subscription" expression="$func:subscription"/>
+      <property name="uri.var.taxPercent" expression="$func:taxPercent"/>
+
       <payloadFactory media-type="json">
          <format>
             {
@@ -43,42 +47,48 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
             <arg expression="get-property('uri.var.customer')"/>
          </args>
       </payloadFactory>
+
       <script language="js"><![CDATA[
          //request body param variables
          var applicationFee=mc.getProperty('uri.var.applicationFee');
          var description=mc.getProperty('uri.var.description');
-         var statementDescription=mc.getProperty('uri.var.statementDescription');
+         var statementDescriptor=mc.getProperty('uri.var.statementDescriptor');
          var subscription=mc.getProperty('uri.var.subscription');
          var metadata=mc.getProperty('uri.var.metadata');
-
+         var taxPercent=mc.getProperty('uri.var.taxPercent');
          //Get the existing payload
          var payload = mc.getPayloadJSON();
          if (applicationFee != null && applicationFee != "") {
              payload["application_fee"]=applicationFee;
          }
-          if (description != null && description != "") {
+         if (description != null && description != "") {
              payload["description"]=description;
          }
-         if (statementDescription != null && statementDescription != "") {
-             payload["statement_description"]=statementDescription;
+         if (statementDescriptor != null && statementDescriptor != "") {
+             payload["statement_descriptor"]=statementDescriptor;
+         }
+         if (taxPercent != null && taxPercent != "") {
+             payload["tax_percent"]=taxPercent;
          }
          if (subscription != null && subscription != "") {
              payload["subscription"]=subscription;
          }
-          if (metadata != null && metadata != "") {
-                 var txt = '{"metadataList":'+metadata+'}';
-                 var query="";
-                 var obj = eval ("(" + txt + ")");
-                 for(var key in obj.metadataList){
-                    payload["metadata["+key+"]"]=obj.metadataList[key];
-                 }
-             }
+         if (metadata != null && metadata != "") {
+            var txt = '{"metadataList":'+metadata+'}';
+            var query="";
+            var obj = eval ("(" + txt + ")");
+            for(var key in obj.metadataList){
+               payload["metadata["+key+"]"]=obj.metadataList[key];
+            }
+         }
          //Set the newly constructed payload
          mc.setPayloadJSON(payload);
       ]]>
       </script>
+
       <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
       <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+
       <call>
          <endpoint>
             <http method="post"

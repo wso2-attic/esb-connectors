@@ -18,17 +18,19 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 -->
 <template name="getAccessTokenFromRefreshToken" xmlns="http://ws.apache.org/ns/synapse">
    <!-- Required parameters -->
-   <parameter name="refreshToken" description="value of the refresh token."/>
+   <parameter name="refreshToken" description="Value of the refresh token."/>
    <parameter name="clientSecret"
               description="Value of your secret key given when you registered your application with Stripe."/>
    <parameter name="grantType" description="Token grant type. Value must be set to refreshToken."/>
    <!-- Optional parameters -->
    <parameter name="scope" description="The scope of the token"/>
+
    <sequence>
       <property name="uri.var.refreshToken" expression="$func:refreshToken"/>
       <property name="uri.var.scope" expression="$func:scope"/>
       <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
       <property name="uri.var.grantType" expression="$func:grantType"/>
+
       <payloadFactory media-type="json">
          <format>
             {
@@ -43,6 +45,7 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
             <arg expression="$func:grantType"/>
          </args>
       </payloadFactory>
+
       <script language="js">
          <![CDATA[
 				//request body param variables
@@ -56,13 +59,16 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 				mc.setPayloadJSON(payload);
 			]]>
       </script>
+
       <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
       <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+
       <call>
          <endpoint>
             <http method="post" uri-template="https://connect.stripe.com/oauth/token"/>
          </endpoint>
       </call>
+
       <filter source="$axis2:HTTP_SC" regex="[2][0][0]">
          <then>
             <property name="access_token" expression="json-eval($.access_token)"/>

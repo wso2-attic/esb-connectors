@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="changeAPlaylistsDetails" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="userId" description="Id of the user" />
+    <parameter name="playListId" description="Id of the user" />
+    <parameter name="name" description="playlist name"/>
+    <parameter name="public" description="If public is true the playlist will be public, if false it will be private"/>
+
+    <sequence>
+        <property name="uri.var.userId" expression="$func:userId" />
+        <property name="uri.var.playListId" expression="$func:playListId" />
+        <property name="uri.var.name" expression="$func:name" />
+        <property name="uri.var.public" expression="$func:public" />
+
+
+        <filter xpath="(get-property('uri.var.public') = '' or (not(string(get-property('uri.var.public'))))) and (get-property('uri.var.name') = '' or (not(string(get-property('uri.var.name'))))) ">
+            <then>
+                <payloadFactory media-type="json">
+                    <format>
+                        {
+
+                        }
+                    </format>
+                    <args>
+                        <arg expression="get-property('uri.var.name')" />
+                    </args>
+                </payloadFactory>
+            </then>
+            <else>
+                <filter xpath="(get-property('uri.var.public') = '' or (not(string(get-property('uri.var.public'))))) and not(get-property('uri.var.name') = '' or (not(string(get-property('uri.var.name'))))) ">
+                    <then>
+                        <payloadFactory media-type="json">
+                        <format>
+                            {
+                            "name":"$1"
+                            }
+                        </format>
+                        <args>
+                            <arg expression="get-property('uri.var.name')" />
+                        </args>
+                    </payloadFactory>
+                    </then>
+                </filter>
+                <filter xpath="not(get-property('uri.var.public') = '' or (not(string(get-property('uri.var.public'))))) and (get-property('uri.var.name') = '' or (not(string(get-property('uri.var.name'))))) ">
+                    <then>
+                        <payloadFactory media-type="json">
+                            <format>
+                                {
+                                "public":$1
+                                }
+                            </format>
+                            <args>
+                                <arg expression="get-property('uri.var.public')" />
+                            </args>
+                        </payloadFactory>
+                    </then>
+                </filter>
+                <filter xpath="not(get-property('uri.var.public') = '' or (not(string(get-property('uri.var.public'))))) and not(get-property('uri.var.name') = '' or (not(string(get-property('uri.var.name'))))) ">
+                    <then>
+                        <payloadFactory media-type="json">
+                            <format>
+                                {
+                                "name":"$1",
+                                "public":$2
+                                }
+                            </format>
+                            <args>
+                                <arg expression="get-property('uri.var.name')" />
+                                <arg expression="get-property('uri.var.public')" />
+                            </args>
+                        </payloadFactory>
+                    </then>
+                </filter>
+            </else>
+        </filter>
+
+        <property name="messageType" value="application/json"
+                  scope="axis2" />
+
+        <header name="Content-Type" value="application/json" scope="transport" />
+
+        <call>
+            <endpoint>
+                <http method="put"
+                      uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/users/{uri.var.userId}/playlists/{uri.var.playListId}" />
+            </endpoint>
+        </call>
+
+    </sequence>
+</template>

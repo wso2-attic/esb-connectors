@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="getAccessTokenFromAuthorization" xmlns="http://ws.apache.org/ns/synapse">
+<!-- Required parameters -->
+<parameter name="code" description="code." />
+<parameter name="redirect_uri"
+           description="Same redirect_uri that you passed to get authorization_code." />
+<parameter name="client_id"
+           description="Value of your API Key given when you registered your application with Spotify." />
+<parameter name="client_secret"
+               description="client secret." />
+<parameter name="grant_type" description="Token response type. Value must be set to code." />
+
+
+<sequence>
+<property name="uri.var.code" expression="$func:code" />
+<property name="uri.var.redirect_uri" expression="$func:redirect_uri" />
+<property name="uri.var.client_id" expression="$func:client_id" />
+<property name="uri.var.client_secret" expression="$func:client_secret" />
+<property name="uri.var.grant_type" expression="$func:grant_type" />
+
+    <payloadFactory media-type="json">
+        <format>
+
+            {
+            "grant_type":"$1",
+            "code":"$2",
+            "redirect_uri":"$3",
+            "client_id":"$4",
+            "client_secret":"$5"
+           }
+
+        </format>
+
+        <args>
+            <arg expression="get-property('grant_type')" />
+            <arg expression="get-property('code')" />
+            <arg expression="get-property('redirect_uri')" />
+            <arg expression="get-property('client_id')" />
+            <arg expression="get-property('client_secret')" />
+
+        </args>
+    </payloadFactory>
+
+
+    <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+
+    <call>
+            <endpoint>
+                <http method="post" uri-template="https://accounts.spotify.com/api/token" />
+            </endpoint>
+    </call>
+    <filter source="$axis2:HTTP_SC" regex="[2][0][0]">
+        <then>
+            <property name="access_token" expression="json-eval($.access_token)" />
+            <property name="refresh_token" expression="json-eval($.refresh_token)" />
+            <header name="Authorization" expression="fn:concat('Bearer ',get-property('access_token'))"
+                    scope="transport" />
+        </then>
+    </filter>
+
+    </sequence>
+</template>

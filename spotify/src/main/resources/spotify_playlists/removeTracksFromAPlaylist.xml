@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="removeTracksFromAPlaylist" xmlns="http://ws.apache.org/ns/synapse">
+
+    <parameter name="userId" description="The user's Spotify user ID." />
+    <parameter name="playListId" description="The Spotify ID for the playlist." />
+    <parameter name="tracks" description="An array of objects containing Spotify URIs of the tracks to removed" />
+
+    <sequence>
+
+        <property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.playListId" expression="$func:playListId"/>
+        <property name="uri.var.tracks" expression="$func:tracks"/>
+
+        <property name="messageType" value="application/json" scope="axis2" />
+        <log>
+            <property name="Check tracks" expression="$func:tracks"/>
+        </log>
+
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "tracks": $1
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.tracks')" />
+            </args>
+        </payloadFactory>
+
+        <header name="Content-Type" value="application/json" scope="transport" />
+
+        <property name="messageType" value="application/json" scope="axis2" />
+
+
+        <call>
+            <endpoint>
+                <http method="delete"
+                      uri-template="https://api.spotify.com/v1/users/keerthu/playlists/4apUBLCOHeguUnm8isOhE3/tracks"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

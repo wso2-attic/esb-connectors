@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="searchForAnItem" xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- Required parameters-->
+    <parameter name="searchQuery" description="Full-text search query string." />
+    <parameter name="typeOfItem" description="item types to search" />
+
+    <!-- Optional parameters-->
+    <parameter name="spotifylimit" description="number of tracks to return" />
+    <parameter name="spotifyoffset" description="index of the first track to return." />
+
+    <sequence>
+        <property name="uri.var.searchQuery" expression="$func:searchQuery" />
+        <property name="uri.var.typeOfItem" expression="$func:typeOfItem" />
+
+        <property name="uri.var.spotifyoffset" expression="$func:spotifyoffset" />
+        <property name="uri.var.spotifylimit" expression="$func:spotifylimit" />
+        <!--<property name="sQuery"/>-->
+        <script language="js"><![CDATA[
+
+                    var query = mc.getProperty('uri.var.searchQuery');
+					var encodedQuery = encodeURIComponent(query);
+
+					mc.setProperty('uri.var.sQuery', encodedQuery);
+
+
+        		 ]]>
+        </script>
+        <log level="custom">
+            <property name="requestMethod" expression="get-property('sQuery')"/>
+        </log>
+
+        <filter xpath="(not(get-property('uri.var.spotifylimit') = '' or (not(string(get-property('uri.var.spotifylimit'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;limit=',get-property('uri.var.spotifylimit'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.spotifyoffset') = '' or (not(string(get-property('uri.var.spotifyoffset'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;offset=',get-property('uri.var.spotifyoffset'))"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/search?q={uri.var.sQuery}&amp;type={uri.var.typeOfItem}{uri.var.apiParameters}" />
+            </endpoint>
+        </call>
+    </sequence>
+</template>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="replaceAPlaylistsTracks" xmlns="http://ws.apache.org/ns/synapse">
+
+    <parameter name="userId" description="The user's Spotify user ID." />
+    <parameter name="playListId" description="The Spotify ID for the playlist." />
+
+    <!-- Optional parameters-->
+    <parameter name="uris" description="list of spotify track URIs to add" />
+    <parameter name="uriList" description="list of spotify track URIs to add" />
+
+    <sequence>
+        <property name="uri.var.userId" expression="$func:userId" />
+        <property name="uri.var.playListId" expression="$func:playListId" />
+        <property name="uri.var.uris" expression="$func:uris" />
+        <property name="uri.var.uriList" expression="$func:uriList" />
+
+        <filter xpath="(not(get-property('uri.var.uris') = '' or (not(string(get-property('uri.var.uris'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                      expression="fn:concat(get-property('uri.var.apiParameters'),'?uris=',get-property('uri.var.uris'))"/>
+            </then>
+            <else>
+                <property name="messageType" value="application/json" scope="axis2" />
+
+                <payloadFactory media-type="json">
+                    <format>
+                        {
+                            "uris":$1
+                        }
+                    </format>
+
+                    <args>
+                        <arg expression="get-property('uri.var.uriList')" />
+                    </args>
+                </payloadFactory>
+
+            </else>
+        </filter>
+
+        <header name="Content-Type" value="application/json" scope="transport" />
+
+        <call>
+            <endpoint>
+                <http method="put"
+                      uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/users/{uri.var.userId}/playlists/{uri.var.playListId}/tracks{uri.var.apiParameters} " />
+            </endpoint>
+        </call>
+    </sequence>
+</template>

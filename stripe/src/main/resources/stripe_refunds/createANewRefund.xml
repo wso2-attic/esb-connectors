@@ -18,17 +18,19 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 -->
 <template name="createANewRefund" xmlns="http://ws.apache.org/ns/synapse">
    <parameter name="chargeId" description="The identifier of the charge to be refunded."/>
-   <parameter name="amount" description="how much of the charge to be refunded"/>
+   <parameter name="amount" description="How much of the charge to be refunded"/>
    <parameter name="refundApplicationFee"
               description="Boolean indicating whether the application fee should be refunded when refunding this charge"/>
    <parameter name="reason" description="String indicating the reason for the refund"/>
    <parameter name="metadata" description="A set of key/value pairs that you can attach to a refund object. "/>
+
    <sequence>
       <property name="uri.var.chargeId" expression="$func:chargeId"/>
       <property name="uri.var.amount" expression="$func:amount"/>
       <property name="uri.var.refundApplicationFee" expression="$func:refundApplicationFee"/>
       <property name="uri.var.reason" expression="$func:reason"/>
       <property name="uri.var.metadata" expression="$func:metadata"/>
+
       <payloadFactory media-type="json">
          <format>
             {
@@ -36,38 +38,41 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
          </format>
 
       </payloadFactory>
-      <script language="js"><![CDATA[
-            //request body param variables
-            var amount=mc.getProperty('uri.var.amount');
-            var refundApplicationFee=mc.getProperty('uri.var.refundApplicationFee');
-            var reason=mc.getProperty('uri.var.reason');
-            var metadata=mc.getProperty('uri.var.metadata');
 
-            //Get the existing payload
-            var payload = mc.getPayloadJSON();
-            if (amount != null && amount != "") {
-                payload["amount"]=amount;
+      <script language="js"><![CDATA[
+         //request body param variables
+         var amount=mc.getProperty('uri.var.amount');
+         var refundApplicationFee=mc.getProperty('uri.var.refundApplicationFee');
+         var reason=mc.getProperty('uri.var.reason');
+         var metadata=mc.getProperty('uri.var.metadata');
+
+         //Get the existing payload
+         var payload = mc.getPayloadJSON();
+         if (amount != null && amount != "") {
+             payload["amount"]=amount;
+         }
+          if (refundApplicationFee != null && refundApplicationFee != "") {
+             payload["refund_application_fee"]=refundApplicationFee;
+         }
+         if (reason != null && reason != "") {
+             payload["reason"]=reason;
+         }
+         if (metadata != null && metadata != "") {
+            var txt = '{"metadataList":'+metadata+'}';
+            var query="";
+            var obj = eval ("(" + txt + ")");
+            for(var key in obj.metadataList){
+               payload["metadata["+key+"]"]=obj.metadataList[key];
             }
-             if (refundApplicationFee != null && refundApplicationFee != "") {
-                payload["refund_application_fee"]=refundApplicationFee;
-            }
-            if (reason != null && reason != "") {
-                payload["reason"]=reason;
-            }
-             if (metadata != null && metadata != "") {
-                    var txt = '{"metadataList":'+metadata+'}';
-                    var query="";
-                    var obj = eval ("(" + txt + ")");
-                    for(var key in obj.metadataList){
-                       payload["metadata["+key+"]"]=obj.metadataList[key];
-                    }
-                }
-            //Set the newly constructed payload
-            mc.setPayloadJSON(payload);
+         }
+         //Set the newly constructed payload
+         mc.setPayloadJSON(payload);
         ]]>
       </script>
+
       <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
       <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+
       <call>
          <endpoint>
             <http method="post"

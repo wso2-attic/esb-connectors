@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="getAlbumsOfAnArtist" xmlns="http://ws.apache.org/ns/synapse">
+
+    <parameter name="artistId"
+               description="Spotify Id for the artist" />
+
+
+    <!-- Optional parameters -->
+    <parameter name="albumType"
+               description="Type of the album" />
+    <parameter name="albumLimit"
+               description="Number of the album objects to display" />
+    <parameter name="requestedCountry"
+               description="The country to limit the response to one particular country" />
+    <parameter name="albumOffset"
+               description="The index of the first album in the set of albums to return" />
+
+
+        <sequence>
+            <property name="uri.var.artistId" expression="$func:artistId" />
+            <property name="uri.var.requestedCountry" expression="$func:requestedCountry" />
+            <property name="uri.var.albumType" expression="$func:albumType" />
+            <property name="uri.var.albumOffset" expression="$func:albumOffset" />
+            <property name="uri.var.albumLimit" expression="$func:albumLimit" />
+
+            <filter xpath="(not(get-property('uri.var.albumType') = '' or (not(string(get-property('uri.var.albumType'))))))">
+                <then>
+                    <property name="uri.var.optional_parameters"
+                              expression="fn:concat(get-property('uri.var.optional_parameters'),'&amp;album_type=',get-property('uri.var.albumType'))"/>
+                </then>
+            </filter>
+            <filter xpath="(not(get-property('uri.var.requestedCountry') = '' or (not(string(get-property('uri.var.requestedCountry'))))))">
+                <then>
+                    <property name="uri.var.optional_parameters"
+                              expression="fn:concat(get-property('uri.var.optional_parameters'),'&amp;country=',get-property('uri.var.requestedCountry'))"/>
+                </then>
+            </filter>
+            <filter xpath="(not(get-property('uri.var.albumOffset') = '' or (not(string(get-property('uri.var.albumOffset'))))))">
+                <then>
+                    <property name="uri.var.optional_parameters"
+                              expression="fn:concat(get-property('uri.var.optional_parameters'),'&amp;offset=',get-property('uri.var.albumOffset'))"/>
+                </then>
+            </filter>
+            <filter xpath="(not(get-property('uri.var.albumLimit') = '' or (not(string(get-property('uri.var.albumLimit'))))))">
+                <then>
+                    <property name="uri.var.optional_parameters"
+                              expression="fn:concat(get-property('uri.var.optional_parameters'),'&amp;limit=',get-property('uri.var.albumLimit'))"/>
+                </then>
+            </filter>
+            <call>
+                <endpoint>
+                    <http method="get"
+                          uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/artists/{uri.var.artistId}/albums?{uri.var.optional_parameters}"/>
+                </endpoint>
+            </call>
+        </sequence>
+    </template>

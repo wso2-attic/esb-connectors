@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="getTracksOfCurrentUser" xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- Optional parameters -->
+    <parameter name="limit"
+               description="Number of the track objects to display" />
+    <parameter name="offset"
+               description="The index of the first track in the set of tracks to return" />
+
+    <!-- Additional parameter-->
+    <parameter name="optional_parameters"
+               description="Concatination of optional parameters" />
+    <sequence>
+        <property name="uri.var.offset" expression="$func:offset" />
+        <property name="uri.var.limit" expression="$func:limit" />
+
+        <property name="optional_parameters" value=""/>
+
+
+        <filter xpath="(not(get-property('uri.var.offset') = '' or (not(string(get-property('uri.var.offset'))))))">
+            <then>
+                <property name="uri.var.optional_parameters"
+                          expression="fn:concat(get-property('uri.var.optional_parameters'),'offset=',get-property('uri.var.offset'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.limit') = '' or (not(string(get-property('uri.var.limit'))))))">
+            <then>
+                <property name="uri.var.optional_parameters"
+                          expression="fn:concat(get-property('uri.var.optional_parameters'),'limit=',get-property('uri.var.limit'))"/>
+            </then>
+        </filter>
+
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/me/tracks?{uri.var.optional_parameters}" />
+            </endpoint>
+        </call>
+    </sequence>
+</template>

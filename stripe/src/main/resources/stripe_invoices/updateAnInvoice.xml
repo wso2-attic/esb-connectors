@@ -21,21 +21,25 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
    <parameter name="invoiceId" description="The identifier of the invoice to be updated."/>
    <!-- Optional parameters -->
    <parameter name="applicationFee"
-              description="the amount to be applied to the invoice and transferred to the application owner’s Stripe account."/>
-   <parameter name="description" description="description about the invoice"/>
-   <parameter name="statementDescription"
+              description="The amount to be applied to the invoice and transferred to the application owner’s Stripe account."/>
+   <parameter name="description" description="Description about the invoice"/>
+   <parameter name="statementDescriptor"
               description="Extra information about a charge for the customer’s credit card statement."/>
    <parameter name="metadata" description="A set of key/value pairs that you can attach to a refund object. "/>
    <parameter name="closed" description="Boolean representing whether an invoice is closed or not. "/>
    <parameter name="forgiven" description="Boolean representing whether an invoice is forgiven or not."/>
+   <parameter name="taxPercent" description="The percent tax rate applied to the invoice. "/>
+
    <sequence>
       <property name="uri.var.invoiceId" expression="$func:invoiceId"/>
       <property name="uri.var.applicationFee" expression="$func:applicationFee"/>
       <property name="uri.var.description" expression="$func:description"/>
-      <property name="uri.var.statementDescription" expression="$func:statementDescription"/>
+      <property name="uri.var.statementDescriptor" expression="$func:statementDescriptor"/>
       <property name="uri.var.metadata" expression="$func:metadata"/>
       <property name="uri.var.closed" expression="$func:closed"/>
       <property name="uri.var.forgiven" expression="$func:forgiven"/>
+      <property name="uri.var.taxPercent" expression="$func:taxPercent"/>
+
       <payloadFactory media-type="json">
          <format>
             {
@@ -43,46 +47,52 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
             }
          </format>
       </payloadFactory>
+
       <script language="js">
          <![CDATA[
 				//request body param variables
 				var applicationFee = mc.getProperty('uri.var.applicationFee');
 				var forgiven = mc.getProperty('uri.var.forgiven');
 				var description = mc.getProperty('uri.var.description');
-				var statementDescription = mc.getProperty('uri.var.statementDescription');
+				var statementDescriptor = mc.getProperty('uri.var.statementDescriptor');
 				var closed = mc.getProperty('uri.var.closed');
-                var metadata= mc.getProperty('uri.var.metadata');
-                //Get the existing payload
+            var taxPercent=mc.getProperty('uri.var.taxPercent');
+            var metadata= mc.getProperty('uri.var.metadata');
+            //Get the existing payload
 				var payload = mc.getPayloadJSON();
 				if (applicationFee != null && applicationFee != "") {
 					payload["application_fee"]=applicationFee;
 				}
-                if (forgiven != null && forgiven != "") {
-                        payload["forgiven"] = forgiven;
-                }
-                if (description != null && description != "") {
-                        payload["description"] = description;
-                }
-                if (statementDescription != null && statementDescription != "") {
-                        payload["statement_description"] = statementDescription;
-                }
-                if (closed != null && closed != "") {
-                        payload["closed"] = closed;
-                }
-                if (metadata != null && metadata != "") {
-                    var txt = '{"metadataList":'+metadata+'}';
-                    var query="";
-                    var obj = eval ("(" + txt + ")");
-                    for(var key in obj.metadataList){
-                       payload["metadata["+key+"]"]=obj.metadataList[key];
-                    }
-		        }
+            if (forgiven != null && forgiven != "") {
+               payload["forgiven"] = forgiven;
+            }
+            if (description != null && description != "") {
+               payload["description"] = description;
+            }
+            if (statementDescriptor != null && statementDescriptor != "") {
+               payload["statement_descriptor"] = statementDescriptor;
+            }
+            if (closed != null && closed != "") {
+               payload["closed"] = closed;
+            }
+             if (taxPercent != null && taxPercent != "") {
+             payload["tax_percent"]=taxPercent;
+            }
+            if (metadata != null && metadata != "") {
+               var txt = '{"metadataList":'+metadata+'}';
+               var query="";
+               var obj = eval ("(" + txt + ")");
+               for(var key in obj.metadataList){
+                  payload["metadata["+key+"]"]=obj.metadataList[key];
+               }
+            }
 				//Set the newly constructed payload
 				mc.setPayloadJSON(payload);
 			]]>
       </script>
       <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
       <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+
       <call>
          <endpoint>
             <http method="post"

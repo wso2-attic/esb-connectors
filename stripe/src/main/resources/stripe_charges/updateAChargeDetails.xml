@@ -20,12 +20,39 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
    <!-- Required parameters -->
    <parameter name="chargeId" description="The identifier of the charge to be updated"/>
    <!-- Optional parameters -->
-   <parameter name="description" description="description of the charge"/>
+   <parameter name="description" description="Description of the charge"/>
    <parameter name="metadata" description="A set of key/value pairs that you can attach to a customer object."/>
+   <parameter name="fraudDetails"
+              description="A set of key/value pairs that you can attach to a charge giving information about its riskiness."/>
+   <parameter name="receiptEmail" description="The email address to send this charge's receipt to"/>
+   <parameter name="shippingName" description="Recipient name"/>
+   <parameter name="shippingPhone" description="Recipient phone"/>
+   <parameter name="shippingAddressLine1" description="Shipping address address line 1"/>
+   <parameter name="shippingAddressLine2" description="Shipping address address line 2"/>
+   <parameter name="shippingAddressCity" description="City of the shipping address"/>
+   <parameter name="shippingAddressState" description="State of the shipping address"/>
+   <parameter name="shippingAddressPostalCode" description="Postal code of the shipping address"/>
+   <parameter name="shippingAddressCountry" description="Country of the shipping address"/>
+   <parameter name="trackingNumber" description="The tracking number for a physical product"/>
+   <parameter name="carrier" description="The delivery service that shipped a physical product"/>
+
    <sequence>
       <property name="uri.var.chargeId" expression="$func:chargeId"/>
       <property name="uri.var.description" expression="$func:description"/>
       <property name="uri.var.metadata" expression="$func:metadata"/>
+      <property name="uri.var.fraudDetails" expression="$func:fraudDetails"/>
+      <property name="uri.var.receiptEmail" expression="$func:receiptEmail"/>
+      <property name="uri.var.shippingName" expression="$func:shippingName"/>
+      <property name="uri.var.shippingPhone" expression="$func:shippingPhone"/>
+      <property name="uri.var.shippingAddressLine1" expression="$func:shippingAddressLine1"/>
+      <property name="uri.var.shippingAddressLine2" expression="$func:shippingAddressLine2"/>
+      <property name="uri.var.shippingAddressCity" expression="$func:shippingAddressCity"/>
+      <property name="uri.var.shippingAddressState" expression="$func:shippingAddressState"/>
+      <property name="uri.var.shippingAddressPostalCode" expression="$func:shippingAddressPostalCode"/>
+      <property name="uri.var.shippingAddressCountry" expression="$func:shippingAddressCountry"/>
+      <property name="uri.var.trackingNumber" expression="$func:trackingNumber"/>
+      <property name="uri.var.carrier" expression="$func:carrier"/>
+
       <payloadFactory media-type="json">
          <format>
             {
@@ -33,28 +60,87 @@ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
             }
          </format>
       </payloadFactory>
+
       <script language="js">
          <![CDATA[
-				//request body param variables
-				var description = mc.getProperty('uri.var.description');
-                var metadata= mc.getProperty('uri.var.metadata');
-                var payload = mc.getPayloadJSON();
-                if (description != null && description != "") {
-                        payload["description"] = description;
-                }
-                if (metadata != null && metadata != "") {
-                    var txt = '{"metadataList":'+metadata+'}';
-                    var query="";
-                    var obj = eval ("(" + txt + ")");
-                    for(var key in obj.metadataList){
-                       payload["metadata["+key+"]"]=obj.metadataList[key];
-                    }
-		        }
-				//Set the newly constructed payload
-     			mc.setPayloadJSON(payload);
+			//request body param variables
+			var description = mc.getProperty('uri.var.description');
+         var metadata= mc.getProperty('uri.var.metadata');
+         var fraudDetails= mc.getProperty('uri.var.fraudDetails');
+         var receiptEmail= mc.getProperty('uri.var.receiptEmail');
+         var shippingName = mc.getProperty('uri.var.shippingName');
+			var shippingPhone = mc.getProperty('uri.var.shippingPhone');
+			var shippingAddressLine1 = mc.getProperty('uri.var.shippingAddressLine1');
+			var shippingAddressLine2 = mc.getProperty('uri.var.shippingAddressLine2');
+			var shippingAddressCity = mc.getProperty('uri.var.shippingAddressCity');
+			var shippingAddressState = mc.getProperty('uri.var.shippingAddressState');
+			var shippingAddressPostalCode = mc.getProperty('uri.var.shippingAddressPostalCode');
+			var shippingAddressCountry = mc.getProperty('uri.var.shippingAddressCountry');
+         var trackingNumber = mc.getProperty('uri.var.trackingNumber');
+			var carrier = mc.getProperty('uri.var.carrier');
+
+         var payload = mc.getPayloadJSON();
+
+         if (description != null && description != "") {
+            payload["description"] = description;
+         }
+         if (receiptEmail != null && receiptEmail != "") {
+            payload["receipt_email"] = receiptEmail;
+         }
+         if (metadata != null && metadata != "") {
+            var txt = '{"metadataList":'+metadata+'}';
+            var query="";
+            var obj = eval ("(" + txt + ")");
+            for(var key in obj.metadataList){
+               payload["metadata["+key+"]"]=obj.metadataList[key];
+            }
+         }
+         if (fraudDetails != null && fraudDetails != "") {
+            var txt = '{"fraudDetailsList":'+fraudDetails+'}';
+            var query="";
+            var obj = eval ("(" + txt + ")");
+            for(var key in obj.fraudDetailsList){
+               payload["fraud_details["+key+"]"]=obj.fraudDetailsList[key];
+            }
+         }
+         if (shippingName != null && shippingName != "") {
+             payload["shipping[name]"]=shippingName;
+         }
+         if (shippingPhone != null && shippingPhone != "") {
+             payload["shipping[phone]"]=shippingPhone;
+         }
+         if (shippingAddressLine1 != null && shippingAddressLine1 != "") {
+             payload["shipping[address[line1]]"] = shippingAddressLine1;
+         }
+         if (shippingAddressLine2 != null && shippingAddressLine2 != "") {
+             payload["shipping[address[line2]]"] = shippingAddressLine2;
+         }
+         if (shippingAddressCity != null && shippingAddressCity != "") {
+             payload["shipping[address[city]]"] = shippingAddressCity;
+         }
+         if (shippingAddressState != null && shippingAddressState != "") {
+             payload["shipping[address[state]]"] = shippingAddressState;
+         }
+         if (shippingAddressPostalCode != null && shippingAddressPostalCode != "") {
+             payload["shipping[address[postal_code]]"] = shippingAddressPostalCode;
+         }
+         if (shippingAddressCountry != null && shippingAddressCountry != "") {
+             payload["shipping[address[country]]"] = shippingAddressCountry;
+         }
+         if (trackingNumber != null && trackingNumber != "") {
+            payload["shipping[tracking_number]"] = trackingNumber;
+         }
+         if (carrier != null && carrier != "") {
+            payload["shipping[carrier]"] = carrier;
+         }
+         //Set the newly constructed payload
+         mc.setPayloadJSON(payload);
 			]]>
       </script>
+
       <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+      <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+
       <call>
          <endpoint>
             <http method="post"
