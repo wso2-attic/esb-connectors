@@ -1,0 +1,445 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="peoplehr_handlePayroll" transports="https,http" statistics="disable"
+   trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- PeopleHR parameters -->
+         <property name="peopleHrApiUrl" expression="json-eval($.peopleHrApiUrl)" />
+         <property name="peopleHrApiKey" expression="json-eval($.peopleHrApiKey)" />
+         <property name="peopleHrEmployeeIds" expression="json-eval($.peopleHrEmployeeIds)" />
+         <property name="isIncludeHistory" expression="json-eval($.isIncludeHistory)" />
+
+         <!-- Xero parameters -->
+         <property name="xeroConsumerKey" expression="json-eval($.xeroConsumerKey)" />
+         <property name="xeroConsumerSecret" expression="json-eval($.xeroConsumerSecret)" />
+         <property name="xeroAccessToken" expression="json-eval($.xeroAccessToken)" />
+         <property name="xeroAccessTokenSecret" expression="json-eval($.xeroAccessTokenSecret)" />
+         <property name="xeroApiUrl" expression="json-eval($.xeroApiUrl)" />
+         <property name="xeroEarningsTypeID" expression="json-eval($.xeroEarningsTypeID)" />
+         <property name="xeroStandardHoursPerWeek" expression="json-eval($.xeroStandardHoursPerWeek)" />
+
+         <property name="uri.var.responseBuilder" value="" scope="operation" />
+         <property name="uri.var.index" value="0" scope="operation" />
+         <property name="messageType" value="application/xml" scope="axis2" />
+
+         <!--Getting the count of the employee Ids that the user passed -->
+         <property name="uri.var.employeeCount" expression="count(//peopleHrEmployeeIds)" scope="operation" />
+
+         <!-- If there are no any employeeIds provided in peopleHR then display a custom generated error message -->
+         <filter xpath="0 = get-property('operation', 'uri.var.employeeCount')">
+            <then>
+               <property name="messageType" value="application/json" scope="axis2" />
+               <property name="status" value="Error" />
+               <property name="message" value="Payroll details cannot be handled since employees were not provided." />
+
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="peopleHr_getEmployee" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+
+               <property name="uri.var.responseBuilder" expression="json-eval($)" scope="operation" />
+               <loopback />
+            </then>
+            <else>
+               <!-- Iterate through all the employee ID's from the array and if the employee has salary details, then add 
+                  them in Xero -->
+               <iterate continueParent="true" id="employeeIdIterator" preservePayload="true" expression="//peopleHrEmployeeIds"
+                  sequential="true">
+                  <target>
+                     <sequence>
+                        <!-- Retrieving one employee at a time from the employee ID array -->
+                        <property name="peopleHrEmployeeId" expression="//peopleHrEmployeeIds" />
+                        <property name="messageType" value="application/json" scope="axis2" />
+
+                        <!-- get Salary in PeopleHR -->
+                        <peoplehr.init>
+                           <employeeId>{$ctx:peopleHrEmployeeId}</employeeId>
+                           <apiUrl>{$ctx:peopleHrApiUrl}</apiUrl>
+                           <apiKey>{$ctx:peopleHrApiKey}</apiKey>
+                        </peoplehr.init>
+
+                        <peoplehr.getSalary>
+                           <isIncludeHistory>false</isIncludeHistory>
+                        </peoplehr.getSalary>
+
+                        <!--If PeopleHR gives an error while retrieving the salary of the employee, display the error message 
+                           given by PeopleHR -->
+                        <filter source="json-eval($.isError)" regex="true">
+                           <then>
+                              <property name="messageType" value="application/json" scope="axis2" />
+                              <property name="status" value="Error" />
+                              <property name="message" expression="json-eval($.Message)" />
+
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="peoplehr_getSalary" />
+                                 <with-param name="id" value="{$ctx:peopleHrEmployeeId}" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </then>
+
+                           <else>
+                              <property name="result" expression="json-eval($.Result)" />
+
+                              <!-- Getting the Result count -->
+                              <script language="js">
+											<![CDATA[
+													var resultCount=eval("("+mc.getProperty('result')+")").length;
+													mc.setProperty('resultCount',resultCount);
+											]]>
+                              </script>
+
+                              <!-- If Salary details are not existing for the employee in PeopleHR then display a custom 
+                                 generated error message -->
+                              <filter xpath="boolean(get-property('resultCount')) = 0">
+                                 <then>
+                                    <property name="messageType" value="application/json" scope="axis2" />
+                                    <property name="status" value="Error" />
+                                    <property name="message" value="Salary data cannot be found for the employee." />
+
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="peoplehr_getSalary" />
+                                       <with-param name="id" value="{$ctx:peopleHrEmployeeId}" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </then>
+
+                                 <!-- If Salary details are existing for the employee in PeopleHR -->
+                                 <else>
+                                    <!-- Retrieving salary details -->
+                                    <property name="effectiveDate" expression="json-eval($.Result[0].EffectiveFrom)" />
+                                    <property name="salaryAndWagesType" expression="json-eval($.Result[0].SalaryType)" />
+                                    <property name="salaryAmount" expression="json-eval($.Result[0].TotalSalaryAmount)" />
+
+                                    <!-- get employee in PeopleHR -->
+                                    <!-- retrieving employee email using the employee's ID -->
+                                    <peoplehr.init>
+                                       <employeeId>{$ctx:peopleHrEmployeeId}</employeeId>
+                                       <apiUrl>{$ctx:peopleHrApiUrl}</apiUrl>
+                                       <apiKey>{$ctx:peopleHrApiKey}</apiKey>
+                                    </peoplehr.init>
+
+                                    <peoplehr.getEmployee />
+
+                                    <!-- Retrieving employee Email -->
+                                    <property name="empEmailId" expression="json-eval($.Result.EmailId.DisplayValue)" />
+                                    <property name="empEmail"
+                                       expression="fn:concat('Email=&quot;', get-property('empEmailId'), '&quot;')" />
+
+                                    <!-- Check whether the employee email address is available -->
+                                    <!-- If Employee's email is not existing in PeopleHR -->
+                                    <filter source="boolean(get-property('empEmailId'))" regex="false">
+                                       <then>
+                                          <property name="messageType" value="application/json" scope="axis2" />
+                                          <property name="status" value="Error" />
+                                          <property name="message" value="Email ID was not set for the employee." />
+
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="peoplehr_getEmployee" />
+                                             <with-param name="id" value="{$ctx:peopleHrEmployeeId}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+
+                                          <property name="uri.var.responseBuilder" expression="json-eval($)"
+                                             scope="operation" />
+                                       </then>
+
+                                       <!-- If Employee's email exists in PeopleHR -->
+                                       <!-- Retrieve the employee's ID in Xero using the employee email -->
+                                       <else>
+                                          <property name="uri.var.employeeId" action="remove" />
+
+                                          <!-- get employee in Xero -->
+                                          <xero.init>
+                                             <consumerKey>{$ctx:xeroConsumerKey}</consumerKey>
+                                             <consumerSecret>{$ctx:xeroConsumerSecret}</consumerSecret>
+                                             <accessToken>{$ctx:xeroAccessToken}</accessToken>
+                                             <accessTokenSecret>{$ctx:xeroAccessTokenSecret}</accessTokenSecret>
+                                             <apiUrl>{$ctx:xeroApiUrl}</apiUrl>
+                                             <acceptType>application/json</acceptType>
+                                          </xero.init>
+
+                                          <xero.getEmployee>
+                                             <where>{$ctx:empEmail}</where>
+                                          </xero.getEmployee>
+
+                                          <!-- Retrieve the status code of the response -->
+                                          <property name="uri.var.xeroStatusCode" expression="$axis2:HTTP_SC" />
+
+                                          <property name="messageType" value="application/json" scope="axis2" />
+
+                                          <!-- Provides a custom generated error message when authentication fails -->
+                                          <filter source="get-property('uri.var.xeroStatusCode')" regex="401">
+                                             <then>
+                                                <property name="messageType" value="application/json" scope="axis2" />
+                                                <property name="status" value="Error" />
+                                                <property name="message"
+                                                   value="(401) Authentication error occurred due to invalid credentials." />
+
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="xero_authorizationFailure" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+
+                                             </then>
+
+                                             <else>
+                                                <!-- Retrieving employee Id -->
+                                                <property name="xeroEmployeeId" expression="json-eval($.Employees[0].EmployeeID)" />
+
+                                                <filter source="boolean(get-property('xeroEmployeeId'))" regex="false">
+                                                   <!-- If no such employee exists in Xero with the specified email then 
+                                                      display a custom generated error message -->
+                                                   <then>
+                                                      <property name="messageType" value="application/json"
+                                                         scope="axis2" />
+                                                      <property name="status" value="Error" />
+                                                      <property name="message"
+                                                         value="Employee with the email Id cannot be mapped with an employee in Xero." />
+
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="xero_getEmployee" />
+                                                         <with-param name="id" value="{$ctx:empEmail}" />
+                                                         <with-param name="status" value="{$ctx:status}" />
+                                                         <with-param name="message" value="{$ctx:message}" />
+                                                      </call-template>
+                                                   </then>
+
+                                                   <!-- If an employee exist with the specified email in Xero -->
+                                                   <!-- update Employee in Xero with salary details -->
+                                                   <else>
+                                                      <!-- Process xmlData to construct the Employee object to update SalaryAndWages -->
+                                                      <script language="js">
+																			<![CDATA[
+																				//initialize the variables 
+																				
+																				//string variable that is used to construct the Employee object
+																				var employee = "";					
+																				//ID of the employee in Xero
+																				var employeeId=mc.getProperty('xeroEmployeeId');					
+																				//Effective date that the new salary will be taken to consideration
+																				var effectiveDate=mc.getProperty('effectiveDate');					
+																				//Earning type ID in Xero that is applicable for the 'Regular Hours'
+																				var earningTypeId=mc.getProperty('xeroEarningsTypeID');
+																				//salary type in People HR. Can be either Annual or Salary
+																				var salaryAndWagesType=mc.getProperty('salaryAndWagesType');
+																				//total amount of the salary
+																				var totalSalaryAmount=mc.getProperty('salaryAmount');
+																				//how many hours does the employee suppose to work per week
+																				var standardHoursPerWeek=mc.getProperty('xeroStandardHoursPerWeek');
+																				
+																				//constructing the Employee object with Salary and Wages data
+																				employee="<Employee>"+
+																							 "<EmployeeID>"+ employeeId +"</EmployeeID>"+
+																							 "<SalaryAndWages>"+
+																									"<SalaryAndWage>"+          
+																									   "<EarningsTypeID>"+ earningTypeId +"</EarningsTypeID>"+
+																									   "<StandardHoursPerWeek>"+ standardHoursPerWeek + "</StandardHoursPerWeek>";										  
+																									   
+																									   //if the salary type is Annual in People HR, then it should apply as SALARY in Xero
+																									   //if so, the Total Salary amount in People HR will be considered as Annual Salary in Xero
+																										if(salaryAndWagesType=="Annual")
+																										{
+																											employee+="<SalaryWagesType>SALARY</SalaryWagesType>"+
+																													"<AnnualSalary>"+ totalSalaryAmount +"</AnnualSalary>";	
+																										}
+																										
+																									   //if the salary type is Hourly in People HR, then it should apply as HOURLY in Xero
+																									   //if so, the Total Salary amount in People HR will be considered as Hourly rate in Xero
+																										else if(salaryAndWagesType=="Hourly")
+																										{
+																											employee+="<SalaryWagesType>HOURLY</SalaryWagesType>"+
+																													  "<HourlyRate>"+ totalSalaryAmount +"</HourlyRate>";	
+																										}										   
+																							employee+= "<PayStatus>ACTIVE</PayStatus>"+
+																									   "<EffectiveDate>"+ effectiveDate +"</EffectiveDate>"+
+																									"</SalaryAndWage>"+
+																							 "</SalaryAndWages>"+
+																						"</Employee>"
+																						
+																						print(employee);
+																
+																				mc.setProperty('employee', employee);
+																				]]>
+                                                      </script>
+
+                                                      <property name="messageType" value="application/xml"
+                                                         scope="axis2" />
+
+                                                      <xero.init>
+                                                         <consumerKey>{$ctx:xeroConsumerKey}</consumerKey>
+                                                         <consumerSecret>{$ctx:xeroConsumerSecret}</consumerSecret>
+                                                         <accessToken>{$ctx:xeroAccessToken}</accessToken>
+                                                         <accessTokenSecret>{$ctx:xeroAccessTokenSecret}</accessTokenSecret>
+                                                         <apiUrl>{$ctx:xeroApiUrl}</apiUrl>
+                                                         <acceptType>application/json</acceptType>
+                                                      </xero.init>
+
+                                                      <xero.postEmployees>
+                                                         <employees>{$ctx:employee}</employees>
+                                                      </xero.postEmployees>
+
+                                                      <!-- Handling Bad requests with a custom generated error message -->
+                                                      <filter source="$axis2:HTTP_SC" regex="400">
+                                                         <then>
+                                                            <property name="messageType" value="application/json"
+                                                               scope="axis2" />
+                                                            <property name="status" value="Error" />
+                                                            <property name="message"
+                                                               value="(400) Bad Request, This could be a result of providing invalid data." />
+
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="xero_postEmployee" />
+                                                               <with-param name="id" value="{$ctx:peopleHrEmployeeId}" />
+                                                               <with-param name="status" value="{$ctx:status}" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                         </then>
+
+                                                         <else>
+                                                            <!-- Handling Internal Server error with a custom generated error 
+                                                               message -->
+                                                            <filter source="$axis2:HTTP_SC" regex="500">
+                                                               <then>
+                                                                  <property name="messageType" value="application/json"
+                                                                     scope="axis2" />
+                                                                  <property name="status" value="Error" />
+                                                                  <property name="message"
+                                                                     value="(500) Internal Server Error, Salary Couldn't be updated for the employee in Xero." />
+
+                                                                  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="activity" value="xero_postEmployee" />
+                                                                     <with-param name="id"
+                                                                        value="{$ctx:peopleHrEmployeeId}" />
+                                                                     <with-param name="status" value="{$ctx:status}" />
+                                                                     <with-param name="message" value="{$ctx:message}" />
+                                                                  </call-template>
+                                                               </then>
+
+                                                               <else>
+                                                                  <!-- Handling success response with a custom generated 
+                                                                     error message -->
+                                                                  <filter source="$axis2:HTTP_SC" regex="200">
+                                                                     <then>
+                                                                        <property name="messageType" value="application/json"
+                                                                           scope="axis2" />
+                                                                        <property name="status" value="Success" />
+                                                                        <property name="message"
+                                                                           value="Salary details updated successfully for the employee." />
+
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                           <with-param name="activity"
+                                                                              value="xero_postEmployee" />
+                                                                           <with-param name="id"
+                                                                              value="{$ctx:peopleHrEmployeeId}" />
+                                                                           <with-param name="status" value="{$ctx:status}" />
+                                                                           <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+                                                                     </then>
+
+                                                                     <else>
+                                                                        <!-- Handling any other error response with a custom 
+                                                                           generated error message -->
+                                                                        <property name="uri.var.xeroStatusCode"
+                                                                           expression="$axis2:HTTP_SC" />
+                                                                        <property name="messageType" value="application/json"
+                                                                           scope="axis2" />
+                                                                        <property name="status" value="Error" />
+                                                                        <property name="message"
+                                                                           value="Unknown Error occurred, Salary Couldn't be updated for the employee in Xero.')" />
+
+
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                           <with-param name="activity"
+                                                                              value="xero_postEmployee" />
+                                                                           <with-param name="id"
+                                                                              value="{$ctx:peopleHrEmployeeId}" />
+                                                                           <with-param name="status" value="{$ctx:status}" />
+                                                                           <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+
+                                                                     </else>
+                                                                  </filter>
+                                                               </else>
+                                                            </filter>
+                                                         </else>
+                                                      </filter>
+                                                      <property name="messageType" value="application/json"
+                                                         scope="axis2" />
+                                                   </else>
+                                                </filter>
+                                             </else>
+                                          </filter>
+                                       </else>
+                                    </filter>
+                                 </else>
+                              </filter>
+                           </else>
+                        </filter>
+
+                        <property name="uri.var.index" expression="get-property('operation','uri.var.index') + 1"
+                           scope="operation" />
+                        <property name="uri.var.responseBuilder"
+                           expression="fn:concat(get-property('operation','uri.var.responseBuilder'), get-property('uri.var.responseString') , ', ')"
+                           scope="operation" />
+                     </sequence>
+                  </target>
+               </iterate>
+
+               <filter xpath="get-property('operation', 'uri.var.index') = get-property('operation', 'uri.var.employeeCount')">
+                  <then>
+                     <!-- Remove the final comma appended inside the iterator mediator for final response generation inside 
+                        the out sequence -->
+                     <property name="uri.var.responseBuilder"
+                        expression="fn:substring(get-property('operation', 'uri.var.responseBuilder'), 0, fn:string-length(get-property('operation', 'uri.var.responseBuilder')))"
+                        scope="operation" />
+                     <loopback />
+                  </then>
+               </filter>
+            </else>
+         </filter>
+      </inSequence>
+
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"peoplehr_retrieveAndCreateSalary",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
+                                
