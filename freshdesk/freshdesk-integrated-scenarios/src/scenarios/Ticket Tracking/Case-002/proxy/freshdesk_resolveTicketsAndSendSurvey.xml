@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="freshdesk_resolveTicketsAndSendSurvey" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- Freshdesk Properties -->
+         <property name="freshdesk.apiUrl" expression="json-eval($.freshdeskApiUrl)" />
+         <property name="freshdesk.apiKey" expression="json-eval($.freshdeskApiKey)" />
+
+         <!-- ActiveCollab Properties -->
+         <property name="activecollab.apiUrl" expression="json-eval($.activecollabApiUrl)" />
+         <property name="activecollab.apiToken" expression="json-eval($.activecollabApiToken)" />
+
+         <!-- SurveyGizmo Properties -->
+         <property name="surveygizmo.apiUrl" expression="json-eval($.surveygizmoApiUrl)" />
+         <property name="surveygizmo.username" expression="json-eval($.surveygizmoUsername)" />
+         <property name="surveygizmo.password" expression="json-eval($.surveygizmoPassword)" />
+         <property name="surveygizmo.surveyId" expression="json-eval($.surveygizmoSurveyId)" />
+
+         <!-- GMail Properties -->
+         <property name="gmail.username" expression="json-eval($.gmailUsername)" />
+         <property name="gmail.oauthAccessToken" expression="json-eval($.gmailAauthAccessToken)" />
+
+         <!-- Operation scoped Properties -->
+         <property name="activityName" value="freshdesk_sendSurveyToAssigneeViaGMAil" scope="operation" />
+         <property name="responseString" value="" scope="operation" />
+         <property name="noOfProjects" expression="count(//jsonObject/activecollabProjectTasks)" scope="operation" />
+         <property name="projectIndex" expression="0" scope="operation" />
+         <property name="noOfTasks" expression="0" scope="operation" />
+         <property name="taskIndex" expression="0" scope="operation" />
+
+         <!--If the activeCollabProjectTasks Map is Empty, send an error message to user and terminate the scenario. -->
+         <filter xpath="get-property('operation', 'noOfProjects') = get-property('operation', 'projectIndex')">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>{
+                     "Response":{
+                        "activity":"freshdesk_resolveTicketsAndSendSurvey",
+                        "activityResponse":"activecollabProjectTasks array is empty - No entries to process."
+                        }
+                     }
+                  </format>
+               </payloadFactory>
+               <respond />
+            </then>
+            <else>
+               <!--FOR EACH ProjectTask in activeCollabProjectTasks Map: BEGIN -->
+               <iterate continueParent="false" id="projects" expression="//jsonObject/activecollabProjectTasks"
+                  sequential="true">
+                  <target>
+                     <sequence>
+                        <!--Increment the Project Count by 1 -->
+                        <property name="projectIndex" expression="get-property('operation', 'projectIndex') + 1"
+                           scope="operation" />
+
+                        <!--Store the ActiveCollab ProjectId -->
+                        <property name="activecollab.projectId" expression="//activecollabProjectTasks/projectId/text()" />
+                        <property name="activecollab.completeAllTasks" expression="//activecollabProjectTasks/completeAllTasks/text()" />
+
+                        <!--START: If user has sepcified (by providing the value 'true') to close all the tasks in the particular 
+                           Project in ActiveCollab. -->
+                        <filter
+                           xpath="boolean(get-property('activecollab.completeAllTasks'))
+									and fn:lower-case(get-property('activecollab.completeAllTasks')) = fn:lower-case('true')">
+                           <then>
+                              <!--List all tasks in a particular project in ActiveCollab. -->
+                              <activecollab.init>
+                                 <apiUrl>{$ctx:activecollab.apiUrl}</apiUrl>
+                                 <apiToken>{$ctx:activecollab.apiToken}</apiToken>
+                                 <format>json</format>
+                              </activecollab.init>
+                              <activecollab.listTasks>
+                                 <projectId>{$ctx:activecollab.projectId}</projectId>
+                              </activecollab.listTasks>
+                              <sequence key="removeResponseHeaders" />
+
+                              <!--No. of tasks in the Project -->
+                              <property name="tasksReturned" expression="count(//jsonArray/jsonElement)" />
+                              
+                              <!--START: Proceed only if there are any tasks in ActiveCollab project -->
+                              <filter xpath="get-property('tasksReturned') = 0.0">
+                                 <then>
+                                    <property name="id"
+                                       expression="fn:concat('activecollab_projectId:', get-property('activecollab.projectId'))" />
+                                    <!--Call the Response Handler Template -->
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="activecollab_listTasksToProcess" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Empty" />
+                                       <with-param name="message"
+                                          value="No non-archived tasks were found in the ActiveCollab Project." />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                    <!--Increment the No. of Tasks to be processed. -->
+                                    <property name="noOfTasks"
+                                       expression="get-property('operation','noOfTasks') + count(//jsonArray/jsonElement)"
+                                       scope="operation" />
+									   
+                                    <!--FOR EACH Task: BEGIN -->
+                                    <iterate continueParent="false" id="tasks" expression="//jsonArray/jsonElement"
+                                       sequential="true">
+                                       <target>
+                                          <sequence>
+                                             <property name="activecollab.taskId" expression="//jsonElement/task_id/text()" />
+                                             <property name="activecollab.isCompleted" expression="//jsonElement/is_completed/text()" />
+
+                                             <!--Freshdesk Ticket ID retrieved from ActiveCollab custom field. -->
+                                             <property name="freshdesk.ticketId"
+                                                expression="//jsonElement/custom_fields/custom_field_1/value/text()" />
+
+                                             <!--Build the ID String. activeCollab_projectId, activeCollab_taskId, freshdesk_ticketId. -->
+                                             <property name="id"
+                                                expression="fn:concat('activeCollab_projectId:', get-property('activecollab.projectId'), ',activeCollab_taskId:', get-property('activecollab.taskId'), ',freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+
+                                             <sequence key="freshdesk-resolveTicketsAndSendSurvey" />
+
+                                             <!--Increment the Task Count -->
+                                             <property name="taskIndex" expression="get-property('operation','taskIndex') + 1"
+                                                scope="operation" />
+									
+                                          </sequence>
+                                       </target>
+                                    </iterate>
+                                    <!--FOR EACH Task: END -->
+                                 </else>
+                              </filter>
+                              <!--START: Proceed only if there are any tasks in ActiveCollab project -->
+                           </then>
+                           <else>
+                              <!--No. of tasks in the Project -->
+                              <property name="noOfTasks" expression="count(//activecollabProjectTasks/taskIds)" />
+                              <property name="taskIndex" expression="0" />
+
+                              <!--START: Proceed only if there are any tasks in ActiveCollab project -->
+                              <filter xpath="get-property('noOfTasks') = get-property('taskIndex')">
+                                 <then>
+                                    <property name="id"
+                                       expression="fn:concat('activecollab_projectId:', get-property('activecollab.projectId'))" />
+                                    <!--Call the Response Handler Template -->
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="activecollab_listTasksToProcess" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Empty" />
+                                       <with-param name="message"
+                                          value="No non-archived tasks were found in the ActiveCollab Project." />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                    <!--Increment the No. of entries to be deleted. -->
+                                    <property name="noOfTasks"
+                                       expression="get-property('operation','noOfTasks') + count(//activecollabProjectTasks/taskIds)"
+                                       scope="operation" />
+
+                                    <!--FOR EACH Task: BEGIN -->
+                                    <iterate continueParent="false" id="tasks" expression="//activecollabProjectTasks/taskIds"
+                                       sequential="true">
+                                       <target>
+                                          <sequence>
+                                             <property name="activecollab.taskId" expression="//taskIds/text()" />
+
+                                             <!--Retrieve the task in ActiveCollab -->
+                                             <activecollab.init>
+                                                <apiUrl>{$ctx:activecollab.apiUrl}</apiUrl>
+                                                <apiToken>{$ctx:activecollab.apiToken}</apiToken>
+                                                <format>json</format>
+                                             </activecollab.init>
+                                             <activecollab.getTask>
+                                                <taskId>{$ctx:activecollab.taskId}</taskId>
+                                                <projectId>{$ctx:activecollab.projectId}</projectId>
+                                             </activecollab.getTask>
+                                             <sequence key="removeResponseHeaders" />
+
+											 <property name="activecollab.isCompleted" expression="json-eval($.is_completed)" />
+
+                                             <!--Freshdesk Ticket ID retrieved from ActiveCollab custom field. -->
+                                             <property name="freshdesk.ticketId" expression="json-eval($.custom_fields.custom_field_1.value)" />
+
+                                             <!--Build the ID String. activeCollab_projectId, activeCollab_taskId, freshdesk_ticketId. -->
+                                             <property name="id"
+                                                expression="fn:concat('activeCollab_projectId:', get-property('activecollab.projectId'), ',activeCollab_taskId:', get-property('activecollab.taskId'), ',freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+
+                                             <sequence key="freshdesk-resolveTicketsAndSendSurvey" />
+
+                                             <!--Increment the Task Count -->
+                                             <property name="taskIndex" expression="get-property('operation','taskIndex') + 1"
+                                                scope="operation" />
+                                          </sequence>
+                                       </target>
+                                    </iterate>
+                                    <!--FOR EACH Task: END -->
+                                 </else>
+                              </filter>
+                              <!--START: Proceed only if there are any tasks in ActiveCollab project -->
+                           </else>
+                        </filter>
+                        <!--START: If user has sepcified to close all the tasks in the particular Project in ActiveCollab. -->
+                     </sequence>
+                  </target>
+               </iterate>
+               <!--FOR EACH ProjectTask in activeCollabProjectTasks Map: END -->
+			   
+               <filter
+                  xpath="get-property('operation', 'noOfTasks') = get-property('operation', 'taskIndex')
+						and get-property('operation', 'noOfProjects') = get-property('operation', 'projectIndex')">
+                  <then>
+                     <loopback />
+                  </then>
+               </filter>
+
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>{
+               "Response":{
+                  "activity":"freshdesk_resolveTicketsAndSendSurvey",
+                  "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

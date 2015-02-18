@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="freshdesk_createTopicAndThread" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+    <target>
+        <inSequence onError="faultHandlerSeq">
+		
+            <!--Freshdesk Properties-->
+            <property name="freshdesk.apiUrl" expression="json-eval($.freshdeskApiUrl)" />
+            <property name="freshdesk.apiKey" expression="json-eval($.freshdeskApiKey)" />
+            <property name="freshdesk.forumId" expression="json-eval($.freshdeskForumId)" />
+            <property name="freshdesk.categoryId" expression="json-eval($.freshdeskCategoryId)" />
+            <property name="freshdesk.title" expression="json-eval($.freshdeskTitle)" />
+            <property name="freshdesk.bodyHtml" expression="json-eval($.freshdeskBodyHtml)" />
+			
+            <!--Disqus Properties-->
+            <property name="disqus.apiUrl" expression="json-eval($.disqusApiUrl)" />
+            <property name="disqus.apiKey" expression="json-eval($.disqusApiKey)" />
+            <property name="disqus.accessToken" expression="json-eval($.disqusAccessToken)" />
+            <property name="disqus.forumId" expression="json-eval($.disqusForumId)" />
+
+            <property name="responseString" value="" scope="operation" />
+			
+            <!--Create Topic in Freshdesk-->
+            <freshdesk.init>
+				<apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+				<format>json</format>
+				<apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+			 </freshdesk.init>
+			 <freshdesk.createTopic>
+				<forumId>{$ctx:freshdesk.forumId}</forumId>
+				<categoryId>{$ctx:freshdesk.categoryId}</categoryId>
+				<title>{$ctx:freshdesk.title}</title>
+				<bodyHtml>{$ctx:freshdesk.bodyHtml}</bodyHtml>
+				<sticky>0</sticky>
+				<locked>false</locked>
+			 </freshdesk.createTopic>
+			<sequence key="removeResponseHeaders" />
+			
+            <property name="freshdesk.topicId" expression="json-eval($.topic.id)" />
+			
+			<!--If the createTopic method of Freshdesk fails, return an error message and terminate the scenario. -->
+            <filter source="boolean(get-property('freshdesk.topicId'))" regex="false">
+                <then>
+                    <!--Since there is no ID to be returned, the id is set to empty JSON object - {}-->
+					<property name="id" value="{}" />
+                    <property name="message" expression="json-eval($)" />
+					
+                    <!--Call the responseHandler template-->
+                    <call-template target="responseHandlerTemplate">
+						<with-param name="activity" value="freshdesk_createTopicInFreshdesk" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Failed" />
+                        <with-param name="message" value="{$ctx:message}" />
+                    </call-template>
+                    <loopback />
+                </then>
+                <else>
+                    <property name="id" expression="fn:concat('freshdesk_topicId:', get-property('freshdesk.topicId'))" />
+                    <property name="message" expression="json-eval($)" />
+                    <call-template target="responseHandlerTemplate">
+						<with-param name="activity" value="freshdesk_createTopic" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Success" />
+                        <with-param name="message" value="Topic was successfully created in Freshdesk." />
+                    </call-template>
+						
+                    <property name="freshdesk.topicTitle" expression="json-eval($.topic.title)" />
+					
+					<!--Invalidating the uri.var.categoryId property which was set in the freshdesk.createTopic Template to prevent ambiguity.-->
+					<property name="uri.var.categoryId" action="remove"/>
+					
+                    <!--Create Thread in Disqus-->
+                    <disqus.init>
+                        <apiUrl>{$ctx:disqus.apiUrl}</apiUrl>
+                        <apiKey>{$ctx:disqus.apiKey}</apiKey>
+                        <accessToken>{$ctx:disqus.accessToken}</accessToken>
+                    </disqus.init>
+                    <disqus.createThread>
+                        <forumId>{$ctx:disqus.forumId}</forumId>
+                        <title>{$ctx:freshdesk.title}</title>
+                        <message>{$ctx:freshdesk.bodyHtml}</message>
+                    </disqus.createThread>					
+					<sequence key="removeResponseHeaders" />
+					
+					<property name="disqus.threadId" expression="json-eval($.response.id)" />
+					
+					<!--If the Thread CANNOT be created in Disqus, return an error message and terminate the scenario.-->
+                    <filter source="boolean(get-property('disqus.threadId'))" regex="false">
+                        <then>
+                            <property name="id" expression="fn:concat('freshdesk_topicId:', get-property('freshdesk.topicId'))" />
+                            <property name="message" expression="json-eval($)" />
+                            <call-template target="responseHandlerTemplate">
+								<with-param name="activity" value="disqus_createNewThreadInDisqus" />
+                                <with-param name="id" value="{$ctx:id}" />
+                                <with-param name="status" value="Failed" />
+                                <with-param name="message" value="{$ctx:message}" />
+                            </call-template>
+                            <loopback />
+                        </then>
+                        <else>
+							<!--Send success message to the User.-->
+							<property name="disqus.threadLink" expression="json-eval($.response.link)" />
+                            <property name="disqus.threadTitle" expression="json-eval($.response.title)" />
+                            <property name="disqus.forum" expression="json-eval($.response.forum)" />
+							
+                            <property name="id" expression="fn:concat('disqus_threadId:', get-property('disqus.threadId'))" />
+                            <property name="message" expression="fn:concat('Thread was successfully created in ', get-property('disqus.forum'), ' forum in Disqus. [Link - ', get-property('disqus.threadLink'), ']')" />
+                            
+							<!--Call the responseHandler template-->
+							<call-template target="responseHandlerTemplate">
+								<with-param name="activity" value="disqus_createThread" />
+                                <with-param name="id" value="{$ctx:id}" />
+                                <with-param name="status" value="Success" />
+                                <with-param name="message" value="{$ctx:message}" />
+                            </call-template>							
+							<loopback />
+							
+                        </else>						
+                    </filter>
+					
+                </else>				
+            </filter>
+			
+        </inSequence>
+        <outSequence>
+            <payloadFactory media-type="json">
+                <format>{
+					"Response":{
+						"process":"freshdesk_createTopicAndThread",
+						"activityResponse": [$1]
+					}
+				}</format>
+                <args>
+                    <arg expression="get-property('operation','responseString')" />
+                </args>
+            </payloadFactory>
+            <property name="messageType" value="application/json" scope="axis2" />
+            <send />
+        </outSequence>
+    </target>
+    <description />
+</proxy>

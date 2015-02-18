@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="freshdesk_updateTopicWithTopPosts" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+    <target>
+        <inSequence onError="faultHandlerSeq">
+		
+            <!--Freshdesk Properties-->
+            <property name="freshdesk.apiUrl" expression="json-eval($.freshdeskApiUrl)" />
+            <property name="freshdesk.apiKey" expression="json-eval($.freshdeskApiKey)" />
+            <property name="freshdesk.categoryId" expression="json-eval($.freshdeskCategoryId)" />
+            <property name="freshdesk.forumId" expression="json-eval($.freshdeskForumId)" />
+			
+            <!--Disqus Properties-->
+            <property name="disqus.apiUrl" expression="json-eval($.disqusApiUrl)" />
+            <property name="disqus.apiKey" expression="json-eval($.disqusApiKey)" />
+            <property name="disqus.topPosts" expression="json-eval($.disqusTopPosts)" />
+            <property name="disqus.forumId" expression="json-eval($.disqusForumId)" />
+			
+            <!--Array of ID Map (Freshdesk Topics and Disqus Threads) Objects-->
+            <property name="freshdesk.disqus.idMap" expression="json-eval($.freshdeskDisqusIdMap)" />
+			
+            <property name="responseString" value="" scope="operation" />
+			
+            <property name="noOfTopics" expression="count(//jsonObject/freshdeskDisqusIdMap)" scope="operation" />
+            <property name="topicIndex" expression="0" scope="operation" />
+            <property name="noOfPosts" expression="0" scope="operation" />
+            <property name="postIndex" expression="0" scope="operation" />
+			
+			<!--If the freshdeskDisqusIdMap Array is Empty, send a error message to user and terminate the scenario.-->
+            <filter xpath="get-property('operation', 'noOfTopics') = get-property('operation', 'topicIndex')">
+                <then>
+                    <payloadFactory media-type="json">
+                        <format>{
+									"Response":{
+										"activity":"freshdesk_updateTopicsWithTopPosts",
+										"activityResponse":"freshdeskDisqusIdMap is empty - No entries to process."
+									}
+								}
+						</format>
+                    </payloadFactory>
+                    <property name="messageType" value="application/json" scope="axis2" />
+                    <respond />
+                </then>
+                <else>
+                    <!--FOR EACH TopicID Map - Delete Loop: BEGIN-->
+                    <iterate continueParent="false" id="topics" expression="//jsonObject/freshdeskDisqusIdMap" sequential="true">
+                        <target>
+                            <sequence>
+								<!--Increment the Topic Count by 1-->
+                                <property name="topicIndex" expression="get-property('operation', 'topicIndex') + 1" scope="operation" />
+								
+                                <!--Store the Topic and Thread Details-->
+                                <property name="freshdesk.topicId" expression="//freshdeskDisqusIdMap/freshdesk_topicId/text()" />
+                                <property name="disqus.threadId" expression="//freshdeskDisqusIdMap/disqus_threadId/text()" />
+								
+                                <!--First check whether there are any featured posts for the Thread in Disqus.-->
+                                <disqus.init>
+                                    <apiUrl>{$ctx:disqus.apiUrl}</apiUrl>
+                                    <apiKey>{$ctx:disqus.apiKey}</apiKey>
+                                </disqus.init>
+                                <disqus.listPosts>
+                                    <forumId>{$ctx:disqus.forumId}</forumId>
+                                    <limit>{$ctx:disqus.topPosts}</limit>
+                                    <popular>true</popular>
+                                    <order>best</order>
+                                    <threadId>{$ctx:disqus.threadId}</threadId>
+                                </disqus.listPosts>								
+                                <sequence key="removeResponseHeaders" />
+								
+								<property name="noOfPosts" expression="count(//jsonObject/response)" />
+								<property name="postIndex" expression="0" />
+								
+                                <!--Delete posts if there are any under the topic in Freshdesk.-->
+                                <filter xpath="get-property('noOfPosts') != get-property('postIndex')">
+                                    <then>	
+										<!--Get Freshdesk Topic-->
+                                        <freshdesk.init>
+											<apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+											<format>json</format>
+											<apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+										</freshdesk.init>
+										<freshdesk.getTopic>
+											<topicId>{$ctx:freshdesk.topicId}</topicId>
+											<categoryId>{$ctx:freshdesk.categoryId}</categoryId>
+											<forumId>{$ctx:freshdesk.forumId}</forumId>
+										</freshdesk.getTopic>			
+                                        <sequence key="removeResponseHeaders" />
+										
+										<property name="noOfposts" expression="count(//topic/posts)" />
+                                        <property name="postIndex" expression="0" />
+										
+                                        <!--Delete posts if there are any.-->
+                                        <filter xpath="get-property('noOfposts') != get-property('postIndex')">
+                                            <then>	
+                                                <!--Increment the No. of posts to be deleted by the appropriate No.-->
+                                                <property name="noOfPosts" expression="get-property('operation','noOfPosts') + count(//topic/posts)" scope="operation" />
+                                                
+												<!--FOR EACH Post : BEGIN-->
+                                                <iterate continueParent="false" id="entries" expression="//topic/posts" sequential="true">
+                                                    <target>
+                                                        <sequence>
+                                                            <property name="freshdesk.postId" expression="//posts/id/text()" />
+															
+                                                            <!--Delete the Post.-->
+                                                            <freshdesk.init>
+																<apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+																<format>json</format>
+																<apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+															</freshdesk.init>
+                                                            <freshdesk.deletePost>
+																<topicId>{$ctx:freshdesk.topicId}</topicId>
+																<forumId>{$ctx:freshdesk.forumId}</forumId>
+																<categoryId>{$ctx:freshdesk.categoryId}</categoryId>
+																<postId>{$ctx:freshdesk.postId}</postId>
+															 </freshdesk.deletePost>														
+                                                            <sequence key="removeResponseHeaders" />
+															
+                                                            <!--Increment the post count-->
+                                                            <property name="postIndex" expression="get-property('operation','postIndex') + 1" scope="operation" />
+                                                        </sequence>
+                                                    </target>
+                                                </iterate>
+                                                <!--FOR EACH Post : END-->
+												
+                                            </then>
+                                        </filter>
+										
+                                    </then>
+                                </filter>
+								
+                            </sequence>
+                        </target>
+                    </iterate>					
+                    <!--FOR EACH TopicID Map - Delete Loop: END-->
+					
+					<!--Start Adding Posts-->
+                    <filter xpath="(get-property('operation', 'noOfTopics') = get-property('operation', 'topicIndex')) and
+										(get-property('operation', 'noOfPosts') = get-property('operation', 'postIndex'))">
+                        <then>
+							<property name="topicIndex" expression="0" scope="operation" />
+                            <property name="noOfPosts" expression="0" scope="operation" />
+                            <property name="postIndex" expression="0" scope="operation" />
+							
+                            <!--Set the User Payload for iteration.-->
+                            <payloadFactory media-type="json">
+                                <format>{
+											"idmap": $1
+										}
+								</format>
+                                <args>
+                                    <arg expression="get-property('freshdesk.disqus.idMap')" />
+                                </args>
+                            </payloadFactory>
+							
+                            <!--FOR EACH TopicID Map : BEGIN-->
+                            <iterate continueParent="false" id="discussions" expression="//jsonObject/idmap" sequential="true">
+                                <target>
+                                    <sequence>				
+									
+                                        <!--Increment the Topic Count-->
+                                        <property name="topicIndex" expression="get-property('operation', 'topicIndex') + 1" scope="operation" />
+										
+                                        <!--Store the Topic and Thread Details-->
+										<property name="freshdesk.topicId" expression="//idmap/freshdesk_topicId/text()" />
+										<property name="disqus.threadId" expression="//idmap/disqus_threadId/text()" />
+										
+										<!--Invalidating the uri.var.categoryId which was set in the freshdesk methods to prevent ambiguity.-->
+										<property name="uri.var.categoryId" action="remove" />
+										
+                                        <!--List and check whether there are any featured posts for the Thread in Disqus.-->
+                                        <disqus.init>
+											<apiUrl>{$ctx:disqus.apiUrl}</apiUrl>
+											<apiKey>{$ctx:disqus.apiKey}</apiKey>
+										</disqus.init>
+										<disqus.listPosts>
+											<forumId>{$ctx:disqus.forumId}</forumId>
+											<limit>{$ctx:disqus.topPosts}</limit>
+											<popular>true</popular>
+											<order>best</order>
+											<threadId>{$ctx:disqus.threadId}</threadId>
+										</disqus.listPosts>										
+                                        <sequence key="removeResponseHeaders" />
+										
+										<property name="noOfPosts" expression="count(//jsonObject/response)" />
+                                        <property name="postIndex" expression="0" />
+										
+                                        <!--If the Thread doesn't have any posts send a message to user.-->
+                                        <filter xpath="get-property('noOfPosts') = get-property('postIndex')">
+                                            <!---->
+                                            <then>
+                                                <property name="id" expression="fn:concat('freshdesk_topicId:', get-property('freshdesk.topicId'), ',disqus_threadId:', get-property('disqus.threadId'))" />
+                                                <property name="status" value="Empty" />
+                                                <property name="message" expression="fn:concat('No posts were found in Disqus for Thread ID: ', get-property('disqus.threadId'))" />
+                                                <call-template target="responseHandlerTemplate">
+                                                    <with-param name="activity" value="disqus_listPopularThreads" />
+                                                    <with-param name="id" value="{$ctx:id}" />
+                                                    <with-param name="status" value="{$ctx:status}" />
+                                                    <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                            </then>
+                                            <else>
+                                                <!--Increment the No. of entries to be deleted.-->
+                                                <property name="noOfPosts" expression="get-property('operation','noOfPosts') + count(//jsonObject/response)" scope="operation" />
+												
+                                                <iterate continueParent="false" id="posts" expression="//jsonObject/response" sequential="true">
+                                                    <target>
+                                                        <sequence>
+															<property name="disqus.post.id" expression="//response/id/text()" />
+                                                            <property name="disqus.message" expression="//response/raw_message/text()" />
+															<property name="disqus.commentor" expression="//response/author/name/text()" />
+															<property name="disqus.likes" expression="//response/points/text()" />
+															<property name="messageToUpdate" expression="fn:concat(get-property('disqus.message'), ' - ', get-property('disqus.commentor'), ' [', get-property('disqus.likes'), ' Point(s)]')" />
+															
+															<!--Build the ID String.-->
+															<property name="id" expression="fn:concat('freshdesk_topicId:', get-property('freshdesk.topicId'), ',disqus_threadId:', get-property('disqus.threadId'), ',disqus_postId:', get-property('disqus.post.id'))" />
+															
+                                                            <!--Create the Post.-->
+                                                            <freshdesk.init>
+																<apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+																<format>json</format>
+																<apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+															</freshdesk.init>
+                                                            <freshdesk.createPost>
+																<topicId>{$ctx:freshdesk.topicId}</topicId>
+																<forumId>{$ctx:freshdesk.forumId}</forumId>
+																<categoryId>{$ctx:freshdesk.categoryId}</categoryId>
+																<bodyHtml>{$ctx:messageToUpdate}</bodyHtml>
+															 </freshdesk.createPost>													
+                                                            <sequence key="removeResponseHeaders" />
+															
+                                                            <property name="freshdesk.postId" expression="json-eval($.post.id)" />
+															
+															<!--If creation was unsuccessful, set an error message to be sent to the user.-->
+															<filter source="boolean(get-property('freshdesk.postId'))" regex="true">
+																<then>
+																	<property name="status" value="Success" />
+																	<property name="message" value="Freshdesk topic posts successfully synchronized with Disqus thread posts." />	
+																</then>
+																<else>			
+																	<property name="status" value="Failure" />
+																	<property name="message" expression="json-eval($)" />													
+																</else>
+															</filter>
+															
+															<!--Call the Response Handler Template-->
+															<call-template target="responseHandlerTemplate">
+																<with-param name="activity" value="freshdesk_synchronizeTopDisqusPostsWithFreshdesk" />
+																<with-param name="id" value="{$ctx:id}" />
+																<with-param name="status" value="{$ctx:status}" />
+																<with-param name="message" value="{$ctx:message}" />
+															</call-template>
+                                                            
+															
+                                                            <!--Increment the post count-->
+                                                            <property name="postIndex" expression="get-property('operation','postIndex') + 1" scope="operation" />
+															
+                                                        </sequence>
+                                                    </target>
+                                                </iterate>
+												
+                                            </else>
+                                        </filter>
+										
+                                    </sequence>
+                                </target>
+                            </iterate>
+                            <!--FOR EACH  TopicID Map : END-->
+							
+							<filter xpath="(get-property('operation', 'noOfTopics') = get-property('operation', 'topicIndex')) and
+										(get-property('operation', 'noOfPosts') = get-property('operation', 'postIndex'))">
+								<then>
+									<loopback />
+								</then>
+							</filter>
+                        </then>
+                    </filter>
+					
+                </else>                
+            </filter>
+			
+        </inSequence>
+        <outSequence>
+            <payloadFactory media-type="json">
+                <format>{
+					"Response":{
+						"process":"freshdesk_updateTopicsWithTopPosts",
+						"activityResponse":[$1]
+					}
+				}</format>
+                <args>
+                    <arg expression="get-property('operation','responseString')" />
+                </args>
+            </payloadFactory>
+            <property name="messageType" value="application/json" scope="axis2" />
+            <send />
+        </outSequence>
+    </target>
+    <description />
+</proxy>
