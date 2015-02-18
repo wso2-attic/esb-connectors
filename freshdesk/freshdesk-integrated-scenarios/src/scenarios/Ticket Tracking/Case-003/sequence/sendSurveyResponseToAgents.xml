@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--The sequence will send the survey response to the agent and close the Ticket. -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="freshdesk-sendSurveyResponseToAgent">
+   <!-- Start: Get the Survey Response only if the Survey ID is found with the Freshdesk Ticket. If no Survey ID is assigned 
+      to the custom field, the value of the custom field comes as 'null' -->
+   <filter source="get-property('freshdesk.surveyGizmoId')" regex="null">
+      <then>
+		<!--Dummy HTTP Call used to force the iterator threads to continue execution after the 'iterator' block.
+			Iterator threads stop right at the end of the iterator block if there's no outgoing call inside the iterator.-->
+         <freshdesk.init>
+            <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+            <format>json</format>
+            <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+            </freshdesk.init>
+         <freshdesk.getTicket>
+            <id>{$ctx:freshdesk.ticketId}</id>
+         </freshdesk.getTicket>
+         <sequence key="removeResponseHeaders" />
+		 
+         <!--Call the Response Handler Template -->
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="freshdesk_getSurveyId" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Skipped" />
+            <with-param name="message" value="Ticket doesn't have an associated survey in SurveyGizmo." />
+         </call-template>
+      </then>
+      <else>
+         <!-- Start: Proceed with getting the Survey response only if the ticket is in the 'Resolved' state (State ID - 4). -->
+         <filter source="get-property('freshdesk.ticketStatus')" regex="4">
+            <then>
+               <!--Workaround to eliminate the Host header issue. -->
+               <property name="REQUEST_HOST_HEADER" value="www.dummy.api.com" scope="axis2" />
+               <header name="Host" value="restapi.surveygizmo.com" scope="transport" />
+               <!-- Accept-Encoding is required for SureyGizmo -->
+               <header name="Accept-Encoding" value="gzip,deflate" scope="transport" />
+
+               <!--List responses of the Survey from SurveyGizmo -->
+               <surveygizmo.init>
+                  <apiUrl>{$ctx:surveygizmo.apiUrl}</apiUrl>
+                  <userName>{$ctx:surveygizmo.username}</userName>
+                  <password>{$ctx:surveygizmo.password}</password>
+               </surveygizmo.init>
+               <surveygizmo.listResponses>
+                  <surveyId>{$ctx:freshdesk.surveyGizmoId}</surveyId>
+               </surveygizmo.listResponses>
+               <sequence key="removeResponseHeaders" />
+
+               <!--Script Mediator is used to extract the Survey Response from the Payload
+                  since the corresponding JSON key has special characters, which cannot be used in xpath
+                  or
+                  json-eval() -->
+               <script language="js">
+                  <![CDATA[
+                     var payload = mc.getPayloadJSON();
+                        if(payload["data"] != null && payload["data"][0] != null && payload["data"][0]["[question(2)]"] != null){
+                        mc.setProperty('surveyResponse', payload["data"][0]["[question(2)]"]);
+                     }                          
+                  ]]>
+               </script>
+
+               <!-- Start: Proceed to get the responder information only if a response is available
+                  for the
+                  Survey. -->
+               <filter source="boolean(get-property('surveyResponse'))" regex="false">
+                  <then>
+                     <property name="id"
+                        expression="fn:concat(get-property('id'), ',surveygizmo_surveyId:', get-property('freshdesk.surveyGizmoId'))" />
+                     <!--Call the Response Handler Template -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="surveyGizmo_getSurveyResponse" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message"
+                           value="The Requester has not taken the survey for the ticket yet. No responses found." />
+                     </call-template>
+                  </then>
+                  <else>
+                     <!--Get the Responder Information -->
+                     <freshdesk.init>
+                        <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+                        <format>json</format>
+                        <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+                     </freshdesk.init>
+                     <freshdesk.getUser>
+                        <userId>{$ctx:freshdesk.ticketResponderId}</userId>
+                     </freshdesk.getUser>
+                     <sequence key="removeResponseHeaders" />
+
+                     <!--Store ticket responder Email and Name. -->
+                     <property name="freshdesk.ticketResponderEmail" expression="json-eval($.user.email)" />
+                     <property name="freshdesk.ticketResponderName" expression="json-eval($.user.name)" />
+
+                     <!-- Start: Proceed to send the survey response only if the responder email is
+                        found. -->
+                     <filter source="boolean(get-property('freshdesk.ticketResponderEmail'))" regex="false">
+                        <then>
+                           <property name="id"
+                              expression="fn:concat(get-property('id'), ',freshdesk_agentId:', get-property('freshdesk.ticketResponderId'))" />
+                           <property name="errorResponse" expression="json-eval($)" />
+                           <!--Call the Response Handler Template -->
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="freshdesk_getResponderInformation" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="Failure" />
+                              <with-param name="message" value="{$ctx:errorResponse}" />
+                           </call-template>
+                        </then>
+                        <else>
+                           <!-- Build the mail content and body as JSON Object and extract it below, to preserve line breaks. -->
+                           <payloadFactory media-type="json">
+                              <format>{
+                                    "mailSubject": "Freshdesk Customer Feedback - $2",
+                                    "mailContent": "Hi $1,\n\nWe appreciate your effort and support rendered on resolving the Ticket - $2.\n\nWith regard to this, your customer has rated you as: \"$3\"\n\nPlease do not respond to this mail as it was auto-generated by the system."
+                                 }
+                              </format>
+                              <args>
+                                 <arg expression="get-property('freshdesk.ticketResponderName')" />
+                                 <arg expression="get-property('freshdesk.ticketSubject')" />
+                                 <arg expression="get-property('surveyResponse')" />
+                              </args>
+                           </payloadFactory>
+
+                           <!--Build the Subject and Content for the Mail. -->
+                           <property name="gmail.mailSubject" expression="json-eval($.mailSubject)" />
+                           <property name="gmail.mailContent" expression="json-eval($.mailContent)" />
+
+                           <!--Send the survey response to agent via GMail. -->
+                           <gmail.init>
+                              <username>{$ctx:gmail.username}</username>
+                              <oauthAccessToken>{$ctx:gmail.oauthAccessToken}</oauthAccessToken>
+                           </gmail.init>
+                           <gmail.sendMail>
+                              <subject>{$ctx:gmail.mailSubject}</subject>
+                              <toRecipients>{$ctx:freshdesk.ticketResponderEmail}</toRecipients>
+                              <textContent>{$ctx:gmail.mailContent}</textContent>
+                           </gmail.sendMail>
+                           <sequence key="removeResponseHeaders" />
+
+                           <property name="gmail.subject" expression="json-eval($.sendMailResponse.message.subject)" />
+
+                           <!-- Start: Close the Ticket only if the Survey Response was successfully sent to the Responder. 
+                              Since GMail is a java-connector it's likely to throw an internal exception and call the faultHandlerSequence in case of failures. -->
+                           <filter source="boolean(get-property('gmail.subject'))" regex="false">
+                              <then>
+                                 <!--Call the Response Handler Template -->
+                                 <call-template target="responseHandlerTemplate">
+                                    <with-param name="activity" value="gmail_sendSurveyResponseViaEmail" />
+                                    <with-param name="id" value="{$ctx:id}" />
+                                    <with-param name="status" value="Failure" />
+                                    <with-param name="message"
+                                       value="Unknown error occured while sending email. Freshdesk ticket was not closed." />
+                                 </call-template>
+                              </then>
+                              <else>
+
+                                 <!--Update the Ticket in Freshdesk to closed. -->
+                                 <freshdesk.init>
+                                    <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+                                    <format>json</format>
+                                    <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+                                 </freshdesk.init>
+                                 <freshdesk.updateTicket>
+                                    <customField>{$ctx:freshdesk.customFieldUpdate}</customField>
+                                    <status>5</status>
+                                    <ticketId>{$ctx:freshdesk.ticketId}</ticketId>
+                                 </freshdesk.updateTicket>
+                                 <sequence key="removeResponseHeaders" />
+
+                                 <property name="freshdesk.ticketStatus" expression="json-eval($.ticket.status_name)" />
+
+                                 <!-- Start: If the ticket has been successfully resolved in Freshdesk,
+                                    send
+                                    a success response. -->
+                                 <filter source="fn:lower-case(get-property('freshdesk.ticketStatus'))" regex="closed">
+                                    <then>
+                                       <property name="status" value="Success" />
+                                       <property name="message"
+                                          value="The survey response was successfully sent to the Agent. Ticket was closed in Freshdesk." />
+                                    </then>
+                                    <else>
+                                       <property name="status" value="Failure" />
+                                       <property name="message"
+                                          value="The survey response was successfully sent to the Agent. But the Ticket was not closed in Freshdesk due to an unknown error." />
+                                    </else>
+                                 </filter>
+
+                                 <!--Call the Response Handler Template -->
+                                 <call-template target="responseHandlerTemplate">
+                                    <with-param name="id" value="{$ctx:id}" />
+                                    <with-param name="status" value="{$ctx:status}" />
+                                    <with-param name="message" value="{$ctx:message}" />
+                                 </call-template>
+                              </else>
+                           </filter>
+                           <!-- End: Close the Ticket only if the Survey Response was successfully sent to the Responder. -->
+                        </else>
+                     </filter>
+                     <!-- End: Proceed to send the survey response only if the responder email is found. -->
+                  </else>
+               </filter>
+               <!-- End: Proceed to get the responder information only if a response is available for the Survey. -->
+            </then>
+            <else>
+               <!--Call the Response Handler Template -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="freshdesk_getTicketStatus" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="Ticket is not resolved yet OR has been already closed." />
+               </call-template>
+            </else>
+         </filter>
+         <!-- End: Proceed with getting the Survey response only if the ticket is not already closed. -->
+      </else>
+   </filter>
+   <!-- End: Get the Survey Response only if the Survey ID is found with the Freshdesk Ticket. -->
+</sequence>

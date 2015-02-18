@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="freshdesk_ticketAssignment" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+	  
+         <!--Freshdesk Properties-->
+         <property name="freshdesk.apiUrl" expression="json-eval($.freshdeskApiUrl)" />
+         <property name="freshdesk.apiKey" expression="json-eval($.freshdeskApiKey)" />
+		 
+         <!--Nexmo Properties-->
+         <property name="nexmo.apiUrl" expression="json-eval($.nexmoApiUrl)" />
+         <property name="nexmo.apiSecret" expression="json-eval($.nexmoApiSecret)" />
+         <property name="nexmo.apiKey" expression="json-eval($.nexmoApiKey)" />
+		 
+         <!--ActiveCollab properties -->
+         <property name="activeCollab.apiUrl" expression="json-eval($.activecollabApiUrl)" />
+         <property name="activeCollab.apiToken" expression="json-eval($.activecollabApiToken)" />
+         <property name="activeCollab.projectId" expression="json-eval($.activecollabProjectId)" />
+		 
+         <!--Gmail Properties-->
+         <property name="gmail.username" expression="json-eval($.gmailUsername)" />
+         <property name="gmail.oAuthAccessToken" expression="json-eval($.gmailOAuthAccessToken)" />
+		 
+		 <!--Common properties -->
+         <property name="resendSms" expression="json-eval($.resendSms)" />
+         <property name="responseString" value="" scope="operation" />
+         <property name="processName" value="freshdesk_ticketAssignment" scope="operation" />
+         <property name="activityName" value="freshdesk_sendTaskNotificationViaGmail" scope="operation" />
+		 
+		 <!--If the user didn't mention about his preference of resending sms to those who already received one, then set 'resendSms' as false -->
+         <filter source="get-property('resendSms')" regex="true">
+            <then>
+               <property name="resendSms" value="true" type="BOOLEAN" />
+            </then>
+            <else>
+               <property name="resendSms" value="false" type="BOOLEAN" />
+            </else>
+         </filter>
+		 
+         <!--Getting the count of the ticket Ids that the user passed -->
+         <property name="ticketIdsCount" expression="count(//jsonObject/freshdeskTicketIds)" scope="operation" />
+         <property name="ticketIdIndex" expression="0" scope="operation" />
+       
+	   <!-- Checking whether the user provided at least one ticketId in order to fetch details of them-->
+	   <filter xpath="get-property('operation', 'ticketIdsCount') = get-property('operation', 'ticketIdIndex')">
+            <!--If the user didn't provide at least one ticket id to process display a custom error message-->
+            <then>
+               <property name="id" value="{}" />
+               <property name="message" value="No ticket Ids are provided in order to notify the assignees. Please provide at least one ticket Id." />
+              
+			  <!--Call the responseHandler template-->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="freshdesk_getTicket" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!-- Iterate through all the ticket Id's taken from the array-->
+               <iterate continueParent="true" id="ticketIdIterator" preservePayload="true" expression="//jsonObject/freshdeskTicketIds" sequential="true">
+                  <target>
+                     <sequence>
+                        
+						<!-- Retrieving one ticket at a time from the ticket Id array-->
+                        <property name="freshdesk.ticketId" expression="//freshdeskTicketIds/text()" />
+                        <freshdesk.init>
+                           <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+                           <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+                           <format>json</format>
+                        </freshdesk.init>
+                       
+					   <freshdesk.getTicket>
+                           <id>{$ctx:freshdesk.ticketId}</id>
+                        </freshdesk.getTicket>
+                       
+ 					    <property name="freshdeskSmsAlertSent" expression="//jsonObject/helpdesk_ticket/custom_field/*[fn:starts-with(local-name(), 'smsalertsent')]/text()" />
+                        <property name="freshdeskCustomFieldName" expression="name(//jsonObject/helpdesk_ticket/custom_field/*[fn:starts-with(local-name(), 'smsalertsent')])" />
+                       
+					   <!---extract the custom field value of the property -->
+                        <property name="responseId" expression="json-eval($.helpdesk_ticket.id)" />
+                        
+						<!--Checking the existence of the ticket -->
+						<filter source="boolean(get-property('responseId'))" regex="false">
+                           <!-- If error occurred, display the api error message along with a custom generated error-->
+                           <then>
+                              <property name="apiErrorResponse" expression="json-eval($.errors.error)" />
+                              <property name="id" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+                              <property name="message" expression="fn:concat('Failed to retrieve the ticket: ', get-property('apiErrorResponse'))" />
+                             
+							 <!--Call the responseHandler template-->
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="activity" value="freshdesk_getTicket" />
+                                 <with-param name="status" value="Error" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </then>
+                           
+						   <!--If successful, then check the status of the ticket -->
+                           <else>
+                              <property name="ticketStatus" expression="json-eval($.helpdesk_ticket.status_name)" />
+                              
+							  <!--Checking the status of the ticket -->
+							  <filter xpath="get-property('ticketStatus') = 'Closed' or get-property('ticketStatus') = 'Resolved'">
+								<!--If the ticket is already Resolved or Closed, display a custom message informing those tickets will be skipped by notifying the assignees -->
+								 <then>
+                                    <property name="id" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+                                    <property name="message" expression="fn:concat('Failed to send notification to the assignee since the ticket is already ', get-property('ticketStatus'))" />
+                                  
+								  <!--Call the responseHandler template-->
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="activity" value="freshdesk_getTicketAndNotifyAssignee" />
+                                       <with-param name="status" value="Skipped" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </then>
+								 <!--If the ticket is still pending to be resolved-->
+                                 <else>
+                                   	<!--Retrieve required details of the ticket -->
+                                    <property name="ticketSubject" expression="json-eval($.helpdesk_ticket.subject)" />
+                                    <property name="ticketDueBy" expression="json-eval($.helpdesk_ticket.due_by)" />
+                                    <property name="ticketPriority" expression="json-eval($.helpdesk_ticket.priority)" />
+                                    <property name="ticketPriorityName" expression="json-eval($.helpdesk_ticket.priority_name)" />
+                                    <property name="assigneeId" expression="json-eval($.helpdesk_ticket.responder_id)" />
+                                    <property name="assigneeName" expression="json-eval($.helpdesk_ticket.responder_name)" />
+                                    <property name="ticketNotesCount" expression="count(//jsonObject/helpdesk_ticket/notes)" scope="operation" />
+                                    <property name="ticketNoteBody" expression="json-eval($.helpdesk_ticket.notes[1].note.body)" />
+                                   
+								   <!--Checking the existence of the assignee -->
+								   <filter source="boolean(get-property('assigneeId'))" regex="false">                                      
+									  <!-- If the ticket is not assigned to anyone, then display a custom error message-->
+                                       <then>
+                                          <property name="id" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+                                          <property name="message" expression="fn:concat('Failed to send notification to the assignee since the ticket is not assigned to anyone.')" />
+                                         
+										 <!--Call the responseHandler template-->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="activity" value="freshdesk_getTicketAndNotifyAssignee" />
+                                             <with-param name="status" value="Skipped" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                       
+									   <!--If there is an assignee, then retrieve the details of the assignee -->
+                                       <else>
+                                          <freshdesk.init>
+                                             <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+                                             <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+                                             <format>json</format>
+                                          </freshdesk.init>
+                                          <freshdesk.getUser>
+                                             <userId>{$ctx:assigneeId}</userId>
+                                          </freshdesk.getUser>
+										  
+                                          <property name="responseId" expression="json-eval($.user.id)" />
+                                          
+										  <!--Checking the existence of the assignee's details -->
+										  <filter source="boolean(get-property('responseId'))" regex="false">
+                                            <!--If an error occurred while retrieving the assignee's details, then display an error message -->
+                                             <then>
+                                                <property name="apiErrorResponse" expression="json-eval($.errors.error)" />
+                                                <property name="id" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+                                                <property name="message" expression="fn:concat('Failed to retrieve the assignee details: ', get-property('apiErrorResponse'))" />
+                                               
+											   <!--Call the responseHandler template-->
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="activity" value="freshdesk_getAssigneeDetails" />
+                                                   <with-param name="status" value="Error" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </then>
+                                            
+											<!--If the assignee's details are successfully retrieved then extract the email address and the mobile number-->
+                                             <else>
+                                                <property name="assigneeEmail" expression="json-eval($.user.email)" />
+                                                <property name="assigneeMobileNumber" expression="json-eval($.user.mobile)" />
+                                                
+												<!--Checking the existence of the assignee's mobile number -->
+												<filter source="boolean(get-property('assigneeMobileNumber'))" regex="false">
+                                                  <!--If the mobile number is not set for the assignee then display a custom error message -->
+                                                   <then>
+                                                      <property name="id" expression="fn:concat('freshdesk_assigneeId:', get-property('assigneeId'))" />
+                                                      <property name="message" value="Failed to send SMS notification to the assignee since the mobile number is not set" />
+                                                      
+													  <!--Call the responseHandler template-->
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="activity" value="freshdesk_getAssigneeDetails" />
+                                                         <with-param name="status" value="Skipped" />
+                                                         <with-param name="message" value="{$ctx:message}" />
+                                                      </call-template>
+                                                   </then>
+                                                  
+												  <!--If the mobile number is set for the assignee then send a text message through Nexmo -->
+                                                   <else>
+                                                      <!-- Check whether a message is already sent to the assignee about the ticket and 
+														   whether or not the user wishes to resend sms to the assignees who have already received an sms regrading the specific ticket --> 
+                                                      <filter xpath="get-property('freshdeskSmsAlertSent') != '' and not(get-property('resendSms'))">
+                                                         <!--If the user requested not to resend the sms, then display a message indicating the process is skipped -->
+                                                         <then>
+                                                            <property name="message" value="Failed to create task in ActiveCollab since the ticket does not have any notes" />
+                                                           
+														   <!--Call the responseHandler template-->
+                                                            <property name="id" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+                                                            <property name="message" value="Skipped to resend the text message to the assignee based on the user's preference." />
+                                                           
+														   <call-template target="responseHandlerTemplate">
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="activity" value="freshdesk_getTicketAndNotifyAssigneeViaSMS" />
+                                                               <with-param name="status" value="Skipped" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                         </then>
+                                                        
+														<!--If not, send the text message to the assignee -->
+                                                         <else>		
+                                                            <!-- Construct the text message including the ticket details-->
+                                                            <property name="textMessage" expression="fn:concat('Please note that the following ticket at Freshdesk is  still not Resolved or Closed.\nTicket Id :', get-property('freshdesk.ticketId') , '\nSubject : ', get-property('ticketSubject'), '\nStatus : ', get-property('ticketStatus'), '\nDue By : ', fn:substring-before(get-property('ticketDueBy'), 'T') , '\nPriority : ', get-property('ticketPriorityName'))" />
+                                                            
+															<!-- Call the template in order to send the text message from Nexmo to the assignee-->
+                                                            <property name="nexmo.responseIds" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+                                                           
+														   <call-template target="sendNotifications">
+                                                               <with-param name="nexmo.apiUrl" value="{$ctx:nexmo.apiUrl}" />
+                                                               <with-param name="nexmo.apiKey" value="{$ctx:nexmo.apiKey}" />
+                                                               <with-param name="nexmo.apiSecret" value="{$ctx:nexmo.apiSecret}" />
+                                                               <with-param name="nexmo.to" value="{$ctx:assigneeMobileNumber}" />
+                                                               <with-param name="nexmo.from" value="Freshdesk" />
+                                                               <with-param name="nexmo.text" value="{$ctx:textMessage}" />
+                                                               <with-param name="nexmo.responseIds" value="{$ctx:nexmo.responseIds}" />
+                                                            </call-template>
+                                                            
+															<property name="responseStatus" expression="json-eval($.messages[0].status)" />
+                                                           
+														   <!--Checking the status of the sent sms -->
+														   <filter source="get-property('responseStatus')" regex="0">
+                                                               <then>
+                                                                  <property name="freshdesk.customFieldUpdate" expression="fn:concat('{ &quot;', get-property('freshdeskCustomFieldName'), '&quot; : &quot;true&quot; }')" />
+                                                                 
+																 <!--Update the Ticket in Freshdesk indicating that an sms alert is been sent to the user.-->
+                                                                  <freshdesk.init>
+                                                                     <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+                                                                     <format>json</format>
+                                                                     <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+                                                                  </freshdesk.init>
+                                                                 
+																 <freshdesk.updateTicket>
+                                                                     <ticketId>{$ctx:freshdesk.ticketId}</ticketId>
+                                                                     <customField>{$ctx:freshdesk.customFieldUpdate}</customField>
+                                                                  </freshdesk.updateTicket>
+                                                                  <property name="responseId" expression="json-eval($.ticket.display_id)" />
+                                                                 
+																 <!--Checking the existence of the diplay_id of the given ticket -->
+																 <filter source="boolean(get-property('responseId'))" regex="false">
+                                                                     <!-- If error occurred, display the api error message along with a custom generated error-->
+                                                                     <then>
+                                                                        <property name="apiErrorResponse" expression="json-eval($.errors.error)" />
+                                                                        <property name="id" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+                                                                        <property name="message" expression="fn:concat('Failed to update the custom field [smsAlertSent] of the ticket: ', get-property('apiErrorResponse'))" />
+                                                                       
+																	   <!--Call the responseHandler template-->
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                           <with-param name="id" value="{$ctx:id}" />
+                                                                           <with-param name="activity" value="freshdesk_getTicket" />
+                                                                           <with-param name="status" value="Error" />
+                                                                           <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+                                                                     </then>
+                                                                  </filter> <!--End of filter: Checking the existence of the diplay_id of the given ticket-->
+                                                               </then>
+                                                            </filter> <!--END of filter: Checking the status of the sent sms -->
+                                                         </else>
+                                                      </filter> <!--END of filter: Checking the resendSms field-->
+                                                   </else>
+                                                </filter> <!--END of filter: Checking the existence of the assignee's mobile number -->
+                                                <!--Check whether the ticket has at least one note-->
+                                                <property name="ticketNotesIndex" expression="0" scope="operation" />
+                                               
+											   
+											   <!--Checking the existence of notes in the ticket -->
+											   <filter xpath="get-property('operation', 'ticketNotesCount') = get-property('operation', 'ticketNotesIndex')">
+                                                   <!--If the ticket does not have notes, then display a custom error message -->
+                                                   <then>
+                                                      <property name="id" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+                                                      <property name="message" value="Failed to create task in ActiveCollab since the ticket does not have any notes" />
+                                                     
+													 <!--Call the responseHandler template-->
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="activity" value="freshdesk_getTicketNoteAndCreateTaskInActiveCollab" />
+                                                         <with-param name="status" value="Skipped" />
+                                                         <with-param name="message" value="{$ctx:message}" />
+                                                      </call-template>
+                                                   </then>
+                                                  
+												  <!-- If the ticket has any notes, get the very fist note and add it to activeCollab as a task in the given project -->
+                                                   <else>
+                                                      <!--Priority Mapping: (Freshdesk,ActiveCollab) = (1,-1), (2,0), (3,1), (4,2)-->
+                                                      <switch source="get-property('ticketPriority')">
+                                                         <case regex="1">
+                                                            <property name="ticketPriority" value="-1" />
+                                                         </case>
+                                                         <case regex="2">
+                                                            <property name="ticketPriority" value="0" />
+                                                         </case>
+                                                         <case regex="3">
+                                                            <property name="ticketPriority" value="1" />
+                                                         </case>
+                                                         <case regex="4">
+                                                            <property name="ticketPriority" value="2" />
+                                                         </case>
+                                                      </switch>
+                                                     
+													 <!--Creating the note of the ticket as a task in the given project in activeCollab -->
+                                                      <activecollab.init>
+                                                         <apiUrl>{$ctx:activeCollab.apiUrl}</apiUrl>
+                                                         <apiToken>{$ctx:activeCollab.apiToken}</apiToken>
+                                                         <format>json</format>
+                                                      </activecollab.init>
+                                                     
+													 <activecollab.createTask>
+                                                         <projectId>{$ctx:activeCollab.projectId}</projectId>
+                                                         <taskBody>{$ctx:ticketNoteBody}</taskBody>
+                                                         <name>{$ctx:ticketSubject}</name>
+                                                         <dueOn>{$ctx:ticketDueBy}</dueOn>
+                                                         <visibility>1</visibility>
+                                                         <priority>{$ctx:ticketPriority}</priority>
+                                                      </activecollab.createTask>
+                                                     
+													 <!--Check whether the repose returns an Id -->
+                                                      <property name="responseId" expression="json-eval($.id)" />
+                                                     
+													 <!--Checking the successful response of the created task -->
+													 <filter source="boolean(get-property('responseId'))" regex="false">
+                                                         <!--If in case an error occurs, then display a custom generated error message -->
+                                                         <then>
+                                                            <property name="apiErrorResponse" expression="json-eval($.field_errors.name)" />
+                                                            <property name="id" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+                                                            <property name="message" expression="fn:concat('Failed to add note as a task in ActiveCollab: ', get-property('apiErrorResponse'))" />
+                                                            <!--Call the responseHandler template-->
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="activity" value="activecollab_createTask" />
+                                                               <with-param name="status" value="Error" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                         </then>
+                                                        
+														<else>
+                                                            <property name="activecollab.taskId" expression="json-eval($.task_id)" />
+                                                            <property name="activecollab.permalink" expression="json-eval($.permalink)" />
+                                                            <property name="id" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+                                                            <property name="message" value="Successfully added the note of the ticket as a task in ActiveCollab." />
+                                                           
+														   <!--Call the responseHandler template-->
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="activity" value="activecollab_createTask" />
+                                                               <with-param name="status" value="Success" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                          
+														    <!--Constructing the freshDeskTicketId custom field value -->
+                                                            <property name="activecollab.customFreshDeskTaskId" expression="fn:concat('[{&quot;key&quot;:&quot;custom_field_1&quot;,&quot;value&quot;:&quot;',get-property('freshdesk.ticketId'),'&quot;},{&quot;key&quot;:&quot;custom_field_2&quot;,&quot;value&quot;:&quot;ID:',get-property('assigneeId'),'/ Email:',get-property('assigneeEmail'),'&quot;}]')" />
+                                                           
+														   <!--Update the activeCollab task's custom field 'freshDeskTicketId' setting the Id of the ticket in FreshDesk  -->
+                                                            <activecollab.init>
+                                                               <apiUrl>{$ctx:activeCollab.apiUrl}</apiUrl>
+                                                               <apiToken>{$ctx:activeCollab.apiToken}</apiToken>
+                                                               <format>json</format>
+                                                            </activecollab.init>
+                                                           
+														   <activecollab.updateTask>
+                                                               <taskId>{$ctx:activecollab.taskId}</taskId>
+                                                               <projectId>{$ctx:activeCollab.projectId}</projectId>
+                                                               <customFields>{$ctx:activecollab.customFreshDeskTaskId}</customFields>
+                                                            </activecollab.updateTask>
+                                                           
+														   <property name="responseId" expression="json-eval($.id)" />
+                                                            
+															<!--Checking whether the task is updated successfully -->
+															<filter source="boolean(get-property('responseId'))" regex="false">
+                                                               <then>
+                                                                  <property name="apiErrorResponse" expression="json-eval($.field_errors.name)" />
+                                                                  <property name="id" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" /> 
+                                                                  <property name="message" expression="fn:concat('Task is added in ActiveCollab. However failed to update the freshDeskTicket id: ', get-property('apiErrorResponse'))" />
+                                                                 
+																 <!--Call the responseHandler template-->
+                                                                  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="id" value="{$ctx:id}" />
+                                                                     <with-param name="activity" value="activecollab_createTask" />
+                                                                     <with-param name="status" value="Error" />
+                                                                     <with-param name="message" value="{$ctx:message}" />
+                                                                  </call-template>
+                                                               </then>
+                                                              
+															  <!-- If the update is successful then retrieve the email of the ticket's assignee and send an email through gmail-->
+                                                               <else>
+															   
+																	<!-- Build the mail content and body as JSON Object and extract it below, to preserve line breaks. -->
+																   <payloadFactory media-type="json">
+																	  <format>{
+																			"mailSubject": "You have a task in ActiveCollab",
+																			"mailContent": "Hi $1,\n\nPlease note that a task is created in ActiveCollab for the ticket assigned to you.\nClick on the link below to view the task details.\n\n
+																			Ticket ID:   $2\n
+																			Task Link:   $3\n\n
+																			Please do not respond to this mail as it was auto-generated by the system."										
+																		 }
+																	  </format>
+																	  <args>
+																		 <arg expression="get-property('assigneeName')" />
+																		 <arg expression="get-property('freshdesk.ticketId')" />
+																		 <arg expression="get-property('activecollab.permalink')" />
+																	  </args>
+																   </payloadFactory>
+							   
+																   <!--Build the Subject and Content for the Mail. -->
+																   <property name="gmail.mailSubject" expression="json-eval($.mailSubject)" />
+																   <property name="gmail.mailContent" expression="json-eval($.mailContent)" />
+                                                                   <property name="responseIds" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+                                                                  
+																  <!-- Send email notifications to responders. -->
+                                                                  <call-template target="sendNotifications">
+                                                                     <with-param name="gmail.username" value="{$ctx:gmail.username}" />
+                                                                     <with-param name="gmail.oAuthAccessToken" value="{$ctx:gmail.oAuthAccessToken}" />
+                                                                     <with-param name="gmail.subject" value="{$ctx:gmail.mailSubject}" />
+                                                                     <with-param name="gmail.toRecipients" value="{$ctx:assigneeEmail}" />
+                                                                     <with-param name="gmail.textContent" value="{$ctx:gmail.mailContent}" />
+                                                                     <with-param name="gmail.responseIds" value="{$ctx:responseIds}" />
+                                                                  </call-template>
+																</else>
+                                                            </filter> <!--END of filter: Checking whether the task is updated successfully -->
+                                                         </else>
+                                                      </filter>  <!--END of filter: Checking the successful response of the created task -->
+                                                   </else>
+                                                </filter>   <!--END of filter: Checking the existence of notes in the ticket -->
+                                             </else>
+                                          </filter> <!--END of filter: Checking the existence of the assignee's details -->
+                                       </else>
+                                    </filter> <!--END of filter: Checking the existence of the assignee -->
+                                 </else>
+                              </filter> <!--END of filter: Checking the status of the ticket -->
+                           </else>
+                        </filter> <!--END of filter: Checking the existence of the ticket -->
+                       
+					   <!--Increment the user count-->
+                        <property name="ticketIdIndex" expression="get-property('operation', 'ticketIdIndex') + 1" scope="operation" />
+                     </sequence>
+                  </target>
+               </iterate> <!--END of the iterator: checking all the ticketIds -->
+            </else>
+         </filter>	<!--END of filter : Checking there are sufficient ticket Ids to process-->
+        
+		<!--FOR EACH Users : END-->
+         <filter xpath="get-property('operation', 'ticketIdsCount') = get-property('operation', 'ticketIdIndex')">
+            <then>
+               <loopback />
+            </then>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>{
+						"Response":{
+							"process":"freshdesk_ticketAssignment",
+							"activityResponse": [$1]
+						}
+					}</format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

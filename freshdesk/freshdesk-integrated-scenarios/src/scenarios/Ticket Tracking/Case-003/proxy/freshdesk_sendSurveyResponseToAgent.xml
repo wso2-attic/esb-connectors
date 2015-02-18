@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="freshdesk_sendSurveyResponseToAgent" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- Freshdesk Properties -->
+         <property name="freshdesk.apiUrl" expression="json-eval($.freshdeskApiUrl)" />
+         <property name="freshdesk.apiKey" expression="json-eval($.freshdeskApiKey)" />
+         <property name="freshdesk.resolvedTicketsViewId" expression="json-eval($.freshdeskResolvedTicketsViewId)" />
+
+         <!-- SurveyGizmo Properties -->
+         <property name="surveygizmo.apiUrl" expression="json-eval($.surveygizmoApiUrl)" />
+         <property name="surveygizmo.username" expression="json-eval($.surveygizmoUsername)" />
+         <property name="surveygizmo.password" expression="json-eval($.surveygizmoPassword)" />
+         <property name="surveygizmo.surveyId" expression="json-eval($.surveygizmoSurveyId)" />
+
+         <!-- GMail Properties -->
+         <property name="gmail.username" expression="json-eval($.gmailUsername)" />
+         <property name="gmail.oauthAccessToken" expression="json-eval($.gmailAauthAccessToken)" />
+
+         <!-- Operation scoped Properties -->
+         <property name="responseString" value="" scope="operation" />
+         <property name="activityName" value="freshdesk_sendSurveyResponseToAgentViaGMAil" scope="operation" />
+         <property name="noOfTickets" expression="count(//jsonObject/freshdeskTickets)" scope="operation" />
+         <property name="ticketIndex" expression="0" scope="operation" />
+
+         <!--START: If at least one fredhdesk ticket ID is provided, process that. If no Freshdesk Ticket IDs are provided, 
+            check whether a viewId is provided. -->
+         <filter xpath="get-property('operation', 'noOfTickets') = get-property('operation', 'ticketIndex')">
+            <then>
+               <!--START: Proceed with the scenario only if a view Id is provided. -->
+               <filter source="boolean(get-property('freshdesk.resolvedTicketsViewId'))" regex="false">
+                  <then>
+                     <payloadFactory media-type="json">
+                        <format>{
+                           "Response":{
+                              "activity":"freshdesk_sendSurveyResponseToAgent",
+                              "activityResponse":"freshdeskTickets array is empty AND freshdeskResolvedTicketsViewId is not provided - No tickets to process."
+                              }
+                           }
+                        </format>
+                     </payloadFactory>
+                     <respond />
+                  </then>
+                  <else>
+                     <!-- Get all the 'Resolved' Tickets. -->
+                     <freshdesk.init>
+                        <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+                        <format>json</format>
+                        <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+                     </freshdesk.init>
+                     <freshdesk.listTickets>
+                        <filterType>customticketviews</filterType>
+                        <viewId>{$ctx:freshdesk.resolvedTicketsViewId}</viewId>
+                     </freshdesk.listTickets>
+                     <sequence key="removeResponseHeaders" />
+
+                     <!--No. of resolved tickets in Freshdesk. -->
+                     <property name="noOfTickets" expression="count(//jsonArray/jsonElement)" scope="operation" />
+                     <property name="ticketIndex" expression="0" scope="operation" />
+
+                     <!-- START: Proceed to get the survey response, if at least one ticket is returned. -->
+                     <filter xpath="get-property('operation', 'noOfTickets') = get-property('operation', 'ticketIndex')">
+                        <then>
+                           <payloadFactory media-type="json">
+                              <format>{
+                                 "Response":{
+                                    "activity":"freshdesk_sendSurveyResponseToAgent",
+                                    "activityResponse":"No tickets are in the resolved state."
+                                    }
+                                 }
+                              </format>
+                           </payloadFactory>
+                           <respond />
+                        </then>
+                        <else>
+                           <!--FOR EACH Freshdesk Tickets retrieved: BEGIN -->
+                           <iterate continueParent="false" id="tickets" expression="//jsonArray/jsonElement"
+                              sequential="true">
+                              <target>
+                                 <sequence>
+                                    <!--Store the Freshdesk Ticket Details -->
+                                    <property name="freshdesk.ticketId" expression="//jsonElement/display_id/text()" />
+                                    <property name="freshdesk.ticketSubject" expression="//jsonElement/subject/text()" />
+                                    <property name="freshdesk.ticketStatus" expression="//jsonElement/status/text()" />
+                                    <property name="freshdesk.ticketResponderId" expression="//jsonElement/responder_id/text()" />
+                                    <property name="freshdesk.surveyGizmoId"
+                                       expression="//jsonElement/custom_field/*[fn:starts-with(local-name(), 'surveygizmoid')]/text()" />
+
+                                    <property name="id"
+                                       expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+
+                                    <sequence key="freshdesk-sendSurveyResponseToAgent" />
+
+                                    <!--Increment the Ticket Count -->
+                                    <property name="ticketIndex" expression="get-property('operation','ticketIndex') + 1"
+                                       scope="operation" />
+                                 </sequence>
+                              </target>
+                           </iterate>
+                           <!--FOR EACH Freshdesk Tickets retrieved: END -->
+
+                           <filter xpath="get-property('operation', 'noOfTickets') = get-property('operation', 'ticketIndex')">
+                              <then>
+                                 <loopback />
+                              </then>
+                           </filter>
+                        </else>
+                     </filter>
+                     <!-- END: Proceed to get the survey response, if at least one ticket is returned. -->
+
+                  </else>
+               </filter>
+               <!--END: Proceed with the scenario only if a view Id is provided. -->
+
+            </then>
+            <else>
+               <!--FOR EACH Freshdesk Ticket ID in freshdeskTickets Array: BEGIN -->
+               <iterate continueParent="false" id="tickets" expression="//jsonObject/freshdeskTickets"
+                  sequential="true">
+                  <target>
+                     <sequence>
+                        <!--Store the Freshdesk Ticket ID -->
+                        <property name="freshdesk.ticketId" expression="//freshdeskTickets/text()" />
+
+                        <property name="id" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'))" />
+
+                        <!--Retrieve the particular ticket from freshdesk and check the ticket status. -->
+                        <freshdesk.init>
+                           <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+                           <format>json</format>
+                           <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+                        </freshdesk.init>
+                        <freshdesk.getTicket>
+                           <id>{$ctx:freshdesk.ticketId}</id>
+                        </freshdesk.getTicket>
+                        <sequence key="removeResponseHeaders" />
+
+                        <!--Store the Freshdesk Ticket Details -->
+                        <property name="freshdesk.ticketSubject" expression="json-eval($.helpdesk_ticket.subject)" />
+                        <property name="freshdesk.ticketStatus" expression="json-eval($.helpdesk_ticket.status)" />
+                        <property name="freshdesk.ticketResponderId" expression="json-eval($.helpdesk_ticket.responder_id)" />
+                        <property name="freshdesk.surveyGizmoId"
+                           expression="//jsonObject/helpdesk_ticket/custom_field/*[fn:starts-with(local-name(), 'surveygizmoid')]/text()" />
+
+                        <sequence key="freshdesk-sendSurveyResponseToAgent" />
+
+                        <!--Increment the Ticket Count -->
+                        <property name="ticketIndex" expression="get-property('operation','ticketIndex') + 1"
+                           scope="operation" />
+                     </sequence>
+                  </target>
+               </iterate>
+
+               <!--FOR EACH Freshdesk Ticket IDs in freshdeskTickets Array: END -->
+               <filter xpath="get-property('operation', 'noOfTickets') = get-property('operation', 'ticketIndex')">
+                  <then>
+                     <loopback />
+                  </then>
+               </filter>
+
+            </else>
+         </filter>
+         <!--END: If at least one fredhdesk ID is provided, proceed with that. If no Freshdesk Ticket IDs are provided, check 
+            whether a viewId is provided. -->
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>{
+               "Response":{
+                  "activity":"freshdesk_sendSurveyResponseToAgent",
+                  "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

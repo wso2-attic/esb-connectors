@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="freshdesk_sendNotificationsToAgents" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+    <target>
+        <inSequence onError="faultHandlerSeq">
+            <!-- FreshDesk parameters -->
+			<property name="freshdesk.apiUrl" expression="json-eval($.freshdeskApiUrl)"/>
+			<property name="freshdesk.apiKey" expression="json-eval($.freshdeskApiKey)"/>
+			<property name="freshdesk.overdueTicketsViewId" expression="json-eval($.freshdeskOverdueTicketsViewId)"/>
+			<property name="freshdesk.urgentTicketsViewId" expression="json-eval($.freshdeskUrgentTicketsViewId)"/>
+			
+			<!-- Gmail parameters -->
+			<property name="gmail.username" expression="json-eval($.gmailUsername)" />
+			<property name="gmail.oAuthAccessToken" expression="json-eval($.gmailOauthAccessToken)" />	 
+
+			<!-- Nexmo parameters -->
+			<property name="nexmo.apiUrl" expression="json-eval($.nexmoApiUrl)" />
+			<property name="nexmo.apiKey" expression="json-eval($.nexmoApiKey)" />
+			<property name="nexmo.apiSecret" expression="json-eval($.nexmoApiSecret)" />
+			
+			<!-- Properties required by faultHandler -->
+			<property name="processName" value="freshdesk_sendNotificationsToTicketAssigneesByMailAndSms" scope="operation" />
+      		<property name="activityName" value="freshdesk_sendTicketNotificationViaGmail" scope="operation" />
+			
+            <!-- List overdue tickets -->
+            <freshdesk.init>
+				<apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+				<format>json</format>
+				<apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+			</freshdesk.init>
+			<freshdesk.listTickets>
+				<filterType>customticketviews</filterType>
+				<viewId>{$ctx:freshdesk.overdueTicketsViewId}</viewId>
+			</freshdesk.listTickets>
+			<sequence key="removeResponseHeaders" />
+			
+            <property name="noOfTicketsOverdue" expression="count(//jsonElement)" scope="operation" />
+            <property name="overdueTicketIndex" expression="0" scope="operation" />
+			
+			<!-- Check if overdue tickts are found. -->
+            <filter xpath="get-property('operation', 'noOfTicketsOverdue') = get-property('operation', 'overdueTicketIndex')">
+                <then>
+					<filter xpath="boolean(get-property('freshdesk.overdueTicketsViewId'))">
+						<then>
+							<!-- Message to be sent if empty list was returned because the view had not tickets. -->
+							<property name="id" expression="fn:concat('freshdesk.overdueTicketsViewId:', get-property('freshdesk.overdueTicketsViewId'))" />
+							<property name="status" value="Failed" />
+							<property name="message" value="No tickets were found with overdue status." />
+						</then>
+						<else>
+							<!-- Message to be sent if empty list was returned because the user failed to provide the view id. -->
+							<property name="id" value="{}" />
+							<property name="status" value="Skipped" />
+							<property name="message" value="Overdue View ID is not provided" />
+						</else>
+					</filter>
+
+					<!-- Call responseHandler template -->
+					<call-template target="responseHandlerTemplate">
+						<with-param name="activity" value="freshdesk_listOverdueTickets" />
+						<with-param name="id" value="{$ctx:id}" />
+						<with-param name="status" value="{$ctx:status}" />
+						<with-param name="message" value="{$ctx:message}" />
+					</call-template>
+                </then>
+                <else>
+                    <!-- FOR EACH Overdue Ticket : BEGIN -->
+                    <iterate continueParent="false" id="ticketOverdue" expression="//jsonElement" sequential="true">
+                        <target>
+                            <sequence>
+								<!-- Extract ticket details -->
+                                <property name="freshdesk.responderId" expression="//jsonElement/responder_id/text()" />
+								<property name="freshdesk.description" expression="//jsonElement/description/text()" />
+								<property name="freshdesk.subject" expression="//jsonElement/subject/text()" />
+								<property name="freshdesk.dueBy" expression="//jsonElement/due_by/text()" />
+								<property name="freshdesk.ticketId" expression="//jsonElement/display_id/text()" />
+								<property name="freshdesk.requesterName" expression="//jsonElement/requester_name/text()" />
+								<property name="freshdesk.responderName" expression="//jsonElement/responder_name/text()" />
+								<property name="freshdesk.priority" expression="//jsonElement/priority_name/text()" />
+								<property name="freshdesk.status" expression="//jsonElement/status_name/text()" />
+								<property name="freshdesk.type" expression="//jsonElement/ticket_type/text()" />
+										
+								<!-- Build the message body -->
+								<property name="gmail.messageBody" expression="fn:concat('Due by : ', fn:substring-before(get-property('freshdesk.dueBy'), 'T'), ' @ ', fn:substring-after(fn:substring-before(get-property('freshdesk.dueBy'),'+'), 'T'), ' | Requester name : ', get-property('freshdesk.requesterName'), ' ]')" />								
+								
+								<!-- Build the mail content and body as JSON Object and extract it below, to preserve line breaks. -->
+							   <payloadFactory media-type="json">
+								  <format>{
+										"mailSubject": "Freshdesk Overdue Ticket Reminder - $10",
+										"mailContent": "Hi $1,\n\nPlease note that our records indicate that the following ticket is OVERDUE.\n\nTicket ID:   $2\nDescription: $3\nDue on:      $4 at $5\nRequester:   $6\nPriority:    $7\nStatus:      $8\nType:        $9\n\nPlease do not respond to this mail as it was auto-generated by the system."										
+									 }
+								  </format>
+								  <args>
+									 <arg expression="get-property('freshdesk.responderName')" />
+									 <arg expression="get-property('freshdesk.ticketId')" />
+									 <arg expression="get-property('freshdesk.description')" />
+									 <arg expression="fn:substring-before(get-property('freshdesk.dueBy'), 'T')" />
+									 <arg expression="fn:substring-after(fn:substring-before(get-property('freshdesk.dueBy'),'+'), 'T')" />
+									 <arg expression="get-property('freshdesk.requesterName')" />
+									 <arg expression="get-property('freshdesk.priority')" />
+									 <arg expression="get-property('freshdesk.status')" />
+									 <arg expression="get-property('freshdesk.type')" />
+									 <arg expression="get-property('freshdesk.subject')" />
+								  </args>
+							   </payloadFactory>
+							   
+							   <!--Build the Subject and Content for the Mail. -->
+							   <property name="gmail.mailSubject" expression="json-eval($.mailSubject)" />
+							   <property name="gmail.mailContent" expression="json-eval($.mailContent)" />
+								
+								<!-- If freshdesk.responderId is not available, assign an invalid default value.-->
+                                <filter source="boolean(get-property('freshdesk.responderId'))" regex="false">
+									<then>
+										<property name="freshdesk.responderId" value="sampleId" />
+									</then>
+								</filter>
+								
+								<!-- Get user details. -->
+								<freshdesk.init>
+									<apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+									<apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+									<format>json</format>
+								</freshdesk.init>
+								<freshdesk.getUser>
+									<userId>{$ctx:freshdesk.responderId}</userId>
+								</freshdesk.getUser>
+								<sequence key="removeResponseHeaders" />
+								
+								<filter source="$axis2:HTTP_SC" regex="2[0-9][0-9]">
+									<then>
+										<!-- Extract the responder email address. -->
+										<property name="freshdesk.responseRecipientsEmail" expression="json-eval($.user.email)" />
+										<property name="gmail.responseIds" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'), ',freshdesk_assigneeId:', get-property('freshdesk.responderId'))" />
+									
+										<!-- Send email notifications to responders. -->
+										<call-template target="sendNotifications">
+											<with-param name="gmail.username" value="{$ctx:gmail.username}" />
+											<with-param name="gmail.oAuthAccessToken" value="{$ctx:gmail.oAuthAccessToken}" />
+											<with-param name="gmail.subject" value="{$ctx:gmail.mailSubject}" />
+											<with-param name="gmail.toRecipients" value="{$ctx:freshdesk.responseRecipientsEmail}" />
+											<with-param name="gmail.textContent" value="{$ctx:gmail.mailContent}" />
+											<with-param name="gmail.responseIds" value="{$ctx:gmail.responseIds}" />
+										</call-template>
+									</then>
+									<else>
+										<!-- Message to be sent if empty list was returned because the user failed to provide the view id. -->
+										<property name="id" value="{}" />
+										<property name="status" value="Skipped" />
+										<property name="message" value="Invalid view ID or Ticket has not been Assigned an Agent." />
+										
+										<!-- Call responseHandler template -->
+										<call-template target="responseHandlerTemplate">
+											<with-param name="activity" value="freshdesk_listOverdueTickets" />
+											<with-param name="id" value="{$ctx:id}" />
+											<with-param name="status" value="{$ctx:status}" />
+											<with-param name="message" value="{$ctx:message}" />
+										</call-template>
+									</else>
+								</filter>
+								
+								<property name="overdueTicketIndex" expression="get-property('operation','overdueTicketIndex') + 1" scope="operation" />
+								
+                            </sequence>
+                        </target>
+                    </iterate>
+                    <!-- FOR EACH Entry : END -->
+                </else>
+            </filter>
+			
+			<!-- Check if the iterations of overdue tickets are completed. -->
+			<filter xpath="(get-property('operation', 'noOfTicketsOverdue') = get-property('operation', 'overdueTicketIndex'))">
+				<then>
+					<!-- Check if the urgent ticket - view id is provided. -->	
+					<filter xpath="boolean(get-property('freshdesk.urgentTicketsViewId'))">
+						<then>
+							<!-- List urgent tickets -->
+							<freshdesk.init>
+								<apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+								<format>json</format>
+								<apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+							</freshdesk.init>
+							<freshdesk.listTickets>
+								<filterType>customticketviews</filterType>
+								<viewId>{$ctx:freshdesk.urgentTicketsViewId}</viewId>
+							</freshdesk.listTickets>
+							<sequence key="removeResponseHeaders" />
+								
+							<property name="noOfTicketsUrgent" expression="count(//jsonElement)" scope="operation" />
+							<property name="urgentTicketIndex" expression="0" scope="operation" />
+								
+							<filter xpath="get-property('operation', 'noOfTicketsUrgent') = get-property('operation', 'urgentTicketIndex')">
+								<!-- If no tickets were found on freshdesk, respond immediately. -->
+								<then>
+									<!-- Message to be sent when no urgent tickets were found. -->
+									<property name="id" expression="fn:concat('freshdesk.urgentTicketsViewId:', get-property('freshdesk.urgentTicketsViewId'))" />
+									<property name="status" value="Failed" />
+									<property name="message" value="No tickets were found with urgent priority." />
+
+									<!-- Call responseHandler template -->
+									<call-template target="responseHandlerTemplate">
+										<with-param name="activity" value="freshdesk_listTickets" />
+										<with-param name="id" value="{$ctx:id}" />
+										<with-param name="status" value="{$ctx:status}" />
+										<with-param name="message" value="{$ctx:message}" />
+									</call-template>
+									<loopback />
+								</then>
+								<else>
+									<!-- FOR EACH Overdue Ticket : BEGIN -->
+									<iterate continueParent="false" id="ticketUrgent" expression="//jsonElement" sequential="true">
+										<target>
+											<sequence>												
+												<!-- Extract ticket details -->
+												<property name="freshdesk.responderId" expression="//jsonElement/responder_id/text()" />
+												<property name="freshdesk.subject" expression="//jsonElement/subject/text()" />
+												<property name="freshdesk.ticketId" expression="//jsonElement/display_id/text()" />
+												<property name="freshdesk.ticketStatus" expression="//jsonElement/status_name/text()" />
+												<property name="freshdesk.ticketDueBy" expression="//jsonElement/due_by/text()" />
+												<property name="freshdesk.ticketPriority" expression="//jsonElement/priority_name/text()" />
+															
+												<!-- Build the SMS Message -->
+												<property name="nexmo.textMessage" expression="fn:concat('Please note that the following ticket at Freshdesk is still not resolved or closed.\nTicket Id :', get-property('freshdesk.ticketId') , '\nSubject : ', get-property('freshdesk.subject'), ' \nStatus : ', get-property('freshdesk.ticketStatus'), '\nDue By : ', fn:substring-before(get-property('freshdesk.dueBy'), 'T') , ' ', fn:substring-after(fn:substring-before(get-property('freshdesk.dueBy'),'+'), 'T') , '\nPriority : ', get-property('freshdesk.ticketPriority'))" />
+																									
+														
+												<!-- If freshdesk.responderId is not available, assign an invalid default value.-->
+												<filter source="boolean(get-property('freshdesk.responderId'))" regex="false">
+													<then>
+														<property name="freshdesk.responderId" value="sampleId" />
+													</then>
+												</filter>
+												
+												<!-- Get user details. -->
+												<freshdesk.init>
+													<apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+													<apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+													<format>json</format>
+												</freshdesk.init>
+												<freshdesk.getUser>
+													<userId>{$ctx:freshdesk.responderId}</userId>
+												</freshdesk.getUser>
+												<sequence key="removeResponseHeaders" />
+												
+												<filter source="$axis2:HTTP_SC" regex="2[0-9][0-9]">
+													<then>
+														<!-- Extract the responder mobile number. -->
+														<property name="freshdesk.responseRecipientsPhoneNumber" expression="json-eval($.user.mobile)" />
+														<property name="nexmo.responseIds" expression="fn:concat('freshdesk_ticketId:', get-property('freshdesk.ticketId'), ',freshdesk_assigneeId:', get-property('freshdesk.responderId'))" />
+															
+														<!-- Send email notifications to responders. -->
+														<call-template target="sendNotifications">
+															<with-param name="nexmo.apiUrl" value="{$ctx:nexmo.apiUrl}" />
+															<with-param name="nexmo.apiKey" value="{$ctx:nexmo.apiKey}" />
+															<with-param name="nexmo.apiSecret" value="{$ctx:nexmo.apiSecret}" />
+															<with-param name="nexmo.to" value="{$ctx:freshdesk.responseRecipientsPhoneNumber}" />
+															<with-param name="nexmo.from" value="Freshdesk" />
+															<with-param name="nexmo.text" value="{$ctx:nexmo.textMessage}" />
+															<with-param name="nexmo.responseIds" value="{$ctx:nexmo.responseIds}" />
+														</call-template>
+													</then>
+													<else>
+														<!-- Message to be sent if empty list was returned because the user failed to provide the view id. -->
+														<property name="id" value="{}" />
+														<property name="status" value="Skipped" />
+														<property name="message" value="Invalid view ID or Ticket has not been Assigned an Agent." />
+														
+														<!-- Call responseHandler template -->
+														<call-template target="responseHandlerTemplate">
+															<with-param name="activity" value="freshdesk_listUrgentTickets" />
+															<with-param name="id" value="{$ctx:id}" />
+															<with-param name="status" value="{$ctx:status}" />
+															<with-param name="message" value="{$ctx:message}" />
+														</call-template>
+													</else>
+												</filter>
+													
+												<!-- Increment the entry count -->
+												<property name="urgentTicketIndex" expression="get-property('operation','urgentTicketIndex') + 1" scope="operation" />
+											</sequence>
+										</target>
+									</iterate>
+									<!-- FOR EACH Entry : END -->
+										
+									<!-- Check if the no. of urgent tickets iteration in completed. -->	
+									<filter xpath="(get-property('operation', 'noOfTicketsUrgent') = get-property('operation', 'urgentTicketIndex'))">
+										<then>
+											<loopback />
+										</then>
+									</filter>
+										
+								</else>
+							</filter>
+				
+						</then>
+						<else>
+							<!-- Error response if urgent view id is not provided. -->
+							<property name="id" value="{}" />	
+							<!-- Call responseHandler template. -->
+							<call-template target="responseHandlerTemplate">
+								<with-param name="activity" value="freshdesk_listUrgentTickets" />
+								<with-param name="id" value="{$ctx:id}" />
+								<with-param name="status" value="Skipped" />
+								<with-param name="message" value="Urgent View ID is not provided" />
+							</call-template>
+							<loopback />
+						</else>
+					</filter>	
+					
+				</then>
+			</filter>
+			
+        </inSequence>
+        <outSequence>
+            <payloadFactory media-type="json">
+                <format>{
+					"Response":{
+						"process":"freshdesk_sendNotificationsToAgents",
+						"activityResponse":[$1]
+					}
+				}</format>
+                <args>
+                    <arg expression="get-property('operation','responseString')" />
+                </args>
+            </payloadFactory>
+            <property name="messageType" value="application/json" scope="axis2" />
+            <send />
+        </outSequence>
+    </target>
+    <description />
+</proxy>
