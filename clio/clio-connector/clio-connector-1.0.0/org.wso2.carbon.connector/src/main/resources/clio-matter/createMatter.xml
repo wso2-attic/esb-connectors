@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="createMatter" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="displayNumber"
+      description="Matter reference and label. Depending on the account's manual_matter_numbering setting, this is either read only (generated), or customizable." />
+   <parameter name="clientId" description="The client of the matter." />
+   <parameter name="status" description="Matter status, this is one of 'Pending', 'Open' or 'Closed'." />
+   <parameter name="description" description="Detailed description of the matter." />
+   <parameter name="clientReference" description="Client Reference string for external uses." />
+   <parameter name="responsibleAttorney" description="The user responsible for the matter." />
+   <parameter name="originatingAttorney" description="The user who referred the matter." />
+   <parameter name="practiceArea" description="The practice area for the matter" />
+   <parameter name="location" description="Location of the matter." />
+   <parameter name="pendingDate" description="Date the matter was set to pending." />
+   <parameter name="openDate" description="Date the matter was set to open." />
+   <parameter name="closeDate" description="Date the matter was set to closed." />
+   <parameter name="billable" description="If this matter is billable or not." />
+   <parameter name="customFieldValues" description="A polymorphic collect of custom field values set on this matter." />
+   <parameter name="permission"
+      description="Matter permission will either be everyone in firm, a specific group or the current user; this is a polymorphic relationship to either group or user." />
+   <parameter name="billingMethod" description="Billing method of this matter, either 'flat' or 'hourly'." />
+   <parameter name="activityRates" description="A collection of firm-wide and/or attorney specific rates for this matter." />
+   <parameter name="assignedLists" description="A collection of task template lists that have been assigned for this matter." />
+   <parameter name="flatRateRate" description="Flat rate fee. This is a required field if flat rate is chosen." />
+   <parameter name="flatRateActivityUser"
+      description="The attorney who earns the flat-rate activity. If not given for creating a new matter, it defauls to the logged-in user. If not given for updating a matter, the user of the flat-rate activity remains the same." />
+   <parameter name="flatRateActivityDescription"
+      description="Flate rate Activity Description, if flat rate is chosen. The activity description must be already assigned to the flat_rate_activity_user." />
+   <sequence>
+      <property name="uri.var.displayNumber" expression="$func:displayNumber" />
+      <property name="uri.var.clientId" expression="$func:clientId" />
+      <property name="uri.var.status" expression="$func:status" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.clientReference" expression="$func:clientReference" />
+      <property name="uri.var.responsibleAttorney" expression="$func:responsibleAttorney" />
+      <property name="uri.var.originatingAttorney" expression="$func:originatingAttorney" />
+      <property name="uri.var.practiceArea" expression="$func:practiceArea" />
+      <property name="uri.var.location" expression="$func:location" />
+      <property name="uri.var.pendingDate" expression="$func:pendingDate" />
+      <property name="uri.var.openDate" expression="$func:openDate" />
+      <property name="uri.var.closeDate" expression="$func:closeDate" />
+      <property name="uri.var.billable" expression="$func:billable" />
+      <property name="uri.var.customFieldValues" expression="$func:customFieldValues" />
+      <property name="uri.var.permission" expression="$func:permission" />
+      <property name="uri.var.billingMethod" expression="$func:billingMethod" />
+      <property name="uri.var.activityRates" expression="$func:activityRates" />
+      <property name="uri.var.assignedLists" expression="$func:assignedLists" />
+      <property name="uri.var.flatRateRate" expression="$func:flatRateRate" />
+      <property name="uri.var.flatRateActivityUser" expression="$func:flatRateActivityUser" />
+      <property name="uri.var.flatRateActivityDescription" expression="$func:flatRateActivityDescription" />
+
+      <payloadFactory media-type="json">
+         <format>
+            {"matter": {
+            "client_id": "$1",
+            "status": "$2",
+            "description": "$3"
+            }}
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.clientId')" />
+            <arg expression="get-property('uri.var.status')" />
+            <arg expression="get-property('uri.var.description')" />
+         </args>
+      </payloadFactory>
+
+      <script language="js">
+         <![CDATA[
+            var jsonPayload = mc.getPayloadJSON();
+            
+            var activityRates = mc.getProperty('uri.var.activityRates');
+            var assignedLists = mc.getProperty('uri.var.assignedLists');
+            var billable = mc.getProperty('uri.var.billable');
+            var billingMethod = mc.getProperty('uri.var.billingMethod');
+            var clientReference = mc.getProperty('uri.var.clientReference');
+            var closeDate = mc.getProperty('uri.var.closeDate');
+            var customFieldValues = mc.getProperty('uri.var.customFieldValues');
+            var displayNumber = mc.getProperty('uri.var.displayNumber');
+            var flatRateActivityDescription = mc.getProperty('uri.var.flatRateActivityDescription');
+            var flatRateActivityUser = mc.getProperty('uri.var.flatRateActivityUser');
+            var flatRateRate = mc.getProperty('uri.var.flatRateRate');
+            var location = mc.getProperty('uri.var.location');
+            var openDate = mc.getProperty('uri.var.openDate');
+            var originatingAttorney = mc.getProperty('uri.var.originatingAttorney');
+            var pendingDate = mc.getProperty('uri.var.pendingDate');
+            var permission = mc.getProperty('uri.var.permission');
+            var practiceArea = mc.getProperty('uri.var.practiceArea');
+            var responsibleAttorney = mc.getProperty('uri.var.responsibleAttorney');
+            
+            var matter = jsonPayload.matter;
+            if (activityRates != null && activityRates != ""){
+               matter["activity_rates"] = eval("(" + activityRates + ")");
+            }
+            
+            if (assignedLists != null && assignedLists != ""){
+               matter["assigned_lists"] = eval("(" + assignedLists + ")");
+            }
+            
+            if (billable != null && billable != ""){
+               matter["billable"] = billable;
+            }
+            
+            if (billingMethod != null && billingMethod != ""){
+               matter["billing_method"] = billingMethod;
+            }
+            
+            if (clientReference != null && clientReference != ""){
+               matter["client_reference"] = clientReference;
+            }
+            
+            if (closeDate != null && closeDate != ""){
+               matter["close_date"] = closeDate;
+            }
+            
+            if (customFieldValues != null && customFieldValues != ""){
+               matter["custom_field_values"] = eval("(" + customFieldValues + ")");
+            }
+            
+            if (displayNumber != null && displayNumber != ""){
+               matter["display_number"] = displayNumber;
+            }
+            
+            if (flatRateActivityDescription != null && flatRateActivityDescription != ""){
+               matter["flat_rate_activity_description"] = flatRateActivityDescription;
+            }
+            
+            if (flatRateActivityUser != null && flatRateActivityUser != ""){
+               matter["flat_rate_activity_user"] = flatRateActivityUser;
+            }
+            
+            if (flatRateRate != null && flatRateRate != ""){
+               matter["flat_rate_rate"] = flatRateRate;
+            }
+            
+            if (location != null && location != ""){
+               matter["location"] = location;
+            }
+            
+            if (openDate != null && openDate != ""){
+               matter["open_date"] = openDate;
+            }
+            
+            if (originatingAttorney != null && originatingAttorney != ""){
+               matter["originating_attorney"] = originatingAttorney;
+            }
+            
+            if (pendingDate != null && pendingDate != ""){
+               matter["pending_date"] = pendingDate;
+            }
+            
+            if (permission != null && permission != ""){
+               matter["permission"] = permission;
+            }
+            
+            if (practiceArea != null && practiceArea != ""){
+               matter["practice_area"] = practiceArea;
+            }
+            
+            if (responsibleAttorney != null && responsibleAttorney != ""){
+               matter["responsible_attorney"] = responsibleAttorney;
+            }
+            
+            jsonPayload["matter"] = matter;
+            
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/matters" />
+         </endpoint>
+      </call>
+
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="Status" action="remove" scope="transport" />
+
+   </sequence>
+</template>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="listMatters" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="clientId" description="Returns all matters belonging to the given client id." />
+   <parameter name="practiceAreaId" description="Returns all matters belonging to the given practice area id." />
+   <parameter name="status"
+      description="Returns all matters with a given status; a status must be from the following: 'Open', 'Closed' or 'Pending'." />
+   <parameter name="displayNumber" description="Wildcard search for display_number matching a given string." />
+   <parameter name="offset" description="Returns records with an id greater than the offset." />
+   <parameter name="limit" description="The maximum number of records to be returned. (int, default 1000)" />
+   <parameter name="createdSince" description="Returns records created on or after the date. (date, ISO 8601 format)" />
+   <parameter name="updatedSince" description="Returns records updated on or after the date. (date, ISO 8601 format)" />
+   <sequence>
+      <property name="uri.var.clientId" expression="$func:clientId" />
+      <property name="uri.var.practiceAreaId" expression="$func:practiceAreaId" />
+      <property name="uri.var.status" expression="$func:status" />
+      <property name="uri.var.displayNumber" expression="$func:displayNumber" />
+      <property name="uri.var.offset" expression="$func:offset" />
+      <property name="uri.var.limit" expression="$func:limit" />
+      <property name="uri.var.createdSince" expression="$func:createdSince" />
+      <property name="uri.var.updatedSince" expression="$func:updatedSince" />
+
+      <script language="js">
+         <![CDATA[
+            var clientId = mc.getProperty('uri.var.clientId');
+            var createdSince = mc.getProperty('uri.var.createdSince');
+            var displayNumber = mc.getProperty('uri.var.displayNumber');
+            var limit = mc.getProperty('uri.var.limit');
+            var offset = mc.getProperty('uri.var.offset');
+            var practiceAreaId = mc.getProperty('uri.var.practiceAreaId');
+            var status = mc.getProperty('uri.var.status');
+            var updatedSince = mc.getProperty('uri.var.updatedSince');
+            
+            var urlQuery = '';
+            
+            if (clientId != null && clientId != ""){
+               urlQuery += 'client_id=' + clientId + '&';
+            }
+            
+            if (createdSince != null && createdSince != ""){
+               urlQuery += 'created_since=' + encodeURIComponent(createdSince) + '&';
+            }
+            
+            if (displayNumber != null && displayNumber != ""){
+               urlQuery += 'display_number=' + encodeURIComponent(displayNumber) + '&';
+            }
+            
+            if (limit != null && limit != ""){
+               urlQuery += 'limit=' + limit + '&';
+            }
+            
+            if (offset != null && offset != ""){
+               urlQuery += 'offset=' + encodeURIComponent(offset) + '&';
+            }
+            
+            if (practiceAreaId != null && practiceAreaId != ""){
+               urlQuery += 'practice_area_id=' + practiceAreaId + '&';
+            }
+            
+            if (status != null && status != ""){
+               urlQuery += 'status=' + status + '&';
+            }
+            
+            if (updatedSince != null && updatedSince != ""){
+               urlQuery += 'updated_since=' + encodeURIComponent(updatedSince) + '&';
+            }
+            
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+            
+         ]]>
+      </script>
+
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/matters{uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="Status" action="remove" scope="transport" />
+
+   </sequence>
+</template>
