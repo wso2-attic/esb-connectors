@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="peoplehr_retrieveAndCreateMonthlyLeaves" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- Deputy API call related properties -->
+         <property name="deputyAccessToken" expression="json-eval($.deputyAccessToken)" />
+         <property name="deputyApiUrl" expression="json-eval($.deputyApiUrl)" />
+         <property name="year" expression="json-eval($.year)" />
+         <property name="month" expression="json-eval($.month)" />
+
+         <!-- PeopleHR API call related properties -->
+         <property name="peoplehrApiUrl" expression="json-eval($.peoplehrApiUrl)" />
+         <property name="peoplehrApiKey" expression="json-eval($.peoplehrApiKey)" />
+         <property name="reason" expression="json-eval($.reason)" />
+
+         <property name="index" value="0" scope="operation" />
+         <property name="responseString" value="" scope="operation" />
+
+         <!-- Generate the query string for retrieving leaves for the given year and month -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "query": {
+               "search": {
+               "f2": {
+               "field": "DateStart",
+               "type": "le",
+               "data": "$1-$2-31"
+               },
+               "f3": {
+               "field": "DateStart",
+               "type": "ge",
+               "data": "$1-$2-01"
+               }
+               }
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('year')" />
+               <arg expression="get-property('month')" />
+            </args>
+         </payloadFactory>
+
+         <property name="query" expression="json-eval($.query)" />
+
+         <!-- Retrieve monthly leaves from the deputy -->
+         <deputy.init>
+            <accessToken>{$ctx:deputyAccessToken}</accessToken>
+            <apiUrl>{$ctx:deputyApiUrl}</apiUrl>
+         </deputy.init>
+         <deputy.queryObject>
+            <objectName>Leave</objectName>
+            <query>{$ctx:query}</query>
+         </deputy.queryObject>
+
+         <property name="messageType" value="application/xml" scope="axis2" />
+         <property name="responseStatus" expression="$axis2:HTTP_SC" />
+
+         <filter xpath="get-property('responseStatus') != 200">
+            <then>
+               <property name="errorMessage" expression="fn:concat('(',$axis2:HTTP_SC,'), Cannot retrieve leaves')" />
+
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="deputy_getLeaves" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:errorMessage}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+
+         <property name="leaveCount" expression="count(//jsonElement)" scope="operation" />
+
+         <filter xpath="0 = get-property('operation', 'leaveCount')">
+            <then>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="deputy_getLeaves" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="No Leaves were found for the given year and month" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+
+         <iterate id="leaveIterator" expression="//jsonElement" sequential="true" continueParent="true"
+            preservePayload="true">
+            <target>
+               <sequence>
+                  <property name="employeeId" expression="/jsonElement/Employee/text()" />
+                  <property name="startDate" expression="//DateStart/text()" />
+                  <property name="endDate" expression="//DateEnd/text()" />
+                  <property name="comment" expression="//Comment/text()" />
+                  <property name="leaveDuration" expression="//Days/text()" />
+                  <property name="deputyLeaveId" expression="/jsonElement/Id/text()" />
+
+                  <property name="deputyLeaveIdParam" expression="fn:concat('deputyLeaveId:',get-property('deputyLeaveId'))" />
+
+                  <!-- Get PeopleHR employee ID from the deputy other name field -->
+                  <deputy.init>
+                     <accessToken>{$ctx:deputyAccessToken}</accessToken>
+                     <apiUrl>{$ctx:deputyApiUrl}</apiUrl>
+                  </deputy.init>
+                  <deputy.getObject>
+                     <objectName>Employee</objectName>
+                     <objectId>{$ctx:employeeId}</objectId>
+                  </deputy.getObject>
+
+                  <property name="otherName" expression="json-eval($.OtherName)" />
+
+                  <filter source="boolean(get-property('otherName'))" regex="false">
+                     <then>
+                        <property name="message"
+                           expression="fn:concat('Cannot fetch PeopleHR employee ID from Other Name field of deputy employee (Deputy Employee ID: ',get-property('employeeId'),')')" />
+
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="activity" value="deputy_getLeaves" />
+                           <with-param name="id" value="{$ctx:deputyLeaveIdParam}" />
+                           <with-param name="status" value="Error" />
+                           <with-param name="message" value="{$ctx:message}" />
+                        </call-template>
+                     </then>
+                     <else>
+                        <script language="js">
+								<![CDATA[
+								
+									var startDate = mc.getProperty('startDate');
+									var endDate = mc.getProperty('endDate');
+									var leaveDuration = mc.getProperty('leaveDuration');
+									
+									var startDateShort = startDate.substring(0, startDate.indexOf("T"));
+									var endDateShort = endDate.substring(0, endDate.indexOf("T"));
+									
+									// Setting start date and end date of leave duration.
+									mc.setProperty('startDate', startDateShort);
+									mc.setProperty('endDate', endDateShort);
+									
+									// Setting the PeopleHR leave duration type (DAY_OR_MORE = 1 , HALF_DAY = 2, QUARTER_DAY = 3).
+									var peoplehrDurationType = "1";
+									if(leaveDuration == 0.25) {
+										peoplehrDurationType = "3";
+									} else if(leaveDuration == 0.5) {
+										peoplehrDurationType = "2";
+									} else if ((leaveDuration >= 1) && (leaveDuration % 1 === 0)) {
+										peoplehrDurationType = "1";
+									} else {
+										mc.setProperty('durationError','true');
+									}
+									
+									mc.setProperty('peoplehrDurationType', peoplehrDurationType);
+									
+								]]>
+                        </script>
+
+                        <filter source="get-property('durationError')" regex="true">
+                           <then>
+                              <property name="message"
+                                 expression="fn:concat('Invalid leave duration: ',get-property('leaveDuration'))" />
+
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="peoplehr_createAbsenceRecord" />
+                                 <with-param name="id" value="{$ctx:deputyLeaveIdParam}" />
+                                 <with-param name="status" value="Error" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </then>
+                           <else>
+                              <peoplehr.init>
+                                 <employeeId>{$ctx:otherName}</employeeId>
+                                 <apiUrl>{$ctx:peoplehrApiUrl}</apiUrl>
+                                 <apiKey>{$ctx:peoplehrApiKey}</apiKey>
+                              </peoplehr.init>
+                              <peoplehr.createAbsenceRecord>
+                                 <startDate>{$ctx:startDate}</startDate>
+                                 <duration>{$ctx:leaveDuration}</duration>
+                                 <reason>{$ctx:comment}</reason>
+                                 <endDate>{$ctx:endDate}</endDate>
+                                 <durationType>{$ctx:peoplehrDurationType}</durationType>
+                              </peoplehr.createAbsenceRecord>
+
+                              <filter source="$axis2:HTTP_SC" regex="200">
+                                 <then>
+                                    <property name="isError" expression="//isError/text()" />
+                                    <property name="message" expression="//Message/text()" />
+
+                                    <filter source="get-property('isError')" regex="false">
+                                       <then>
+                                          <property name="status" value="Success" />
+                                       </then>
+                                       <else>
+                                          <property name="status" value="Error" />
+                                       </else>
+                                    </filter>
+                                 </then>
+                                 <else>
+                                    <property name="message" expression="fn:concat('(',$axis2:HTTP_SC,'), Cannot create leave')" />
+                                    <property name="status" value="Error" />
+                                 </else>
+                              </filter>
+
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="peoplehr_createAbsenceRecord" />
+                                 <with-param name="id" value="{$ctx:deputyLeaveIdParam}" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </else>
+                        </filter>
+                     </else>
+                  </filter>
+
+                  <property name="index" expression="get-property('operation','index') + 1" scope="operation" />
+
+               </sequence>
+            </target>
+         </iterate>
+
+         <filter xpath="get-property('operation', 'index') = get-property('operation', 'leaveCount')">
+            <then>
+               <loopback />
+            </then>
+         </filter>
+
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+
+         <!-- Generate the chained response of all the API calls in createLeads -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"peoplehr_retrieveAndCreateMonthlyLeaves",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

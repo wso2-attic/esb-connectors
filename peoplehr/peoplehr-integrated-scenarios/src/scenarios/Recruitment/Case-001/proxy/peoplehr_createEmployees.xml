@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="peoplehr_createEmployees" transports="https,http" statistics="disable"
+   trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- Common properties -->
+         <property name="employeeIdIndex" expression="json-eval($.lastEmployeeIdNumber)" />
+         <property name="location" expression="json-eval($.location)" />
+         <property name="startDate" expression="json-eval($.startDate)" />
+
+         <!-- ZohoRecruit properties -->
+         <property name="zohoRecruitApiUrl" expression="json-eval($.zohoRecruitApiUrl)" />
+         <property name="zohoRecruitAuthToken" expression="json-eval($.zohoRecruitAuthToken)" />
+         <property name="zohoRecruitScope" expression="json-eval($.zohoRecruitScope)" />
+         <property name="zohoRecruitJobId" expression="json-eval($.zohoRecruitJobId)" />
+         <property name="zohoRecruitResponseFormat" value="xml" />
+
+         <!-- PeopleHR properties -->
+         <property name="peopleHrApiUrl" expression="json-eval($.peopleHrApiUrl)" />
+         <property name="peopleHrApiKey" expression="json-eval($.peopleHrApiKey)" />
+
+         <!-- Zoho People properties -->
+         <property name="zohoPeopleApiUrl" expression="json-eval($.zohoPeopleApiUrl)" />
+         <property name="zohoPeopleAuthToken" expression="json-eval($.zohoPeopleAuthToken)" />
+         <property name="zohoPeopleDepartmentId" expression="json-eval($.zohoPeopleDepartmentId)" />
+
+         <property name="deputyApiUrl" expression="json-eval($.deputyApiUrl)" />
+         <property name="deputyAccessToken" expression="json-eval($.deputyAccessToken)" />
+         <property name="deputyCompanyId" expression="json-eval($.deputyCompanyId)" />
+
+         <!-- Xero properties -->
+         <property name="xeroConsumerKey" expression="json-eval($.xeroConsumerKey)" />
+         <property name="xeroConsumerSecret" expression="json-eval($.xeroConsumerSecret)" />
+         <property name="xeroAccessToken" expression="json-eval($.xeroAccessToken)" />
+         <property name="xeroAccessTokenSecret" expression="json-eval($.xeroAccessTokenSecret)" />
+         <property name="xeroApiUrl" expression="json-eval($.xeroApiUrl)" />
+
+         <property name="uri.var.index" value="0" scope="operation" />
+		 <property name="uri.var.hiredCandidateIndex" value="0" scope="operation" />
+         <property name="uri.var.employeeIdentifier" expression="get-property('employeeIdIndex')" scope="operation" />
+
+
+         <!-- Build the Date format for Zoho People -->
+         <script language="js">
+				<![CDATA[
+					var months = [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+					
+					var date = mc.getProperty('startDate');
+					var dateElements = date.split("-");
+
+					// Check weather the given startDate is in valid format					
+					if(dateElements != null && dateElements.length == 3){
+						var year = dateElements[0] + '';
+						var month = dateElements[1] + '';
+						var date = dateElements[2] + '';
+						
+						// Check if the months, date and year values are having proper lengths
+						// Check if the months, date and year values are integers
+						// Checks date value range for validity
+						if(dateElements.length == 3 && !isNaN(year) && !isNaN(month) && !isNaN(date) && 0 < parseInt(date) && parseInt(date) < 32 && year.length == 4 && month.length == 2 && date.length == 2 && months[parseInt(month - 1)] != undefined){
+								mc.setProperty('zohoPeopleDate', dateElements[2] + '-' + months[parseInt(dateElements[1] - 1)] + '-' + dateElements[0]);
+						}					
+					}	
+				]]>
+         </script>
+
+         <!-- Checks if the start date is valid, if not returns an error response to user -->
+         <filter source="boolean(get-property('zohoPeopleDate'))" regex="false">
+            <then>
+               <!-- Error response -->
+               <property name="uri.var.status" value="Error" />
+               <property name="uri.var.message" value="Please check the startDate parameter, it should be in YYYY-MM-DD format" />
+
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="peoplehr_createEmployees" />
+                  <with-param name="status" value="{$ctx:uri.var.status}" />
+                  <with-param name="message" value="{$ctx:uri.var.message}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- End of Zoho People date valicdation -->
+
+         <!-- Zoho People Department Validation -->
+         <property name="responseType" value="application/json" />
+         <property name="formLinkName" value="P_Department" />
+
+         <zohopeople.init>
+            <apiUrl>{$ctx:zohoPeopleApiUrl}</apiUrl>
+            <authToken>{$ctx:zohoPeopleAuthToken}</authToken>
+            <responseType>{$ctx:responseType}</responseType>
+         </zohopeople.init>
+         <zohopeople.getRecord>
+            <recordId>{$ctx:zohoPeopleDepartmentId}</recordId>
+            <formLinkName>{$ctx:formLinkName}</formLinkName>
+         </zohopeople.getRecord>
+         <property name="zohoPeopleDepartment" expression="json-eval($.response.result[0].Department Details.Department)" />
+
+         <!-- Check the Availability of the Zoho People Department to proceed -->
+         <filter source="boolean(get-property('zohoPeopleDepartment'))" regex="false">
+            <then>
+               <!-- Error response -->
+               <property name="uri.var.status" value="Error" />
+               <property name="uri.var.message"
+                  value="The relevant department could not be retrieved. Please recheck the 'zohoPeopleDepartmentId' parameter." />
+
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="peoplehr_createEmployees" />
+                  <with-param name="status" value="{$ctx:uri.var.status}" />
+                  <with-param name="message" value="{$ctx:uri.var.message}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- End of Zoho People Department validation -->
+
+         <zohorecruit.init>
+            <apiUrl>{$ctx:zohoRecruitApiUrl}</apiUrl>
+            <authToken>{$ctx:zohoRecruitAuthToken}</authToken>
+            <scope>{$ctx:zohoRecruitScope}</scope>
+            <responseFormat>{$ctx:zohoRecruitResponseFormat}</responseFormat>
+         </zohorecruit.init>
+         <zohorecruit.getAssociatedCandidates>
+			<id>{$ctx:zohoRecruitJobId}</id>
+			<version>{$ctx:version}</version>
+         </zohorecruit.getAssociatedCandidates>
+
+         <!-- Checks weather the included lastEmployeeIndex is a number or not to proceed, Note that this has been added 
+            after the first call to avoid parser errors. -->
+         <filter source="get-property('employeeIdIndex') + 1" regex="NaN">
+            <then>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="peoplehr_getAssociatedCandidates" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="The value given for 'lastEmployeeIdNumber' parameter, should be a number." />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+
+         <property name="uri.var.candidateCount" expression="count(//result/JobOpenings/row)" scope="operation" />
+
+         <!-- Checks if there are no candiadates for the given Job ID, if not returns an error response to user -->
+         <filter xpath="0 = get-property('operation', 'uri.var.candidateCount')">
+            <then>
+               <!-- Successful response -->
+               <property name="uri.var.status" value="Skipped" />
+               <property name="uri.var.message" value="There are no candidates available for the given Job ID." />
+
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="peoplehr_createEmployees" />
+                  <with-param name="status" value="{$ctx:uri.var.status}" />
+                  <with-param name="message" value="{$ctx:uri.var.message}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+
+         <!-- Clears the rsponseString to avoid it being appended multiple times -->
+         <property name="uri.var.responseString" value="" />
+
+         <iterate id="candidatesIterator" expression="//result/JobOpenings/row" sequential="true"
+            continueParent="true" preservePayload="true">
+            <target>
+               <sequence>
+                  <!-- Filter out only the Hired candidates to be created as employees -->
+                  <filter xpath="//FL[@val='STATUS']='Hired'">
+                     <then>
+
+                        <property name="uri.var.candidateId" expression="//FL[@val='CANDIDATEID']" />
+
+                        <call-template target="peoplehr-retrieveCandidatesAndCreateEmployees">
+                           <!-- parameter values will be passed on to a sequence template -->
+                           (
+                           <with-param name="candidateId" value="{$ctx:uri.var.candidateId}" />
+                           |
+                           <with-param name="peopleHrApiUrl" value="{$ctx:peopleHrApiUrl}" />
+                           |
+                           <with-param name="peopleHrApiKey" value="{$ctx:peopleHrApiKey}" />
+                           |
+                           <with-param name="location" value="{$ctx:location}" />
+                           |
+                           <with-param name="department" value="{$ctx:zohoPeopleDepartment}" />
+                           |
+                           <with-param name="startDate" value="{$ctx:startDate}" />
+                           |
+                           <with-param name="zohoRecruitApiUrl" value="{$ctx:zohoRecruitApiUrl}" />
+                           |
+                           <with-param name="zohoRecruitAuthToken" value="{$ctx:zohoRecruitAuthToken}" />
+                           |
+                           <with-param name="zohoRecruitScope" value="{$ctx:zohoRecruitScope}" />
+                           |
+                           <with-param name="zohoPeopleApiUrl" value="{$ctx:zohoPeopleApiUrl}" />
+                           |
+                           <with-param name="zohoPeopleAuthToken" value="{$ctx:zohoPeopleAuthToken}" />
+                           |
+                           <with-param name="zohoPeopleDate" value="{$ctx:zohoPeopleDate}" />
+                           |
+                           <with-param name="zohoPeopleDepartmentId" value="{$ctx:zohoPeopleDepartmentId}" />
+                           |
+                           <with-param name="deputyApiUrl" value="{$ctx:deputyApiUrl}" />
+                           |
+                           <with-param name="deputyAccessToken" value="{$ctx:deputyAccessToken}" />
+                           |
+                           <with-param name="deputyCompanyId" value="{$ctx:deputyCompanyId}" />
+                           |
+                           <with-param name="xeroConsumerKey" value="{$ctx:xeroConsumerKey}" />
+                           |
+                           <with-param name="xeroConsumerSecret" value="{$ctx:xeroConsumerSecret}" />
+                           |
+                           <with-param name="xeroAccessToken" value="{$ctx:xeroAccessToken}" />
+                           |
+                           <with-param name="xeroAccessTokenSecret" value="{$ctx:xeroAccessTokenSecret}" />
+                           |
+                           <with-param name="xeroApiUrl" value="{$ctx:xeroApiUrl}" />
+                           |
+                           ) *
+                        </call-template>
+						<property name="uri.var.hiredCandidateIndex" expression="get-property('operation','uri.var.hiredCandidateIndex') + 1" scope="operation" />
+                     </then>
+                  </filter>
+                  <property name="uri.var.index" expression="get-property('operation','uri.var.index') + 1"
+                     scope="operation" />
+               </sequence>
+            </target>
+         </iterate>
+
+         <filter xpath="get-property('operation', 'uri.var.index') = get-property('operation', 'uri.var.candidateCount')">
+            <then>
+				<filter xpath="get-property('operation', 'uri.var.hiredCandidateIndex') = 0">
+					<then>
+						<!-- No Hired Candidates -->
+						<property name="uri.var.status" value="Skipped" />
+						<property name="uri.var.message" value="There are no hired candidates for the given Job ID." />
+
+						<call-template target="responseHandlerTemplate">
+						  <with-param name="activity" value="peoplehr_createEmployees" />
+						  <with-param name="status" value="{$ctx:uri.var.status}" />
+						  <with-param name="message" value="{$ctx:uri.var.message}" />
+						</call-template>
+						<loopback />
+					</then>
+				</filter>
+               <loopback />
+            </then>
+         </filter>
+
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+
+         <!-- Generate the chained response of all the API calls in createLeads -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "activity":"peoplehr-retrieveCandidatesAndCreateEmployees",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
+                                
