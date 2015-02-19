@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This template sends emails and/or text messages to recipients. -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="sendNotifications">
+
+	<!-- Gmail parameters -->
+	<parameter name="gmail.username" description="Gmail user name to login to the user account." />
+	<parameter name="gmail.oAuthAccessToken" description="OAuth access Token to access the Gmail API through the App." />	 
+	<parameter name="gmail.subject" description="(Optional) Subject of the e-mail message." />
+	<parameter name="gmail.toRecipients" description="A comma seperated list of recipients." />
+	<parameter name="gmail.ccRecipients" description="A comma seperated list of cc recipients." />
+	<parameter name="gmail.bccRecipients" description="A comma seperated list of bcc recipients." />
+	<parameter name="gmail.textContent" description="(Optional) Text content of the mail." />
+	<parameter name="gmail.responseIds" description="FreshDesk ticket details." />
+
+	<!-- Nexmo parameters -->
+	<parameter name="nexmo.apiUrl" description="The url to access the Nexmo API." />
+	<parameter name="nexmo.apiKey" description="The apiKey of a valid Nexmo account." />
+	<parameter name="nexmo.apiSecret" description="The apiSecret of a valid Nexmo account." />
+	<parameter name="nexmo.from" description="Address of the sender." />
+	<parameter name="nexmo.to" description="Mobile number in international format and one reciepient per request." />
+	<parameter name="nexmo.text" description="Body of the text message." />
+	<parameter name="nexmo.responseIds" description="FreshDesk response id details." />
+	
+    <sequence>
+        <!-- Gmail properties -->
+		<property name="uri.var.gmail.username" expression="$func:gmail.username"/>
+        <property name="uri.var.gmail.oAuthAccessToken" expression="$func:gmail.oAuthAccessToken"/>
+        <property name="uri.var.gmail.subject" expression="$func:gmail.subject" />
+        <property name="uri.var.gmail.toRecipients" expression="$func:gmail.toRecipients" />
+        <property name="uri.var.gmail.ccRecipients" expression="$func:gmail.ccRecipients" />
+        <property name="uri.var.gmail.bccRecipients" expression="$func:gmail.bccRecipients" />
+        <property name="uri.var.gmail.textContent" expression="$func:gmail.textContent" />
+		<property name="uri.var.gmail.responseIds" expression="$func:gmail.responseIds" />
+       
+	   <!-- Nexmo properties -->
+		<property name="uri.var.nexmo.apiUrl" expression="$func:nexmo.apiUrl" />
+        <property name="uri.var.nexmo.apiKey" expression="$func:nexmo.apiKey" />
+        <property name="uri.var.nexmo.apiSecret" expression="$func:nexmo.apiSecret" />
+		<property name="uri.var.nexmo.from" expression="$func:nexmo.from" />
+        <property name="uri.var.nexmo.to" expression="$func:nexmo.to" />
+        <property name="uri.var.nexmo.text" expression="$func:nexmo.text" />
+		<property name="uri.var.nexmo.responseIds" expression="$func:nexmo.responseIds" />
+
+        <!-- Send a mail through Gmail - Executed only if both username and oAuthAccessToken of Gmail is sent.-->
+        <filter xpath="boolean(get-property('uri.var.gmail.username')) and boolean(get-property('uri.var.gmail.oAuthAccessToken'))">
+            <then>
+				<!-- Send mail through Gmail.-->
+                <gmail.init>
+					<username>{$ctx:uri.var.gmail.username}</username>
+					<oauthAccessToken>{$ctx:uri.var.gmail.oAuthAccessToken}</oauthAccessToken>
+				</gmail.init>
+				<gmail.sendMail>
+					<subject>{$ctx:uri.var.gmail.subject}</subject>
+					<toRecipients>{$ctx:uri.var.gmail.toRecipients}</toRecipients>
+					<ccRecipients>{$ctx:uri.var.gmail.ccRecipients}</ccRecipients>
+					<bccRecipients>{$ctx:uri.var.gmail.bccRecipients}</bccRecipients>
+					<textContent>{$ctx:uri.var.gmail.textContent}</textContent>
+				</gmail.sendMail>
+				
+				<!-- Removing unused headers by calling a sequence template -->
+				<sequence key="removeResponseHeaders" />
+				
+                <!--Extract the recipients.-->
+                <property name="uri.var.gmail.responseRecipients" expression="json-eval($.sendMailResponse.message.recipients)" />
+				<property name="uri.var.gmail.id" expression="get-property('uri.var.gmail.responseIds')" />
+				
+                <!--If emails are sent to recipients successfully through Gmail, send a success message to user. Else send an error message with the API error response.-->
+                <filter source="boolean(get-property('uri.var.gmail.responseRecipients'))" regex="true">
+                    <then>
+                        <property name="uri.var.gmail.status" value="Success" />
+                        <property name="uri.var.gmail.message" expression="fn:concat('An email has been sent to - ', get-property('uri.var.gmail.responseRecipients'), ' by Gmail.')" />
+                    </then>
+                    <else>
+                        <property name="uri.var.gmail.status" value="Error" />
+                        <property name="uri.var.gmail.message" expression="json-eval($)" />
+                    </else>
+                </filter>
+				
+                <!--Call the responseHandler template-->
+                <property name="uri.var.activity" value="gmail_sendEmailsToRecipients" />
+                <call-template target="responseHandlerTemplate">
+                    <with-param name="activity" value="{$ctx:uri.var.activity}" />
+                    <with-param name="id" value="{$ctx:uri.var.gmail.id}" />
+                    <with-param name="status" value="{$ctx:uri.var.gmail.status}" />
+                    <with-param name="message" value="{$ctx:uri.var.gmail.message}" />
+                </call-template>
+				
+				<property name="uri.var.gmail.username" expression="$func:gmail.username" action="remove" />
+				<property name="uri.var.gmail.oAuthAccessToken" expression="$func:gmail.oAuthAccessToken" action="remove" />
+            </then>
+        </filter>
+		
+        <!-- Send a sms message through Nexmo - Executed only if both apiUrl, oAuthAccessToken and apiSecret of Nexmo is sent.-->
+        <filter xpath="boolean(get-property('uri.var.nexmo.apiUrl')) and boolean(get-property('uri.var.nexmo.apiKey')) and boolean(get-property('uri.var.nexmo.apiSecret'))">
+            <then>
+			
+				<!-- Send a sms through Nexmo.-->
+                <nexmo.init>
+					<apiUrl>{$ctx:uri.var.nexmo.apiUrl}</apiUrl>
+					<apiSecret>{$ctx:uri.var.nexmo.apiSecret}</apiSecret>
+					<apiKey>{$ctx:uri.var.nexmo.apiKey}</apiKey>
+					<responseType>json</responseType>
+				</nexmo.init>
+				<nexmo.sendMessage>
+					<to>{$ctx:uri.var.nexmo.to}</to>
+					<text>{$ctx:uri.var.nexmo.text}</text>
+					<from>{$ctx:uri.var.nexmo.from}</from>
+					<type>text</type>
+				</nexmo.sendMessage>
+				
+				<!-- Removing unused headers by calling a sequence template -->
+				<sequence key="removeResponseHeaders" />
+				 
+                <!-- Extract the status code from Nexmo response. -->
+                <property name="uri.var.nexmo.statusCode" expression="json-eval($.messages[0].status)" />
+                <property name="uri.var.nexmo.id" expression="get-property('uri.var.nexmo.responseIds')" />
+				
+				<!-- Send a sms through Nexmo - Executed only if status code is : 0 -->
+                <filter source="get-property('uri.var.nexmo.statusCode')" regex="0" >
+                    <then>
+                        <property name="uri.var.nexmo.status" value="Success" />
+                        <property name="uri.var.nexmo.message" expression="fn:concat('A text message has been sent to the recipient. [Mobile No -  ', get-property('uri.var.nexmo.to'),']')" />
+                    </then>
+                    <else>
+						<property name="apiErrorResponse" expression="json-eval($.messages[0]['error-text'])" />
+                        <property name="uri.var.nexmo.status" value="Error" />
+                        <property name="uri.var.nexmo.message" expression="fn:concat('Failed to send the text message to the recipient. ',get-property('apiErrorResponse'), '. [Mobile No -  ', get-property('uri.var.nexmo.to'),']')" />
+                    </else>
+                </filter>
+				
+                <!-- Call the responseHandler template -->
+                <call-template target="responseHandlerTemplate">
+                    <with-param name="activity" value="nexmo_sendSmsToRecipients" />
+                    <with-param name="id" value="{$ctx:uri.var.nexmo.id}" />
+                    <with-param name="status" value="{$ctx:uri.var.nexmo.status}" />
+                    <with-param name="message" value="{$ctx:uri.var.nexmo.message}" />
+                </call-template>
+				
+				<!-- Remove parameter values at the end of each iteration -->
+				<property name="uri.var.nexmo.apiUrl" expression="$func:nexmo.apiUrl" action="remove" />
+				<property name="uri.var.nexmo.apiKey" expression="$func:nexmo.apiKey" action="remove" />
+				<property name="uri.var.nexmo.apiSecret" expression="$func:nexmo.apiSecret" action="remove" />
+				<property name="uri.var.nexmo.to" expression="$func:nexmo.to" action="remove" />
+				<property name="uri.var.nexmo.text" expression="$func:nexmo.text" action="remove" />
+				<property name="uri.var.nexmo.from" expression="$func:nexmo.from" action="remove" />
+				
+            </then>
+        </filter>
+    </sequence>
+</template>

@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--The sequence will resolve Freshdesk and ActiveCollab tasks and send survey. -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="freshdesk-resolveTicketsAndSendSurvey">
+   <!--START: The task is marked as complete (value 1 indicates complete) only if it is not already marked as completed. -->
+   <filter source="get-property('activecollab.isCompleted')" regex="1">
+      <then>
+		<!--Dummy HTTP Call used to force the iterator threads to continue execution after the 'iterator' block.
+			Iterator threads stop right at the end of the iterator block if there's no outgoing call inside the iterator.-->
+		<freshdesk.init>
+            <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+            <format>json</format>
+            <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+         </freshdesk.init>
+         <freshdesk.getTicket>
+            <id>{$ctx:freshdesk.ticketId}</id>
+         </freshdesk.getTicket>
+         <sequence key="removeResponseHeaders" />
+	  
+		<!--Call the Response Handler Template -->
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="activecollab_completeTask" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Skipped" />
+            <with-param name="message" value="The task in ActiveCollab has already been completed." />
+         </call-template>
+      </then>
+      <else>
+         <!--Retrieve the particular ticket from freshdesk and check the ticket status. -->
+         <freshdesk.init>
+            <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+            <format>json</format>
+            <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+         </freshdesk.init>
+         <freshdesk.getTicket>
+            <id>{$ctx:freshdesk.ticketId}</id>
+         </freshdesk.getTicket>
+         <sequence key="removeResponseHeaders" />
+
+         <!--Store the Freshdesk Ticket subject and status. -->
+         <property name="freshdesk.ticketStatus" expression="json-eval($.helpdesk_ticket.status)" />
+         <property name="freshdesk.ticketRequesterId" expression="json-eval($.helpdesk_ticket.requester_id)" />
+         <property name="freshdesk.ticketSubject" expression="json-eval($.helpdesk_ticket.subject)" />
+         <property name="freshdesk.ticketDescription" expression="json-eval($.helpdesk_ticket.description)" />
+         <property name="freshdesk.surveyGizmoIdCustomFieldName"
+            expression="name(//jsonObject/helpdesk_ticket/custom_field/*[fn:starts-with(local-name(), 'surveygizmoid')])" />
+
+         <!--START: Check whether the particular ticket is already 'Resolved' (State ID - 4) in Freshdesk. -->
+         <filter source="get-property('freshdesk.ticketStatus')" regex="4">
+            <then>
+               <!--Complete the Task in ActiveCollab if it was already resolved in Freshdesk. -->
+               <activecollab.init>
+                  <apiUrl>{$ctx:activecollab.apiUrl}</apiUrl>
+                  <apiToken>{$ctx:activecollab.apiToken}</apiToken>
+                  <format>json</format>
+               </activecollab.init>
+               <activecollab.completeContext>
+                  <taskId>{$ctx:activecollab.taskId}</taskId>
+                  <projectId>{$ctx:activecollab.projectId}</projectId>
+               </activecollab.completeContext>
+               <sequence key="removeResponseHeaders" />
+
+               <property name="activecollab.isCompleted" expression="json-eval($.is_completed)" />
+               <!--Build response based on whether the completion was a success. -->
+               <filter source="get-property('activecollab.isCompleted')" regex="1">
+                  <then>
+                     <property name="status" value="Skipped" />
+                     <property name="message"
+                        value="The ticket was already resolved in Freshdesk. Therefore corresponding ActiveCollab task was completed without creating a survey." />
+                  </then>
+                  <else>
+                     <property name="status" value="Failure" />
+                     <property name="message"
+                        value="Unknown error occured whild completing the task in ActiveCollab. The freshdesk ticket was already closed." />
+                  </else>
+               </filter>
+               <!--Call the Response Handler Template -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="activecollab_completeTask" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+            </then>
+            <else>
+               <!--Build the title for SurveyGizmo. -->
+               <property name="surveygizmo.title"
+                  expression="fn:concat('Survey on Quality of Service for Freshdesk Ticket - ', get-property('freshdesk.ticketSubject'))" />
+
+               <!--Workaround to eliminate the Host header issue. -->
+               <property name="REQUEST_HOST_HEADER" value="www.dummy.api.com" scope="axis2" />
+               <header name="Host" value="restapi.surveygizmo.com" scope="transport" />
+               <!-- Accept-Encoding is required for SureyGizmo -->
+               <header name="Accept-Encoding" value="gzip,deflate" scope="transport" />
+
+               <!--Create a Survey by copying -->
+               <surveygizmo.init>
+                  <apiUrl>{$ctx:surveygizmo.apiUrl}</apiUrl>
+                  <userName>{$ctx:surveygizmo.username}</userName>
+                  <password>{$ctx:surveygizmo.password}</password>
+               </surveygizmo.init>
+               <surveygizmo.updateSurvey>
+                  <title>{$ctx:surveygizmo.title}</title>
+                  <status>launched</status>
+                  <blockBy>COOKIE</blockBy>
+                  <surveyId>{$ctx:surveygizmo.surveyId}</surveyId>
+                  <copy>true</copy>
+               </surveygizmo.updateSurvey>
+               <sequence key="removeResponseHeaders" />
+
+               <!--Store the Survey Link. -->
+               <property name="surveygizmo.surveyLink" expression="json-eval($.data.links.campaign)" />
+               <property name="surveygizmo.surveyId" expression="json-eval($.data.id)" />
+
+               <filter source="boolean(get-property('surveygizmo.surveyId'))" regex="false">
+                  <then>
+                     <!--Call the Response Handler Template -->
+                     <property name="errorResponse" expression="json-eval($)" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="surveyGizmo_createSurvey" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Failure" />
+                        <with-param name="message" value="{$ctx:errorResponse}" />
+                     </call-template>
+                  </then>
+                  <else>
+                     <!--Get the Requester Information -->
+                     <freshdesk.init>
+                        <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+                        <format>json</format>
+                        <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+                     </freshdesk.init>
+                     <freshdesk.getUser>
+                        <userId>{$ctx:freshdesk.ticketRequesterId}</userId>
+                     </freshdesk.getUser>
+                     <sequence key="removeResponseHeaders" />
+
+                     <!--Store ticket requester Email and Name. -->
+                     <property name="freshdesk.ticketRequesterEmail" expression="json-eval($.user.email)" />
+                     <property name="freshdesk.ticketRequesterName" expression="json-eval($.user.name)" />
+
+                     <filter source="boolean(get-property('freshdesk.ticketRequesterEmail'))" regex="false">
+                        <then>
+                           <property name="errorResponse" expression="json-eval($)" />
+                           <!--Call the Response Handler Template -->
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="freshdesk_getRequesterInformation" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="Failure" />
+                              <with-param name="message" value="{$ctx:errorResponse}" />
+                           </call-template>
+                        </then>
+                        <else>
+                           <!-- Build the mail content and body as JSON Object and extract it below, to preserve line breaks. -->
+                           <payloadFactory media-type="json">
+                              <format>{
+                                    "mailSubject": "Freshdesk Customer Feedback - $2",
+                                    "mailContent": "Hi $1,\n\nIn Freshdesk we value our customer feedback to tailor our Quality of Service to suite your requirements.\nPlease provide your valuable feedback on how the ticket \"$2\" was processed.\n\nClick on the link to take the survey now:\n$3"
+                                 }
+                              </format>
+                              <args>
+                                 <arg expression="get-property('freshdesk.ticketRequesterName')" />
+                                 <arg expression="get-property('freshdesk.ticketSubject')" />
+                                 <arg expression="get-property('surveygizmo.surveyLink')" />
+                              </args>
+                           </payloadFactory>
+
+                           <!--Build the Subject and Content for the Mail. -->
+                           <property name="gmail.mailSubject" expression="json-eval($.mailSubject)" />
+                           <property name="gmail.mailContent" expression="json-eval($.mailContent)" />
+
+                           <!--Send Survey to the Assigner via GMail. -->
+                           <gmail.init>
+                              <username>{$ctx:gmail.username}</username>
+                              <oauthAccessToken>{$ctx:gmail.oauthAccessToken}</oauthAccessToken>
+                           </gmail.init>
+                           <gmail.sendMail>
+                              <subject>{$ctx:gmail.mailSubject}</subject>
+                              <toRecipients>{$ctx:freshdesk.ticketRequesterEmail}</toRecipients>
+                              <textContent>{$ctx:gmail.mailContent}</textContent>
+                           </gmail.sendMail>
+                           <sequence key="removeResponseHeaders" />
+
+                           <property name="gmail.subject" expression="json-eval($.sendMailResponse.message.subject)" />
+                           <!-- Start: Resolve the Ticket only if the Survey was successfully sent to the Requester. Since 
+                              GMail is a java-connector it's likely to throw an internal exception and call the faultHandlerSequence in case of failures. -->
+                           <filter source="boolean(get-property('gmail.subject'))" regex="false">
+                              <then>
+                                 <!--Call the Response Handler Template -->
+                                 <call-template target="responseHandlerTemplate">
+                                    <with-param name="activity" value="gmail_sendSurveyThroughEmail" />
+                                    <with-param name="id" value="{$ctx:id}" />
+                                    <with-param name="status" value="Failure" />
+                                    <with-param name="message"
+                                       value="Unknown error occured while sending email. Freshdesk ticket was not resolved. ActiveCollab task was not completed." />
+                                 </call-template>
+                              </then>
+                              <else>
+                                 <property name="freshdesk.customFieldUpdate"
+                                    expression="fn:concat('{ &quot;', get-property('freshdesk.surveyGizmoIdCustomFieldName'), '&quot; : &quot;', get-property('surveygizmo.surveyId'), '&quot; }')" />
+
+                                 <!--Update the Ticket in Freshdesk to closed. -->
+                                 <freshdesk.init>
+                                    <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+                                    <format>json</format>
+                                    <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+                                 </freshdesk.init>
+                                 <freshdesk.updateTicket>
+                                    <customField>{$ctx:freshdesk.customFieldUpdate}</customField>
+                                    <status>4</status>
+                                    <ticketId>{$ctx:freshdesk.ticketId}</ticketId>
+                                 </freshdesk.updateTicket>
+                                 <sequence key="removeResponseHeaders" />
+
+                                 <property name="freshdesk.ticketStatus" expression="json-eval($.ticket.status_name)" />
+                                 <!--If the ticket has been successfully resolved in Freshdesk, complete it in ActiveCollab. -->
+                                 <filter source="fn:lower-case(get-property('freshdesk.ticketStatus'))" regex="resolved">
+                                    <then>
+                                       <!--Complete the Task in ActiveCollab. -->
+                                       <activecollab.init>
+                                          <apiUrl>{$ctx:activecollab.apiUrl}</apiUrl>
+                                          <apiToken>{$ctx:activecollab.apiToken}</apiToken>
+                                          <format>json</format>
+                                       </activecollab.init>
+                                       <activecollab.completeContext>
+                                          <taskId>{$ctx:activecollab.taskId}</taskId>
+                                          <projectId>{$ctx:activecollab.projectId}</projectId>
+                                       </activecollab.completeContext>
+                                       <sequence key="removeResponseHeaders" />
+
+                                       <property name="activecollab.isCompleted" expression="json-eval($.is_completed)" />
+                                       <filter source="get-property('activecollab.isCompleted')" regex="1">
+                                          <then>
+                                             <property name="status" value="Success" />
+                                             <property name="message"
+                                                expression="fn:concat('The ticket was completed in ActiveCollab and resolved in Freshdesk. A survey has been sent to the respective requester [ ', get-property('surveygizmo.surveyLink'), ' ].')" />
+                                          </then>
+                                          <else>
+                                             <property name="status" value="Failure" />
+                                             <property name="message"
+                                                expression="fn:concat('The ticket was resolved in Freshdesk. A survey has been sent to the respective requester [ ', get-property('surveygizmo.surveyLink'), ' ]. Unknown error occured while completing the task in ActiveCollab.')" />
+                                          </else>
+                                       </filter>
+                                       <!--Call the Response Handler Template -->
+                                       <call-template target="responseHandlerTemplate">
+                                          <with-param name="id" value="{$ctx:id}" />
+                                          <with-param name="status" value="{$ctx:status}" />
+                                          <with-param name="message" value="{$ctx:message}" />
+                                       </call-template>
+                                    </then>
+                                    <else>
+                                       <!--Call the Response Handler Template -->
+                                       <call-template target="responseHandlerTemplate">
+                                          <with-param name="activity" value="gmail_sendSurveyThroughEmail" />
+                                          <with-param name="id" value="{$ctx:id}" />
+                                          <with-param name="status" value="Failure" />
+                                          <with-param name="message"
+                                             value="Unknown error occured while resolving the Ticket in Freshdesk. ActiveCollab task was not completed." />
+                                       </call-template>
+                                    </else>
+                                 </filter>
+
+                              </else>
+                           </filter>
+
+                        </else>
+                     </filter>
+
+                  </else>
+               </filter>
+
+            </else>
+         </filter>
+         <!--START: Check whether the particular ticket is already 'Resolved' (State ID - 4) in Freshdesk. -->
+      </else>
+   </filter>
+   <!--END: The task is marked as complete (value 1 indicates complete) only if it is not already marked as completed. -->
+</sequence>

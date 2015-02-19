@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="listTickets" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="filterType"
+      description="The type of the filter.Can be defaultfilters,requester,customticketviews,companyname,companyid,requesteremail." />
+   <parameter name="filterName"
+      description="An available filter out of 'all_tickets, new_my_open, monitored_by, spam, deleted'." />
+   <parameter name="requesterId" description="The unique identifier of the requester." />
+   <parameter name="viewId" description="The unique identifier ofthe view." />
+   <parameter name="companyName" description="Name of the company." />
+   <parameter name="companyId" description="The unique identifier of the company." />
+   <parameter name="email" description="The email address." />
+   <parameter name="page" description="The requested page number." />
+
+   <sequence>
+      <property name="uri.var.filterType" expression="$func:filterType" />
+      <property name="uri.var.filterName" expression="$func:filterName" />
+      <property name="uri.var.requesterId" expression="$func:requesterId" />
+      <property name="uri.var.viewId" expression="$func:viewId" />
+      <property name="uri.var.companyName" expression="$func:companyName" />
+      <property name="uri.var.companyId" expression="$func:companyId" />
+      <property name="uri.var.email" expression="$func:email" />
+      <property name="uri.var.page" expression="$func:page" />
+
+      <!--Construct endpoint with optional url parameters -->
+      <script language="js">
+      <![CDATA[
+      
+         var apiUrl=mc.getProperty("uri.var.apiUrl") + "/helpdesk/tickets";
+         var format=mc.getProperty("uri.var.format");
+         var query="";
+         var filterType = mc.getProperty("uri.var.filterType");
+         var filterName = mc.getProperty("uri.var.filterName");
+         var requesterId = mc.getProperty("uri.var.requesterId");
+         var viewId = mc.getProperty("uri.var.viewId");
+         var companyName = mc.getProperty("uri.var.companyName");
+         var companyId = mc.getProperty("uri.var.companyId");
+         var email = mc.getProperty("uri.var.email");
+         var page=mc.getProperty("uri.var.page");
+         
+         //If user provides a 'Default filter', then construct the endpoint "/helpdesk/tickets/filter/[filter_name]?format=json"		
+   
+         if (filterName != null && filterName != "" && filterType.toLowerCase() == "defaultfilters" ) {
+            query = "/filter/" + filterName + "?";
+         }
+         
+         //If user provides a 'Requester' filter, then construct the endpoint "/helpdesk/tickets/filter/requester/[requester_id]?format=json"
+         else if (filterType.toLowerCase() == "requester" ) {
+            query ="/filter/requester/"+ requesterId + "?";
+         
+            if (filterName != null && filterName != "") {
+              query += "filter_name=" + filterName +"&";
+            }
+         }
+         
+         //If user provides a 'Company name' filter, then construct the endpoint "/helpdesk/tickets.json?company_name=[name]&filter_name=all_tickets"
+         else if (companyName != null && companyName != "" &&  filterType.toLowerCase() == "companyname" ) {
+            query = "?company_name=" + encodeURIComponent(companyName) + "&";
+            
+            if (filterName != null && filterName != "") {
+              query += "filter_name=" + filterName +"&";
+            }
+         }
+
+         //If user provides a 'Company id' filter, then construct the endpoint "/helpdesk/tickets.json?company_id=[id]&filter_name=all_tickets"		
+         else if (companyId != null && companyId != "" && filterType.toLowerCase() == "companyid" ) {
+            query = "?company_id=" + companyId + "&";
+             
+            if (filterName != null && filterName != "") {
+              query += "filter_name=" + filterName +"&";
+            }
+         }
+
+         //If user provides a 'Requester email' filter, then construct the endpoint "/helpdesk/tickets.json?email=[email]&filter_name=all_tickets"		
+         else if (email != null && email != "" && filterType.toLowerCase() == "requesteremail" ) {
+            query = "?email=" + email + "&";
+            
+            if (filterName != null && filterName != "") {
+              query += "filter_name=" + filterName +"&";
+            }
+         }
+         
+         //If user provides a 'Custom ticket views' filter, then construct the endpoint "/helpdesk/tickets/view/[view_id]?format=json"
+         else if (filterType.toLowerCase() == "customticketviews" ) {
+            query = "/view/" + viewId + "?";
+         }
+         
+         //If the user did not provide any of the filters then construct the endpoint "helpdesk/tickets.json"
+         if (query == "") {
+            query = "?";
+         }
+   
+         if(page !=null && page !="") {
+            query += "page=" + page + "&";
+         }
+         
+         query += "format=" + format;
+         apiUrl+=query.substring(0);
+   
+         mc.setProperty('uri.var.apiUrl', apiUrl);
+
+      ]]>
+      </script>
+
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}" />
+         </endpoint>
+      </call>
+
+      <!-- Remove response custom header information -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="X-Powered-By" scope="transport" action="remove" />
+
+   </sequence>
+</template>
