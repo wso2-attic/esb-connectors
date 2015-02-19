@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ 
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+ 
+     http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+
+<template name="createProject" xmlns="http://ws.apache.org/ns/synapse">
+
+   <parameter name="contact" description="Contact of the project." />
+   <parameter name="name" description="The project name." />
+   <parameter name="budgetUnit" description="The unit type of the budget." />
+   <parameter name="status" description="The status of the project." />
+   <parameter name="currency" description="The currency type." />
+   <parameter name="startsOn" description="The project start date time." />
+   <parameter name="endsOn" description="The project end date time." />
+   <parameter name="budget" description="The project budget." />
+   <parameter name="isIr35" description="Is the project is IR 35." />
+   <parameter name="contractPoReference" description="The contract Po Reference." />
+   <parameter name="normalBillingRate" description="The project normal billing rate." />
+   <parameter name="hoursPerDay" description="The project hours per day." />
+   <parameter name="usesProjectInvoiceSequence" description="The uses of the project invoice sequence." />
+   <parameter name="billingPeriod" description="The project billing period." />
+   
+   <sequence>
+   
+      <property name="uri.var.contact" expression="$func:contact" />
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.budgetUnit" expression="$func:budgetUnit" />
+      <property name="uri.var.status" expression="$func:status" />
+      <property name="uri.var.currency" expression="$func:currency" />
+      <property name="uri.var.startsOn" expression="$func:startsOn" />
+      <property name="uri.var.endsOn" expression="$func:endsOn" />
+      <property name="uri.var.budget" expression="$func:budget" />
+      <property name="uri.var.isIr35" expression="$func:isIr35" />
+      <property name="uri.var.contractPoReference" expression="$func:contractPoReference" />
+      <property name="uri.var.normalBillingRate" expression="$func:normalBillingRate" />
+      <property name="uri.var.hoursPerDay" expression="$func:hoursPerDay" />
+      <property name="uri.var.usesProjectInvoiceSequence" expression="$func:usesProjectInvoiceSequence" />
+      <property name="uri.var.billingPeriod" expression="$func:billingPeriod" />
+
+      <payloadFactory media-type="json">
+         <format>
+            { "project":
+               {
+               "name":"$1",
+               "contact":"$2",
+               "status":"$3",
+               "budget_units":"$4",
+               "currency":"$5"
+               }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.name')" />
+            <arg expression="get-property('uri.var.contact')" />
+            <arg expression="get-property('uri.var.status')" />
+            <arg expression="get-property('uri.var.budgetUnit')" />
+            <arg expression="get-property('uri.var.currency')" />
+         </args>
+      </payloadFactory>
+
+      <script language="js">
+	     <![CDATA[
+				
+		    var startsOn = mc.getProperty('uri.var.startsOn');
+			var endsOn = mc.getProperty('uri.var.endsOn'); 
+			var budget = mc.getProperty('uri.var.budget'); 
+			var isIr35 = mc.getProperty('uri.var.isIr35'); 
+			var contractPoReference = mc.getProperty('uri.var.contractPoReference'); 
+			var normalBillingRate = mc.getProperty('uri.var.normalBillingRate'); 
+			var hoursPerDay = mc.getProperty('uri.var.hoursPerDay'); 
+			var usesProjectInvoiceSequence = mc.getProperty('uri.var.usesProjectInvoiceSequence'); 
+			var billingPeriod = mc.getProperty('uri.var.billingPeriod'); 
+					
+			payload = mc.getPayloadJSON();
+		
+			if (startsOn != null && startsOn != "") {
+		       payload.project.starts_on=startsOn;
+			}
+					
+			if (endsOn != null && endsOn != "") {
+		       payload.project.ends_on=endsOn;
+			}
+					
+			if (budget != null && budget != "") {
+		       payload.project.budget=budget;
+			}
+					
+			if (isIr35 != null && isIr35 != "") {
+		       payload.project.is_ir35=isIr35;
+			}
+					
+			if (contractPoReference != null && contractPoReference != "") {
+		       payload.project.contract_po_reference=contractPoReference;
+			}
+					
+			if (normalBillingRate != null && normalBillingRate != "") {
+		       payload.project.normal_billing_rate=normalBillingRate;
+			}
+					
+			if (hoursPerDay != null && hoursPerDay != "") {
+		       payload.project.hours_per_day=hoursPerDay;
+		    }
+					
+			if (usesProjectInvoiceSequence != null && usesProjectInvoiceSequence != "") {
+		       payload.project.uses_project_invoice_sequence=usesProjectInvoiceSequence;
+			}
+					
+			if (billingPeriod != null && billingPeriod != "") {
+		       payload.project.billing_period=billingPeriod;
+			}
+					
+			mc.setPayloadJSON(payload);
+	     ]]>
+      </script>
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/projects" />
+         </endpoint>
+      </call>
+      
+      <!-- Removing custom headers -->
+      <header name="X-Runtime" action="remove" scope="transport" />
+      <header name="X-Rev" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="X-Host" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Headers" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+      <header name="Access-Control-Max-Age" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Methods" action="remove" scope="transport" />
+      <header name="Status" action="remove" scope="transport" />
+      <header name="Access-Control-Expose-Headers" action="remove" scope="transport" />
+      
+   </sequence>
+</template>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights
+   Reserved. WSO2 Inc. licenses this file to you under the Apache License,
+   Version
+   2.0 (the "License"); you may not use this file except in compliance with
+   the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+   Unless required by applicable law or agreed to in writing, software distributed
+   under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+   OR CONDITIONS OF ANY KIND, either express or implied. See the License
+   for
+   the specific language governing permissions and limitations under the
+   License. -->
+
+<template name="createTask" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="project" description="The project which the task is belong." />
+   <parameter name="name" description="Name of the task." />
+   <parameter name="isBillable" description="Parameter to check whether the task is billable." />
+   <parameter name="billingRate" description="The billing rate of the task." />
+   <parameter name="billingPeriod" description="The billing period of the task." />
+   <parameter name="status" description="The status of the task." />
+   <sequence>
+      <property name="uri.var.project" expression="$func:project" />
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.isBillable" expression="$func:isBillable" />
+      <property name="uri.var.billingRate" expression="$func:billingRate" />
+      <property name="uri.var.billingPeriod" expression="$func:billingPeriod" />
+      <property name="uri.var.status" expression="$func:status" />
+
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "task":
+                  {
+                     "name":"$1"
+                  }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.name')" />
+         </args>
+      </payloadFactory>
+
+      <script language="js">
+            <![CDATA[
+                var isBillable = mc.getProperty('uri.var.isBillable');
+                var billingRate = mc.getProperty('uri.var.billingRate');
+                var billablePeriod = mc.getProperty('uri.var.billingPeriod');
+                var status = mc.getProperty('uri.var.status');
+                
+                payload = mc.getPayloadJSON();
+                
+                if (isBillable != null && isBillable!= ""){
+                   payload.task.is_billable = isBillable;
+                }
+                
+                if (status != null && status!= ""){
+                   payload.task.status = status;
+                }
+               
+                if (billingRate != null && billingRate!= ""){
+                   payload.task.billing_rate = billingRate;
+                }
+                
+                if (billablePeriod != null && billablePeriod != ""){
+                   payload.task.billing_period = billablePeriod;
+                }
+               
+               	mc.setPayloadJSON(payload);
+                
+          ]]>
+      </script>
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/tasks?project={uri.var.project}" />
+         </endpoint>
+      </call>
+
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Runtime" action="remove" scope="transport" />
+      <header name="X-Rev" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="X-Host" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Headers" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+      <header name="Access-Control-Max-Age" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Methods" action="remove" scope="transport" />
+      <header name="Status" action="remove" scope="transport" />
+      <header name="Access-Control-Expose-Headers" action="remove" scope="transport" />
+
+   </sequence>
+</template>
