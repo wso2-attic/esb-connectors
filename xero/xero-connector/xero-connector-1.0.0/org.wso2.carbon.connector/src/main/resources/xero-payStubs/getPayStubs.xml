@@ -1,0 +1,43 @@
+<template name="getPayStubs" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="payStubsId" description="Unique identifier of the paystub." />
+
+	<sequence>
+		<property name="uri.var.payStubsId" expression="$func:payStubsId" />
+		<property name="uri.var.uriAppender" value="/paystubs" />
+		<property name="uri.var.method" value="GET" />
+		<property name="uri.var.params" value="" />
+		<property name="uri.var.uriRemainder" value="" />
+
+		<!-- If the payStubID is not specified then append it to the uriRemainder -->
+		<filter source="boolean(get-property('uri.var.payStubsId'))"
+			regex="true">
+			<then>
+				<property name="uri.var.uriRemainder"
+					expression="fn:concat(get-property('uri.var.uriRemainder'),'/',get-property('uri.var.payStubsId'))" />
+			</then>
+		</filter>
+
+		<!-- Authentication setup and call the API -->
+		<class name="org.wso2.carbon.connector.xero.auth.XeroOAuthSignpost" />
+
+		<property name="Authorization" expression="get-property('auth')"
+			scope="transport" type="STRING" />
+
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}{uri.var.uriAppender}{uri.var.uriRemainder}" />
+			</endpoint>
+		</call>
+
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="X-S" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Strict-Transport-Security" scope="transport"
+			action="remove" />
+
+	</sequence>
+
+</template>

@@ -1,0 +1,44 @@
+<template name="postPayRuns" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="payRuns" description="One or more PayRun objects can be sent through this paramater." />
+
+	<sequence>
+		<!-- payRuns parameter accepts multiple PayRun objects -->
+		<property name="uri.var.payRuns" expression="$func:payRuns" />
+		<property name="uri.var.uriAppender" value="/payruns" />
+		<property name="uri.var.method" value="POST" />
+		<property name="uri.var.params" value="" />
+		<property name="uri.var.uriRemainder" value="" />
+
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+
+		<!-- Authentication setup and call the API -->
+		<class name="org.wso2.carbon.connector.xero.auth.XeroOAuthSignpost" />
+
+		<property name="Authorization" expression="get-property('auth')" scope="transport" type="STRING" />
+
+		<payloadFactory media-type="xml">
+			<format>
+				<PayRuns xmlns="">
+					$1
+				</PayRuns>
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.payRuns')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}{uri.var.uriAppender}" />
+			</endpoint>
+		</call>
+
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="X-S" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Strict-Transport-Security" scope="transport" action="remove" />
+
+	</sequence>
+</template>
