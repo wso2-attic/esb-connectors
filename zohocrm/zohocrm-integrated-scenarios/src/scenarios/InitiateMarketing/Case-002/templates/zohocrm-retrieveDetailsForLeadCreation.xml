@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This template creates Leads in zoho crm, using the email addresses(people who clicked a link of a given campaign email) retrieved by campaign monitor API -->
+<template name="zohocrm-retrieveDetailsForLeadCreation" xmlns="http://ws.apache.org/ns/synapse">
+	<!-- Campaign monitor parameters -->
+	<parameter name="campaignMonitorApiUrl" description="The campaign monitor api URL" />
+	<parameter name="campaignMonitorAccessToken" description="The Access Token to authorize the requests" />
+	<parameter name="campaignId" description="The campaign Identifier to list emails clickers" />
+	<parameter name="date" description="Opens on or after the date value specified will be returned" />
+	<parameter name="page" description="The results page to retrieve. Default valus is 1" />
+	<parameter name="pageSize" description="The number of records to retrieve per results page. Default valus is 1000" />
+	<parameter name="orderField"
+		description="The field (out of email,list or date) which should be used to order the results. Default valus is email" />
+	<parameter name="orderDirection" description="The direction in which results should be ordered. Default value is asc" />
+	<parameter name="firstNameCM" description="The first name to be used for the leads created via Campaign Monitor" />
+	<parameter name="companyNameCM" description="The company name to be used for the leads created via Campaign Monitor" />
+	
+	<!-- Call Rail parameters -->
+	<parameter name="callRailApiUrl" description="The Call Rail api URL" />
+	<parameter name="callRailApiKey" description="The Api Token of the Call Rail account" />
+	<parameter name="perPage" description="Indicates how many records to return for this request per page" />
+	<parameter name="callRailPage" description="Indicates the page number that should be returned for this request" />
+	<parameter name="companyId" description="The Identifier of a company" />
+	<parameter name="startDate" description="Date or Date and Time in ISO 8601 format. Calls on or after this date will be included" />
+	<parameter name="endDate" description="Date or Date and Time in ISO 8601 format. Calls on or before this date will be included" />
+	<parameter name="firstNameCR" expression="Default first name of the lead, if Call Rail API call does not return source_name, will create the lead using this first name" />
+	<parameter name="companyNameCR" expression="Company name of the lead being created via Call Rail Details" />
+	
+	<sequence>
+		<!-- Campaign Monitor properties -->
+		<property name="uri.var.campaignMonitorApiUrl" expression="$func:campaignMonitorApiUrl" />
+		<property name="uri.var.campaignMonitorAccessToken" expression="$func:campaignMonitorAccessToken" />
+		<property name="uri.var.campaignId" expression="$func:campaignId" />
+		<property name="uri.var.date" expression="$func:date" />
+		<property name="uri.var.page" expression="$func:page" />
+		<property name="uri.var.pageSize" expression="$func:pageSize" />
+		<property name="uri.var.orderField" expression="$func:orderField" />
+		<property name="uri.var.orderDirection" expression="$func:orderDirection" />
+		<property name="uri.var.firstNameCM" expression="$func:firstNameCM" />
+		<property name="uri.var.companyNameCM" expression="$func:companyNameCM" />
+		<!-- Call Rail properties -->
+		<property name="uri.var.callRailApiUrl" expression="$func:callRailApiUrl" />
+		<property name="uri.var.callRailApiKey" expression="$func:callRailApiKey" />
+		<property name="uri.var.perPage" expression="$func:perPage" />
+		<property name="uri.var.callRailPage" expression="$func:callRailPage" />
+		<property name="uri.var.companyId" expression="$func:companyId" />
+		<property name="uri.var.startDate" expression="$func:startDate" />
+		<property name="uri.var.endDate" expression="$func:endDate" />
+		<property name="uri.var.firstNameCR" expression="$func:firstNameCR" />
+		<property name="uri.var.companyNameCR" expression="$func:companyNameCR" />
+		
+		<!-- Check the availability of Campaign Monitor access token to proceed with the campaign monitor API call -->		
+		<filter source="boolean(get-property('uri.var.campaignMonitorAccessToken'))" regex="true">
+		
+		<campaignmonitor.init>
+			<apiUrl>{$ctx:uri.var.campaignMonitorApiUrl}</apiUrl>
+			<accessToken>{$ctx:uri.var.campaignMonitorAccessToken}</accessToken>
+		</campaignmonitor.init>
+
+		<campaignmonitor.listEmailCampaignClickers>
+			<orderDirection>{$ctx:uri.var.orderDirection}</orderDirection>
+			<campaignId>{$ctx:uri.var.campaignId}</campaignId>
+			<page>{$ctx:uri.var.page}</page>
+			<orderField>{$ctx:uri.var.orderField}</orderField>
+			<pageSize>{$ctx:uri.var.pageSize}</pageSize>
+			<date>{$ctx:uri.var.date}</date>
+		</campaignmonitor.listEmailCampaignClickers>
+
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="CampaignMonitor_listEmailClickers" />
+			|
+			) *
+		</call-template>
+
+		<property name="uri.var.results" expression="json-eval($.Results)" />
+		<script language="js">
+         <![CDATA[
+		 var results = mc.getProperty("uri.var.results");
+		 var xmlData = '';
+		 if(results != null && results != ''){
+			 var jsn = eval("(" + results + ")");			
+			 var firstName = mc.getProperty("uri.var.firstNameCM");			
+			 var companyName = mc.getProperty("uri.var.companyNameCM");	
+			 
+			 var jsonLength = jsn.length;
+			 for (var i = 0; i < jsonLength ; i++) {
+			 var email = jsn[i].EmailAddress;
+			 xmlData += '<row no="' + (i+1) + '"><FL val="First Name">' + firstName + '</FL><FL val="Last Name">' + email + '</FL><FL val="Company">' + companyName + '</FL></row>';			
+			}			 
+		 mc.setProperty('uri.var.index', jsonLength);
+		 mc.setProperty('uri.var.xmlDataVar', xmlData);
+		 }
+		 ]]>
+		</script>
+
+		<header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+		<header name="P3P" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+		<header name="Content-Type" scope="transport" action="remove" />
+		<header name="X-CS-Node" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Date" scope="transport" action="remove" />
+		<header name="Server" scope="transport" action="remove" />
+		<header name="status" scope="transport" action="remove" />
+		<header name="Transfer-Encoding" scope="transport" action="remove" />
+		<header name="Connection" scope="transport" action="remove" />
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+		<property name="Content-Type" value="application/json" scope="transport" type="STRING" />
+		<property name="Accept" value="application/json" scope="transport" type="STRING" />
+	
+		</filter>
+	
+		<!-- Check the availability of CallRail access token to proceed with the CallRail API call -->		
+		<filter source="boolean(get-property('uri.var.callRailApiKey'))" regex="true">
+		
+         <callrail.init>
+            <apiUrl>{$ctx:uri.var.callRailApiUrl}</apiUrl>
+            <apiKey>{$ctx:uri.var.callRailApiKey}</apiKey>
+         </callrail.init>
+         <callrail.listCalls>
+            <startDate>{$ctx:uri.var.startDate}</startDate>
+            <page>{$ctx:uri.var.callRailPage}</page>
+            <endDate>{$ctx:uri.var.endDate}</endDate>
+            <companyId>{$ctx:uri.var.companyId}</companyId>
+            <perPage>{$ctx:uri.var.perPage}</perPage>
+         </callrail.listCalls>
+		
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="CallRail_listCalls" />|
+			) *
+		</call-template>
+		
+		<property name="uri.var.callRailResults" expression="json-eval($.calls)" />
+		<script language="js">
+         <![CDATA[
+		 var callRailResults = mc.getProperty("uri.var.callRailResults");
+		 if(callRailResults != null && callRailResults != ''){		 
+			 var jsn = eval("(" + callRailResults + ")");		
+			 var firstName = mc.getProperty("uri.var.firstNameCR");			
+			 var companyName = mc.getProperty("uri.var.companyNameCR");	
+			 
+			 var xmlData = mc.getProperty("uri.var.xmlDataVar");
+			 // Null check to avoid null appending in the xmlData var
+			 if(xmlData == null){
+				xmlData = '';
+			 }			 
+			 var index = mc.getProperty("uri.var.index");	
+			 			 
+			 for (var i = 0; i < jsn.length ; i++) {
+				 var firstNameCR = firstName;
+				 var phoneNumber = jsn[i].tracking_number;
+				 var sourceName = jsn[i].source_name;
+				 if(sourceName != null && sourceName != ''){
+					firstNameCR = sourceName;
+				 }	
+				 xmlData += '<row no="' + eval((i+1) + '+' + index) + '"><FL val="First Name">' + firstNameCR + '</FL><FL val="Last Name">' + phoneNumber + '</FL><FL val="Company">' + companyName + '</FL></row>';			
+			 }
+			 mc.setProperty('uri.var.xmlDataVar', xmlData);
+		 }
+		 ]]>
+		</script>
+		
+		<header name="Status" scope="transport" action="remove" />
+		<header name="Content-Encoding" scope="transport" action="remove" />
+		<header name="Content-Type" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Date" scope="transport" action="remove" />
+		<header name="Server" scope="transport" action="remove" />
+		<header name="Transfer-Encoding" scope="transport" action="remove" />
+		<header name="Connection" scope="transport" action="remove" />
+		<header name="Transfer-Encoding" scope="transport" action="remove" />
+	
+		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+		<property name="Content-Type" value="application/json" scope="transport" type="STRING" />
+		<property name="Accept" value="application/json" scope="transport" type="STRING" />
+		
+		</filter>
+		
+	</sequence>
+</template>

@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="zohocrm-createFacebookEventAndSendCampaign" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="facebookAccessToken" description="The accesstoken of the facebook api" />
+	<parameter name="facebookApiUrl" description="The facebook API url" />
+	<parameter name="facebookName" description="The name of the event" />
+	<parameter name="facebookStartTime" description="The start time of the event, in ISO-8601 format" />
+    <parameter name="facebookDescription" description="Event description" />
+	<parameter name="facebookEndTime" description="The end time of the event, in ISO-8601 format" />
+	<parameter name="facebookLocation" description="Where the event is located as an arbitrary descriptive string" />
+	<parameter name="facebookLocationId" description="Where the event is located as the page ID of a specific place" />
+	<parameter name="facebookPrivacyType" description="Privacy of the event" />
+	<parameter name="cmApiUrl" description="The api url of campaign monitor" />
+	<parameter name="cmAccessToken" description="campaign monitor access token" />
+	<parameter name="cmClientId" description="The unique identifier of the campaign monitor client" />
+	<parameter name="cmName" description="Name of the campaign" />
+	<parameter name="cmSubject" description="Subject of the campaign" />
+	<parameter name="cmFromName" description="Sender name that appears on the campaign email" />
+	<parameter name="cmFromEmail" description="Email address that appears on the sender email" />
+	<parameter name="cmReplyToEmail" description="Email address to which the replay will be sent to" />
+	<parameter name="cmHtmlUrl" description="Template embedded in the email" />
+	<parameter name="cmListIds" description="Subscriber list ids" />
+	<parameter name="cmSegmentIds" description="Segment list ids" />
+	<parameter name="cmConfirmationEmailsList" description="Confirmation email list" />
+	<parameter name="cmSendDate" description="campaign send date" />
+	
+	<sequence>
+	    <property name="uri.var.facebookAccessToken" expression="$func:facebookAccessToken" />
+	    <property name="uri.var.facebookApiUrl" expression="$func:facebookApiUrl" />
+		<property name="uri.var.facebookName" expression="$func:facebookName" />
+		<property name="uri.var.facebookStartTime" expression="$func:facebookStartTime" />
+		<property name="uri.var.facebookDescription" expression="$func:facebookDescription" />
+		<property name="uri.var.facebookEndTime" expression="$func:facebookEndTime" />
+		<property name="uri.var.facebookLocation" expression="$func:facebookLocation" />
+		<property name="uri.var.facebookLocationId" expression="$func:facebookLocationId" />
+		<property name="uri.var.facebookPrivacyType" expression="$func:facebookPrivacyType" />
+		<property name="uri.var.cmApiUrl" expression="$func:cmApiUrl" />
+		<property name="uri.var.cmAccessToken" expression="$func:cmAccessToken" />
+		<property name="uri.var.cmClientId" expression="$func:cmClientId" />
+		<property name="uri.var.cmName" expression="$func:cmName" />
+		<property name="uri.var.cmSubject" expression="$func:cmSubject" />
+		<property name="uri.var.cmFromName" expression="$func:cmFromName" />
+		<property name="uri.var.cmFromEmail" expression="$func:cmFromEmail" />
+		<property name="uri.var.cmReplyToEmail" expression="$func:cmReplyToEmail" />
+		<property name="uri.var.cmHtmlUrl" expression="$func:cmHtmlUrl" />
+		<property name="uri.var.cmListIds" expression="$func:cmListIds" />
+		<property name="uri.var.cmSegmentIds" expression="$func:cmSegmentIds" />
+		<property name="uri.var.cmConfirmationEmailsList" expression="$func:cmConfirmationEmailsList" />
+		<property name="uri.var.cmSendDate" expression="$func:cmSendDate" />
+		
+	<!-- Calling the Facebook createEvent method -->
+	<filter source="boolean(get-property('uri.var.facebookAccessToken'))" regex="true">
+		<then>
+	     <facebook.init>
+            <accessToken>{$ctx:uri.var.facebookAccessToken}</accessToken>
+            <apiUrl>{$ctx:uri.var.facebookApiUrl}</apiUrl>
+         </facebook.init>
+		 
+         <facebook.createEvent>
+            <name>{$ctx:uri.var.facebookName}</name>
+            <startTime>{$ctx:uri.var.facebookStartTime}</startTime>
+            <endTime>{$ctx:uri.var.facebookEndTime}</endTime>
+            <description>{$ctx:uri.var.facebookDescription}</description>
+            <location>{$ctx:uri.var.facebookLocation}</location>
+            <locationId>{$ctx:uri.var.facebookLocationId}</locationId>
+            <privacyType>{$ctx:uri.var.facebookPrivacyType}</privacyType>
+         </facebook.createEvent>
+        
+		<property name="messageType" value="application/json" scope="axis2"></property>		
+		
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="Facebook_createEvent" />
+			|
+			) *
+		</call-template>
+		
+		</then>
+	</filter>	
+
+
+	 <campaignmonitor.init>
+		<apiUrl>{$ctx:uri.var.cmApiUrl}</apiUrl>
+		<accessToken>{$ctx:uri.var.cmAccessToken}</accessToken>
+	 </campaignmonitor.init>
+		 
+      <campaignmonitor.createDraftCampaign>
+        <htmlUrl>{$ctx:uri.var.cmHtmlUrl}</htmlUrl>
+        <segmentIds>{$ctx:uri.var.cmSegmentIds}</segmentIds>
+        <subject>{$ctx:uri.var.cmSubject}</subject>
+        <name>{$ctx:uri.var.cmName}</name>
+        <fromEmail>{$ctx:uri.var.cmFromEmail}</fromEmail>
+        <listIds>{$ctx:uri.var.cmListIds}</listIds>
+        <fromName>{$ctx:uri.var.cmFromName}</fromName>
+        <replyToEmail>{$ctx:uri.var.cmReplyToEmail}</replyToEmail>
+        <clientId>{$ctx:uri.var.cmClientId}</clientId>
+      </campaignmonitor.createDraftCampaign>
+	  
+	  	<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="CampaignMonitor_createDraftCampaign" />
+			|
+			) *
+		</call-template>
+		
+		<filter source="$axis2:HTTP_SC" regex="(?!^201$).*">
+			<then>
+				<loopback/>
+			</then>
+		</filter>
+	  
+	<property name="uri.var.cmCampaignId" expression="json-eval($.string)" />
+	
+	 <campaignmonitor.init>
+		<apiUrl>{$ctx:uri.var.cmApiUrl}</apiUrl>
+		<accessToken>{$ctx:uri.var.cmAccessToken}</accessToken>
+	 </campaignmonitor.init>
+		 
+      <campaignmonitor.sendCampaign>
+        <sendDate>{$ctx:uri.var.cmSendDate}</sendDate>
+        <campaignId>{$ctx:uri.var.cmCampaignId}</campaignId>
+        <confirmationEmailsList>{$ctx:uri.var.cmConfirmationEmailsList}</confirmationEmailsList>
+      </campaignmonitor.sendCampaign>
+	  
+	  <property name="messageType" value="application/json" scope="axis2"></property>
+	  
+	  	<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="CampaignMonitor_sendCampaign" />
+			|
+			) *
+		</call-template>
+		
+	</sequence>
+</template>

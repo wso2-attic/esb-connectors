@@ -1,0 +1,51 @@
+<template name="updateRelatedRecords" xmlns="http://ws.apache.org/ns/synapse">
+  <parameter name="id" description="The id of the record for which you want to fetch related records"/>
+  <parameter name="relatedModule" description="Module for which you want to fetch the related records"/>
+  <parameter name="xmlData" description="The XML values to be passed."/>
+  <parameter name="moduleType" description="The type of the module"/>
+  <sequence>
+    <property name="uri.var.id" expression="$func:id"/>
+    <property name="uri.var.relatedModule" expression="$func:relatedModule"/>
+    <property name="uri.var.xmlData" expression="$func:xmlData"/>
+    <property name="uri.var.moduleType" expression="$func:moduleType"/>
+
+  	<payloadFactory media-type="json">
+		<format>
+			{}
+		</format>
+	</payloadFactory>
+	  
+  <script language="js">
+			<![CDATA[ 			
+				// Generate url with parameters
+				var relatedModule = mc.getProperty('uri.var.relatedModule');
+				var id = mc.getProperty('uri.var.id');
+				var urlQuery = mc.getProperty('uri.var.urlQuery');
+				var moduleType = mc.getProperty('uri.var.moduleType');
+				var xmlData = mc.getProperty('uri.var.xmlData');
+				
+				//Append mandatory url parameters
+				urlQuery += 'id=' + id + '&';
+				urlQuery +=	'relatedModule=' + encodeURIComponent(relatedModule) + '&';
+				urlQuery +=	 'xmlData=' + encodeURIComponent(xmlData) + '&';					
+						
+				urlQuery = '/' + encodeURIComponent(moduleType) + '/updateRelatedRecords?' + urlQuery.substring(0, urlQuery.length-1);
+				mc.setProperty('uri.var.urlQuery', urlQuery);
+							
+			]]></script>
+    <call>
+      <endpoint>
+        <http method="post" uri-template="{uri.var.apiUrl}/crm/private/json{uri.var.urlQuery}"/>
+      </endpoint>
+    </call>
+    
+    <!-- Removing custom headers -->
+     <header name="Strict-Transport-Security" action="remove" scope="transport"/>
+     <header name="X-XSS-Protection" action="remove" scope="transport"/>
+     <header name="X-Download-Options" action="remove" scope="transport"/>
+     <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+     <header name="Pragma" action="remove" scope="transport"/>
+     <header name="Cache-Control" action="remove" scope="transport"/>
+    
+  </sequence>
+</template>

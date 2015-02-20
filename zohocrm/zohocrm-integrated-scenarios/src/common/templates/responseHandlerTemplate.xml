@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="responseHandlerTemplate" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="activityName" description="The activity name"/>
+	
+	<sequence>
+		<property name="uri.var.activityName" expression="$func:activityName" />
+	    <property name="uri.var.response" expression="json-eval($)"/>
+		
+		<script language="js">
+			var responseString = mc.getProperty("uri.var.responseString");
+			var response = '' + mc.getProperty("uri.var.response");
+			var responseStringVal = '{"activity":"' + mc.getProperty("uri.var.activityName") + '",\n"activityResponse":';
+						
+			// Check weather the response is an JSON object or not to append to the responseString
+			if(response.charAt(0) == '[' || response.charAt(0) == '{'){
+				responseStringVal += response + '}';
+			} else{
+				responseStringVal += '"' + response + '"}';
+			}			
+			
+			if(responseString == null || responseString == ''){
+				mc.setProperty('uri.var.responseString', responseStringVal);
+			} else {
+				mc.setProperty('uri.var.responseString', responseString + ',' + responseStringVal);				
+			}						
+		</script>
+
+	</sequence>
+</template>

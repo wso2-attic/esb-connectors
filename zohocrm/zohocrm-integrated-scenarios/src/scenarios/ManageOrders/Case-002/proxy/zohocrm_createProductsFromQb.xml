@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="zohocrm_createProductsFromQb"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+	  
+	  <!-- ZohoCRM insertRecords parameters -->
+	  <property name="zohoApiUrl" expression="json-eval($.zohoApiUrl)"/>
+      <property name="zohoAccessToken" expression="json-eval($.zohoAccessToken)"/>
+      <property name="zohoScope" expression="json-eval($.zohoScope)"/>
+      <property name="zohoNewFormat" expression="json-eval($.zohoNewFormat)"/>
+      <property name="zohoVersion" expression="json-eval($.zohoVersion)"/>
+      <property name="zohoWfTrigger" expression="json-eval($.zohoWfTrigger)"/>
+      <property name="zohoDuplicateCheck" expression="json-eval($.zohoDuplicateCheck)"/>
+      <property name="zohoIsApproval" expression="json-eval($.zohoIsApproval)"/>
+	  <property name="zohoProductModuleType" value="Products"/>
+	  
+	  <!-- QuickBooks createQuote parameters-->
+	 <property name="qbConsumerKey" expression="json-eval($.qbConsumerKey)"/>
+	 <property name="qbAccessToken" expression="json-eval($.qbAccessToken)"/>
+	 <property name="qbAccessTokenSecret" expression="json-eval($.qbAccessTokenSecret)"/>
+	 <property name="qbResponseType" expression="json-eval($.qbResponseType)"/>
+	 <property name="qbApiUrl" expression="json-eval($.qbApiUrl)"/>
+	 <property name="qbCompanyId" expression="json-eval($.qbCompanyId)"/>
+	 <property name="qbConsumerSecret" expression="json-eval($.qbConsumerSecret)"/>
+	 <property name="qbQueryCondition" expression="json-eval($.qbQueryCondition)"/>
+	 <property name="qbQueryString" expression="fn:concat('select * from item where ', get-property('qbQueryCondition'))" />			 
+	 
+	 <quickbooks.init>
+		<consumerKey>{$ctx:qbConsumerKey}</consumerKey>
+		<accessToken>{$ctx:qbAccessToken}</accessToken>
+		<accessTokenSecret>{$ctx:qbAccessTokenSecret}</accessTokenSecret>
+		<responseType>{$ctx:qbResponseType}</responseType>
+		<apiUrl>{$ctx:qbApiUrl}</apiUrl>
+		<companyId>{$ctx:qbCompanyId}</companyId>
+		<consumerSecret>{$ctx:qbConsumerSecret}</consumerSecret>
+	 </quickbooks.init>
+	 
+	 <quickbooks.query>
+		<queryString>{$ctx:qbQueryString}</queryString>
+	 </quickbooks.query>
+	 
+	<property name="itemList" expression="json-eval($.QueryResponse.Item)"/>	 
+	
+	<call-template target="responseHandlerTemplate">
+		<!-- parameter values will be passed on to a sequence template -->
+		(
+		<with-param name="activityName" value="quickbooks_queryItems" />
+		|
+		) *
+	</call-template>	
+
+	<filter source="boolean(get-property('itemList'))" regex="false">
+		<then>
+			<loopback/>
+		</then>
+	</filter>	
+	
+	<script language="js">
+         <![CDATA[
+		     var itemList = mc.getProperty("itemList");		 
+			 var jsn = eval("(" + itemList + ")");
+			 var itemName='';
+			 var itemUnitPrice='';
+			 var itemDescription='';
+			 var xmlData='';
+			 
+            if (typeof(jsn) == "object" && (jsn.join == undefined)) {
+				// item list is an object
+				 itemName = jsn.Name;
+
+				if(jsn.UnitPrice != undefined && jsn.UnitPrice != null){
+				 itemUnitPrice = jsn.UnitPrice;
+				}
+				if(jsn.Description != undefined && jsn.Description != null){
+				 itemDescription = jsn.Description;
+				}
+				
+				 xmlData += '<row no="1"><FL val="Product Name">' + itemName + '</FL><FL val="Description">' + itemDescription + '</FL><FL val="Unit Price">' + itemUnitPrice +'</FL></row>';
+		    }else{
+			     // item list is an array
+				 for (var i = 0; i < jsn.length ; i++) {
+				 itemName = jsn[i].Name;
+
+				if(jsn[i].UnitPrice != undefined && jsn[i].UnitPrice != null){
+				 itemUnitPrice = jsn[i].UnitPrice;
+				}				 
+				if(jsn[i].Description != undefined && jsn[i].Description != null){
+				 itemDescription = jsn[i].Description;
+				}
+				 
+				 xmlData += '<row no="' + eval((i+1)) + '"><FL val="Product Name">' + itemName + '</FL><FL val="Description">' + itemDescription + '</FL><FL val="Unit Price">' + itemUnitPrice +'</FL></row>';
+			 }
+			}
+			xmlData = '<Products>' + xmlData + '</Products>';
+			mc.setProperty('productXmlData', xmlData);
+		 ]]>
+	</script>	
+	  
+	  
+      <zohocrm.init>
+        <scope>{$ctx:zohoScope}</scope>
+        <accessToken>{$ctx:zohoAccessToken}</accessToken>
+        <apiUrl>{$ctx:zohoApiUrl}</apiUrl>
+      </zohocrm.init>
+	  
+      <zohocrm.insertRecords>
+	    <moduleType>{$ctx:zohoProductModuleType}</moduleType>
+        <duplicateCheck>{$ctx:zohoDuplicateCheck}</duplicateCheck>
+        <xmlData>{$ctx:productXmlData}</xmlData>
+        <isApproval>{$ctx:zohoIsApproval}</isApproval>
+        <wfTrigger>{$ctx:zohoWfTrigger}</wfTrigger>
+        <newFormat>{$ctx:zohoNewFormat}</newFormat>
+        <version>{$ctx:zohoVersion}</version>
+      </zohocrm.insertRecords>
+	  
+	  
+	<call-template target="responseHandlerTemplate">
+		<!-- parameter values will be passed on to a sequence template -->
+		(
+		<with-param name="activityName" value="zohocrm_insertRecords" />
+		|
+		) *
+	</call-template>		  
+	  
+      <loopback/>
+      </inSequence>
+      <outSequence>
+         <log/>
+			<property name="messageType" value="application/json" scope="axis2"></property>
+			<payloadFactory media-type="json">
+				<format>
+					{
+					"Response":[$1]
+					}
+				</format>
+				<args>
+					<arg expression="get-property('uri.var.responseString')" />
+				</args>
+			</payloadFactory>
+         <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>
+                                

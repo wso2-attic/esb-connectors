@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="zohocrm_jira_createCase"
+       transports="https"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+	  
+		<!-- Zoho CRM API call related properties -->
+		<property name="zohoApiUrl" expression="json-eval($.zohoApiUrl)"/>
+		<property name="zohoAccessToken" expression="json-eval($.zohoAccessToken)"/>
+		<property name="zohoScope" expression="json-eval($.zohoScope)"/>
+		<property name="zohoNewFormat" expression="json-eval($.zohoNewFormat)"/>
+		<property name="zohoVersion" expression="json-eval($.zohoVersion)"/>
+		<property name="zohoXmlData" expression="json-eval($.zohoXmlData)"/>
+		<property name="zohoWfTrigger" expression="json-eval($.zohoWfTrigger)"/>
+		<property name="zohoDuplicateCheck" expression="json-eval($.zohoDuplicateCheck)"/>
+		
+		<!-- Jira API call related properties -->
+		<property name="jiraAccountUrl" expression="json-eval($.jiraAccountUrl)"/>
+        <property name="jiraUsername" expression="json-eval($.jiraUsername)"/>
+        <property name="jiraPassword" expression="json-eval($.jiraPassword)"/>
+        <property name="jiraProjectKey" expression="json-eval($.jiraProjectKey)"/>
+        <property name="jiraSummary" expression="json-eval($.jiraSummary)"/>
+        <property name="jiraIssueType" expression="json-eval($.jiraIssueType)"/>
+		
+      <call-template target="zohocrm-createAndRetrieveCase">
+	   <!-- parameter values will be passed on to a sequence template -->
+	   (
+	   <with-param name="zohoApiUrl" value="{$ctx:zohoApiUrl}" /> |
+	   <with-param name="zohoAccessToken" value="{$ctx:zohoAccessToken}" /> |
+	   <with-param name="zohoScope" value="{$ctx:zohoScope}" /> |
+	   <with-param name="zohoNewFormat" value="{$ctx:zohoNewFormat}" /> |
+	   <with-param name="zohoVersion" value="{$ctx:zohoVersion}" /> |
+	   <with-param name="zohoXmlData" value="{$ctx:zohoXmlData}" /> |
+	   <with-param name="zohoWfTrigger" value="{$ctx:zohoWfTrigger}" /> |
+	   <with-param name="zohoDuplicateCheck" value="{$ctx:zohoDuplicateCheck}" /> |
+
+	   ) *
+	 </call-template>
+	 
+	<script language="js">		 
+		var jsn = eval("(" + mc.getProperty("uri.var.caseDetails") + ")");
+		for (var i = 0; i &lt; jsn.length ; i++) { 	
+			// If the description is present uses it for JIRA Issue creation
+			if(jsn[i].val == "Description"){
+				mc.setProperty('uri.var.jiraDescription', jsn[i].content);
+			}			
+		}
+		// Empty the description if it was not retrieved from zoho(will be assigned string null from mc.setProperty())
+		if(mc.getProperty('uri.var.jiraDescription') == 'null'){
+			mc.setProperty('uri.var.jiraDescription', '');
+		}
+	</script>
+	
+	<header name="Expires" scope="transport" action="remove" />
+	<header name="Content-Type" scope="transport" action="remove" />
+	<header name="Date" scope="transport" action="remove" />
+	<header name="Server" scope="transport" action="remove" />
+	<header name="Transfer-Encoding" scope="transport" action="remove" />
+	<header name="Connection" scope="transport" action="remove" />
+	<header name="Vary" scope="transport" action="remove" />
+	<header name="Content-Encoding" scope="transport" action="remove" />
+	
+	<!-- Jira create Issue-->
+	 <jira.init>
+		<uri>{$ctx:jiraAccountUrl}</uri>
+		<username>{$ctx:jiraUsername}</username>
+		<password>{$ctx:jiraPassword}</password>
+	 </jira.init>
+	 <jira.createIssue>
+		<projectKey>{$ctx:jiraProjectKey}</projectKey>
+		<summary>{$ctx:jiraSummary}</summary>
+		<description>{$ctx:uri.var.jiraDescription}</description>
+		<issueType>{$ctx:jiraIssueType}</issueType>
+	 </jira.createIssue>
+
+	<call-template target="responseHandlerTemplate">
+		<!-- parameter values will be passed on to a sequence template -->
+		(
+		<with-param name="activityName" value="jira_createIssue" />
+		|
+		) *
+	</call-template>
+	<loopback/>
+      </inSequence>
+      <outSequence>
+         <log/>
+		<property name="messageType" value="application/json" scope="axis2" />
+		<!-- Generate the chained response of all the API calls in createLeads -->
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"Response":[$1]
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.responseString')" />
+			</args>
+		</payloadFactory>		
+         <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>
+                                

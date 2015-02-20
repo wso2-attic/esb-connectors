@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="zohocrm_createVendorsFromQb"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+	  
+	  <!-- ZohoCRM insertRecords parameters -->
+	  <property name="zohoApiUrl" expression="json-eval($.zohoApiUrl)"/>
+      <property name="zohoAccessToken" expression="json-eval($.zohoAccessToken)"/>
+      <property name="zohoScope" expression="json-eval($.zohoScope)"/>
+      <property name="zohoNewFormat" expression="json-eval($.zohoNewFormat)"/>
+      <property name="zohoVersion" expression="json-eval($.zohoVersion)"/>
+      <property name="zohoWfTrigger" expression="json-eval($.zohoWfTrigger)"/>
+      <property name="zohoDuplicateCheck" expression="json-eval($.zohoDuplicateCheck)"/>
+      <property name="zohoIsApproval" expression="json-eval($.zohoIsApproval)"/>
+	  <property name="zohoVendorModuleType" value="Vendors"/>
+	  
+	  <!-- QuickBooks createQuote parameters-->
+	 <property name="qbConsumerKey" expression="json-eval($.qbConsumerKey)"/>
+	 <property name="qbAccessToken" expression="json-eval($.qbAccessToken)"/>
+	 <property name="qbAccessTokenSecret" expression="json-eval($.qbAccessTokenSecret)"/>
+	 <property name="qbResponseType" expression="json-eval($.qbResponseType)"/>
+	 <property name="qbApiUrl" expression="json-eval($.qbApiUrl)"/>
+	 <property name="qbCompanyId" expression="json-eval($.qbCompanyId)"/>
+	 <property name="qbConsumerSecret" expression="json-eval($.qbConsumerSecret)"/>
+	 <property name="qbQueryCondition" expression="json-eval($.qbQueryCondition)"/>
+	 <property name="qbQueryString" expression="fn:concat('select * from vendor where ', get-property('qbQueryCondition'))" />		
+
+	 
+	 <quickbooks.init>
+		<consumerKey>{$ctx:qbConsumerKey}</consumerKey>
+		<accessToken>{$ctx:qbAccessToken}</accessToken>
+		<accessTokenSecret>{$ctx:qbAccessTokenSecret}</accessTokenSecret>
+		<responseType>{$ctx:qbResponseType}</responseType>
+		<apiUrl>{$ctx:qbApiUrl}</apiUrl>
+		<companyId>{$ctx:qbCompanyId}</companyId>
+		<consumerSecret>{$ctx:qbConsumerSecret}</consumerSecret>
+	 </quickbooks.init>
+	 
+	 <quickbooks.query>
+		<queryString>{$ctx:qbQueryString}</queryString>
+	 </quickbooks.query>
+	 
+	<property name="vendorList" expression="json-eval($.QueryResponse.Vendor)"/>	 
+	
+	<call-template target="responseHandlerTemplate">
+		<!-- parameter values will be passed on to a sequence template -->
+		(
+		<with-param name="activityName" value="quickbooks_queryVendors" />
+		|
+		) *
+	</call-template>	
+
+	<filter source="boolean(get-property('vendorList'))" regex="false">
+		<then>
+			<loopback/>
+		</then>
+	</filter>	
+	
+	<script language="js">
+         <![CDATA[
+		     var vendorList = mc.getProperty("vendorList");		 
+			 var jsn = eval("(" + vendorList + ")");
+			 var vendorDisplayName='';
+			 var xmlData='';
+			 
+            if (typeof(jsn) == "object" && (jsn.join == undefined)) {
+				// vendor list is an object
+				 vendorDisplayName = jsn.DisplayName;
+				
+				 xmlData += '<row no="1"><FL val="Vendor Name">' + vendorDisplayName + '</FL></row>';
+		    }else{
+			     // vendor list is an array
+				 for (var i = 0; i < jsn.length ; i++) {
+				 vendorDisplayName = jsn[i].DisplayName;
+				 
+				 xmlData += '<row no="' + eval((i+1)) + '"><FL val="Vendor Name">' + vendorDisplayName + '</FL></row>';
+			 }
+			}
+			xmlData = '<Vendors>' + xmlData + '</Vendors>';
+			mc.setProperty('vendorXmlData', xmlData);
+		 ]]>
+	</script>
+		 
+
+      <zohocrm.init>
+        <scope>{$ctx:zohoScope}</scope>
+        <accessToken>{$ctx:zohoAccessToken}</accessToken>
+        <apiUrl>{$ctx:zohoApiUrl}</apiUrl>
+      </zohocrm.init>
+	  
+      <zohocrm.insertRecords>
+	    <moduleType>{$ctx:zohoVendorModuleType}</moduleType>
+        <duplicateCheck>{$ctx:zohoDuplicateCheck}</duplicateCheck>
+        <xmlData>{$ctx:vendorXmlData}</xmlData>
+        <isApproval>{$ctx:zohoIsApproval}</isApproval>
+        <wfTrigger>{$ctx:zohoWfTrigger}</wfTrigger>
+        <newFormat>{$ctx:zohoNewFormat}</newFormat>
+        <version>{$ctx:zohoVersion}</version>
+      </zohocrm.insertRecords>
+	  
+	  
+	<call-template target="responseHandlerTemplate">
+		<!-- parameter values will be passed on to a sequence template -->
+		(
+		<with-param name="activityName" value="zohocrm_insertRecords" />
+		|
+		) *
+	</call-template>		  
+	  
+      <loopback/>
+      </inSequence>
+      <outSequence>
+         <log/>
+			<property name="messageType" value="application/json" scope="axis2"></property>
+			<payloadFactory media-type="json">
+				<format>
+					{
+					"Response":[$1]
+					}
+				</format>
+				<args>
+					<arg expression="get-property('uri.var.responseString')" />
+				</args>
+			</payloadFactory>
+         <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>
+                                

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="zohocrm_fbEventCreation_cmSendCampaign"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+	  
+	  <!-- ZohoCRM insertRecords parameters -->
+	  <property name="zohoApiUrl" expression="json-eval($.zohoApiUrl)"/>
+      <property name="zohoAccessToken" expression="json-eval($.zohoAccessToken)"/>
+      <property name="zohoScope" expression="json-eval($.zohoScope)"/>
+      <property name="zohoNewFormat" expression="json-eval($.zohoNewFormat)"/>
+      <property name="zohoVersion" expression="json-eval($.zohoVersion)"/>
+      <property name="zohoXmlData" expression="json-eval($.zohoXmlData)"/>
+      <property name="zohoWfTrigger" expression="json-eval($.zohoWfTrigger)"/>
+      <property name="zohoDuplicateCheck" expression="json-eval($.zohoDuplicateCheck)"/>
+      <property name="zohoIsApproval" expression="json-eval($.zohoIsApproval)"/>
+	  
+	  <!-- facebook createEvent parameters -->
+	  <property name="facebookAccessToken" expression="json-eval($.facebookAccessToken)"/>
+	  <property name="facebookApiUrl" expression="json-eval($.facebookApiUrl)"/>
+	  <property name="facebookEndTime" expression="json-eval($.facebookEndTime)"/>
+	  <property name="facebookPrivacyType" expression="json-eval($.facebookPrivacyType)"/>
+	  <property name="facebookLocationId" expression="json-eval($.facebookLocationId)"/>
+	  <property name="facebookLocation" expression="json-eval($.facebookLocation)"/>
+	  
+	  <!-- CampaignMonitor createDraftCampaign parameters-->
+	  <property name="cmApiUrl" expression="json-eval($.cmApiUrl)"/>
+	  <property name="cmAccessToken" expression="json-eval($.cmAccessToken)"/>
+	  <property name="cmClientId" expression="json-eval($.cmClientId)"/>
+      <property name="cmSubject" expression="json-eval($.cmSubject)"/>
+      <property name="cmFromName" expression="json-eval($.cmFromName)"/>
+      <property name="cmFromEmail" expression="json-eval($.cmFromEmail)"/>
+      <property name="cmReplyToEmail" expression="json-eval($.cmReplyToEmail)"/>
+      <property name="cmHtmlUrl" expression="json-eval($.cmHtmlUrl)"/>
+      <property name="cmListIds" expression="json-eval($.cmListIds)"/>
+      <property name="cmSegmentIds" expression="json-eval($.cmSegmentIds)"/>
+	  
+	  <!-- CampaignMonitor sendCampaign parameters-->
+      <property name="cmConfirmationEmailsList" expression="json-eval($.cmConfirmationEmailsList)"/>
+      <property name="cmSendDate" expression="json-eval($.cmSendDate)"/>
+	 
+	  
+      <call-template target="zohocrm-createAndRetrieveCampaignDetails">
+	   <!-- parameter values will be passed on to a sequence template -->
+	   (
+	   <with-param name="zohoScope" value="{$ctx:zohoScope}" /> |
+	   <with-param name="zohoAccessToken" value="{$ctx:zohoAccessToken}" /> |
+	   <with-param name="zohoApiUrl" value="{$ctx:zohoApiUrl}" /> |
+	   <with-param name="zohoDuplicateCheck" value="{$ctx:zohoDuplicateCheck}" /> |
+	   <with-param name="zohoXmlData" value="{$ctx:zohoXmlData}" /> |
+	   <with-param name="zohoIsApproval" value="{$ctx:zohoIsApproval}" /> |
+	   <with-param name="zohoWfTrigger" value="{$ctx:zohoWfTrigger}" /> |
+	   <with-param name="zohoNewFormat" value="{$ctx:zohoNewFormat}" /> |
+	   <with-param name="zohoVersion" value="{$ctx:zohoVersion}" /> |
+	   ) *
+	 </call-template>
+
+	 <!-- Retrieving the name and the start date of the campaign --> 
+	  <property name="campaignAttributes" expression="json-eval($.response.result.Campaigns.row.FL)"/>	 
+
+	  
+     <script language="js">
+		 
+			var jsn = eval("(" + mc.getProperty("campaignAttributes") + ")");
+			
+			for (var i = 0; i &lt; jsn.length ; i++) { 
+			
+			if(jsn[i].val == "Campaign Name"){
+				mc.setProperty('campaignName', jsn[i].content)
+			}
+			
+			if(jsn[i].val == "Start Date"){
+				mc.setProperty('campaignStartDate', jsn[i].content)
+			}
+			
+			if(jsn[i].val == "Description"){
+				mc.setProperty('campaignDescription', jsn[i].content)
+			}
+		
+												}
+
+		</script>
+	
+      <call-template target="zohocrm-createFacebookEventAndSendCampaign">
+	   <!-- parameter values will be passed on to a sequence template -->
+	   (
+	   <with-param name="facebookName" value="{$ctx:campaignName}" /> |
+	   <with-param name="facebookStartTime" value="{$ctx:campaignStartDate}" /> |
+	   <with-param name="facebookDescription" value="{$ctx:campaignDescription}" /> |
+	   <with-param name="facebookEndTime" value="{$ctx:facebookEndTime}" /> |
+	   <with-param name="facebookAccessToken" value="{$ctx:facebookAccessToken}" /> |
+	   <with-param name="facebookApiUrl" value="{$ctx:facebookApiUrl}" /> |
+	   <with-param name="facebookLocation" value="{$ctx:facebookLocation}" /> |
+	   <with-param name="facebookLocationId" value="{$ctx:facebookLocationId}" /> |
+	   <with-param name="facebookPrivacyType" value="{$ctx:facebookPrivacyType}" /> |
+	   <with-param name="cmApiUrl" value="{$ctx:cmApiUrl}" /> |
+	   <with-param name="cmAccessToken" value="{$ctx:cmAccessToken}" /> |
+	   <with-param name="cmClientId" value="{$ctx:cmClientId}" /> |
+	   <with-param name="cmName" value="{$ctx:campaignName}" /> |
+	   <with-param name="cmSubject" value="{$ctx:cmSubject}" /> |
+	   <with-param name="cmFromName" value="{$ctx:cmFromName}" /> |
+	   <with-param name="cmFromEmail" value="{$ctx:cmFromEmail}" /> |
+	   <with-param name="cmReplyToEmail" value="{$ctx:cmReplyToEmail}" /> |
+	   <with-param name="cmHtmlUrl" value="{$ctx:cmHtmlUrl}" /> |
+	   <with-param name="cmListIds" value="{$ctx:cmListIds}" /> |
+	   <with-param name="cmSegmentIds" value="{$ctx:cmSegmentIds}" /> |
+	   <with-param name="cmConfirmationEmailsList" value="{$ctx:cmConfirmationEmailsList}" /> |
+	   <with-param name="cmSendDate" value="{$ctx:cmSendDate}" /> |
+	   ) *
+	 </call-template>
+
+         <loopback/>
+      </inSequence>
+      <outSequence>
+         <log/>
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"Response":[$1]
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.responseString')" />
+			</args>
+		</payloadFactory>
+         <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>
+                                

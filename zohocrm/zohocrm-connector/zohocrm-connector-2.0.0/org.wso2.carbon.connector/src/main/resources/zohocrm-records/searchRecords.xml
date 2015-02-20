@@ -1,0 +1,76 @@
+<template name="searchRecords" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="criteria" description="The search criteria i.e,(((LastName:Steve)AND(Company:Zillum))OR(Lead Status:Contacted))" />
+	<parameter name="selectColumns"
+		description="The selectColumns, specifies which modules and fields to be retrieved i.e, Leads(Last Name,Website,Email) OR All" />
+	<parameter name="fromIndex" description="Index number to retrieve records from , default value is 1" />
+	<parameter name="toIndex" description="Index number to retrieve records from (default value is 1 ,maximum vaLue is 200)" />
+	<parameter name="lastModifiedTime"
+		description="Specifies the datetime, where  modified data will be fetched after the configured time(format: yyyy-MM-dd HH:mm:ss )" />
+	<parameter name="newFormat" description="The newFormat, an integer determine weather null valus should be excluded(1) or included(2)" />
+	<parameter name="module" description="Specifies the module to retrieve data from" />
+
+	<sequence>
+		<property name="uri.var.criteria" expression="$func:criteria" />
+		<property name="uri.var.selectColumns" expression="$func:selectColumns" />
+		<property name="uri.var.fromIndex" expression="$func:fromIndex" />
+		<property name="uri.var.toIndex" expression="$func:toIndex" />
+		<property name="uri.var.lastModifiedTime" expression="$func:lastModifiedTime" />
+		<property name="uri.var.newFormat" expression="$func:newFormat" />
+		<property name="uri.var.module" expression="$func:module" />
+
+		<script language="js">
+		<![CDATA[ 
+		
+			// Generate url with optional parameters
+		
+			var criteria = mc.getProperty('uri.var.criteria');
+			var selectColumns = mc.getProperty('uri.var.selectColumns');
+			var fromIndex = mc.getProperty('uri.var.fromIndex');
+			var toIndex = mc.getProperty('uri.var.toIndex');
+			var lastModifiedTime = mc.getProperty('uri.var.lastModifiedTime');
+			var newFormat = mc.getProperty('uri.var.newFormat');
+			var urlQuery = mc.getProperty('uri.var.urlQuery');
+			
+					
+			if (criteria != null && criteria != "") {
+				urlQuery += 'criteria=' + encodeURIComponent(criteria) +'&';
+			}
+			if (selectColumns != null && selectColumns != "") {
+				urlQuery += 'selectColumns=' + encodeURIComponent(selectColumns) +'&';
+			}
+			if (fromIndex != null && fromIndex != "") {
+				urlQuery += 'fromIndex=' + fromIndex +'&';
+			}
+			if (toIndex != null && toIndex != "") {
+				urlQuery += 'toIndex=' + toIndex +'&';
+			}
+			if (lastModifiedTime != null && lastModifiedTime != "") {
+				urlQuery += 'lastModifiedTime=' + encodeURIComponent(lastModifiedTime) +'&';
+			}
+			if (newFormat != null && newFormat != "") {
+				urlQuery += 'newFormat=' + newFormat +'&';
+			}
+					
+			urlQuery = '/' + mc.getProperty('uri.var.module') + '/searchRecords?' + urlQuery.substring(0, (''+urlQuery).length-1);
+			mc.setProperty('uri.var.urlQuery', urlQuery);
+			
+			]]></script>
+
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}/crm/private/json{uri.var.urlQuery}" />
+			</endpoint>
+
+		</call>
+
+		<!-- Removing custom headers -->
+		<header name="Strict-Transport-Security" action="remove" scope="transport" />
+		<header name="X-XSS-Protection" action="remove" scope="transport" />
+		<header name="X-Download-Options" action="remove" scope="transport" />
+		<header name="X-Content-Type-Options" action="remove" scope="transport" />
+		<header name="Pragma" action="remove" scope="transport" />
+		<header name="Cache-Control" action="remove" scope="transport" />
+	</sequence>
+</template>

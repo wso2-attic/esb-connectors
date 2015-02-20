@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="zohocrm_generateLeads"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence>
+		
+		<!-- Zoho CRM API call related properties -->
+		<property name="zohoApiUrl" expression="json-eval($.zohoApiUrl)"/>
+		<property name="zohoAccessToken" expression="json-eval($.zohoAccessToken)"/>
+		<property name="scope" expression="json-eval($.scope)"/>		
+		<property name="firstNameCM" expression="json-eval($.firstNameCM)"/>
+		<property name="companyNameCM" expression="json-eval($.companyNameCM)"/>		
+		<property name="newFormat" expression="json-eval($.newFormat)"/>
+		<property name="version" expression="json-eval($.version)"/>
+		<property name="wfTrigger" expression="json-eval($.wfTrigger)"/>
+		<property name="duplicateCheck" expression="json-eval($.duplicateCheck)"/>
+		<property name="isApproval" expression="json-eval($.isApproval)"/>
+		<property name="moduleType" value="Leads"/>
+		
+		<!-- Campaign monitor API call related properties -->
+		<property name="campaignMonitorApiUrl" expression="json-eval($.campaignMonitorApiUrl)"/>
+        <property name="campaignMonitorAccessToken" expression="json-eval($.campaignMonitorAccessToken)"/>	  
+        <property name="campaignId" expression="json-eval($.campaignId)"/>
+		<property name="date" expression="json-eval($.date)"/>
+        <property name="page" expression="json-eval($.page)"/>	  
+        <property name="pageSize" expression="json-eval($.pageSize)"/>
+		<property name="orderField" expression="json-eval($.orderField)"/>	
+		<property name="orderDirection" expression="json-eval($.orderDirection)"/>	
+		
+		<!-- CallRail API call related properties -->
+		<property name="callRailApiUrl" expression="json-eval($.callRailApiUrl)"/>
+		<property name="callRailApiKey" expression="json-eval($.callRailApiKey)"/>
+		<property name="perPage" expression="json-eval($.perPage)"/>
+		<property name="callRailPage" expression="json-eval($.callRailPage)"/>
+		<property name="companyId" expression="json-eval($.companyId)"/>
+		<property name="startDate" expression="json-eval($.startDate)"/>
+		<property name="endDate" expression="json-eval($.endDate)"/> 
+		<property name="firstNameCR" expression="json-eval($.firstNameCR)" />
+		<property name="companyNameCR" expression="json-eval($.companyNameCR)" />
+		 
+		<call-template target="zohocrm-retrieveDetailsForLeadCreation">
+		   <!-- parameter values will be passed on to a sequence template -->
+		   (
+		   <with-param name="campaignMonitorApiUrl" value="{$ctx:zohoScope}" /> |
+		   <with-param name="campaignMonitorAccessToken" value="{$ctx:campaignMonitorAccessToken}" /> |
+		   <with-param name="campaignId" value="{$ctx:campaignId}" /> |		   
+		   <with-param name="date" value="{$ctx:date}" /> |
+		   <with-param name="page" value="{$ctx:page}" /> |
+		   <with-param name="pageSize" value="{$ctx:pageSize}" /> |
+		   <with-param name="orderField" value="{$ctx:orderField}" /> |
+		   <with-param name="orderDirection" value="{$ctx:orderDirection}" /> |		   
+		   <with-param name="firstNameCM" value="{$ctx:firstNameCM}" /> |		   
+		   <with-param name="companyNameCM" value="{$ctx:companyNameCM}" /> |		   
+		   <with-param name="callRailApiUrl" value="{$ctx:callRailApiUrl}" /> |		   
+		   <with-param name="callRailApiKey" value="{$ctx:callRailApiKey}" /> |
+		   <with-param name="perPage" value="{$ctx:perPage}" /> |		   
+		   <with-param name="callRailPage" value="{$ctx:callRailPage}" /> |
+		   <with-param name="companyId" value="{$ctx:companyId}" /> |
+		   <with-param name="startDate" value="{$ctx:startDate}" /> |		   
+		   <with-param name="endDate" value="{$ctx:endDate}" /> |
+		   <with-param name="firstNameCR" value="{$ctx:firstNameCR}" /> |		   
+		   <with-param name="companyNameCR" value="{$ctx:companyNameCR}" /> |
+		   ) *
+		</call-template>
+
+		<!-- If xmlData was not populated(Previous API calls were failed or skipped by user details) by above API calls-->		
+		<filter source="boolean(get-property('uri.var.xmlDataVar'))" regex="true">
+		<property name="xmlDataVal" expression="fn:concat('&lt;Leads&gt;' , get-property('uri.var.xmlDataVar') , '&lt;/Leads&gt;')"/>
+			<zohocrm.init>
+				<scope>{$ctx:scope}</scope>
+				<accessToken>{$ctx:zohoAccessToken}</accessToken>
+				<apiUrl>{$ctx:zohoApiUrl}</apiUrl>
+			</zohocrm.init>
+
+			<zohocrm.insertRecords>
+				<moduleType>{$ctx:moduleType}</moduleType>
+				<duplicateCheck>{$ctx:duplicateCheck}</duplicateCheck>
+				<xmlData>{$ctx:xmlDataVal}</xmlData>
+				<isApproval>{$ctx:isApproval}</isApproval>
+				<wfTrigger>{$ctx:wfTrigger}</wfTrigger>
+				<newFormat>{$ctx:newFormat}</newFormat>
+				<version>{$ctx:version}</version>
+			</zohocrm.insertRecords>
+
+			<call-template target="responseHandlerTemplate">
+				<!-- parameter values will be passed on to a sequence template -->
+				(
+				<with-param name="activityName" value="ZohoCRM_insertRecords" />|
+				) *
+			</call-template>
+		
+		</filter>		
+		
+         <loopback/>
+      </inSequence>
+      <outSequence>
+         <log/>
+		<!-- Generate the chained response of all the API calls in createLeads -->
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"Response":[$1]
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.responseString')" />
+			</args>
+		</payloadFactory>
+		
+         <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>
+                                

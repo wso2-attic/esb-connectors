@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This template create a case in zoho crm and then creates a corresponding issue in Jira using the details retrieved from the creted Case in Zoho CRM -->
+<template name="zohocrm-createAndRetrieveCase" xmlns="http://ws.apache.org/ns/synapse">
+	<!-- Zoho CRM parameters -->
+	<property name="zohoApiUrl" description="The Zoho api URL" />
+	<property name="zohoAccessToken" description="Encrypted alphanumeric string to authenticate the Zoho credentials" />
+	<property name="zohoScope" description="Zoho CRM scope, Specify the value as crmapi" />
+	<property name="zohoNewFormat" description="The newFormat, an integer determine weather null valus should be excluded(1) or included(2)" />
+	<property name="zohoVersion" description="Coloumns selected" />
+	<property name="zohoXmlData" description="The xml string containing the data to be inserted" />
+	<property name="zohoWfTrigger" description="The wfTrigger parameter is used to trigger the workflow rule while inserting record into CRM account" />
+	<property name="zohoDuplicateCheck" description="Checking the duplicate records and throw an error response" />
+	
+	<sequence>
+		<!-- zoho CRM properties -->
+		<property name="uri.var.zohoApiUrl" expression="json-eval($.zohoApiUrl)"/>
+		<property name="uri.var.zohoAccessToken" expression="json-eval($.zohoAccessToken)"/>
+		<property name="uri.var.zohoScope" expression="json-eval($.zohoScope)"/>
+		<property name="uri.var.zohoNewFormat" expression="json-eval($.zohoNewFormat)"/>
+		<property name="uri.var.zohoVersion" expression="json-eval($.zohoVersion)"/>
+		<property name="uri.var.zohoXmlData" expression="json-eval($.zohoXmlData)"/>
+		<property name="uri.var.zohoWfTrigger" expression="json-eval($.zohoWfTrigger)"/>
+		<property name="uri.var.zohoDuplicateCheck" expression="json-eval($.zohoDuplicateCheck)"/>
+		<!-- isApproval property was set to false so the case will immediately add to the account and can proceed with other API calls,
+			 otherwise manual approving should be needed-->
+		<property name="uri.var.zohoIsApproval" value="false"/>
+		<property name="uri.var.zohoModuleType" value="Cases"/>
+	  
+	  <!-- zoho CRM create Case-->
+      <zohocrm.init>
+		  <apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+		  <accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+		  <scope>{$ctx:uri.var.zohoScope}</scope>
+      </zohocrm.init>
+	  
+      <zohocrm.insertRecords>
+	    <newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+        <version>{$ctx:uri.var.zohoVersion}</version>
+        <xmlData>{$ctx:uri.var.zohoXmlData}</xmlData>
+		<wfTrigger>{$ctx:uri.var.zohoWfTrigger}</wfTrigger>
+        <duplicateCheck>{$ctx:uri.var.zohoDuplicateCheck}</duplicateCheck>
+        <isApproval>{$ctx:uri.var.zohoIsApproval}</isApproval>
+		<moduleType>{$ctx:uri.var.zohoModuleType}</moduleType>
+      </zohocrm.insertRecords>
+
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="zohocrm_createCase" />
+			|
+			) *
+		</call-template>
+
+		<!-- Retrieving created case ID --> 
+		<property name="uri.var.caseId" expression="json-eval($.response.result.recorddetail.FL[0].content)"/>
+		
+		<!-- Check the availability of caseID to  proceed with other API calls -->		
+		<filter source="boolean(get-property('uri.var.caseId'))" regex="false">
+			<loopback/>
+		</filter>	
+
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Content-Type" scope="transport" action="remove" />
+		<header name="Date" scope="transport" action="remove" />
+		<header name="Server" scope="transport" action="remove" />
+		<header name="Transfer-Encoding" scope="transport" action="remove" />
+		<header name="Connection" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Content-Encoding" scope="transport" action="remove" />
+
+	  <!-- zoho CRM retrieve created Case-->
+      <zohocrm.init>
+		  <apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+		  <accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+		  <scope>{$ctx:uri.var.zohoScope}</scope>
+      </zohocrm.init>
+	  
+      <zohocrm.getRecordsById>
+        <id>{$ctx:uri.var.caseId}</id>
+	    <newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+        <version>{$ctx:uri.var.zohoVersion}</version>
+		<moduleType>{$ctx:uri.var.zohoModuleType}</moduleType>
+      </zohocrm.getRecordsById>
+		
+	  <call-template target="responseHandlerTemplate">
+		  <!-- parameter values will be passed on to a sequence template -->
+		  (
+		  <with-param name="activityName" value="zohocrm_getCaseById" />|
+		  ) *
+	  </call-template>
+	
+	<!-- Retrieving case details --> 
+	<property name="uri.var.caseDetails" expression="json-eval($.response.result.Cases.row.FL)"/>
+  
+	<!-- Check the availability of caseDetails proceed with other API calls -->		
+	<filter source="boolean(get-property('uri.var.caseDetails'))" regex="false">
+		<loopback/>
+	</filter>	
+	
+	</sequence>
+</template>

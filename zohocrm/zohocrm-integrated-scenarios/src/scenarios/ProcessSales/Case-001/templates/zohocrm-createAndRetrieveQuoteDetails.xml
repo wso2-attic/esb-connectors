@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- createAndRetrieveQuoteDetails template is used to create a quote in ZohoCRM and retrieve details -->
+<template name="zohocrm-createAndRetrieveQuoteDetails" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="zohoScope" description="Specify the value as crmapi" />
+	<parameter name="zohoAccessToken" description="Encrypted alphanumeric string to authenticate the Zoho credentials" />
+	<parameter name="zohoApiUrl" description="The api url" />
+	<parameter name="zohoIsApproval" description="To keep the records in approval mode" />
+	<parameter name="zohoWfTrigger" description="The wfTrigger parameter is used to trigger the workflow rule while inserting record into CRM account" />
+	<parameter name="zohoNewFormat" description="The newFormat, an integer determine weather null valus should be excluded(1) or included(2)" />
+	<parameter name="zohoVersion" description="The API version" />
+	<parameter name="zohoDuplicateCheck" description="Checking the duplicate records and throw an error response" />
+	<parameter name="zohoXmlData" description="The xml string containing the data to be inserted" />
+	
+	<sequence>
+		<property name="uri.var.zohoScope" expression="$func:zohoScope" />
+		<property name="uri.var.zohoAccessToken" expression="$func:zohoAccessToken" />
+		<property name="uri.var.zohoApiUrl" expression="$func:zohoApiUrl" />
+		<property name="uri.var.zohoIsApproval" expression="$func:zohoIsApproval" />
+		<property name="uri.var.zohoWfTrigger" expression="$func:zohoWfTrigger" />
+		<property name="uri.var.zohoNewFormat" expression="$func:zohoNewFormat" />
+		<property name="uri.var.zohoVersion" expression="$func:zohoVersion" />
+		<property name="uri.var.zohoDuplicateCheck" expression="$func:zohoDuplicateCheck" />
+		<property name="uri.var.zohoXmlData" expression="$func:zohoXmlData" />
+		<property name="uri.var.zohoModuleType" value="Quotes" />
+		 
+      <zohocrm.init>
+        <scope>{$ctx:uri.var.zohoScope}</scope>
+        <accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+        <apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+      </zohocrm.init>
+	  
+      <zohocrm.insertRecords>
+	    <moduleType>{$ctx:uri.var.zohoModuleType}</moduleType>
+        <duplicateCheck>{$ctx:uri.var.zohoDuplicateCheck}</duplicateCheck>
+        <xmlData>{$ctx:uri.var.zohoXmlData}</xmlData>
+        <isApproval>{$ctx:uri.var.zohoIsApproval}</isApproval>
+        <wfTrigger>{$ctx:uri.var.zohoWfTrigger}</wfTrigger>
+        <newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+        <version>{$ctx:uri.var.zohoVersion}</version>
+      </zohocrm.insertRecords>	
+	  
+	  
+	  <!-- Retrieving the id of the new quote-->
+      <property name="uri.var.zohoQuoteId" expression="json-eval($.response.result.recorddetail.FL[0].content)"/>	 
+	
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="zohocrm_createQuote" />
+			|
+			) *
+		</call-template>
+		
+		<filter source="boolean(get-property('uri.var.zohoQuoteId'))" regex="false">
+			<then>
+				<loopback/>
+			</then>
+	    </filter>
+	  
+	 <!-- Retrieving information about the quote-->  
+      <zohocrm.init>
+        <scope>{$ctx:uri.var.zohoScope}</scope>
+        <accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+        <apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+      </zohocrm.init>
+	  
+	  <zohocrm.getRecordsById>
+        <id>{$ctx:uri.var.zohoQuoteId}</id>
+        <newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+        <version>{$ctx:uri.var.zohoVersion}</version>
+	    <moduleType>{$ctx:uri.var.zohoModuleType}</moduleType>
+      </zohocrm.getRecordsById>
+	  
+	  <property name="uri.var.errorOutput" expression="json-eval($.response.error)"/>	 
+	  
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="zohocrm_getQuoteById" />
+			|
+			) *
+		</call-template>
+		
+		<filter source="boolean(get-property('uri.var.errorOutput'))" regex="true">
+			<then>
+				<loopback/>
+			</then>
+	    </filter> 
+		
+	</sequence>
+</template>

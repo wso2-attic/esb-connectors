@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="zohocrm_quickbooks_createPurchaseOrder"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence>
+		
+		<!-- Zoho CRM API call related properties -->
+		<property name="zohoApiUrl" expression="json-eval($.zohoApiUrl)"/>
+		<property name="zohoAccessToken" expression="json-eval($.zohoAccessToken)"/>
+		<property name="zohoScope" expression="json-eval($.zohoScope)"/>
+		<property name="zohoNewFormat" expression="json-eval($.zohoNewFormat)"/>
+		<property name="zohoVersion" expression="json-eval($.zohoVersion)"/>
+		<property name="zohoXmlData" expression="json-eval($.zohoXmlData)"/>
+		<property name="zohoWfTrigger" expression="json-eval($.zohoWfTrigger)"/>
+		<property name="zohoDuplicateCheck" expression="json-eval($.zohoDuplicateCheck)"/>
+		
+		<!-- Quickbooks API call related properties -->
+         <property name="qbConsumerKey" expression="json-eval($.qbConsumerKey)"/>
+         <property name="qbAccessToken" expression="json-eval($.qbAccessToken)"/>
+         <property name="qbAccessTokenSecret" expression="json-eval($.qbAccessTokenSecret)"/>
+         <property name="qbResponseType" expression="json-eval($.qbResponseType)"/>
+         <property name="qbApiUrl" expression="json-eval($.qbApiUrl)"/>
+         <property name="qbCompanyId" expression="json-eval($.qbCompanyId)"/>
+         <property name="qbConsumerSecret" expression="json-eval($.qbConsumerSecret)"/>
+		 
+		 <property name="qbCustomField" expression="json-eval($.qbCustomField)"/>
+         <property name="qbAttachableRef" expression="json-eval($.qbAttachableRef)"/>
+         <property name="qbDocNumber" expression="json-eval($.qbDocNumber)"/>
+         <property name="qbTxnDate" expression="json-eval($.qbTxnDate)"/>
+         <property name="qbPrivateNote" expression="json-eval($.qbPrivateNote)"/>
+         <property name="qbLinkedTxn" expression="json-eval($.qbLinkedTxn)"/>
+         <property name="qbVendorRef" expression="json-eval($.qbVendorRef)"/>
+         <property name="qbAPAccountRef" expression="json-eval($.qbAPAccountRef)"/>
+         <property name="qbTotalAmt" expression="json-eval($.qbTotalAmt)"/>
+         <property name="qbClassRef" expression="json-eval($.qbClassRef)"/>
+         <property name="qbSalesTermRef" expression="json-eval($.qbSalesTermRef)"/>
+         <property name="qbDueDate" expression="json-eval($.qbDueDate)"/>
+         <property name="qbVendorAddr" expression="json-eval($.qbVendorAddr)"/>
+         <property name="qbShipAddr" expression="json-eval($.qbShipAddr)"/>
+         <property name="qbShipMethodRef" expression="json-eval($.qbShipMethodRef)"/>
+         <property name="qbPurchaseOrderStatus" expression="json-eval($.qbPurchaseOrderStatus)"/>
+         <property name="qbTxnTaxDetail" expression="json-eval($.qbTxnTaxDetail)"/>
+         <property name="qbTaxCodeRef" expression="json-eval($.qbTaxCodeRef)"/>
+         <property name="qbCurrencyRef" expression="json-eval($.qbCurrencyRef)"/>
+         <property name="qbExchangeRate" expression="json-eval($.qbExchangeRate)"/>
+         <property name="qbGlobalTaxCalculation" expression="json-eval($.qbGlobalTaxCalculation)"/>
+		 <property name="productItemMap" expression="json-eval($.productItemMap)"/>
+		 
+		<call-template target="zohocrm-createAndRetrievePurchaseOrder">
+		   <!-- parameter values will be passed on to a sequence template -->
+		   (
+		   <with-param name="zohoApiUrl" value="{$ctx:zohoApiUrl}" /> |		   
+		   <with-param name="zohoAccessToken" value="{$ctx:zohoAccessToken}" /> |
+		   <with-param name="zohoScope" value="{$ctx:zohoScope}" /> |		   
+		   <with-param name="zohoNewFormat" value="{$ctx:zohoNewFormat}" /> |
+		   <with-param name="zohoVersion" value="{$ctx:zohoVersion}" /> |
+		   <with-param name="zohoXmlData" value="{$ctx:zohoXmlData}" /> |		   
+		   <with-param name="zohoWfTrigger" value="{$ctx:zohoWfTrigger}" /> |
+		   <with-param name="zohoDuplicateCheck" value="{$ctx:zohoDuplicateCheck}" /> |	
+		   ) *
+		</call-template>
+
+	 <property name="purchaseOrderAttributes" expression="json-eval($.response.result.PurchaseOrders.row.FL)"/>	 
+
+	 <!-- Following script will create the Line Object using the zoho crm purchase order details, to be sent to quickbooks for purchase order creation -->
+     <script language="js">
+			var jsn = eval("(" + mc.getProperty("purchaseOrderAttributes") + ")");
+			var products;
+			var productAttributes;
+			var lineObject;
+			var productName;
+			var listPrice;
+			var quantity;
+			var productId;
+			var itemBasedExpenseLineDetail;
+			
+			var lineArray = eval("([])");
+			var productItemMap = eval("("+mc.getProperty('productItemMap')+")");
+			
+			for (var i = 0; i &lt; jsn.length ; i++) {
+				if(jsn[i].val == "Product Details"){
+					products = jsn[i].product;
+				}
+			}
+			
+		if (typeof(products) == "object" &amp;&amp; (products.join == undefined)) { // Products is a JSON object, not an array
+			productAttributes = products.FL;
+			lineObject=eval("({})");
+			
+			for (var i = 0; i &lt; productAttributes.length ; i++) { 	
+				if(productAttributes[i].val == "Product Name"){
+					productName = productAttributes[i].content;
+				}
+				
+				if(productAttributes[i].val == "List Price"){
+					listPrice = productAttributes[i].content;
+				}
+
+				if(productAttributes[i].val == "Quantity"){
+					quantity = productAttributes[i].content;
+				}
+
+				if(productAttributes[i].val == "Product Id"){
+					productId = productAttributes[i].content;
+				}				
+			}
+																								
+				lineObject.Id = "1";
+				lineObject.DetailType = "ItemBasedExpenseLineDetail";
+				itemBasedExpenseLineDetail = eval("({})");
+				itemBasedExpenseLineDetail.UnitPrice = eval(listPrice);
+				itemBasedExpenseLineDetail.Qty = eval(quantity);
+				itemBasedExpenseLineDetail.ItemRef = eval("({})");
+				itemBasedExpenseLineDetail.ItemRef.name = productName;
+				itemBasedExpenseLineDetail.ItemRef.value = productItemMap[productId];
+				lineObject.ItemBasedExpenseLineDetail = itemBasedExpenseLineDetail;
+				lineObject.Amount = eval(listPrice + '*' + quantity);
+				lineArray[0] = lineObject;
+
+				
+		}else{ // Products is a JSON array
+			
+				for (var j = 0; j &lt; products.length ; j++) {
+					productAttributes = products[j].FL;
+					lineObject=eval("({})");
+					
+					for (var i = 0; i &lt; productAttributes.length ; i++) { 	
+						if(productAttributes[i].val == "Product Name"){
+							productName = productAttributes[i].content;
+						}
+						
+						if(productAttributes[i].val == "List Price"){
+							listPrice = productAttributes[i].content;
+						}
+
+						if(productAttributes[i].val == "Quantity"){
+							quantity = productAttributes[i].content;
+						}
+
+						if(productAttributes[i].val == "Product Id"){
+							productId = productAttributes[i].content;
+						}							
+					}
+						lineObject.Id = eval('"'+(j+1)+'"');
+						lineObject.DetailType = "ItemBasedExpenseLineDetail";
+						itemBasedExpenseLineDetail = eval("({})");
+						itemBasedExpenseLineDetail.UnitPrice = eval(listPrice);
+						itemBasedExpenseLineDetail.Qty = eval(quantity);
+						itemBasedExpenseLineDetail.ItemRef = eval("({})");
+						itemBasedExpenseLineDetail.ItemRef.name = productName;
+						itemBasedExpenseLineDetail.ItemRef.value = productItemMap[productId];
+						lineObject.ItemBasedExpenseLineDetail = itemBasedExpenseLineDetail;
+						lineObject.Amount = eval(listPrice + '*' + quantity);
+						lineArray[j] = lineObject;						
+				}			
+			}			
+			mc.setPayloadJSON(lineArray);
+						
+		</script>
+
+		<property name="qbLine" expression="json-eval($)"/>
+	
+		<!-- Check the availability of Line to proceed with quickbooks API call -->		
+		<filter source="boolean(get-property('qbLine'))" regex="false">
+			<loopback/>
+		</filter>
+		
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Content-Type" scope="transport" action="remove" />
+		<header name="Date" scope="transport" action="remove" />
+		<header name="Server" scope="transport" action="remove" />
+		<header name="Transfer-Encoding" scope="transport" action="remove" />
+		<header name="Connection" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Content-Encoding" scope="transport" action="remove" />
+		
+		  <quickbooks.init>
+            <consumerKey>{$ctx:qbConsumerKey}</consumerKey>
+            <accessToken>{$ctx:qbAccessToken}</accessToken>
+            <accessTokenSecret>{$ctx:qbAccessTokenSecret}</accessTokenSecret>
+            <responseType>{$ctx:qbResponseType}</responseType>
+            <apiUrl>{$ctx:qbApiUrl}</apiUrl>
+            <companyId>{$ctx:qbCompanyId}</companyId>
+            <consumerSecret>{$ctx:qbConsumerSecret}</consumerSecret>
+         </quickbooks.init>
+         <quickbooks.createPurchaseOrder>
+			<customField>{$ctx:qbCustomField}</customField>
+            <attachableRef>{$ctx:qbAttachableRef}</attachableRef>
+            <docNumber>{$ctx:qbDocNumber}</docNumber>
+            <txnDate>{$ctx:qbTxnDate}</txnDate>
+            <privateNote>{$ctx:qbPrivateNote}</privateNote>
+            <linkedTxn>{$ctx:qbLinkedTxn}</linkedTxn>
+			<line>{$ctx:qbLine}</line>
+			<vendorRef>{$ctx:qbVendorRef}</vendorRef>
+            <aPAccountRef>{$ctx:qbAPAccountRef}</aPAccountRef>
+            <totalAmt>{$ctx:qbTotalAmt}</totalAmt>
+			<classRef>{$ctx:qbClassRef}</classRef>
+            <salesTermRef>{$ctx:qbSalesTermRef}</salesTermRef>
+            <dueDate>{$ctx:qbDueDate}</dueDate>
+			<vendorAddr>{$ctx:qbVendorAddr}</vendorAddr>
+            <shipAddr>{$ctx:qbShipAddr}</shipAddr>
+            <shipMethodRef>{$ctx:qbShipMethodRef}</shipMethodRef>
+			<purchaseOrderStatus>{$ctx:qbPurchaseOrderStatus}</purchaseOrderStatus>
+            <txnTaxDetail>{$ctx:qbTxnTaxDetail}</txnTaxDetail>
+            <taxCodeRef>{$ctx:qbTaxCodeRef}</taxCodeRef>
+            <currencyRef>{$ctx:qbCurrencyRef}</currencyRef>
+            <exchangeRate>{$ctx:qbExchangeRate}</exchangeRate>
+            <globalTaxCalculation>{$ctx:qbGlobalTaxCalculation}</globalTaxCalculation>
+         </quickbooks.createPurchaseOrder>		
+		
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="quickbooks_createPurchaseOrder" />
+			|
+			) *
+		</call-template>
+
+         <loopback/>
+      </inSequence>
+      <outSequence>
+         <log/>
+		<property name="messageType" value="application/json" scope="axis2" />
+		<!-- Generate the chained response of all the API calls in createLeads -->
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"Response":[$1]
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.responseString')" />
+			</args>
+		</payloadFactory>
+		
+         <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>

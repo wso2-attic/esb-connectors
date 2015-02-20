@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This template creates a purchase order in Zoho CRM and then retrieves the purchase order details -->
+<template name="zohocrm-createAndRetrievePurchaseOrder" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Zoho CRM parameters -->
+	<property name="zohoApiUrl" description="The Zoho api URL" />
+	<property name="zohoAccessToken" description="Encrypted alphanumeric string to authenticate the Zoho credentials" />
+	<property name="zohoScope" description="Zoho CRM scope, Specify the value as crmapi" />
+	<property name="zohoNewFormat" description="The newFormat, an integer determine weather null valus should be excluded(1) or included(2)" />
+	<property name="zohoVersion" description="Coloumns selected" />
+	<property name="zohoXmlData" description="The xml string containing the data of the purchase order to be inserted" />
+	<property name="zohoWfTrigger" description="The wfTrigger parameter is used to trigger the workflow rule while inserting record into CRM account" />	
+	<property name="zohoDuplicateCheck" description="The wfTrigger parameter is used to trigger the workflow rule while inserting record into CRM account" />		   
+		   
+	<sequence>
+		<!-- zoho CRM properties -->
+		<property name="uri.var.zohoApiUrl" expression="json-eval($.zohoApiUrl)"/>
+		<property name="uri.var.zohoAccessToken" expression="json-eval($.zohoAccessToken)"/>
+		<property name="uri.var.zohoScope" expression="json-eval($.zohoScope)"/>
+		<property name="uri.var.zohoNewFormat" expression="json-eval($.zohoNewFormat)"/>
+		<property name="uri.var.zohoVersion" expression="json-eval($.zohoVersion)"/>
+		<property name="uri.var.zohoXmlData" expression="json-eval($.zohoXmlData)"/>
+		<property name="uri.var.zohoWfTrigger" expression="json-eval($.zohoWfTrigger)"/>
+		<property name="uri.var.zohoDuplicateCheck" expression="json-eval($.zohoDuplicateCheck)"/>
+		<!-- isApproval property was set to false so the case will immediately add to the account and can proceed with other API calls,
+		 otherwise manual approving should be needed-->
+		<property name="uri.var.zohoIsApproval" value="false"/>
+		<property name="uri.var.zohoModuleType" value="PurchaseOrders"/>
+		
+	  <!-- zoho CRM insert Purchse Order -->
+      <zohocrm.init>
+		  <apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+		  <accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+		  <scope>{$ctx:uri.var.zohoScope}</scope>
+      </zohocrm.init>
+	  
+      <zohocrm.insertRecords>
+		<newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+        <version>{$ctx:uri.var.zohoVersion}</version>
+        <xmlData>{$ctx:uri.var.zohoXmlData}</xmlData>
+        <wfTrigger>{$ctx:uri.var.zohoWfTrigger}</wfTrigger>
+		<duplicateCheck>{$ctx:uri.var.zohoDuplicateCheck}</duplicateCheck>
+		<isApproval>{$ctx:uri.var.zohoIsApproval}</isApproval>
+		<moduleType>{$ctx:uri.var.zohoModuleType}</moduleType>
+      </zohocrm.insertRecords>
+
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="zohoCRM_insertPurchaseOrder" />
+			|
+			) *
+		</call-template>
+		
+		<!-- Retrieving created Purchse Order ID --> 
+		<property name="uri.var.purchaseOrderId" expression="json-eval($.response.result.recorddetail.FL[0].content)"/>
+		
+		<!-- Check the availability of Purchase Order ID to  proceed with other API calls -->		
+		<filter source="boolean(get-property('uri.var.purchaseOrderId'))" regex="false">
+			<loopback/>
+		</filter>	
+
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Content-Type" scope="transport" action="remove" />
+		<header name="Date" scope="transport" action="remove" />
+		<header name="Server" scope="transport" action="remove" />
+		<header name="Transfer-Encoding" scope="transport" action="remove" />
+		<header name="Connection" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Content-Encoding" scope="transport" action="remove" />
+
+	  <!-- zoho CRM retrieve created Purchse Order-->
+      <zohocrm.init>
+		  <apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+		  <accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+		  <scope>{$ctx:uri.var.zohoScope}</scope>
+      </zohocrm.init>
+	  
+      <zohocrm.getRecordsById>
+        <id>{$ctx:uri.var.purchaseOrderId}</id>
+	    <newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+        <version>{$ctx:uri.var.zohoVersion}</version>
+		<moduleType>{$ctx:uri.var.zohoModuleType}</moduleType>
+      </zohocrm.getRecordsById>
+		
+	  <call-template target="responseHandlerTemplate">
+		  <!-- parameter values will be passed on to a sequence template -->
+		  (
+		  <with-param name="activityName" value="zohoCRM_getPurchaseOrderById" />|
+		  ) *
+	  </call-template>
+	
+	<!-- Retrieving Purchse Order details --> 
+	<property name="uri.var.purchaseOrderDetails" expression="json-eval($.response.result.PurchaseOrders.row.FL[0].content)"/>
+  
+	<!-- Check the availability of purchaseOrderDetails to proceed with other API calls -->		
+	<filter source="boolean(get-property('uri.var.purchaseOrderDetails'))" regex="false">
+		<loopback/>
+	</filter>
+	
+	</sequence>
+</template>

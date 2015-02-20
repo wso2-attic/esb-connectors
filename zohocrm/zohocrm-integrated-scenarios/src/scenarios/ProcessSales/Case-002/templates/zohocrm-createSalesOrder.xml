@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="zohocrm-createSalesOrder" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="zohoApiUrl" description="The api url." />
+	<parameter name="zohoAccessToken" description="Encrypted alphanumeric string to authenticate the Zoho credentials." />
+	<parameter name="zohoNewFormat" description="The newFormat, an integer determine weather null valus should be excluded(1) or included(2)." />
+	<parameter name="zohoVersion" description="The API version." />
+	<parameter name="zohoXmlDataSalesOrder" description="The xml string containing the data to be inserted." />
+	<parameter name="zohoScope" description="Specify the value as crmapi." />
+	<parameter name="zohowfTrigger" description="The wfTrigger parameter is used to trigger the work flow rule while inserting record into CRM account."/>
+	<parameter name="zohoduplicateCheck" description="Checking the duplicate records and throw an error response."/>
+	<parameter name="zohoisApproval" description="To keep the records in approval mode."/>
+	<parameter name="zohoQuoteId" description="The respective quote ID."/>
+	
+	<sequence>
+		<property name="uri.var.zohoApiUrl" expression="$func:zohoApiUrl" />
+		<property name="uri.var.zohoAccessToken" expression="$func:zohoAccessToken" />
+		<property name="uri.var.zohoNewFormat" expression="$func:zohoNewFormat" />
+		<property name="uri.var.zohoVersion" expression="$func:zohoVersion" />
+		<property name="uri.var.zohoXmlDataSalesOrder" expression="$func:zohoXmlDataSalesOrder" />
+		<property name="uri.var.zohoScope" expression="$func:zohoScope" />
+		<property name="uri.var.zohoModuleTypeSalesOrder" value="SalesOrders" />	
+		<property name="uri.var.zohoWfTrigger" expression="$func:zohoWfTrigger" />
+		<property name="uri.var.zohoDuplicateCheck" expression="$func:zohoDuplicateCheck" />
+		<property name="uri.var.zohoIsApproval" expression="$func:zohoIsApproval" />
+		<property name="uri.var.zohoQuoteId" expression="$func:zohoQuoteId" />
+		<property name="uri.var.zohoModuleTypeQuote" value="Quotes" />
+		<property name="uri.var.zohoXmlDataQuote" value="&lt;Quotes&gt;&lt;row no=&quot;1&quot;&gt;&lt;FL val=&quot;Quote Stage&quot;&gt;Closed Won&lt;/FL&gt;&lt;/row&gt;&lt;/Quotes&gt;" />
+
+      <zohocrm.init>
+        <apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+        <accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+		<scope>{$ctx:uri.var.zohoScope}</scope>
+      </zohocrm.init>
+	  
+      <zohocrm.insertRecords>
+	    <moduleType>{$ctx:uri.var.zohoModuleTypeSalesOrder}</moduleType>
+        <duplicateCheck>{$ctx:uri.var.zohoDuplicateCheck}</duplicateCheck>
+        <xmlData>{$ctx:uri.var.zohoXmlDataSalesOrder}</xmlData>
+        <isApproval>{$ctx:uri.var.zohoIsApproval}</isApproval>
+        <wfTrigger>{$ctx:uri.var.zohoWfTrigger}</wfTrigger>
+        <newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+        <version>{$ctx:uri.var.zohoVersion}</version>
+      </zohocrm.insertRecords>	  
+	  
+	  	  
+	  <!-- Retrieving the sales order id of the created Sales order --> 
+	  <property name="uri.var.zohoSalesOrderId" expression="json-eval($.response.result.recorddetail.FL[0].content)"/>
+	  
+	   <header name="Set-Cookie" action="remove" scope="transport"/>
+	   <header name="Content-Type" action="remove" scope="transport"/>
+	   <header name="Date" action="remove" scope="transport"/>
+	   <header name="Server" action="remove" scope="transport"/> 
+	   <header name="Transfer-Encoding" action="remove" scope="transport"/>
+	   <header name="Connection" action="remove" scope="transport"/>
+	   
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="zohocrm_createSalesOrder" />|
+			) *
+		</call-template>
+		
+		<!-- Check the availability of zohoSalesOrderId to proceed with other API calls -->		
+		<filter source="boolean(get-property('uri.var.zohoSalesOrderId'))" regex="true">
+			<then>
+		
+			<!--Updating Quote status-->
+			<zohocrm.init>
+				<apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+				<accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+				<scope>{$ctx:uri.var.zohoScope}</scope>
+			</zohocrm.init>
+		  
+		  <zohocrm.updateRecords>
+			<id>{$ctx:uri.var.zohoQuoteId}</id>	
+			<moduleType>{$ctx:uri.var.zohoModuleTypeQuote}</moduleType>	
+			<xmlData>{$ctx:uri.var.zohoXmlDataQuote}</xmlData>
+			<wfTrigger>{$ctx:uri.var.zohoWfTrigger}</wfTrigger>
+			<newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+			<version>{$ctx:uri.var.zohoVersion}</version>
+		  </zohocrm.updateRecords>	  
+			  
+		  <!-- Retrieving the quote id of the updated quote --> 
+		  <property name="uri.var.zohoUpdatedQuoteID" expression="json-eval($.response.result.recorddetail.FL[0].content)"/>
+		  
+		  
+		   <!--Removing headers-->
+		   <header name="Set-Cookie" action="remove" scope="transport"/>
+		   <header name="Content-Type" action="remove" scope="transport"/>
+		   <header name="Date" action="remove" scope="transport"/>
+		   <header name="Server" action="remove" scope="transport"/> 
+		   <header name="Transfer-Encoding" action="remove" scope="transport"/>
+		   <header name="Connection" action="remove" scope="transport"/>
+		   
+			<call-template target="responseHandlerTemplate">
+				<!-- parameter values will be passed on to a sequence template -->
+				(
+				<with-param name="activityName" value="zohocrm_updateQuote" />|
+				) *
+			</call-template>
+		
+			</then>
+			<else>
+				<!-- If the sales order is not successfully created -->
+				<payloadFactory media-type="json">
+						<format>
+							{
+							"response":"Sales order is not successfully created."
+							}
+						</format>
+					</payloadFactory>
+					<call-template target="responseHandlerTemplate">
+						<!-- parameter values will be passed on to a sequence template -->
+						(
+						<with-param name="activityName" value="zohocrm_createSalesOrderFailure" />|
+						) *
+					</call-template>
+			</else>
+		</filter>	
+	</sequence>
+</template>

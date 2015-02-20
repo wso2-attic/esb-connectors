@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This template creates an invoice in Zoho CRM and then retrieves the invoice details -->
+<template name="zohocrm-createAndRetrieveInvoice" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Zoho CRM parameters -->
+	<parameter name="zohoApiUrl" description="The Zoho api URL" />
+	<parameter name="zohoAccessToken" description="Encrypted alphanumeric string to authenticate the Zoho credentials" />
+	<parameter name="zohoScope" description="Zoho CRM scope, Specify the value as crmapi" />
+	<parameter name="zohoNewFormat" description="The newFormat, an integer determine weather null valus should be excluded(1) or included(2)" />
+	<parameter name="zohoVersion" description="Coloumns selected" />
+	<parameter name="zohoXmlData" description="The xml string containing the data of the Invoice to be inserted" />
+	<parameter name="zohoWfTrigger" description="The wfTrigger parameter is used to trigger the workflow rule while inserting record into CRM account" />	
+	<parameter name="zohoDuplicateCheck" description="Checking the duplicate records and throw an error response" />		   
+		   
+	<sequence>
+		<!-- zoho CRM properties -->
+		<property name="uri.var.zohoApiUrl" expression="$func:zohoApiUrl"/>
+		<property name="uri.var.zohoAccessToken" expression="$func:zohoAccessToken"/>
+		<property name="uri.var.zohoScope" expression="$func:zohoScope"/>
+		<property name="uri.var.zohoNewFormat" expression="$func:zohoNewFormat"/>
+		<property name="uri.var.zohoVersion" expression="$func:zohoVersion"/>
+		<property name="uri.var.zohoXmlData" expression="$func:zohoXmlData"/>
+		<property name="uri.var.zohoWfTrigger" expression="$func:zohoWfTrigger"/>
+		<property name="uri.var.zohoDuplicateCheck" expression="$func:zohoDuplicateCheck"/>
+		<!-- isApproval property was set to false so the case will immediately add to the account and can proceed with other API calls,
+		 otherwise manual approving should be needed-->
+		<property name="uri.var.zohoIsApproval" value="false"/>
+		<property name="uri.var.zohoModuleType" value="Invoices"/>
+		
+	  <!-- zoho CRM insert Invoice -->
+      <zohocrm.init>
+		  <apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+		  <accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+		  <scope>{$ctx:uri.var.zohoScope}</scope>
+      </zohocrm.init>
+	  
+      <zohocrm.insertRecords>
+		<newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+        <version>{$ctx:uri.var.zohoVersion}</version>
+        <xmlData>{$ctx:uri.var.zohoXmlData}</xmlData>
+        <wfTrigger>{$ctx:uri.var.zohoWfTrigger}</wfTrigger>
+		<duplicateCheck>{$ctx:uri.var.zohoDuplicateCheck}</duplicateCheck>
+		<isApproval>{$ctx:uri.var.zohoIsApproval}</isApproval>
+		<moduleType>{$ctx:uri.var.zohoModuleType}</moduleType>
+      </zohocrm.insertRecords>
+
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="zohoCRM_insertInvoice" />
+			|
+			) *
+		</call-template>
+
+		<!-- Retrieving created invoice ID --> 
+		<property name="uri.var.invoiceId" expression="json-eval($.response.result.recorddetail.FL[0].content)"/>
+		
+		<!-- Check the availability of invoice ID to  proceed with other API calls -->		
+		<filter source="boolean(get-property('uri.var.invoiceId'))" regex="false">
+			<loopback/>
+		</filter>	
+
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Content-Type" scope="transport" action="remove" />
+		<header name="Date" scope="transport" action="remove" />
+		<header name="Server" scope="transport" action="remove" />
+		<header name="Transfer-Encoding" scope="transport" action="remove" />
+		<header name="Connection" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Content-Encoding" scope="transport" action="remove" />
+		
+	</sequence>
+</template>

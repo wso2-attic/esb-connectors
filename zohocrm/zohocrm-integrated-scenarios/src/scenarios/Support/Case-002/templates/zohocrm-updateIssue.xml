@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This template updates an issue in JIRA by adding a comment and then creates the same comment in corresponding case inside Zoho case -->
+<template name="zohocrm-updateIssue" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Zoho CRM parameters -->
+	<parameter name="zohoApiUrl" description="The Zoho api URL" />
+	<parameter name="zohoAccessToken" description="Encrypted alphanumeric string to authenticate the Zoho credentials" />
+	<parameter name="zohoScope" description="Zoho CRM scope, Specify the value as crmapi" />
+	<parameter name="zohoNewFormat" description="The newFormat, an integer determine weather null valus should be excluded(1) or included(2)" />
+	<parameter name="zohoVersion" description="Coloumns selected" />
+	<parameter name="zohoWfTrigger" description="The wfTrigger parameter is used to trigger the workflow rule while inserting record into CRM account" />
+	<parameter name="zohoCaseId" description="Zoho Case ID, to add the comment. This should be the corresponding case of the Jira issue" />
+	<parameter name="comment" description="Comment to be updated in zoho Case" />
+
+	<sequence>
+		<!-- zoho CRM properties -->
+		<property name="uri.var.zohoApiUrl" expression="$func:zohoApiUrl"/>
+		<property name="uri.var.zohoAccessToken" expression="$func:zohoAccessToken"/>
+		<property name="uri.var.zohoScope" expression="$func:zohoScope"/>
+		<property name="uri.var.zohoNewFormat" expression="$func:zohoNewFormat"/>
+		<property name="uri.var.zohoVersion" expression="$func:zohoVersion"/>
+		<property name="uri.var.zohoWfTrigger" expression="$func:zohoWfTrigger"/>
+		<property name="uri.var.zohoCaseId" expression="$func:zohoCaseId"/>
+		<property name="uri.var.zohoModuleType" value="Cases"/>
+
+		<property name="uri.var.comment" expression="$func:comment"/>
+
+		<script language="js">
+         <![CDATA[
+			 var comment = mc.getProperty("uri.var.comment");
+			 var xmlData = '<Cases> <row no=\"1\"> <FL val=\"Internal Comments\">' + comment + '</FL> </row> </Cases>';
+			 mc.setProperty('uri.var.zohoXmlData', xmlData);
+		 ]]>
+		</script>
+
+	  <!-- zoho CRM insert comment to Case -->
+      <zohocrm.init>
+		  <apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+		  <accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+		  <scope>{$ctx:uri.var.zohoScope}</scope>
+      </zohocrm.init>
+
+      <zohocrm.updateRecords>
+		<newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+        <version>{$ctx:uri.var.zohoVersion}</version>
+        <id>{$ctx:uri.var.zohoCaseId}</id>
+        <xmlData>{$ctx:uri.var.zohoXmlData}</xmlData>
+        <wfTrigger>{$ctx:uri.var.zohoWfTrigger}</wfTrigger>
+		<moduleType>{$ctx:uri.var.zohoModuleType}</moduleType>
+      </zohocrm.updateRecords>
+
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="zohocrm_insertCommentForCase" />
+			|
+			) *
+		</call-template>
+	</sequence>
+</template>

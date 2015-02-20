@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="zohocrm_quickbooks_integration_createSalesOrder"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+		<!-- ZohoCRM properties -->
+        <property name="zohoApiUrl" expression="json-eval($.zohoApiUrl)"/>
+        <property name="zohoAccessToken" expression="json-eval($.zohoAccessToken)"/>
+        <property name="zohoScope" expression="json-eval($.zohoScope)"/>
+        <property name="zohoNewFormat" expression="json-eval($.zohoNewFormat)"/>
+        <property name="zohoVersion" expression="json-eval($.zohoVersion)"/>
+        <property name="zohoSelectColumns" value="Quotes(Quote Stage)"/>
+        <property name="zohoSearchCondition" value="(Quote Stage|=|Confirmed)"/>
+        <property name="zohoFromIndex" value="1"/>
+        <property name="zohoToIndex" value="200"/>
+        <property name="zohoModuleType" value="Quotes"/>
+		<property name="zohowfTrigger" expression="json-eval($.zohowfTrigger)"/>
+		<property name="zohoduplicateCheck" expression="json-eval($.zohoduplicateCheck)"/>
+		<!-- Quickbooks parameters -->
+		<property name="qbApiUrl" expression="json-eval($.qbApiUrl)"/>
+		<property name="qbConsumerKey" expression="json-eval($.qbConsumerKey)"/>
+		<property name="qbConsumerSecret" expression="json-eval($.qbConsumerSecret)"/>
+		<property name="qbAccessToken" expression="json-eval($.qbAccessToken)"/>
+		<property name="qbAccessTokenSecret" expression="json-eval($.qbAccessTokenSecret)"/>
+		<property name="qbCompanyId" expression="json-eval($.qbCompanyId)"/>
+		<property name="qbDepartmentRef" expression="json-eval($.qbDepartmentRef)"/>
+		<property name="qbCustomField" expression="json-eval($.qbCustomField)"/>
+		<property name="qbExchangeRate" expression="json-eval($.qbExchangeRate)"/>
+		<property name="qbPrintStatus" expression="json-eval($.qbPrintStatus)"/>
+		<property name="qbGlobalTaxCalculation" expression="json-eval($.qbGlobalTaxCalculation)"/>
+		<property name="qbShipDate" expression="json-eval($.qbShipDate)"/>
+		<property name="qbClassRef" expression="json-eval($.qbClassRef)"/>
+		<property name="qbTxnDate" expression="json-eval($.qbTxnDate)"/>
+		<property name="qbAutoIncrementDocNumber" expression="json-eval($.qbAutoIncrementDocNumber)"/>
+		<property name="qbApplyTaxAfterDiscount" expression="json-eval($.qbApplyTaxAfterDiscount)"/>
+		<property name="qbTrackingNum" expression="json-eval($.qbTrackingNum)"/>
+		<property name="qbPaymentRefNum" expression="json-eval($.qbPaymentRefNum)"/>
+		<property name="qbPaymentMethodRef" expression="json-eval($.qbPaymentMethodRef)"/>
+		<property name="qbCustomerMemo" expression="json-eval($.qbCustomerMemo)"/>
+		<property name="qbBillEmail" expression="json-eval($.qbBillEmail)"/>
+		<property name="qbBillAddr" expression="json-eval($.qbBillAddr)"/>
+		<property name="qbDepositToAccountRef" expression="json-eval($.qbDepositToAccountRef)"/>
+		<property name="qbShipMethodRef" expression="json-eval($.qbShipMethodRef)"/>
+		<property name="qbLinkedTxn" expression="json-eval($.qbLinkedTxn)"/>
+		<property name="qbShipAddr" expression="json-eval($.qbShipAddr)"/>
+		<property name="qbCurrencyRef" expression="json-eval($.qbCurrencyRef)"/>
+		<property name="qbTxnStatus" expression="json-eval($.qbTxnStatus)"/>
+		<property name="qbDocNumber" expression="json-eval($.qbDocNumber)"/>
+		<property name="qbEmailStatus" expression="json-eval($.qbEmailStatus)"/>
+		<property name="qbCustomerRef" expression="json-eval($.qbCustomerRef)"/>
+		<property name="qbTxnTaxDetail" expression="json-eval($.qbTxnTaxDetail)"/>
+		<property name="qbPrivateNote" expression="json-eval($.qbPrivateNote)"/>
+		<property name="quoteEstimateMap" expression="json-eval($.quoteEstimateMap)"/>		
+		
+		 
+		<property name="uri.var.responseBuilder" value="" scope="operation" />
+		<property name="uri.var.index" value="0" scope="operation" />		 
+		 
+		 <!-- Calling the getSearchRecords to retrieve the quotes with confirmed status--> 
+         <zohocrm.init>
+            <scope>{$ctx:zohoScope}</scope>
+            <accessToken>{$ctx:zohoAccessToken}</accessToken>
+            <apiUrl>{$ctx:zohoApiUrl}</apiUrl>
+         </zohocrm.init>
+         <zohocrm.getSearchRecords>
+            <fromIndex>{$ctx:zohoFromIndex}</fromIndex>
+            <searchCondition>{$ctx:zohoSearchCondition}</searchCondition>
+            <selectColumns>{$ctx:zohoSelectColumns}</selectColumns>
+            <toIndex>{$ctx:zohoToIndex}</toIndex>
+            <newFormat>{$ctx:zohoNewFormat}</newFormat>
+            <version>{$ctx:zohoVersion}</version>
+            <moduleType>{$ctx:zohoModuleType}</moduleType>
+         </zohocrm.getSearchRecords>
+		 
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="zohocrm_getConfirmedQuotes" />
+			|
+			) *
+		</call-template>
+		
+		<property name="uri.var.getQuotesResponseString" expression="get-property('uri.var.responseString')" scope="operation" />		
+		
+		<property name="messageType" value="application/xml" scope="axis2" />
+
+		<property name="uri.var.quotesCount" expression="count(//response/result/Quotes/row)" scope="operation" />		
+		
+		<filter xpath="0 = get-property('operation', 'uri.var.quotesCount')">
+			<then>
+				<payloadFactory media-type="json">
+					<format>
+						{
+						"activity":"zohocrm_retrieveConfirmedQuotesFailure",
+						"activityResponse":"No confirmed quotes were found"
+						}
+					</format>
+				</payloadFactory>
+		
+				<call-template target="responseHandlerTemplate">
+					<!-- parameter values will be passed on to a sequence template -->
+					(
+					<with-param name="activityName" value="zohocrm_getConfirmedQuotesFailure" />
+					|
+					) *
+				</call-template>
+
+				<property name="uri.var.responseBuilder" expression="json-eval($)" scope="operation" />
+
+				<loopback />
+			</then>
+		</filter>		
+		
+		<!-- Clears the rsponseString to avoid it being appended multiple times -->
+		<property name="uri.var.responseString" value="" />		 
+
+		<iterate id="quotesIterator" expression="//response/result/Quotes/row" sequential="true" continueParent="true"
+			preservePayload="true">
+			<target>
+				<sequence>
+					<property name="uri.var.zohoQuoteId" expression="//FL[1]/content/text()" />
+					
+						<call-template target="zohocrm_createQbSalesReceipt">
+							<!-- parameter values will be passed on to a sequence template -->
+							(
+							<with-param name="zohoApiUrl" value="{$ctx:zohoApiUrl}" />
+							|
+							<with-param name="zohoAccessToken" value="{$ctx:zohoAccessToken}" />
+							|
+							<with-param name="zohoScope" value="{$ctx:zohoScope}" />
+							|
+							<with-param name="zohoQuoteId" value="{$ctx:uri.var.zohoQuoteId}" />
+							|
+							<with-param name="zohoNewFormat" value="{$ctx:zohoNewFormat}" />
+							|
+							<with-param name="zohoVersion" value="{$ctx:zohoVersion}" />
+							|
+							<with-param name="zohowfTrigger" value="{$ctx:zohowfTrigger}" />
+							|
+							<with-param name="zohoduplicateCheck" value="{$ctx:zohoduplicateCheck}" />
+							|
+							<with-param name="qbApiUrl" value="{$ctx:qbApiUrl}" />
+							|
+							<with-param name="qbConsumerKey" value="{$ctx:qbConsumerKey}" />
+							|
+							<with-param name="qbConsumerSecret" value="{$ctx:qbConsumerSecret}" />
+							|
+							<with-param name="qbAccessToken" value="{$ctx:qbAccessToken}" />
+							|
+							<with-param name="qbAccessTokenSecret" value="{$ctx:qbAccessTokenSecret}" />
+							|
+							<with-param name="qbCompanyId" value="{$ctx:qbCompanyId}" />
+							|
+							<with-param name="qbDepartmentRef" value="{$ctx:qbDepartmentRef}" />
+							|
+							<with-param name="qbCustomField" value="{$ctx:qbCustomField}" />
+							|
+							<with-param name="qbExchangeRate" value="{$ctx:qbExchangeRate}" />
+							|
+							<with-param name="qbPrintStatus" value="{$ctx:qbPrintStatus}" />
+							|
+							<with-param name="qbGlobalTaxCalculation" value="{$ctx:qbGlobalTaxCalculation}" />
+							|
+							<with-param name="qbShipDate" value="{$ctx:qbShipDate}" />
+							|
+							<with-param name="qbClassRef" value="{$ctx:qbClassRef}" />
+							|
+							<with-param name="qbTxnDate" value="{$ctx:qbTxnDate}" />
+							|
+							<with-param name="qbAutoIncrementDocNumber" value="{$ctx:qbAutoIncrementDocNumber}" />
+							|
+							<with-param name="qbApplyTaxAfterDiscount" value="{$ctx:qbApplyTaxAfterDiscount}" />
+							|
+							<with-param name="qbTrackingNum" value="{$ctx:qbTrackingNum}" />
+							|
+							<with-param name="qbPaymentRefNum" value="{$ctx:qbPaymentRefNum}" />
+							|
+							<with-param name="qbPaymentMethodRef" value="{$ctx:qbPaymentMethodRef}" />
+							|							
+							<with-param name="qbCustomerMemo" value="{$ctx:qbCustomerMemo}" />
+							|
+							<with-param name="qbBillEmail" value="{$ctx:qbBillEmail}" />
+							|
+							<with-param name="qbBillAddr" value="{$ctx:qbBillAddr}" />
+							|
+							<with-param name="qbDepositToAccountRef" value="{$ctx:qbDepositToAccountRef}" />
+							|
+							<with-param name="qbShipMethodRef" value="{$ctx:qbShipMethodRef}" />
+							|
+							<with-param name="qbLinkedTxn" value="{$ctx:qbLinkedTxn}" />
+							|
+							<with-param name="qbShipAddr" value="{$ctx:qbShipAddr}" />
+							|
+							<with-param name="qbCurrencyRef" value="{$ctx:qbCurrencyRef}" />
+							|
+							<with-param name="qbTxnStatus" value="{$ctx:qbTxnStatus}" />
+							|
+							<with-param name="qbDocNumber" value="{$ctx:qbDocNumber}" />
+							|
+							<with-param name="qbEmailStatus" value="{$ctx:qbEmailStatus}" />
+							|
+							<with-param name="qbCustomerRef" value="{$ctx:qbCustomerRef}" />
+							|
+							<with-param name="qbTxnTaxDetail" value="{$ctx:qbTxnTaxDetail}" />
+							|
+							<with-param name="qbPrivateNote" value="{$ctx:qbPrivateNote}" />
+							|
+							<with-param name="quoteEstimateMap" value="{$ctx:quoteEstimateMap}" />
+							|
+							) *
+						</call-template>
+					
+					<property name="uri.var.index" expression="get-property('operation','uri.var.index') + 1" scope="operation" />
+
+
+					<property name="uri.var.responseBuilder"
+						expression="fn:concat(get-property('operation','uri.var.responseBuilder'), get-property('uri.var.responseString') , ', ')"
+						scope="operation" />
+
+				</sequence>
+			</target>
+		</iterate>		
+
+		<filter xpath="get-property('operation', 'uri.var.index') = get-property('operation', 'uri.var.quotesCount')">
+			<then>
+				<!-- Remove the final comma appended inside the iterator mediator for final response generation inside the outsequence -->
+				<property name="uri.var.responseBuilder"
+					expression="fn:substring(get-property('operation', 'uri.var.responseBuilder'), 0, fn:string-length(get-property('operation', 'uri.var.responseBuilder')))"
+					scope="operation" />
+				<loopback />
+			</then>
+		</filter>		 
+		
+      </inSequence>
+      <outSequence>
+		<property name="messageType" value="application/json" scope="axis2" />
+		<!-- Generate the chained response of all the API calls in createLeads -->
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"Response":[
+				$1,
+				$2
+				]
+				}
+			</format>
+			<args>
+				<arg expression="get-property('operation', 'uri.var.getQuotesResponseString')" />
+				<arg expression="get-property('operation', 'uri.var.responseBuilder')" />
+			</args>
+		</payloadFactory>
+
+		<send />
+      </outSequence>
+   </target>
+   <description/>
+</proxy>
+                                

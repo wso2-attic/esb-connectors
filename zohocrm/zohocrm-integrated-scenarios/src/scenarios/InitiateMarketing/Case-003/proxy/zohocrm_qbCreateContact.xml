@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="zohocrm_qbCreateContact"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+	  
+	  <!-- ZohoCRM convertLead parameters -->
+		<property name="zohoApiUrl" expression="json-eval($.zohoApiUrl)"/>
+		<property name="zohoAccessToken" expression="json-eval($.zohoAccessToken)"/>
+		<property name="zohoScope" expression="json-eval($.zohoScope)"/>
+		<property name="zohoXmlData" expression="json-eval($.zohoXmlData)"/>
+		<property name="zohoLeadId" expression="json-eval($.zohoLeadId)"/>
+		<property name="zohoNewFormat" expression="json-eval($.zohoNewFormat)"/>
+		<property name="zohoVersion" expression="json-eval($.zohoVersion)"/>
+		<property name="zohoStatus" expression="json-eval($.zohoStatus)"/>
+		<property name="zohoWfTrigger" expression="json-eval($.zohoWfTrigger)"/>
+	  
+	  <!-- Quickbooks createCustomer parameters -->
+		 <property name="qbApiUrl" expression="json-eval($.qbApiUrl)"/>
+		 <property name="qbConsumerKey" expression="json-eval($.qbConsumerKey)"/>
+         <property name="qbConsumerSecret" expression="json-eval($.qbConsumerSecret)"/>
+		 <property name="qbAccessToken" expression="json-eval($.qbAccessToken)"/>
+		 <property name="qbAccessTokenSecret" expression="json-eval($.qbAccessTokenSecret)"/>
+		 <property name="qbResponseType" expression="json-eval($.qbResponseType)"/>
+		 <property name="qbCompanyId" expression="json-eval($.qbCompanyId)"/>		 
+		 <property name="qbPrimaryEmailAddr" expression="json-eval($.qbPrimaryEmailAddr)"/>
+         <property name="qbDefaultTaxCodeRef" expression="json-eval($.qbDefaultTaxCodeRef)"/>
+         <property name="qbPreferredDeliveryMethod" expression="json-eval($.qbPreferredDeliveryMethod)"/>
+         <property name="qbFamilyName" expression="json-eval($.qbFamilyName)"/>
+         <property name="qbGivenName" expression="json-eval($.qbGivenName)"/>
+         <property name="qbResaleNum" expression="json-eval($.qbResaleNum)"/>
+         <property name="qbWebAddr" expression="json-eval($.qbWebAddr)"/>
+         <property name="qbBalanceWithJobs" expression="json-eval($.qbBalanceWithJobs)"/>
+         <property name="qbBalance" expression="json-eval($.qbBalance)"/>
+         <property name="qbTitle" expression="json-eval($.qbTitle)"/>
+         <property name="qbLevel" expression="json-eval($.qbLevel)"/>
+         <property name="qbSalesTermRef" expression="json-eval($.qbSalesTermRef)"/>
+         <property name="qbPaymentMethodRef" expression="json-eval($.qbPaymentMethodRef)"/>
+         <property name="qbFullyQualifiedName" expression="json-eval($.qbFullyQualifiedName)"/>
+         <property name="qbMiddleName" expression="json-eval($.qbMiddleName)"/>
+         <property name="qbParentRef" expression="json-eval($.qbParentRef)"/>
+         <property name="qbBillAddr" expression="json-eval($.qbBillAddr)"/>
+         <property name="qbFax" expression="json-eval($.qbFax)"/>
+         <property name="qbTaxable" expression="json-eval($.qbTaxable)"/>
+         <property name="qbShipAddr" expression="json-eval($.qbShipAddr)"/>
+         <property name="qbJob" expression="json-eval($.qbJob)"/>
+         <property name="qbCurrencyRef" expression="json-eval($.qbCurrencyRef)"/>
+         <property name="qbCompanyName" expression="json-eval($.qbCompanyName)"/>
+         <property name="qbSuffix" expression="json-eval($.qbSuffix)"/>
+         <property name="qbOpenBalanceDate" expression="json-eval($.qbOpenBalanceDate)"/>
+         <property name="qbPrintOnCheckName" expression="json-eval($.qbPrintOnCheckName)"/>
+         <property name="qbPrimaryPhone" expression="json-eval($.qbPrimaryPhone)"/>
+         <property name="qbActive" expression="json-eval($.qbActive)"/>
+         <property name="qbDisplayName" expression="json-eval($.qbDisplayName)"/>
+         <property name="qbNotes" expression="json-eval($.qbNotes)"/>
+         <property name="qbBillWithParent" expression="json-eval($.qbBillWithParent)"/>
+         <property name="qbAlternatePhone" expression="json-eval($.qbAlternatePhone)"/>
+         <property name="qbMobile" expression="json-eval($.qbMobile)"/>
+	 	  
+      <call-template target="zohocrm-convertLead">
+	   <!-- parameter values will be passed on to a sequence template -->
+	   (
+	   <with-param name="zohoApiUrl" value="{$ctx:zohoApiUrl}" /> |
+	   <with-param name="zohoAccessToken" value="{$ctx:zohoAccessToken}" /> |
+	   <with-param name="zohoScope" value="{$ctx:zohoScope}" /> |
+	   <with-param name="zohoLeadId" value="{$ctx:zohoLeadId}" /> |
+	   <with-param name="zohoXmlData" value="{$ctx:zohoXmlData}" /> |
+	   <with-param name="zohoNewFormat" value="{$ctx:zohoNewFormat}" /> |
+	   <with-param name="zohoVersion" value="{$ctx:zohoVersion}" /> |
+	   <with-param name="zohoWfTrigger" value="{$ctx:zohoWfTrigger}" />
+	   ) *
+	 </call-template>
+	  
+     <script language="js">
+		 
+			var jsn = eval("(" + mc.getProperty("uri.var.contactAttributes") + ")");
+			var billAddress = '';
+			
+			for (var i = 0; i &lt; jsn.length ; i++) { 
+			
+				if(jsn[i].val == "First Name"){
+					var firstName = jsn[i].content;
+					//Trims the first name, if it exceeds the maximum allowed length(25) in Quickbooks API
+					if(firstName.length &gt; 25){
+						firstName = firstName.substring(0, 25);
+					}
+					mc.setProperty('qbGivenName', firstName);
+				}
+				if(jsn[i].val == "Last Name"){
+					var lastName = jsn[i].content;
+					//Trims the last name, if it exceeds the maximum allowed length(25) in Quickbooks API					
+					if(lastName.length &gt; 25){
+						lastName = lastName.substring(0, 25);
+					}
+					mc.setProperty('qbFamilyName', lastName);
+				}
+				if(jsn[i].val == "Phone"){
+					mc.setProperty('qbPrimaryPhone', '{\"FreeFormNumber\":\"' +jsn[i].content+'\"}');
+				}
+				if(jsn[i].val == "Mobile"){
+					mc.setProperty('qbMobile', '{\"FreeFormNumber\":\"' +jsn[i].content+'\"}');
+				}
+				if(jsn[i].val == "Fax"){
+					mc.setProperty('qbFax', '{\"FreeFormNumber\":\"' +jsn[i].content+'\"}');
+				}
+				if(jsn[i].val == "Email"){
+					mc.setProperty('qbPrimaryEmailAddr','{\"Address\":\"' +jsn[i].content+'\"}');
+				}	
+				if(jsn[i].val == "Description"){
+					mc.setProperty('qbDescription',jsn[i].content);
+				}
+				if(jsn[i].val == "Mailing Street"){
+					billAddress = '\"Line1\":\"' + jsn[i].content + '\",';
+				}
+				if(jsn[i].val == "Mailing State"){
+					billAddress = '\"Line2\":\"' + jsn[i].content + '\",';
+				}
+				if(jsn[i].val == "Mailing City"){
+					billAddress = '\"City\":\"' + jsn[i].content + '\",';
+				}
+				if(jsn[i].val == "Mailing Country"){
+					billAddress = '\"Country\":\"' + jsn[i].content + '\",';
+				}				
+			}
+			
+			if(billAddress.length > 0){
+				billAddress = '{' + billAddress.substring(0, billAddress.length -1) + '}';	
+				mc.setProperty('uri.var.qbBillAddress', billAddress);
+			}
+						
+		</script>
+
+		<property name="REQUEST_HOST_HEADER" expression="fn:concat(get-property('uri.var.hostHeader'),':443')" scope="axis2" />
+		<property name="messageType" value="application/json" scope="axis2" />	
+		 
+		<quickbooks.init>
+            <apiUrl>{$ctx:qbApiUrl}</apiUrl>
+			<consumerKey>{$ctx:qbConsumerKey}</consumerKey>
+            <accessToken>{$ctx:qbAccessToken}</accessToken>
+            <accessTokenSecret>{$ctx:qbAccessTokenSecret}</accessTokenSecret>
+            <responseType>{$ctx:qbResponseType}</responseType>            
+            <companyId>{$ctx:qbCompanyId}</companyId>
+            <consumerSecret>{$ctx:qbConsumerSecret}</consumerSecret>
+			<notes>{$ctx:qbDescription}</notes>
+		</quickbooks.init>
+		   
+      <quickbooks.createCustomer>
+            <givenName>{$ctx:qbGivenName}</givenName>
+			<familyName>{$ctx:qbFamilyName}</familyName>
+			<primaryPhone>{$ctx:qbPrimaryPhone}</primaryPhone>
+			<mobile>{$ctx:qbMobile}</mobile>
+			<fax>{$ctx:qbFax}</fax>
+			<primaryEmailAddr>{$ctx:qbPrimaryEmailAddr}</primaryEmailAddr>
+			<billAddr>{$ctx:qbBillAddress}</billAddr>
+			<notes>{$ctx:qbDescription}</notes>
+            <defaultTaxCodeRef>{$ctx:qbDefaultTaxCodeRef}</defaultTaxCodeRef>
+            <preferredDeliveryMethod>{$ctx:qbPreferredDeliveryMethod}</preferredDeliveryMethod>
+            <resaleNum>{$ctx:qbResaleNum}</resaleNum>
+            <webAddr>{$ctx:qbWebAddr}</webAddr>
+            <balanceWithJobs>{$ctx:qbBalanceWithJobs}</balanceWithJobs>
+            <balance>{$ctx:qbBalance}</balance>
+            <title>{$ctx:qbTitle}</title>
+            <level>{$ctx:qbLevel}</level>
+            <salesTermRef>{$ctx:qbSalesTermRef}</salesTermRef>
+            <paymentMethodRef>{$ctx:qbPaymentMethodRef}</paymentMethodRef>
+            <fullyQualifiedName>{$ctx:qbFullyQualifiedName}</fullyQualifiedName>
+            <middleName>{$ctx:qbMiddleName}</middleName>
+            <parentRef>{$ctx:qbParentRef}</parentRef>
+            <taxable>{$ctx:qbTaxable}</taxable>
+            <shipAddr>{$ctx:qbShipAddr}</shipAddr>
+            <job>{$ctx:qbJob}</job>
+            <currencyRef>{$ctx:qbCurrencyRef}</currencyRef>
+            <companyName>{$ctx:qbCompanyName}</companyName>
+            <suffix>{$ctx:qbSuffix}</suffix>
+            <openBalanceDate>{$ctx:qbOpenBalanceDate}</openBalanceDate>
+            <printOnCheckName>{$ctx:qbPrintOnCheckName}</printOnCheckName>
+            <active>{$ctx:qbActive}</active>
+            <displayName>{$ctx:qbDisplayName}</displayName>
+            <billWithParent>{$ctx:qbBillWithParent}</billWithParent>
+            <alternatePhone>{$ctx:qbAlternatePhone}</alternatePhone>
+      </quickbooks.createCustomer>	
+	
+		
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="quickbooks_createCustomer" />|
+			) *
+		</call-template>
+	  
+		 <loopback/>
+      </inSequence>
+      <outSequence>
+	  <property name="messageType" value="application/json" scope="axis2" />
+	  <log/>
+	  	<!-- Generate the chained response of all the API calls in createLeads -->
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"Response":[$1]
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.responseString')" />
+			</args>
+		</payloadFactory>
+         
+         <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>
+                                

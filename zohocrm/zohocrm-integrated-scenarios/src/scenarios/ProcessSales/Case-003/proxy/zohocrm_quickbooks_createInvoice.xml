@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="zohocrm_quickbooks_createInvoice"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence>		
+		<!-- Zoho CRM API call related properties -->
+		<property name="zohoApiUrl" expression="json-eval($.zohoApiUrl)"/>
+		<property name="zohoAccessToken" expression="json-eval($.zohoAccessToken)"/>
+		<property name="zohoScope" expression="json-eval($.zohoScope)"/>
+		<property name="zohoNewFormat" expression="json-eval($.zohoNewFormat)"/>
+		<property name="zohoVersion" expression="json-eval($.zohoVersion)"/>
+		<property name="zohoWfTrigger" expression="json-eval($.zohoWfTrigger)"/>
+		<property name="zohoDuplicateCheck" expression="json-eval($.zohoDuplicateCheck)"/>
+		<property name="zohoSalesOrderId" expression="json-eval($.zohoSalesOrderId)"/>
+		
+		<!-- Quickbooks API call related properties -->
+         <property name="qbConsumerKey" expression="json-eval($.qbConsumerKey)"/>
+         <property name="qbAccessToken" expression="json-eval($.qbAccessToken)"/>
+         <property name="qbAccessTokenSecret" expression="json-eval($.qbAccessTokenSecret)"/>
+         <property name="qbResponseType" expression="json-eval($.qbResponseType)"/>
+         <property name="qbApiUrl" expression="json-eval($.qbApiUrl)"/>
+         <property name="qbCompanyId" expression="json-eval($.qbCompanyId)"/>
+         <property name="qbConsumerSecret" expression="json-eval($.qbConsumerSecret)"/>
+         <property name="qbDepartmentRef" expression="json-eval($.qbDepartmentRef)"/>
+         <property name="qbHomeTotalAmt" expression="json-eval($.qbHomeTotalAmt)"/>
+         <property name="qbCustomField" expression="json-eval($.qbCustomField)"/>
+         <property name="qbDeposit" expression="json-eval($.qbDeposit)"/>
+         <property name="qbExchangeRate" expression="json-eval($.qbExchangeRate)"/>
+         <property name="qbPrintStatus" expression="json-eval($.qbPrintStatus)"/>
+         <property name="qbGlobalTaxCalculation"
+                   expression="json-eval($.qbGlobalTaxCalculation)"/>
+         <property name="qbShipDate" expression="json-eval($.qbShipDate)"/>
+         <property name="qbTotalAmt" expression="json-eval($.qbTotalAmt)"/>
+         <property name="qbTxnDate" expression="json-eval($.qbTxnDate)"/>
+         <property name="qbBalance" expression="json-eval($.qbBalance)"/>
+         <property name="qbSalesTermRef" expression="json-eval($.qbSalesTermRef)"/>
+         <property name="qbTrackingNum" expression="json-eval($.qbTrackingNum)"/>
+         <property name="qbApplyTaxAfterDiscount"
+                   expression="json-eval($.qbApplyTaxAfterDiscount)"/>
+         <property name="qbCustomerMemo" expression="json-eval($.qbCustomerMemo)"/>
+         <property name="qbBillEmail" expression="json-eval($.qbBillEmail)"/>
+         <property name="qbDueDate" expression="json-eval($.qbDueDate)"/>
+         <property name="qbBillAddr" expression="json-eval($.qbBillAddr)"/>
+         <property name="qbDepositToAccountRef"
+                   expression="json-eval($.qbDepositToAccountRef)"/>
+         <property name="qbShipMethodRef" expression="json-eval($.qbShipMethodRef)"/>
+         <property name="qbLinkedTxn" expression="json-eval($.qbLinkedTxn)"/>
+         <property name="qbShipAddr" expression="json-eval($.qbShipAddr)"/>
+         <property name="qbAllowIPNPayment" expression="json-eval($.qbAllowIPNPayment)"/>
+         <property name="qbCurrencyRef" expression="json-eval($.qbCurrencyRef)"/>
+         <property name="qbDocNumber" expression="json-eval($.qbDocNumber)"/>
+         <property name="qbEmailStatus" expression="json-eval($.qbEmailStatus)"/>
+         <property name="qbCustomerRef" expression="json-eval($.qbCustomerRef)"/>
+         <property name="qbTxnTaxDetail" expression="json-eval($.qbTxnTaxDetail)"/>
+		 <property name="qbSalesReceiptId" expression="json-eval($.qbSalesReceiptId)"/>
+		
+		<!-- Check the availability of sales receipt ID to  proceed with other API calls -->		
+		<filter source="boolean(get-property('qbSalesReceiptId'))" regex="false">		
+
+				<payloadFactory media-type="json">
+					<format>
+						{
+						"activity":"zohocrm_getSalesReceiptId",
+						"activityResponse":"Sales receipt ID has not been sent"
+						}
+					</format>
+				</payloadFactory>
+		
+				<call-template target="responseHandlerTemplate">
+					<!-- parameter values will be passed on to a sequence template -->
+					(
+					<with-param name="activityName" value="zohocrm_getSalesReceiptId" />
+					|
+					) *
+				</call-template>		
+			<loopback/>
+		</filter>	     
+
+		<script language="js">
+			 <![CDATA[
+					var qbSalesReceiptId = mc.getProperty('qbSalesReceiptId'); 
+				    mc.setProperty('qbSalesReceiptId', "'" + qbSalesReceiptId + "'"); 
+			 ]]>
+		</script>		
+	  
+	  <!-- Retrieveing sales order details -->
+      <zohocrm.init>
+         <apiUrl>{$ctx:zohoApiUrl}</apiUrl>
+         <accessToken>{$ctx:zohoAccessToken}</accessToken>
+         <scope>{$ctx:zohoScope}</scope>
+      </zohocrm.init>
+      <zohocrm.getRecordsById>
+         <id>{$ctx:zohoSalesOrderId}</id>
+         <newFormat>{$ctx:zohoNewFormat}</newFormat>
+         <version>{$ctx:zohoVersion}</version>
+         <moduleType>SalesOrders</moduleType>
+      </zohocrm.getRecordsById>
+
+    <property name="uri.var.salesOrderAttributes" expression="json-eval($.response.result.SalesOrders.row.FL)"/>	 
+	
+	<!-- Check the availability of SalesOrder Details to proceed with other API calls -->		
+	<filter source="boolean(get-property('uri.var.salesOrderAttributes'))" regex="false">
+		<then>
+			<payloadFactory media-type="json">
+				<format>
+					{
+					"activity":"zohocrm_retrieveSalesOrder",
+					"activityResponse":"Could not retrieve sales order details from the given zohoSalesOrderID"
+					}
+				</format>
+			</payloadFactory>
+
+			<call-template target="responseHandlerTemplate">
+				<!-- parameter values will be passed on to a sequence template -->
+				(
+				<with-param name="activityName" value="zohocrm_getIssuesFailure" />
+				|
+				) *
+			</call-template>
+			<loopback/>
+		</then>		
+	</filter>	
+
+	<!-- Following script will create the xml data to create an Invoice in zohoCRM-->
+     <script language="js">
+			<![CDATA[
+			var jsn = eval("(" + mc.getProperty("uri.var.salesOrderAttributes") + ")");
+			var products;
+			var productAttributes;
+			var xmlData = '';
+
+			for (var i = 0; i < jsn.length ; i++) {
+				if(jsn[i].val == "Account Name"){
+					xmlData += '<FL val="Account Name">' + jsn[i].content + '</FL>';
+				}
+				if(jsn[i].val == "Subject"){
+					xmlData += '<FL val="Sales Order">' + jsn[i].content + '</FL>';
+					mc.setProperty('qbPrivateNote', jsn[i].content)
+				}
+				if(jsn[i].val == "Sub Total"){
+					xmlData += '<FL val="Sub Total">' + jsn[i].content + '</FL>';
+				}
+				if(jsn[i].val == "Adjustment"){
+					xmlData += '<FL val="Adjustment">' + jsn[i].content + '</FL>';
+				}
+				if(jsn[i].val == "Grand Total"){
+					xmlData += '<FL val="Grand Total">' + jsn[i].content + '</FL>';
+				}
+				if(jsn[i].val == "Product Details"){
+					products = jsn[i].product;
+					xmlData += '<FL val="Product Details">';
+					
+					if (typeof(products) == "object" && (products.join == undefined)) { // Products is a JSON object, not an array
+						productAttributes = products.FL;
+						xmlData += '<product no="1">';
+						
+						for (var k = 0; k < productAttributes.length ; k++) { 
+							if(productAttributes[k].val == "Product Id"){
+								xmlData += '<FL val="Product Id">' + productAttributes[k].content + '</FL>';
+							}
+							if(productAttributes[k].val == "Product Name"){
+								xmlData += '<FL val="Product Name">' + productAttributes[k].content + '</FL>';
+							}
+							if(productAttributes[k].val == "Unit Price"){
+								xmlData += '<FL val="Unit Price">' + productAttributes[k].content + '</FL>';
+							}
+							if(productAttributes[k].val == "Quantity"){
+								xmlData += '<FL val="Quantity">' + productAttributes[k].content + '</FL>';
+							}
+							if(productAttributes[k].val == "Quantity in Stock"){
+								xmlData += '<FL val="Quantity in Stock">' + productAttributes[k].content + '</FL>';
+							}
+							if(productAttributes[k].val == "Total"){
+								xmlData += '<FL val="Total">' + productAttributes[k].content + '</FL>';
+							}
+							if(productAttributes[k].val == "List Price"){
+								xmlData += '<FL val="List Price">' + productAttributes[k].content + '</FL>';
+							}
+							if(productAttributes[k].val == "Net Total"){
+								xmlData += '<FL val="Net Total">' + productAttributes[k].content + '</FL>';
+							}											
+						}
+						xmlData += '</product>';
+							
+					}else{ // Products is a JSON array
+						
+							for (var j = 0; j < products.length ; j++) {
+								productAttributes = products[j].FL;								
+								xmlData += '<product no="'+ j+1 +'">';
+						
+								for (var l = 0; l < productAttributes.length ; l++) { 
+									if(productAttributes[l].val == "Product Id"){
+										xmlData += '<FL val="Product Id">' + productAttributes[l].content + '</FL>';
+									}
+									if(productAttributes[l].val == "Product Name"){
+										xmlData += '<FL val="Product Name">' + productAttributes[l].content + '</FL>';
+									}
+									if(productAttributes[l].val == "Unit Price"){
+										xmlData += '<FL val="Unit Price">' + productAttributes[l].content + '</FL>';
+									}
+									if(productAttributes[l].val == "Quantity"){
+										xmlData += '<FL val="Quantity">' + productAttributes[l].content + '</FL>';
+									}
+									if(productAttributes[l].val == "Quantity in Stock"){
+										xmlData += '<FL val="Quantity in Stock">' + productAttributes[l].content + '</FL>';
+									}
+									if(productAttributes[l].val == "Total"){
+										xmlData += '<FL val="Total">' + productAttributes[l].content + '</FL>';
+									}									
+									if(productAttributes[l].val == "List Price"){
+										xmlData += '<FL val="List Price">' + productAttributes[l].content + '</FL>';
+									}
+									if(productAttributes[l].val == "Net Total"){
+										xmlData += '<FL val="Net Total">' + productAttributes[l].content + '</FL>';
+									}													
+								}
+								xmlData += '</product>';						
+							}			
+						}							
+					xmlData += '</FL>';			
+				}						
+			}
+			
+			xmlData = '<Invoices><row no="1"><FL val="Subject">' + mc.getProperty('qbPrivateNote') + '</FL>' + xmlData +'</row></Invoices>';	
+			mc.setProperty('zohoXmlData', xmlData);
+		]]>
+	</script>
+
+		<call-template target="zohocrm-createAndRetrieveInvoice">
+		   <!-- parameter values will be passed on to a sequence template -->
+		   (
+		   <with-param name="zohoApiUrl" value="{$ctx:zohoApiUrl}" />
+		   |		   
+		   <with-param name="zohoAccessToken" value="{$ctx:zohoAccessToken}" />
+		   |
+		   <with-param name="zohoScope" value="{$ctx:zohoScope}" />
+		   |		   
+		   <with-param name="zohoNewFormat" value="{$ctx:zohoNewFormat}" />
+		   |
+		   <with-param name="zohoVersion" value="{$ctx:zohoVersion}" />
+		   |
+		   <with-param name="zohoXmlData" value="{$ctx:zohoXmlData}" /> 
+		   |		   
+		   <with-param name="zohoWfTrigger" value="{$ctx:zohoWfTrigger}" /> 
+		   |
+		   <with-param name="zohoDuplicateCheck" value="{$ctx:zohoDuplicateCheck}" /> 
+		   |	
+		   ) *
+		</call-template>
+		
+		<!-- Retrieving information about the sales receipt in Quickbooks-->
+		<property name="qbQueryString" expression="fn:concat('select * from SalesReceipt where id =', get-property('qbSalesReceiptId'))"/>
+		
+			<quickbooks.init>
+				<consumerKey>{$ctx:qbConsumerKey}</consumerKey>
+				<accessToken>{$ctx:qbAccessToken}</accessToken>
+				<accessTokenSecret>{$ctx:qbAccessTokenSecret}</accessTokenSecret>
+				<responseType>{$ctx:qbResponseType}</responseType>
+				<apiUrl>{$ctx:qbApiUrl}</apiUrl>
+				<companyId>{$ctx:qbCompanyId}</companyId>
+				<consumerSecret>{$ctx:qbConsumerSecret}</consumerSecret>
+			 </quickbooks.init>
+			 
+			 <quickbooks.query>
+				<queryString>{$ctx:qbQueryString}</queryString>
+			 </quickbooks.query>	
+
+			  <!-- Obtaining the estimate details-->
+			  <property name="uri.var.qbSalesReceiptDetails" expression="json-eval($.QueryResponse.SalesReceipt)"/>
+	  
+			<call-template target="responseHandlerTemplate">
+				<!-- parameter values will be passed on to a sequence template -->
+				(
+				<with-param name="activityName" value="quickbooks_fetchSalesReceiptData" />|
+				) *
+			</call-template>			 
+	 
+		  <!-- Check whether the quickbooks sales receipt details have been successfully derived -->		
+			<filter source="boolean(get-property('uri.var.qbSalesReceiptDetails'))" regex="false">
+				<then>	
+					<loopback/>
+				</then>
+			</filter>
+				
+
+		<property name="qbLine" expression="json-eval($.QueryResponse.SalesReceipt[0].Line)"/>
+		<property name="qbCustomerRef" expression="json-eval($.QueryResponse.SalesReceipt[0].CustomerRef)"/>
+		<property name="qbPrivateNote" expression="json-eval($.QueryResponse.SalesReceipt[0].PrivateNote)"/>		
+
+		
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Content-Type" scope="transport" action="remove" />
+		<header name="Date" scope="transport" action="remove" />
+		<header name="Server" scope="transport" action="remove" />
+		<header name="Transfer-Encoding" scope="transport" action="remove" />
+		<header name="Connection" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Content-Encoding" scope="transport" action="remove" />
+		
+		  <quickbooks.init>
+            <consumerKey>{$ctx:qbConsumerKey}</consumerKey>
+            <accessToken>{$ctx:qbAccessToken}</accessToken>
+            <accessTokenSecret>{$ctx:qbAccessTokenSecret}</accessTokenSecret>
+            <responseType>{$ctx:qbResponseType}</responseType>
+            <apiUrl>{$ctx:qbApiUrl}</apiUrl>
+            <companyId>{$ctx:qbCompanyId}</companyId>
+            <consumerSecret>{$ctx:qbConsumerSecret}</consumerSecret>
+         </quickbooks.init>
+         <quickbooks.createInvoice>
+            <departmentRef>{$ctx:qbDepartmentRef}</departmentRef>
+            <homeTotalAmt>{$ctx:qbHomeTotalAmt}</homeTotalAmt>
+            <customField>{$ctx:qbCustomField}</customField>
+            <deposit>{$ctx:qbDeposit}</deposit>
+            <exchangeRate>{$ctx:qbExchangeRate}</exchangeRate>
+            <printStatus>{$ctx:qbPrintStatus}</printStatus>
+            <line>{$ctx:qbLine}</line>
+            <globalTaxCalculation>{$ctx:qbGlobalTaxCalculation}</globalTaxCalculation>
+            <shipDate>{$ctx:qbShipDate}</shipDate>
+            <totalAmt>{$ctx:qbTotalAmt}</totalAmt>
+            <txnDate>{$ctx:qbTxnDate}</txnDate>
+            <balance>{$ctx:qbBalance}</balance>
+            <salesTermRef>{$ctx:qbSalesTermRef}</salesTermRef>
+            <trackingNum>{$ctx:qbTrackingNum}</trackingNum>
+            <applyTaxAfterDiscount>{$ctx:qbApplyTaxAfterDiscount}</applyTaxAfterDiscount>
+            <customerMemo>{$ctx:qbCustomerMemo}</customerMemo>
+            <billEmail>{$ctx:qbBillEmail}</billEmail>
+            <dueDate>{$ctx:qbDueDate}</dueDate>
+            <billAddr>{$ctx:qbBillAddr}</billAddr>
+            <depositToAccountRef>{$ctx:qbDepositToAccountRef}</depositToAccountRef>
+            <shipMethodRef>{$ctx:qbShipMethodRef}</shipMethodRef>
+            <linkedTxn>{$ctx:qbLinkedTxn}</linkedTxn>
+            <shipAddr>{$ctx:qbShipAddr}</shipAddr>
+            <allowIPNPayment>{$ctx:qbAllowIPNPayment}</allowIPNPayment>
+            <currencyRef>{$ctx:qbCurrencyRef}</currencyRef>
+            <docNumber>{$ctx:qbDocNumber}</docNumber>
+            <emailStatus>{$ctx:qbEmailStatus}</emailStatus>
+            <customerRef>{$ctx:qbCustomerRef}</customerRef>
+            <txnTaxDetail>{$ctx:qbTxnTaxDetail}</txnTaxDetail>
+            <privateNote>{$ctx:qbPrivateNote}</privateNote>
+         </quickbooks.createInvoice>
+		
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="quickbooks_createInvoice" />
+			|
+			) *
+		</call-template>
+
+         <loopback/>
+      </inSequence>
+      <outSequence>
+         <log/>
+		<property name="messageType" value="application/json" scope="axis2" />
+		<!-- Generate the chained response of all the API calls in createLeads -->
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"Response":[$1]
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.responseString')" />
+			</args>
+		</payloadFactory>
+		
+         <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>

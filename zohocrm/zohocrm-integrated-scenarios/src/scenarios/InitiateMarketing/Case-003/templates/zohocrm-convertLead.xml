@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template xmlns="http://ws.apache.org/ns/synapse" name="zohocrm-convertLead">
+   <parameter name="zohoApiUrl" description="The api url" />
+   <parameter name="zohoAccessToken" description="Encrypted alphanumeric string to authenticate the Zoho credentials" />
+   <parameter name="zohoLeadId" description="The id of the lead which want to covertd to a contact" />
+   <parameter name="zohoNewFormat" description="The newFormat, an integer determine weather null valus should be excluded(1) or included(2)" />
+   <parameter name="zohoVersion" description="The API version" />
+   <parameter name="zohoXmlData" description="The xml string containing the data to be inserted" />
+   <parameter name="zohoScope" description="Specify the value as crmapi" />
+   <parameter name="zohoWfTrigger" description="The wfTrigger parameter is used to trigger the workflow rule while inserting record into CRM account" />
+   <sequence>
+      <property name="uri.var.zohoApiUrl" expression="$func:zohoApiUrl" />
+      <property name="uri.var.zohoAccessToken" expression="$func:zohoAccessToken" />
+      <property name="uri.var.zohoLeadId" expression="$func:zohoLeadId" />
+      <property name="uri.var.zohoNewFormat" expression="$func:zohoNewFormat" />
+      <property name="uri.var.zohoVersion" expression="$func:zohoVersion" />
+      <property name="uri.var.zohoXmlData" expression="$func:zohoXmlData" />
+      <property name="uri.var.zohoScope" expression="$func:zohoScope" />
+      <property name="uri.var.zohoModuleType" value="Contacts" />
+      <property name="uri.var.zohoWfTrigger" expression="$func:zohoWfTrigger" />
+	  
+      <!--Checking user status before convert Lead-->
+      <zohocrm.init>
+         <apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+         <accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+         <scope>{$ctx:uri.var.zohoScope}</scope>
+      </zohocrm.init>
+      <zohocrm.getRecordsById>
+         <id>{$ctx:uri.var.zohoLeadId}</id>
+         <newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+         <version>{$ctx:uri.var.zohoVersion}</version>
+         <moduleType>Leads</moduleType>
+      </zohocrm.getRecordsById>
+	  
+      <!--Removing headers-->
+      <header name="Set-Cookie" action="remove" scope="transport" />
+      <header name="Content-Type" action="remove" scope="transport" />
+      <header name="Date" action="remove" scope="transport" />
+      <header name="Server" action="remove" scope="transport" />
+      <header name="Transfer-Encoding" action="remove" scope="transport" />
+      <header name="Connection" action="remove" scope="transport" />
+	  
+      <call-template target="responseHandlerTemplate">
+         <!-- parameter values will be passed on to a sequence template -->
+         (
+         <with-param name="activityName" value="zohocrm_getLeadById" /> |
+		 ) *
+      </call-template>
+	  
+      <property name="uri.var.leadAttributes" expression="json-eval($.response.result.Leads.row.FL)" />
+      
+      <!-- Check the availability of zohoContactId to proceed with other API calls -->
+      <filter source="boolean(get-property('uri.var.leadAttributes'))" regex="false">
+         <loopback />
+      </filter>
+	  
+      <script language="js">
+			var jsn = eval("(" + mc.getProperty("uri.var.leadAttributes") + ")");		
+			for (var i = 0; i &lt; jsn.length ; i++) {			
+				if(jsn[i].val == "Lead Status"){
+						mc.setProperty('qbLeadStatus', jsn[i].content);
+				}
+			}
+	  </script>
+	  
+      <!--Converting Lead to a Contact, only if the Lead status is Pre Qualified-->
+      <filter source="get-property('qbLeadStatus')" regex="Pre Qualified">
+		  <then>
+		  <!--Converting Lead to a Contact -->
+		  <zohocrm.init>
+			 <apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+			 <accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+			 <scope>{$ctx:uri.var.zohoScope}</scope>
+		  </zohocrm.init>
+		  <zohocrm.convertLead>
+			 <newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+			 <leadId>{$ctx:uri.var.zohoLeadId}</leadId>
+			 <xmlData>{$ctx:uri.var.zohoXmlData}</xmlData>
+			 <version>{$ctx:uri.var.zohoVersion}</version>
+		  </zohocrm.convertLead>
+		  
+		  <!--Removing headers-->
+		  <property name="uri.var.zohoContactId" expression="json-eval($.success.Contact.content)" />
+		  <header name="Set-Cookie" action="remove" scope="transport" />
+		  <header name="Content-Type" action="remove" scope="transport" />
+		  <header name="Date" action="remove" scope="transport" />
+		  <header name="Server" action="remove" scope="transport" />
+		  <header name="Transfer-Encoding" action="remove" scope="transport" />
+		  <header name="Connection" action="remove" scope="transport" />
+		  
+		  <call-template target="responseHandlerTemplate">
+			 <!-- parameter values will be passed on to a sequence template -->
+			 (
+			 <with-param name="activityName" value="zohocrm_convertLead" />|
+			 ) *
+		  </call-template>
+		  
+		  <!-- Check the availability of zohoContactId to proceed with other API calls -->
+		  <filter source="boolean(get-property('uri.var.zohoContactId'))" regex="false">
+			 <loopback />
+		  </filter>
+		  
+		  <zohocrm.init>
+			 <apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+			 <accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+			 <scope>{$ctx:uri.var.zohoScope}</scope>
+		  </zohocrm.init>
+		  <zohocrm.getRecordsById>
+			 <id>{$ctx:uri.var.zohoContactId}</id>
+			 <newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+			 <version>{$ctx:uri.var.zohoVersion}</version>
+			 <moduleType>{$ctx:uri.var.zohoModuleType}</moduleType>			 
+		  </zohocrm.getRecordsById>
+		  
+		  <!--Removing headers-->
+		  <header name="Set-Cookie" action="remove" scope="transport" />
+		  <header name="Content-Type" action="remove" scope="transport" />
+		  <header name="Date" action="remove" scope="transport" />
+		  <header name="Server" action="remove" scope="transport" />
+		  <header name="Transfer-Encoding" action="remove" scope="transport" />
+		  <header name="Connection" action="remove" scope="transport" />
+		  
+		  <call-template target="responseHandlerTemplate">
+			 <!-- parameter values will be passed on to a sequence template -->
+			 (
+			 <with-param name="activityName" value="zohocrm_getRecordsById" />|
+			 ) *
+		  </call-template>
+		  
+		  <!-- Retrieving Contact information -->
+		  <property name="uri.var.contactAttributes" expression="json-eval($.response.result.Contacts.row.FL)" />
+		  
+		  <!-- Check the availability of contactAttributes proceed with other API calls -->
+		  <filter source="boolean(get-property('uri.var.contactAttributes'))" regex="false">
+			 <loopback />
+		  </filter>
+	  </then>
+	  <else>
+		<!-- If the contact status is not "Pre Qualified", the lead will not be converted -->
+		<payloadFactory media-type="json">
+				<format>
+					{
+					"response":"Lead is not in Pre Qualified state. Therefore, Lead will not be converted."
+					}
+				</format>
+			</payloadFactory>
+			<call-template target="responseHandlerTemplate">
+				<!-- parameter values will be passed on to a sequence template -->
+				(
+				<with-param name="activityName" value="zohocrm_convertLeadFailure" />|
+				) *
+			</call-template>
+			 <loopback />
+         <loopback />
+	  </else>	  
+      </filter>	  
+   </sequence>
+</template>

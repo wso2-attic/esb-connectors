@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="zohocrm_jira_followupIssues"
+       transports="https"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+	  		
+		<!-- Jira API call related properties -->
+		<property name="jiraAccountUrl" expression="json-eval($.jiraAccountUrl)"/>
+        <property name="jiraUsername" expression="json-eval($.jiraUsername)"/>
+        <property name="jiraPassword" expression="json-eval($.jiraPassword)"/>
+        <property name="jiraQuery" expression="json-eval($.jiraQuery)"/>
+        <property name="jiraMaxResult" expression="json-eval($.jiraMaxResult)"/>
+		<property name="jiraStartFrom" expression="json-eval($.jiraStartFrom)"/>	
+		<property name="jiraFields" value="comment"/>			
+
+		<!-- Zoho CRM API call related properties -->
+		<property name="zohoApiUrl" expression="json-eval($.zohoApiUrl)"/>
+		<property name="zohoAccessToken" expression="json-eval($.zohoAccessToken)"/>
+		<property name="zohoScope" expression="json-eval($.zohoScope)"/>
+		<property name="zohoNewFormat" expression="json-eval($.zohoNewFormat)"/>
+		<property name="zohoVersion" expression="json-eval($.zohoVersion)"/>
+		<property name="zohoWfTrigger" expression="json-eval($.zohoWfTrigger)"/>
+		
+		<property name="issueCaseIdMap" expression="json-eval($.issueCaseIdMap)"/>
+		<property name="uri.var.responseBuilder" value="" scope="operation" />
+		<property name="uri.var.index" value="0" scope="operation" />
+			
+		<!-- Jira Retrieve all issues -->
+		<jira.init>
+           <uri>{$ctx:jiraAccountUrl}</uri>
+           <username>{$ctx:jiraUsername}</username>
+           <password>{$ctx:jiraPassword}</password>
+        </jira.init>
+        <jira.searchJira>
+           <query>{$ctx:jiraQuery}</query>
+		   <maxResult>{$ctx:jiraMaxResult}</maxResult>
+		   <startFrom>{$ctx:jiraStartFrom}</startFrom>
+		   <fields>{$ctx:jiraFields}</fields>
+        </jira.searchJira>
+		
+		<call-template target="responseHandlerTemplate">
+			<!-- parameter values will be passed on to a sequence template -->
+			(
+			<with-param name="activityName" value="jira_searchIssues" />
+			|
+			) *
+		</call-template>
+			
+		<property name="uri.var.getIssuesResponseString" expression="get-property('uri.var.responseString')" scope="operation" />
+	
+		<property name="messageType" value="application/xml" scope="axis2" />
+
+		<property name="uri.var.issuesCount" expression="count(//issues)" scope="operation" />
+
+		<filter xpath="0 = get-property('operation', 'uri.var.issuesCount')">
+			<then>
+				<payloadFactory media-type="json">
+					<format>
+						{
+						"activity":"zohocrm_retrieveIssuesFailure",
+						"activityResponse":"No issues were found according to the provided JQL"
+						}
+					</format>
+				</payloadFactory>
+
+				<call-template target="responseHandlerTemplate">
+					<!-- parameter values will be passed on to a sequence template -->
+					(
+					<with-param name="activityName" value="zohocrm_getIssuesFailure" />
+					|
+					) *
+				</call-template>
+
+				<property name="uri.var.responseBuilder" expression="json-eval($)" scope="operation" />
+				<loopback />
+			</then>
+		</filter>
+
+		<!-- Clears the rsponseString to avoid it being appended multiple times -->
+			<property name="uri.var.responseString" value="" />
+
+			<iterate id="leadsIterator" expression="//issues" sequential="true" continueParent="true"
+				preservePayload="true">
+				<target>
+					<sequence>
+						<property name="uri.var.jiraIssueKey" expression="(//*/key)[1]/text()" />
+						<property name="uri.var.comment" expression="(//*/comments/body)[last()]/text()"/>
+
+						<script language="js">
+							var jiraIssueId = mc.getProperty('uri.var.jiraIssueKey');
+							var issueCaseIdMap = eval("("+mc.getProperty('issueCaseIdMap')+")");
+							var zohoCaseId = issueCaseIdMap[jiraIssueId];
+							mc.setProperty('uri.var.zohoCaseId', zohoCaseId);
+						</script>
+						
+						<call-template target="zohocrm-updateIssue">
+							<!-- parameter values will be passed on to a sequence template -->
+							(
+							<with-param name="zohoApiUrl" value="{$ctx:zohoApiUrl}" />
+							|
+							<with-param name="zohoAccessToken" value="{$ctx:zohoAccessToken}" />
+							|
+							<with-param name="zohoScope" value="{$ctx:zohoScope}" />
+							|
+							<with-param name="zohoNewFormat" value="{$ctx:zohoNewFormat}" />
+							|
+							<with-param name="zohoVersion" value="{$ctx:zohoVersion}" />
+							|
+							<with-param name="zohoWfTrigger" value="{$ctx:zohoWfTrigger}" />		
+							|
+							<with-param name="zohoCaseId" value="{$ctx:uri.var.zohoCaseId}" />
+							|
+							<with-param name="comment" value="{$ctx:uri.var.comment}" />
+							|
+							) *
+						</call-template>
+						<property name="uri.var.index" expression="get-property('operation','uri.var.index') + 1" scope="operation" />
+
+						<property name="uri.var.responseBuilder"
+							expression="fn:concat(get-property('operation','uri.var.responseBuilder'), get-property('uri.var.responseString') , ', ')"
+							scope="operation" />
+					</sequence>
+				</target>
+			</iterate>
+
+			<filter xpath="get-property('operation', 'uri.var.index') = get-property('operation', 'uri.var.issuesCount')">
+				<then>
+					<!-- Remove the final comma appended inside the iterator mediator for final response generation inside the outsequence -->
+					<property name="uri.var.responseBuilder"
+						expression="fn:substring(get-property('operation', 'uri.var.responseBuilder'), 0, fn:string-length(get-property('operation', 'uri.var.responseBuilder')))"
+						scope="operation" />
+					<loopback />
+				</then>
+			</filter>	
+
+      </inSequence>
+      <outSequence>
+        <property name="messageType" value="application/json" scope="axis2" />
+		
+			<!-- Generate the chained response of all the API calls in createLeads -->
+			<payloadFactory media-type="json">
+				<format>
+					{
+					"Response":[
+					$1,
+					$2
+					]
+					}
+				</format>
+				<args>
+					<arg expression="get-property('operation', 'uri.var.getIssuesResponseString')" />
+					<arg expression="get-property('operation', 'uri.var.responseBuilder')" />
+				</args>
+			</payloadFactory>
+
+			<send />
+		</outSequence>
+	</target>
+	<description />
+</proxy>
