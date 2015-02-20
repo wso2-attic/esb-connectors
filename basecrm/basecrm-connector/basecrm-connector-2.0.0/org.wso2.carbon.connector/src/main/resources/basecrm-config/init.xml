@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="apiUrl" description="The base URL of BaseCRM api." />
+   <parameter name="email" description="User account email." />
+   <parameter name="password" description="User account password." />
+   <parameter name="responseType" description="The format of the response, xml or json." />
+
+   <sequence>
+      <property name="uri.var.apiUrl" expression="$func:apiUrl" />
+      <property name="uri.var.email" expression="$func:email" />
+      <property name="uri.var.password" expression="$func:password" />
+      <property name="uri.var.responseType" expression="$func:responseType" />
+
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "email":"$1",
+               "password":"$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.email')" />
+            <arg expression="get-property('uri.var.password')" />
+         </args>
+      </payloadFactory>
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/api/v1/authentication.xml" />
+         </endpoint>
+      </call>
+
+      <property name="uri.var.token" expression="//token/text()" type="STRING" />
+
+      <property name="messageType" value="application/json" scope="axis2" />
+      <header name="Content-Type" value="application/json" scope="transport" />
+
+      <!-- Remove custom header information in response -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="X-Pagination-Page" scope="transport" action="remove" />
+      <header name="X-Frame-Options" scope="transport" action="remove" />
+      <header name="X-Mesh-ID" scope="transport" action="remove" />
+      <header name="X-Pagination-Per-Page" scope="transport" action="remove" />
+      <header name="X-UA-Compatible" scope="transport" action="remove" />
+      <header name="Strict-Transport-Security" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+      <header name="Content-Encoding" scope="transport" action="remove" />
+
+   </sequence>
+</template>
