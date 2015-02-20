@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="createCustomsItem" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="description" description="The text description of customs item" />
+   <parameter name="quantity" description="Quantity of the customs item in the shipment you send. Must be greater than 0" />
+   <parameter name="netWeight" description="Total weight of the customs item, i.e. quantity * weight per item" />
+   <parameter name="massUnit" description="The unit used for net weight" />
+   <parameter name="valueAmount" description="Total value of the customs item, i.e. quantity * value per item" />
+   <parameter name="valueCurrency" description="Currency code used for value amount" />
+   <parameter name="originCountry" description="Country code of origin of the item" />
+   <parameter name="tariffNumber" description="The tariff number of the customs item" />
+   <parameter name="metadata"
+      description="A string up to 100 characters that can be filled with any additional information for attach to the object" />
+
+   <sequence>
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.quantity" expression="$func:quantity" />
+      <property name="uri.var.netWeight" expression="$func:netWeight" />
+      <property name="uri.var.massUnit" expression="$func:massUnit" />
+      <property name="uri.var.valueAmount" expression="$func:valueAmount" />
+      <property name="uri.var.valueCurrency" expression="$func:valueCurrency" />
+      <property name="uri.var.originCountry" expression="$func:originCountry" />
+      <property name="uri.var.tariffNumber" expression="$func:tariffNumber" />
+      <property name="uri.var.metadata" expression="$func:metadata" />
+
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "description":"$1",
+            "quantity":"$2",
+            "net_weight":"$3",
+            "mass_unit":"$4",
+            "value_amount":"$5",
+            "value_currency":"$6",
+            "origin_country":"$7"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.description')" />
+            <arg expression="get-property('uri.var.quantity')" />
+            <arg expression="get-property('uri.var.netWeight')" />
+            <arg expression="get-property('uri.var.massUnit')" />
+            <arg expression="get-property('uri.var.valueAmount')" />
+            <arg expression="get-property('uri.var.valueCurrency')" />
+            <arg expression="get-property('uri.var.originCountry')" />
+         </args>
+      </payloadFactory>
+
+      <!-- Checking the optional parameters and create the payload accordingly -->
+      <script language="js">
+        	<![CDATA[
+
+				var tariffNumber = mc.getProperty('uri.var.tariffNumber');
+				var metadata = mc.getProperty('uri.var.metadata');
+						
+				var payload = mc.getPayloadJSON();
+				
+				if (tariffNumber != null && tariffNumber != "") {
+					payload.tariff_number = tariffNumber;	
+				}
+				
+				if (metadata != null && metadata != "") {
+					payload.metadata = metadata;	
+				} 
+				
+				mc.setPayloadJSON(payload);
+			]]>
+      </script>
+
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/v1/customs/items" />
+         </endpoint>
+      </call>
+
+      <!-- Remove custom headers from response -->
+      <header name="P3p" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="Allow" scope="transport" action="remove" />
+      <header name="Via" scope="transport" action="remove" />
+      <header name="Www-Authenticate" scope="transport" action="remove" />
+
+   </sequence>
+</template>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="listShipments" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="results" description="Specifies the number of Shipment objects to be returned" />
+   <parameter name="page" description="Specifies the page number to return" />
+   
+   <sequence>
+      <property name="uri.var.results" expression="$func:results" />
+      <property name="uri.var.page" expression="$func:page" />
+      <property name="uri.var.query" value="" />
+
+      <filter source="boolean(get-property('uri.var.results'))" regex="true">
+         <then>
+            <property name="uri.var.query" expression="fn:concat('results=', get-property('uri.var.results'), '&amp;')" />
+         </then>
+      </filter>
+
+      <filter source="boolean(get-property('uri.var.page'))" regex="true">
+         <then>
+            <property name="uri.var.query"
+               expression="fn:concat(get-property('uri.var.query'), 'page=', get-property('uri.var.page'), '&amp;')" />
+         </then>
+      </filter>
+
+      <filter xpath="fn:string-length(get-property('uri.var.query')) > 0">
+         <then>
+            <property name="uri.var.query"
+               expression="fn:concat('?', fn:substring(get-property('uri.var.query'), 1, fn:string-length(get-property('uri.var.query'))-1))" />
+         </then>
+      </filter>
+
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/v1/shipments{uri.var.query}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom headers from response -->
+      <header name="P3p" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="Allow" scope="transport" action="remove" />
+      <header name="Via" scope="transport" action="remove" />
+      <header name="Www-Authenticate" scope="transport" action="remove" />
+   </sequence>
+</template>

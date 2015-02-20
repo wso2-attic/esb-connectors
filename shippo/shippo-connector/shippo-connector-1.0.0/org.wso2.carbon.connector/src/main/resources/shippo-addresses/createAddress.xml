@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="createAddress" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="objectPurpose" description="The purpose of the address to be created for either 'QUOTE' or 'PURCHASE'" />
+   <parameter name="name" description="The first and last name of the addressee" />
+   <parameter name="company" description="The company name of the address" />
+   <parameter name="streetOne" description="The first street line of the address" />
+   <parameter name="streetNo" description="The street number of the addressed building" />
+   <parameter name="streetTwo" description="The second street line name of the address" />
+   <parameter name="city" description="The city name of the address" />
+   <parameter name="zipCode" description="The postal code of the address, Optional when creating a Quote address" />
+   <parameter name="state" description="The state name of the address. Required only for purchase of some countries" />
+   <parameter name="country" description="The country name of the address" />
+   <parameter name="phone" description="The phone number of the address" />
+   <parameter name="email" description="The email address of the contact person" />
+   <parameter name="metadata" description="Any additional information want to attach to the object" />
+   
+   <sequence>
+      <property name="uri.var.objectPurpose" expression="$func:objectPurpose" />
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.company" expression="$func:company" />
+      <property name="uri.var.streetOne" expression="$func:streetOne" />
+      <property name="uri.var.streetNo" expression="$func:streetNo" />
+      <property name="uri.var.streetTwo" expression="$func:streetTwo" />
+      <property name="uri.var.city" expression="$func:city" />
+      <property name="uri.var.zipCode" expression="$func:zipCode" />
+      <property name="uri.var.state" expression="$func:state" />
+      <property name="uri.var.country" expression="$func:country" />
+      <property name="uri.var.phone" expression="$func:phone" />
+      <property name="uri.var.email" expression="$func:email" />
+      <property name="uri.var.metadata" expression="$func:metadata" />
+
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "object_purpose": "$1",
+            "country": "$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.objectPurpose')" />
+            <arg expression="get-property('uri.var.country')" />
+         </args>
+      </payloadFactory>
+
+      <script language="js">
+			<![CDATA[
+			// initializing the payload
+			var payload = mc.getPayloadJSON();
+			
+			// initialzing the optional parameters
+			var name = mc.getProperty("uri.var.name");
+			var company = mc.getProperty("uri.var.company");
+			var streetOne = mc.getProperty("uri.var.streetOne");
+			var streetNumber = mc.getProperty("uri.var.streetNo");
+			var streetTwo = mc.getProperty("uri.var.streetTwo");
+			var city  = mc.getProperty("uri.var.city");
+			var zip  = mc.getProperty("uri.var.zipCode");
+			var state  = mc.getProperty("uri.var.state");
+			var phone  = mc.getProperty("uri.var.phone");
+			var email  = mc.getProperty("uri.var.email");
+			var metadata  = mc.getProperty("uri.var.metadata");
+			
+			// adding the optional parameters to the payload
+			if (name != null && name != "") {
+				payload.name = name;
+			}
+			
+			if (company != null && company != "") {
+				payload.company = company;
+			}
+			
+			if (streetOne != null && streetOne != "") {
+				payload.street1 = streetOne;
+			}
+			
+			if (streetNumber != null && streetNumber != "") {
+				payload.street_no = streetNumber;
+			}
+			
+			if (streetTwo != null && streetTwo != "") {
+				payload.street2 = streetTwo;
+			}
+			
+			if (city != null && city != "") {
+				payload.city = city;
+			}
+			
+			if (zip != null && zip != "") {
+				payload.zip = zip;
+			}
+			
+			if (state != null && state != "") {
+				payload.state = state;
+			}
+			
+			if (phone != null && phone != "") {
+				payload.phone = phone;
+			}
+			
+			if (email != null && email != "") {
+				payload.email = email;
+			}
+			
+			if (metadata != null && metadata != "") {
+				payload.metadata = metadata;
+			}
+			mc.setPayloadJSON(payload); 
+	
+			]]>
+      </script>
+
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/v1/addresses" />
+         </endpoint>
+      </call>
+
+      <!-- Remove custom headers from response -->
+      <header name="P3p" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="Allow" scope="transport" action="remove" />
+      <header name="Via" scope="transport" action="remove" />
+      <header name="Www-Authenticate" scope="transport" action="remove" />
+
+   </sequence>
+</template>

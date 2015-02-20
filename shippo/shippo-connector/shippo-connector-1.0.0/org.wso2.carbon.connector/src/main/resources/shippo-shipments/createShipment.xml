@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="createShipment" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="objectPurpose" description="The Shipment type, either QUOTE or PURCHASE" />
+   <parameter name="addressFrom" description="ID of the Address object to be used as sender Address" />
+   <parameter name="addressTo" description="ID of the Address object to be used as recipient Address" />
+   <parameter name="parcel" description="ID of the Parcel object to be shipped" />
+   <parameter name="submissionType"
+      description="Specifies whether the parcel will be dropped off at a carrier location or will be picked up (DROPOFF or PICKUP)" />
+   <parameter name="submissionDate"
+      description="Desired pickup date. Required if submission_type is 'PICK UP'(format:2014-01-18T00:35:03.463Z)" />
+   <parameter name="addressReturn" description="ID of the Address object to send the shipment in case of a delivery failure" />
+   <parameter name="customsDeclaration" description="ID of the Customs Declarations object for an international shipment" />
+   <parameter name="insuranceAmount" description="Total Parcel value to be insured" />
+   <parameter name="insuranceCurrency" description="Currency used for insurance_amount" />
+   <parameter name="referenceOne" description="Optional text to be printed on the shipping label" />
+   <parameter name="referenceTwo" description="Optional text to be printed on the shipping label" />
+   <parameter name="metadata" description="A string of up to 100 characters, additional information to be attached to the Shipment" />
+   <parameter name="signatureConfirmation" description="Specifies whether the signature confirmation is 'standard' or 'adult'" />
+   <parameter name="isResidential" description="The boolean value marks receiver address as residential or not" />
+   <parameter name="insuranceContent" description="Specifies package content for insurance" />
+   <parameter name="isSaturdayDelivery" description="The boolean value marks shipment as to be delivered on a Saturday or not" />
+   <parameter name="isBypassAddressValidation" description="The boolean value indicating whether to bypass the address validation or not" />
+
+   <sequence>
+      <property name="uri.var.objectPurpose" expression="$func:objectPurpose" />
+      <property name="uri.var.addressFrom" expression="$func:addressFrom" />
+      <property name="uri.var.addressTo" expression="$func:addressTo" />
+      <property name="uri.var.parcel" expression="$func:parcel" />
+      <property name="uri.var.submissionType" expression="$func:submissionType" />
+      <property name="uri.var.submissionDate" expression="$func:submissionDate" />
+      <property name="uri.var.addressReturn" expression="$func:addressReturn" />
+      <property name="uri.var.customsDeclaration" expression="$func:customsDeclaration" />
+      <property name="uri.var.insuranceAmount" expression="$func:insuranceAmount" />
+      <property name="uri.var.insuranceCurrency" expression="$func:insuranceCurrency" />
+      <property name="uri.var.referenceOne" expression="$func:referenceOne" />
+      <property name="uri.var.referenceTwo" expression="$func:referenceTwo" />
+      <property name="uri.var.metadata" expression="$func:metadata" />
+      <property name="uri.var.signatureConfirmation" expression="$func:signatureConfirmation" />
+      <property name="uri.var.isResidential" expression="$func:isResidential" />
+      <property name="uri.var.isSaturdayDelivery" expression="$func:isSaturdayDelivery" />
+      <property name="uri.var.insuranceContent" expression="$func:insuranceContent" />
+      <property name="uri.var.isBypassAddressValidation" expression="$func:isBypassAddressValidation" />
+
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "object_purpose": "$1",
+            "address_from": "$2",
+            "address_to": "$3",
+            "parcel": "$4",
+            "submission_type": "$5"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.objectPurpose')" />
+            <arg expression="get-property('uri.var.addressFrom')" />
+            <arg expression="get-property('uri.var.addressTo')" />
+            <arg expression="get-property('uri.var.parcel')" />
+            <arg expression="get-property('uri.var.submissionType')" />
+         </args>
+      </payloadFactory>
+
+      <script language="js">
+			<![CDATA[
+				// optional param variables
+				var submissionDate = mc.getProperty("uri.var.submissionDate");		
+				var addressReturn = mc.getProperty("uri.var.addressReturn");
+				var customsDeclaration = mc.getProperty("uri.var.customsDeclaration");
+				var insuranceAmount = mc.getProperty("uri.var.insuranceAmount");
+				var insuranceCurrency = mc.getProperty("uri.var.insuranceCurrency");
+				var referenceOne = mc.getProperty("uri.var.referenceOne");
+				var referenceTwo = mc.getProperty("uri.var.referenceTwo");
+				var metadata = mc.getProperty("uri.var.metadata");
+            var signatureConfirmation = mc.getProperty("uri.var.signatureConfirmation");
+            var isResidential = mc.getProperty("uri.var.isResidential");
+            var insuranceContent = mc.getProperty("uri.var.insuranceContent");
+            var isSaturdayDelivery = mc.getProperty("uri.var.isSaturdayDelivery");
+            var isBypassAddressValidation = mc.getProperty("uri.var.isBypassAddressValidation");
+                      
+            var extra = {};
+				payload = mc.getPayloadJSON();
+            
+            if (signatureConfirmation != null && signatureConfirmation !="") {
+               extra.signature_confirmation = signatureConfirmation;
+            }
+            
+            if (isResidential != null && isResidential !="") {
+               extra.is_residential = isResidential;
+            }
+            
+            if (insuranceContent != null && insuranceContent !="") {
+               extra.insurance_content = insuranceContent;
+            }
+            
+            if (isSaturdayDelivery != null && isSaturdayDelivery !="") {
+               extra.saturday_delivery = isSaturdayDelivery;
+            }
+            
+				if (isBypassAddressValidation != null && isBypassAddressValidation !="") {
+               extra.bypass_address_validation = isBypassAddressValidation;
+            }
+
+				if (submissionDate != null && submissionDate !="") {
+				   payload.submission_date = submissionDate;
+				}
+            
+				if (addressReturn != null && addressReturn !="") {
+				   payload.address_return = addressReturn;
+				}
+            
+				if (customsDeclaration != null && customsDeclaration !="") {
+				   payload.customs_declaration = customsDeclaration;
+				}
+            
+				if (insuranceAmount != null && insuranceAmount !="") {
+				   payload.insurance_amount = insuranceAmount;
+				}
+            
+				if (insuranceCurrency != null && insuranceCurrency !="") {
+				   payload.insurance_currency = insuranceCurrency;
+				}
+			
+				if (referenceOne != null && referenceOne !="") {
+				   payload.reference_1 = referenceOne;
+				}
+            
+				if (referenceTwo != null && referenceTwo !="") {
+				   payload.reference_2 = referenceTwo;
+				}
+            
+				if (metadata != null && metadata !="") {
+				   payload.metadata = metadata;
+				}
+            
+            payload.extra = extra;
+				mc.setPayloadJSON(payload);
+			]]>
+      </script>
+
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/v1/shipments" />
+         </endpoint>
+      </call>
+
+      <!-- Remove custom headers from response -->
+      <header name="P3p" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="Allow" scope="transport" action="remove" />
+      <header name="Via" scope="transport" action="remove" />
+      <header name="Www-Authenticate" scope="transport" action="remove" />
+   </sequence>
+</template>
