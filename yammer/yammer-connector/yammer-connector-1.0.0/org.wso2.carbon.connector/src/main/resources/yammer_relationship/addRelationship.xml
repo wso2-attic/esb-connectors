@@ -1,0 +1,40 @@
+<template name="addRelationship" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="userId" description="The ID of the user other than the logged-in user."/>
+    <parameter name="type" description="The type of the relationship subordinate or superior or colleague."/>
+    <parameter name="email" description="The email of the user."/>
+
+    <sequence>
+    	<property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.type" expression="$func:type"/>
+        <property name="uri.var.email" expression="$func:email"/>
+        <property name="uri.var.query" value=""/>
+
+    	<filter xpath="boolean(get-property('uri.var.userId'))">
+            <then>
+                <property name="uri.var.query" expression="fn:concat('&amp;user_id=',get-property('uri.var.userId'))" />
+            </then>
+        </filter>
+
+        <call>
+            <endpoint>
+                <http method="post" 
+                	uri-template="{uri.var.apiUrl}/relationships.{uri.var.responseType}?{uri.var.type}={uri.var.email}{uri.var.query}"/>
+            </endpoint>
+        </call>
+        
+         <!-- Remove custom Headers from the API Response -->
+        <header name="ETag" action="remove" scope="transport"/>
+        <header name="X-Runtime" action="remove" scope="transport"/>
+        <header name="X-Robots-Tag" action="remove" scope="transport"/>
+        <header name="X-XSS-Protection" action="remove" scope="transport"/>
+        <header name="X-UA-Compatible" action="remove" scope="transport"/>
+        <header name="X-Date" action="remove" scope="transport"/>
+        <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+        <header name="P3P" action="remove" scope="transport"/>
+        <header name="Strict-Transport-Security" action="remove" scope="transport"/>
+        <header name="WWW-Authenticate" action="remove" scope="transport"/>
+        <header name="Cteonnt-Length" action="remove" scope="transport" />
+		<header name="Status" action="remove" scope="transport" />
+
+    </sequence>
+</template>

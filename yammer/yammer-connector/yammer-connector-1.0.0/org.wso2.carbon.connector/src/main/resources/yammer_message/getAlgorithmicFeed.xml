@@ -1,0 +1,71 @@
+<template name="getAlgorithmicFeed" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="olderThan" description="The message ID for which the resulting messages should be older than."/>
+    <parameter name="newerThan" description="The message ID for which the resulting messages should be newer than."/>
+    <parameter name="threaded" description="The boolean flag to request only the first message in each thread."/>
+    <parameter name="limit" description="The number of messages to be retrieved in the response."/>
+
+	<sequence>
+		<property name="uri.var.olderThan" expression="$func:olderThan" />
+		<property name="uri.var.newerThan" expression="$func:newerThan" />
+		<property name="uri.var.threaded" expression="$func:threaded" />
+		<property name="uri.var.limit" expression="$func:limit" />
+		<property name="uri.var.apiParameters" value="" />
+
+		<filter xpath="boolean(get-property('uri.var.olderThan'))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'older_than=',get-property('uri.var.olderThan'), '&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="boolean(get-property('uri.var.newerThan'))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'newer_than=',get-property('uri.var.newerThan'), '&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="boolean(get-property('uri.var.threaded'))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'threaded=',get-property('uri.var.threaded'), '&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="boolean(get-property('uri.var.limit'))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'limit=',get-property('uri.var.limit'), '&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="fn:string-length(get-property('uri.var.apiParameters')) > 0">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat('?', fn:substring(get-property('uri.var.apiParameters'), 1, fn:string-length(get-property('uri.var.apiParameters'))-1))" />
+			</then>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}/messages/algo.{uri.var.responseType}{uri.var.apiParameters}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom Headers from the API Response -->
+		<header name="ETag" action="remove" scope="transport" />
+		<header name="X-Runtime" action="remove" scope="transport" />
+		<header name="X-Robots-Tag" action="remove" scope="transport" />
+		<header name="X-XSS-Protection" action="remove" scope="transport" />
+		<header name="X-UA-Compatible" action="remove" scope="transport" />
+		<header name="X-Date" action="remove" scope="transport" />
+		<header name="X-Content-Type-Options" action="remove" scope="transport" />
+		<header name="P3P" action="remove" scope="transport" />
+		<header name="Strict-Transport-Security" action="remove" scope="transport" />
+		<header name="WWW-Authenticate" action="remove" scope="transport" />
+		<header name="Cteonnt-Length" action="remove" scope="transport" />
+		<header name="Status" action="remove" scope="transport" />
+
+	</sequence>
+</template>

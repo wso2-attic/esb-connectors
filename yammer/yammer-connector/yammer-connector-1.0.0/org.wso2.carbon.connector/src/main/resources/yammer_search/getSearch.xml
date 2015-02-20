@@ -1,0 +1,64 @@
+<template name="getSearch" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="search" description="The search query." />
+	<parameter name="page" description="The page number to return." />
+	<parameter name="numPerPage" description="The numbers of results per page." />
+
+	<sequence>
+		<property name="uri.var.search" expression="$func:search" />
+		<property name="uri.var.page" expression="$func:page" />
+		<property name="uri.var.numPerPage" expression="$func:numPerPage" />
+		<property name="uri.var.apiParameters" value="" />
+
+		<script language="js">
+			<![CDATA[
+				
+				var payload = mc.getPayloadJSON();
+				
+				var search = mc.getProperty('uri.var.search');
+				var page = mc.getProperty('uri.var.page');
+				var numPerPage = mc.getProperty('uri.var.numPerPage');
+				var apiParameters = mc.getProperty('uri.var.apiParameters');
+				
+				if (search != null && search != "") {
+                	apiParameters += 'search=' + encodeURIComponent(search) + '&'; 
+                }
+                
+                if (page != null && page != "") {
+                	apiParameters += 'page=' + page + '&'; 
+                }
+                
+                if (numPerPage != null && numPerPage != "") {
+                	apiParameters += 'num_per_page=' + numPerPage + '&'; 
+                }
+                
+                if (apiParameters != "") {
+                	apiParameters = '?' + apiParameters.substring(0, apiParameters.length - 1);
+                	mc.setProperty('uri.var.apiParameters', apiParameters);
+                }
+                
+			]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}/search.{uri.var.responseType}{uri.var.apiParameters}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom Headers from the API Response -->
+		<header name="ETag" action="remove" scope="transport" />
+		<header name="X-Runtime" action="remove" scope="transport" />
+		<header name="X-Robots-Tag" action="remove" scope="transport" />
+		<header name="X-XSS-Protection" action="remove" scope="transport" />
+		<header name="X-UA-Compatible" action="remove" scope="transport" />
+		<header name="X-Date" action="remove" scope="transport" />
+		<header name="X-Content-Type-Options" action="remove" scope="transport" />
+		<header name="P3P" action="remove" scope="transport" />
+		<header name="Strict-Transport-Security" action="remove" scope="transport" />
+		<header name="WWW-Authenticate" action="remove" scope="transport" />
+		<header name="Cteonnt-Length" action="remove" scope="transport" />
+		<header name="Status" action="remove" scope="transport" />
+
+	</sequence>
+</template>

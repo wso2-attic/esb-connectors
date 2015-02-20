@@ -1,0 +1,37 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="apiToken" description="The api token of the account." />
+    <parameter name="apiUrl" description="The url to access the Yammer API." />
+    <parameter name="responseType" description="The response type of the method call." />
+
+	<sequence>
+        <property name="uri.var.apiToken" expression="$func:apiToken" />
+        <property name="uri.var.apiUrl" expression="$func:apiUrl" />
+        <property name="uri.var.responseType" expression="$func:responseType" />
+
+        <property name="Authorization"
+                  expression="fn:concat('Bearer ', get-property('uri.var.apiToken'))"
+                  scope="transport"
+                  type="STRING" />
+        
+        <!-- If the apiUrl is not specified, set the default value as https://www.yammer.com/api/v1 -->
+		<filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+			<then>
+				<property name="uri.var.apiUrl" value="https://www.yammer.com/api/v1" />
+			</then>
+			<else>
+			    <property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/api/v1')" />
+			</else>
+		</filter>
+		
+		<!-- If the responseType type is not specified as xml, set the default value as application/json -->
+		<filter source="get-property('uri.var.responseType')" regex="xml">
+			<then>
+				<property name="uri.var.responseType" value="xml" />
+			</then>
+			<else>
+				<property name="uri.var.responseType" value="json" />
+			</else>
+		</filter>
+		
+	</sequence>
+</template>

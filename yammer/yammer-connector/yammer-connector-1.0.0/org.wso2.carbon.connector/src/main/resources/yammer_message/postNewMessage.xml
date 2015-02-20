@@ -1,0 +1,39 @@
+<template name="postNewMessage" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="apiUrl" description="The URL to access the Yammer API." />
+	<parameter name="responseType" description="The response type of the method call." />
+	<parameter name="apiToken" description="The API token of the account." />
+
+	<sequence>
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.responseType" expression="$func:responseType" />
+
+		<property name="Authorization" expression="fn:concat('Bearer ', $func:apiToken)"
+			scope="transport" type="STRING" />
+
+		<!-- Force ESB to send the content length to the endpoint. -->
+		<property name="FORCE_HTTP_CONTENT_LENGTH" value="true" scope="axis2" />
+		<property name="COPY_CONTENT_LENGTH_FROM_INCOMING" value="true" scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/api/v1/messages.{uri.var.responseType}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom Headers from the API Response -->
+		<header name="ETag" action="remove" scope="transport" />
+		<header name="X-Runtime" action="remove" scope="transport" />
+		<header name="X-Robots-Tag" action="remove" scope="transport" />
+		<header name="X-XSS-Protection" action="remove" scope="transport" />
+		<header name="X-UA-Compatible" action="remove" scope="transport" />
+		<header name="X-Date" action="remove" scope="transport" />
+		<header name="X-Content-Type-Options" action="remove" scope="transport" />
+		<header name="P3P" action="remove" scope="transport" />
+		<header name="Strict-Transport-Security" action="remove" scope="transport" />
+		<header name="WWW-Authenticate" action="remove" scope="transport" />
+		<header name="Cteonnt-Length" action="remove" scope="transport" />
+		<header name="Status" action="remove" scope="transport" />
+
+	</sequence>
+</template>

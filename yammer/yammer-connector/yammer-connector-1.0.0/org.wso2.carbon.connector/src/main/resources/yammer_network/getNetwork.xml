@@ -1,0 +1,58 @@
+<template name="getNetwork" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="includeSuspended"
+		description="The boolean flag to include networks the user is suspended in." />
+	<parameter name="excludeOwnMessagesFromUnseen"
+		description="The boolean flag to exclude the user’s own messages from the unseen count." />
+
+	<sequence>
+		<property name="uri.var.includeSuspended" expression="$func:includeSuspended" />
+		<property name="uri.var.excludeOwnMessagesFromUnseen"
+			expression="$func:excludeOwnMessagesFromUnseen" />
+		<property name="uri.var.apiParameters" value="" />
+
+		<filter xpath="boolean(get-property('uri.var.includeSuspended'))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'include_suspended=',get-property('uri.var.includeSuspended'), '&amp;')" />
+			</then>
+		</filter>
+
+		<filter
+			xpath="boolean(get-property('uri.var.excludeOwnMessagesFromUnseen'))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'exclude_own_messages_from_unseen=',get-property('uri.var.excludeOwnMessagesFromUnseen'), '&amp;')" />
+			</then>
+		</filter>
+
+		<filter xpath="fn:string-length(get-property('uri.var.apiParameters')) > 0">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat('?', fn:substring(get-property('uri.var.apiParameters'), 1, fn:string-length(get-property('uri.var.apiParameters'))-1))" />
+			</then>
+		</filter>
+
+		<call>
+			<endpoint>
+				<http method="get"
+					uri-template="{uri.var.apiUrl}/networks/current.{uri.var.responseType}{uri.var.apiParameters}" />
+			</endpoint>
+
+		</call>
+
+		<!-- Remove custom Headers from the API Response -->
+		<header name="ETag" action="remove" scope="transport" />
+		<header name="X-Runtime" action="remove" scope="transport" />
+		<header name="X-Robots-Tag" action="remove" scope="transport" />
+		<header name="X-XSS-Protection" action="remove" scope="transport" />
+		<header name="X-UA-Compatible" action="remove" scope="transport" />
+		<header name="X-Date" action="remove" scope="transport" />
+		<header name="X-Content-Type-Options" action="remove" scope="transport" />
+		<header name="P3P" action="remove" scope="transport" />
+		<header name="Strict-Transport-Security" action="remove" scope="transport" />
+		<header name="WWW-Authenticate" action="remove" scope="transport" />
+		<header name="Cteonnt-Length" action="remove" scope="transport" />
+		<header name="Status" action="remove" scope="transport" />
+
+	</sequence>
+</template>
