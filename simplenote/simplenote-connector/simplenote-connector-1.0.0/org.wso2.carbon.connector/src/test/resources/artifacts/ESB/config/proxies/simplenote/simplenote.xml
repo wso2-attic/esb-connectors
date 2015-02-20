@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="simplenote"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <property name="authToken" expression="json-eval($.authToken)"/>
+         <property name="email" expression="json-eval($.email)"/>
+         <property name="apiUrl" expression="json-eval($.apiUrl)"/>
+         <property name="name" expression="json-eval($.name)"/>
+         <property name="content" expression="json-eval($.content)"/>
+         <property name="deleted" expression="json-eval($.deleted)"/>
+         <property name="createDate" expression="json-eval($.createDate)"/>
+         <property name="noteKey" expression="json-eval($.noteKey)"/>
+         <property name="length" expression="json-eval($.length)"/>
+         <property name="since" expression="json-eval($.since)"/>
+         <property name="index" expression="json-eval($.index)"/>
+         <property name="version" expression="json-eval($.version)"/>
+         <simplenote.init>
+            <authToken>{$ctx:authToken}</authToken>
+            <email>{$ctx:email}</email>
+            <apiUrl>{$ctx:apiUrl}</apiUrl>
+         </simplenote.init>
+         <switch source="get-property('transport','Action')">
+            <case regex="urn:getTag">
+               <simplenote.getTag>
+                  <name>{$ctx:name}</name>
+               </simplenote.getTag>
+            </case>
+            <case regex="urn:createTag">
+               <simplenote.createTag>
+                  <name>{$ctx:name}</name>
+                  <index>{$ctx:index}</index>
+                  <version>{$ctx:version}</version>
+               </simplenote.createTag>
+            </case>
+            <case regex="urn:createNote">
+               <simplenote.createNote>
+                  <content>{$ctx:content}</content>
+                  <deleted>{$ctx:deleted}</deleted>
+                  <createDate>{$ctx:createDate}</createDate>
+               </simplenote.createNote>
+            </case>
+            <case regex="urn:updateNote">
+               <simplenote.updateNote>
+                  <content>{$ctx:content}</content>
+                  <createDate>{$ctx:createDate}</createDate>
+                  <noteKey>{$ctx:noteKey}</noteKey>
+               </simplenote.updateNote>
+            </case>
+            <case regex="urn:getNote">
+               <simplenote.getNote>
+                  <noteKey>{$ctx:noteKey}</noteKey>
+               </simplenote.getNote>
+            </case>
+            <case regex="urn:listNoteIndexes">
+               <simplenote.listNoteIndexes>
+                  <length>{$ctx:length}</length>
+                  <since>{$ctx:since}</since>
+               </simplenote.listNoteIndexes>
+            </case>
+         </switch>
+         <respond/>
+      </inSequence>
+      <outSequence>
+         <log/>
+         <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>
+                                
