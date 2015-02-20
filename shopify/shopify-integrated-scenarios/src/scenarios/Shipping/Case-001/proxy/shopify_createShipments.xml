@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="shopify_createShipments" transports="https" statistics="disable"
+	trace="disable" startOnLoad="true">
+	<target>
+		<inSequence onError="faultHandlerSeq">
+
+			<!-- Shopify properties -->
+			<property name="shopifyApiUrl" expression="json-eval($.shopifyApiUrl)" />
+			<property name="shopifyAccessToken" expression="json-eval($.shopifyAccessToken)" />
+			<property name="shopifyFormat" value="xml" />
+			<property name="shopifyFulfillmentStatus" value="unshipped" />
+
+			<!-- Shippo Properties -->
+			<property name="shippoApiUrl" expression="json-eval($.shippoApiUrl)" />
+			<property name="shippoUsername" expression="json-eval($.shippoUsername)" />
+			<property name="shippoPassword" expression="json-eval($.shippoPassword)" />
+			<property name="shippoObjectPurpose" value="QUOTE" />
+			<property name="shippoAddressFromId" expression="json-eval($.shippoAddressFromId)" />
+			<property name="shippoParcelId" expression="json-eval($.shippoParcelId)" />
+
+
+			<!-- Common properties -->
+			<property name="index" value="0" scope="operation" />
+
+			<!-- Retrieve unfulfilled orders from Shopify -->
+			<shopify.init>
+				<accessToken>{$ctx:shopifyAccessToken}</accessToken>
+				<apiUrl>{$ctx:shopifyApiUrl}</apiUrl>
+				<format>{$ctx:shopifyFormat}</format>
+			</shopify.init>
+			<shopify.listOrders>
+				<updatedAfter>{$ctx:updatedAfter}</updatedAfter>
+				<limit>{$ctx:limit}</limit>
+				<updatedBefore>{$ctx:updatedBefore}</updatedBefore>
+				<sinceId>{$ctx:sinceId}</sinceId>
+				<createdAfter>{$ctx:createdAfter}</createdAfter>
+				<status>{$ctx:status}</status>
+				<page>{$ctx:page}</page>
+				<financialStatus>{$ctx:financialStatus}</financialStatus>
+				<fulfillmentStatus>{$ctx:shopifyFulfillmentStatus}</fulfillmentStatus>
+				<importedBefore>{$ctx:importedBefore}</importedBefore>
+				<createdBefore>{$ctx:createdBefore}</createdBefore>
+				<importedAfter>{$ctx:importedAfter}</importedAfter>
+				<fields>{$ctx:fields}</fields>
+			</shopify.listOrders>
+
+
+			<property name="shopifyListOrdersStatusCode" expression="$axis2:HTTP_SC" />
+			<!-- Checks the http status code for listOrders method to proceed -->
+			<filter source="get-property('shopifyListOrdersStatusCode') != 200" regex="true">
+				<then>
+					<!-- Error in listing Unfulfilled orders -->
+					<property name="message" expression="//errors" />
+					<property name="message" expression="fn:concat('Error: ', get-property('message'))" />
+
+					<!-- Response generator for listOrders error response -->
+					<call-template target="responseHandlerTemplate">
+						<with-param name="activity" value="shopify_listOrders" />
+						<with-param name="id" value="{$ctx:id}" />
+						<with-param name="status" value="Error" />
+						<with-param name="message" value="{$ctx:message}" />
+					</call-template>
+					<loopback />
+				</then>
+			</filter>
+
+			<property name="unfulfilledOrderCount" expression="count(//order)" scope="operation" />
+
+			<!-- Checks if there are Orders to be fulfilled, if not returns an error response to user -->
+			<filter xpath="0 = get-property('operation', 'unfulfilledOrderCount')">
+				<then>
+					<!-- Successful response -->
+					<call-template target="responseHandlerTemplate">
+						<with-param name="activity" value="shopify_listOrders" />
+						<with-param name="status" value="Skipped" />
+						<with-param name="message" value="There are no orders to be fulfilled" />
+					</call-template>
+					<loopback />
+				</then>
+			</filter>
+
+			<iterate id="candidatesIterator" expression="//order" sequential="true" continueParent="true"
+				preservePayload="true">
+				<target>
+					<sequence>
+
+						<property name="shopifyOrderId" expression="//order/id[@type='integer']/text()" />
+						<property name="shopifyCountry" expression="//shipping-address[@type='Address']/country-code/text()" />
+
+						<!-- Check the avaiability of the Shipping Address country to proceed, note that this is mandatory to crete the address_to 
+							in Shippo -->
+						<filter source="boolean(get-property('shopifyCountry'))" regex="true">
+							<else>
+								<!-- Missing country value in the shipping-address -->
+								<property name="message"
+									expression="fn:concat('Shipping address Country is missing for the order with order ID:', get-property('shopifyOrderId'), ', Order fulfillment failed')" />
+								<call-template target="responseHandlerTemplate">
+									<with-param name="activity" value="shopify_listOrders" />
+									<with-param name="status" value="Skipped" />
+									<with-param name="message" value="{$ctx:message}" />
+								</call-template>
+							</else>
+							<then>
+
+								<property name="shopifyAddressOne" expression="//shipping-address[@type='Address']/address1/text()" />
+								<property name="shopifyAddressTwo" expression="//shipping-address[@type='Address']/address2/text()" />
+								<property name="shopifyCity" expression="//shipping-address[@type='Address']/city/text()" />
+								<property name="shopifyCompany" expression="//shipping-address[@type='Address']/company/text()" />
+								<property name="shopifyPhone" expression="//shipping-address[@type='Address']/phone/text()" />
+								<property name="shopifyProvince" expression="//shipping-address[@type='Address']/province/text()" />
+								<property name="shopifyZip" expression="//shipping-address[@type='Address']/zip/text()" />
+								<property name="shopifyName" expression="//shipping-address[@type='Address']/name/text()" />
+
+								<call-template target="shopify-createShipmentsInShippo">
+									(
+									<with-param name="shopifyApiUrl" value="{$ctx:shopifyApiUrl}" />
+									|
+									<with-param name="shopifyAccessToken" value="{$ctx:shopifyAccessToken}" />
+									|
+									<with-param name="shopifyOrderId" value="{$ctx:shopifyOrderId}" />
+									|
+									<with-param name="shopifyAddressOne" value="{$ctx:shopifyAddressOne}" />
+									|
+									<with-param name="shopifyAddressTwo" value="{$ctx:shopifyAddressTwo}" />
+									|
+									<with-param name="shopifyCity" value="{$ctx:shopifyCity}" />
+									|
+									<with-param name="shopifyCompany" value="{$ctx:shopifyCompany}" />
+									|
+									<with-param name="shopifyPhone" value="{$ctx:shopifyPhone}" />
+									|
+									<with-param name="shopifyProvince" value="{$ctx:shopifyProvince}" />
+									|
+									<with-param name="shopifyZip" value="{$ctx:shopifyZip}" />
+									|
+									<with-param name="shopifyName" value="{$ctx:shopifyName}" />
+									|
+									<with-param name="shopifyCountry" value="{$ctx:shopifyCountry}" />
+									|
+									<with-param name="shippoApiUrl" value="{$ctx:shippoApiUrl}" />
+									|
+									<with-param name="shippoUsername" value="{$ctx:shippoUsername}" />
+									|
+									<with-param name="shippoPassword" value="{$ctx:shippoPassword}" />
+									|
+									<with-param name="shippoAddressFromId" value="{$ctx:shippoAddressFromId}" />
+									|
+									<with-param name="shippoParcelId" value="{$ctx:shippoParcelId}" />
+									) *
+								</call-template>
+							</then>
+						</filter>
+						<!-- END: Check the availability of the Shipping Address country -->
+
+						<property name="index" expression="get-property('operation','index') + 1" scope="operation" />
+					</sequence>
+				</target>
+			</iterate>
+
+
+			<filter xpath="get-property('operation', 'index') = get-property('operation', 'unfulfilledOrderCount')">
+				<then>
+					<loopback />
+				</then>
+			</filter>
+
+		</inSequence>
+		<outSequence>
+			<property name="messageType" value="application/json" scope="axis2" />
+
+			<!-- Generate the chained response of all the API calls in createShipment -->
+			<payloadFactory media-type="json">
+				<format>
+					{
+					"Response":{
+					"process":"shopify-createShipments",
+					"activityResponse":[$1]
+					}
+					}
+				</format>
+				<args>
+					<arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+				</args>
+			</payloadFactory>
+			<send />
+		</outSequence>
+	</target>
+	<description />
+</proxy>       

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="listOrders" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="limit" description="Amount of results" />
+	<parameter name="page" description="page to show" />
+	<parameter name="sinceId" description="An order identifier, response will only contain the orders having identifiers higher than this" />
+	<parameter name="createdAfter" description="Show orders created after the specified date (format:2008-12-31 03:00)" />
+	<parameter name="createdBefore" description="Show orders created before the specified date (format:2008-12-31 03:00)" />
+	<parameter name="updatedAfter" description="Show orders last updated after the specified date (format:2008-12-31 03:00)" />
+	<parameter name="updatedBefore" description="Show orders last updated before the specified date (format:2008-12-31 03:00)" />
+	<parameter name="importedAfter" description="Show orders imported after the specified date (format:2008-12-31 03:00)" />
+	<parameter name="importedBefore" description="Show orders imported before the specified date (format:2008-12-31 03:00)" />
+	<parameter name="status" description="The status of the order" />
+	<parameter name="financialStatus" description="The financial Status of the order" />
+	<parameter name="fulfillmentStatus" description="The fulfillment Status of the order" />
+	<parameter name="fields" description="comma-separated list of fields to include in the response" />
+	<sequence>
+		<property name="uri.var.limit" expression="$func:limit" />
+		<property name="uri.var.page" expression="$func:page" />
+		<property name="uri.var.sinceId" expression="$func:sinceId" />
+		<property name="uri.var.createdAfter" expression="$func:createdAfter" />
+		<property name="uri.var.createdBefore" expression="$func:createdBefore" />
+		<property name="uri.var.updatedAfter" expression="$func:updatedAfter" />
+		<property name="uri.var.updatedBefore" expression="$func:updatedBefore" />
+		<property name="uri.var.importedAfter" expression="$func:importedAfter" />
+		<property name="uri.var.importedBefore" expression="$func:importedBefore" />
+		<property name="uri.var.status" expression="$func:status" />
+		<property name="uri.var.financialStatus" expression="$func:financialStatus" />
+		<property name="uri.var.fulfillmentStatus" expression="$func:fulfillmentStatus" />
+		<property name="uri.var.fields" expression="$func:fields" />
+
+		<script language="js">
+	<![CDATA[
+				// optional url param variables
+				var limit = mc.getProperty("uri.var.limit");
+				var page = mc.getProperty("uri.var.page");
+				var sinceId = mc.getProperty("uri.var.sinceId");
+				var createdAfter = mc.getProperty("uri.var.createdAfter");
+				var createdBefore = mc.getProperty("uri.var.createdBefore");
+				var updatedAfter= mc.getProperty("uri.var.updatedAfter");
+				var updatedBefore = mc.getProperty("uri.var.updatedBefore");
+				var importedAfter = mc.getProperty("uri.var.importedAfter");
+				var importedBefore = mc.getProperty("uri.var.importedBefore");
+				var status = mc.getProperty("uri.var.status");
+				var financialStatus= mc.getProperty("uri.var.financialStatus");
+				var fulfillmentStatus = mc.getProperty("uri.var.fulfillmentStatus");
+				var fields = mc.getProperty("uri.var.fields");
+				
+				var uriParams = '';
+				
+				if (limit != null && limit != "") {
+					uriParams = 'limit=' + limit +'&';
+				}
+				
+				if (page != null && page != "") {
+					uriParams += 'page=' + page +'&';
+				}
+				
+				if (sinceId != null && sinceId != "") {
+					uriParams += 'since_id=' + sinceId +'&';
+				}
+				
+				if (createdAfter != null && createdAfter != "") {
+					uriParams += 'created_at_min=' + encodeURIComponent(createdAfter) +'&';
+				}
+				
+				if (createdBefore != null && createdBefore != "") {
+					uriParams += 'created_at_max=' + encodeURIComponent(createdBefore) +'&';
+				}
+				
+				if (updatedAfter != null && updatedAfter != "") {
+					uriParams += 'updated_at_min=' + encodeURIComponent(updatedAfter) +'&';
+				}
+				
+				if (updatedBefore != null && updatedBefore != "") {
+					uriParams += 'updated_at_max=' + encodeURIComponent(updatedBefore) +'&';
+				}
+				
+				if (importedAfter != null && importedAfter != "") {
+					uriParams += 'processed_at_min=' + encodeURIComponent(importedAfter) +'&';
+				}
+				
+				if (importedBefore != null && importedBefore != "") {
+					uriParams += 'processed_at_max=' + encodeURIComponent(importedBefore) +'&';
+				}
+				
+				if (status != null && status != "") {
+					uriParams += 'status=' + encodeURIComponent(status) +'&';
+				}
+				
+				if (financialStatus != null && financialStatus != "") {
+					uriParams += 'financial_status=' + encodeURIComponent(financialStatus) +'&';
+				}
+				
+				if (fulfillmentStatus != null && fulfillmentStatus != "") {
+					uriParams += 'fulfillment_status=' + encodeURIComponent(fulfillmentStatus) +'&';
+				}
+				
+				if (fields != null && fields != "") {
+					uriParams += 'fields=' + encodeURIComponent(fields) +'&';
+				}
+				
+				if (uriParams != '') {
+					mc.setProperty("uri.var.uriParams", '?' + uriParams.substring(0, uriParams.length-1));
+				}
+				
+				]]>
+
+		</script>
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}/admin/orders.{uri.var.format}{uri.var.uriParams}" />
+			</endpoint>
+		</call>
+		<!-- Removing custom headers -->
+		<header name="WWW-Authenticate" action="remove" scope="transport" />
+		<header name="X-XSS-Protection" action="remove" scope="transport" />
+		<header name="X-UA-Compatible" action="remove" scope="transport" />
+		<header name="X-Request-Id" action="remove" scope="transport" />
+		<header name="X-Stats-ApiClientId" action="remove" scope="transport" />
+		<header name="X-Content-Type-Options" action="remove" scope="transport" />
+		<header name="X-Stats-ApiPermissionId" action="remove" scope="transport" />
+		<header name="Status" action="remove" scope="transport" />
+		<header name="X-Frame-Options" action="remove" scope="transport" />
+		<header name="X-Stats-UserId" action="remove" scope="transport" />
+		<header name="X-ShopId" action="remove" scope="transport" />
+		<header name="Vary" action="remove" scope="transport" />
+		<header name="HTTP_X_SHOPIFY_SHOP_API_CALL_LIMIT" action="remove" scope="transport" />
+		<header name="X-Served-With" action="remove" scope="transport" />
+		<header name="X-ShardId" action="remove" scope="transport" />
+		<header name="X-Shopify-Shop-Api-Call-Limit" action="remove" scope="transport" />
+		<header name="X-Stats-Validation-Errors" action="remove" scope="transport" />
+	</sequence>
+</template>

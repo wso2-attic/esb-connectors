@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+	This template responsible for creating a draft campaign in mailchimp and send created campaign immediately. 
+	Then creating a page post in facebook according to given api key and access token of mailchimp & facebook with other parameters.
+ -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="shopify-publishProductDetailsOnSocialMedia">
+
+	<!-- Mailchimp related template parameters -->
+	<parameter name="mcApiUrl" description="Base endpoint URL of MailChimp API." />
+	<parameter name="mcApiKey" description="API Authentication Key to access the MailChimp API." />
+	<parameter name="mcFormat" description="Format of the Response expected from the API. It can be either JSON or XML." />
+	<parameter name="mcType" description="The Campaign Type to create - one of 'regular', 'plaintext', 'absplit', 'ss', 'auto'." />
+	<parameter name="mcOptions" description="A struct of the standard options for this campaign." />
+	<parameter name="mcContent" description="The content for this campaign." />
+	<parameter name="mcSegmentOptions" description="Do segmentation within the Campaign." />
+	<parameter name="mcTypeOptions" description="Various extra options based on the campaign type." />
+
+	<!-- Facebook related template parameters -->
+	<parameter name="fbApiUrl" description="API url of Facebook." />
+	<parameter name="fbAccessToken" description="Access token which provides temporary, secure access to Facebook APIs." />
+	<parameter name="fbPageId" description="Unique identifier of the page." />
+	<parameter name="fbMessage" description="The main body of the post." />
+	<parameter name="fbLink" description="The URL of a link to attach to the post." />
+	<parameter name="fbPicture" description="Determines the preview image associated with the link." />
+	<parameter name="fbName" description="Overwrites the title of the link preview." />
+	<parameter name="fbCaption" description="Overwrites the caption under the title in the link preview." />
+	<parameter name="fbDescription" description="Overwrites the description in the link preview." />
+	<parameter name="fbActions" description="The action links attached to the post." />
+	<parameter name="fbPlace" description="Page ID of a location associated with this post." />
+	<parameter name="fbTags" description="List of user IDs of people tagged in this post." />
+	<parameter name="fbObjectAttachment" description="Facebook ID for an existing picture." />
+	<parameter name="fbTargeting" description="Object that limits the audience for this content." />
+	<parameter name="fbFeedTargeting" description="Object that controls news feed targeting for this content." />
+	<parameter name="fbPublished" description="Whether a story is shown about this newly published object." />
+	<parameter name="fbScheduledPublishTime" description="Time when this post should go live." />
+	<parameter name="fbBackdatedTime" description="Specifies a time in the past to back-date this post to." />
+	<parameter name="fbBackdatedTimeGranularity" description="Controls the display of how a backdated post appears." />
+
+    <sequence>
+
+		<!-- Mailchimp related template properties -->
+		<property name="uri.var.mcApiUrl" expression="$func:mcApiUrl"/>
+		<property name="uri.var.mcApiKey" expression="$func:mcApiKey"/>
+		<property name="uri.var.mcFormat" expression="$func:mcFormat"/>
+		<property name="uri.var.mcType" expression="$func:mcType"/>
+		<property name="uri.var.mcOptions" expression="$func:mcOptions"/>
+		<property name="uri.var.mcContent" expression="$func:mcContent"/>
+		<property name="uri.var.mcSegmentOptions" expression="$func:mcSegmentOptions"/>
+		<property name="uri.var.mcTypeOptions" expression="$func:mcTypeOptions"/>
+		
+		<!-- Facebook related template properties -->
+		<property name="uri.var.fbApiUrl" expression="$func:fbApiUrl" />
+		<property name="uri.var.fbAccessToken" expression="$func:fbAccessToken" />
+		<property name="uri.var.fbPageId" expression="$func:fbPageId" />
+		<property name="uri.var.fbMessage" expression="$func:fbMessage" />
+		<property name="uri.var.fbLink" expression="$func:fbLink" />
+		<property name="uri.var.fbPicture" expression="$func:fbPicture" />
+		<property name="uri.var.fbName" expression="$func:fbName" />
+		<property name="uri.var.fbCaption" expression="$func:fbCaption" />
+		<property name="uri.var.fbDescription" expression="$func:fbDescription" />
+		<property name="uri.var.fbActions" expression="$func:fbActions" />
+		<property name="uri.var.fbPlace" expression="$func:fbPlace" />
+		<property name="uri.var.fbTags" expression="$func:fbTags" />
+		<property name="uri.var.fbObjectAttachment" expression="$func:fbObjectAttachment" />
+		<property name="uri.var.fbTargeting" expression="$func:fbTargeting" />
+		<property name="uri.var.fbFeedTargeting" expression="$func:fbFeedTargeting" />
+		<property name="uri.var.fbPublished" expression="$func:fbPublished" />
+		<property name="uri.var.fbScheduledPublishTime" expression="$func:fbScheduledPublishTime" />
+		<property name="uri.var.fbBackdatedTime" expression="$func:fbBackdatedTime" />
+		<property name="uri.var.fbBackdatedTimeGranularity" expression="$func:fbBackdatedTimeGranularity" />
+
+		<property name="messageType" value="application/json" scope="axis2"/>
+
+		<!-- START: Checking mailchimp api key is provided to proceed with mailchimp create draft campaign call -->
+		<filter source="boolean(get-property('uri.var.mcApiKey'))" regex="true">
+            <then>
+
+				<!-- Calling the mailchimp createDraftCampaign method to create a draft campaign -->
+				<mailchimp.init>
+	                <apiUrl>{$ctx:uri.var.mcApiUrl}</apiUrl>
+	                <apiKey>{$ctx:uri.var.mcApiKey}</apiKey>
+	                <format>{$ctx:uri.var.mcFormat}</format>
+	            </mailchimp.init>
+	            <mailchimp.createDraftCampaign>
+	                <type>{$ctx:uri.var.mcType}</type>
+	                <options>{$ctx:uri.var.mcOptions}</options>
+	                <content>{$ctx:uri.var.mcContent}</content>
+	                <segmentOptions>{$ctx:uri.var.mcSegmentOptions}</segmentOptions>
+	                <typeOptions>{$ctx:uri.var.mcTypeOptions}</typeOptions>
+	            </mailchimp.createDraftCampaign>
+
+				<!-- Getting the created campaign id -->
+				<property name="uri.var.campaignId" expression="json-eval($.id)" />
+
+				<property name="idParam" expression="fn:concat('{&quot;campaign_id&quot;:&quot;',get-property('uri.var.campaignId'),'&quot;}')" />
+				
+				<!-- Getting the created campaign archived URL -->
+				<property name="uri.var.archivedUrl" expression="json-eval($.archive_url_long)" />
+							
+				<!-- START: Checking draft campaign creation was successful by returning created campaign id, then proceed with send draft campaign -->
+				<filter source="boolean(get-property('uri.var.campaignId'))" regex="true">
+					<then>
+					
+						<!-- Calling the mailchimp sendCampaign method to send a created draft campaign -->
+						<mailchimp.init>
+			                <apiUrl>{$ctx:uri.var.mcApiUrl}</apiUrl>
+			                <apiKey>{$ctx:uri.var.mcApiKey}</apiKey>
+			                <format>{$ctx:uri.var.mcFormat}</format>
+			            </mailchimp.init>
+			            <mailchimp.sendCampaign>
+			                <campaignId>{$ctx:uri.var.campaignId}</campaignId>
+			            </mailchimp.sendCampaign>
+
+			            <!-- Getting the response status of send campaign of mailchimp -->
+						<property name="completeStatus" expression="json-eval($.complete)" />
+
+						<!-- START: Checking draft campaign send was successful then give successful message, otherwise returned error message -->
+						<filter source="boolean(get-property('completeStatus'))" regex="true">
+							<then>
+							
+								<property name="status" value="Success" />
+								<property name="message" value="Draft campaign successfully created and sent." />
+								
+								<!-- Calling the response handler template to give successful message of campaign creation and send campaign immediately -->
+								<call-template target="responseHandlerTemplate">
+									<with-param name="activity" value="mailchimp_createAndSendCampaign" />
+									<with-param name="id" value="{$ctx:idParam}" />
+									<with-param name="status" value="{$ctx:status}" />
+									<with-param name="message" value="{$ctx:message}" />
+								</call-template>
+								
+							</then>
+							<else>
+							
+								<property name="messageType" value="application/json" scope="axis2"/>
+								<property name="message" expression="json-eval($.)" />
+
+								<!-- Response generator for create and send campaign error response -->
+								<call-template target="responseHandlerTemplate">
+									<with-param name="activity" value="mailchimp_createAndSendCampaign" />
+									<with-param name="status" value="Error" />
+									<with-param name="message" value="{$ctx:message}" />
+								</call-template>
+
+								<loopback/>
+								
+							</else>
+						</filter>
+						<!-- END: Checking created draft campaign send was successful -->
+						
+					</then>
+					<else>				
+						<property name="messageType" value="application/json" scope="axis2"/>
+						<property name="message" expression="json-eval($.)" />
+
+						<!-- Response generator for create and send campaign error response -->
+						<call-template target="responseHandlerTemplate">
+							<with-param name="activity" value="mailchimp_createAndSendCampaign" />
+							<with-param name="status" value="Error" />
+							<with-param name="message" value="{$ctx:message}" />
+						</call-template>
+
+						<loopback/>
+					</else>
+				</filter>
+				<!-- END: Checking draft campaign creation was successful by returning created campaign id -->
+            </then>
+		</filter>
+		<!-- END: Checking mailchimp api key is provided -->
+
+		<!-- START: Checking facebook access token is available proceed with facebook page post creation call -->
+		<filter source="boolean(get-property('uri.var.fbAccessToken'))" regex="true">
+            <then>
+
+            	<!-- Property to construct the facebook message body for publish page post -->
+            	<property name="uri.var.fbMessage" expression="fn:concat('If interested enter \&quot;',get-property('uri.var.campaignId'), '\&quot; as your comment. We will get back to you soon. For more details click below.')" />
+
+            	<!-- Property to construct the facebook message link for publish page post -->
+				<property name="uri.var.fbLink" expression="get-property('uri.var.archivedUrl')" />
+
+				<!-- Calling the facebook publishPagePost method to create a page post -->
+				<facebook.init>
+		            <apiUrl>{$ctx:uri.var.fbApiUrl}</apiUrl>
+		            <accessToken>{$ctx:uri.var.fbAccessToken}</accessToken>
+		        </facebook.init>
+		        <facebook.publishPagePost>
+		            <pageId>{$ctx:uri.var.fbPageId}</pageId>
+		            <message>{$ctx:uri.var.fbMessage}</message>
+		            <link>{$ctx:uri.var.fbLink}</link>
+		            <picture>{$ctx:uri.var.fbPicture}</picture>
+		            <name>{$ctx:uri.var.fbName}</name>
+		            <caption>{$ctx:uri.var.fbCaption}</caption>
+		            <description>{$ctx:uri.var.fbDescription}</description>
+		            <actions>{$ctx:uri.var.fbActions}</actions>
+		            <place>{$ctx:uri.var.fbPlace}</place>
+		            <tags>{$ctx:uri.var.fbTags}</tags>
+		            <objectAttachment>{$ctx:uri.var.fbObjectAttachment}</objectAttachment>
+		            <targeting>{$ctx:uri.var.fbTargeting}</targeting>
+		            <feedTargeting>{$ctx:uri.var.fbFeedTargeting}</feedTargeting>
+		            <published>{$ctx:uri.var.fbPublished}</published>
+		            <scheduledPublishTime>{$ctx:uri.var.fbScheduledPublishTime}</scheduledPublishTime>
+		            <backdatedTime>{$ctx:uri.var.fbBackdatedTime}</backdatedTime>
+		            <backdatedTimeGranularity>{$ctx:uri.var.fbBackdatedTimeGranularity}</backdatedTimeGranularity>
+		        </facebook.publishPagePost>
+
+				<!-- Getting the created page post id -->
+				<property name="fbPostId" expression="json-eval($.id)" />
+				
+				<property name="idParam" expression="fn:concat('{&quot;post_id&quot;:&quot;',get-property('fbPostId'),'&quot;}')" />
+				
+				<!-- START: Checking availability of created post id construct the custom messages -->
+				<filter source="boolean(get-property('fbPostId'))" regex="true">
+					<then>
+					
+						<property name="status" value="Success" />
+						<property name="message" value="Facebook page post was successfully created." />
+						
+					</then>
+					<else>
+						
+						<property name="messageType" value="application/json" scope="axis2"/>
+						<property name="idParam" value="null" />
+						<property name="status" value="Error" />
+						<property name="message" expression="json-eval($.)" />
+						
+					</else>
+				</filter>
+				<!-- END: Checking availability of created post id -->
+				
+            </then>
+		</filter>
+		<!-- END: Checking facebook access token is available -->
+
+    </sequence>
+</template>

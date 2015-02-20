@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Following template first creates the receiver Address in Shippo using the Shopify Order's Shipping address details. 
+	Then fulfilles the order and creates a Shipment in Shippo -->
+<template name="shopify-createShipmentsInShippo" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Shopify parameters -->
+	<parameter name="shopifyApiUrl" description="The apiUrl of Shopify" />
+	<parameter name="shopifyAccessToken" description="Encrypted alphanumeric string to authenticate the Shopify credentials" />
+	<parameter name="shopifyOrderId" description="Shopify Order Identifier to be fulfilled" />
+	<parameter name="shopifyAddressOne" description="Shipping address one of the order" />
+	<parameter name="shopifyAddressTwo" description="Shipping address two of the order" />
+	<parameter name="shopifyCity" description="City of the Shipping address" />
+	<parameter name="shopifyCompany" description="Company of the Shipping address" />
+	<parameter name="shopifyPhone" description="Phone number of the Shipping address" />
+	<parameter name="shopifyProvince" description="Province of the Shipping address" />
+	<parameter name="shopifyZip" description="Zip code of the Shipping address" />
+	<parameter name="shopifyName" description="Name on the Shipping address" />
+	<parameter name="shopifyCountry" description="Country of the Shipping address" />
+
+	<!-- Shippo parameters -->
+
+	<parameter name="shippoApiUrl" description="Shippo Api Url" />
+	<parameter name="shippoUsername" description="Shippo Username" />
+	<parameter name="shippoPassword" description="Shippo password" />
+	<parameter name="shippoAddressFromId" description="Shippo, sender address identifier" />
+	<parameter name="shippoParcelId" description="Shippo parcel Identifier of the " />
+
+	<sequence>
+		<!-- Shopify properties -->
+		<property name="uri.var.shopifyApiUrl" expression="$func:shopifyApiUrl" />
+		<property name="uri.var.shopifyAccessToken" expression="$func:shopifyAccessToken" />
+		<property name="uri.var.shopifyOrderId" expression="$func:shopifyOrderId" />
+		<property name="uri.var.shopifyAddressOne" expression="$func:shopifyAddressOne" />
+		<property name="uri.var.shopifyAddressTwo" expression="$func:shopifyAddressTwo" />
+		<property name="uri.var.shopifyCity" expression="$func:shopifyCity" />
+		<property name="uri.var.shopifyCompany" expression="$func:shopifyCompany" />
+		<property name="uri.var.shopifyPhone" expression="$func:shopifyPhone" />
+		<property name="uri.var.shopifyProvince" expression="$func:shopifyProvince" />
+		<property name="uri.var.shopifyZip" expression="$func:shopifyZip" />
+		<property name="uri.var.shopifyName" expression="$func:shopifyName" />
+		<property name="uri.var.shopifyCountry" expression="$func:shopifyCountry" />
+		<property name="uri.var.shopifyFormat" value="json" />
+
+		<!-- Shippo properties -->
+		<property name="uri.var.shippoApiUrl" expression="$func:shippoApiUrl" />
+		<property name="uri.var.shippoUsername" expression="$func:shippoUsername" />
+		<property name="uri.var.shippoPassword" expression="$func:shippoPassword" />
+		<property name="uri.var.shippoAddressFromId" expression="$func:shippoAddressFromId" />
+		<property name="uri.var.shippoParcelId" expression="$func:shippoParcelId" />
+		<property name="uri.var.shippoObjectPurpose" value="QUOTE" />
+		<property name="uri.var.shippoSubmissionType" value="DROPOFF" />
+
+
+		<!-- Remove shopify response header information -->
+		<header name="Connection" scope="transport" action="remove" />
+		<header name="Content-Encoding" scope="transport" action="remove" />
+		<header name="Content-Type" scope="transport" action="remove" />
+		<header name="Date" scope="transport" action="remove" />
+		<header name="P3P" scope="transport" action="remove" />
+		<header name="Server" scope="transport" action="remove" />
+		<header name="Status" scope="transport" action="remove" />
+		<header name="Transfer-Encoding" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+		<header name="X-Frame-Option" scope="transport" action="remove" />
+		<header name="X-Request-Id" scope="transport" action="remove" />
+		<header name="X-Served-With" scope="transport" action="remove" />
+		<header name="X-ShardId" scope="transport" action="remove" />
+		<header name="X-ShopId" scope="transport" action="remove" />
+		<header name="X-Stats-UserId" scope="transport" action="remove" />
+		<header name="X-UA-Compatible" scope="transport" action="remove" />
+		<header name="X-XSS-Protection" scope="transport" action="remove" />
+
+		<property name="messageType" value="application/json" scope="axis2" />
+
+		<shippo.init>
+			<apiUrl>{$ctx:uri.var.shippoApiUrl}</apiUrl>
+			<username>{$ctx:uri.var.shippoUsername}</username>
+			<password>{$ctx:uri.var.shippoPassword}</password>
+		</shippo.init>
+		<shippo.createAddress>
+			<objectPurpose>{$ctx:uri.var.shippoObjectPurpose}</objectPurpose>
+			<streetOne>{$ctx:uri.var.shopifyAddressOne}</streetOne>
+			<streetTwo>{$ctx:uri.var.shopifyAddressTwo}</streetTwo>
+			<city>{$ctx:uri.var.shopifyCity}</city>
+			<company>{$ctx:uri.var.shopifyCompany}</company>
+			<phone>{$ctx:uri.var.shopifyPhone}</phone>
+			<state>{$ctx:uri.var.shopifyProvince}</state>
+			<zipCode>{$ctx:uri.var.shopifyZip}</zipCode>
+			<name>{$ctx:uri.var.shopifyName}</name>
+			<country>{$ctx:uri.var.shopifyCountry}</country>
+			<streetNo>{$ctx:streetNo}</streetNo>
+			<email>{$ctx:email}</email>
+			<metadata>{$ctx:metadata}</metadata>
+		</shippo.createAddress>
+
+		<property name="uri.var.shippoAddressToId" expression="json-eval($.object_id)" />
+
+		<!-- Checks the successful createion of the receive address to proceed with createShipment -->
+		<filter source="boolean(get-property('uri.var.shippoAddressToId'))" regex="true">
+			<else>
+				<!-- Error in creating the receive address -->
+				<property name="uri.var.shippoCreteAddressErrorMessage" expression="json-eval($)" />
+				<script language="js">
+			         <![CDATA[
+			         	//Replaces the Double quotes to maintain valid JSON responce
+			         	var shippoCreteAddressErrorMessage = mc.getProperty('uri.var.shippoCreteAddressErrorMessage');
+			         	mc.setProperty('uri.var.shippoCreteAddressErrorMessage', shippoCreteAddressErrorMessage.replace('"', '\\"'));
+			          ]]>
+				</script>
+
+				<property name="uri.var.activity" value="shippo_createAddress" />
+				<property name="uri.var.id" value="" />
+				<property name="uri.var.status" value="Error" />
+				<property name="uri.var.message"
+					expression="fn:concat('Could not create the receive address of the shipment, Error: ', get-property('uri.var.shippoCreteAddressErrorMessage'))" />
+			</else>
+			<then>
+				<!-- Successfully created the receive address -->
+				<!-- Creates the shippo address Id as the tracking number -->
+				<property name="uri.var.shopifyFulfillment"
+					expression="fn:concat('{&quot;tracking_number&quot;: &quot;', get-property('uri.var.shippoAddressToId'), '&quot;, &quot;notify_customer&quot;: &quot;', 'true', '&quot;}')" />
+
+				<!-- Create fulfillment in Shopify -->
+				<shopify.init>
+					<accessToken>{$ctx:uri.var.shopifyAccessToken}</accessToken>
+					<apiUrl>{$ctx:uri.var.shopifyApiUrl}</apiUrl>
+					<format>{$ctx:uri.var.shopifyFormat}</format>
+				</shopify.init>
+				<shopify.createFulfillment>
+					<fulfillment>{$ctx:uri.var.shopifyFulfillment}</fulfillment>
+					<orderId>{$ctx:uri.var.shopifyOrderId}</orderId>
+				</shopify.createFulfillment>
+
+				<property name="uri.var.shopifyFulfillmentId" expression="json-eval($.fulfillment.id)" />
+
+				<!-- Check the availability of the fulfillment identifier to proceed -->
+				<filter source="boolean(get-property('uri.var.shopifyFulfillmentId'))" regex="true">
+					<else>
+						<!-- Error in fulfilling the Order -->
+						<property name="uri.var.activity" value="shopify_createFulfillment" />
+						<property name="uri.var.status" value="Error" />
+						<property name="uri.var.shopifyFulfillmentError" expression="json-eval($..errors[0])" />
+						<property name="uri.var.message"
+							expression="fn:concat('Could not fulfill the Shopify Order with Order ID:', get-property('uri.var.shopifyOrderId'), get-property('uri.var.shopifyFulfillmentError'))" />
+					</else>
+					<then>
+						<!-- Successfully fulfilled the order -->
+						<property name="uri.var.id" expression="get-property('uri.var.shopifyFulfillmentId')" />
+						<property name="uri.var.message"
+							expression="fn:concat('Successfully fulfilled the Shopify order with Order ID:', get-property('uri.var.shopifyOrderId'))" />
+
+						<!-- Response generator for Shopify createFulfillment -->
+						<call-template target="responseHandlerTemplate">
+							<with-param name="activity" value="shopify_createFulfillment" />
+							<with-param name="id" value="{$ctx:uri.var.id}" />
+							<with-param name="status" value="Success" />
+							<with-param name="message" value="{$ctx:uri.var.message}" />
+						</call-template>
+
+						<!-- Create Shipment in Shippo -->
+						<shippo.init>
+							<apiUrl>{$ctx:uri.var.shippoApiUrl}</apiUrl>
+							<username>{$ctx:uri.var.shippoUsername}</username>
+							<password>{$ctx:uri.var.shippoPassword}</password>
+						</shippo.init>
+						<shippo.createShipment>
+							<objectPurpose>{$ctx:uri.var.shippoObjectPurpose}</objectPurpose>
+							<addressFrom>{$ctx:uri.var.shippoAddressFromId}</addressFrom>
+							<addressTo>{$ctx:uri.var.shippoAddressToId}</addressTo>
+							<parcel>{$ctx:uri.var.shippoParcelId}</parcel>
+							<submissionType>{$ctx:uri.var.shippoSubmissionType}</submissionType>
+							<referenceOne>{$ctx:uri.var.shopifyOrderId}</referenceOne>
+							<extra>{$ctx:uri.var.shippoExtra}</extra>
+							<customsDeclaration>{$ctx:uri.var.shippoCustomsDeclaration}</customsDeclaration>
+							<submissionDate>{$ctx:uri.var.shippoSubmissionDate}</submissionDate>
+							<insuranceAmount>{$ctx:uri.var.shippoInsuranceAmount}</insuranceAmount>
+							<addressReturn>{$ctx:uri.var.shippoAddressReturn}</addressReturn>
+							<insuranceCurrency>{$ctx:uri.var.shippoInsuranceCurrency}</insuranceCurrency>
+							<metadata>{$ctx:uri.var.shippoMetadata}</metadata>
+							<referenceTwo>{$ctx:uri.var.shippoReferenceTwo}</referenceTwo>
+						</shippo.createShipment>
+
+						<property name="uri.var.shippoShipmentId" expression="json-eval($.object_id)" />
+
+						<filter source="boolean(get-property('uri.var.shippoShipmentId'))" regex="true">
+							<else>
+								<!-- Error in creating the Shipment in Shippo -->
+								<property name="uri.var.shippoCreteShipmentErrorMessage" expression="json-eval($)" />
+
+								<script language="js">
+							         <![CDATA[
+							         	//Replaces the Double quotes to maintain valid JSON responce
+							         	var shippoCreteShipmentErrorMessage = mc.getProperty('uri.var.shippoCreteShipmentErrorMessage');
+							         	mc.setProperty('uri.var.shippoCreteShipmentErrorMessage', shippoCreteShipmentErrorMessage.replace('"', '\\"'));
+							          ]]>
+								</script>
+								<property name="uri.var.activity" value="shippo_createShipment" />
+								<property name="uri.var.id" value="null" />
+								<property name="uri.var.status" value="Error" />
+								<property name="uri.var.message"
+									expression="fn:concat('Could not create the shipment of the shipment, Error: ', get-property('uri.var.shippoCreteShipmentErrorMessage'))" />
+							</else>
+							<then>
+								<!-- Successfully created the Shipment in Shippo -->
+								<property name="uri.var.activity" value="shippo_createShipment" />
+								<property name="uri.var.id" expression="get-property('uri.var.shippoShipmentId')" />
+								<property name="uri.var.status" value="Success" />
+								<property name="uri.var.message" value="Successfully created the Shipment in Shippo" />
+							</then>
+						</filter>
+						<!-- END: createShipment in Shippo -->
+
+					</then>
+					<!-- END: Check the successful creation of Shopify fulfillment -->
+
+				</filter>
+				<!-- END: Check Shopify createFulfillment -->
+
+			</then>
+			<!-- END: Successful creation of receiveAddress -->
+
+		</filter>
+		<!-- END: Check the successful creation of Shippo Address -->
+
+		<!-- Response generator -->
+		<call-template target="responseHandlerTemplate">
+			<with-param name="activity" value="{$ctx:uri.var.activity}" />
+			<with-param name="id" value="{$ctx:uri.var.id}" />
+			<with-param name="status" value="{$ctx:uri.var.status}" />
+			<with-param name="message" value="{$ctx:uri.var.message}" />
+		</call-template>
+
+
+	</sequence>
+</template>

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="listFulfillments" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="orderId" description="The orderId" />
+	<parameter name="limit" description="The limit specifies the amount of results, defaults to 50" />
+	<parameter name="page" description="The page specifies the page to show, defaults to 1" />
+	<parameter name="sinceId" description="A fulfillment Identifier, response will only list the fulfillments having Identifiers higher than this." />
+	<parameter name="createdAfter" description="Shows customers created after the specified date (format: 2008-12-31 03:00)" />
+	<parameter name="createdBefore" description="Shows customers created before the specified date (format: 2008-12-31 03:00)" />
+	<parameter name="updatedAfter" description="Shows customers last updated after the specified date(format: 2008-12-31 03:00)" />
+	<parameter name="updatedBefore" description="Shows customers last updated before the specified date (format: 2008-12-31 03:00)" />
+	<parameter name="fields" description="Comma-separated list of fields which specifies the response fields" />
+	<sequence>
+		<property name="uri.var.orderId" expression="$func:orderId" />
+		<property name="uri.var.limit" expression="$func:limit" />
+		<property name="uri.var.page" expression="$func:page" />
+		<property name="uri.var.sinceId" expression="$func:sinceId" />
+		<property name="uri.var.createdAfter" expression="$func:createdAfter" />
+		<property name="uri.var.createdBefore" expression="$func:createdBefore" />
+		<property name="uri.var.updatedAfter" expression="$func:updatedAfter" />
+		<property name="uri.var.updatedBefore" expression="$func:updatedBefore" />
+		<property name="uri.var.fields" expression="$func:fields" />
+
+		<script language="js">
+			<![CDATA[
+			
+				// optional url param variables
+				var limit = mc.getProperty('uri.var.limit');
+				var page = mc.getProperty('uri.var.page');
+				var sinceId  = mc.getProperty('uri.var.sinceId');
+				var createdAfter  = mc.getProperty('uri.var.createdAfter');
+				var createdBefore  = mc.getProperty('uri.var.createdBefore');
+				var updatedAfter  = mc.getProperty('uri.var.updatedAfter');
+				var updatedBefore  = mc.getProperty('uri.var.updatedBefore');
+				var fields = mc.getProperty('uri.var.fields');
+				
+				var uriParams = '';
+				
+				if (limit != null && limit != "") {
+					uriParams = 'limit=' + limit + '&';
+				}				
+				if (page != null && page != "") {
+					uriParams += 'page=' + page + '&';
+				}				
+				if (sinceId != null && sinceId != "") {
+					uriParams += 'since_id=' + sinceId + '&';
+				}				
+				if (createdAfter != null && createdAfter != "") {
+					uriParams += 'created_at_min=' + encodeURIComponent(createdAfter) + '&';
+				}				
+				if (createdBefore != null && createdBefore != "") {
+					uriParams += 'created_at_max=' + encodeURIComponent(createdBefore) + '&';
+				}				
+				if (updatedAfter != null && updatedAfter != "") {
+					uriParams += 'updated_at_min=' + encodeURIComponent(updatedAfter) + '&';
+				}				
+				if (updatedBefore != null && updatedBefore != "") {
+					uriParams += 'updated_at_max=' + encodeURIComponent(updatedBefore) + '&';
+				}				
+				if (fields != null && fields != "") {
+					uriParams += 'fields=' + encodeURIComponent(fields) + '&';
+				}
+							
+				if(uriParams != ''){
+					mc.setProperty('uri.var.uriParams' , '?' + uriParams.substring(0, uriParams.length-1));
+				}
+			]]>
+		</script>
+
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}/admin/orders/{uri.var.orderId}/fulfillments.{uri.var.format}{uri.var.uriParams}" />
+			</endpoint>
+		</call>
+
+		<!-- Removing custom headers -->
+		<header name="X-XSS-Protection" action="remove" scope="transport" />
+		<header name="X-UA-Compatible" action="remove" scope="transport" />
+		<header name="X-Request-Id" action="remove" scope="transport" />
+		<header name="X-Stats-ApiClientId" action="remove" scope="transport" />
+		<header name="X-Content-Type-Options" action="remove" scope="transport" />
+		<header name="X-Stats-ApiPermissionId" action="remove" scope="transport" />
+		<header name="Status" action="remove" scope="transport" />
+		<header name="X-Frame-Options" action="remove" scope="transport" />
+		<header name="X-Stats-UserId" action="remove" scope="transport" />
+		<header name="X-ShopId" action="remove" scope="transport" />
+		<header name="Vary" action="remove" scope="transport" />
+		<header name="HTTP_X_SHOPIFY_SHOP_API_CALL_LIMIT" action="remove" scope="transport" />
+		<header name="X-Served-With" action="remove" scope="transport" />
+		<header name="X-ShardId" action="remove" scope="transport" />
+		<header name="X-Shopify-Shop-Api-Call-Limit" action="remove" scope="transport" />
+		<header name="WWW-Authenticate" action="remove" scope="transport" />
+		<header name="X-Stats-Validation-Errors" action="remove" scope="transport" />
+		
+	</sequence>
+</template>

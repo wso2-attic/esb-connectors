@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="shopify_createLeads" transports="https,http" statistics="disable"
+	trace="disable" startOnLoad="true">
+	<target>
+		<inSequence onError="faultHandlerSeq">
+
+			<!-- Facebook properties -->
+			<property name="fbApiUrl" expression="json-eval($.fbApiUrl)" />
+			<property name="fbAccessToken" expression="json-eval($.fbAccessToken)" />
+			<property name="fbPostId" expression="json-eval($.fbPostId)" />
+			<property name="fbCompanyName" expression="json-eval($.fbCompanyName)" />
+
+			<!-- MailChimp Properties -->
+			<property name="mcApiUrl" expression="json-eval($.mcApiUrl)" />
+			<property name="mcApiKey" expression="json-eval($.mcApiKey)" />
+			<property name="mcCampaignId" expression="json-eval($.mcCampaignId)" />
+			<property name="mcClickUrl" expression="json-eval($.mcClickUrl)" />
+			<property name="mcCompanyName" expression="json-eval($.mcCompanyName)" />
+
+			<!-- Zoho CRM properties -->
+			<property name="zohoApiUrl" expression="json-eval($.zohoApiUrl)" />
+			<property name="zohoAccessToken" expression="json-eval($.zohoAccessToken)" />
+
+			<!-- Call Rail properties -->
+			<property name="crApiUrl" expression="json-eval($.crApiUrl)" />
+			<property name="crApiKey" expression="json-eval($.crApiKey)" />
+			<property name="crPerPage" expression="json-eval($.crPerPage)" />
+			<property name="crPage" expression="json-eval($.crPage)" />
+			<property name="crCompanyId" expression="json-eval($.crCompanyId)" />
+			<property name="crCompanyName" expression="json-eval($.crCompanyName)" />
+			<property name="crStartDate" expression="json-eval($.crStartDate)" />
+			<property name="crEndDate" expression="json-eval($.crEndDate)" />
+
+			<call-template target="shopify-createLeadsWithFacebookMailChimpCallRailDetails">
+				<!-- parameter values will be passed on to a sequence template -->
+				(
+				<with-param name="fbApiUrl" value="{$ctx:fbApiUrl}" />
+				|
+				<with-param name="fbAccessToken" value="{$ctx:fbAccessToken}" />
+				|
+				<with-param name="fbPostId" value="{$ctx:fbPostId}" />
+				|
+				<with-param name="mcApiUrl" value="{$ctx:mcApiUrl}" />
+				|
+				<with-param name="mcApiKey" value="{$ctx:mcApiKey}" />
+				|				
+				<with-param name="mcCampaignId" value="{$ctx:mcCampaignId}" />
+				|				
+				<with-param name="mcCompanyName" value="{$ctx:mcCompanyName}" />
+				|
+				<with-param name="mcClickUrl" value="{$ctx:mcClickUrl}" />
+				|
+				<with-param name="zohoApiUrl" value="{$ctx:zohoApiUrl}" />
+				|
+				<with-param name="zohoAccessToken" value="{$ctx:zohoAccessToken}" />
+				|
+				<with-param name="crApiUrl" value="{$ctx:crApiUrl}" />
+				|
+				<with-param name="crApiKey" value="{$ctx:crApiKey}" />
+				|
+				<with-param name="crPerPage" value="{$ctx:crPerPage}" />
+				|
+				<with-param name="crPage" value="{$ctx:crPage}" />
+				|
+				<with-param name="crCompanyId" value="{$ctx:crCompanyId}" />
+				|
+				<with-param name="crCompanyName" value="{$ctx:crCompanyName}" />
+				|
+				<with-param name="crStartDate" value="{$ctx:crStartDate}" />
+				|
+				<with-param name="crEndDate" value="{$ctx:crEndDate}" />
+				|
+				<with-param name="fbApiUrl" value="{$ctx:fbApiUrl}" />
+				|
+				<with-param name="fbAccessToken" value="{$ctx:fbAccessToken}" />
+				|
+				<with-param name="fbPostId" value="{$ctx:fbPostId}" />
+				|
+				<with-param name="fbCompanyName" value="{$ctx:fbCompanyName}" />
+				|
+				) *
+			</call-template>
+
+			<loopback />
+		</inSequence>
+		<outSequence>
+			<property name="messageType" value="application/json" scope="axis2" />
+
+			<!-- Generate the chained response of all the API calls in createLeads -->
+			<payloadFactory media-type="json">
+				<format>
+					{
+					"Response":{
+					"process":"shopify-createLeads",
+					"activityResponse":[$1]
+					}
+					}
+				</format>
+				<args>
+					<arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+				</args>
+			</payloadFactory>
+			<send />
+		</outSequence>
+	</target>
+	<description />
+</proxy>       

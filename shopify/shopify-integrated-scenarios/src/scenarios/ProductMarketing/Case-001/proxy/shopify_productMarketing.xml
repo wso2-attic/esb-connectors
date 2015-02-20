@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="shopify_productMarketing"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+    <target>
+      <inSequence onError="faultHandlerSeq">
+	  
+			<!-- Shopify related properties -->
+			<property name="shopifyApiUrl" expression="json-eval($.shopifyApiUrl)" />
+			<property name="shopifyAccessToken" expression="json-eval($.shopifyAccessToken)" />
+			<property name="format" value="json"/>
+			<property name="shopifyProductIDArray" expression="json-eval($.shopifyProductIDArray[*])" />
+			<property name="shopifyFields" value="title,body_html,vendor,variants,image" />
+
+			<!-- Mailchimp related properties -->
+			<property name="mcApiUrl" expression="json-eval($.mcApiUrl)"/>
+			<property name="mcApiKey" expression="json-eval($.mcApiKey)"/>
+            <property name="mcType" value="regular"/>
+            <property name="mcListId" expression="json-eval($.mcListId)"/>
+            <property name="mcSubject" expression="json-eval($.mcSubject)"/>
+            <property name="mcFromEmail" expression="json-eval($.mcFromEmail)"/>
+            <property name="mcFromName" expression="json-eval($.mcFromName)"/>
+            <property name="mcToName" expression="json-eval($.mcToName)"/>
+            <property name="mcTemplateId" expression="json-eval($.mcTemplateId)"/>
+            <property name="mcRefferMore" expression="json-eval($.mcRefferMore)"/>
+            <property name="mcSegmentOptions" expression="json-eval($.mcSegmentOptions)"/>
+            <property name="mcTypeOptions" expression="json-eval($.mcTypeOptions)"/>
+
+            <!-- Facebook related properties -->
+			<property name="fbApiUrl" expression="json-eval($.fbApiUrl)" />
+			<property name="fbAccessToken" expression="json-eval($.fbAccessToken)" />
+			<property name="fbPageId" expression="json-eval($.fbPageId)" />
+			<property name="fbPicture" expression="json-eval($.fbPicture)" />
+			<property name="fbName" expression="json-eval($.fbName)" />
+			<property name="fbCaption" expression="json-eval($.fbCaption)" />
+			<property name="fbDescription" expression="json-eval($.fbDescription)" />
+			<property name="fbActions" expression="json-eval($.fbActions)" />
+			<property name="fbPlace" expression="json-eval($.fbPlace)" />
+			<property name="fbTags" expression="json-eval($.fbTags)" />
+			<property name="fbObjectAttachment" expression="json-eval($.fbObjectAttachment)" />
+			<property name="fbTargeting" expression="json-eval($.fbTargeting)" />
+			<property name="fbFeedTargeting" expression="json-eval($.fbFeedTargeting)" />
+			<property name="fbPublished" expression="json-eval($.fbPublished)" />
+			<property name="fbScheduledPublishTime" expression="json-eval($.fbScheduledPublishTime)" />
+			<property name="fbBackdatedTime" expression="json-eval($.fbBackdatedTime)" />
+			<property name="fbBackdatedTimeGranularity" expression="json-eval($.fbBackdatedTimeGranularity)" />
+
+			<!-- General properties -->
+			<property name="productIndex" value="0" scope="operation"/>
+			<property name="responseString" value="" scope="operation"/>
+			<property name="mcTemplateBody" value="" scope="operation"/>
+			<property name="idParam" value="" />
+
+			<!-- START: Checking whether user has provided both shopify access token and mailchimp api key -->
+			<filter source="(boolean(get-property('shopifyAccessToken')) and boolean(get-property('mcApiKey')))" regex="false">
+				<then>
+				
+					<property name="message" value="Please provide both shopify access token and mailchimp api key." />
+					
+					<!-- Calling the response handler template to give custom error message when user not provided both shopify access token and mailchimp api key -->
+					<call-template target="responseHandlerTemplate">
+						<with-param name="activity" value="shopify_accessTokenAvailabilityCheck" />
+						<with-param name="status" value="Error" />
+						<with-param name="message" value="{$ctx:message}" />
+					</call-template>
+					
+					<loopback/>
+					
+				</then>
+				<else>
+					
+					<!-- START: Checking whether user has provided a created mailchimp template ID -->
+					<filter source="boolean(get-property('mcTemplateId'))" regex="false">
+						<then>
+						
+							<property name="message" value="Please provide a created template ID." />
+							
+							<!-- Calling the response handler template to give custom error message when user not provided a template ID from request -->
+							<call-template target="responseHandlerTemplate">
+								<with-param name="activity" value="mailchimp_createAndSendCampaign" />
+								<with-param name="status" value="Error" />
+								<with-param name="message" value="{$ctx:message}" />
+							</call-template>
+							
+							<loopback/>
+							
+						</then>
+						<else>
+						
+							<!-- Script mediator to check user has provided a valid product ID array provided with at least one product ID from request -->
+							<script language="js">
+								<![CDATA[
+
+									try {
+									
+										var shopifyProductIDArray = eval("("+ mc.getProperty("shopifyProductIDArray") +")");
+										
+										if(shopifyProductIDArray.length > 0){		
+											mc.setProperty("isProductArray", true);
+										} else{
+											mc.setProperty("isProductArray", false);
+										}
+								
+									} catch (err) {
+										mc.setProperty("isProductArray", false);
+									}
+
+								]]>
+							</script>
+						
+							<!-- START: Checking user has provided a valid product ID array provided with at least one product ID from request -->
+							<filter source="get-property('isProductArray')" regex="false">
+								<then>
+								
+									<property name="message" value="Please provide valid non empty product ID array." />
+							
+									<!-- Calling the response handler template to give custom error message when valid non empty product ID array not provided from request -->
+									<call-template target="responseHandlerTemplate">
+										<with-param name="activity" value="shopify_getProductById" />
+										<with-param name="status" value="Error" />
+										<with-param name="message" value="{$ctx:message}" />
+									</call-template>
+									
+									<loopback/>
+									
+								</then>
+								<else>
+								
+									<property name="productCount" expression="count(//shopifyProductIDArray)" scope="operation"/>
+									<property name="idParam" expression="fn:concat('{ProductIDs:',get-property('shopifyProductIDArray'),'}')" />
+									
+									<!-- START: Iterate product ID array and get product details for each and every product by passing product ID -->
+									<iterate continueParent="true" id="productsIdIterator" preservePayload="true" expression="//shopifyProductIDArray" sequential="true">
+							            <target>
+							               <sequence>
+										   
+							                 	<property name="productId" expression="//shopifyProductIDArray/text()" />
+							                 	<property name="messageType" value="application/json" scope="axis2"/>
+
+							                 	<!-- Shopify getProductById method call -->
+							                 	<shopify.init>
+									            	<apiUrl>{$ctx:shopifyApiUrl}</apiUrl>
+									            	<accessToken>{$ctx:shopifyAccessToken}</accessToken>
+													<format>{$ctx:format}</format>
+									        	</shopify.init>
+												<shopify.getProductById>
+													<productId>{$ctx:productId}</productId>
+													<fields>{$ctx:shopifyFields}</fields>
+												</shopify.getProductById>
+
+												<property name="shopifyGetProductByIdStatusCode" expression="$axis2:HTTP_SC" />
+
+												<!-- START: Checking the http status code for getProductById method to proceed -->
+												<filter xpath="get-property('shopifyGetProductByIdStatusCode') != 200">
+													<then>
+													
+														<!-- Error in unsuccessful getProductById -->
+														<property name="message" expression="//errors" />
+														<property name="message" expression="fn:concat('Error: ', get-property('message'))" />
+
+														<!-- Response generator for getProductById error response -->
+														<call-template target="responseHandlerTemplate">
+															<with-param name="activity" value="shopify_getProductById" />
+															<with-param name="status" value="Error" />
+															<with-param name="message" value="{$ctx:message}" />
+														</call-template>
+														
+														<loopback />
+														
+													</then>
+												</filter>
+												<!-- END: Checking of http status code -->
+
+												<!-- Remove shopify response header information -->
+												<header name="Content-Type" action="remove" scope="transport" />
+												<header name="Content-Encoding" action="remove" scope="transport" />
+
+												<!-- Getting required product details into individual properties to create a campaign in mailchimp -->
+												<property  name="productTitle" expression="json-eval($.product.title)"/>
+												<property  name="productDescription" expression="json-eval($.product.body_html)"/>
+												<property  name="productVendor" expression="json-eval($.product.vendor)"/>
+												<property  name="productImage" expression="json-eval($.product.image.src)"/>
+												<property  name="productVariants" expression="json-eval($.product.variants)"/>
+
+												<!-- This creates a draft campaign html template for each and every products and its variants with all the product and variants details -->
+												<script language="js">
+													<![CDATA[     
+													
+														var templateBody = "";
+														var productImage = mc.getProperty('productImage');
+														var productTitle = mc.getProperty('productTitle');
+														var productDescription = mc.getProperty('productDescription');
+														var productVendor = mc.getProperty('productVendor');
+														var variantsObjArray = eval("(" + mc.getProperty('productVariants') + ")");
+
+														templateBody += "<tr><td id='details'><img src='" + productImage + "' alt='No Preview'/></td><td id='details'><div><h2>" + productTitle + "</h2></div><div>" + productDescription + "</div></br><div>Vendor: " + productVendor + "</div>";
+
+														// Check whether variants are available in each product.
+
+														if(variantsObjArray != null){
+
+															templateBody += "<div><h3>Variations</h3></div><div><table id='products' border='1' cellpadding='10'>";
+
+															// Iterate variants object array and get variant details of each and every product to construct draft campaign in mailchimp.
+
+															for(var index = 0; index < variantsObjArray.length; index++){
+																templateBody += "<tr><td>" + variantsObjArray[index].title + "</td><td>Rs. " + variantsObjArray[index].price + "</td></tr>";
+															}
+
+															templateBody += "</table></div>";
+
+														}
+
+														templateBody += "</td></tr>";
+
+														mc.setProperty('templateBody',templateBody);
+															
+													]]>
+												</script>
+
+												<property  name="mcTemplateBody" expression="fn:concat(get-property('operation','mcTemplateBody'), get-property('templateBody'))" scope="operation"/>
+
+				                    			<!-- Increment the product index -->
+							                    <property name="productIndex" expression="get-property('operation','productIndex') + 1" scope="operation"/>
+							               </sequence>
+							            </target>
+						         	</iterate>
+									<!-- END: Iterator of product ID array -->
+									
+									<!-- START: Restrict execution of other API calls until last product ID to iterator performs getting product details -->
+						         	<filter xpath="get-property('operation','productCount') = get-property('operation','productIndex')">
+							            <then>
+
+							            	<!-- Payload factory to construct options object before create a draft campaign and send it immediately -->
+											<payloadFactory media-type="json">
+												<format>
+													{
+														"options": {
+															"list_id": "$1",
+		        											"subject": "$2",
+		        											"from_email": "$3",
+		        											"from_name": "$4",
+		        											"to_name": "$5",
+		        											"template_id":$6
+														}
+													}       
+												</format>
+												<args>
+													<arg expression="get-property('mcListId')" />
+													<arg expression="get-property('mcSubject')" />  
+													<arg expression="get-property('mcFromEmail')" />  
+													<arg expression="get-property('mcFromName')" />  
+													<arg expression="get-property('mcToName')" />  
+													<arg expression="get-property('mcTemplateId')" />     
+												</args>
+											</payloadFactory>
+							            	
+							            	<!-- Property to provide contents object before create a draft campaign and send it immediately -->
+											<property name="mcContent" expression="fn:concat('{&quot;sections&quot;:{&quot;product_info&quot;:&quot;', get-property('operation','mcTemplateBody'), '&quot;,&quot;ref_more&quot;:&quot;&lt;a href=\&quot;', get-property('mcRefferMore'), '\&quot; target=\&quot;_blank\&quot;&gt;Read More...&lt;/a&gt;&quot;}}')"/>
+
+											<property name="mcOptions" expression="json-eval($.options)"/>
+
+											<!-- Call the shopify-publishProductDetailsOnSocialMedia template to create and send draft campaign with shopify products details -->
+											<call-template target="shopify-publishProductDetailsOnSocialMedia">
+												<!-- parameter values will be passed on to a sequence template -->
+												(
+												<with-param name="mcApiUrl" value="{$ctx:mcApiUrl}"/> |
+												<with-param name="mcApiKey" value="{$ctx:mcApiKey}"/> |
+												<with-param name="mcFormat" value="{$ctx:format}"/> |
+												<with-param name="mcType" value="{$ctx:mcType}"/> |
+												<with-param name="mcOptions" value="{$ctx:mcOptions}"/> |
+												<with-param name="mcContent" value="{$ctx:mcContent}"/> |
+												<with-param name="mcSegmentOptions" value="{$ctx:mcSegmentOptions}"/> |
+												<with-param name="mcTypeOptions" value="{$ctx:mcTypeOptions}"/> |
+												) *
+											</call-template>
+
+											<!-- If facebook access token is not by user provided give custom error message, otherwise proceed with facebook page post creation call -->
+											<filter source="boolean(get-property('fbAccessToken'))" regex="false">
+												<then>   
+												
+													<property name="idParam" value="null" />
+													<property name="status" value="Skipped" />
+													<property name="message" value="Please provide facebook authentication token." />
+													
+												</then>
+												<else>
+													
+													<property name="mcApiKey" value="" />
+
+													<!-- Call the shopify-publishProductDetailsOnSocialMedia template to create a page post for market the shopify products in company page -->
+													<call-template target="shopify-publishProductDetailsOnSocialMedia">
+														<!-- parameter values will be passed on to a sequence template -->
+														(
+														<with-param name="mcApiKey" value="{$ctx:mcApiKey}"/> |
+														<with-param name="fbApiUrl" value="{$ctx:fbApiUrl}"/> |
+														<with-param name="fbAccessToken" value="{$ctx:fbAccessToken}"/> |
+														<with-param name="fbPageId" value="{$ctx:fbPageId}"/> |
+														<with-param name="fbPicture" value="{$ctx:fbPicture}"/> |
+														<with-param name="fbName" value="{$ctx:fbName}"/> |
+														<with-param name="fbCaption" value="{$ctx:fbCaption}"/> |
+														<with-param name="fbDescription" value="{$ctx:fbDescription}"/> |
+														<with-param name="fbActions" value="{$ctx:fbActions}"/> |
+														<with-param name="fbPlace" value="{$ctx:fbPlace}"/> |
+														<with-param name="fbTags" value="{$ctx:fbTags}"/> |
+														<with-param name="fbObjectAttachment" value="{$ctx:fbObjectAttachment}"/> |
+														<with-param name="fbTargeting" value="{$ctx:fbTargeting}"/> |
+														<with-param name="fbFeedTargeting" value="{$ctx:fbFeedTargeting}"/> |
+														<with-param name="fbPublished" value="{$ctx:fbPublished}"/> |
+														<with-param name="fbScheduledPublishTime" value="{$ctx:fbScheduledPublishTime}"/> |
+														<with-param name="fbBackdatedTime" value="{$ctx:fbBackdatedTime}"/> |
+														<with-param name="fbBackdatedTimeGranularity" value="{$ctx:fbBackdatedTimeGranularity}"/> |
+														) *
+													</call-template>
+												</else>
+											</filter>
+
+											<!-- Calling the response handler template to give detailed message of posting product details in facebook page -->
+											<call-template target="responseHandlerTemplate">
+												<with-param name="activity" value="facebook_publishPagePost" />
+												<with-param name="id" value="{$ctx:idParam}" />
+												<with-param name="status" value="{$ctx:status}" />
+												<with-param name="message" value="{$ctx:message}" />
+											</call-template>
+
+							               <loopback/>
+							            </then>
+						         	</filter>
+									<!-- END: Filter to restrict execution of other API calls -->
+								</else>
+							</filter>
+							<!-- END: Checking valid product IDs array availability -->
+						</else>
+					</filter>
+					<!-- END: Checking template ID availability -->
+				</else>
+			</filter>
+			<!-- END: Checking access token availability -->
+			
+	  </inSequence>
+      <outSequence>
+	  
+            <property name="messageType" value="application/json" scope="axis2"/>
+			
+			<payloadFactory media-type="json">
+				<format>
+					{
+						"Response":{
+							"process":"shopify_productMarketing",
+							"activityResponse":[$1]
+						}
+					}
+				</format>
+				<args>
+					<arg evaluator="xml" expression="get-property('operation', 'responseString')"/>
+				</args>
+			</payloadFactory>
+			
+        <send/>
+		
+      </outSequence>
+    </target>
+    <description/>
+</proxy>
+                                

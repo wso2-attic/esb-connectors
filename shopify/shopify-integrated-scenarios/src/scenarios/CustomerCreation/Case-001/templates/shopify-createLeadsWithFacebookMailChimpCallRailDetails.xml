@@ -1,0 +1,737 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This template retrieves Comment leavers according to the specified criteria in post, retrieves Campaign Clickers of 
+	the sent Campaign in Scenario one and retrieves Callers for the given CallRail company's tracker Identifier. Then creates 
+	Leads in ZohoCRM using the retrieved details. -->
+<template name="shopify-createLeadsWithFacebookMailChimpCallRailDetails" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Facebook parameters -->
+	<parameter name="fbApiUrl" description="Facebook Api Url" />
+	<parameter name="fbAccessToken" description="Facebook Access Toekn for authentication" />
+	<parameter name="fbPostId" description="Facebook Post Identifier contataining campaign details" />
+	<parameter name="fbCompanyName" description="Company name to be used for the Leads created using Facebook details" />
+
+	<!-- MailChimp parameters -->
+	<parameter name="mcApiUrl" description="MailChimp Api Url" />
+	<parameter name="mcApiKey" description="MailChimp Api key for authentication" />
+	<parameter name="mcCampaignId" description="MailChimp Campaign identifier to retrieve the clicker details of this Campaign" />
+	<parameter name="mcCompanyName" description="Company name to be used for the Leads created using MailChimp details" />
+	<parameter name="mcClickUrl" description="A url of the MailChimp Campaign body to track the clicker details" />
+
+	<!-- ZohoCRM parameters -->
+	<parameter name="zohoApiUrl" description="Zoho CRM Api Url" />
+	<parameter name="zohoAccessToken" description="Zoho CRM Access token for authentication" />
+
+	<!-- Call Rail parameters -->
+	<parameter name="crApiUrl" description="CallRail Api Url" />
+	<parameter name="crApiKey" description="CallRail Api Key for authentication" />
+	<parameter name="crPerPage" description="Number of CallRail caller results to be returned in the response page" />
+	<parameter name="crPage" description="Callrail Caller detail response page number" />
+	<parameter name="crCompanyId" description="CallRail Company Identifier under which the caller details are being tracked" />
+	<parameter name="crCompanyName" description="Company name to be used for the Leads created using CallRail details" />
+	<parameter name="crStartDate"
+		description="Date or Date and Time in ISO 8601 format. Calls on or after this date will be fetched to extract caller details" />
+	<parameter name="crEndDate"
+		description="Date or Date and Time in ISO 8601 format. Calls on or before this date will be fetched to extract caller details" />
+
+	<sequence>
+		<!-- Facebook properties -->
+		<property name="uri.var.fbApiUrl" expression="$func:fbApiUrl" />
+		<property name="uri.var.fbAccessToken" expression="$func:fbAccessToken" />
+		<property name="uri.var.fbPostId" expression="$func:fbPostId" />
+		<property name="uri.var.fbCompanyName" expression="$func:fbCompanyName" />
+		<property name="uri.var.fbFields" value="message,comments" />
+
+		<!-- MailChimp Properties -->
+		<property name="uri.var.mcApiUrl" expression="$func:mcApiUrl" />
+		<property name="uri.var.mcApiKey" expression="$func:mcApiKey" />
+		<property name="uri.var.mcCampaignId" expression="$func:mcCampaignId" />
+		<property name="uri.var.mcClickUrl" expression="$func:mcClickUrl" />
+		<property name="uri.var.mcCompanyName" expression="$func:mcCompanyName" />
+		<property name="uri.var.mcFormat" value="json" />
+
+		<!-- ZohoCRM properties -->
+		<property name="uri.var.zohoApiUrl" expression="$func:zohoApiUrl" />
+		<property name="uri.var.zohoAccessToken" expression="$func:zohoAccessToken" />
+		<property name="uri.var.zohoScope" value="crmapi" />
+		<property name="uri.var.zohoNewFormat" value="1" />
+		<property name="uri.var.zohoVersion" value="1" />
+		<property name="uri.var.zohoModuleType" value="Leads" />
+
+		<!-- Call Rail properties -->
+		<property name="uri.var.crApiUrl" expression="$func:crApiUrl" />
+		<property name="uri.var.crApiKey" expression="$func:crApiKey" />
+		<property name="uri.var.crPerPage" expression="$func:crPerPage" />
+		<property name="uri.var.crPage" expression="$func:crPage" />
+		<property name="uri.var.crCompanyId" expression="$func:crCompanyId" />
+		<property name="uri.var.crCompanyName" expression="$func:crCompanyName" />
+		<property name="uri.var.crStartDate" expression="$func:crStartDate" />
+		<property name="uri.var.crEndDate" expression="$func:crEndDate" />
+
+
+		<!-- START: Facebook -->
+
+		<!-- Check the availability of facebook access token to proceed with the Facebook API call -->
+		<filter source="boolean(get-property('uri.var.fbAccessToken'))" regex="true">
+			<else>
+				<property name="uri.var.activity" value="facebook_getPost" />
+				<property name="uri.var.status" value="Skipped" />
+				<property name="uri.var.message" value="The API Key has not provided, Will also skip the Lead creation using MailChimp details" />
+			</else>
+			<then>
+				<!-- FB retrieve post to extract Campaign Id and interested users -->
+				<facebook.init>
+					<apiUrl>{$ctx:uri.var.fbApiUrl}</apiUrl>
+					<accessToken>{$ctx:uri.var.fbAccessToken}</accessToken>
+					<connection>{$ctx:uri.var.fbConnection}</connection>
+					<fields>{$ctx:uri.var.fbFields}</fields>
+				</facebook.init>
+				<facebook.getPost>
+					<postId>{$ctx:uri.var.fbPostId}</postId>
+				</facebook.getPost>
+
+				<property name="uri.var.fbGetPostErrorCode" expression="json-eval($..code[0])" />
+
+				<!-- Checks the availability of the Facebook error code value to proceed with Lead creation -->
+				<filter source="get-property('uri.var.fbGetPostErrorCode') = '[]'" regex="true">
+					<else>
+						<property name="uri.var.fbGetPostErrorMessage" expression="json-eval($..message[0])" />
+						<!-- Following Script mediator was added to replace Double Quotes with Single Quotes to keep a valid JSON Format -->
+						<script language="js">
+					         <![CDATA[
+					         	var fbGetPostErrorMessage = mc.getProperty('uri.var.fbGetPostErrorMessage');
+					         	mc.setProperty('uri.var.fbGetPostErrorMessage', fbGetPostErrorMessage.replace('"', '\\"'));
+					          ]]>
+						</script>
+						<!-- Error in retrieving comment code from fb post -->
+						<property name="uri.var.activity" value="facebook_getPost" />
+						<property name="uri.var.status" value="Error" />
+						<property name="uri.var.message" expression="get-property('uri.var.fbGetPostErrorMessage')" />
+					</else>
+					<then>
+						<property name="uri.var.fbPostMessage" expression="json-eval($.message)" />
+						<property name="uri.var.fbCommentsArray" expression="json-eval($..data)" />
+
+						<!-- Generates the xmlData value with Facebook details to create Leads -->
+						<script language="js">
+							<![CDATA[
+								var fbPostMessage = mc.getProperty('uri.var.fbPostMessage');
+								var fbCompanyName = mc.getProperty('uri.var.fbCompanyName');
+								var commentCodePresent = false;
+								var commentCode = '';
+								var fbXmlData = '';
+								
+								// Regex to extract the Campaign Id, included in the fb post body
+								var fbCommentCode = fbPostMessage.match('enter "' + "(.*?)" + '" as');
+								if(fbCommentCode != null && fbCommentCode !=''){
+									commentCode = fbCommentCode[1];
+									if(commentCode != null && commentCode != ''){
+										mc.setProperty('uri.var.fbCommentCode', commentCode);
+										commentCodePresent = true;
+									}
+								}
+								
+								// Checks the availability of the Campaign Id
+								if(commentCodePresent){
+									var fbCommentsArray = eval ( '(' + mc.getProperty('uri.var.fbCommentsArray') + ')' );
+									var row = 0;
+									for (var i = 0; i < fbCommentsArray.length; i++) {
+											if(commentCode == fbCommentsArray[i].message){
+												fbXmlData += '<row no="' + (row+1) + '"><FL val="First Name">' + fbCommentsArray[i].from.name + '</FL><FL val="Last Name">' + fbCommentsArray[i].from.id + '</FL><FL val="Company">' + fbCompanyName + '</FL><FL val="Lead Source">Facebook</FL><FL val="Description">SHOPIFY</FL></row>';
+												row = row + 1;
+											}
+										}								
+									mc.setProperty('uri.var.fbXmlData', fbXmlData);						
+								}
+								
+							]]>
+						</script>
+
+						<!-- Checks the availability of the Campaign Id to proceed with Lead creation -->
+						<filter source="boolean(get-property('uri.var.fbCommentCode'))" regex="true">
+							<else>
+								<!-- Error in retrieving comment code from fb post -->
+								<property name="uri.var.activity" value="facebook_getPost" />
+								<property name="uri.var.status" value="Error" />
+								<property name="uri.var.message"
+									value="Could not retrieve the comment code value from the post body, Will also skip the Lead creation using MailChimp details" />
+							</else>
+							<then>
+								<!-- Checks whether the xmlData was populated to proceed with the Lead generation -->
+								<filter source="boolean(get-property('uri.var.fbXmlData'))" regex="false">
+									<then>
+										<!-- Error response -->
+										<property name="uri.var.activity" value="facebook_getPost" />
+										<property name="uri.var.status" value="Skipped" />
+										<property name="uri.var.message"
+											expression="fn:concat('Comments were not found with ' , get-property('uri.var.fbCommentCode') , ' value in the Post, with Post ID: ', get-property('uri.var.fbPostId'))" />
+
+									</then>
+									<else>
+										<!-- Generate the xmlData value with <Leads> root tag -->
+										<property name="uri.var.fbXmlDataVal" expression="fn:concat('&lt;Leads&gt;' , get-property('uri.var.fbXmlData') , '&lt;/Leads&gt;')" />
+
+										<!-- Create Leads using Facebook Details -->
+										<zohocrm.init>
+											<scope>{$ctx:uri.var.zohoScope}</scope>
+											<accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+											<apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+										</zohocrm.init>
+
+										<zohocrm.insertRecords>
+											<moduleType>{$ctx:uri.var.zohoModuleType}</moduleType>
+											<duplicateCheck>{$ctx:uri.var.zohoduplicateCheck}</duplicateCheck>
+											<newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+											<version>{$ctx:uri.var.zohoVersion}</version>
+											<xmlData>{$ctx:uri.var.fbXmlDataVal}</xmlData>
+											<isApproval>{$ctx:isApproval}</isApproval>
+											<wfTrigger>{$ctx:wfTrigger}</wfTrigger>
+										</zohocrm.insertRecords>
+
+										<property name="uri.var.zohoFBInsertLeadsError" expression="json-eval($.response.error)" />
+										<property name="uri.var.activity" value="zohocrm_insertLeadsFromFacebookData" />
+
+										<!-- Checks the successful lead creation using the availability of an error code -->
+										<filter source="boolean(get-property('uri.var.zohoFBInsertLeadsError'))" regex="true">
+											<then>
+												<property name="uri.var.fbErrorMessage" expression="json-eval($.response.error.message)" />
+												<script language="js">
+											         <![CDATA[
+											         	//Replaces the Double quotes to maintain valid JSON responce
+											         	var fbErrorMessage = mc.getProperty('uri.var.fbErrorMessage');
+											         	mc.setProperty('uri.var.fbErrorMessage', fbErrorMessage.replace('"', '\\"'));
+											          ]]>
+												</script>
+
+												<property name="uri.var.status" value="Error" />
+												<property name="uri.var.message" expression="get-property('uri.var.fbErrorMessage')" />
+
+											</then>
+											<else>
+												<property name="uri.var.fbResultMessage" expression="json-eval($.response.result.message)" />
+												<property name="uri.var.zohoFBSuccessResponseArray" expression="json-eval($..recorddetail)" />
+
+												<!-- Script meditor generates the response IDs. -->
+												<script language="js">
+											         <![CDATA[
+											         
+														var fbLeadsArray = eval( '(' + mc.getProperty('uri.var.zohoFBSuccessResponseArray') + ')');
+														var fbLeadsList = '';
+														
+														for (var i = 0; i < fbLeadsArray.length; i++) {
+															fbLeadsList += fbLeadsArray[i].FL[0].content + ',';
+															
+														}
+														if(fbLeadsList != ''){
+															mc.setProperty('uri.var.fbLeadsList', fbLeadsList.substring(0, fbLeadsList.length-1));
+														}
+												        
+													 ]]>
+												</script>
+												<filter source="boolean(get-property('uri.var.fbLeadsList'))" regex="true">
+													<else>
+														<property name="uri.var.status" value="Warning" />
+														<property name="uri.var.message" value="No errors were found. However, could not retrieve the created Lead IDs." />
+													</else>
+													<then>
+														<property name="uri.var.id" expression="fn:concat('{lead_ids:[', get-property('uri.var.fbLeadsList'), ']}')" />
+														<property name="uri.var.status" value="Success" />
+														<property name="uri.var.message" expression="get-property('uri.var.fbResultMessage')" />
+													</then>
+												</filter>
+												<!-- END: ZohoCRM Lead ID details check -->
+
+											</else>
+										</filter>
+										<!-- END: ZohoCRM insertLeads Response check -->
+
+									</else>
+								</filter>
+								<!-- END: check xml data availability -->
+
+							</then>
+						</filter>
+						<!-- END: Fb Comments availability check -->
+
+					</then>
+				</filter>
+				<!-- END: Facebook getPost Error Check -->
+
+			</then>
+			<!-- END: Fb API Key availability check -->
+
+		</filter>
+		<!-- END: Facebook Lead creation -->
+
+		<!-- Response generator for Facebook -->
+		<call-template target="responseHandlerTemplate">
+			<with-param name="activity" value="{$ctx:uri.var.activity}" />
+			<with-param name="id" value="{$ctx:uri.var.id}" />
+			<with-param name="status" value="{$ctx:uri.var.status}" />
+			<with-param name="message" value="{$ctx:uri.var.message}" />
+		</call-template>
+
+
+		<!-- Remove ufacebook response header information -->
+		<header name="ETag" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Facebook-API-Version" scope="transport" action="remove" />
+		<header name="Content-Encoding" scope="transport" action="remove" />
+		<header name="Content-Type" scope="transport" action="remove" />
+		<header name="Pragma" scope="transport" action="remove" />
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Date" scope="transport" action="remove" />
+		<header name="Server" scope="transport" action="remove" />
+		<header name="Transfer-Encoding" scope="transport" action="remove" />
+		<header name="Connection" scope="transport" action="remove" />
+
+		<!-- START: MailChimp -->
+
+		<!-- Check the availability of MailChimp access token to proceed with the Lead creation using MailChimp Campaign Clickers -->
+		<filter source="boolean(get-property('uri.var.mcApiKey'))" regex="false">
+			<then>
+				<property name="uri.var.activity" value="mailchimp_listCampaignClickers" />
+				<property name="uri.var.status" value="Skipped" />
+				<property name="uri.var.message" value="The API Key has not provided" />
+			</then>
+			<else>
+
+				<!-- Retrieve Click details for the given campaign -->
+				<mailchimp.init>
+					<apiUrl>{$ctx:uri.var.mcApiUrl}</apiUrl>
+					<apiKey>{$ctx:uri.var.mcApiKey}</apiKey>
+					<format>{$ctx:uri.var.mcFormat}</format>
+				</mailchimp.init>
+				<mailchimp.listCampaignClicks>
+					<campaignId>{$ctx:uri.var.mcCampaignId}</campaignId>
+				</mailchimp.listCampaignClicks>
+
+				<property name="uri.var.cmListClicksStatusCode" expression="$axis2:HTTP_SC" />
+
+				<filter source="get-property('uri.var.cmListClicksStatusCode')" regex="200">
+					<else>
+						<!-- Error in listing Campaign clicks -->
+						<property name="uri.var.cmListClicksStatusErrorMessage" expression="json-eval($.error)" />
+
+						<property name="uri.var.activity" value="mailchimp_listCampaignClicks" />
+						<property name="uri.var.id" expression="fn:concat('campaign_id:', get-property('uri.var.mcCampaignId'))" />
+						<property name="uri.var.status" value="Error" />
+						<property name="uri.var.message" expression="get-property('uri.var.cmListClicksStatusErrorMessage')" />
+					</else>
+					<then>
+						<!-- Successfully retrieved the Campaign Clicks -->
+
+						<!-- Removing Campaign Monitor listCampaign response headers -->
+						<header name="Vary" action="remove" scope="transport" />
+						<header name="Content-Encoding" action="remove" scope="transport" />
+						<header name="Set-Cookie" action="remove" scope="transport" />
+						<header name="Content-Type" action="remove" scope="transport" />
+						<header name="Date" action="remove" scope="transport" />
+						<header name="Server" action="remove" scope="transport" />
+						<header name="Transfer-Encoding" action="remove" scope="transport" />
+						<header name="Connection" action="remove" scope="transport" />
+
+						<property name="uri.var.mcResponseTotalArray" expression="json-eval($..total)" />
+
+						<!-- Retrieves the tracker Id for the given Url, to track users from -->
+						<script language="js">
+							<![CDATA[
+								var mcClickUrl = mc.getProperty('uri.var.mcClickUrl');
+								var mcResponseTotalArray = eval( '(' + mc.getProperty('uri.var.mcResponseTotalArray') + ')');
+								var isClicksAvailable = false;
+								
+								for (var i = 0; i < mcResponseTotalArray.length; i++) {
+									if(mcClickUrl == mcResponseTotalArray[i].url){
+										mc.setProperty('uri.var.mcTrackerId', '' + mcResponseTotalArray[i].tid);
+										isClicksAvailable = true;
+									}
+								}
+								
+								mc.setProperty('uri.var.isClicksAvailable', isClicksAvailable);
+								
+							]]>
+						</script>
+
+						<filter source="get-property('uri.var.isClicksAvailable')" regex="false">
+							<then>
+								<!-- Error response -->
+								<property name="uri.var.activity" value="mailchimp_getTrackerId" />
+								<property name="uri.var.status" value="Skipped" />
+								<property name="uri.var.message"
+									expression="fn:concat('Click details are not avaiable for the given Campaign ID:' , get-property('uri.var.mcCampaignId') , ' with URL: ', get-property('uri.var.mcClickUrl'))" />
+
+							</then>
+							<else>
+
+								<!-- Retrieve Campaign Clickers for the given Campaign's specified Url -->
+								<mailchimp.init>
+									<apiUrl>{$ctx:uri.var.mcApiUrl}</apiUrl>
+									<apiKey>{$ctx:uri.var.mcApiKey}</apiKey>
+									<format>{$ctx:uri.var.mcFormat}</format>
+								</mailchimp.init>
+								<mailchimp.listCampaignClickers>
+									<campaignId>{$ctx:uri.var.mcCampaignId}</campaignId>
+									<trackingid>{$ctx:uri.var.mcTrackerId}</trackingid>
+									<start>{$ctx:start}</start>
+									<limit>{$ctx:limit}</limit>
+									<sortField>{$ctx:sortField}</sortField>
+									<sortDirection>{$ctx:sortDirection}</sortDirection>
+								</mailchimp.listCampaignClickers>
+
+								<property name="uri.var.cmListClickersStatusCode" expression="$axis2:HTTP_SC" />
+
+								<filter source="get-property('uri.var.cmListClickersStatusCode')" regex="200">
+									<else>
+										<!-- Error in listing Campaign clicks -->
+										<property name="uri.var.cmListClickersStatusErrorMessage" expression="json-eval($.error)" />
+
+										<property name="uri.var.activity" value="mailchimp_listCampaignClickers" />
+										<property name="uri.var.id"
+											expression="fn:concat('campaign_id:', get-property('uri.var.mcCampaignId'), ', tracker_id:' , get-property('uri.var.mcTrackerId'))" />
+										<property name="uri.var.status" value="Error" />
+										<property name="uri.var.message" expression="get-property('uri.var.cmListClickersStatusErrorMessage')" />
+									</else>
+									<then>
+										<property name="uri.var.mcResponseDataArray" expression="json-eval($..data)" />
+
+										<!-- Generates the xmlData value with MailChimp clicker details to create Leads -->
+										<script language="js">
+											 <![CDATA[
+											 
+												var mcResponseDataArray = eval( '(' + mc.getProperty('uri.var.mcResponseDataArray') + ')');
+												var mcCompanyName = mc.getProperty('uri.var.mcCompanyName');
+												var xmlData = '';
+												var row = 0;
+												for (var i = 0; i < mcResponseDataArray.length; i++) {
+												
+													var userDetails = mcResponseDataArray[i].member.merges;
+													if(userDetails != null && userDetails != '' && userDetails.EMAIL != null && userDetails.EMAIL != ''){
+															
+														var lastName = userDetails.LNAME;
+														if(lastName == null || lastName == '' || lastName == 'undefined'){
+															lastName = userDetails.EMAIL;
+														}
+														
+														var timeZone = mcResponseDataArray[i].member.geo.timezone;
+														if(timeZone == null || timeZone == 'undefined'){
+															timeZone = '';
+														}
+														xmlData += '<row no="' + (row+1) + '"><FL val="First Name">' + userDetails.FNAME + '</FL><FL val="Last Name">' + lastName + '</FL><FL val="Email">' + userDetails.EMAIL + '</FL><FL val="Company">' + mcCompanyName + '</FL><FL val="Country">' + timeZone + '</FL><FL val="Lead Source">MailChimp</FL><FL val="Description">SHOPIFY</FL></row>';
+														row = row + 1;
+													}
+												}
+												
+												mc.setProperty('uri.var.xmlDataVar', xmlData);
+											 ]]>
+										</script>
+
+										<!-- Checks whether the xmlData was populated to proceed with the Lead generation -->
+										<filter source="boolean(get-property('uri.var.xmlDataVar'))" regex="false">
+											<then>
+												<!-- Error response -->
+												<property name="uri.var.activity" value="mailchimp_listCampaignClickerDetails" />
+												<property name="uri.var.status" value="Skipped" />
+												<property name="uri.var.message"
+													value="fn:concat('Clicker details are not found for the given Campaign with Campaign ID:' , get-property('uri.var.mcCampaignId') , ' and Tracker ID: ', get-property('uri.var.mcTrackerId'))" />
+
+											</then>
+											<else>
+												<property name="uri.var.xmlDataVal"
+													expression="fn:concat('&lt;Leads&gt;' , get-property('uri.var.xmlDataVar') , '&lt;/Leads&gt;')" />
+
+												<!-- Create Leads using MailChimp Details -->
+												<zohocrm.init>
+													<scope>{$ctx:uri.var.zohoScope}</scope>
+													<accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+													<apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+												</zohocrm.init>
+
+												<zohocrm.insertRecords>
+													<moduleType>{$ctx:uri.var.zohoModuleType}</moduleType>
+													<duplicateCheck>{$ctx:uri.var.zohoduplicateCheck}</duplicateCheck>
+													<newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+													<version>{$ctx:uri.var.zohoVersion}</version>
+													<xmlData>{$ctx:uri.var.xmlDataVal}</xmlData>
+													<isApproval>{$ctx:isApproval}</isApproval>
+													<wfTrigger>{$ctx:wfTrigger}</wfTrigger>
+												</zohocrm.insertRecords>
+
+												<property name="uri.var.zohoMCInsertLeadsError" expression="json-eval($.response.error)" />
+
+												<!-- Checks the successful lead creation using the availability of an error code -->
+												<filter source="boolean(get-property('uri.var.zohoMCInsertLeadsError'))" regex="true">
+													<then>
+														<property name="uri.var.mailChimpErrorMessage" expression="json-eval($.response.error.message)" />
+														<script language="js">
+															<!-- Following script mediator was included to replace double quotes to single quotes, so the response remains 
+																a valid JSON -->
+															 <![CDATA[
+																var mailChimpErrorMessage = mc.getProperty('uri.var.mailChimpErrorMessage');
+																mc.setProperty('uri.var.mailChimpErrorMessage', mailChimpErrorMessage.replace('"', '\\"'));
+															  ]]>
+														</script>
+
+														<property name="uri.var.activity" value="zohocrm_insertLeadsFromMailChimpData" />
+														<property name="uri.var.status" value="Error" />
+														<property name="uri.var.message" expression="get-property('uri.var.mailChimpErrorMessage')" />
+
+													</then>
+													<else>
+														<property name="uri.var.mcResultMessage" expression="json-eval($.response.result.message)" />
+														<property name="uri.var.zohoMcSuccessResponseArray" expression="json-eval($..recorddetail)" />
+
+														<!-- Script meditor generates the response IDs. -->
+														<script language="js">
+															 <![CDATA[
+															 
+																var mcLeadsArray = eval( '(' + mc.getProperty('uri.var.zohoMcSuccessResponseArray') + ')');
+																var mcLeadsList = '';
+																
+																for (var i = 0; i < mcLeadsArray.length; i++) {
+																	mcLeadsList += mcLeadsArray[i].FL[0].content + ',';
+																	
+																}
+																if(mcLeadsList != ''){
+																	mc.setProperty('uri.var.mcLeadsList', mcLeadsList.substring(0, mcLeadsList.length-1));
+																}
+																
+									
+															 ]]>
+														</script>
+														<property name="uri.var.activity" value="zohocrm_insertLeadsFromMailChimpData" />
+														<filter source="boolean(get-property('uri.var.mcLeadsList'))" regex="true">
+															<else>
+																<property name="uri.var.status" value="Warning" />
+																<property name="uri.var.message" value="No errors were found. However, could not retrieve the created Lead IDs." />
+															</else>
+															<then>
+																<property name="uri.var.id" expression="fn:concat('{lead_ids:[', get-property('uri.var.mcLeadsList'), ']}')" />
+																<property name="uri.var.status" value="Success" />
+																<property name="uri.var.message" expression="get-property('uri.var.mcResultMessage')" />
+															</then>
+														</filter>
+														<!-- END: ZohoCRM Lead ID details check -->
+
+													</else>
+												</filter>
+												<!-- END: ZohoCRM insertLeads Response check -->
+
+											</else>
+										</filter>
+										<!-- END: check xml data availability -->
+
+									</then>
+								</filter>
+								<!-- END: listClickers response check -->
+
+							</else>
+						</filter>
+						<!-- END: Clicks availability check for the Tracker ID -->
+
+					</then>
+				</filter>
+				<!-- END: listClicks response check -->
+
+			</else>
+		</filter>
+		<!-- END: MailChimp Access token check -->
+	
+
+		<!-- Response generator for MailChimp -->
+		<call-template target="responseHandlerTemplate">
+			<with-param name="activity" value="{$ctx:uri.var.activity}" />
+			<with-param name="id" value="{$ctx:uri.var.id}" />
+			<with-param name="status" value="{$ctx:uri.var.status}" />
+			<with-param name="message" value="{$ctx:uri.var.message}" />
+		</call-template>
+
+
+		<!-- START: CallRail -->
+
+		<!-- Clears the id value to be passed to the responseHandler Template -->
+		<property name="uri.var.id" value="null" />
+		<!-- Check the availability of CallRail access token to proceed with the CallRail API call -->
+		<filter source="boolean(get-property('uri.var.crApiKey'))" regex="true">
+			<else>
+				<property name="uri.var.activity" value="callrail_listCalls" />
+				<property name="uri.var.status" value="Skipped" />
+				<property name="uri.var.message" value="The API Key has not provided" />
+			</else>
+			<then>
+				<!-- Retrieve Call details for the given company -->
+				<callrail.init>
+					<apiUrl>{$ctx:uri.var.crApiUrl}</apiUrl>
+					<apiKey>{$ctx:uri.var.crApiKey}</apiKey>
+				</callrail.init>
+				<callrail.listCalls>
+					<startDate>{$ctx:uri.var.crStartDate}</startDate>
+					<endDate>{$ctx:uri.var.crEndDate}</endDate>
+					<perPage>{$ctx:uri.var.crPerPage}</perPage>
+					<page>{$ctx:uri.var.crPage}</page>
+					<companyId>{$ctx:uri.var.crCompanyId}</companyId>
+				</callrail.listCalls>
+
+				<property name="uri.var.crListCallsStatusCode" expression="$axis2:HTTP_SC" />
+				<filter source="get-property('uri.var.crListCallsStatusCode')" regex="200">
+					<else>
+						<!-- Error in listing Calls -->
+						<property name="uri.var.activity" value="callrail_listCalls" />
+						<property name="uri.var.status" value="Error" />
+						<property name="uri.var.message" expression="json-eval($.error)" />
+
+					</else>
+					<then>
+						<property name="uri.var.callerDetailsArray" expression="json-eval($..calls)" />
+
+
+						<filter source="get-property('uri.var.callerDetailsArray') = '[]'" regex="true">
+							<then>
+								<!-- Empty Call list -->
+								<property name="uri.var.activity" value="callrail_listCalls" />
+								<property name="uri.var.status" value="Skipped" />
+								<property name="uri.var.message" value="Empty Call list" />
+							</then>
+							<else>
+								<script language="js">
+						         <![CDATA[
+									 var callRailResults = mc.getProperty("uri.var.callerDetailsArray");
+									 var crCompanyName = mc.getProperty("uri.var.crCompanyName");
+									 var crXmlData = '';
+									 var row = 0;
+									 
+									 if(callRailResults != null && callRailResults != ''){		 
+										 var callsList = eval("(" + callRailResults + ")");		
+										 			 
+										 for (var i = 0; i < callsList.length ; i++) {
+											 var firstName = callsList[i].source_name;
+											 var lastName = callsList[i].caller_number;
+											 var country = callsList[i].caller_country;
+											 var leadSource = 'CallRail, Tracking Number: ' + callsList[i].tracking_number;
+											 var city = callsList[i].caller_city;
+											 var zip = callsList[i].caller_zip;
+											 
+											 if(firstName == null && firstName == 'undefined'){
+												firstName = '';
+											 }	
+											 crXmlData += '<row no="' + (row+1) + '"><FL val="First Name">' + firstName + '</FL><FL val="Last Name">' + lastName + '</FL><FL val="Company">' + crCompanyName + '</FL><FL val="Country">' + country + '</FL><FL val="Lead Source">' + leadSource + '</FL><FL val="City">' + city + '</FL><FL val="Zip Code">' + zip + '</FL><FL val="Description">SHOPIFY</FL></row>';
+											 row = row + 1;			
+										 }
+										 mc.setProperty('uri.var.crXmlDataVar', crXmlData);
+									 }
+								 ]]>
+								</script>
+
+								<!-- Checks whether the xmlData was populated to proceed with the Lead generation -->
+								<filter source="boolean(get-property('uri.var.crXmlDataVar'))" regex="false">
+									<then>
+										<!-- Error response -->
+										<property name="uri.var.activity" value="callrail_listCalls" />
+										<property name="uri.var.status" value="Skipped" />
+										<property name="uri.var.message"
+											expression="fn:concat('Caller details are not found for the given Company ID:' , get-property('uri.var.crCompanyId'))" />
+
+									</then>
+									<else>
+										<property name="uri.var.crXmlDataVal" expression="fn:concat('&lt;Leads&gt;' , get-property('uri.var.crXmlDataVar') , '&lt;/Leads&gt;')" />
+
+										<!-- Create Leads using CallRail Details -->
+										<zohocrm.init>
+											<scope>{$ctx:uri.var.zohoScope}</scope>
+											<accessToken>{$ctx:uri.var.zohoAccessToken}</accessToken>
+											<apiUrl>{$ctx:uri.var.zohoApiUrl}</apiUrl>
+										</zohocrm.init>
+
+										<zohocrm.insertRecords>
+											<moduleType>{$ctx:uri.var.zohoModuleType}</moduleType>
+											<duplicateCheck>{$ctx:uri.var.zohoduplicateCheck}</duplicateCheck>
+											<newFormat>{$ctx:uri.var.zohoNewFormat}</newFormat>
+											<version>{$ctx:uri.var.zohoVersion}</version>
+											<xmlData>{$ctx:uri.var.crXmlDataVal}</xmlData>
+											<isApproval>{$ctx:isApproval}</isApproval>
+											<wfTrigger>{$ctx:wfTrigger}</wfTrigger>
+										</zohocrm.insertRecords>
+
+										<property name="uri.var.zohoCRInsertLeadsError" expression="json-eval($.response.error)" />
+
+										<!-- Checks the successful lead creation using the availability of an error code -->
+										<filter source="boolean(get-property('uri.var.zohoCRInsertLeadsError'))" regex="true">
+											<then>
+												<property name="uri.var.callRailErrorMessage" expression="json-eval($.response.error.message)" />
+												<script language="js">
+											         <![CDATA[
+											         	var callRailErrorMessage = mc.getProperty('uri.var.callRailErrorMessage');
+											         	mc.setProperty('uri.var.callRailErrorMessage', callRailErrorMessage.replace('"', '\\"'));
+											          ]]>
+												</script>
+
+												<property name="uri.var.activity" value="zohocrm_insertLeadsFromCallRailData" />
+												<property name="uri.var.status" value="Error" />
+												<property name="uri.var.message" expression="get-property('uri.var.callRailErrorMessage')" />
+
+											</then>
+											<else>
+												<property name="uri.var.crResultMessage" expression="json-eval($.response.result.message)" />
+												<property name="uri.var.zohoCRSuccessResponseArray" expression="json-eval($..recorddetail)" />
+
+												<!-- Script meditor generates the response IDs. -->
+												<script language="js">
+											         <![CDATA[
+											         
+														var crLeadsArray = eval( '(' + mc.getProperty('uri.var.zohoCRSuccessResponseArray') + ')');
+														var crLeadsList = '';
+														
+														for (var i = 0; i < crLeadsArray.length; i++) {
+															crLeadsList += crLeadsArray[i].FL[0].content + ',';
+															
+														}
+														if(crLeadsList != ''){
+															mc.setProperty('uri.var.crLeadsList', crLeadsList.substring(0, crLeadsList.length-1));
+														}
+												        
+							
+													 ]]>
+												</script>
+												<property name="uri.var.activity" value="zohocrm_insertLeadsFromCallRailData" />
+												<filter source="boolean(get-property('uri.var.crLeadsList'))" regex="true">
+													<else>
+														<property name="uri.var.status" value="Warning" />
+														<property name="uri.var.message" value="Leads were created, however, could not retrieve the created Lead IDs." />
+													</else>
+													<then>
+														<property name="uri.var.id" expression="fn:concat('{lead_ids:[', get-property('uri.var.crLeadsList'), ']}')" />
+														<property name="uri.var.status" value="Success" />
+														<property name="uri.var.message" expression="get-property('uri.var.crResultMessage')" />
+													</then>
+												</filter>
+												<!-- END: ZohoCRM Lead ID details check -->
+
+											</else>
+										</filter>
+										<!-- END: ZohoCRM insertLeads Response check -->
+
+									</else>
+								</filter>
+								<!-- END: check xml data availability -->
+
+							</else>
+						</filter>
+						<!-- END: Empty Call list check -->
+
+					</then>
+				</filter>
+				<!-- END: CallRail listCalls response check -->
+
+			</then>
+		</filter>
+		<!-- END: CallRail api token check -->
+
+		<!-- Response generator for CallRail -->
+		<call-template target="responseHandlerTemplate">
+			<with-param name="activity" value="{$ctx:uri.var.activity}" />
+			<with-param name="id" value="{$ctx:uri.var.id}" />
+			<with-param name="status" value="{$ctx:uri.var.status}" />
+			<with-param name="message" value="{$ctx:uri.var.message}" />
+		</call-template>
+
+	</sequence>
+</template>

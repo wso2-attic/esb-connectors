@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="shopify_createCustomers"
+	transports="https,http" statistics="disable" trace="disable"
+	startOnLoad="true">
+	<target>
+		<inSequence onError="faultHandlerSeq">
+
+			<!-- ZohoCRM properties -->
+			<property name="zohoApiUrl" expression="json-eval($.zohoApiUrl)" />
+			<property name="zohoAccessToken" expression="json-eval($.zohoAccessToken)" />
+			<property name="zohoScope" value="crmapi" />			
+			<property name="zohoSelectColumns" value="Contacts(First Name,Last Name,Account Name,Description,Email,Mailing Street,Mailing State,Mailing City,Mailing Country,Mailing Zip,phone)" />
+			<property name="zohoCriteria" value="(Description:SHOPIFY)" />
+			<property name="zohoModule" value="Contacts" />
+			<property name="zohoXMLData" value="&lt;Contacts&gt; &lt;row no=&quot;1&quot;&gt; &lt;FL val=&quot;Description&quot;&gt;&lt;/FL&gt; &lt;/row&gt; &lt;/Contacts&gt;" />
+
+			<!-- Shopify properties -->
+			<property name="shopifyApiUrl" expression="json-eval($.shopifyApiUrl)" />
+			<property name="shopifyAccessToken" expression="json-eval($.shopifyAccessToken)" />
+			<property name="shopifyFormat" value="json" />
+
+			<!-- Common properties -->
+			<property name="index" value="0" scope="operation" />
+			
+			<!--  Retrieve ZohoCRM contacts for the search criteria -->
+
+			<zohocrm.init>
+				<scope>{$ctx:zohoScope}</scope>
+				<accessToken>{$ctx:zohoAccessToken}</accessToken>
+				<apiUrl>{$ctx:zohoApiUrl}</apiUrl>
+			</zohocrm.init>
+			<zohocrm.searchRecords>
+				<criteria>{$ctx:zohoCriteria}</criteria>
+				<selectColumns>{$ctx:zohoSelectColumns}</selectColumns>
+				<module>{$ctx:zohoModule}</module>
+			</zohocrm.searchRecords>
+
+			<!-- Removing custom headers from the searchContacts response -->
+			<header name="Strict-Transport-Security" scope="transport" action="remove" />
+			<header name="X-XSS-Protection" scope="transport" action="remove" />
+			<header name="X-Download-Options" scope="transport" action="remove" />
+			<header name="X-Content-Type-Options" scope="transport" action="remove" />
+			<header name="Pragma" scope="transport" action="remove" />
+			<header name="Cache-Control" scope="transport" action="remove" />
+
+			<!-- Check whether an error returns while retrieving the contacts, If so returns an error response, otherwise proceed to create customers -->
+
+			<property name="errorCode" expression="json-eval($..code)" />
+			<filter source="get-property('errorCode') = '[]'" regex="true">
+				<else>
+					<property name="message" expression="json-eval($..message[0])" />
+					<call-template target="responseHandlerTemplate">
+						<with-param name="activity" value="zohocrm_searchContacts" />
+						<with-param name="status" value="Error" />
+						<with-param name="message" value="{$ctx:message}" />
+					</call-template>
+					<loopback />
+				</else>
+				<then>
+					<!-- Creating the customers in Shopify using the details of retrieved contacts -->
+					<property name="messageType" value="application/xml" scope="axis2" />
+					<property name="contactsCount" expression="count(//result/Contacts/row)" scope="operation" />
+					<iterate expression="//result/Contacts/row" id="contactsIterator" continueParent="true"  preservePayload="true"  sequential="true">
+						<target>
+							<sequence>
+								<property name="contactId"
+									expression="//FL[val[text()='CONTACTID']]/content/text()" />
+								<property name="firstName"
+									expression="//FL[val[text()='First Name']]/content/text()" />
+								<property name="lastName"
+									expression="//FL[val[text()='Last Name']]/content/text()" />
+								<property name="company"
+									expression="//FL[val[text()='Account Name']]/content/text()" />	
+								<property name="email"
+									expression="//FL[val[text()='Email']]/content/text()" />
+								<property name="street"
+									expression="//FL[val[text()='Mailing Street']]/content/text()" />
+								<property name="state"
+									expression="//FL[val[text()='Mailing State']]/content/text()" />
+								<property name="city"
+									expression="//FL[val[text()='Mailing City']]/content/text()" />
+								<property name="country"
+									expression="//FL[val[text()='Mailing Country']]/content/text()" />
+								<property name="zipCode"
+									expression="//FL[val[text()='Mailing Zip']]/content/text()" />
+								<property name="phone"
+									expression="//FL[val[text()='Phone']]/content/text()" />
+									
+								<property name="messageType" value="application/json" scope="axis2" />
+								<payloadFactory media-type="json">
+									<format>
+										{
+										"customerDetails": {
+										"first_name": "$1",
+										"last_name": "$2",
+										"email": "$3",
+										"addresses": [
+										{
+										"address1": "$4",
+										"city":	"$5",
+										"company":"$6",
+										"province": "$7",
+										"phone": "$8",
+										"zip": "$9",
+										"last_name": "$2",
+										"first_name": "$1",
+										"country": "$10"
+										}
+										]
+										}
+										}
+									</format>
+									<args>
+										<arg expression="get-property('firstName')" />
+										<arg expression="get-property('lastName')" />
+										<arg expression="get-property('email')" />
+										<arg expression="get-property('street')" />
+										<arg expression="get-property('city')" />
+										<arg expression="get-property('company')" />
+										<arg expression="get-property('state')" />
+										<arg expression="get-property('phone')" />
+										<arg expression="get-property('zipCode')" />
+										<arg expression="get-property('country')" />
+									</args>
+								</payloadFactory>
+								<property name="customerDetails" expression="json-eval($.customerDetails)" />
+								<shopify.init>
+									<apiUrl>{$ctx:shopifyApiUrl}</apiUrl>
+									<accessToken>{$ctx:shopifyAccessToken}</accessToken>
+									<format>{$ctx:shopifyFormat}</format>
+								</shopify.init>
+								<shopify.createCustomer>
+									<customer>{$ctx:customerDetails}</customer>
+								</shopify.createCustomer>
+
+								<!-- Removing custom headers from the createCustomers response -->
+								<header name="X-XSS-Protection" scope="transport" action="remove" />
+								<header name="X-UA-Compatible" scope="transport" action="remove" />
+								<header name="X-Request-Id" scope="transport" action="remove" />
+								<header name="X-Stats-ApiClientId" scope="transport" action="remove" />
+								<header name="X-Content-Type-Options" scope="transport" action="remove" />
+								<header name="X-Stats-ApiPermissionId" scope="transport" action="remove" />
+								<header name="Status" scope="transport" action="remove" />
+								<header name="X-Frame-Options" scope="transport" action="remove" />
+								<header name="X-Stats-UserId" scope="transport" action="remove" />
+								<header name="X-ShopId" scope="transport" action="remove" />
+								<header name="Vary" scope="transport" action="remove" />
+								<header name="HTTP_X_SHOPIFY_SHOP_API_CALL_LIMIT" scope="transport" action="remove" />
+								<header name="X-Served-With" scope="transport" action="remove" />
+								<header name="X-ShardId" scope="transport" action="remove" />
+								<header name="X-Shopify-Shop-Api-Call-Limit" scope="transport" action="remove" />
+								<header name="WWW-Authenticate" scope="transport" action="remove" />
+								<header name="X-Stats-Validation-Errors" scope="transport" action="remove" />
+								<property name="createdCustomer" expression="json-eval($.customer)" />
+
+								<!-- Check if the customer has been created. If created returns a success response, if not returns an error response -->
+								<filter source="boolean(get-property('createdCustomer'))" regex="true">
+									<then>
+										<property name="id" expression="json-eval($.customer.id)" />
+										<property name="status" value="Success" />
+										<property name="activity" value="shopify_createCustomers" />
+										<property name="message" value="Successfully created the customer" />
+
+										<!-- Update description field in ZohoCRM contacts after successfully created the customer -->
+										<zohocrm.init>
+											<scope>{$ctx:zohoScope}</scope>
+											<accessToken>{$ctx:zohoAccessToken}</accessToken>
+											<apiUrl>{$ctx:zohoApiUrl}</apiUrl>
+										</zohocrm.init>
+										<zohocrm.updateRecords>
+											<moduleType>{$ctx:zohoModule}</moduleType>
+											<id>{$ctx:contactId}</id>
+											<xmlData>{$ctx:zohoXMLData}</xmlData>
+										</zohocrm.updateRecords>
+									</then>
+									<else>
+										<property name="message" expression="json-eval($..errors)" />
+										<property name="status" value="Error" />
+										<property name="activity" value="shopify_createCustomers" />
+										<property name="message" expression="json-eval($..errors)" />
+									</else>
+								</filter>
+								<call-template target="responseHandlerTemplate">
+									<with-param name="id" value="{$ctx:id}" />
+									<with-param name="status" value="{$ctx:status}" />
+									<with-param name="activity" value="{$ctx:activity}" />
+									<with-param name="message" value="{$ctx:message}" />
+								</call-template>
+
+								<property name="index" expression="get-property('operation','index') + 1" scope="operation" />
+							</sequence>
+						</target>
+					</iterate>
+
+					<filter
+						xpath="get-property('operation', 'index') = get-property('operation', 'contactsCount')">
+						<then>
+							<loopback />
+						</then>
+					</filter>
+
+				</then>
+
+			</filter>
+		</inSequence>
+		<outSequence>
+			<property name="messageType" value="application/json" scope="axis2" />
+			<payloadFactory media-type="json">
+				<format>
+					{
+					"Response":{
+					"process":"shopify-retrieveContactsAndCreateCustomers",
+					"activityResponse":[$1]
+					}
+					}
+				</format>
+				<args>
+					<arg expression="get-property('operation', 'responseString')" />
+				</args>
+			</payloadFactory>
+			<send />
+		</outSequence>
+	</target>
+	<description />
+</proxy>
+                                
