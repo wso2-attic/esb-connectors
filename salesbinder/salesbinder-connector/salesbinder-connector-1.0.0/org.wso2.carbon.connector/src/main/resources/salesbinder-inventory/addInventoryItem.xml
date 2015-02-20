@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="addInventoryItem" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="name" description="Name of the item." />
+   <parameter name="description" description="Optional description of item." />
+   <parameter name="serialNumber" description="Item Serial Number (for unique items)." />
+   <parameter name="sku" description="Stock Keeping Unit." />
+   <parameter name="multiple" description="0 = Unique Item, 1 = Quantity Item." />
+   <parameter name="threshold" description="Low Quantity Threshold." />
+   <parameter name="cost" description="Item/Unit Cost." />
+   <parameter name="price" description="Selling price of item/unit." />
+   <parameter name="quantity" description="Items in stock (unique items should have 1)." />
+   <parameter name="locationId" description="The location ID." />
+   <parameter name="categoryId" description="The category ID." />
+   <parameter name="unitOfMeasureId" description="Unit of Measure ID." />
+   <sequence>
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.serialNumber" expression="$func:serialNumber" />
+      <property name="uri.var.sku" expression="$func:sku" />
+      <property name="uri.var.multiple" expression="$func:multiple" />
+      <property name="uri.var.threshold" expression="$func:threshold" />
+      <property name="uri.var.cost" expression="$func:cost" />
+      <property name="uri.var.price" expression="$func:price" />
+      <property name="uri.var.quantity" expression="$func:quantity" />
+      <property name="uri.var.locationId" expression="$func:locationId" />
+      <property name="uri.var.categoryId" expression="$func:categoryId" />
+      <property name="uri.var.unitOfMeasureId" expression="$func:unitOfMeasureId" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "Item":{
+                  "name":"$1",
+                  "multiple":"$2",
+                  "cost":"$3"
+               }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.name')" />
+            <arg expression="get-property('uri.var.multiple')" />
+            <arg expression="get-property('uri.var.cost')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var description = mc.getProperty('uri.var.description');
+            var serialNumber = mc.getProperty('uri.var.serialNumber');
+            var sku = mc.getProperty('uri.var.sku');
+            var threshold = mc.getProperty('uri.var.threshold');
+            var price = mc.getProperty('uri.var.price');
+            var quantity = mc.getProperty('uri.var.quantity');
+            var locationId = mc.getProperty('uri.var.locationId');
+            var categoryId = mc.getProperty('uri.var.categoryId');
+            var unitOfMeasureId = mc.getProperty('uri.var.unitOfMeasureId');
+                
+            payload = mc.getPayloadJSON();
+
+            if (description != null && description!= ""){
+               payload.Item.description = description;
+            }
+            if (serialNumber != null && serialNumber!= ""){
+              payload.Item.serial_number = serialNumber;
+            }
+            if (sku != null && sku!= ""){
+                payload.Item.sku = sku;
+            }
+            if (threshold != null && threshold!= ""){
+               payload.Item.threshold = threshold;
+            }
+            if (price != null && price!= ""){
+               payload.Item.price = price;
+            }
+            if (quantity != null && quantity!= ""){
+               payload.Item.quantity = quantity;
+            }
+            if (locationId != null && locationId!= ""){
+               payload.Item.location_id = locationId;
+            }
+            if (categoryId != null && categoryId!= ""){
+               payload.Item.category_id = categoryId;
+            }
+            if (unitOfMeasureId != null && unitOfMeasureId!= ""){
+               payload.Item.unit_of_measure_id = unitOfMeasureId;
+            }
+            mc.setPayloadJSON(payload);     
+          ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/items.json" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="P3P" action="remove" scope="transport" />
+      <header name="Via" action="remove" scope="transport" />
+      <header name="Server" action="remove" scope="transport" />
+   </sequence>
+</template>
