@@ -151,6 +151,11 @@ public final class Constants {
     public static final String CUSTOMER_TYPE = "uri.var.customerType";
     
     /**
+     * CleverTim COMPANY_NAME.
+     */
+    public static final String COMPANY_NAME = "uri.var.companyName";
+    
+    /**
      * Error code constant for JSON building exception.
      */
     public static final int ERROR_CODE_JSON_EXCEPTION = 700003;
@@ -284,6 +289,11 @@ public final class Constants {
          * JSON Request Key: ctype.
          */
         public static final String CUSTOMER_TYPE = "ctype";
+        
+        /**
+         * JSON Request Key: cn.
+         */
+        public static final String COMPANY_NAME = "cn";
         
     }
 }

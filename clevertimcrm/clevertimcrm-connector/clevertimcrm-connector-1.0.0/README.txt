@@ -70,7 +70,8 @@ STEPS:
 	x)		contactTitle - Provide a proper value for a contact's title. Any string is applicable.
 	xi)		taskName - Provide a preferred name for a task.
 	xii)	taskLocation - Provide a preferred location for a task. Use a string other than 'Colombo'.
-		
+	xiii)	companyName - Provide a preferred name for the Company.
+
  6. Navigate to "{CLEVERTIM_CONNECTOR_HOME}/clevertim-connector/clevertim-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
 
