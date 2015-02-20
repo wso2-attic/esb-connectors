@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="createMessage" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="format" description="The format of the message." />
+   <parameter name="subject" description="The subject of the message." />
+   <parameter name="fromEmail" description="The Email of the sender." />
+   <parameter name="fromName" description="The Name of the sender." />
+   <parameter name="replyTo" description="The Email recepients should reply." />
+   <parameter name="priority" description="The priority of the message." />
+   <parameter name="charset" description="The character set used." />
+   <parameter name="encoding" description="The encoding type used." />
+   <parameter name="htmlConstructor" description="Use editor, external or upload." />
+   <parameter name="html" description="If htmlConstructor is html give the content of your html email." />
+   <parameter name="htmlFetch" description="If htmlConstructor is external give the URL where to fetch the email." />
+   <parameter name="htmlFetchWhen" description="If htmlConstructor is external give when to fetch the email." />
+   <parameter name="textConstructor" description="Use editor, external or upload." />
+   <parameter name="text" description="If textConstructor is editor give the content of your text only email." />
+   <parameter name="textFetch" description="If textConstructor is external give the URL where to fetch the body from." />
+   <parameter name="textFetchWhen" description="If textConstructor is external give give when to fetch the email." />
+   <parameter name="listIds" description="The list of list IDs." />
+
+   <sequence>
+      <property name="uri.var.format" expression="$func:format" />
+      <property name="uri.var.subject" expression="$func:subject" />
+      <property name="uri.var.fromEmail" expression="$func:fromEmail" />
+      <property name="uri.var.fromName" expression="$func:fromName" />
+      <property name="uri.var.replyTo" expression="$func:replyTo" />
+      <property name="uri.var.priority" expression="$func:priority" />
+      <property name="uri.var.charset" expression="$func:charset" />
+      <property name="uri.var.encoding" expression="$func:encoding" />
+      <property name="uri.var.htmlConstructor" expression="$func:htmlConstructor" />
+      <property name="uri.var.html" expression="$func:html" />
+      <property name="uri.var.htmlFetch" expression="$func:htmlFetch" />
+      <property name="uri.var.htmlFetchWhen" expression="$func:htmlFetchWhen" />
+      <property name="uri.var.textConstructor" expression="$func:textConstructor" />
+      <property name="uri.var.text" expression="$func:text" />
+      <property name="uri.var.textFetch" expression="$func:textFetch" />
+      <property name="uri.var.textFetchWhen" expression="$func:textFetchWhen" />
+      <property name="uri.var.listIds" expression="$func:listIds" />
+
+      <!-- Creating JSON payload -->
+      <script language="js">
+         <![CDATA[
+
+            var payload = mc.getPayloadJSON();
+            payload = new Object();
+
+            var listIds = eval('('+mc.getProperty('uri.var.listIds')+')')
+            var format = mc.getProperty('uri.var.format');
+            var subject = mc.getProperty('uri.var.subject');
+            var fromEmail = mc.getProperty('uri.var.fromEmail');
+            var fromName = mc.getProperty('uri.var.fromName');
+            var replyTo = mc.getProperty('uri.var.replyTo');
+            var priority = mc.getProperty('uri.var.priority');
+            var charset = mc.getProperty('uri.var.charset');
+            var encoding = mc.getProperty('uri.var.encoding');
+            var htmlConstructor = mc.getProperty('uri.var.htmlConstructor');
+            var html = mc.getProperty('uri.var.html');
+            var htmlFetch = mc.getProperty('uri.var.htmlFetch');
+            var htmlFetchWhen = mc.getProperty('uri.var.htmlFetchWhen');
+            var textConstructor = mc.getProperty('uri.var.textConstructor');
+            var text = mc.getProperty('uri.var.text');
+            var textFetch = mc.getProperty('uri.var.textFetch');
+            var textFetchWhen = mc.getProperty('uri.var.textFetchWhen');
+
+            /*
+               Since some parameter keys are not supported through JSON path,
+               Need to set them directly to the payload. e.g. p[1],p[2]         
+            */
+            if (listIds != null && listIds != "") {
+               payload = listIds; 
+            }
+
+            // mandatory parameters are set to the payload without null check
+            payload.format = format;
+
+            payload.subject = subject;
+
+            payload.fromemail = fromEmail;
+
+            payload.fromname = fromName;
+
+            payload.reply2 = replyTo;
+
+            payload.priority = priority;
+
+            payload.charset = charset;
+
+            payload.encoding = encoding;
+
+            payload.htmlconstructor = htmlConstructor;
+
+            if (html != null && html != "") {
+               payload.html = mc.getProperty('uri.var.html');
+            }
+
+            if (htmlFetch != null && htmlFetch != "") {
+               payload.htmlfetch = htmlFetch;
+            }
+
+            if (htmlFetchWhen != null && htmlFetchWhen != "") {
+               payload.htmlfetchwhen = htmlFetchWhen;
+            }
+
+            payload.textconstructor = textConstructor;
+
+            if (text != null && text != "") {
+               payload.text = mc.getProperty('uri.var.text');
+            }
+
+            if (textFetch != null && textFetch != "") {
+               payload.textfetch = textFetch;
+            }
+
+            if (textFetchWhen != null && textFetchWhen != "") {
+               payload.textfetchwhen = textFetchWhen;
+            }
+
+            mc.setPayloadJSON(payload);
+
+         ]]>
+      </script>
+
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}message_add{uri.var.queryParams}" />
+         </endpoint>
+      </call>
+
+      <!-- Remove response custom header information -->
+      <header name="X-Powered-By" scope="transport" action="remove" />
+
+   </sequence>
+</template>

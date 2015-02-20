@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="createMailingList" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="name" description="The Internal list name." />
+   <parameter name="subscriptionNotifyList"
+      description="The Comma-separated list of email addresses to notify on new subscriptions to this list." />
+   <parameter name="unsubscriptionNotifyList"
+      description="The Comma-separated list of email addresses to notify on any unsubscriptions from this list." />
+   <parameter name="toName" description="The name to use if contact doesn't enater any name." />
+   <parameter name="carbonCopyList"
+      description="The Comma-separated list of email addresses to send a copy of all mailings." />
+   <parameter name="stringId" description="The URL-safe list name." />
+   <parameter name="pUseTwitter" description="Indicates whether or not to send this campaign to Twitter." />
+   <parameter name="twitterUser" description="The Twitter account username." />
+   <parameter name="twitterPass" description="The Twitter account password." />
+   <parameter name="bounceId" description="The Bounce Management accounts." />
+   <parameter name="pUseCaptcha" description="Indicates whether or not to require CAPTCHA." />
+   <parameter name="getUnsubscribeReason" description="Indicates whether or not to ask for reason when unsubscribing." />
+   <parameter name="sendLastBroadcast"
+      description="Indicates whether or not to send the last broadcast campaign when subscribing." />
+   <parameter name="requireName" description="Indicates whether or not to require name with email when subscribing. " />
+   <parameter name="private" description="Indicates whether or not to hide it on public side." />
+   <parameter name="senderAddr1" description="The physical mailing addres of the sender." />
+   <parameter name="senderZip" description="The physical mailing address: zip or postal code of the sender." />
+   <parameter name="senderCountry" description="The physical mailing address country of the sender." />
+   <parameter name="senderName" description="The name of the sender." />
+   <parameter name="senderCity" description="The physical mailing city of the sender." />
+   <parameter name="senderUrl" description="The website associated with this list." />
+   <parameter name="senderReminder"
+      description="The reminder to the contacts as to why they are on this list and why you are emailing." />
+
+   <sequence>
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.subscriptionNotifyList" expression="$func:subscriptionNotifyList" />
+      <property name="uri.var.unsubscriptionNotifyList" expression="$func:unsubscriptionNotifyList" />
+      <property name="uri.var.toName" expression="$func:toName" />
+      <property name="uri.var.carbonCopyList" expression="$func:carbonCopyList" />
+      <property name="uri.var.stringId" expression="$func:stringId" />
+      <property name="uri.var.pUseTwitter" expression="$func:pUseTwitter" />
+      <property name="uri.var.twitterUser" expression="$func:twitterUser" />
+      <property name="uri.var.twitterPass" expression="$func:twitterPass" />
+      <property name="uri.var.bounceId" expression="$func:bounceId" />
+      <property name="uri.var.pUseCaptcha" expression="$func:pUseCaptcha" />
+      <property name="uri.var.getUnsubscribeReason" expression="$func:getUnsubscribeReason" />
+      <property name="uri.var.sendLastBroadcast" expression="$func:sendLastBroadcast" />
+      <property name="uri.var.requireName" expression="$func:requireName" />
+      <property name="uri.var.private" expression="$func:private" />
+      <property name="uri.var.senderAddr1" expression="$func:senderAddr1" />
+      <property name="uri.var.senderZip" expression="$func:senderZip" />
+      <property name="uri.var.senderCountry" expression="$func:senderCountry" />
+      <property name="uri.var.senderName" expression="$func:senderName" />
+      <property name="uri.var.senderCity" expression="$func:senderCity" />
+      <property name="uri.var.senderUrl" expression="$func:senderUrl" />
+      <property name="uri.var.senderReminder" expression="$func:senderReminder" />
+
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "name" : "$1",
+            "subscription_notify" : "$2",
+            "unsubscription_notify" : "$3",
+            "to_name" : "$4",
+            "carboncopy" : "$5",
+            "stringid" : "$6",
+            "bounceid[]" : "$7",
+            "sender_addr1" : "$8",
+            "sender_zip" : "$9",
+            "sender_country" : "$10",
+            "sender_name" : "$11",
+            "sender_city" : "$12",
+            "sender_url" : "$13",
+            "sender_reminder": "$14"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.name')" />
+            <arg expression="get-property('uri.var.subscriptionNotifyList')" />
+            <arg expression="get-property('uri.var.unsubscriptionNotifyList')" />
+            <arg expression="get-property('uri.var.toName')" />
+            <arg expression="get-property('uri.var.carbonCopyList')" />
+            <arg expression="get-property('uri.var.stringId')" />
+            <arg expression="get-property('uri.var.bounceId')" />
+            <arg expression="get-property('uri.var.senderAddr1')" />
+            <arg expression="get-property('uri.var.senderZip')" />
+            <arg expression="get-property('uri.var.senderCountry')" />
+            <arg expression="get-property('uri.var.senderName')" />
+            <arg expression="get-property('uri.var.senderCity')" />
+            <arg expression="get-property('uri.var.senderUrl')" />
+            <arg expression="get-property('uri.var.senderReminder')" />
+         </args>
+      </payloadFactory>
+
+      <script language="js">
+         <![CDATA[
+
+            // optional parameters are set to the payload.     
+            var payload = mc.getPayloadJSON();
+
+            var pUseTwitter = mc.getProperty('uri.var.pUseTwitter');
+            var twitterUser = mc.getProperty('uri.var.twitterUser');
+            var twitterPass = mc.getProperty('uri.var.twitterPass');
+            var pUseCaptcha = mc.getProperty('uri.var.pUseCaptcha');
+            var getUnsubscribeReason = mc.getProperty('uri.var.getUnsubscribeReason');
+            var sendLastBroadcast = mc.getProperty('uri.var.sendLastBroadcast');
+            var requireName = mc.getProperty('uri.var.requireName');
+            var privateVal = mc.getProperty('uri.var.private');
+
+            if (pUseTwitter != null && pUseTwitter != "") {
+               payload.p_use_twitter = pUseTwitter;
+            }
+
+            if (twitterUser != null && twitterUser != "") {
+               payload.twitter_user = twitterUser;
+            }
+
+            if (twitterPass != null && twitterPass != "") {
+               payload.twitter_pass = twitterPass;
+            }
+
+            if (pUseCaptcha != null && pUseCaptcha != "") {
+               payload.p_use_captcha = pUseCaptcha;
+            }
+
+            if (getUnsubscribeReason != null && getUnsubscribeReason != "") {
+               payload.get_unsubscribe_reason = getUnsubscribeReason;
+            }
+
+            if (sendLastBroadcast != null && sendLastBroadcast != "") {
+               payload.send_last_broadcast = sendLastBroadcast;
+            }
+
+            if (requireName != null && requireName != "") {
+               payload.require_name = requireName;
+            } 
+
+            if (privateVal != null && privateVal != "") {
+               payload['private'] = privateVal;
+            } 
+
+            mc.setPayloadJSON(payload);
+
+         ]]>
+      </script>
+
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}list_add{uri.var.queryParams}" />
+         </endpoint>
+      </call>
+
+      <!-- Remove response custom header information -->
+      <header name="X-Powered-By" scope="transport" action="remove" />
+
+   </sequence>
+</template>
