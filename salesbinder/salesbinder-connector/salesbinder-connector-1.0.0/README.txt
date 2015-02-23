@@ -12,11 +12,6 @@ Tested Platform:
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
  - WSO2 ESB 4.9.0 SNAPSHOT
-
-Steps to follow in setting integration test.
- 1.  Download ESB 4.8.1 from official website.
- 2.  Deploy relevant patches, if applicable.
-
  
 STEPS:
  
@@ -49,14 +44,17 @@ STEPS:
 	ii)  apiKey		  				- The API key obtained in step(5)[iii] which gives access to the API.
 	iii) contactEmail      			- Email address of the contact to be created with mandatory parameters.
 	iv)  contactEmailOpt     		- Email address of the contact to be created with optional parameters.
-	v)	 itemName					- Name of the item to be created.		 
-	vi)  locationId 			    - Id of the location where item is located.
-	vii) documentContextId		    - Context value to determine what type of document to be created (Invoice,Estimate,Purchase Order).
-	viii)issueDate		 			- Date of issuing of the document.
-	ix)	 shippingAddress 			- Shipping address related to the document.
-	x)	 accountContextId 			- Context value to determine what type of Account to be created (Customer,Prospect,Supplier).
-	xi)	 accountName 				- Name of the account (Unique). This parameter should be change in each integration run.
-	xii) accountOfficeEmail 		- Official mailing address of the account.						
+	v)	 contactFirstName			- First name of the contact.
+	vi)	 contactLastName			- Last name of the contact.
+	vii) itemName					- Name of the item to be created.		 
+	viii)itemCost	 			    - Cost of the item.
+	ix)  itemMultiple				- Type of the item.(0 = Unique Item, 1 = Quantity Item)
+	x)   documentContextId		    - Context value to determine what type of document to be created (Invoice=5,Estimate=4,Purchase Order=11).
+	xi)  issueDate		 			- Date of issuing of the document. Follow the format YYYY-MM-DD (eg:2015-02-12).
+	xii) shippingAddress 			- Shipping address related to the document.
+	xiii)accountContextId 			- Context value to determine what type of Account to be created (Customer=2,Prospect=8,Supplier=10).
+	xiv) accountName 				- Name of the account (Unique). This parameter should be change in each integration run.
+	xv)  accountOfficeEmail 		- Official mailing address of the account.						
 	
 
  7. Navigate to "{SALES_BINDER_CONNECTOR_HOME}/salesbinder-connector/salesbinder-connector-2.0.0/org.wso2.carbon.connector/" and run the following command.
