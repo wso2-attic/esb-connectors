@@ -65,6 +65,7 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
       nameSpaceMap.put("xsi", "http://www.w3.org/2001/XMLSchema-instance");
       
       currentTimeString = String.valueOf(System.currentTimeMillis());
+      connectorProperties.setProperty("currentTimeString", currentTimeString);
       
       apiRequestHeadersMap.putAll(esbRequestHeadersMap);
       
@@ -79,7 +80,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(priority = 1, groups = { "wso2.esb" }, description = "ExactTarget {listEmails} integration test with mandatory parameters.")
-   public void testListEmailsWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testListEmailsWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_listEmails_mandatory.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
@@ -120,7 +122,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListEmailsWithMandatoryParameters" }, description = "ExactTarget {listEmails} integration test with optional parameters.")
-   public void testListEmailsWithOptionalParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testListEmailsWithOptionalParameters() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_listEmails_optional.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
@@ -195,7 +198,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListEmailsNegativeCase" }, description = "ExactTarget {listSubscribers} integration test with mandatory parameters.")
-   public void testListSubscribersWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testListSubscribersWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_listSubscribers_mandatory.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
@@ -252,7 +256,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListSubscribersWithMandatoryParameters" }, description = "ExactTarget {listSubscribers} integration test with optional parameters.")
-   public void testListSubscribersWithOptionalParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testListSubscribersWithOptionalParameters() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_listSubscribers_optional.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
@@ -336,7 +341,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListSubscribersNegativeCase" }, description = "ExactTarget {createTriggeredSendDefinition} integration test with mandatory parameters.")
-   public void testCreateTriggeredSendDefinitionWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testCreateTriggeredSendDefinitionWithMandatoryParameters() throws OMException, XMLStreamException,
+         JaxenException, IOException {
    
       connectorProperties.setProperty("esbCreateTriggeredSendDefinition", "esbTrgdSendDef_" + currentTimeString);
       
@@ -351,7 +357,7 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
       
       String esbObjectIdString = (String) xPathEvaluate(esbResponseElement, esbXPathExpForObjectId, nameSpaceMap);
       
-      connectorProperties.setProperty("ObjectId", esbObjectIdString);
+      connectorProperties.setProperty("objectId", esbObjectIdString);
       
       String esbXPathExpForCustomerKey =
             "string(//soap:Body/xmlns:CreateResponse/xmlns:Results/xmlns:Object/xmlns:CustomerKey/text())";
@@ -399,13 +405,12 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateTriggeredSendDefinitionWithMandatoryParameters" }, description = "ExactTarget {createTriggeredSendDefinition} integration test with optional parameters.")
-   public void testCreateTriggeredSendDefinitionWithOptionalParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testCreateTriggeredSendDefinitionWithOptionalParameters() throws OMException, XMLStreamException,
+         JaxenException, IOException {
    
-      connectorProperties.setProperty("esbCreateTriggeredSendDefinitionOpt", "esbCreateTriggeredSendDefinitionOpt_"
-            + currentTimeString);
+      connectorProperties.setProperty("esbCreateTriggeredSendDefinitionOpt", "esbTrgdSendDef_Opt_" + currentTimeString);
       
-      connectorProperties.setProperty("apiCreateTriggeredSendDefinitionOpt", "apiCreateTriggeredSendDefinitionOpt_"
-            + currentTimeString);
+      connectorProperties.setProperty("apiCreateTriggeredSendDefinitionOpt", "apiTrgdSendDef_Opt_" + currentTimeString);
       
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_createTriggeredSendDefinition_optional.xml", null, "mediate",
@@ -449,10 +454,10 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateTriggeredSendDefinitionWithOptionalParameters" }, description = "ExactTarget {createTriggeredSendDefinition} integration test negative case.")
-   public void testCreateTriggeredSendDefinitionNegativeCase() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testCreateTriggeredSendDefinitionNegativeCase() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
-      connectorProperties.setProperty("esbCreateTriggeredSendDefinition", "esbCreateTriggeredSendDefinition_"
-            + currentTimeString);
+      connectorProperties.setProperty("esbCreateTriggeredSendDefinition", "esbTrgdSendDef_" + currentTimeString);
       
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_createTriggeredSendDefinition_negative.xml", null, "mediate",
@@ -497,7 +502,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateTriggeredSendDefinitionNegativeCase" }, description = "ExactTarget {updateTriggeredSendDefinition} integration test with mandatory parameters.")
-   public void testUpdateTriggeredSendDefinitionWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testUpdateTriggeredSendDefinitionWithMandatoryParameters() throws OMException, XMLStreamException,
+         JaxenException, IOException {
    
       SOAPEnvelope apiSoapResponseBeforeUpdate =
             sendSOAPRequest(apiEndPoint, "api_retrieveTriggeredSendDefinition.xml", null, "Retrieve",
@@ -547,10 +553,11 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws OMException throws if OM Exception occurred
     * @throws XMLStreamException throws if xml is not well-formed as well as unexpected processing conditions
     * @throws JaxenException throws if Jaxen Exception occurred
-    * @throws IOException throws if failed or interrupted I/O operations 
+    * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateTriggeredSendDefinitionWithMandatoryParameters" }, description = "ExactTarget {updateTriggeredSendDefinition} integration test with optional parameters.")
-   public void testUpdateTriggeredSendDefinitionWithOptionalParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testUpdateTriggeredSendDefinitionWithOptionalParameters() throws OMException, XMLStreamException,
+         JaxenException, IOException {
    
       connectorProperties.setProperty("esbUpdateTriggeredSendDefinitionConversationID",
             "esbSendTriggeredSendDefinition_" + currentTimeString);
@@ -595,7 +602,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateTriggeredSendDefinitionWithOptionalParameters" }, description = "ExactTarget {updateTriggeredSendDefinition} integration test with negative case.")
-   public void testUpdateTriggeredSendDefinitionNegativeCase() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testUpdateTriggeredSendDefinitionNegativeCase() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
       String xPathExpForStatus = "string(//soap:Body/xmlns:UpdateResponse/xmlns:Results/xmlns:StatusCode/text())";
       String xPathExpForErrorCode = "string(//soap:Body/xmlns:UpdateResponse/xmlns:Results/xmlns:ErrorCode/text())";
@@ -631,7 +639,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateTriggeredSendDefinitionNegativeCase" }, description = "ExactTarget {updateSubscriberAttributes} integration test with mandatory parameters.")
-   public void testUpdateSubscriberAttributesWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testUpdateSubscriberAttributesWithMandatoryParameters() throws OMException, XMLStreamException,
+         JaxenException, IOException {
    
       connectorProperties.setProperty("esbAttributeValue1", "esbAttributeValue1_" + currentTimeString);
       connectorProperties.setProperty("esbAttributeValue2", "esbAttributeValue2_" + currentTimeString);
@@ -701,7 +710,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateSubscriberAttributesWithMandatoryParameters" }, description = "ExactTarget {updateSubscriberAttributes} integration test with optional parameters.")
-   public void testUpdateSubscriberAttributesWithOptionalParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testUpdateSubscriberAttributesWithOptionalParameters() throws OMException, XMLStreamException,
+         JaxenException, IOException {
    
       connectorProperties.setProperty("esbUpdateSubscriberAttributes", "esbUpdateSubscriberAttributes_"
             + currentTimeString);
@@ -750,7 +760,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateSubscriberAttributesWithOptionalParameters" }, description = "ExactTarget {updateSubscriberAttributes} integration test negative case.")
-   public void testUpdateSubscriberAttributesNegativeCase() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testUpdateSubscriberAttributesNegativeCase() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_updateSubscriberAttributes_negative.xml", null, "mediate",
@@ -795,7 +806,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateSubscriberAttributesNegativeCase" }, description = "ExactTarget {sendTriggeredEmail} integration test with mandatory parameters.")
-   public void testSendTriggeredEmailWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testSendTriggeredEmailWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_sendTriggeredEmail_mandatory.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
@@ -835,7 +847,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSendTriggeredEmailWithMandatoryParameters" }, description = "ExactTarget {sendTriggeredEmail} integration test with optional parameters.")
-   public void testSendTriggeredEmailOptionalParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testSendTriggeredEmailOptionalParameters() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
       connectorProperties.setProperty("esbSendTriggeredEmailConversationID", "esbSendTriggeredEmail_"
             + currentTimeString);
@@ -917,7 +930,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSendTriggeredEmailNegativeCase" }, description = "ExactTarget {insertDataToDataExtension} integration test with mandatory parameters.")
-   public void testInsertDataToDataExtensionWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testInsertDataToDataExtensionWithMandatoryParameters() throws OMException, XMLStreamException,
+         JaxenException, IOException {
    
       connectorProperties.setProperty("esbEmailIdString", "esbEmailIdString_" + currentTimeString);
       
@@ -981,7 +995,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testInsertDataToDataExtensionWithMandatoryParameters" }, description = "ExactTarget {insertDataToDataExtension} integration test with optional parameters.")
-   public void testInsertDataToDataExtensionWithOptionalParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testInsertDataToDataExtensionWithOptionalParameters() throws OMException, XMLStreamException,
+         JaxenException, IOException {
    
       connectorProperties.setProperty("esbDataExtensionConversationId", "esbDataExtensionConversationId_"
             + currentTimeString);
@@ -1023,7 +1038,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testInsertDataToDataExtensionWithOptionalParameters" }, description = "ExactTarget {insertDataToDataExtension} integration test with negative case.")
-   public void testInsertDataToDataExtensionWithNegativeCase() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testInsertDataToDataExtensionWithNegativeCase() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_insertDataToDataExtension_negative.xml", null, "mediate",
@@ -1062,7 +1078,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testInsertDataToDataExtensionWithNegativeCase" }, description = "ExactTarget {listDataExtensionObjects} integration test with mandatory parameters.")
-   public void testListDataExtensionObjectsWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testListDataExtensionObjectsWithMandatoryParameters() throws OMException, XMLStreamException,
+         JaxenException, IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_listDataExtentionObjects_mandatory.xml", null, "mediate",
@@ -1107,7 +1124,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListDataExtensionObjectsWithMandatoryParameters" }, description = "ExactTarget {listDataExtensionObjects} integration test with optional parameters.")
-   public void testListDataExtensionObjectsWithOptionalParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testListDataExtensionObjectsWithOptionalParameters() throws OMException, XMLStreamException,
+         JaxenException, IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_listDataExtensionObjects_optional.xml", null, "mediate",
@@ -1153,7 +1171,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListDataExtensionObjectsWithOptionalParameters" }, description = "ExactTarget {listDataExtensionObjects} integration test with negative case.")
-   public void testListDataExtensionObjectsWithNegativeCase() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testListDataExtensionObjectsWithNegativeCase() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_listDataExtensionObjects_negative.xml", null, "mediate",
@@ -1190,7 +1209,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListDataExtensionObjectsWithNegativeCase" }, description = "ExactTarget {listOpenEvents} integration test with mandatory parameters.")
-   public void testListOpenEventsWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testListOpenEventsWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_listOpenEvents_mandatory.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
@@ -1233,7 +1253,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListOpenEventsWithMandatoryParameters" }, description = "ExactTarget {listOpenEvents} integration test with optional parameters.")
-   public void testListOpenEventsWithOptionalParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testListOpenEventsWithOptionalParameters() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_listOpenEvents_optional.xml", null, "mediate", SOAP_HEADER_XPATH_EXP,
@@ -1258,7 +1279,7 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
       String apiCreatedDateString = (String) xPathEvaluate(apiResponseElement, xpathExpForCreatedDate, nameSpaceMap);
       String apiResultsCount = (String) xPathEvaluate(apiResponseElement, xPathExpForResultsCount, nameSpaceMap);
       
-      Assert.assertEquals(esbIdString, connectorProperties.getProperty("objectId"));
+      Assert.assertEquals(esbIdString, connectorProperties.getProperty("openEventId"));
       Assert.assertEquals(esbCreatedDateString, apiCreatedDateString);
       Assert.assertTrue("1".equals(esbResultsCount));
       Assert.assertEquals(esbResultsCount, apiResultsCount);
@@ -1309,7 +1330,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListOpenEventsWithNegativeCase" }, description = "ExactTarget {listSendClassifications} integration test with mandatory parameters.")
-   public void testListSendClassificationsWithMandatoryParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testListSendClassificationsWithMandatoryParameters() throws OMException, XMLStreamException,
+         JaxenException, IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_listSendClassifications_mandatory.xml", null, "mediate",
@@ -1354,7 +1376,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListSendClassificationsWithMandatoryParameters" }, description = "ExactTarget {listSendClassifications} integration test with optional parameters.")
-   public void testListSendClassificationsWithOptionalParameters() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testListSendClassificationsWithOptionalParameters() throws OMException, XMLStreamException,
+         JaxenException, IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_listSendClassifications_optional.xml", null, "mediate",
@@ -1399,7 +1422,8 @@ public class ExacttargetConnectorIntegrationTest extends ConnectorIntegrationTes
     * @throws IOException throws if failed or interrupted I/O operations
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListSendClassificationsWithOptionalParameters" }, description = "ExactTarget {listSendClassifications} integration test with negative case.")
-   public void testListSendClassificationsWithNegativeCase() throws OMException, XMLStreamException, JaxenException, IOException {
+   public void testListSendClassificationsWithNegativeCase() throws OMException, XMLStreamException, JaxenException,
+         IOException {
    
       SOAPEnvelope esbSoapResponse =
             sendSOAPRequest(proxyUrl, "esb_listSendClassifications_negative.xml", null, "mediate",

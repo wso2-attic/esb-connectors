@@ -59,22 +59,32 @@ Steps to follow in setting integration test.
 	i) 		apiUrl					           - Use the API URL as "https://webservice.s7.exacttarget.com/Service.asmx".
 	ii)		accessToken				           - Access Token obtained by following the steps in 4.
 	iii) 	email		                       - Use a valid email address.
-	iv)		objectId	 		               - Use an ID of a created openEvent.
+	iv)		openEventId	 		               - Use an ID of a created openEvent.
 	v)		subscriberAtr1					   - Attribute name of the subscribers profile.
 	vi)		subscriberAtr2					   - Attribute name of the subscribers profile.
 	vii) 	dataExtCustomerKey	 	           - The unique identifier used to create the data extension.
 	viii)	dataExtField1			           - The property name of created DataExtension.
 	ix)		dataExtField2					   - The property name of created DataExtension.
+	x)		sendClassificationCustomerKey	   - External Key name for SendClassification.
 	
 	Note:-  As a Prerequisite 'openEvents', 'subscribers', 'sendClassifications', 'Emails', 'DataExtension', should have been created manually using the ExactTarget trial account.
 	
-			i)  Consider the following steps to create subscriber's profile attributes.
-				- Navigate to Subscribers -> All Subscribers -> Profile Management in ExactTarget trial account.
-				- Create two attributes with the given values for properties of 'subscriberAtr1' and 'subscriberAtr2'.
+			i)    Consider the following steps to create subscriber's profile attributes.
+				  - Navigate to Subscribers -> All Subscribers -> Profile Management in ExactTarget trial account.
+				  - Create two attributes. Use the given values for the 'subscriberAtr1' and 'subscriberAtr2' properties as names for the attributes.
 				
-	        ii) Consider the following steps when creating a Data Extension.
-				  - CustomerKey should be same as the property value of 'dataExtCustomerKey'.
-				  - Should have two fields with the property values of 'dataExtField1' and 'dataExtField2'.
+	        ii)   Consider the following steps when creating a Data Extension and its Data Extension Fields.
+				  - Navigate to Subscribers -> Data Extensions -> Create -> Standard Data Extension -> 'Create New Data Extension' Wizard in ExactTarget trial account.
+				  - External Key value given in step 1 of the wizard should be same as the property value of 'dataExtCustomerKey'.
+				  - Should create two fields in step 3 of the wizard with the values given for 'dataExtField1' and 'dataExtField2' properties.
+				  
+			iii)  Consider the following steps when creating a SendClassification.
+				  - Navigate to Admin -> Send Classifications in ExactTarget trial account.
+				  - Create a SendClassification by giving values for Name and External Key fields. Provide the External Key field value for 'sendClassificationCustomerKey' property.
+				  
+			iv)   Consider the following steps to properly validate the email content.
+				  - Navigate to Content -> Emails -> Select required email content to validate -> Click Validate button and proceed with the validation.
+				  - If Problem(s) found, Fix the validation errors following their instructions. Make sure all the listed emails are valid.
 	
  8. Navigate to "{EXACTTARGET_CONNECTOR_HOME}/exacttarget-connector/exacttarget-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
