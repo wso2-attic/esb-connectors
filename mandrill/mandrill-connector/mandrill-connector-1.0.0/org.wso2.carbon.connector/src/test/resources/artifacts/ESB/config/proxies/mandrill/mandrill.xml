@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="mandrill" startOnLoad="true" statistics="disable" trace="disable" transports="https,http" xmlns="http://ws.apache.org/ns/synapse">
+   <target>
+      <inSequence>
+         <property name="apiKey" expression="json-eval($.apiKey)"/>
+         <property name="apiUrl" expression="json-eval($.apiUrl)"/>
+		 <property name="format" expression="json-eval($.format)"/>	
+         <property name="subject" expression="json-eval($.subject)"/>
+         <property name="fromEmail" expression="json-eval($.fromEmail)"/>
+         <property name="to" expression="json-eval($.to)"/>
+         <property name="tags" expression="json-eval($.tags)"/>	
+         <property name="dateFrom" expression="json-eval($.dateFrom)"/>
+         <property name="dateTo" expression="json-eval($.dateTo)"/>
+         <property name="senders" expression="json-eval($.senders)"/>
+		 <property name="id" expression="json-eval($.id)"/>
+		 <property name="address" expression="json-eval($.address)"/>				 
+         <mandrill.init>
+            <apiKey>{$ctx:apiKey}</apiKey>
+            <apiUrl>{$ctx:apiUrl}</apiUrl>
+			<format>{$ctx:format}</format>	
+         </mandrill.init>
+         <switch source="get-property('transport','Action')">
+            <case regex="urn:sendMessage">
+               <mandrill.sendMessage>
+                  <subject>{$ctx:subject}</subject>
+                  <fromEmail>{$ctx:fromEmail}</fromEmail>
+                  <to>{$ctx:to}</to>
+                  <tags>{$ctx:tags}</tags>
+               </mandrill.sendMessage>
+            </case>
+            <case regex="urn:searchMessages">
+               <mandrill.searchMessages>
+                  <senders>{$ctx:senders}</senders>
+               </mandrill.searchMessages>
+            </case>
+            <case regex="urn:searchInformationOfMessage">
+               <mandrill.searchInformationOfMessage regex="urn:searchInformationOfMessage">
+                  <id>{$ctx:id}</id>
+               </mandrill.searchInformationOfMessage>
+            </case>			
+			<case regex="urn:searchTimeSeriesOfMessages">
+			 <mandrill.searchTimeSeriesOfMessages>
+				<dateFrom>{$ctx:dateFrom}</dateFrom>
+				<dateTo>{$ctx:dateTo}</dateTo>
+				<senders>{$ctx:senders}</senders>
+			 </mandrill.searchTimeSeriesOfMessages>
+            </case>
+			<case regex="urn:searchMessageContent">
+			 <mandrill.searchMessageContent>
+				<id>{$ctx:id}</id>
+			 </mandrill.searchMessageContent>
+            </case>	
+			<case regex="urn:listSendersCalls">
+				<mandrill.listSendersCalls/>
+            </case>	
+			<case regex="urn:getInformationOfSendersCalls">
+				<mandrill.getInformationOfSendersCalls>
+					<address>{$ctx:address}</address>
+				</mandrill.getInformationOfSendersCalls>
+            </case>				
+         </switch>
+         <respond/>
+      </inSequence>
+      <outSequence>
+         <log/>
+         <send/>
+      </outSequence>
+   </target>
+   <description/>
+</proxy>

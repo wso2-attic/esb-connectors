@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://mandrillapp.com/api/docs/messages.JSON.html#method=content -->
+<template name="searchMessageContent" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="id"
+      description="The unique id of the message to get - passed as the '_id' field in webhooks, send calls, or search calls." />
+   <sequence>
+      <property name="uri.var.id" expression="$func:id" />
+      <payloadFactory media-type="json">
+         <format> 
+            { 
+               "id": "$1", 
+               "key": "$2" 
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.id')" />
+            <arg expression="get-property('uri.var.apiKey')" />
+         </args>
+      </payloadFactory>
+      
+      <!--Mandrill API expects Content-Length Header -->
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+            
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/messages/content.{uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Access-Control-Allow-Credentials" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Headers" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Methods" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+   </sequence>
+</template>
