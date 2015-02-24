@@ -68,6 +68,7 @@ public class ClevertimCRMConnectorIntegrationTest extends ConnectorIntegrationTe
         
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createCase_mandatory.json");
+        System.out.println("response---"+esbRestResponse.getBody());
         JSONArray esbResponseArray = esbRestResponse.getBody().getJSONArray("content");
         String caseId = esbResponseArray.getJSONObject(0).getString("id");
         
@@ -556,7 +557,7 @@ public class ClevertimCRMConnectorIntegrationTest extends ConnectorIntegrationTe
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listOpportunities_mandatory.json");
         JSONArray esbResponseArray = esbRestResponse.getBody().getJSONArray("content");
-        
+        System.out.println("dhfjbd"+esbRestResponse.getBody());
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/api/opportunity";
         
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
@@ -571,8 +572,8 @@ public class ClevertimCRMConnectorIntegrationTest extends ConnectorIntegrationTe
                     .getString("id"));
             Assert.assertEquals(esbResponseArray.getJSONObject(0).getString("name"), apiResponseArray.getJSONObject(0)
                     .getString("name"));
-            Assert.assertEquals(esbResponseArray.getJSONObject(0).getString("added_on"), apiResponseArray
-                    .getJSONObject(0).getString("added_on"));
+            Assert.assertEquals(esbResponseArray.getJSONObject(0).getString("lm"), apiResponseArray
+                    .getJSONObject(0).getString("lm"));
         }
         
     }
@@ -849,7 +850,148 @@ public class ClevertimCRMConnectorIntegrationTest extends ConnectorIntegrationTe
             Assert.assertEquals(esbResponseArray.getJSONObject(0).getString("location"), apiResponseArray
                     .getJSONObject(0).getString("location"));
             
+        }else{
+            Assert.fail("No Tasks found.");
         }
     }
     
+    /**
+     * Positive test case for createCompany method with mandatory parameters.
+     */
+    @Test(priority = 1, description = "clevertimcrm {createCompany} integration test with mandatory parameters.")
+    public void testCreateComapnyWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createCompany");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createCompany_mandatory.json");
+        
+        JSONArray esbResponseArray = esbRestResponse.getBody().getJSONArray("content");
+        String companyId = esbResponseArray.getJSONObject(0).getString("id");
+        
+        connectorProperties.put("companyId", companyId);
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/api/company/" + companyId;
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        JSONArray apiResponseArray = apiRestResponse.getBody().getJSONArray("content");
+        
+        Assert.assertEquals(connectorProperties.getProperty("companyName"),
+                apiResponseArray.getJSONObject(0).getString("cn"));
+        Assert.assertEquals(apiResponseArray.getJSONObject(0).getString("lm"), esbResponseArray.getJSONObject(0).getString("lm"));
+    }
+    
+    /**
+     * Positive test case for createCompany method with optional parameters.
+     */
+    @Test(priority = 1, description = "clevertimcrm {createCompany} integration test with optional parameters.")
+    public void testCreateComapnyWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createCompany");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createCompany_optional.json");
+        System.out.println("dfbkjfggh"+esbRestResponse.getBody());
+        JSONArray esbResponseArray = esbRestResponse.getBody().getJSONArray("content");
+        String companyId = esbResponseArray.getJSONObject(0).getString("id");
+        
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/api/company/" + companyId;
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        JSONArray apiResponseArray = apiRestResponse.getBody().getJSONArray("content");
+        
+        Assert.assertEquals(connectorProperties.getProperty("companyName"),
+                apiResponseArray.getJSONObject(0).getString("cn"));
+        Assert.assertEquals(apiResponseArray.getJSONObject(0).getString("description"), esbResponseArray.getJSONObject(0).getString("description"));
+        Assert.assertEquals(apiResponseArray.getJSONObject(0).getString("city"), esbResponseArray.getJSONObject(0).getString("city"));
+    }
+    
+    /**
+     * Negative test case for createCompany method.
+     */
+    @Test(priority = 1, description = "clevertimcrm {createCompany} integration test negative case.")
+    public void testCreateCompanyWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createCompany");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createCompany_negative.json");
+        
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/api/company/";
+        
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_createCompany_negative.json");
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
+        Assert.assertEquals(esbRestResponse.getBody().getString("status"), apiRestResponse.getBody()
+                .getString("status"));
+        Assert.assertEquals(esbRestResponse.getBody().getString("error"), apiRestResponse.getBody().getString("error"));
+        
+    }
+    
+    /**
+     * Positive test case for listCompanies method with mandatory parameters.
+     */
+    @Test(dependsOnMethods = { "testCreateComapnyWithMandatoryParameters","testCreateComapnyWithOptionalParameters" },priority = 1, description = "clevertimcrm {listCompanies} integration test with mandatory parameters.")
+    public void testListCompaniesWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:listCompanies");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCompanies_mandatory.json");
+        JSONArray esbResponseArray = esbRestResponse.getBody().getJSONArray("content");
+        
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/api/company";
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        JSONArray apiResponseArray = apiRestResponse.getBody().getJSONArray("content");
+        
+        Assert.assertEquals(esbRestResponse.getBody().getString("status"), apiRestResponse.getBody()
+                .getString("status"));
+        Assert.assertEquals(esbResponseArray.length(), apiResponseArray.length());
+        
+        if (esbResponseArray.length() > 0 && apiResponseArray.length() > 0) {
+            Assert.assertEquals(esbResponseArray.getJSONObject(0).getString("id"), apiResponseArray.getJSONObject(0)
+                    .getString("id"));
+            Assert.assertEquals(esbResponseArray.getJSONObject(0).getString("cn"), apiResponseArray.getJSONObject(0)
+                    .getString("cn"));
+            Assert.assertEquals(esbResponseArray.getJSONObject(0).getString("lm"), apiResponseArray
+                    .getJSONObject(0).getString("lm"));
+        }else{
+            Assert.fail("No Companies found.");
+        }
+        
+    }
+    
+    /**
+     * Positive test case for getCompany method with mandatory parameters.
+     */
+    @Test(dependsOnMethods = { "testCreateComapnyWithMandatoryParameters" },priority = 1, description = "clevertimcrm {getCompany} integration test with mandatory parameters.")
+    public void testGetCompanyWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:getCompany");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getCompany_mandatory.json");
+        JSONArray esbResponseArray = esbRestResponse.getBody().getJSONArray("content");
+        
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/api/company/"+connectorProperties.getProperty("companyId");
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        JSONArray apiResponseArray = apiRestResponse.getBody().getJSONArray("content");
+        
+        Assert.assertEquals(esbRestResponse.getBody().getString("status"), apiRestResponse.getBody()
+                .getString("status"));
+        
+        if (esbResponseArray.length() ==1 && apiResponseArray.length() ==1) {
+            Assert.assertEquals(connectorProperties.getProperty("companyId"), apiResponseArray.getJSONObject(0)
+                    .getString("id"));
+            Assert.assertEquals(esbResponseArray.getJSONObject(0).getString("cn"), apiResponseArray.getJSONObject(0)
+                    .getString("cn"));
+            Assert.assertEquals(esbResponseArray.getJSONObject(0).getString("lm"), apiResponseArray
+                    .getJSONObject(0).getString("lm"));
+        }else{
+            Assert.fail("No Company found for given id.");
+        }
+        
+    }
 }
