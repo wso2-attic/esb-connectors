@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="createAccount" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="accountCode" description="The unique identifier to identify the account." />
+   <parameter name="username" description="The user name of the account holder." />
+   <parameter name="email" description="The email address of the account holder." />
+   <parameter name="firstName" description="The first name of the account holder." />
+   <parameter name="lastName" description="The last name of the account holder." />
+   <parameter name="companyName" description="The company name of the account holder." />
+   <parameter name="vatNumber" description="The VAT number to avoid having the VAT applied (if applicable)." />
+   <parameter name="taxExempt" description="The boolean flag indicating whether the tax has been exempted." />
+   <parameter name="entityUseCode" 
+      description="The AvaTax value of Avalara API to identify the customer type for tax purposes." />
+   <parameter name="billingInfo" description="The nested billing information." />
+   <parameter name="address" description="The nested address information." />
+   <parameter name="acceptLanguage" 
+      description="An ISO 639-1 language code indicating the preferred language and locale" />
+
+   <sequence>
+      <property name="uri.var.accountCode" expression="$func:accountCode" />
+      <property name="uri.var.username" expression="$func:username" />
+      <property name="uri.var.email" expression="$func:email" />
+      <property name="uri.var.firstName" expression="$func:firstName" />
+      <property name="uri.var.lastName" expression="$func:lastName" />
+      <property name="uri.var.companyName" expression="$func:companyName" />
+      <property name="uri.var.vatNumber" expression="$func:vatNumber" />
+      <property name="uri.var.taxExempt" expression="$func:taxExempt" />
+      <property name="uri.var.entityUseCode" expression="$func:entityUseCode" />
+      <property name="uri.var.billingInfo" expression="$func:billingInfo" />
+      <property name="uri.var.address" expression="$func:address" />
+      <property name="uri.var.acceptLanguage" expression="$func:acceptLanguage" />
+
+      <payloadFactory media-type="xml">
+         <format>
+            <account xmlns="">
+               <account_code>$1</account_code>
+               <username>$2</username>
+               <email>$3</email>
+               <first_name>$4</first_name>
+               <last_name>$5</last_name>
+               <company_name>$6</company_name>
+               <vat_number>$7</vat_number>
+               <tax_exempt>$8</tax_exempt>
+               <entity_use_code>$9</entity_use_code>
+               <billing_info>$10</billing_info>
+               <address>$11</address>
+               <accept_language>$12</accept_language>
+            </account>
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.accountCode')" />
+            <arg expression="get-property('uri.var.username')" />
+            <arg expression="get-property('uri.var.email')" />
+            <arg expression="get-property('uri.var.firstName')" />
+            <arg expression="get-property('uri.var.lastName')" />
+            <arg expression="get-property('uri.var.companyName')" />
+            <arg expression="get-property('uri.var.vatNumber')" />
+            <arg expression="get-property('uri.var.taxExempt')" />
+            <arg expression="get-property('uri.var.entityUseCode')" />
+            <arg expression="get-property('uri.var.billingInfo')" />
+            <arg expression="get-property('uri.var.address')" />
+            <arg expression="get-property('uri.var.acceptLanguage')" />
+         </args>
+      </payloadFactory>
+
+      <!-- Remove values element used as root element for multiroot cases via XSLT -->
+      <xslt key="recurly_removeRootElement.xslt" />
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/accounts" />
+         </endpoint>
+      </call>
+
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-RateLimit-Limit" action="remove" scope="transport" />
+      <header name="X-RateLimit-Remaining" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="X-RateLimit-Reset" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="X-Records" action="remove" scope="transport" />
+      <header name="WWW-Authenticate" action="remove" scope="transport" />
+   </sequence>
+</template>
