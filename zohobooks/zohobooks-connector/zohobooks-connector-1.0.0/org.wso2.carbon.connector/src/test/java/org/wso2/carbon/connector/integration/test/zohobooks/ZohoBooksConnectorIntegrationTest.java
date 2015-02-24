@@ -71,7 +71,6 @@ public class ZohoBooksConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:createItem");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createItem_mandatory.json");
-        
         final String itemIdMandatory = esbRestResponse.getBody().getJSONObject("item").getString("item_id");
         connectorProperties.put("itemIdMandatory", itemIdMandatory);
         
@@ -113,9 +112,7 @@ public class ZohoBooksConnectorIntegrationTest extends ConnectorIntegrationTestB
                 .getBody().getJSONObject("item").getString("description"));
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("item").getString("unit"), apiRestResponse
                 .getBody().getJSONObject("item").getString("unit"));
-        
-        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("item").getString("description"),
-                connectorProperties.getProperty("description"));
+ 
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("item").getString("unit"),
                 connectorProperties.getProperty("unit"));
         
@@ -169,6 +166,8 @@ public class ZohoBooksConnectorIntegrationTest extends ConnectorIntegrationTestB
                 apiRestResponse.getBody().getJSONArray("items").getJSONObject(0).getString("item_id"));
         Assert.assertEquals(esbRestResponse.getBody().getJSONArray("items").getJSONObject(0).getString("item_name"),
                 apiRestResponse.getBody().getJSONArray("items").getJSONObject(0).getString("item_name"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("items").getJSONObject(0).getString("item_type"),
+                apiRestResponse.getBody().getJSONArray("items").getJSONObject(0).getString("item_type"));
         
     }
     
@@ -185,17 +184,16 @@ public class ZohoBooksConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:listItems");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listItems_optional.json");
-        
         final String apiEndpoint =
-                apiEndpointUrl + "/items" + authString + "&description="
-                        + URLEncoder.encode(connectorProperties.getProperty("description"), "UTF-8");
+                apiEndpointUrl + "/items" + authString + "&name="
+                        + URLEncoder.encode(connectorProperties.getProperty("itemNameOptional"), "UTF-8");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
         Assert.assertEquals(esbRestResponse.getBody().getJSONArray("items").length(), 1);
         Assert.assertEquals(apiRestResponse.getBody().getJSONArray("items").length(), 1);
         
-        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("items").getJSONObject(0).getString("description"),
-                apiRestResponse.getBody().getJSONArray("items").getJSONObject(0).getString("description"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("items").getJSONObject(0).getString("status"),
+                apiRestResponse.getBody().getJSONArray("items").getJSONObject(0).getString("status"));
         Assert.assertEquals(esbRestResponse.getBody().getJSONArray("items").getJSONObject(0).getString("name"),
                 apiRestResponse.getBody().getJSONArray("items").getJSONObject(0).getString("name"));
         
@@ -264,7 +262,6 @@ public class ZohoBooksConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:createContact");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createContact_mandatory.json");
-        
         final String contactIdMandatory = esbRestResponse.getBody().getJSONObject("contact").getString("contact_id");
         connectorProperties.put("contactIdMandatory", contactIdMandatory);
         
@@ -474,7 +471,7 @@ public class ZohoBooksConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:createInvoice");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createInvoice_mandatory.json");
-        
+
         final String invoiceId = esbRestResponse.getBody().getJSONObject("invoice").getString("invoice_id");
         connectorProperties.put("invoiceId", invoiceId);
         
@@ -506,7 +503,6 @@ public class ZohoBooksConnectorIntegrationTest extends ConnectorIntegrationTestB
         esbRequestHeadersMap.put("Action", "urn:createInvoice");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createInvoice_optional.json");
-        
         final String invoiceIdOptional = esbRestResponse.getBody().getJSONObject("invoice").getString("invoice_id");
         connectorProperties.put("invoiceIdOptional", invoiceIdOptional);
         
@@ -718,6 +714,242 @@ public class ZohoBooksConnectorIntegrationTest extends ConnectorIntegrationTestB
         Assert.assertEquals(esbRestResponse.getBody().getString("code"), apiRestResponse.getBody().getString("code"));
         Assert.assertEquals(esbRestResponse.getBody().getString("message"),
                 apiRestResponse.getBody().getString("message"));
+        
+    }
+    
+    /**
+     * Positive test case for createPurchaseOrder method with mandatory parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "zohobooks {createPurchaseOrder} integration test with mandatory parameters.", dependsOnMethods = {
+            "testCreateItemWithOptionalParameters", "testCreateContactWithMandatoryParameters" })
+    public void testCreatePurchaseOrderWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createPurchaseOrder");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createPurchaseOrder_mandatory.json");
+        
+        final String purchaseOrderId = esbRestResponse.getBody().getJSONObject("purchaseorder").getString("purchaseorder_id");
+        
+        connectorProperties.put("purchaseOrderId", purchaseOrderId);
+        
+        final String apiEndpoint = apiEndpointUrl + "/purchaseorders/" + purchaseOrderId + authString;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+ 
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("purchaseorder").getJSONArray("line_items")
+                .getJSONObject(0).getString("item_id"), apiRestResponse.getBody().getJSONObject("purchaseorder")
+                .getJSONArray("line_items").getJSONObject(0).getString("item_id"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("purchaseorder").getString("vendor_id"),
+                connectorProperties.getProperty("contactIdMandatory"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("purchaseorder").getJSONArray("line_items")
+                .getJSONObject(0).getString("item_id"), connectorProperties.getProperty("itemIdOptional"));
+        
+    }
+    
+    /**
+     * Positive test case for createPurchaseOrder method with optional parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "zohobooks {createPurchaseOrder} integration test with optional parameters.", dependsOnMethods = {
+            "testCreateItemWithOptionalParameters", "testCreateContactWithOptionalParameters" })
+    public void testCreatePurchaseOrderWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createPurchaseOrder");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createPurchaseOrder_optional.json");
+        
+        final String purchaseOrderId = esbRestResponse.getBody().getJSONObject("purchaseorder").getString("purchaseorder_id");
+     
+        final String apiEndpoint = apiEndpointUrl + "/purchaseorders/" + purchaseOrderId + authString;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+ 
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("purchaseorder").getJSONArray("line_items")
+                .getJSONObject(0).getString("item_id"), apiRestResponse.getBody().getJSONObject("purchaseorder")
+                .getJSONArray("line_items").getJSONObject(0).getString("item_id"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("purchaseorder").getString("vendor_id"),
+                connectorProperties.getProperty("contactIdOptional"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("purchaseorder").getJSONArray("line_items")
+                .getJSONObject(0).getString("item_id"), connectorProperties.getProperty("itemIdOptional"));
+        
+    }
+    
+    /**
+     * Negative test case for createPurchaseOrder method.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "zohobooks {createPurchaseOrder} integration test with negative case.")
+    public void testCreatePurchaseOrderWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createPurchaseOrder");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createPurchaseOrder_negative.json");
+        final String apiEndpoint =
+                apiEndpointUrl + "/purchaseorders" + authString + "&JSONString="
+                        + URLEncoder.encode("{\"vendor_id\":\"INVALID\"}", "UTF-8");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "POST", apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
+        Assert.assertEquals(esbRestResponse.getBody().getString("message"),
+                esbRestResponse.getBody().getString("message"));
+        Assert.assertEquals(esbRestResponse.getBody().getString("code"), apiRestResponse.getBody().getString("code"));
+        
+    }
+    
+    /**
+     * Positive test case for createEstimate method with mandatory parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "zohobooks {createEstimate} integration test with mandatory parameters.", dependsOnMethods = {
+            "testCreateItemWithMandatoryParameters", "testCreateContactWithMandatoryParameters" })
+    public void testCreateEstimateWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createEstimate");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createEstimate_mandatory.json");
+        
+        final String estimateId = esbRestResponse.getBody().getJSONObject("estimate").getString("estimate_id");
+        
+        connectorProperties.put("estimateId", estimateId);
+        
+        final String apiEndpoint = apiEndpointUrl + "/estimates/" + estimateId + authString;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+ 
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("estimate").getJSONArray("line_items")
+                .getJSONObject(0).getString("item_id"), apiRestResponse.getBody().getJSONObject("estimate")
+                .getJSONArray("line_items").getJSONObject(0).getString("item_id"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("estimate").getString("customer_id"),
+                connectorProperties.getProperty("contactIdMandatory"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("estimate").getJSONArray("line_items")
+                .getJSONObject(0).getString("item_id"), connectorProperties.getProperty("itemIdMandatory"));
+        
+    }
+    
+    /**
+     * Positive test case for createEstimate method with optional parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "zohobooks {createEstimate} integration test with optional parameters.", dependsOnMethods = {
+            "testCreateItemWithMandatoryParameters", "testCreateContactWithOptionalParameters" })
+    public void testCreateEstimateWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createEstimate");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createEstimate_optional.json");
+        
+        final String estimateId = esbRestResponse.getBody().getJSONObject("estimate").getString("estimate_id");
+        
+        connectorProperties.put("estimateId", estimateId);
+        
+        final String apiEndpoint = apiEndpointUrl + "/estimates/" + estimateId + authString;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+ 
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("estimate").getJSONArray("line_items")
+                .getJSONObject(0).getString("item_id"), apiRestResponse.getBody().getJSONObject("estimate")
+                .getJSONArray("line_items").getJSONObject(0).getString("item_id"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("estimate").getString("customer_id"),
+                connectorProperties.getProperty("contactIdOptional"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("estimate").getJSONArray("line_items")
+                .getJSONObject(0).getString("item_id"), connectorProperties.getProperty("itemIdMandatory"));
+        
+    }
+    
+    /**
+     * Negative test case for createEstimate method.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "zohobooks {createEstimate} integration test with negative case.")
+    public void testCreateEstimateWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createEstimate");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createEstimate_negative.json");
+        final String apiEndpoint =
+                apiEndpointUrl + "/purchaseorders" + authString + "&JSONString="
+                        + URLEncoder.encode("{\"customer_id\":\"INVALID\"}", "UTF-8");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "POST", apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
+        Assert.assertEquals(esbRestResponse.getBody().getString("message"),
+                esbRestResponse.getBody().getString("message"));
+        
+    }
+    
+    /**
+     * Positive test case for createCustomerPayment method with mandatory parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "zohobooks {createCustomerPayment} integration test with mandatory parameters.", dependsOnMethods = {"testCreateContactWithMandatoryParameters" })
+    public void testCreateCustomerPaymentWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createCustomerPayment");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createCustomerPayment_mandatory.json");
+        
+        final String estimateId = esbRestResponse.getBody().getJSONObject("payment").getString("payment_id");
+        
+        
+        final String apiEndpoint = apiEndpointUrl + "/customerpayments/" + estimateId + authString;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+ 
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("payment").getString("customer_id"), connectorProperties.getProperty("contactIdMandatory"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("payment").getString("date"), connectorProperties.getProperty("paymentDate"));
+        Assert.assertEquals(Double.parseDouble(apiRestResponse.getBody().getJSONObject("payment").getString("amount")), Double.parseDouble(connectorProperties.getProperty("paymentAmount")));
+    }
+    
+    /**
+     * Positive test case for createCustomerPayment method with optional parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "zohobooks {createCustomerPayment} integration test with optional parameters.", dependsOnMethods = {"testCreateContactWithMandatoryParameters" })
+    public void testCreateCustomerPaymentWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createCustomerPayment");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createCustomerPayment_optional.json");
+        
+        final String estimateId = esbRestResponse.getBody().getJSONObject("payment").getString("payment_id");
+        
+        
+        final String apiEndpoint = apiEndpointUrl + "/customerpayments/" + estimateId + authString;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+ 
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("payment").getString("description"), connectorProperties.getProperty("paymentDescription"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("payment").getString("reference_number"), connectorProperties.getProperty("paymentReferenceNumber"));
+    }
+    
+    /**
+     * Negative test case for createCustomerPayment method.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "zohobooks {createCustomerpayment} integration test with negative case.")
+    public void testCreateCustomerPaymentsWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createCustomerPayment");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createCustomerPayement_negative.json");
+        final String apiEndpoint =
+                apiEndpointUrl + "/customerpayments" + authString + "&JSONString="
+                        + URLEncoder.encode("{\"customer_id\":\"INVALID\"}", "UTF-8");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "POST", apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
+        Assert.assertEquals(esbRestResponse.getBody().getString("message"),
+                esbRestResponse.getBody().getString("message"));
         
     }
     

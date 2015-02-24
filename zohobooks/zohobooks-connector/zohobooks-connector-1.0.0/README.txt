@@ -45,20 +45,25 @@ Steps to follow in setting integration test.
 	i)		apiUrl 							- 	The API URL specific to the created Zohobooks account (https://app.goclio.com).
 	ii) 	authToken						-   Use the access token obtained under step 4 ii).
 	iii)	organizationId					-	Use the organization ID obtained under step 4 ii).
-	iv)		*itemNameMandatory				-	Use a unique string for the item name (Used for createItem - Mandatory testcase).
-	v)		*itemNameOptional				- 	Use a unique string for the item name (Used for createItem - Optional testcase).
-	vi)		*description					- 	Use a valid title for the person contact.
+	iv)*	itemNameMandatory				-	Use a unique string for the item name (Used for createItem - Mandatory testcase).
+	v)*		itemNameOptional				- 	Use a unique string for the item name (Used for createItem - Optional testcase).
+	vi)*	description						- 	Use a valid title for the person contact.
 	vii)	rate							-   Use a numeric value, either integer or decimal (limit to 1 decimal place).
 	viii)	unit							-	Use a valid measuring unit (E.g. Kgs, Nos).
 	ix)	    website							-	Use a properly formed website name (E.g. www.sample.com).
 	x)	    companyName						-	Use a valid string as the company name.
-	xi)	    *contactNameMandatory			-	Use a unique string for the contact name (Used for createContact - Mandatory testcase).
-	xii)	*contactNameOptional			-	Use a unique string for the contact name (Used for createContact - Optional testcase).
-	xiii)	*contactPersonFirstName			-	Use a unique string for the contact person name (Used for createContact - Mandatory testcase).
-	xiv)	*contactPersonLastName			-	Use a unique string for the contact person name (Used for createContact - Mandatory testcase).
+	xi)*	contactNameMandatory			-	Use a unique string for the contact name (Used for createContact - Mandatory testcase).
+	xii)*	contactNameOptional				-	Use a unique string for the contact name (Used for createContact - Optional testcase).
+	xiii)*	contactPersonFirstName			-	Use a unique string for the contact person name (Used for createContact - Mandatory testcase).
+	xiv)*	contactPersonLastName			-	Use a unique string for the contact person name (Used for createContact - Mandatory testcase).
 	xv)	    contactPersonEmail				- 	Use a valid email address (no need to be a real one).
-	xvi)	*invoiceNumber					-	Use a valid string for invoice number.
+	xvi)*	invoiceNumber					-	Use a valid string for invoice number.
 	xvii)	invoiceDueDate					-	Use a valid future date in the format of 'yyyy-mm-dd' (e.g. 2015-02-23).
+	xviii)	purchaseDate					-	Use a valid date for purchase order creation in the format of 'yyyy-mm-dd' (e.g. 2015-02-23).
+	xix)	paymentDate						-	Use a valid date for the payment in the format of 'yyyy-mm-dd' (e.g. 2015-02-23).
+	xx)		paymentAmount					-	Use a numeric value, either integer or decimal for the payment amount .
+	xxi)	paymentDescription				-	Use a appropriate description for the payment.
+	xxii)	paymentReferenceNumber			-	Use a valid preferred string for the reference number of the payment.
 	
 	* Values need to be changed for each execution of the Test Suite. Please make sure the values are unique in the context of the same account.
 	
