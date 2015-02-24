@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="recurly_sendNotificationsThroughGmail" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+      
+         <!-- Recurly parameters -->
+         <property name="recurlyApiUrl" expression="json-eval($.recurlyApiUrl)" />
+         <property name="recurlyApiKey" expression="json-eval($.recurlyApiKey)" />
+         <property name="recurlyCouponCode" expression="json-eval($.recurlyCouponCode)" />
+         <property name="recurlyCouponName" expression="json-eval($.recurlyCouponName)" />
+         <property name="recurlyDiscountType" expression="json-eval($.recurlyDiscountType)" />
+         <property name="recurlyDiscountPercent" expression="json-eval($.recurlyDiscountPercent)" />
+         <property name="recurlyDiscountInCents" expression="json-eval($.recurlyDiscountInCents)" />
+         <property name="recurlyPlanCodes" expression="json-eval($.recurlyPlanCodes)" />
+         <property name="recurlyHostedDescription" expression="json-eval($.recurlyHostedDescription)" />
+         <property name="recurlyInvoiceDescription" expression="json-eval($.recurlyInvoiceDescription)" />
+         <property name="recurlyAppliesForMonths" expression="json-eval($.recurlyAppliesForMonths)" />
+         <property name="recurlyMaxRedemptions" expression="json-eval($.recurlyMaxRedemptions)" />
+         <property name="recurlyRedeemByDate" expression="json-eval($.recurlyRedeemByDate)" />
+         <property name="recurlySingleUse" expression="json-eval($.recurlySingleUse)" />
+         <property name="recurlyAppliesToAllPlans" expression="json-eval($.recurlyAppliesToAllPlans)" />
+
+         <!-- Gmail parameters -->
+         <property name="gmailUsername" expression="json-eval($.gmailUsername)" />
+         <property name="gmailOauthAccessToken" expression="json-eval($.gmailOauthAccessToken)" />
+
+         <!-- Properties required by faultHandler -->
+         <property name="processName" value="recurly_sendNotificationsThroughGmail" scope="operation" />
+         <property name="activityName" value="recurly_sendingNotificationMail" scope="operation" />
+
+         <!-- Creating XML using JSON object -->
+         <script language="js">
+         
+          <![CDATA[
+            var planCodes = eval("(" + mc.getProperty("recurlyPlanCodes") + ")");
+            var discountObject = eval("(" + mc.getProperty("recurlyDiscountInCents") + ")");
+            var planCodesString = "<values>";
+            var discountString = "<values>";
+            for(var i = 0; i < planCodes.length; i++) {
+               var obj = planCodes[i];
+               planCodesString = planCodesString + "<plan_code>" + obj + "</plan_code>" ;
+            }
+            for(var i = 0; i < discountObject.length; i++) {
+               var obj = discountObject[i];
+               discountString = discountString + "<" + obj.currencyCode + ">" + obj.units + "</" + obj.currencyCode + ">" ;
+            }
+            planCodesString = planCodesString + "</values>";
+            mc.setProperty("recurlyPlanCodes",planCodesString);
+            discountString = discountString + "</values>";
+            mc.setProperty("recurlyDiscountInCents",discountString);
+          ]]>
+         </script>
+
+         <property name="messageType" value="application/xml" scope="axis2" />
+
+         <!-- Create coupon in recurly -->
+         <recurly.init>
+            <apiUrl>{$ctx:recurlyApiUrl}</apiUrl>
+            <apiKey>{$ctx:recurlyApiKey}</apiKey>
+         </recurly.init>
+         <recurly.createCoupon>
+            <planCodes>{$ctx:recurlyPlanCodes}</planCodes>
+            <hostedDescription>{$ctx:recurlyHostedDescription}</hostedDescription>
+            <discountType>{$ctx:recurlyDiscountType}</discountType>
+            <appliesForMonths>{$ctx:recurlyAppliesForMonths}</appliesForMonths>
+            <name>{$ctx:recurlyCouponName}</name>
+            <discountInCents>{$ctx:recurlyDiscountInCents}</discountInCents>
+            <maxRedemptions>{$ctx:recurlyMaxRedemptions}</maxRedemptions>
+            <redeemByDate>{$ctx:recurlyRedeemByDate}</redeemByDate>
+            <couponCode>{$ctx:recurlyCouponCode}</couponCode>
+            <discountPercent>{$ctx:recurlyDiscountPercent}</discountPercent>
+            <singleUse>{$ctx:recurlySingleUse}</singleUse>
+            <invoiceDescription>{$ctx:recurlyInvoiceDescription}</invoiceDescription>
+            <appliesToAllPlans>{$ctx:recurlyAppliesToAllPlans}</appliesToAllPlans>
+         </recurly.createCoupon>
+
+         <property name="successResponse" expression="//coupon/@href" />
+
+         <!-- Set error if coupon was not created -->
+         <filter source="boolean(get-property('successResponse'))" regex="false">
+            <then>
+               <property name="errorField" expression="//error[1]/@field" />
+               <property name="message" expression="//error[1]" />
+               <property name="errorMessage" expression="fn:concat(get-property('errorField'), ' : ', get-property('message'))" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="recurly_createCoupon" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="{$ctx:errorMessage}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <property name="responseString" value="" scope="operation" />
+         <property name="planCode" expression="//plan_code" scope="operation" />
+         <property name="couponCode" expression="//coupon_code" scope="operation" />
+
+         <!-- List active subscriptions in recurly -->
+         <recurly.init>
+            <apiUrl>{$ctx:recurlyApiUrl}</apiUrl>
+            <apiKey>{$ctx:recurlyApiKey}</apiKey>
+         </recurly.init>
+         <recurly.listSubscriptions>
+            <state>active</state>
+         </recurly.listSubscriptions>
+
+         <property name="subscriptionCount" expression="count(//subscription)" scope="operation" />
+         
+         <!-- Set error if no subscriptions retrieved -->
+         <filter xpath="0 = get-property('operation', 'subscriptionCount')">
+            <then>
+               <property name="message" value="No subscriptions were found." />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="gmail_sendNotificationEmailsToRecipients" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <property name="index" expression="0" scope="operation" />
+         <property name="messageCount" expression="0" scope="operation" />
+
+         <!-- Subscriptions iterater -->
+         <iterate continueParent="true" id="subscriptionIterator" expression="//subscription" sequential="true">
+            <target>
+               <sequence>
+                  <property name="subscriptionPlanCode" expression="//subscription/plan/plan_code" scope="operation" />
+                  <filter xpath="get-property('operation', 'subscriptionPlanCode') = get-property('operation', 'planCode')">
+                     <then>
+                        <property name="accountCode" expression="fn:substring-after(//account/@href,'accounts/')" />
+
+                        <!-- Get account details by account code in recurly -->
+                        <recurly.init>
+                           <apiUrl>{$ctx:recurlyApiUrl}</apiUrl>
+                           <apiKey>{$ctx:recurlyApiKey}</apiKey>
+                        </recurly.init>
+                        <recurly.getAccountByCode>
+                           <accountCode>{$ctx:accountCode}</accountCode>
+                        </recurly.getAccountByCode>
+
+                        <property name="email" expression="//email/text()" />
+
+                        <!-- Set error if no email is retrieved -->
+                        <filter source="boolean(get-property('email'))" regex="false">
+                           <then>
+                              <property name="message"
+                                 value="Failed to send the email to the user since the email ID does not exist." />
+                              <property name="id" expression="fn:concat('Account Code : ', get-property('accountCode') )" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="gmail_sendNotificationEmailsToRecipients" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="Skipped" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </then>
+                           <else>
+                              <property name="subscriptionLink"
+                                 expression="fn:concat(get-property('recurlyApiUrl'), '/subscribe/', get-property('operation', 'planCode'))" />
+                              <property name="userName" expression="//first_name" />
+                              
+                              <!-- Build the message body -->
+                              <payloadFactory media-type="json">
+                                 <format>{
+                                    "mailSubject": "Special offer for the $4 plan",
+                                    "mailContent": "Hi $1,\n\nWe are introducing a coupon : $2 as a special offer for the $4 plan that you have subscribed
+                                    for. \n\n For more details please click $3 ."
+                                    }
+                                 </format>
+                                 <args>
+                                    <arg expression="get-property('userName')" />
+                                    <arg expression=" get-property('operation', 'couponCode')" />
+                                    <arg expression="get-property('subscriptionLink')" />
+                                    <arg expression="get-property('operation', 'planCode')" />
+                                 </args>
+                              </payloadFactory>
+
+                              <!-- Build the message body to send in gmail -->
+                              <property name="gmailSubject" expression="json-eval($.mailSubject)" />
+                              <property name="gmailTextContent" expression="json-eval($.mailContent)" />
+
+                              <!-- Send mail in Gmail -->
+                              <filter source="boolean(get-property('gmailOauthAccessToken'))" regex="true">
+                                 <then>
+                                    <gmail.init>
+                                       <username>{$ctx:gmailUsername}</username>
+                                       <oauthAccessToken>{$ctx:gmailOauthAccessToken}</oauthAccessToken>
+                                    </gmail.init>
+                                    <gmail.sendMail>
+                                       <subject>{$ctx:gmailSubject}</subject>
+                                       <toRecipients>{$ctx:email}</toRecipients>
+                                       <textContent>{$ctx:gmailTextContent}</textContent>
+                                    </gmail.sendMail>
+
+                                    <property name="messageSubject" expression="json-eval($.sendMailResponse.message.subject)" />
+
+                                    <!-- Set error if no mail is not sent -->
+                                    <filter source="boolean(get-property('messageSubject'))" regex="false">
+                                       <then>
+                                          <property name="status" value="Error" />
+                                          <property name="errorMessage" expression="json-eval($.)" scope="operation" />
+                                       </then>
+                                       <else>
+                                          <property name="messageCount" expression="get-property('operation','messageCount') + 1"
+                                             scope="operation" />
+                                       </else>
+                                    </filter>
+                                 </then>
+                                 <else>
+                                    <property name="status" value="Skipped" />
+                                    <property name="message" value="Gmail oauth access token is not provided in the request." />
+                                 </else>
+                              </filter>
+                           </else>
+                        </filter>
+                     </then>
+                  </filter>
+
+                  <property name="index" expression="get-property('operation','index') + 1" scope="operation" />
+               </sequence>
+            </target>
+         </iterate>
+
+         <!-- Check for all the iterations has completed -->
+         <filter xpath="get-property('operation', 'index') = get-property('operation', 'subscriptionCount')">
+            <then>
+               <filter xpath="0 != get-property('operation', 'messageCount')">
+                  <then>
+                     <property name="id" expression="fn:concat('Coupon Code : ', get-property('operation', 'couponCode') )" />
+                     <property name="status" value="Success" />
+                     <property name="message"
+                        expression="fn:concat('Notification details are successfully sent to ', fn:substring-before(get-property('operation', 'messageCount'),'.'), ' recepient(s).' )" />
+                  </then>
+                  <else>
+                     <property name="status" value="Error" />
+                     <property name="message" expression="get-property('operation', 'errorMessage')" />
+                  </else>
+               </filter>
+               <property name="activity" value="gmail_sendNotificationEmailsToRecipients" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="{$ctx:activity}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         
+      </inSequence>
+      <outSequence>
+      
+         <payloadFactory media-type="json">
+            <format>{
+               "Response":{
+               "activity":"recurly_sendNotificationsThroughGmail",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+         
+      </outSequence>
+   </target>
+   <description />
+</proxy>

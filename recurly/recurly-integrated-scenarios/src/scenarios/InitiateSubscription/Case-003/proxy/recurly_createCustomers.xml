@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="recurly_createCustomers" transports="https,http" statistics="disable"
+   trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- Base CRM parameters -->
+         <property name="baseCRMApiUrl" expression="json-eval($.baseCRMApiUrl)" />
+         <property name="baseCRMEmail" expression="json-eval($.baseCRMEmail)" />
+         <property name="baseCRMPassword" expression="json-eval($.baseCRMPassword)" />
+         <property name="baseCRMApiOutput" value="json" />
+
+         <!-- Recurly parameters -->
+         <property name="recurlyApiUrl" expression="json-eval($.recurlyApiUrl)" />
+         <property name="recurlyApiKey" expression="json-eval($.recurlyApiKey)" />
+         <property name="recurlyPlanCode" expression="json-eval($.recurlyPlanCode)" />
+         <property name="recurlyCurrency" expression="json-eval($.recurlyCurrency)" />
+         <property name="recurlyAccountCount" expression="count(//recurlyAccounts)" scope="operation" />
+         <property name="accountIndex" value="0" scope="operation" />
+
+         <!-- Check if there are contacts. -->
+         <filter xpath="get-property('operation', 'recurlyAccountCount') = 0">
+            <then>
+               <property name="status" value="Failed" />
+               <property name="message" value="No account details are found." />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="recurly_createCustomers" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+
+               <iterate continueParent="true" id="accountDetailsIterator" preservePayload="true" expression="//recurlyAccounts"
+                  sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="recurlyAccountCode" expression="//recurlyAccounts/text()" />
+
+                        <filter xpath="boolean(get-property('recurlyAccountCode'))">
+                           <then>
+
+                              <property name="messageType" value="application/xml" scope="axis2" />
+                              <!-- Get account details. -->
+                              <recurly.init>
+                                 <apiUrl>{$ctx:recurlyApiUrl}</apiUrl>
+                                 <apiKey>{$ctx:recurlyApiKey}</apiKey>
+                              </recurly.init>
+                              <recurly.getAccountByCode>
+                                 <accountCode>{$ctx:recurlyAccountCode}</accountCode>
+                              </recurly.getAccountByCode>
+                              <sequence key="removeResponseHeaders" />
+
+                              <!-- Check account exists. -->
+                              <filter source="$axis2:HTTP_SC" regex="404">
+                                 <then>
+                                    <property name="messageType" value="application/json" scope="axis2" />
+                                    <!-- Get contact details. -->
+                                    <basecrm.init>
+                                       <email>{$ctx:baseCRMEmail}</email>
+                                       <responseType>json</responseType>
+                                       <apiUrl>{$ctx:baseCRMApiUrl}</apiUrl>
+                                       <password>{$ctx:baseCRMPassword}</password>
+                                    </basecrm.init>
+                                    <basecrm.getContactById>
+                                       <contactId>{$ctx:recurlyAccountCode}</contactId>
+                                    </basecrm.getContactById>
+                                    <sequence key="removeResponseHeaders" />
+
+                                    <!-- Check contact exists. -->
+                                    <filter source="$axis2:HTTP_SC" regex="200">
+                                       <then>
+                                          <property name="baseCRMContactEmail" expression="//jsonObject/contact/email/text()" />
+                                          <property name="baseCRMContactFirstName" expression="//jsonObject/contact/first_name/text()" />
+                                          <property name="baseCRMContactLastName" expression="//jsonObject/contact/last_name/text()" />
+                                          <property name="baseCRMContactOrgName" expression="//jsonObject/contact/organisation_name/text()" />
+                                          <property name="baseCRMContactAddress"
+                                             expression="//jsonObject/contact/sales_account/billing_address/street/text()" />
+                                          <property name="baseCRMContactCity"
+                                             expression="//jsonObject/contact/sales_account/billing_address/city/text()" />
+                                          <property name="baseCRMContactState"
+                                             expression="//jsonObject/contact/sales_account/billing_address/region/text()" />
+                                          <property name="baseCRMContactCountry"
+                                             expression="//jsonObject/contact/sales_account/billing_address/country/text()" />
+                                          <property name="baseCRMContactZip"
+                                             expression="//jsonObject/contact/sales_account/billing_address/zip/text()" />
+                                          <property name="baseCRMContactDesc" expression="//jsonObject/contact/description/text()" />
+                                          <property name="baseCRMPhone" expression="//jsonObject/contact/phone/text()" />
+
+                                          <!-- Getting card number. -->
+                                          <property name="baseCRMContactCardNumber"
+                                             expression="fn:substring(fn:substring-after(get-property('baseCRMContactDesc'),'Card Number :'),1,19)" />
+                                          <!-- Create billingInfo string for account. -->
+                                          <property name="recurlyBillingInfo"
+                                             expression="fn:concat('&lt;values&gt;&lt;first_name&gt;',
+                                             get-property('baseCRMContactFirstName'),'&lt;/first_name&gt;&lt;last_name&gt;',get-property('baseCRMContactLastName'),
+                                             '&lt;/last_name&gt;&lt;address1&gt;',get-property('baseCRMContactAddress'),'&lt;/address1&gt;&lt;city&gt;',
+                                             get-property('baseCRMContactCity'),'&lt;/city&gt;&lt;state&gt;',get-property('baseCRMContactState'),'&lt;/state&gt;&lt;country&gt;',
+                                             get-property('baseCRMContactCountry'),'&lt;/country&gt;&lt;zip&gt;',get-property('baseCRMContactZip'),'&lt;/zip&gt;&lt;number&gt;',
+                                             get-property('baseCRMContactCardNumber'),'&lt;/number&gt;&lt;phone&gt;',get-property('baseCRMPhone'),'&lt;/phone&gt;&lt;/values&gt;')" />
+
+                                          <property name="messageType" value="application/xml" scope="axis2" />
+                                          <!-- Create account. -->
+                                          <recurly.init>
+                                             <apiUrl>{$ctx:recurlyApiUrl}</apiUrl>
+                                             <apiKey>{$ctx:recurlyApiKey}</apiKey>
+                                          </recurly.init>
+                                          <recurly.createAccount>
+                                             <accountCode>{$ctx:recurlyAccountCode}</accountCode>
+                                             <email>{$ctx:baseCRMContactEmail}</email>
+                                             <firstName>{$ctx:baseCRMContactFirstName}</firstName>
+                                             <lastName>{$ctx:baseCRMContactLastName}</lastName>
+                                             <companyName>{$ctx:baseCRMContactOrgName}</companyName>
+                                             <billingInfo>{$ctx:recurlyBillingInfo}</billingInfo>
+                                          </recurly.createAccount>
+                                          <sequence key="removeResponseHeaders" />
+
+                                          <!-- Check weather the account was created. -->
+                                          <filter source="$axis2:HTTP_SC" regex="201">
+                                             <then>
+                                                <property name="recurlyAccountDetail"
+                                                   expression="fn:concat('&lt;values&gt;&lt;account_code&gt;',get-property('recurlyAccountCode'))" />
+                                                <property name="recurlyAccountDetail"
+                                                   expression="fn:concat(get-property('recurlyAccountDetail'),'&lt;/account_code&gt;&lt;/values&gt;')" />
+
+                                                <property name="messageType" value="application/xml" scope="axis2" />
+                                                <!-- Create subscription. -->
+                                                <recurly.init>
+                                                   <apiUrl>{$ctx:recurlyApiUrl}</apiUrl>
+                                                   <apiKey>{$ctx:recurlyApiKey}</apiKey>
+                                                </recurly.init>
+                                                <recurly.createSubscription>
+                                                   <currency>{$ctx:recurlyCurrency}</currency>
+                                                   <planCode>{$ctx:recurlyPlanCode}</planCode>
+                                                   <account>{$ctx:recurlyAccountDetail}</account>
+                                                </recurly.createSubscription>
+                                                <sequence key="removeResponseHeaders" />
+
+                                                <!-- Check subscription created. -->
+                                                <filter source="$axis2:HTTP_SC" regex="201">
+                                                   <then>
+                                                      <property name="id"
+                                                         expression="fn:concat('AcountCode:',get-property('recurlyAccountCode'))" />
+                                                      <property name="status" value="Success" />
+                                                      <property name="message"
+                                                         value="Account created and subscribed successfully" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="recurly_addSubscription" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="{$ctx:status}" />
+                                                         <with-param name="message" value="{$ctx:message}" />
+                                                      </call-template>
+                                                   </then>
+                                                   <else>
+
+                                                      <property name="id"
+                                                         expression="fn:concat('AcountCode:',get-property('recurlyAccountCode'))" />
+                                                      <property name="status" value="Failed" />
+
+                                                      <filter source="$axis2:HTTP_SC" regex="400">
+                                                         <then>
+                                                            <property name="message" expression="//error/description/text()" />
+                                                         </then>
+                                                         <else>
+                                                            <filter source="$axis2:HTTP_SC" regex="422">
+                                                               <then>
+                                                                  <property name="message" value="" />
+                                                                  <property name="errors" expression="//errors/self::*" />
+                                                                  <payloadFactory media-type="xml">
+                                                                     <format>
+                                                                        <errorList xmlns="">$1</errorList>
+                                                                     </format>
+                                                                     <args>
+                                                                        <arg expression="get-property('errors')" />
+                                                                     </args>
+                                                                  </payloadFactory>
+                                                                  <script language="js">
+                                                                  <![CDATA[
+                                                                     var payload = mc.getPayloadXML();
+                                                                     var errors = payload.errors;
+                                                                     var message="";
+                                                                     for (i = 0; i < errors.error.length(); i++) { 
+                                                                        var field = errors.error[i].@field;
+                                                                        var value = errors.error[i];
+                                                                        message = message + field + " " + value +", " ;
+                                                                     }
+                                                                     message = message.substring(0, message.length - 2);
+                                                                     mc.setProperty("message",message);
+                                                                  ]]>
+                                                                  </script>
+                                                               </then>
+                                                               <else>
+                                                                  <property name="message"
+                                                                     value="Subscription creation failed." />
+                                                               </else>
+                                                            </filter>
+                                                         </else>
+                                                      </filter>
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="recurly_addSubscription" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="{$ctx:status}" />
+                                                         <with-param name="message" value="{$ctx:message}" />
+                                                      </call-template>
+                                                   </else>
+                                                </filter>
+                                             </then>
+                                             <else>
+                                                <property name="id"
+                                                   expression="fn:concat('AcountCode:',get-property('recurlyAccountCode'))" />
+                                                <property name="status" value="Failed" />
+                                                <property name="message" value="Creating account failed." />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="recurly_createAccount" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </else>
+                                          </filter>
+                                       </then>
+                                       <else>
+                                          <filter source="$axis2:HTTP_SC" regex="401">
+                                             <then>
+                                                <property name="id" expression="fn:concat('AccountCode:',get-property('recurlyAccountCode'))" />
+                                                <property name="status" value="Failed" />
+                                                <property name="message" value="Unauthorized API call" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="baseCRM_getContact" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                                <loopback />
+                                             </then>
+                                          </filter>
+                                          <property name="id"
+                                             expression="fn:concat('AcountCode:',get-property('recurlyAccountCode'))" />
+                                          <property name="status" value="Failed" />
+                                          <property name="message" value="No contact details are found." />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="baseCRM_getContact" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                    </filter>
+                                 </then>
+                                 <else>
+                                    <!-- Create Account string for Subscription. -->
+                                    <property name="recurlyAccountDetail"
+                                       expression="fn:concat('&lt;values&gt;&lt;account_code&gt;',get-property('recurlyAccountCode'))" />
+                                    <property name="recurlyAccountDetail"
+                                       expression="fn:concat(get-property('recurlyAccountDetail'),'&lt;/account_code&gt;&lt;/values&gt;')" />
+
+                                    <property name="messageType" value="application/xml" scope="axis2" />
+                                    <!-- Create Subscription. -->
+                                    <recurly.init>
+                                       <apiUrl>{$ctx:recurlyApiUrl}</apiUrl>
+                                       <apiKey>{$ctx:recurlyApiKey}</apiKey>
+                                    </recurly.init>
+                                    <recurly.createSubscription>
+                                       <currency>{$ctx:recurlyCurrency}</currency>
+                                       <planCode>{$ctx:recurlyPlanCode}</planCode>
+                                       <account>{$ctx:recurlyAccountDetail}</account>
+                                    </recurly.createSubscription>
+                                    <sequence key="removeResponseHeaders" />
+
+                                    <!-- Check subscription created. -->
+                                    <filter source="$axis2:HTTP_SC" regex="201">
+                                       <then>
+                                          <property name="id"
+                                             expression="fn:concat('AcountCode:',get-property('recurlyAccountCode'))" />
+                                          <property name="status" value="Success" />
+                                          <property name="message" value="Subscription has been created successfully" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="recurly_addSubscription" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <property name="id"
+                                             expression="fn:concat('AcountCode:',get-property('recurlyAccountCode'))" />
+                                          <property name="status" value="Failed" />
+
+                                          <filter source="$axis2:HTTP_SC" regex="400">
+                                             <then>
+                                                <property name="message" expression="//error/description/text()" />
+                                             </then>
+                                             <else>
+                                                <filter source="$axis2:HTTP_SC" regex="422">
+                                                   <then>
+                                                      <property name="message" value="" />
+                                                      <property name="errors" expression="//errors/self::*" />
+                                                      <payloadFactory media-type="xml">
+                                                         <format>
+                                                            <errorList xmlns="">$1</errorList>
+                                                         </format>
+                                                         <args>
+                                                            <arg expression="get-property('errors')" />
+                                                         </args>
+                                                      </payloadFactory>
+                                                      <script language="js">
+                                                      <![CDATA[
+                                                         var payload = mc.getPayloadXML();
+                                                         var errors = payload.errors;
+                                                         var message="";
+                                                         for (i = 0; i < errors.error.length(); i++) { 
+                                                            var field = errors.error[i].@field;
+                                                            var value = errors.error[i];
+                                                            message = message + field + " " + value +", " ;
+                                                         }
+                                                         message = message.substring(0, message.length - 2);
+                                                         mc.setProperty("message",message);
+                                                      ]]>
+                                                      </script>
+                                                   </then>
+                                                   <else>
+                                                      <property name="message" value="Subscription creation failed." />
+                                                   </else>
+                                                </filter>
+                                             </else>
+                                          </filter>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="recurly_addSubscription" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                    </filter>
+                                 </else>
+                              </filter>
+                           </then>
+                           <else>
+                              <property name="id" expression="fn:concat('AcountCode:',get-property('recurlyAccountCode'))" />
+                              <property name="status" value="Failed" />
+                              <property name="message" value="Account code not provided." />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="recurly_createAccount" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </else>
+                        </filter>
+
+                        <property name="accountIndex" expression="get-property('operation','accountIndex') + 1"
+                           scope="operation" />
+                     </sequence>
+                  </target>
+               </iterate>
+
+               <filter xpath="(get-property('operation', 'recurlyAccountCount') = get-property('operation', 'accountIndex'))">
+                  <then>
+                     <loopback />
+                  </then>
+               </filter>
+            </else>
+         </filter>
+
+      </inSequence>
+      <outSequence>
+
+         <payloadFactory media-type="json">
+            <format>{ "Response":{ "process":"recurly_initiateSubscription", "activityResponse":[$1] } }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+
+      </outSequence>
+   </target>
+   <description />
+</proxy>
