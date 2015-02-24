@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="recurly_subscriptionPayments"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- Recurly API call related properties -->
+         <property name="recurlyApiUrl" expression="json-eval($.recurlyApiUrl)"/>
+         <property name="recurlyApiKey" expression="json-eval($.recurlyApiKey)"/>
+         <property name="recurlyInvoiceCursor" expression="json-eval($.recurlyInvoiceCursor)"/>
+         <property name="recurlyInvoicesPerPage" expression="json-eval($.recurlyInvoicesPerPage)"/>
+         <property name="executionDate" expression="json-eval($.executionDate)"/>
+
+         <!-- Freshbooks API call related properties -->
+         <property name="freshbooksApiUrl" expression="json-eval($.freshbooksApiUrl)" />
+         <property name="freshbooksApiKey" expression="json-eval($.freshbooksApiKey)" />
+
+         <property name="invoiceCount" expression="0" scope="operation" />
+         <property name="responseString" value="" scope="operation" />
+
+         <!-- Retrieve all 'collected' invoices from Recurly -->
+         <recurly.init>
+            <apiUrl>{$ctx:recurlyApiUrl}</apiUrl>
+            <apiKey>{$ctx:recurlyApiKey}</apiKey>
+         </recurly.init>
+         <recurly.listInvoices>
+            <state>collected</state>
+            <cursor>{$ctx:recurlyInvoiceCursor}</cursor>
+            <perPage>{$ctx:recurlyInvoicesPerPage}</perPage>
+         </recurly.listInvoices>
+
+         <property name="responseStatus" expression="$axis2:HTTP_SC" />
+         <filter xpath="get-property('responseStatus') != 200">
+            <then>
+               <property name="errorMessage" expression="fn:concat('(',$axis2:HTTP_SC,'), Cannot retrieve invoices from Recurly')" />
+
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="freshbooks_createPayment" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:errorMessage}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         
+         <property name="invoiceCount" expression="count(//invoices/invoice)" scope="operation" />
+         <property name="invoiceIndex" expression="0" scope="operation" />
+         <property name="selectedInvoices" expression="0" scope="operation" />
+		 
+         <filter xpath="0 = get-property('operation', 'invoiceCount')">
+            <then>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="freshbooks_createPayment" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="No invoices were returned from Recurly" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+
+         <iterate id="invoiceIterator" expression="//invoices/invoice" sequential="true" continueParent="true"
+            preservePayload="true">
+            <target>
+               <sequence>
+                  <property name="accountCode" expression="fn:substring-after(//account/@href,'accounts/')" />
+                  <property name="createdAt" expression="fn:substring-before(//created_at[1]/text(),'T')" />
+                  <property name="invoiceTotal" expression="number(/invoice/total_in_cents)" />
+                                    
+                  <!-- Filter the non-zero invoices for the given date -->
+                  <filter xpath="get-property('createdAt') = get-property('executionDate') and get-property('invoiceTotal') &gt; 0">
+                     <then>
+                        <property name="selectedInvoices" expression="get-property('operation', 'selectedInvoices') + 1" scope="operation" />
+                        <property name="invoiceId" expression="/invoice/uuid/text()" />
+                        <!-- Retrieve non-zero adjustment which is in 'charge' state -->
+                        <property name="invoicedAdjustment" expression="//adjustment[total_in_cents != 0][@type = 'charge'][1]/self::*" />
+                        
+                        <!-- Get Recurly account details by the account code. -->
+                        <recurly.init>
+                           <apiUrl>{$ctx:recurlyApiUrl}</apiUrl>
+                           <apiKey>{$ctx:recurlyApiKey}</apiKey>
+                        </recurly.init>
+                        <recurly.getAccountByCode>
+                           <accountCode>{$ctx:accountCode}</accountCode>
+                        </recurly.getAccountByCode>
+      
+                        <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                        <filter xpath="get-property('responseStatus') != 200">
+                           <then>
+                              <property name="errorMessage" expression="fn:concat('(',$axis2:HTTP_SC,'), Cannot retrieve account information')" />
+                              <property name="id" expression="fn:concat('recurlyInvoiceId:', get-property('invoiceId'))" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="freshbooks_createPayment" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="Error" />
+                                 <with-param name="message" value="{$ctx:errorMessage}" />
+                              </call-template>
+                           </then>
+                           <else>
+                              <property name="email" expression="//email/text()" />
+                              <property name="firstName" expression="//first_name/text()" />
+                              <property name="lastName" expression="//last_name/text()" />
+                              <property name="organization" expression="//company_name/text()" />
+      
+                              <!-- Check the existence of the client in freshbooks. -->
+                              <freshbooks.init>
+                                 <apiUrl>{$ctx:freshbooksApiUrl}</apiUrl>
+                                 <authenticationToken>{$ctx:freshbooksApiKey}</authenticationToken>
+                              </freshbooks.init>
+                              <freshbooks.listClients>
+                                 <email>{$ctx:email}</email>
+                              </freshbooks.listClients>
+                              
+                              <property name="errorMessage" expression="//*[local-name()='error']/text()" />
+                              <filter source="boolean(get-property('errorMessage'))" regex="true">
+                                 <then>
+                                    <property name="id" expression="fn:concat('recurlyInvoiceId:', get-property('invoiceId'))" />
+                                    <property name="errorMessage" expression="fn:concat('Cannot check the existence of client in Freshbooks. Error: ', get-property('errorMessage'))" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="freshbooks_createPayment" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Error" />
+                                       <with-param name="message" value="{$ctx:errorMessage}" />
+                                    </call-template>
+                                    
+                                    <property name="adjustmentCount"
+                                       expression="get-property('operation','adjustmentCount') - get-property('currentAdjustmentCount')"  scope="operation" />
+                                 </then>
+                                 <else>
+                                    <property name="clientsCount" expression="//*[local-name()='clients']/@total" />
+                              
+                                    <!--  If the client not exists create the client in freshbooks. -->
+                                    <filter xpath="0 = get-property('clientsCount')">
+                                       <then>
+                                          <freshbooks.init>
+                                             <apiUrl>{$ctx:freshbooksApiUrl}</apiUrl>
+                                             <authenticationToken>{$ctx:freshbooksApiKey}</authenticationToken>
+                                          </freshbooks.init>
+                                          <freshbooks.createClient>
+                                             <firstName>{$ctx:firstName}</firstName>
+                                             <lastName>{$ctx:lastName}</lastName>
+                                             <organization>{$ctx:organization}</organization>
+                                             <email>{$ctx:email}</email>
+                                          </freshbooks.createClient>
+                                          
+                                          <!-- Fetch the created client ID. -->
+                                          <property name="freshbooksClientId" expression="//*[local-name()='client_id']/text()" />
+                                       </then>
+                                       <else>
+                                          <!-- Fetch the existing client ID. -->
+                                          <property name="freshbooksClientId" expression="//*[local-name()='client'][1]/*[local-name()='client_id']/text()" />
+                                       </else>
+                                    </filter>
+                                    
+                                    <property name="errorMessage" expression="//*[local-name()='error']/text()" />
+                                    <!-- Halt the process if there is any error in creation of the client -->
+                                    <filter source="boolean(get-property('errorMessage'))" regex="true">
+                                       <then>
+                                          <property name="id" expression="fn:concat('recurlyInvoiceId:', get-property('invoiceId'))" />
+                                          <property name="errorMessage" expression="fn:concat('Cannot create client in Freshbooks. Error: ', get-property('errorMessage'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="freshbooks_createPayment" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Error" />
+                                             <with-param name="message" value="{$ctx:errorMessage}" />
+                                          </call-template>
+                                          
+                                          <property name="adjustmentCount"
+                                             expression="get-property('operation','adjustmentCount') - get-property('currentAdjustmentCount')"  scope="operation" />
+                                       </then>
+                                       <else>
+                                       
+                                          <!-- Construct adjustment to retrieve required parameters. -->
+                                          <payloadFactory media-type="xml">
+                                             <format>
+                                                <root xmlns="">$1</root>
+                                             </format>
+                                             <args>
+                                                <arg expression="get-property('invoicedAdjustment')" />
+                                             </args>
+                                          </payloadFactory>
+                                       
+                                          <property name="adjustmentId" expression="//uuid/text()" />
+                                          <property name="description" expression="//description/text()" />
+                                          <property name="unitCostInCents" expression="//unit_amount_in_cents/text()" />
+                                          <property name="totalCostInCents" expression="//total_in_cents/text()" />
+                                          <property name="quantity" expression="//quantity/text()" />
+                                          <property name="currencyCode" expression="//currency/text()" />
+                                          <property name="taxInCents" expression="//tax_in_cents/text()" />
+                                          <property name="discountInCents" expression="//discount_in_cents/text()" />
+                                          
+                                          <!-- Calculate the discount in percentage -->
+                                          <property name="discountPercentage" expression="100 - ((get-property('totalCostInCents') - get-property('taxInCents')) * 100) div (get-property('unitCostInCents') * get-property('quantity'))" />
+                                          
+                                          <!-- Create freshbooks invoice for the client. -->
+                                          <freshbooks.init>
+                                             <apiUrl>{$ctx:freshbooksApiUrl}</apiUrl>
+                                             <authenticationToken>{$ctx:freshbooksApiKey}</authenticationToken>
+                                          </freshbooks.init>
+                                          <freshbooks.createInvoice>
+                                             <clientId>{$ctx:freshbooksClientId}</clientId>
+                                             <discount>{$ctx:discountPercentage}</discount>
+                                             <currencyCode>{$ctx:currencyCode}</currencyCode>
+                                          </freshbooks.createInvoice>
+                                          
+                                          <property name="errorMessage" expression="//*[local-name()='error']/text()" />
+                                          <!-- Halt the process if there is any error in creation of the client -->
+                                          <filter source="boolean(get-property('errorMessage'))" regex="true">
+                                             <then>
+                                                <property name="id" expression="fn:concat('recurlyInvoiceId:', get-property('invoiceId'))" />
+                                                <property name="errorMessage" expression="fn:concat('Cannot create invoice in Freshbooks. Error: ', get-property('errorMessage'))" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="freshbooks_createPayment" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Error" />
+                                                   <with-param name="message" value="{$ctx:errorMessage}" />
+                                                </call-template>
+                                                
+                                                <property name="adjustmentCount"
+                                                   expression="get-property('operation','adjustmentCount') - get-property('currentAdjustmentCount')"  scope="operation" />
+                                             </then>
+                                             <else>
+                                                <property name="freshbooksInvoiceId" expression="//*[local-name()='invoice_id']/text()" />
+                                                
+                                                <!-- Check for non-zero adjustment which is in 'charge' state -->
+                                                <filter source="boolean(get-property('invoicedAdjustment'))" regex="false">
+                                                   <then>
+                                                      <property name="id"
+                                                         expression="fn:concat('recurlyInvoiceId:', get-property('invoiceId'), ',freshbooksInvoiceId:', get-property('freshbooksInvoiceId'))" />
+                                                      <property name="errorMessage"
+                                                         value="Recurly invoice was successfully created in Freshbooks. But no adjustments found for the Recurly invoice" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="freshbooks_createPayment" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="Skipped" />
+                                                         <with-param name="message" value="{$ctx:errorMessage}" />
+                                                      </call-template>
+                                                   </then>
+                                                   <else>
+                                                      <!-- Calculate the tax in percentage -->
+                                                      <property name="taxPercentage" expression="((get-property('totalCostInCents') + get-property('discountInCents')) * 100) div (get-property('unitCostInCents') * get-property('quantity')) - 100" />
+                                                      
+                                                      <!-- Generate the line item -->
+                                                      <payloadFactory media-type="xml">
+                                                         <format>
+                                                            <lines xmlns="">
+                                                               <line>
+                                                                  <name>$1</name>
+                                                                  <unit_cost>$2</unit_cost>
+                                                                  <quantity>$3</quantity>
+                                                                  <tax1_name>tax</tax1_name>
+                                                                  <tax1_percent>$4</tax1_percent>
+                                                                  <type>Item</type>
+                                                               </line>
+                                                            </lines>
+                                                         </format>
+                                                         <args>
+                                                            <arg expression="get-property('description')" />
+                                                            <!-- Recurly API handles currency values in cents -->
+                                                            <arg expression="get-property('unitCostInCents') div 100" />
+                                                            <arg expression="get-property('quantity')" />
+                                                            <arg expression="get-property('taxPercentage')" />
+                                                         </args>
+                                                      </payloadFactory>
+                                                      
+                                                      <property name="freshbooksLineItem" expression="//lines/*" /> 
+                                                      
+                                                      <!-- Add the invoice line -->
+                                                      <freshbooks.init>
+                                                         <apiUrl>{$ctx:freshbooksApiUrl}</apiUrl>
+                                                         <authenticationToken>{$ctx:freshbooksApiKey}</authenticationToken>
+                                                      </freshbooks.init>
+                                                      <freshbooks.addInvoiceLine>
+                                                         <invoiceId>{$ctx:freshbooksInvoiceId}</invoiceId>
+                                                         <lines>{$ctx:freshbooksLineItem}</lines>
+                                                      </freshbooks.addInvoiceLine>
+                                                      
+                                                      <property name="errorMessage" expression="//*[local-name()='error']/text()" />
+                                                      <!-- Halt the process if there is any error in adding line item to invoice -->
+                                                      <filter source="boolean(get-property('errorMessage'))" regex="true">
+                                                         <then>
+                                                            <property name="id"
+                                                               expression="fn:concat('recurlyInvoiceId:', get-property('invoiceId'), ',freshbooksInvoiceId:', get-property('freshbooksInvoiceId'))" />
+                                                            <property name="errorMessage"
+                                                               expression="fn:concat('Could not add line item to Freshbooks invoice. Error: ', get-property('errorMessage'))" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="freshbooks_createPayment" />
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="status" value="Error" />
+                                                               <with-param name="message" value="{$ctx:errorMessage}" />
+                                                            </call-template>
+                                                         </then>
+                                                         <else>
+                                                            <!-- The parameter clientId is set a value by previous calls to the createInvoice method of Freshbooks -->
+                                                            <property name="clientId" value="" />
+                                                            
+                                                            <!-- Recurly API handles currency values in cents -->
+                                                            <property name="totalPaymentCost" expression="get-property('totalCostInCents') div 100" />
+                                                            <!-- Create the payment in freshbooks -->
+                                                            <freshbooks.init>
+                                                               <apiUrl>{$ctx:freshbooksApiUrl}</apiUrl>
+                                                               <authenticationToken>{$ctx:freshbooksApiKey}</authenticationToken>
+                                                            </freshbooks.init>
+                                                            <freshbooks.createPayment>
+                                                               <clientId>{$ctx:clientId}</clientId>
+                                                               <invoiceId>{$ctx:freshbooksInvoiceId}</invoiceId>
+                                                               <date>{$ctx:executionDate}</date>
+                                                               <amount>{$ctx:totalPaymentCost}</amount>
+                                                               <currencyCode>{$ctx:currencyCode}</currencyCode>
+                                                               <type>Credit Card</type>
+                                                            </freshbooks.createPayment>
+                                                            
+                                                            <property name="id"
+                                                                     expression="fn:concat('recurlyInvoiceId:', get-property('invoiceId'), ',recurlyAdjustmentId:', get-property('adjustmentId'),',freshbooksInvoiceId:', get-property('freshbooksInvoiceId'))" />
+                                                            <property name="errorMessage" expression="//*[local-name()='error']/text()" />
+                                                            <!-- Halt the process if there is any error in adding line item to invoice -->
+                                                            <filter source="boolean(get-property('errorMessage'))" regex="true">
+                                                               <then>
+                                                                  <property name="errorMessage"
+                                                                     expression="fn:concat('Could not create payment for Freshbooks invoice. Error: ', get-property('errorMessage'))" />
+                                                                  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="activity" value="freshbooks_createPayment" />
+                                                                     <with-param name="id" value="{$ctx:id}" />
+                                                                     <with-param name="status" value="Error" />
+                                                                     <with-param name="message" value="{$ctx:errorMessage}" />
+                                                                  </call-template>
+                                                               </then>
+                                                               <else>
+                                                                  <property name="errorMessage" value="Payment was successfully added to Freshbooks" />
+                                                                  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="activity" value="freshbooks_createPayment" />
+                                                                     <with-param name="id" value="{$ctx:id}" />
+                                                                     <with-param name="status" value="Success" />
+                                                                     <with-param name="message" value="{$ctx:errorMessage}" />
+                                                                  </call-template>
+                                                               </else>
+                                                            </filter>
+                                                         </else>
+                                                      </filter>
+                                                   </else>
+                                                </filter>
+                                             </else>
+                                          </filter>
+                                       </else>
+                                    </filter>
+                                 </else>
+                              </filter>
+                        
+                           </else>
+                        </filter>
+                     </then>
+                  </filter>
+                  
+                  <property name="invoiceIndex" expression="get-property('operation','invoiceIndex') + 1" scope="operation" />
+               </sequence>
+            </target>
+         </iterate>
+         
+         <filter xpath="get-property('operation', 'invoiceIndex') = get-property('operation', 'invoiceCount')">
+            <then>
+               <filter xpath="0 = get-property('operation', 'selectedInvoices')">
+                  <then>
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="freshbooks_createPayment" />
+                        <with-param name="status" value="Error" />
+                        <with-param name="message" value="No invoices were found for the given date" />
+                     </call-template>
+                     <loopback />
+                  </then>
+               </filter>
+               <loopback />
+            </then>
+         </filter>
+
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+
+         <!-- Generate the chained response of all the API calls in createLeads -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"recurly_subscriptionPayments",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
