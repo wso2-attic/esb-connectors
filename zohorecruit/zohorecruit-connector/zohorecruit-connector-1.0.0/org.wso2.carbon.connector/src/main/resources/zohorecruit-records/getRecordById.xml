@@ -2,25 +2,29 @@
 <template name="getRecordById" xmlns="http://ws.apache.org/ns/synapse">
 		<parameter name="module" description="The module specifies the which section entries should be added. e.g. JobOpenings, Candidates, Clients, ClientContacts." />
 		<parameter name="id" description="The record id to retrieve a record." />
-		<parameter name="selectColumns" description="The select columns for displaying records." />
+      <parameter name="idList" description="List of semicolon separated record ids to retrieve the corresponding records." />
+      <parameter name="newFormat" description="Integer 1 or 2, specifying to exclude fields with null values or not while fetching data." />
+		<parameter name="version" description="ZohoRectuit API version being accessed." />
 
 		<sequence>	
 			<property name="uri.var.module" expression="$func:module" />
-			<property name="uri.var.id" expression="$func:id" />
-			<property name="uri.var.selectColumns" expression="$func:selectColumns" />
+			<property name="uri.var.id" expression="$func:id" /><property name="uri.var.id" expression="$func:id" />
+         <property name="uri.var.idList" expression="$func:idList" />
+			<property name="uri.var.newFormat" expression="$func:newFormat" />
+         <property name="uri.var.version" expression="$func:version" />
 			
 			<payloadFactory media-type="json">
 				<format>
 					{
 						"authtoken": "$1",
 						"scope":     "$2",
-						"id":        "$3"
+                  "version":   "$3"
 					}
 				</format>
 				<args>
 					<arg expression="get-property('uri.var.authToken')" />
 					<arg expression="get-property('uri.var.scope')" />
-					<arg expression="get-property('uri.var.id')" />
+               <arg expression="get-property('uri.var.version')" />
 				</args>
 			</payloadFactory>
 
@@ -28,18 +32,26 @@
 	    
 	    	<![CDATA[
 	     
-	        // initializing the variables    
-			var selectColumns = mc.getProperty("uri.var.selectColumns");
-			
-			//initializing the payload
-	        var payload = mc.getPayloadJSON();
-	        
-	        // adding the optional parameters to the payload
-			if (selectColumns != null && selectColumns != "") {
-				payload.selectColumns = selectColumns;
-			}
-			
-			mc.setPayloadJSON(payload);
+   	        // initializing the variables    
+   			  var id = mc.getProperty("uri.var.id");
+              var idList = mc.getProperty("uri.var.idList");
+              var newFormat = mc.getProperty("uri.var.newFormat");
+   			
+   			  //initializing the payload
+   	        var payload = mc.getPayloadJSON();
+   	        
+   	        // adding the optional parameters to the payload
+      		  if (id != null && id != "") {
+      		    payload.id = id;
+      		  }
+              if (idList != null && idList != "") {
+                payload.idList = idList;
+              }
+              if (newFormat != null && newFormat != "") {
+                payload.newFormat = newFormat;
+              }
+   			
+   			  mc.setPayloadJSON(payload);
 			                                     
 	       ]]>
 
@@ -49,7 +61,7 @@
 		
 		<call>
 			<endpoint>
-				<http method="post" uri-template="{uri.var.apiUrl}/ats/private/{uri.var.responseFormat}/{uri.var.module}/getRecordById" />
+				<http method="post" uri-template="{uri.var.apiUrl}/recruit/private/{uri.var.responseFormat}/{uri.var.module}/getRecordById" />
 			</endpoint>
 		</call>
 			
@@ -59,5 +71,6 @@
 		<header name="X-Content-Type-Options" action="remove" scope="transport" />
 		<header name="Pragma" action="remove" scope="transport" />
 		<header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Download-Options" action="remove" scope="transport" />  
 	</sequence>
 </template>
