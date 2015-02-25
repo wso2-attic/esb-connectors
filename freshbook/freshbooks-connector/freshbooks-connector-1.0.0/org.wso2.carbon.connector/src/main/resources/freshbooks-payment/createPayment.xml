@@ -1,76 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
 <template name="createPayment" xmlns="http://ws.apache.org/ns/synapse">
-	<parameter name="clientId" description="Client ID to create a payment as client credit." />
-	<parameter name="invoiceId" description="Invoice ID to create a payment as invoice payment." />
-	<parameter name="date" description="Payment creation date. Default date today's date." />
-	<parameter name="amount" description="Payment amount. Default is zero." />
-	<parameter name="currencyCode" description="Payment currency code. Default is system's base currency." />
-	<parameter name="type" description="Payment type. Default is Check type." />
-	<parameter name="notes" description="Payment creation internal notes." />
-	
-	<sequence>
-		<property name="uri.var.clientId" expression="$func:clientId" />
-		<property name="uri.var.invoiceId" expression="$func:invoiceId" />
-		<property name="uri.var.date" expression="$func:date" />
-		<property name="uri.var.amount" expression="$func:amount" />
-		<property name="uri.var.currencyCode" expression="$func:currencyCode" />
-		<property name="uri.var.type" expression="$func:type" />
-		<property name="uri.var.notes" expression="$func:notes" />
-		
-		<payloadFactory media-type="xml">
-			<format>
-				<request xmlns="" method="payment.create">
-					<payment>
-						<client_id>$1</client_id>
-						<invoice_id>$2</invoice_id>
-						<date>$3</date>
-						<amount>$4</amount>
-						<notes>$5</notes>
-					</payment>
-				</request>
-			</format>
-			<args>
-				<arg expression="get-property('uri.var.clientId')" />
-				<arg expression="get-property('uri.var.invoiceId')" />
-				<arg expression="get-property('uri.var.date')" />
-				<arg expression="get-property('uri.var.amount')" />
-				<arg expression="get-property('uri.var.notes')" />
-			</args>
-		</payloadFactory>
-		
-		<script language="js">
-			<![CDATA[
-			
-				//request body param variables
-		        var currencyCode = mc.getProperty('uri.var.currencyCode');
-		        var type = mc.getProperty('uri.var.type');
-			
-				//Get the existing payload
-				var payload = mc.getPayloadXML();
-				
-				if (currencyCode != null && currencyCode != "") {
-					payload.payment.currency_code = currencyCode;
-				}
-				
-				if (type != null && type != "") {
-					payload.payment.type = type;
-				}
-				
-				//Set the newly constructed payload
-				mc.setPayloadXML(payload);
-				
-			]]>
-		</script>
-		
-		<call>
-			<endpoint>
-				<http method="post" uri-template="{uri.var.apiUrl}/api/2.1/xml-in" />
-			</endpoint>
-		</call>
-		
-		<!-- Remove custom header information in response -->
-		<header name="X-Frame-Options" scope="transport" action="remove" />
-		<header name="Strict-Transport-Security" scope="transport" action="remove" />
-		<header name="WWW-Authenticate" scope="transport" action="remove" />
-		
-	</sequence>
+   <parameter name="clientId" description="Client ID to create a payment as client credit." />
+   <parameter name="invoiceId" description="Invoice ID to create a payment as invoice payment." />
+   <parameter name="date" description="Payment creation date. Default date today's date." />
+   <parameter name="amount" description="Payment amount. Default is zero." />
+   <parameter name="currencyCode" description="Payment currency code. Default is system's base currency." />
+   <parameter name="type" description="Payment type. Default is Check type." />
+   <parameter name="notes" description="Payment creation internal notes." />
+   <sequence>
+      <property name="uri.var.clientId" expression="$func:clientId" />
+      <property name="uri.var.invoiceId" expression="$func:invoiceId" />
+      <property name="uri.var.date" expression="$func:date" />
+      <property name="uri.var.amount" expression="$func:amount" />
+      <property name="uri.var.currencyCode" expression="$func:currencyCode" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.notes" expression="$func:notes" />
+      <payloadFactory media-type="xml">
+         <format>
+            <request xmlns="" method="payment.create">
+               <payment>
+                  <invoice_id>$1</invoice_id>
+                  <date>$2</date>
+                  <amount>$3</amount>
+                  <notes>$4</notes>
+               </payment>
+            </request>
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.invoiceId')" />
+            <arg expression="get-property('uri.var.date')" />
+            <arg expression="get-property('uri.var.amount')" />
+            <arg expression="get-property('uri.var.notes')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+         //request body param variables
+         var currencyCode = mc.getProperty('uri.var.currencyCode');
+         var type = mc.getProperty('uri.var.type');
+         var clientId = mc.getProperty('uri.var.clientId');
+         //Get the existing payload
+         var payload = mc.getPayloadXML();
+         if (clientId != null && clientId != "") {
+            payload.payment.client_id = clientId;
+         }
+         if (currencyCode != null && currencyCode != "") {
+            payload.payment.currency_code = currencyCode;
+         }
+         if (type != null && type != "") {
+            payload.payment.type = type;
+         }
+         //Set the newly constructed payload
+         mc.setPayloadXML(payload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/api/2.1/xml-in" />
+         </endpoint>
+      </call>
+      <!-- Remove custom header information in response -->
+      <header name="X-Frame-Options" scope="transport" action="remove" />
+      <header name="Strict-Transport-Security" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+   </sequence>
 </template>
