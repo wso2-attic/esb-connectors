@@ -57,11 +57,8 @@ public class ZohoBooksConnectorIntegrationTest extends ConnectorIntegrationTestB
                         + connectorProperties.getProperty("organizationId");
         apiEndpointUrl = connectorProperties.getProperty("apiUrl") + "/api/v3";
         
-        final String accounts = apiEndpointUrl + "/chartofaccounts" + authString+"&filter_by=AccountType.Expense";
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(accounts, "GET", apiRequestHeadersMap);
-        String accountId = apiRestResponse.getBody().getJSONArray("chartofaccounts").getJSONObject(0).getString("account_id");
-        connectorProperties.put("purchaseAccountId", accountId);
-        
+        //set purchaseAccountId property to connector properties.
+        setPurchaseAccountId();
         
     }
     
@@ -959,6 +956,19 @@ public class ZohoBooksConnectorIntegrationTest extends ConnectorIntegrationTestB
         Assert.assertEquals(esbRestResponse.getBody().getString("message"),
                 esbRestResponse.getBody().getString("message"));
         
+    }
+    
+    /**
+     * Setting purchase account ID property.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    private void setPurchaseAccountId() throws IOException, JSONException{
+    	 final String accounts = apiEndpointUrl + "/chartofaccounts" + authString+"&filter_by=AccountType.Expense";
+         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(accounts, "GET", apiRequestHeadersMap);
+         String accountId = apiRestResponse.getBody().getJSONArray("chartofaccounts").getJSONObject(0).getString("account_id");
+         connectorProperties.put("purchaseAccountId", accountId);
     }
     
 }
