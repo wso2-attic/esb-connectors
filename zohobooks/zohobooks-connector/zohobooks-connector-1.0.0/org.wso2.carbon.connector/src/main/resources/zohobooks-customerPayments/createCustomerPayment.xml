@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="createCustomerPayment" xmlns="http://ws.apache.org/ns/synapse">
+   <!-- API Documentation URL - https://www.zoho.com/books/api/v3/customerpayments/#create-a-customer-payment -->
+   <parameter name="date" description="Date the payment is made." />
+   <parameter name="amount" description="Payment amount made by the customer." />
+   <parameter name="customerId" description="ID of the customer." />
+   <parameter name="invoices" description="An Array which contain invoice payment details." />
+   <parameter name="paymentMode" description="Mode of payment for the amount received." />
+   <parameter name="description" description="Description for the customer payment." />
+   <parameter name="referenceNumber" description="Reference number for the customer payment." />
+   <parameter name="exchangeRate" description="Exchange rate of the currency." />
+   <parameter name="bankCharges" description="Bank charges incurred." />
+   <parameter name="taxAccountId" description="ID of the tax account, in case of withholding tax." />
+   <parameter name="accountId" description="ID of the cash/ bank account the payment has to be deposited." />
+   <parameter name="contactPersons" description="IDs of contact persons the thank you mail has to be triggered." />
+   <sequence>
+      <property name="uri.var.date" expression="$func:date" />
+      <property name="uri.var.amount" expression="$func:amount" />
+      <property name="uri.var.customerId" expression="$func:customerId" />
+      <property name="uri.var.invoices" expression="$func:invoices" />
+      <property name="uri.var.paymentMode" expression="$func:paymentMode" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.referenceNumber" expression="$func:referenceNumber" />
+      <property name="uri.var.exchangeRate" expression="$func:exchangeRate" />
+      <property name="uri.var.bankCharges" expression="$func:bankCharges" />
+      <property name="uri.var.taxAccountId" expression="$func:taxAccountId" />
+      <property name="uri.var.accountId" expression="$func:accountId" />
+      <property name="uri.var.contactPersons" expression="$func:contactPersons" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "date": "$1",
+               "amount":"$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.date')" />
+            <arg expression="get-property('uri.var.amount')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var jsonPayload = mc.getPayloadJSON();
+            var authToken = mc.getProperty('uri.var.authToken');
+            var organizationId = mc.getProperty('uri.var.organizationId');
+            var customerId = mc.getProperty('uri.var.customerId');
+            var invoices = mc.getProperty('uri.var.invoices');
+            var paymentMode = mc.getProperty('uri.var.paymentMode');
+            var description = mc.getProperty('uri.var.description');
+            var referenceNumber = mc.getProperty('uri.var.referenceNumber');
+            var exchangeRate = mc.getProperty('uri.var.exchangeRate');
+            var bankCharges = mc.getProperty('uri.var.bankCharges');
+            var taxAccountId = mc.getProperty('uri.var.taxAccountId');
+            var accountId = mc.getProperty('uri.var.accountId');
+            var contactPersons = mc.getProperty('uri.var.contactPersons');
+            var urlQuery = '?authtoken=' + authToken + '&organization_id=' + organizationId + '&';
+            // Remove the trailing '&'
+            urlQuery = urlQuery.substring(0, urlQuery.length - 1);
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+            if (customerId != null && customerId != ""){
+               jsonPayload["customer_id"] = customerId;
+            }
+            if (invoices != null && invoices != ""){
+               jsonPayload["invoices"] = eval("(" + invoices + ")");
+            }
+            if (paymentMode != null && paymentMode != ""){
+               jsonPayload["payment_mode"] = paymentMode;
+            }
+            if (description != null && description != ""){
+               jsonPayload["description"] = description;
+            }
+            if (referenceNumber != null && referenceNumber != ""){
+               jsonPayload["reference_number"] = referenceNumber;
+            }
+            if (exchangeRate != null && exchangeRate != ""){
+               jsonPayload["exchange_rate"] = exchangeRate;
+            }
+            if (bankCharges != null && bankCharges != ""){
+               jsonPayload["bank_charges"] = bankCharges;
+            }
+            if (taxAccountId != null && taxAccountId != ""){
+               jsonPayload["tax_account_id"] = taxAccountId;
+            }
+            if (accountId != null && accountId != ""){
+               jsonPayload["account_id"] = accountId;
+            }
+            if (contactPersons != null && contactPersons != ""){
+               jsonPayload["contact_persons"] = eval("(" + contactPersons + ")");
+            }      
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <!--Extract the JSON object to a Property. -->
+      <property name="uri.var.jsonString" expression="json-eval($)" />
+      <!--This script mediator is used for the purpose of URL encoding the JSON Object that was built in the Script Mediator
+         above. -->
+      <script language="js">
+            <![CDATA[
+            var jsonString = mc.getProperty('uri.var.jsonString');
+            var urlQuery = mc.getProperty('uri.var.urlQuery');
+            urlQuery += '&JSONString=' + encodeURIComponent(jsonString);
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+            ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/customerpayments{uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!--Removing custom headers from the Response. -->
+      <header name="X-Rate-Limit-Limit" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Rate-Limit-Remaining" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="BUILD_VERSION" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Content-Disposition" action="remove" scope="transport" />
+      <header name="X-Rate-Limit-Reset" action="remove" scope="transport" />
+      <header name="Status" action="remove" scope="transport" />
+   </sequence>
+</template>
