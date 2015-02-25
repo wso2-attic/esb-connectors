@@ -47,7 +47,7 @@ Steps to follow in setting integration test.
 
  6. Update the Zohobooks properties file at location "{Zohobooks_Connector_Home}/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
-	i)		apiUrl 							- 	The API URL specific to the created Zohobooks account (https://app.goclio.com).
+	i)		apiUrl 							- 	The API URL specific to the created Zohobooks account (https://books.zoho.com).
 	ii) 	authToken						-   Use the access token obtained under step 4 ii).
 	iii)	organizationId					-	Use the organization ID obtained under step 4 ii).
 	iv)*    itemNameMandatory				-	Use a unique string for the item name (Used for createItem - Mandatory testcase).
