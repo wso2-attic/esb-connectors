@@ -1,0 +1,253 @@
+<?xml version="1.0" ?>
+<!-- This template responsible for creating a contacts and invoices in ZohoBooks
+   according to given access credentials with other parameters -->
+<template name="createContactsAndInvoices" xmlns="http://ws.apache.org/ns/synapse">
+
+   <!-- FreeAgent related template parameters -->
+   <parameter name="freeagent.apiUrl" description="Base endpoint URL of FreeAgent API." />
+   <parameter name="freeagent.accessToken" description="Access token to access the FreeAgent API." />
+   <parameter name="freeagent.invoiceId" description="ID of the invoice." />
+
+   <!-- ZohoBooks related template parameters -->
+   <parameter name="zohobooks.apiUrl" description="Base endpoint URL of ZohoBooks API." />
+   <parameter name="zohobooks.authToken" description="Auth token to access the ZohoBooks API." />
+
+   <!-- Common template parameters -->
+   <parameter name="common.contactMap" description="JSON array to contain key value pair with FreeAgent contact ID and Zohobooks contact ID." />
+
+   <sequence>
+
+      <!-- FreeAgent related template properties -->
+      <property name="freeagent.apiUrl" expression="$func:freeagent.apiUrl" />
+      <property name="freeagent.accessToken" expression="$func:freeagent.accessToken" />
+      <property name="freeagent.invoiceId" expression="$func:freeagent.invoiceId" />
+
+      <!-- FreeAgent related template properties -->
+      <property name="zohobooks.apiUrl" expression="$func:zohobooks.apiUrl" />
+      <property name="zohobooks.authToken" expression="$func:zohobooks.authToken" />
+      <property name="zohobooks.organizationId" expression="$func:zohobooks.organizationId" />
+      <property name="zohobooks.hasContact" value="false" />
+
+      <!-- Common template properties -->
+      <property name="common.contactMap" expression="$func:common.contactMap" />
+      <property name="id" expression="fn:concat('invoice_id:',get-property('freeagent.invoiceId'))" />
+
+      <!-- Process freeagent operations, only if freeagent accessToken provided -->
+      <filter source="boolean(get-property('freeagent.accessToken'))" regex="true">
+         <then>
+
+            <!-- Call FreeAgent getInvoiceById method to retrieve invoice details -->
+            <freeagent.init>
+               <apiUrl>{$ctx:freeagent.apiUrl}</apiUrl>
+               <accessToken>{$ctx:freeagent.accessToken}</accessToken>
+            </freeagent.init>
+            <freeagent.getInvoiceById>
+               <id>{$ctx:freeagent.invoiceId}</id>
+            </freeagent.getInvoiceById>
+
+            <filter source="$axis2:HTTP_SC" regex="200">
+               <then>
+                  <property name="freeagent.contactUrl" expression="json-eval($.invoice.contact)" />
+
+                  <property name="zohobooks.itemName" expression="json-eval($.invoice.invoice_items[0].description)" />
+                  <property name="zohobooks.rate" expression="json-eval($.invoice.invoice_items[0].price)" />
+
+                  <script language="js">
+                  <![CDATA[ 
+                  	var contactUrl = ''+mc.getProperty('freeagent.contactUrl');
+                    var contactId =contactUrl.substring(contactUrl.lastIndexOf('/')+1, contactUrl.length);
+                             
+                    mc.setProperty("freeagent.contactId", contactId);    
+                    
+                    var zohoBooksContactId = "";
+                    var contactMap = eval("(" + mc.getProperty('common.contactMap') + ")");
+                    
+                    zohoBooksContactId = contactMap[contactId];
+                    
+                    mc.setProperty("zohobooks.contactId", zohoBooksContactId); 
+                  ]]>
+                  </script>
+
+                  <filter xpath="get-property('zohobooks.contactId')='undefined'">
+                     <then>
+
+                        <!-- Call FreeAgent getContactById method to retrieve invoice contact details -->
+                        <freeagent.init>
+                           <apiUrl>{$ctx:freeagent.apiUrl}</apiUrl>
+                           <accessToken>{$ctx:freeagent.accessToken}</accessToken>
+                        </freeagent.init>
+                        <freeagent.getContactById>
+                           <id>{$ctx:freeagent.contactId}</id>
+                        </freeagent.getContactById>
+
+                        <property name="freeagent.contactFirstName" expression="json-eval($.contact.first_name)" />
+                        <property name="freeagent.contactLastName" expression="json-eval($.contact.last_name)" />
+                        <property name="freeagent.organisationName" expression="json-eval($.contact.organisation_name)" />
+                        <property name="freeagent.email" expression="json-eval($.contact.email)" />
+
+                        <script language="js">
+                        <![CDATA[ 
+                           var contactFirstName = ''+mc.getProperty('freeagent.contactFirstName');
+                           var contactLastName = mc.getProperty('freeagent.contactLastName');
+                           var organisationName = mc.getProperty('freeagent.organisationName');
+                           var email = mc.getProperty('freeagent.email');
+        
+                           if(contactFirstName==""){
+                           
+                              mc.setProperty("zohobooks.contactName", organisationName); 
+                           }
+                           else{
+                              var contactName=contactFirstName+" "+contactLastName;
+                              mc.setProperty("zohobooks.contactName", contactName); 
+                           }
+                           
+                           var contactPersons="[{\"email\":\""+email+"\"}]";
+                           
+                           mc.setProperty("zohobooks.contactPersons", contactPersons); 
+                            
+                        ]]>
+                        </script>
+
+                        <!-- Call ZohoBooks createContact method to create new contact -->
+                        <zohobooks.init>
+                           <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                           <authToken>{$ctx:zohobooks.authToken}</authToken>
+                           <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                        </zohobooks.init>
+                        <zohobooks.createContact>
+                           <contactName>{$ctx:zohobooks.contactName}</contactName>
+                           <contactPersons>{$ctx:zohobooks.contactPersons}</contactPersons>
+                        </zohobooks.createContact>
+
+                        <filter source="$axis2:HTTP_SC" regex="201">
+                           <then>
+                              <property name="zohobooks.contactId" expression="json-eval($.contact.contact_id)" />
+                              <property name="zohobooks.contactPersonId" expression="json-eval($.contact.contact_persons[0].contact_person_id)" />
+                              <property name="zohobooks.hasContact" value="true" />
+                           </then>
+                        </filter>
+                     </then>
+                     <else>
+                        <!-- Call ZohoBooks getContact method to retrieve contact details -->
+                        <zohobooks.init>
+                           <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                           <authToken>{$ctx:zohobooks.authToken}</authToken>
+                           <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                        </zohobooks.init>
+                        <zohobooks.getContact>
+                           <contactId>{$ctx:zohobooks.contactId}</contactId>
+                        </zohobooks.getContact>
+
+                        <filter source="$axis2:HTTP_SC" regex="200">
+                           <then>
+                              <property name="zohobooks.hasContact" value="true" />
+                              <property name="zohobooks.contactPersonId" expression="json-eval($.contact.contact_persons[0].contact_person_id)" />
+                           </then>
+                        </filter>
+
+                     </else>
+                  </filter>
+
+                  <!-- Call ZohoBooks createItem method to create a new item -->
+                  <zohobooks.init>
+                     <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                     <authToken>{$ctx:zohobooks.authToken}</authToken>
+                     <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                  </zohobooks.init>
+                  <zohobooks.createItem>
+                     <itemName>{$ctx:zohobooks.itemName}</itemName>
+                     <rate>{$ctx:zohobooks.rate}</rate>
+                  </zohobooks.createItem>
+
+                  <property name="zohobooks.itemId" expression="json-eval($.item.item_id)" />
+
+                  <property name="zohobooks.lineItems"
+                     expression="fn:concat('[{&quot;item_id&quot;: &quot;',get-property('zohobooks.itemId'),'&quot;}]')" />
+                  <property name="zohobooks.contactPersons" expression="fn:concat('[&quot;',get-property('zohobooks.contactPersonId'),'&quot;]')" />
+
+                  <filter source="$axis2:HTTP_SC" regex="201">
+                     <then>
+                        <filter xpath="get-property('zohobooks.hasContact')='true'">
+                           <then>
+                              <!-- Call ZohoBooks createInvoice method to create a new invoice -->
+                              <zohobooks.init>
+                                 <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                                 <authToken>{$ctx:zohobooks.authToken}</authToken>
+                                 <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                              </zohobooks.init>
+                              <zohobooks.createInvoice>
+                                 <send>true</send>
+                                 <ignoreAutoNumberGeneration>false</ignoreAutoNumberGeneration>
+                                 <customerId>{$ctx:zohobooks.contactId}</customerId>
+                                 <contactPersons>{$ctx:zohobooks.contactPersons}</contactPersons>
+                                 <lineItems>{$ctx:zohobooks.lineItems}</lineItems>
+                              </zohobooks.createInvoice>
+
+                              <filter source="$axis2:HTTP_SC" regex="201">
+                                 <then>
+                                    <property name="invoiceId" expression="json-eval($.invoice.invoice_id)" />
+                                    <property name="status" value="Success" />
+                                    <property name="message"
+                                       expression="fn:concat('Invoice was successfully created with the invoice ID [',get-property('invoiceId'),'].')" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="activity" value="zohobooks_createInvoice" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                    <property name="status" value="Error" />
+                                    <property name="message" value="Error occurred in invoice creation." />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="activity" value="zohobooks_createInvoice" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </else>
+                              </filter>
+                           </then>
+                           <else>
+                              <property name="status" value="Skipped" />
+                              <property name="message" value="Doesn't have a valid contact to create invoice." />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="activity" value="zohobooks_createInvoice" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </else>
+                        </filter>
+                     </then>
+                     <else>
+                        <property name="status" value="Skipped" />
+                        <property name="message" value="Error occurred in invoice item creation." />
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="id" value="{$ctx:id}" />
+                           <with-param name="activity" value="zohobooks_createInvoice" />
+                           <with-param name="status" value="{$ctx:status}" />
+                           <with-param name="message" value="{$ctx:message}" />
+                        </call-template>
+                     </else>
+                  </filter>
+
+               </then>
+               <else>
+                  <property name="status" value="Skipped" />
+                  <property name="message" value="Error occurred while retrieveing invoice ID." />
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="id" value="{$ctx:id}" />
+                     <with-param name="activity" value="zohobooks_createInvoice" />
+                     <with-param name="status" value="{$ctx:status}" />
+                     <with-param name="message" value="{$ctx:message}" />
+                  </call-template>
+               </else>
+            </filter>
+
+         </then>
+      </filter>
+
+
+   </sequence>
+</template>
