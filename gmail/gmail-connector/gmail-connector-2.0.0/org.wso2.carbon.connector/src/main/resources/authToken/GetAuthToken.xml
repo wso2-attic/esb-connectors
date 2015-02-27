@@ -1,0 +1,74 @@
+<template name="GetAuthToken" xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- Required Parameters -->
+    <parameter name="EMAIL_ID"  />
+    <parameter name="PASSWORD"  />
+
+
+
+    <sequence>
+        <property name="uri.var.EMAIL_ID" expression="$func:EMAIL_ID" />
+        <property name="uri.var.PASSWORD" expression="$func:PASSWORD" />
+
+
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "SCOPE":"ZohoInvoice/invoiceapi",
+                "accept":"text",
+                "EMAIL_ID":"$1",
+                "PASSWORD":"$2"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('EMAIL_ID')" />
+                <arg expression="get-property('PASSWORD')" />
+            </args>
+        </payloadFactory>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
+        <!--<property name="DISABLE_CHUNKING" value="true" scope="axis2"></property>-->
+
+        <!--<payloadFactory media-type="json">-->
+        <!--<format></format>-->
+        <!--<args></args>-->
+        <!--</payloadFactory>-->
+        <!--<property name="ContentType" value="application/x-www-form-urlencoded" scope="axis2"></property>-->
+        <!--<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"></property>-->
+        <!--<property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"></property>-->
+
+        <call>
+
+            <endpoint>
+
+                <http method="post"
+                      uri-template="https://accounts.zoho.com/apiauthtoken/nb/create" />
+                <property name="Accept" value="*/*" scope="transport"/>
+                <!--<property name="messageType" value="application/json" scope="axis2"/>-->
+                <!--<property name="contentType" value="application/json" scope="axis2"/>-->
+
+            </endpoint>
+        </call>
+        <!--<filter source="$axis2:HTTP_SC" regex="[2][0][0]">-->
+            <!--<then>-->
+                <!--<property name="AUTHTOKEN" expression="json-eval($.AUTHTOKEN)" />-->
+                <!--<property name="refreshToken" expression="json-eval($.refresh_token)" />-->
+                <!--<header name="password" expression="fn:concat('Bearer ',get-property('password'))"-->
+                        <!--scope="transport" />-->
+            <!--</then>-->
+        <!--</filter>-->
+
+
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove" />
+        <header name="X-LI-UUID" scope="transport" action="remove" />
+        <header name="X-Li-Pop" scope="transport" action="remove" />
+        <header name="X-Li-Fabric" scope="transport" action="remove" />
+        <header name="x-li-request-id" scope="transport" action="remove" />
+
+
+        <property name="messageType" value="application/json" scope="axis2"/>
+        <property name="contentType" value="application/json" scope="axis2"/>
+
+    </sequence>
+</template>
