@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Documentation URL - http://developers.livechatinc.com/rest-api/#create-ticket -->
+<template name="createTicket" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="message" description="The requester's message" />
+   <parameter name="requesterEmail" description="The requester's email address." />
+   <parameter name="requesterName" description="The requester's name." />
+   <parameter name="assigneeId" description="The login of the agent that will be assigned to the ticket." />
+   <parameter name="sourceType" description="The source of the ticket. Possible values: chat-window, mail or lc2. Defaults to lc2." />
+   <parameter name="sourceUrl"
+      description="The url of the website that the ticket was sent from. Applies only if source[type] is chat-window." />
+   <parameter name="subject" description="The ticket subject. Defaults to (no subject)." />
+   <parameter name="group" description="The list of groups. Must be an array with group IDs. Defaults to [0]." />
+   <sequence>
+      <property name="uri.var.message" expression="$func:message" />
+      <property name="uri.var.requesterEmail" expression="$func:requesterEmail" />
+      <property name="uri.var.requesterName" expression="$func:requesterName" />
+      <property name="uri.var.assigneeId" expression="$func:assigneeId" />
+      <property name="uri.var.sourceType" expression="$func:sourceType" />
+      <property name="uri.var.sourceUrl" expression="$func:sourceUrl" />
+      <property name="uri.var.subject" expression="$func:subject" />
+      <property name="uri.var.group" expression="$func:group" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "message":"$1",
+               "requester":
+                  {
+                     "mail":"$2"
+                  }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.message')" />
+            <arg expression="get-property('uri.var.requesterEmail')" />
+         </args>
+      </payloadFactory>
+      <!-- Building payload for request -->
+      <script language="js">
+         <![CDATA[
+            var payload = mc.getPayloadJSON();
+            var requesterName = mc.getProperty("uri.var.requesterName");
+            var assigneeId = mc.getProperty("uri.var.assigneeId");
+            var sourceType = mc.getProperty("uri.var.sourceType");
+            var sourceUrl = mc.getProperty("uri.var.sourceUrl");
+            var subject = mc.getProperty("uri.var.subject");
+            var group = mc.getProperty("uri.var.group");
+            if (requesterName != null && requesterName != ""){
+               payload.requester.name = requesterName;
+            }
+            if (assigneeId != null && assigneeId != ""){
+               payload.assignee = {};
+               payload.assignee.id = assigneeId;
+            }
+            if ((sourceType != null && sourceType != "") || (sourceUrl != null && sourceUrl != "")){
+               payload.source = {};
+            }
+            if (sourceType != null && sourceType != ""){
+               payload.source.type = sourceType;
+            }
+            if (sourceUrl != null && sourceUrl != ""){
+               payload.source.url = sourceUrl;
+            }
+            if (subject != null && subject != ""){
+               payload.subject = subject;
+            }
+            if (group != null && group != ""){
+               payload.group = eval('(' + group + ')');
+            }
+            mc.setPayloadJSON(payload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/tickets" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+   </sequence>
+</template>
