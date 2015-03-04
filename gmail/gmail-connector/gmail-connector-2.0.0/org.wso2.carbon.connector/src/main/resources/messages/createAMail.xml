@@ -14,13 +14,15 @@
   ~ specific language governing permissions and limitations
   ~ under the License.
   -->
-<template name="createAMail" xmlns="http://ws.apache.org/ns/synapse">
-    <parameter name="to" description="The mail to whom to be sent "/>
+<template name="createADraft" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="to" description="Receiver mail ID "/>
     <parameter name="subject" description="Subject of the message"/>
-    <parameter name="from" description="Sender id of the mail"/>
+    <parameter name="from" description="Sender mail ID"/>
     <parameter name="messageBody" description="Entire message body"/>
-    <parameter name="cc" description="mail id's to cc"/>
-    <parameter name="bcc" description="mail id's to bcc"/>
+    <parameter name="cc" description="To whom sender need to cc the mail"/>
+    <parameter name="bcc" description="To whom sender need to bcc the mail"/>
+    <parameter name="id" description="Id of the message to reply"/>
+    <parameter name="threadId" description="To whom sender need to bcc the mail"/>
     <sequence>
         <property name="uri.var.to" expression="$func:to"/>
         <property name="uri.var.subject" expression="$func:subject"/>
@@ -28,6 +30,8 @@
         <property name="uri.var.messageBody" expression="$func:messageBody"/>
         <property name="uri.var.cc" expression="$func:cc"/>
         <property name="uri.var.bcc" expression="$func:bcc"/>
+        <property name="uri.var.id" expression="$func:id"/>
+        <property name="uri.var.threadId" expression="$func:threadId"/>
         <property name="gmailParameters" value=""/>
         <filter
                 xpath="get-property('uri.var.to') = '' or  not(string(get-property('uri.var.to')))">
@@ -80,6 +84,26 @@
             </else>
         </filter>
         <filter
+                xpath="get-property('uri.var.id') = '' or  not(string(get-property('uri.var.id')))">
+            <then>
+                <property name="uri.var.id" value=""/>
+            </then>
+            <else>
+                <property name="gmailParameters" expression="fn:concat(get-property('gmailParameters'),
+               'id:', get-property('uri.var.id'),'&#xA;')"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.threadId') = '' or  not(string(get-property('uri.var.threadId')))">
+            <then>
+                <property name="uri.var.threadId" value=""/>
+            </then>
+            <else>
+                <property name="gmailParameters" expression="fn:concat(get-property('gmailParameters'),
+               'threadId:', get-property('uri.var.threadId'),'&#xA;')"/>
+            </else>
+        </filter>
+        <filter
                 xpath="get-property('uri.var.messageBody') = '' or  not(string(get-property('uri.var.messageBody')))">
             <then>
                 <property name="uri.var.messageBody" value=""/>
@@ -91,20 +115,24 @@
         </filter>
         <property name="parameters" expression="get-property('gmailParameters')"/>
         <class name="org.wso2.carbon.connector.createMail"/>
-        <property name="encodedValue" expression="get-property('uri.var.encoded')"/>
+       <property name="encodedValue" expression="get-property('uri.var.encoded')"/>
         <payloadFactory media-type="json">
             <format>
                 {
+                "message":
+                    {
+                        "raw":"$1"
+                    }
                 }
             </format>
             <args/>
         </payloadFactory>
-
         <script language="js">
             <![CDATA[
+
                     var to = mc.getProperty('encodedValue');
                     var payload = mc.getPayloadJSON();
-                    payload["raw"]=to;
+                    payload.message.raw=to;
                     mc.setPayloadJSON(payload);
             ]]>
         </script>
@@ -116,9 +144,8 @@
         <call>
             <endpoint>
                 <http method="post"
-                      uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/users/{uri.var.userId}/messages/send"/>
+                      uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/users/{uri.var.userId}/drafts"/>
             </endpoint>
         </call>
-        <property name="Accept" value="*/*" scope="transport"/>
     </sequence>
 </template>

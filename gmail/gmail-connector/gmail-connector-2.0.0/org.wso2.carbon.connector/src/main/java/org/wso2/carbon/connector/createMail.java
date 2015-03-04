@@ -31,13 +31,9 @@ public class createMail extends AbstractConnector {
         Object templateParam = getParameter(messageContext, "generated_param");
         try {
             String parameter = messageContext.getProperty("parameters").toString();
-//            String s = "to:";
-//            s = s.concat(parameter);
             byte[] encodedBytes = Base64.encodeBase64(parameter.getBytes());
             String encodedVal=new String(encodedBytes);
             messageContext.setProperty("uri.var.encoded",encodedVal);
-            System.out.println(messageContext.getProperty("uri.var.encoded")+" @@@@@@@@@@@@@@@@@"+encodedVal);
-
         } catch (Exception e) {
             throw new ConnectException(e);
         }

@@ -4,11 +4,15 @@ package org.wso2.carbon.connector.integration.test.common;
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.util.AXIOMUtil;
 import org.apache.axiom.soap.SOAP12Constants;
+import org.apache.axiom.soap.SOAPEnvelope;
 import org.apache.axis2.AxisFault;
 import org.apache.axis2.Constants;
 import org.apache.axis2.addressing.EndpointReference;
+import org.apache.axis2.client.OperationClient;
 import org.apache.axis2.client.Options;
 import org.apache.axis2.client.ServiceClient;
+import org.apache.axis2.context.MessageContext;
+import org.apache.axis2.transport.TransportUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
@@ -29,6 +33,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 public class ConnectorIntegrationUtil {
 
@@ -349,5 +354,73 @@ public class ConnectorIntegrationUtil {
 
         return sendRequest(url, null);
     }
+    /**
+     * Method to build a MEP Client with an attachment in the method context.
+     *
+     * @param endpoint
+     *            The endpoint to configure the client for.
+     * @param request
+     *            The request to add as a SOAP envelope
+     * @param attachmentDataHandler
+     *            The attachment to add to the message context.
+     * @param attachmentContentId
+     *            The content ID for the attachment.
+     * @return The built MEP Client
+     * @throws AxisFault
+     *             on failure to initialize the client.
+     */
+    public static OperationClient buildMEPClientWithAttachment(EndpointReference endpoint,
+                                                               OMElement request,
+                                                               Map<String, DataHandler> attachmentMap)
+            throws AxisFault {
 
+        ServiceClient serviceClient = new ServiceClient();
+
+        Options serviceOptions = new Options();
+        serviceOptions.setProperty(Constants.Configuration.ENABLE_SWA, Constants.VALUE_TRUE);
+        serviceOptions.setTo(endpoint);
+        serviceOptions.setAction("mediate");
+        serviceClient.setOptions(serviceOptions);
+        MessageContext messageContext = new MessageContext();
+
+        SOAPEnvelope soapEnvelope = TransportUtils.createSOAPEnvelope(request);
+        messageContext.setEnvelope(soapEnvelope);
+
+        for (String contentId : attachmentMap.keySet()) {
+            messageContext.addAttachment(contentId, attachmentMap.get(contentId));
+        }
+
+        OperationClient mepClient = serviceClient.createClient(ServiceClient.ANON_OUT_IN_OP);
+        mepClient.addMessageContext(messageContext);
+        return mepClient;
+    }
+
+    /**
+     * Method to build a MEP with a specified soap envelope.
+     *
+     * @param endpoint
+     *            The endpoint to configure the client for.
+     * @param request
+     *            The request to add as a SOAP envelope
+     * @return The built MEP Client
+     * @throws AxisFault
+     *             on failure to initialize the client.
+     */
+    public static OperationClient buildMEPClient(EndpointReference endpoint, OMElement request)
+            throws AxisFault {
+
+        ServiceClient serviceClient = new ServiceClient();
+
+        Options serviceOptions = new Options();
+        serviceOptions.setTo(endpoint);
+        serviceOptions.setAction("mediate");
+        serviceClient.setOptions(serviceOptions);
+        MessageContext messageContext = new MessageContext();
+
+        SOAPEnvelope soapEnvelope = TransportUtils.createSOAPEnvelope(request);
+        messageContext.setEnvelope(soapEnvelope);
+        OperationClient mepClient = serviceClient.createClient(ServiceClient.ANON_OUT_IN_OP);
+        mepClient.addMessageContext(messageContext);
+        return mepClient;
+    }
 }

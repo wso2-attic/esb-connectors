@@ -1,11 +1,11 @@
-Product: Integration tests for WSO2 ESB Gmail connector through REST API
+Product: Integration tests for WSO2 ESB Gmail connector via REST
 
 Pre-requisites:
 
  - Maven 3.x
  - Java 1.6 or above
 
-Tested Platform: 
+Tested Platform:
 
  -  MAC OS
  - WSO2 ESB 4.8.1
@@ -20,9 +20,8 @@ STEPS:
 	- Sign in with your Gmail account or select the preferred account if you have already signed in.
 	- Accept the permission to view and manage your e-mails
 	- Click on “Exchange authorization code for tokens” button to get the access token
-	-Update the access Token value in the init file.
-	
-3. Update connector properties file "gmail.properties" located in "Gmail_Connector_Home/src/test/resources/artifacts/ESB/connector/config/", 
+
+3. Update connector properties file "gmail.properties" located in "Gmail_Connector_Home/src/test/resources/artifacts/ESB/connector/config/",
 with following information
 	- userId : give your e-mail address
 	- accessToken : obtained access token
@@ -34,7 +33,9 @@ with following information
 	- Scroll down and click on the link "Details" which is near the label "Last account activity: xx minutes ago"
 	- Click on "Sign out all other sessions"
 
-5.  Navigate to "Gmail_Connector_Home" and run the following command.
-      $ mvn clean install
 
-	
+5. Change the "enabled" values into true in all test cases in the Integration test.
+   There are two java files for integration tests, cannot run both simultaneously. So you need to disable one class and run another class.
+
+6. Navigate to "Gmail_Connector_Home" and run the following command.
+      $ mvn clean install
