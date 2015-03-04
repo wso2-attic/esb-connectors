@@ -33,7 +33,7 @@ Steps to follow in setting integration test.
 	iv)		subject				-	A valid string as the subject of the email.
 	v)		fromEmail			-	A valid email address as the sender email.
 	vi)		toEmail				-	A valid email address as the recipient email.
-	vii)	dateFrom			-	A valid date in the format of YYYY-MM-DD (e.g:-2015-02-13)
+	vii)	dateFrom			-	A valid date in the format of YYYY-MM-DD (e.g:-2015-02-13). Note that this date should be prior to the date when the mail was sent to obtain the 'emailIdMandatory' in (ix).
 	viii)	dateTo				-   A valid date in the format of YYYY-MM-DD (e.g:-2015-02-13). Note that this date should be a future date than the date used for 'dateFrom'.
 	ix)	    emailIdMandatory	-	Use a valid email Id. To obtain this, make an api call to send a message having at least one tag value in the request.
 	

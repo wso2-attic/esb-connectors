@@ -64,8 +64,8 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      * @throws InterruptedException
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {sendMessage} integration test with mandatory parameters.")
-    public void testSendMessageWithMandatoryParameters() throws IOException, JSONException, InterruptedException {
-    
+    public void testSendMessageWithMandatoryParameters() throws IOException, JSONException {
+        
         esbRequestHeadersMap.put("Action", "urn:sendMessage");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_sendMessage_mandatory.json");
@@ -93,7 +93,7 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {sendMessage} integration test with negative case.")
     public void testSendMessageWithNegativeCase() throws IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:sendMessage");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_sendMessage_negative.json");
@@ -120,9 +120,8 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      * @throws InterruptedException
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {searchInformationOfMessage} integration test with mandatory parameters.")
-    public void testSearchInformationOfMessageWithMandatoryParameters() throws IOException, JSONException,
-            InterruptedException {
-    
+    public void testSearchInformationOfMessageWithMandatoryParameters() throws IOException, JSONException {
+        
         esbRequestHeadersMap.put("Action", "urn:searchInformationOfMessage");
         final RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
@@ -149,7 +148,7 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {searchInformationOfMessage} integration test with negative case.")
     public void testSearchInformationOfMessageWithNegativeCase() throws IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:searchInformationOfMessage");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
@@ -176,7 +175,7 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {searchMessages} integration test with mandatory parameters.", dependsOnMethods = { "testSendMessageWithMandatoryParameters" })
     public void testSearchMessagesWithMandatoryParameters() throws IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:searchMessages");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchMessages_mandatory.json");
@@ -206,7 +205,7 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {searchMessages} integration test with optional parameters.", dependsOnMethods = { "testSendMessageWithMandatoryParameters" })
     public void testSearchMessagesWithOptionalParameters() throws IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:searchMessages");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchMessages_optional.json");
@@ -236,7 +235,7 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {searchMessages} integration test with negative case.")
     public void testSearchMessagesWithNegativeCase() throws IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:searchMessages");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchMessages_negative.json");
@@ -261,7 +260,7 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {searchTimeSeriesOfMessages} integration test with optional parameters.")
     public void testSearchTimeSeriesOfMessagesWithOptionalParameters() throws IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:searchTimeSeriesOfMessages");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
@@ -289,7 +288,7 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {searchTimeSeriesOfMessages} integration test with negative case.")
     public void testSearchTimeSeriesOfMessagesWithNegativeCase() throws IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:searchTimeSeriesOfMessages");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
@@ -315,7 +314,7 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {searchMessageContent} integration test with mandatory parameters.")
     public void testSearchMessageContentWithMandatoryParameters() throws IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:searchMessageContent");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchMessageContent_mandatory.json");
@@ -325,7 +324,11 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 sendJsonRestRequest(apiEndpoint, "POST", apiRequestHeadersMap,
                         "api_searchMessageContent_mandatory.json");
         
-        Assert.assertEquals(esbRestResponse.getBody().getString("text"), apiRestResponse.getBody().getString("text"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("to").getString("email"),
+                apiRestResponse.getBody().getJSONObject("to").getString("email"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("tags").getString(0),
+                apiRestResponse.getBody().getJSONArray("tags").getString(0));
+        
         Assert.assertEquals(esbRestResponse.getBody().getString("subject"),
                 apiRestResponse.getBody().getString("subject"));
         Assert.assertEquals(esbRestResponse.getBody().getString("from_email"),
@@ -340,7 +343,7 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {searchMessageContent} integration test with negative case.")
     public void testSearchMessageContentWithNegativeCase() throws IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:searchMessageContent");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchMessageContent_negative.json");
@@ -361,10 +364,11 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      * 
      * @throws JSONException
      * @throws IOException
+     * @throws InterruptedException 
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {listSendersCalls} integration test with mandatory parameters.")
     public void testListSendersCallsWithMandatoryParameters() throws IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:listSendersCalls");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listSendersCalls_mandatory.json");
@@ -392,7 +396,7 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {getInformationOfSendersCalls} integration test with mandatory parameters.")
     public void testGetInformationOfSendersCallsWithMandatoryParameters() throws IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:getInformationOfSendersCalls");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
@@ -415,10 +419,12 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      * 
      * @throws JSONException
      * @throws IOException
+     * @throws InterruptedException 
+     * @throws NumberFormatException 
      */
     @Test(groups = { "wso2.esb" }, description = "mandrill {getInformationOfSendersCalls} integration test with negative case.")
     public void testGetInformationOfSendersCallsWithNegativeCase() throws IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:getInformationOfSendersCalls");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
