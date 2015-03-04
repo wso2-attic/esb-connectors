@@ -78,7 +78,6 @@ public class AcquiaContextDbGenerateSignature extends AbstractMediator {
         return true;
     }
 
-
     private String calculateMessage(String httpMethod,  Map<String,String> headers, String apiUri, String queryParameters) throws UnsupportedEncodingException {
 
 
