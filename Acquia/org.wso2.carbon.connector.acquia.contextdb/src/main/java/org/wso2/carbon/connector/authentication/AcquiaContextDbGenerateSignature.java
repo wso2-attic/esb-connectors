@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class GenerateSignature extends AbstractMediator {
+public class AcquiaContextDbGenerateSignature extends AbstractMediator {
 
     public static final String API_URI = "acquia.contextdb.apiUri";
     public static final String SECRET_KEY = "acquia.contextdb.secret.key";
