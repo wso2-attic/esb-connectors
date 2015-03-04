@@ -21,6 +21,8 @@
 package org.wso2.carbon.connector.authentication;
 
 import org.apache.synapse.MessageContext;
+import org.apache.synapse.SynapseException;
+import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.apache.synapse.mediators.AbstractMediator;
 
 import java.io.UnsupportedEncodingException;
@@ -30,6 +32,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class AcquiaContextDbGenerateSignature extends AbstractMediator {
 
@@ -49,8 +52,10 @@ public class AcquiaContextDbGenerateSignature extends AbstractMediator {
         String httpMethod = msgctx.getProperty(HTTP_METHOD).toString();
         String apiUri = msgctx.getProperty(API_URI).toString();
         String queryParameters = msgctx.getProperty(URL_PARAMETERS).toString();
+        Map<String,String> headerMap =(Map<String,String>) ((Axis2MessageContext)msgctx).getAxis2MessageContext().getProperty("TRANSPORT_HEADERS");
 
-        String baseString = calculateMessage(httpMethod, "", apiUri, queryParameters);
+
+        String baseString = calculateMessage(httpMethod, headerMap, apiUri, queryParameters);
 
         if (baseString != "" && accessKey != null && accessKey != null) {
             //Create the HMAC signed Message
@@ -65,22 +70,36 @@ public class AcquiaContextDbGenerateSignature extends AbstractMediator {
     }
 
     public boolean mediate(MessageContext messageContext) {
-        return false;
+        try {
+            generateSignature(messageContext);
+        } catch (Exception e) {
+            throw new SynapseException(e);
+        }
+        return true;
     }
 
 
-    private String calculateMessage(String httpMethod, String headers, String apiUri, String queryParameters) throws UnsupportedEncodingException {
+    private String calculateMessage(String httpMethod,  Map<String,String> headers, String apiUri, String queryParameters) throws UnsupportedEncodingException {
 
 
         if (httpMethod != null && headers != null && apiUri != null && queryParameters != null) {
             StringBuilder baseString = new StringBuilder();
+
             //Added HTTP method in the first Line
             baseString.append(httpMethod);
             baseString.append("\n");
-            //TODO: Need to consider the Header
+
+            //Added the headers
+            String[] hashHeaders = { "Accept", "Host", "User-Agent" };
+            for (String headerName : hashHeaders) {
+                if (headers.containsKey(headerName)) {
+                    baseString.append(headerName.toLowerCase()).append(":").append(headers.get(headerName).toString().trim()).append("\n");
+                }
+            }
 
             // add the URI
             baseString.append(URLEncoder.encode(apiUri, UTF8));
+
             //Add the Parameters
             if (queryParameters != null && queryParameters.trim().length() > 0) {
                 List<String> nameValuePairs = Arrays.<String>asList(queryParameters.split("&"));
