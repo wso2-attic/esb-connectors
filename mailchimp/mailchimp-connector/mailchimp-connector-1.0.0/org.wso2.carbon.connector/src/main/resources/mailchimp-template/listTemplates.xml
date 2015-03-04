@@ -1,36 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
 <template name="listTemplates" xmlns="http://ws.apache.org/ns/synapse">
-    <parameter name="user" description="Custom templates for this user account. Defaults to true."/>
-    <parameter name="gallery" description="Templates from our Gallery. Note that some templates that require extra configuration are withheld. (eg, the Etsy template). Defaults to false."/>
-    <parameter name="base" description="Mailchimp's 'start from scratch' extremely basic templates."/>
-    <parameter name="category" description="Optional for Gallery templates only, limit to a specific template category."/>
-    <parameter name="folderId" description="User templates, limit to this folder_id."/>
-    <parameter name="includeInactive" description="User templates are not deleted, only set inactive. defaults to false."/>
-    <parameter name="inactiveOnly" description="Only include inactive user templates. defaults to false."/>
-    <parameter name="includeDragAndDrop" description="Include templates created and saved using the new Drag &amp; Drop editor."/>
-    <sequence>
-        <property name="uri.var.user" expression="$func:user" />
-        <property name="uri.var.gallery" expression="$func:gallery" />
-        <property name="uri.var.base" expression="$func:base" />
-        <property name="uri.var.category" expression="$func:category" />
-        <property name="uri.var.folderId" expression="$func:folderId" />
-        <property name="uri.var.includeInactive" expression="$func:includeInactive" />
-        <property name="uri.var.inactiveOnly" expression="$func:inactiveOnly" />
-        <property name="uri.var.includeDragAndDrop" expression="$func:includeDragAndDrop" />
-
-        <payloadFactory media-type="json">
-            <format>
-                {"apikey": "$1"}
-            </format>
-            <args>
-				<arg expression="get-property('uri.var.apiKey')"/>
-            </args>
-        </payloadFactory>
-
-        <script language="js">
+   <parameter name="user" description="Custom templates for this user account. Defaults to true." />
+   <parameter name="gallery"
+      description="Templates from our Gallery. Note that some templates that require extra configuration are withheld. (eg, the Etsy template). Defaults to false." />
+   <parameter name="base" description="Mailchimp's 'start from scratch' extremely basic templates." />
+   <parameter name="category" description="Optional for Gallery templates only, limit to a specific template category." />
+   <parameter name="folderId" description="User templates, limit to this folder_id." />
+   <parameter name="includeInactive" description="User templates are not deleted, only set inactive. defaults to false." />
+   <parameter name="inactiveOnly" description="Only include inactive user templates. defaults to false." />
+   <parameter name="includeDragAndDrop" description="Include templates created and saved using the new Drag &amp; Drop editor." />
+   <sequence>
+      <property name="uri.var.user" expression="$func:user" />
+      <property name="uri.var.gallery" expression="$func:gallery" />
+      <property name="uri.var.base" expression="$func:base" />
+      <property name="uri.var.category" expression="$func:category" />
+      <property name="uri.var.folderId" expression="$func:folderId" />
+      <property name="uri.var.includeInactive" expression="$func:includeInactive" />
+      <property name="uri.var.inactiveOnly" expression="$func:inactiveOnly" />
+      <property name="uri.var.includeDragAndDrop" expression="$func:includeDragAndDrop" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "apikey": "$1"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.apiKey')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
             <![CDATA[
-                var jsonPayload = mc.getPayloadJSON();
-                
+                var jsonPayload = mc.getPayloadJSON();                
                 var category = mc.getProperty('uri.var.category');
                 var folderId = mc.getProperty('uri.var.folderId');
                 var inactiveOnly = mc.getProperty('uri.var.inactiveOnly');
@@ -38,60 +55,47 @@
                 var includeInactive = mc.getProperty('uri.var.includeInactive');
                 var base = mc.getProperty('uri.var.base');
                 var gallery = mc.getProperty('uri.var.gallery');
-                var user = mc.getProperty('uri.var.user');
-				
+                var user = mc.getProperty('uri.var.user');				
                 var filters = new Object();
                 if (category != null && category != ""){
                     filters["category"] = category;
-                }
-                
+                }                
                 if (folderId != null && folderId != ""){
                     filters["folder_id"] = folderId;
-                }
-                
+                }                
                 if (inactiveOnly != null && inactiveOnly != ""){
                     filters["inactive_only"] = inactiveOnly;
-                }
-                
+                }                
                 if (includeDragAndDrop != null && includeDragAndDrop != ""){
                     filters["include_drag_and_drop"] = includeDragAndDrop;
-                }
-                
+                }                
                 if (includeInactive != null && includeInactive != ""){
                     filters["include_inactive"] = includeInactive;
                 }				
-				jsonPayload["filters"] = filters;
-                
+				jsonPayload["filters"] = filters;                
                 var types = new Object();
                 if (base != null && base != ""){
                     types["base"] = base;
-                }
-                
+                }                
                 if (gallery != null && gallery != ""){
                     types["gallery"] = gallery;
-                }
-                
+                }                
                 if (user != null && user != ""){
                     types["user"] = user;
                 }                
-                jsonPayload["types"] = types;
-                
+                jsonPayload["types"] = types;                
                 mc.setPayloadJSON(jsonPayload);
             ]]>
-        </script>
-		
-		<!--MailChimp API expects Content-Length Header-->
-		<property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
-
-        <call>
-            <endpoint>
-                <http method="post" uri-template="{uri.var.apiUrl}/templates/list.{uri.var.format}"/>
-            </endpoint>
-        </call>
-
-        <!-- Remove custom Headers from the API Response -->
-        <header name="X-N" action="remove" scope="transport"/>
-        <header name="X-MailChimp-API-Error-Code" action="remove" scope="transport"/>
-
-    </sequence>
+      </script>
+      <!--MailChimp API expects Content-Length Header -->
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/templates/list.{uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-N" action="remove" scope="transport" />
+      <header name="X-MailChimp-API-Error-Code" action="remove" scope="transport" />
+   </sequence>
 </template>
