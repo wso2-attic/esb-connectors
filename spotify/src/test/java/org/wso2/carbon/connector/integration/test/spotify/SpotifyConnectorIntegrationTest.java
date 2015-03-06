@@ -519,6 +519,27 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
     }
 
     /**
+     * Optional parameter test case for getTracksOfCurrentUser method.
+     */
+    @Test(enabled = true, groups = {"wso2.esb"}, priority = 2, description = "spotify {getTracksOfCurrentUser} integration test.")
+    public void getTracksOfCurrentUserWithOptionalParameters() throws Exception {
+        String methodName = "spotify_getTracksOfCurrentUser";
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        String jsonRequestFilePath = pathToRequestsDirectory + "getTracksOfCurrentUser_Optional.txt";
+        final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
+        JSONObject jsonResponse = null;
+        try {
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            String jsonObj = jsonResponse.getString("total");
+            Assert.assertNotEquals(jsonObj, 0);
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+    }
+
+    /**
      * Test case for getTracksOfCurrentUser method.
      */
     @Test(enabled = true, groups = {"wso2.esb"}, priority = 2, description = "spotify {getTracksOfCurrentUser} integration test.")
@@ -526,7 +547,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
         String methodName = "spotify_getTracksOfCurrentUser";
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        String jsonRequestFilePath = pathToRequestsDirectory + "getToken.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getTracksOfCurrentUser_Mandatory.txt";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
         JSONObject jsonResponse = null;
@@ -620,7 +641,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {getAnAlbumMetadata} integration test with mandatory parameter.")
     public void testGetAnAlbumMetadataWithMandatoryParameter() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "getAnAlbumMetadata_mandatory.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getAnAlbumMetadata_Mandatory.txt";
         String methodName = "spotify_getAnAlbumMetadata";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
@@ -640,7 +661,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {getAnAlbumMetadata} integration test with negative case.")
     public void testGetAnAlbumMetadataWithNegativeCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "getAnAlbumMetadata_negative.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getAnAlbumMetadata_Negative.txt";
         String methodName = "spotify_getAnAlbumMetadata";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
@@ -660,7 +681,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {getSeveralAlbums} integration test with mandatory parameter.")
     public void testGetSeveralAlbumsWithMandatoryParameter() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "getSeveralAlbums_mandatory.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getSeveralAlbums_Mandatory.txt";
         String methodName = "spotify_getSeveralAlbums";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
@@ -680,7 +701,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {getSrveralAlbums} integration test with negative case.")
     public void testGetSeveralAlbumsWithNegativeCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "getSeveralAlbums_negative.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getSeveralAlbums_Negative.txt";
         String methodName = "spotify_getSeveralAlbums";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
@@ -702,7 +723,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {getAnAlbumsTracks} integration test with mandatory parameter.")
     public void testGetAnAlbumsTracksWithMandatoryParameter() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "getAnAlbumsTracks_mandatory.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getAnAlbumsTracks_Mandatory.txt";
         String methodName = "spotify_getAnAlbumsTracks";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
@@ -722,7 +743,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {getAnAlbumsTracks} integration test with optional parameter.")
     public void testGetAnAlbumsTracksWithOptionalParameters() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "getAnAlbumsTracks_optional.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getAnAlbumsTracks_Optional.txt";
         String methodName = "spotify_getAnAlbumsTracks";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
@@ -743,7 +764,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {getAnAlbumsTracks} integration test with negative case.")
     public void testGetAnAlbumsTracksWithNegativeCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "getAnAlbumsTracks_negative.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getAnAlbumsTracks_Negative.txt";
         String methodName = "spotify_getAnAlbumsTracks";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
@@ -763,7 +784,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {searchForAnItem} integration test with mandatory parameter.")
     public void testSearchForAnItemWithMandatoryParameter() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "searchForAnItem_mandatory.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "searchForAnItem_Mandatory.txt";
         String methodName = "spotify_searchForAnItem";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
@@ -782,7 +803,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {searchForAnItem} integration test with optional parameter.")
     public void testSearchForAnItemWithOptionalParameters() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "searchForAnItem_optional.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "searchForAnItem_Optional.txt";
         String methodName = "spotify_searchForAnItem";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
@@ -803,7 +824,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {searchForAnItem} integration test with negative case.")
     public void testSearchForAnItemWithNegativeCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "searchForAnItem_negative.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "searchForAnItem_Negative.txt";
         String methodName = "spotify_searchForAnItem";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
@@ -823,7 +844,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {getAListUsersPlaylists} integration test with mandatory parameter.")
     public void testGetAListUsersPlaylistsMandatoryParameter() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "getAListUsersPlaylists_mandatory.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getAListUsersPlaylists_Mandatory.txt";
         String methodName = "spotify_getAListUsersPlaylists";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -844,7 +865,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {GetAListUsersPlaylists} integration test with optional parameter.")
     public void testGetAListUsersPlaylistsOptionalParameter() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "getAListUsersPlaylists_optional.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getAListUsersPlaylists_Optional.txt";
         String methodName = "spotify_getAListUsersPlaylists";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -866,7 +887,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {GetAListUsersPlaylists} integration test with negative case.")
     public void testGetAListUsersPlaylistsWithNegativeCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "getAListUsersPlaylists_negative.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getAListUsersPlaylists_Negative.txt";
         String methodName = "spotify_getAListUsersPlaylists";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -886,7 +907,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {getAListUsersLPlaylists} integration test with mandatory parameter.")
     public void testGetAPlaylistMandatoryParameter() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "getAPlaylist_mandatory.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getAPlaylist_Mandatory.txt";
         String methodName = "spotify_getAPlaylist";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -908,7 +929,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {getAPlaylist} integration test with optional parameter.")
     public void testGetAPlaylistOptionalParameter() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "getAPlaylist_optional.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getAPlaylist_Optional.txt";
         String methodName = "spotify_getAPlaylist";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -929,7 +950,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {getAPlaylist} integration test with negative case.")
     public void testGetAPlaylistWithNegativeCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "getAPlaylist_negative.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "getAPlaylist_Negative.txt";
         String methodName = "spotify_getAPlaylist";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -949,7 +970,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {createAPlaylist} integration test with mandatory parameter.")
     public void testCreateAPlaylistMandatoryParameter() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "createAPlaylist_mandatory.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "createAPlaylist_Mandatory.txt";
         String methodName = "spotify_createAPlaylist";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -970,7 +991,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {createAPlaylist} integration test with optional parameter.")
     public void testCreateAPlaylistOptionalParameter() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "createAPlaylist_optional.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "createAPlaylist_Optional.txt";
         String methodName = "spotify_createAPlaylist";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -991,7 +1012,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {createAPlaylist} integration test with negative case.")
     public void testCreateAPlaylistWithNegativeCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "createAPlaylist_negative.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "createAPlaylist_Negative.txt";
         String methodName = "spotify_createAPlaylist";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -1011,7 +1032,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {addTracksToAPlaylistFromURI} integration test with mandatory parameter.")
     public void testAddTracksToAPlaylistFromURIWithMandatory() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "addTracksToAPlaylistFromURI_mandatory.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "addTracksToAPlaylistFromURI_Mandatory.txt";
         String methodName = "spotify_addTraksToAPlaylist";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -1031,7 +1052,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {addTracksToAPlaylistFromURI} integration test with optional parameter.")
     public void testAddTracksToAPlaylistFromURIWithOptional() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "addTracksToAPlaylistFromURI_optional.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "addTracksToAPlaylistFromURI_Optional.txt";
         String methodName = "spotify_addTraksToAPlaylist";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -1051,7 +1072,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {addTracksToAPlaylistFromURI} integration test with negative case.")
     public void testAddTracksToAPlaylistFromURIWithNegativeCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "addTracksToAPlaylistFromURI_negative.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "addTracksToAPlaylistFromURI_Negative.txt";
         String methodName = "spotify_addTraksToAPlaylist";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -1091,7 +1112,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {addTracksToAPlaylistFromRequestBody} integration test with negative case.")
     public void testAddTracksToAPlaylistFromRequestBodyWithNegativeCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "addTracksToAPlaylistFromURI_negative.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "addTracksToAPlaylistFromURI_Negative.txt";
         String methodName = "spotify_addTraksToAPlaylist";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -1111,7 +1132,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {changeAPlaylistsDetails} integration test with mandatory parameter.")
     public void testChangeAPlaylistsDetailsMandatoryParameter() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "changeAPlaylistsDetails_mandatory.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "changeAPlaylistsDetails_Mandatory.txt";
         String methodName = "spotify_changeAPlaylistsDetails";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -1131,7 +1152,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {changeAPlaylistsDetails} integration test with optional parameter.")
     public void testChangeAPlaylistsDetailsOptionalParameterName() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "changeAPlaylistsDetails_optionalName.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "changeAPlaylistsDetails_OptionalName.txt";
         String methodName = "spotify_changeAPlaylistsDetails";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -1151,7 +1172,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {changeAPlaylistsDetails} integration test with optional parameter.")
     public void testChangeAPlaylistsDetailsOptionalParameterPublic() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "changeAPlaylistsDetails_optionalPublic.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "changeAPlaylistsDetails_OptionalPublic.txt";
         String methodName = "spotify_changeAPlaylistsDetails";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -1171,7 +1192,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {changeAPlaylistsDetails} integration test with negative case.")
     public void testChangeAPlaylistsDetailsWithNegativeCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "changeAPlaylistsDetails_negative.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "changeAPlaylistsDetails_Negative.txt";
         String methodName = "spotify_changeAPlaylistsDetails";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -1192,7 +1213,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      * @Test(enabled=false,groups = { "wso2.esb" }, description = "spotify {removeTracksFromPlaylist} integration test with mandatory parameter.")
      * public void testRemoveTracksFromPlaylist() throws Exception {
      * <p/>
-     * String jsonRequestFilePath = pathToRequestsDirectory + "removeTracksFromAPlaylist_positive.txt";
+     * String jsonRequestFilePath = pathToRequestsDirectory + "removeTracksFromAPlaylist_Positive.txt";
      * String methodName = "spotify_removeTracksFromAPlaylist";
      * <p/>
      * final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
@@ -1218,7 +1239,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {replaceAPlaylistsTracksFromURI} integration test with mandatory parameter.")
     public void testReplaceAPlaylistsTracksWithPositiveCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "replaceAPlaylistsTracksFromURI_positive.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "replaceAPlaylistsTracksFromURI_Positive.txt";
         String methodName = "spotify_replaceAPlaylistsTracks";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -1238,7 +1259,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {replaceAPlaylistsTracksFromURI} integration test with negative case.")
     public void testReplaceAPlaylistsTracksWithNegativeCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "replaceAPlaylistsTracksFromURI_negative.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "replaceAPlaylistsTracksFromURI_Negative.txt";
         String methodName = "spotify_replaceAPlaylistsTracks";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -1258,7 +1279,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {replaceAPlaylistsTracksFromURI} integration test with mandatory parameter.")
     public void testReplaceAPlaylistsTracksFromRequestBodyWithPositiveCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "replaceAPlaylistsTracksFromRequestBody_positive.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "replaceAPlaylistsTracksFromRequestBody_Positive.txt";
         String methodName = "spotify_replaceAPlaylistsTracks";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
@@ -1278,7 +1299,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {replaceAPlaylistsTracksFromURI} integration test with negative case.")
     public void testReplaceAPlaylistsTracksFromRequestBodyWithNegativeCase() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "replaceAPlaylistsTracksFromRequestBody_negative.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "replaceAPlaylistsTracksFromRequestBody_Negative.txt";
         String methodName = "spotify_replaceAPlaylistsTracks";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, spotifyConnectorProperties.getProperty("clientId"), spotifyConnectorProperties.getProperty("clientSecret"), spotifyConnectorProperties.getProperty("grantType"), spotifyConnectorProperties.getProperty("refreshToken"));
