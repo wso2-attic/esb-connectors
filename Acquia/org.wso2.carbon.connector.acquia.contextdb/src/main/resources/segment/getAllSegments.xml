@@ -19,25 +19,24 @@
 <template xmlns="http://ws.apache.org/ns/synapse" name="getAllSegments">
     <parameter name="accountId" description="Name of the accountId."/>
     <parameter name="parameters" description="Name of the parameter."/>
-
     <sequence>
         <property name="acquia.contextdb.accountId" expression="$func:accountId" />
         <property name="acquia.contextdb.apiUri.final" expression="fn:concat(get-property('acquia.contextdb.apiUri'),get-property('acquia.contextdb.accountId'),'/segments')"/>
         <property name="acquia.contextdb.parameters" value=" "/>
-
-        <property name="acquia.contextdb.httpMethod" value="GET"/>
-
         <property name="uri.var.apiUri.final" expression="get-property('acquia.contextdb.apiUri.final')"/>
-        <log level="custom" >
-            <property name="TESTDATA" expression="get-property('uri.var.apiUri.final')"/>
-        </log>
+        <property name="acquia.contextdb.httpMethod" value="GET"/>
+        <header name="Accept" scope="transport" action="remove"/>
+        <property name="REQUEST_HOST_HEADER" value="api-liftweb-us1.lift.acquia.com" scope="axis2"/>
         <class name="org.wso2.carbon.connector.authentication.AcquiaContextDbGenerateSignature" />
-
-        <property name="uri.var.signature" expression="get-property('acquia.contextdb.signature')"/>
-
-        <header name="Authorization" expression="get-property('uri.var.signature')"
+        <header name="Authorization" expression="get-property('acquia.contextdb.signature')"
                 scope="transport"/>
-
+        <header name="Content-Type" scope="transport" action="remove"/>
+        <header name="Cookie" scope="transport" action="remove"/>
+        <payloadFactory media-type="json">
+            <format/>
+            <args/>
+        </payloadFactory>
+        <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
         <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
         <call>
             <endpoint>

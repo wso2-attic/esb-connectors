@@ -22,52 +22,25 @@ package org.wso2.carbon.connector.authentication;
 
 import org.apache.synapse.MessageContext;
 import org.apache.synapse.SynapseException;
-import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.apache.synapse.mediators.AbstractMediator;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
+import java.net.MalformedURLException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.security.SignatureException;
+import java.util.*;
+import java.net.URL;
 
 public class AcquiaContextDbGenerateSignature extends AbstractMediator {
 
-    public static final String API_URI = "acquia.contextdb.apiUri";
+    public static final String API_URI = "acquia.contextdb.apiUri.final";
     public static final String SECRET_KEY = "acquia.contextdb.secret.key";
     public static final String ACCESS_KEY = "acquia.contextdb.access.key";
     public static final String HTTP_METHOD = "acquia.contextdb.httpMethod";
     public static final String URL_PARAMETERS = "acquia.contextdb.parameters";
     private static final String UTF8 = "UTF-8";
     private static final String SIGNATURE = "acquia.contextdb.signature";
-
-    public void generateSignature(MessageContext msgctx) throws UnsupportedEncodingException,
-            NoSuchAlgorithmException, InvalidKeyException {
-
-        String secreteKey = msgctx.getProperty(SECRET_KEY).toString();
-        String accessKey = msgctx.getProperty(ACCESS_KEY).toString();
-        String httpMethod = msgctx.getProperty(HTTP_METHOD).toString();
-        String apiUri = msgctx.getProperty(API_URI).toString();
-        String queryParameters = msgctx.getProperty(URL_PARAMETERS).toString();
-        Map<String,String> headerMap =(Map<String,String>) ((Axis2MessageContext)msgctx).getAxis2MessageContext().getProperty("TRANSPORT_HEADERS");
-
-
-        String baseString = calculateMessage(httpMethod, headerMap, apiUri, queryParameters);
-
-        if (baseString != "" && accessKey != null && accessKey != null) {
-            //Create the HMAC signed Message
-            String singedMessage = "HMAC " + accessKey + ":" + HMACAuthenticationUtil.calculateRFC2104HMAC(baseString, secreteKey);
-            //Add the signature into the synapse property file
-            msgctx.setProperty(SIGNATURE, singedMessage);
-        } else {
-            msgctx.setProperty(SIGNATURE, "");
-        }
-
-
-    }
 
     public boolean mediate(MessageContext messageContext) {
         try {
@@ -78,27 +51,48 @@ public class AcquiaContextDbGenerateSignature extends AbstractMediator {
         return true;
     }
 
-    private String calculateMessage(String httpMethod,  Map<String,String> headers, String apiUri, String queryParameters) throws UnsupportedEncodingException {
+    private void generateSignature(MessageContext msgctx) throws UnsupportedEncodingException,
+            NoSuchAlgorithmException, InvalidKeyException, MalformedURLException, SignatureException {
+
+        String secreteKey = msgctx.getProperty(SECRET_KEY).toString();
+        String accessKey = msgctx.getProperty(ACCESS_KEY).toString();
+        String httpMethod = msgctx.getProperty(HTTP_METHOD).toString();
+        String apiUri = msgctx.getProperty(API_URI).toString();
+        String queryParameters = msgctx.getProperty(URL_PARAMETERS).toString();
 
 
-        if (httpMethod != null && headers != null && apiUri != null && queryParameters != null) {
+        String baseString = calculateMessage(httpMethod, apiUri, queryParameters);
+
+        if (baseString != "" && accessKey != null && accessKey != null) {
+            //Create the HMAC signed Message
+            String singedMessage = "HMAC " + accessKey + ":" + HMACAuthenticationUtil.calculateRFC2104HMAC(baseString, secreteKey);
+            //Add the signature into the synapse property file
+            msgctx.setProperty(SIGNATURE, singedMessage.replaceAll("\r","").replaceAll("\n",""));
+        } else {
+            msgctx.setProperty(SIGNATURE, "");
+        }
+    }
+
+    private String calculateMessage(String httpMethod, String apiURL, String queryParameters) throws UnsupportedEncodingException,MalformedURLException {
+
+        if (httpMethod != null && apiURL != null && queryParameters != null) {
             StringBuilder baseString = new StringBuilder();
-
+            URL url = new URL(apiURL);
+            Map<String,String> headerMap =  new HashMap<String, String>();
+            headerMap.put("Host",url.getHost().toString());
+            headerMap.put("User-Agent","Synapse-PT-HttpComponents-NIO");
             //Added HTTP method in the first Line
             baseString.append(httpMethod);
             baseString.append("\n");
-
             //Added the headers
-            String[] hashHeaders = { "Accept", "Host", "User-Agent" };
+            String[] hashHeaders = { "Host", "User-Agent" };
             for (String headerName : hashHeaders) {
-                if (headers.containsKey(headerName)) {
-                    baseString.append(headerName.toLowerCase()).append(":").append(headers.get(headerName).toString().trim()).append("\n");
+                if (headerMap.containsKey(headerName)) {
+                    baseString.append(headerName.toLowerCase()).append(":").append(headerMap.get(headerName).toString().trim()).append("\n");
                 }
             }
-
             // add the URI
-            baseString.append(URLEncoder.encode(apiUri, UTF8));
-
+            baseString.append(url.getPath().toString());
             //Add the Parameters
             if (queryParameters != null && queryParameters.trim().length() > 0) {
                 List<String> nameValuePairs = Arrays.<String>asList(queryParameters.split("&"));
@@ -114,7 +108,5 @@ public class AcquiaContextDbGenerateSignature extends AbstractMediator {
         } else {
             return "";
         }
-
     }
-
 }

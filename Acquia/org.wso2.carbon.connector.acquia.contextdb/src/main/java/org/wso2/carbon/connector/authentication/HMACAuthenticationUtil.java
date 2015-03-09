@@ -24,27 +24,31 @@ import org.apache.commons.codec.binary.Base64;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.UnsupportedEncodingException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 
 
 public class HMACAuthenticationUtil {
-
     private static final String UTF8 = "UTF-8";
     private static final String HMAC_SHA1_ALGORITHM = "HmacSHA1";
 
-
-
-    public static String calculateRFC2104HMAC(String data, String key)throws UnsupportedEncodingException,
-            NoSuchAlgorithmException, InvalidKeyException {
+    /**
+     * This method signs the message  HmacSHA1
+     * @param data
+     * @param key
+     * @return
+     * @throws SignatureException
+     */
+    public static String calculateRFC2104HMAC(String data, String key) throws SignatureException {
+        String result;
+        try {
             SecretKeySpec signingKey = new SecretKeySpec(key.getBytes(UTF8), HMAC_SHA1_ALGORITHM);
             Mac mac = Mac.getInstance(HMAC_SHA1_ALGORITHM);
             mac.init(signingKey);
             byte[] rawHmac = mac.doFinal(data.getBytes());
-            return Base64.encodeBase64String(rawHmac);
+            result = Base64.encodeBase64String(rawHmac);
+        } catch(Exception e) {
+            throw new SignatureException("Failed to generate HMAC : " + e.getMessage());
+        }
+        return result;
     }
-
-
-
 }
