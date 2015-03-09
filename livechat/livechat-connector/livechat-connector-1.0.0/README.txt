@@ -53,7 +53,15 @@ Steps to follow in setting integration test.
 
  6. Compress modified ESB as wso2esb-4.9.0-SNAPSHOT.zip and copy that zip file in to location "{LIVECHAT_CONNECTOR_HOME}/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
- 7. Update the properties in 'livechat.properties' file at location "{LIVECHAT_CONNECTOR_HOME}/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 7. Pre-requisites for LiveChat Connector Integration Testing.
+
+	Create at least one chat by following steps.
+	i) 	Login with the created LiveChat account(in step 3) by using the URL "https://my.livechatinc.com".
+	ii) Navigate to the URL "https://my.livechatinc.com/chats" and click the "live preview site" link.
+	iii)Click "Chat now" in the re-directed page in step 7[ii], and create a new chat by giving a name and an email address. 
+	iv) Integration test could be run, 10 minutes (at least) after step 7(iii) is completed. 
+	 
+ 8. Update the properties in 'livechat.properties' file at location "{LIVECHAT_CONNECTOR_HOME}/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i) 		apiUrl				- Use the API URL as "https://api.livechatinc.com".
 	ii)		apiKey			    - Access Token obtained by following the steps in 4.
@@ -76,5 +84,5 @@ Steps to follow in setting integration test.
 	
 	* Values need to be changed for each execution of the Test Suite. Please make sure the values are unique in the context of the same account.
 	
- 8. Navigate to "{LIVECHAT_CONNECTOR_HOME}/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 9. Navigate to "{LIVECHAT_CONNECTOR_HOME}/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
