@@ -30,21 +30,41 @@
             <![CDATA[
 				var leadIds = mc.getProperty('uri.var.leadIds');
 
-                var query="";
+                var query="[";
                 var added=0;
                 var ids=leadIds.split(',');
                 for(var i = 0; i < ids.length; i++){
-                    query+='id='+ids[i]+'&amp;';
+                    if(added==0){
+                        query+='{\"id\":\"'+ids[i]+'\"}';
+                        added=1;
+                    }
+                    else{
+                        query+=',{\"id\":\"'+ids[i]+'\"}';
+                    }
                 }
+                query+=']';
 
                 mc.setProperty('uri.var.ids', query);
 			]]>
         </script>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                    "input":$1
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.ids')" />
+            </args>
+        </payloadFactory>
 
+        <property name="messageType" value="application/json" scope="axis2"/>
+
+        <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
         <call>
             <endpoint>
                 <http method="post"
-                      uri-template="{uri.var.apiUrl}/lists/{uri.var.listId}/leads/ismember.json?{uri.var.ids}"/>
+                      uri-template="{uri.var.apiUrl}/lists/{uri.var.listId}/leads.json"/>
             </endpoint>
         </call>
     </sequence>
