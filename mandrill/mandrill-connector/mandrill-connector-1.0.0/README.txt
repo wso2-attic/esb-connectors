@@ -34,7 +34,7 @@ Steps to follow in setting integration test.
 	v)		fromEmail			-	A valid email address as the sender email.
 	vi)		toEmail				-	A valid email address as the recipient email.
 	vii)	dateFrom			-	A valid date in the format of YYYY-MM-DD (e.g:-2015-02-13). Note that this date should be prior to the date when the mail was sent to obtain the 'emailIdMandatory' in (ix).
-	viii)	dateTo				-   A valid date in the format of YYYY-MM-DD (e.g:-2015-02-13). Note that this date should be a future date than the date used for 'dateFrom'.
+	viii)	dateTo				-   A valid date in the format of YYYY-MM-DD (e.g:-2015-02-13). Note that this date should be future to the date when the mail was sent to obtain the 'emailIdMandatory' in (ix).
 	ix)	    emailIdMandatory	-	Use a valid email Id. To obtain this, make an api call to send a message having at least one tag value in the request.
 	
  5. Navigate to "{Mandrill_Connector_Home}/mandrill-connector/mandrill-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
