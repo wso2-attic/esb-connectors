@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!--
   ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
   ~ WSO2 Inc. licenses this file to you under the Apache License,
@@ -14,34 +14,35 @@
   ~ specific language governing permissions and limitations
   ~ under the License.
   -->
-<template xmlns="http://ws.apache.org/ns/synapse" name="getSegmentsById">
-   <parameter name="identifier" description="Visitor's identity information"/>
-   <parameter name="identifierType" description="Type of visitor's identity information."/>
+<template xmlns="http://ws.apache.org/ns/synapse" name="getVisitorStatus">
+    <parameter name="status" description="data table" />
     <parameter name="parameters" description="Name of the parameter."/>
 
     <sequence>
         <property name="acquia.contextdb.accountId" expression="$func:accountId" />
-        <property name="acquia.contextdb.identifier" expression="$func:identifier"/>
-        <property name="acquia.contextdb.identifierType" expression="$func:identifierType"/>
-        <property name="acquia.contextdb.parameters"  expression="fn:concat(get-property('acquia.contextdb.identifier'),'&amp;',get-property('acquia.contextdb.identifierType'))"/>
-        <property name="acquia.contextdb.apiUri.final" expression="fn:concat(get-property('acquia.contextdb.apiUri'),get-property('acquia.contextdb.accountId'),'/segments')"/>
+        <property name="acquia.contextdb.status" expression="$func:status" />
+        <property name="acquia.contextdb.apiUri.final" expression="fn:concat(get-property('acquia.contextdb.apiUri'),'/dashboard/rest/',get-property('acquia.contextdb.accountId'),'/export_visitor_data_status')"/>
+        <property name="acquia.contextdb.parameters" expression="fn:concat(get-property('acquia.contextdb.status'))"/>
 
         <property name="acquia.contextdb.httpMethod" value="GET"/>
+
         <property name="uri.var.apiUri.final" expression="get-property('acquia.contextdb.apiUri.final')"/>
+        <log level="custom" >
+            <property name="TESTDATA" expression="get-property('uri.var.apiUri.final')"/>
+        </log>
 
         <class name="org.wso2.carbon.connector.authentication.AcquiaContextDbGenerateSignature" />
+
         <property name="uri.var.signature" expression="get-property('acquia.contextdb.signature')"/>
+
         <header name="Authorization" expression="get-property('uri.var.signature')"
                 scope="transport"/>
-
-       <property name="uri.var.parameters" expression="get-property('acquia.contextdb.parameters')"/>
         <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
-
         <call>
             <endpoint>
                 <http method="GET"
-                      uri-template="{uri.var.apiUri.final}&amp;{uri.var.parameters}"/>
-           </endpoint>
-       </call>       
+                      uri-template="{uri.var.apiUri.final}?{acquia.contextdb.parameters}"/>
+            </endpoint>
+        </call>
     </sequence>
 </template>
