@@ -503,7 +503,7 @@ public class MailchimpConnectorIntegrationTest extends ConnectorIntegrationTestB
      * Positive test case for removeSubscribersFromList method with mandatory parameters.
      * @throws InterruptedException 
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddSubscribersToListWithMandatoryParameters" },
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSendCampaignWithNegativeCase" },
             description = "mailchimp {removeSubscribersFromList} integration test with mandatory parameters.")
     public void testRemoveSubscribersFromListWithMandatoryParameters() throws IOException, JSONException, InterruptedException {
 
