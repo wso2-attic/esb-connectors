@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+*  WSO2 Inc. licenses this file to you under the Apache License,
+*  Version 2.0 (the "License"); you may not use this file except
+*  in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+<template name="getAccessTokenFromCode" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- Required parameters -->
+    <parameter name="code" description="The value of the code"/>
+    <parameter name="redirectUri"
+               description="Same redirect_uri that you passed to get code."/>
+    <parameter name="clientId"
+               description="Value of your API Key given when you registered your application with asana."/>
+    <parameter name="clientSecret"
+               description="Value of your API Key given when you registered your application with asana."/>
+    <parameter name="apiVersion" description="Token response type. Value must be set to code."/>
+    <sequence>
+        <property name="uri.var.code" expression="$func:code"/>
+        <property name="uri.var.redirectUri" expression="$func:redirectUri"/>
+        <property name="eloqua.clientId" expression="$func:clientId"/>
+        <property name="eloqua.clientSecret" expression="$func:clientSecret"/>
+        <property name="eloqua.apiVersion" expression="$func:apiVersion"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+
+                }
+            </format>
+        </payloadFactory>
+        <property name="eloqua.authHeader"
+                  expression="fn:concat(get-property('eloqua.clientId'),':',get-property('eloqua.clientSecret'))"/>
+        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
+        <header name="Authorization" expression="fn:concat('Basic ',base64Encode(get-property('eloqua.authHeader')))"
+                scope="transport"/>
+        <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="https://login.eloqua.com/auth/oauth2/token?grant_type=authorization_code&amp;code={uri.var.code}&amp;redirect_uri={uri.var.redirectUri}"/>
+            </endpoint>
+        </call>
+        <filter source="$axis2:HTTP_SC" regex="[2][0][0]">
+            <then>
+                <property name="accessToken" expression="json-eval($.access_token)"/>
+                <property name="refreshToken" expression="json-eval($.refresh_token)"/>
+                <!--<log> <property name="lala" expression="get-property('refreshToken')"/></log>-->
+                <header name="Authorization" expression="fn:concat('Bearer ',get-property('accessToken'))"
+                        scope="transport"/>
+                <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
+                <call>
+                    <endpoint>
+                        <http method="GET"
+                              uri-template="https://login.eloqua.com/id"/>
+                    </endpoint>
+                </call>
+                <property name="uri.var.apiUrl" expression="json-eval($.urls.apis.rest.bulk)"/>
+                <script language="js"><![CDATA[
+                    var apiUrl=mc.getProperty('uri.var.apiUrl');
+                    var apiVersion=mc.getProperty('eloqua.apiVersion')
+                    apiUrl=apiUrl.replace("{version}",apiVersion);
+                    mc.setProperty("uri.var.apiUrl",apiUrl);
+                ]]>
+                </script>
+                <log>
+                    <property name="lala" expression="get-property('uri.var.apiUrl')"/>
+                </log>
+                <header name="Authorization" expression="fn:concat('Bearer ',get-property('accessToken'))"
+                        scope="transport"/>
+            </then>
+            <else>
+                <respond/>
+                <drop/>
+            </else>
+        </filter>
+    </sequence>
+</template>
