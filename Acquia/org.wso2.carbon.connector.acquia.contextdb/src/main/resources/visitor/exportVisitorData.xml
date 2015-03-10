@@ -18,51 +18,41 @@
 <template xmlns="http://ws.apache.org/ns/synapse" name="exportVisitorData">
     <parameter name="accountId" description="accountId" />
 
-    <parameter name="startDate" description=" id." />
-    <parameter name="dataExport" description="data table" />
-    <parameter name="parameters" description="parameters" />
+    <parameter name="startDate" description=" The start date search criteria of the data to be exported." />
+    <parameter name="dataExport" description="Visitor data to export — must be touch, event, person, rankings, or any comma-delimited combination of these values" />
+    <parameter name="identifierTypes" description="Identity criteria that must exist for a visitor to include their results in the export file — must be account, email, facebook, name, twitter, or any comma-delimited combination of these values" />
 
     <sequence>
         <property name="acquia.contextdb.accountId" expression="$func:accountId" />
         <property name="acquia.contextdb.startDate" expression="$func:startDate" />
-        <!--<property name="acquia.contextdb.idType" expression="$func:idType" />-->
-        <property name="acquia.contextdb.dataExport" expression="$func:dataExport" />
-        <property name="acquia.contextdb.apiUri.final" expression="fn:concat(get-property('acquia.contextdb.apiUri'),get-property('acquia.contextdb.accountId'),'/export_visitor_data?')" />
-        <property name="acquia.contextdb.parameters" expression="fn:concat('startDate=',get-property('acquia.contextdb.startDate'),'&amp;dataExport=',get-property('acquia.contextdb.dataExport'))"/>
-
+        <property name="acquia.contextdb.dataExport" expression="$func:dataExport"/>
+        <property name="acquia.contextdb.identifierTypes" expression="$func:identifierTypes"/>
+        <property name="acquia.contextdb.parameters" expression="fn:concat('startDate=',get-property('acquia.contextdb.startDate'),'&amp;','dataExport=',get-property('acquia.contextdb.dataExport'))"/>
+        <property name="acquia.contextdb.apiUri.final" expression="fn:concat(get-property('acquia.contextdb.apiUri'),get-property('acquia.contextdb.accountId'),'/export_visitor_data?', get-property('acquia.contextdb.parameters'))"/>
         <property name="acquia.contextdb.httpMethod" value="GET"/>
+
         <property name="uri.var.apiUri.final" expression="get-property('acquia.contextdb.apiUri.final')"/>
-        <property name="uri.var.apiUri.parameters" expression="get-property('acquia.contextdb.parameters')"/>
-
         <property name="REQUEST_HOST_HEADER" value="api-liftweb-us1.lift.acquia.com" scope="axis2"/>
-
         <class name="org.wso2.carbon.connector.authentication.AcquiaContextDbGenerateSignature" />
-
-        <header name="Accept" scope="transport" action="remove"/>
         <header name="Authorization" expression="get-property('acquia.contextdb.signature')"
                 scope="transport"/>
         <header name="Content-Type" scope="transport" action="remove"/>
         <header name="Cookie" scope="transport" action="remove"/>
-
         <payloadFactory media-type="json">
-            <format>
-                {
-                "startDate":"$1",
-                "dataExport":$2
-                }
-            </format>
-            <args>
-                <arg expression="get-property('uri.var.startDate')"/>
-                <arg expression="get-property('uri.var.dataExport')"/>
-            </args>
+            <format/>
+            <args/>
         </payloadFactory>
-
         <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
         <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
+        <log level="custom">
+            <property name="Param" expression="get-property('acquia.contextdb.parameters')" />
+            <property name="Endpoint" expression="get-property('acquia.contextdb.apiUri.final')" />
+        </log>
+
         <call>
             <endpoint>
                 <http method="GET"
-                      uri-template="{uri.var.apiUri.final}{uri.var.apiUri.parameters}"/>
+                      uri-template="{uri.var.apiUri.final}"/>
             </endpoint>
         </call>
     </sequence>
