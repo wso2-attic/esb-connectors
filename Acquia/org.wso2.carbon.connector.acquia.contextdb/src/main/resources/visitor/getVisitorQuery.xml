@@ -15,58 +15,34 @@
  ~ limitations under the License.
 -->
 <template xmlns="http://ws.apache.org/ns/synapse" name="getVisitorQuery">
-    <parameter name="accountId" description="accountId" />
-
-    <parameter name="id" description=" id." />
-    <parameter name="idType" description="idType" />
-    <parameter name="personTable" description="data table" />
-    <parameter name="parameters" description="Name of the parameter."/>
-
+    <parameter name="accountId" description="Account ID" />
+    <parameter name="identifier" description="Visitor's identity information" />
+    <parameter name="identifierType" description="Type of visitor's identity information" />
+    <parameter name="personTables" description="Data table values to return." />
     <sequence>
         <property name="acquia.contextdb.accountId" expression="$func:accountId" />
-        <property name="acquia.contextdb.id" expression="$func:id" />
-        <property name="acquia.contextdb.idType" expression="$func:idType" />
-        <property name="acquia.contextdb.personTable" expression="$func:personTable" />
-
-        <property name="acquia.contextdb.apiUri.final" expression="fn:concat(get-property('acquia.contextdb.apiUri'),get-property('acquia.contextdb.accountId'),'/visitor_query?',get-property('acquia.contextdb.id'),'&amp;',get-property('acquia.contextdb.idType'),'&amp;',get-property('acquia.contextdb.personTable'))"/>
-        <property name="acquia.contextdb.parameters" expression="fn:concat(get-property('acquia.contextdb.id'),'&amp;',get-property('acquia.contextdb.idType'),'&amp;',get-property('acquia.contextdb.personTable'))"/>
-        <property name="acquia.contextdb.httpMethod" value="GET"/>
-        <header name="Accept" scope="transport" action="remove"/>
-
-        <property name="REQUEST_HOST_HEADER" value="api-liftweb-us1.lift.acquia.com" scope="axis2"/>
+        <property name="acquia.contextdb.identifier" expression="$func:identifier" />
+        <property name="acquia.contextdb.identifierType" expression="$func:identifierType" />
+        <property name="acquia.contextdb.personTables" expression="$func:personTables" />
+        <property name="acquia.contextdb.parameters" expression="fn:concat('identifier=' , get-property('acquia.contextdb.identifier') , '&amp;' , 'identifierType=' , get-property('acquia.contextdb.identifierType'),'&amp;' , 'personTables=' , get-property('acquia.contextdb.personTables'))"/>
+        <property name="acquia.contextdb.apiUri.final" expression="fn:concat(get-property('acquia.contextdb.apiUri'),get-property('acquia.contextdb.accountId'),'/visitor_query?', get-property('acquia.contextdb.parameters'))"/>
         <property name="uri.var.apiUri.final" expression="get-property('acquia.contextdb.apiUri.final')"/>
-        <property name="uri.var.apiUri.parameters" expression="get-property('acquia.contextdb.parameters')"/>
-
-        <class name="org.wso2.carbon.connector.authentication.AcquiaContextDbGenerateSignature" />
-
-        <log level="custom" >
-            <property name="TESTDATA" expression="get-property('uri.var.apiUri.parameters')"/>
+        <log>
+            <property name="Final**********" expression="get-property('acquia.contextdb.apiUri.final')"/>
+            <property name="Final Param" expression="get-property('acquia.contextdb.parameters')"/>
         </log>
 
+        <property name="acquia.contextdb.httpMethod" value="GET"/>
+        <property name="REQUEST_HOST_HEADER" value="api-liftweb-us1.lift.acquia.com" scope="axis2"/>
+        <class name="org.wso2.carbon.connector.authentication.AcquiaContextDbGenerateSignature" />
         <header name="Authorization" expression="get-property('acquia.contextdb.signature')"
                 scope="transport"/>
         <header name="Content-Type" scope="transport" action="remove"/>
         <header name="Cookie" scope="transport" action="remove"/>
-
         <payloadFactory media-type="json">
-            <format>
-                {
-                "identifier":"$1",
-                "identifierType":$2,
-                "personTables":"$3"
-                }
-            </format>
-            <args>
-                <arg expression="get-property('uri.var.id')"/>
-                <arg expression="get-property('uri.var.idType')"/>
-                <arg expression="get-property('uri.var.personTable')"/>
-            </args>
+            <format/>
+            <args/>
         </payloadFactory>
-
-        <log level="custom" >
-            <property name="TESTDATA" expression="get-property('uri.var.apiUri.final')"/>
-        </log>
-
         <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
         <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
         <call>
