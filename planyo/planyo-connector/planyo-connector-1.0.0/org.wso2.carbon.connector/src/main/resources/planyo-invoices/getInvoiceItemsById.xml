@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API method Url: https://www.planyo.com/api.php?topic=get_invoice_items -->
+<template name="getInvoiceItemsById" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="reservationId" description="The unique identifier of the reservation." />
+   <sequence>
+      <property name="uri.var.reservationId" expression="$func:reservationId" />
+      <script language="js">
+         <![CDATA[
+            var version = mc.getProperty('uri.var.version');
+            var language = mc.getProperty('uri.var.language');
+            var reservationId = mc.getProperty('uri.var.reservationId');
+            //setting required params for the url
+            var urlQuery = '?api_key=' + encodeURIComponent(mc.getProperty('uri.var.apiKey')) + '&method=get_invoice_items&reservation_id=' + reservationId;
+            //setting optional params for the url
+            if (version != null && version != '') {
+               urlQuery += '&version=' + version;
+            }
+             if (language != null && language != '') {
+               urlQuery += '&language=' + language;
+            }
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}{uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Powered-By" scope="transport" action="remove" />
+      <header name="Via" scope="transport" action="remove" />
+   </sequence>
+</template>
