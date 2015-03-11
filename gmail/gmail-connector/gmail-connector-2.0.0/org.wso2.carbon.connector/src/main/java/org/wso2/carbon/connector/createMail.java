@@ -33,6 +33,8 @@ public class createMail extends AbstractConnector {
             String parameter = messageContext.getProperty("parameters").toString();
             byte[] encodedBytes = Base64.encodeBase64(parameter.getBytes());
             String encodedVal=new String(encodedBytes);
+             encodedVal= encodedVal.replace('+', '-');
+             encodedVal=encodedVal.replace('/', '_');
             messageContext.setProperty("uri.var.encoded",encodedVal);
         } catch (Exception e) {
             throw new ConnectException(e);
