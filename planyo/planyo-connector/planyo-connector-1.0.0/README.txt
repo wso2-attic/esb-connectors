@@ -13,16 +13,14 @@ Tested Platform:
  - UBUNTU 13.04
  - WSO2 ESB 4.8.1
 
-Note:
-	Set up a new Planyo account and follow the steps in https://www.planyo.com/api.php to obtain the API key.
-
 Steps to follow in setting integration test.
 
  1. Download ESB 4.8.1 from official website.
  
  2. Deploy relevant patches, if applicable.
  		
- 3. Follow the steps in https://www.planyo.com/api.php to obtain the API key.
+ 3. Set up a new Planyo account by following the wizard in https://www.planyo.com/login/signup.php url. 
+	Then, follow the steps in https://www.planyo.com/api.php to obtain the API key.
 
  4. Follow the below mentioned steps for adding valid certificate to access Planyo API over https.
 

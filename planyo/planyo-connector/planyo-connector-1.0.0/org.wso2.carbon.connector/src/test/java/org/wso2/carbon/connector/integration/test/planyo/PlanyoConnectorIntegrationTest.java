@@ -386,10 +386,10 @@ public class PlanyoConnectorIntegrationTest extends ConnectorIntegrationTestBase
       
       String esbPropertyValue =
             esbResourcesObject.getJSONObject(resourceId).getJSONObject("properties")
-                  .getString(connectorProperties.getProperty("resourcePropertyName"));
+                  .getString(connectorProperties.getProperty("resourcePropertyName").toLowerCase());
       String apiPropertyValue =
             apiResourcesObject.getJSONObject(resourceId).getJSONObject("properties")
-                  .getString(connectorProperties.getProperty("resourcePropertyName"));
+                  .getString(connectorProperties.getProperty("resourcePropertyName").toLowerCase());
       
       Assert.assertEquals(resourceId, apiResourcesObject.keys().next().toString());
       Assert.assertEquals(esbResourcesObject.length(), apiResourcesObject.length());
