@@ -30,7 +30,6 @@ import java.security.SignatureException;
 public class HMACAuthenticationUtil {
     private static final String UTF8 = "UTF-8";
     private static final String HMAC_SHA1_ALGORITHM = "HmacSHA1";
-
     /**
      * This method signs the message  HmacSHA1
      *

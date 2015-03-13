@@ -36,6 +36,9 @@ public class AcquiaJsonUtil extends AbstractMediator {
      */
     private static Log log = LogFactory.getLog(AcquiaJsonUtil.class);
 
+    /**
+     * Constants.
+     */
     public static final String PAYLOAD = "acquia.contextdb.payload";
     public static final String EVENT_IMPORT_IDENTITY = "identity";
     public static final String EVENT_IMPORT_IDENTITY_SOURCE = "identity_source";
@@ -67,7 +70,6 @@ public class AcquiaJsonUtil extends AbstractMediator {
                         }
                     }
                 } else {
-
                     if (objectInArray.has(EVENT_IMPORT_IDENTITY) && objectInArray.has(EVENT_IMPORT_IDENTITY_SOURCE)
                             && objectInArray.has(EVENT_IMPORT_EVENT_NAME) && objectInArray.has(EVENT_IMPORT_EVENT_SOURCE)) {
                         JSONObject jsonObject = new JSONObject(payload);
@@ -76,8 +78,6 @@ public class AcquiaJsonUtil extends AbstractMediator {
                         log.error("Acquia lift ContextDB connector - Given payload does not contain the required fields");
                         throw new SynapseException("Given payload does not contain the required fields");
                     }
-
-
                 }
             }
         } catch (Exception e) {
