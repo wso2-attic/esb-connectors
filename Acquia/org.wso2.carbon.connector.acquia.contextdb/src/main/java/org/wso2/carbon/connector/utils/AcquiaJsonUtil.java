@@ -81,7 +81,6 @@ public class AcquiaJsonUtil extends AbstractMediator {
                 }
             }
         } catch (Exception e) {
-            log.error("Acquia lift ContextDB connector - Given payload does not property formatted");
             throw new SynapseException(e);
         }
         if (basestring != null) {
