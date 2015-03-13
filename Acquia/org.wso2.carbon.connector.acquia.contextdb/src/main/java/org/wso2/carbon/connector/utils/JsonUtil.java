@@ -28,29 +28,28 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 
 public class JsonUtil extends AbstractMediator {
-
     public static final String PAYLOAD = "acquia.contextdb.payload";
-
     public boolean mediate(MessageContext messageContext) {
-
         String payload = messageContext.getProperty(PAYLOAD).toString();
-
-        JSONArray jsonArray = null;
         StringBuilder basestring = null;
         try {
             if (payload!=null) {
-                jsonArray = new JSONArray(payload);
-                for (int i = 0, size = jsonArray.length(); i < size; i++) {
-                    JSONObject objectInArray = jsonArray.getJSONObject(i);
-                    if (basestring == null) {
-                        basestring = new StringBuilder(objectInArray.toString());
-                    } else {
-                        basestring.append("\n");
-                        basestring.append(objectInArray.toString());
+                if (payload.startsWith("[")) {
+                    JSONArray jsonArray = new JSONArray(payload);
+                    for (int i = 0, size = jsonArray.length(); i < size; i++) {
+                        JSONObject objectInArray = jsonArray.getJSONObject(i);
+                        if (basestring == null) {
+                            basestring = new StringBuilder(objectInArray.toString());
+                        } else {
+                            basestring.append("\n");
+                            basestring.append(objectInArray.toString());
+                        }
                     }
+                } else {
+                    JSONObject jsonObject = new JSONObject(payload);
+                    basestring = new StringBuilder(jsonObject.toString());
                 }
             }
-
         } catch (Exception e) {
             throw new SynapseException(e);
         }
@@ -58,8 +57,5 @@ public class JsonUtil extends AbstractMediator {
             messageContext.setProperty(PAYLOAD,basestring.toString());
         }
         return true;
-
     }
-
-
 }

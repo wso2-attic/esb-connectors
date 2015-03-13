@@ -54,7 +54,6 @@ public class AcquiaContextDbGenerateSignature extends AbstractMediator {
 
     private void generateSignature(MessageContext msgctx) throws UnsupportedEncodingException,
             NoSuchAlgorithmException, InvalidKeyException, MalformedURLException, SignatureException {
-
         String secreteKey = msgctx.getProperty(SECRET_KEY).toString();
         String accessKey = msgctx.getProperty(ACCESS_KEY).toString();
         String httpMethod = msgctx.getProperty(HTTP_METHOD).toString();
@@ -63,7 +62,6 @@ public class AcquiaContextDbGenerateSignature extends AbstractMediator {
         Map<String,String> tansportHeaderMap =(Map<String,String>) ((Axis2MessageContext)msgctx).getAxis2MessageContext().getProperty("TRANSPORT_HEADERS");
 
         String baseString = calculateMessage(httpMethod,tansportHeaderMap, apiUri, queryParameters);
-
         if (baseString != "" && accessKey != null && accessKey != null) {
             //Create the HMAC signed Message
             String singedMessage = "HMAC " + accessKey + ":" + HMACAuthenticationUtil.calculateRFC2104HMAC(baseString, secreteKey);
@@ -75,7 +73,6 @@ public class AcquiaContextDbGenerateSignature extends AbstractMediator {
     }
 
     private String calculateMessage(String httpMethod, Map<String,String> tansportHeaderMap, String apiURL, String queryParameters) throws UnsupportedEncodingException,MalformedURLException {
-
         if (httpMethod != null && apiURL != null && queryParameters != null) {
             StringBuilder baseString = new StringBuilder();
             URL url = new URL(apiURL);
