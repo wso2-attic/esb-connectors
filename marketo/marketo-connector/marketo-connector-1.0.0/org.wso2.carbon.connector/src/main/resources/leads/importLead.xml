@@ -20,6 +20,7 @@
 <template name="importLead" xmlns="http://ws.apache.org/ns/synapse">
     <!-- Required parameters -->
     <parameter name="format" description="File format."/>
+    <parameter name="filePath" description="Path for the file to be imported"/>
 
     <!-- Optional parameters -->
     <parameter name="listId" description="List id"/>
@@ -27,38 +28,51 @@
     <parameter name="partitionName" description="Lead partition name."/>
 
     <sequence>
-        <property name="uri.var.format" expression="$func:format"/>
-        <property name="uri.var.listId" expression="$func:listId"/>
-        <property name="uri.var.lookupField" expression="$func:lookupField"/>
-        <property name="uri.var.partitionName" expression="$func:partitionName"/>
+        <property name="marketo.format" expression="$func:format"/>
+        <property name="marketo.filePath" expression="$func:filePath"/>
+        <property name="marketo.listId" expression="$func:listId"/>
+        <property name="marketo.lookupField" expression="$func:lookupField"/>
+        <property name="marketo.partitionName" expression="$func:partitionName"/>
+        <property name="marketo.httpMethod" value="POST"/>
+        <property name="marketo.fieldName" value="file"/>
+        <property name=" marketo.apiURI"
+                  expression="fn:concat(get-property('uri.var.marketoInstanceURL'),'/bulk/v1/leads.json')"/>
+        <property name="marketo.apiParameters"
+                  expression="fn:concat(get-property('marketo.apiParameters'),'?access_token=',get-property('marketo.accessToken'))"/>
 
-        <filter xpath="(not(get-property('uri.var.listId') = '' or (not(string(get-property('uri.var.listId'))))))">
+        <property name="marketo.apiParameters"
+                  expression="fn:concat(get-property('marketo.apiParameters'),'&amp;format=',get-property('marketo.format'))"/>
+
+        <filter xpath="(not(get-property('marketo.listId') = '' or (not(string(get-property('marketo.listId'))))))">
             <then>
-                <property name="uri.var.apiParameters"
-                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;listId=',get-property('uri.var.listId'))"/>
+                <property name="marketo.apiParameters"
+                          expression="fn:concat(get-property('marketo.apiParameters'),'&amp;listId=',get-property('marketo.listId'))"/>
             </then>
         </filter>
 
-        <filter xpath="(not(get-property('uri.var.lookupField') = '' or (not(string(get-property('uri.var.lookupField'))))))">
+        <filter xpath="(not(get-property('marketo.lookupField') = '' or (not(string(get-property('marketo.lookupField'))))))">
             <then>
                 <property name="uri.var.apiParameters"
-                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;lookupField=',get-property('uri.var.lookupField'))"/>
+                          expression="fn:concat(get-property('marketo.apiParameters'),'&amp;lookupField=',get-property('marketo.lookupField'))"/>
             </then>
         </filter>
 
-        <filter xpath="(not(get-property('uri.var.partitionName') = '' or (not(string(get-property('uri.var.partitionName'))))))">
+        <filter xpath="(not(get-property('marketo.partitionName') = '' or (not(string(get-property('marketo.partitionName'))))))">
             <then>
-                <property name="uri.var.apiParameters"
-                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;partitionName=',get-property('uri.var.partitionName'))"/>
+                <property name="marketo.apiParameters"
+                          expression="fn:concat(get-property('marketo.apiParameters'),'&amp;partitionName=',get-property('marketo.partitionName'))"/>
             </then>
         </filter>
-        <header name="Content-Type" scope="transport" action="remove" />
 
-        <call>
-            <endpoint>
-                <http method="post"
-                      uri-template="{uri.var.marketoInstanceURL}/bulk/v1/leads.json?format={uri.var.format}{uri.var.apiParameters}"/>
-            </endpoint>
-        </call>
+        <!--<property name="messageType" scope="transport" action="remove"/>-->
+        <!--<header name="Content-Type" scope="transport" value="multipart/form-data; boundary=-WebKitFormBoundarybyS41tohmC3gmIHC" action="set"/>-->
+        <class name="main.java.org.wso2.carbon.connector.Attachment"/>
+
+        <!--<call>-->
+            <!--<endpoint>-->
+                <!--<http method="post"-->
+                      <!--uri-template="{uri.var.marketoInstanceURL}/bulk/v1/leads.json?format={uri.var.format}{uri.var.apiParameters}"/>-->
+            <!--</endpoint>-->
+        <!--</call>-->
     </sequence>
 </template>
