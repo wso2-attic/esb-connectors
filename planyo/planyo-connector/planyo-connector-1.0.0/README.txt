@@ -59,7 +59,7 @@ Steps to follow in setting integration test.
 			
 		iii)Add a new resource to the system and add custom properties to the created resource.
 			  Consider the following steps to add a new resource and custom property.
-			  - Navigate to Settings -> add new resource in the Planyo account.
+			  - Navigate to Settings -> Add new resource in the Planyo account.
 			  - Add the resource by giving required details. Retrieve the resource id from the url and save it to be used in step 7(iv).
 			  - Navigate to Settings -> Resource settings -> General info -> and click on the link named 'Click here to add additional properties to this and other resources'.
 			  -	Add the new custom property by giving the name and value in 'Enter new item' section. Use the default values for the other fields. 
