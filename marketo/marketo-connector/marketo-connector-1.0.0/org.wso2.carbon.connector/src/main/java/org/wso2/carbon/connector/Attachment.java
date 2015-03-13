@@ -1,4 +1,4 @@
-package org.wso2.carbon.connector;
+package main.java.org.wso2.carbon.connector;
 
 import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.apache.synapse.MessageContext;
@@ -16,9 +16,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.net.HttpURLConnection;
 import java.io.DataOutputStream;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 
-public class Attachment {
+public class Attachment extends AbstractConnector{
 
     private final String boundary = "----=_WebKitFormBoundary" + System.currentTimeMillis();
 
@@ -48,27 +50,51 @@ public class Attachment {
 //        return true;
 //    }
 
-    private void connect(MessageContext msgctx) throws ConnectException, IOException {
+    public void connect(MessageContext msgctx) throws ConnectException {
 
         String httpMethod = msgctx.getProperty(HTTP_METHOD).toString();
         String apiUri = msgctx.getProperty(API_URI).toString();
         String urlParameters = msgctx.getProperty(URL_PARAMETERS).toString();
         String fieldName = msgctx.getProperty(FIELD_NAME).toString();
         String filePath = msgctx.getProperty(FILE_PATH).toString();
-        apiUrl = new URL(apiUri);
+        try {
+            apiUrl = new URL(apiUri);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
 
-        httpURLConnection = (HttpURLConnection) apiUrl.openConnection();
-        httpURLConnection.setRequestMethod(httpMethod);
+        try {
+            httpURLConnection = (HttpURLConnection) apiUrl.openConnection();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            httpURLConnection.setRequestMethod(httpMethod);
+        } catch (ProtocolException e) {
+            e.printStackTrace();
+        }
         httpURLConnection.setRequestProperty("User-Agent", "Synapse-PT-HttpComponents-NIO");
         httpURLConnection.setRequestProperty("Host", apiUrl.getHost().toString());
 
         httpURLConnection.setDoInput(true);
         httpURLConnection.setDoOutput(true);
 
-        wr = new DataOutputStream(httpURLConnection.getOutputStream());
-        wr.writeBytes(urlParameters);
+        try {
+            wr = new DataOutputStream(httpURLConnection.getOutputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            wr.writeBytes(urlParameters);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        httpStream = httpURLConnection.getOutputStream();
+        try {
+            httpStream = httpURLConnection.getOutputStream();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 //        httpStream.write(urlParameters);
         try{
             addFileToRequest(fieldName,filePath);
@@ -76,8 +102,13 @@ public class Attachment {
         catch (Exception e) {
             throw new ConnectException(e);
         }
-        String response=readResponse(httpURLConnection);
-        msgctx.setProperty("response",response.toString());
+        String response= null;
+        try {
+            response = readResponse(httpURLConnection);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+       msgctx.setProperty("response",response.toString());
 //        return response.toString();
     }
     public void addFileToRequest(String fieldName, String filePath) throws IOException {
