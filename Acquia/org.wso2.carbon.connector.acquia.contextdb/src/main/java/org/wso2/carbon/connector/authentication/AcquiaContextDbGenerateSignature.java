@@ -40,7 +40,6 @@ public class AcquiaContextDbGenerateSignature extends AbstractMediator {
     public static final String ACCESS_KEY = "acquia.contextdb.access.key";
     public static final String HTTP_METHOD = "acquia.contextdb.httpMethod";
     public static final String URL_PARAMETERS = "acquia.contextdb.parameters";
-    private static final String UTF8 = "UTF-8";
     private static final String SIGNATURE = "acquia.contextdb.signature";
 
     public boolean mediate(MessageContext messageContext) {
@@ -52,6 +51,16 @@ public class AcquiaContextDbGenerateSignature extends AbstractMediator {
         return true;
     }
 
+    /**
+     * Generate the SHA1 signature for given request.
+     *
+     * @param msgctx
+     * @throws UnsupportedEncodingException
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeyException
+     * @throws MalformedURLException
+     * @throws SignatureException
+     */
     private void generateSignature(MessageContext msgctx) throws UnsupportedEncodingException,
             NoSuchAlgorithmException, InvalidKeyException, MalformedURLException, SignatureException {
         String secreteKey = msgctx.getProperty(SECRET_KEY).toString();
@@ -72,6 +81,17 @@ public class AcquiaContextDbGenerateSignature extends AbstractMediator {
         }
     }
 
+    /**
+     * Create the message to encode based on the request.
+     *
+     * @param httpMethod
+     * @param tansportHeaderMap
+     * @param apiURL
+     * @param queryParameters
+     * @return
+     * @throws UnsupportedEncodingException
+     * @throws MalformedURLException
+     */
     private String calculateMessage(String httpMethod, Map<String, String> tansportHeaderMap, String apiURL, String queryParameters) throws UnsupportedEncodingException, MalformedURLException {
         if (httpMethod != null && apiURL != null && queryParameters != null) {
             StringBuilder baseString = new StringBuilder();
