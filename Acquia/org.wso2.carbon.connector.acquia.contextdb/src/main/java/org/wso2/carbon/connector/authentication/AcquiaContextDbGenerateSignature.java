@@ -59,34 +59,34 @@ public class AcquiaContextDbGenerateSignature extends AbstractMediator {
         String httpMethod = msgctx.getProperty(HTTP_METHOD).toString();
         String apiUri = msgctx.getProperty(API_URI).toString();
         String queryParameters = msgctx.getProperty(URL_PARAMETERS).toString();
-        Map<String,String> tansportHeaderMap =(Map<String,String>) ((Axis2MessageContext)msgctx).getAxis2MessageContext().getProperty("TRANSPORT_HEADERS");
+        Map<String, String> tansportHeaderMap = (Map<String, String>) ((Axis2MessageContext) msgctx).getAxis2MessageContext().getProperty("TRANSPORT_HEADERS");
 
-        String baseString = calculateMessage(httpMethod,tansportHeaderMap, apiUri, queryParameters);
+        String baseString = calculateMessage(httpMethod, tansportHeaderMap, apiUri, queryParameters);
         if (baseString != "" && accessKey != null && accessKey != null) {
             //Create the HMAC signed Message
             String singedMessage = "HMAC " + accessKey + ":" + HMACAuthenticationUtil.calculateRFC2104HMAC(baseString, secreteKey);
             //Add the signature into the synapse property file
-            msgctx.setProperty(SIGNATURE, singedMessage.replaceAll("\r","").replaceAll("\n",""));
+            msgctx.setProperty(SIGNATURE, singedMessage.replaceAll("\r", "").replaceAll("\n", ""));
         } else {
             msgctx.setProperty(SIGNATURE, "");
         }
     }
 
-    private String calculateMessage(String httpMethod, Map<String,String> tansportHeaderMap, String apiURL, String queryParameters) throws UnsupportedEncodingException,MalformedURLException {
+    private String calculateMessage(String httpMethod, Map<String, String> tansportHeaderMap, String apiURL, String queryParameters) throws UnsupportedEncodingException, MalformedURLException {
         if (httpMethod != null && apiURL != null && queryParameters != null) {
             StringBuilder baseString = new StringBuilder();
             URL url = new URL(apiURL);
-            Map<String,String> headerMap =  new HashMap<String, String>();
-            if (tansportHeaderMap!=null && tansportHeaderMap.get("Accept") !=null) {
-                headerMap.put("Accept",tansportHeaderMap.get("Accept").toString());
+            Map<String, String> headerMap = new HashMap<String, String>();
+            if (tansportHeaderMap != null && tansportHeaderMap.get("Accept") != null) {
+                headerMap.put("Accept", tansportHeaderMap.get("Accept").toString());
             }
-            headerMap.put("Host",url.getHost().toString());
-            headerMap.put("User-Agent","Synapse-PT-HttpComponents-NIO");
+            headerMap.put("Host", url.getHost().toString());
+            headerMap.put("User-Agent", "Synapse-PT-HttpComponents-NIO");
             //Added HTTP method in the first Line
             baseString.append(httpMethod);
             baseString.append("\n");
             //Added the headers
-            String[] hashHeaders = { "Accept", "Host", "User-Agent" };
+            String[] hashHeaders = {"Accept", "Host", "User-Agent"};
             for (String headerName : hashHeaders) {
                 if (headerMap.containsKey(headerName)) {
                     baseString.append(headerName.toLowerCase()).append(":").append(headerMap.get(headerName).toString().trim()).append("\n");

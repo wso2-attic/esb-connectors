@@ -33,6 +33,7 @@ public class HMACAuthenticationUtil {
 
     /**
      * This method signs the message  HmacSHA1
+     *
      * @param data
      * @param key
      * @return
@@ -46,7 +47,7 @@ public class HMACAuthenticationUtil {
             mac.init(signingKey);
             byte[] rawHmac = mac.doFinal(data.getBytes());
             result = Base64.encodeBase64String(rawHmac);
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new SignatureException("Failed to generate HMAC : " + e.getMessage());
         }
         return result;
