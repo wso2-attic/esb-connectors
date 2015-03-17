@@ -17,7 +17,6 @@
  *  under the License.
  * /
  */
-
 package org.wso2.carbon.connector.integration.test.common;
 
 import java.io.BufferedReader;
