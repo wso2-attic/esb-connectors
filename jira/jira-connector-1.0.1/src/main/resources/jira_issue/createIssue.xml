@@ -1,0 +1,55 @@
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+   http://www.apache.org/licenses/LICENSE-2.0
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="createIssue">
+    <parameter name="projectKey" description="a String containing the name of the project" />
+    <parameter name="summary" description="a String containing the summary about the issue" />
+    <parameter name="description" description="a String containing the description of the issue" />
+    <parameter name="issueType" description="a String containing the issue type" />
+
+	<sequence>
+        <payloadFactory media-type="json">
+            <format>{
+                "fields": {
+                "project":
+                {
+                "key": "$1"
+                },
+                "summary": "$2",
+                "description": "$3",
+                "issuetype": {
+                "name": "$4"
+                }
+                }
+                }
+            </format>
+            <args>
+                <arg evaluator="xml" expression="$func:projectKey"/>
+                <arg evaluator="xml" expression="$func:summary"/>
+                <arg evaluator="xml" expression="$func:description"/>
+                <arg evaluator="xml" expression="$func:issueType"/>
+            </args>
+        </payloadFactory>
+
+        <property name="messageType" value="application/json" scope="axis2" />
+		<property name="Accept-Encoding" action="remove" scope="transport" />
+
+		<call>
+			<endpoint>
+				<http method="POST"
+					uri-template="{uri.var.jira.url}/rest/api/2/issue" />
+			</endpoint>
+		</call>
+	</sequence>
+</template>
