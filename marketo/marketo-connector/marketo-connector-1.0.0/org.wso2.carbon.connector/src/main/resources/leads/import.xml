@@ -20,22 +20,41 @@
 <template name="import" xmlns="http://ws.apache.org/ns/synapse">
     <!-- Required parameters -->
     <parameter name="format" description="File format."/>
-    <parameter name="marketoInstanceURL" description="File format."/>
+    <parameter name="marketoInstanceURL" description="Your marketo instance URL"/>
+    <parameter name="accessToken" description="Valid access_token."/>
     <!-- Optional parameters -->
-    <parameter name="access_token" description="List id"/>
-    <!--<parameter name="lookupField" description="Attribute to find the duplicate."/>-->
-    <!--<parameter name="partitionName" description="Lead partition name."/>-->
+    <parameter name="listId" description="Marketo Id of the list"/>
+    <parameter name="lookupField" description="Attribute to find the duplicate."/>
+    <parameter name="partitionName" description="Lead partition name."/>
     <sequence>
         <property name="uri.var.format" expression="$func:format"/>
         <property name="uri.var.marketoInstanceURL" expression="$func:marketoInstanceURL"/>
-        <property name="uri.var.access_token" expression="$func:access_token"/>
-        <!--<property name="uri.var.partitionName" expression="$func:partitionName"/>-->
-        <!--<property name="uri.var.file" expression="$func:file"/>-->
-        <!--<property name="messageType" scope="transport" action="remove"/>-->
+        <property name="uri.var.accessToken" expression="$func:accessToken"/>
+        <property name="uri.var.partitionName" expression="$func:partitionName"/>
+        <property name="uri.var.listId" expression="$func:listId"/>
+        <property name="uri.var.lookupField" expression="$func:lookupField"/>
+        <filter xpath="(not(get-property('uri.var.partitionName') = '' or (not(string(get-property('uri.var.partitionName'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;partitionName=',get-property('uri.var.partitionName'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.listId') = '' or (not(string(get-property('uri.var.listId'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;listId=',get-property('uri.var.listId'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.lookupField') = '' or (not(string(get-property('uri.var.lookupField'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;lookupField=',get-property('uri.var.lookupField'))"/>
+            </then>
+        </filter>
         <call>
             <endpoint>
                 <http method="post"
-                      uri-template="{uri.var.marketoInstanceURL}/bulk/v1/leads.json?format={uri.var.format}&amp;access_token={uri.var.access_token}"/>
+                      uri-template="{uri.var.marketoInstanceURL}/bulk/v1/leads.json?format={uri.var.format}&amp;access_token={uri.var.accessToken}{uri.var.apiParameters}"/>
             </endpoint>
         </call>
     </sequence>
