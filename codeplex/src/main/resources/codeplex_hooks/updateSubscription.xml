@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+* Copyright (c) 2005-2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+* WSO2 Inc. licenses this file to you under the Apache License,
+* Version 2.0 (the "License"); you may not use this file except
+* in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied. See the License for the
+* specific language governing permissions and limitations
+* under the License.
+-->
+
+<template name="updateSubscription" xmlns="http://ws.apache.org/ns/synapse">
+
+    <parameter name="project" description="The name of the user" />
+    <parameter name="hookId" description="The ID of the hook" />
+    <parameter name="subscriptionId" description="The ID of the subscription" />
+
+    <parameter name="eventName" description="Subscribing event name" />
+    <parameter name="eventEnabled" description="Event enabled or Disabled" />
+    <parameter name="eventProperties" description="Properties of event" />
+    <parameter name="subscriptionProperties" description="Properties of subscription" />
+
+    <sequence>
+
+        <property name="uri.var.project" expression="$func:project" />
+        <property name="uri.var.hookId" expression="$func:hookId" />
+        <property name="uri.var.subscriptionId" expression="$func:subscriptionId" />
+
+
+        <property name="uri.var.eventName" expression="$func:eventName" type="STRING" />
+        <property name="uri.var.eventEnabled" expression="$func:eventEnabled" />
+        <property name="uri.var.eventProperties" expression="$func:eventProperties" />
+        <property name="uri.var.subscriptionProperties" expression="$func:subscriptionProperties" />
+
+
+
+        <filter xpath="(get-property('uri.var.subscriptionProperties') = '' or not(string(get-property('uri.var.subscriptionProperties')))) and not(get-property('uri.var.eventEnabled') = '' or not(string(get-property('uri.var.eventEnabled')))) and (get-property('uri.var.eventProperties') = '' or not(string(get-property('uri.var.eventProperties'))))">
+            <then>
+                <payloadFactory media-type="json">
+                    <format>
+                        {
+                        "Events": [{
+                        "Name": "$1",
+                        "Enabled": "$2"
+                        }]
+                        }
+                    </format>
+
+                    <args>
+                        <arg expression="get-property('uri.var.eventName')" />
+                        <arg expression="get-property('uri.var.eventEnabled')" />
+                    </args>
+                </payloadFactory>
+            </then>
+        </filter>
+
+
+
+
+        <filter xpath="(get-property('uri.var.subscriptionProperties') = '' or not(string(get-property('uri.var.subscriptionProperties')))) and (get-property('uri.var.eventEnabled') = '' or not(string(get-property('uri.var.eventEnabled')))) and not(get-property('uri.var.eventProperties') = '' or not(string(get-property('uri.var.eventProperties'))))">
+            <then>
+                <payloadFactory media-type="json">
+                    <format>
+                        {
+                        "Events": [{
+                        "Name": "$1",
+                        "Properties": $2
+                        }]
+                        }
+                    </format>
+
+                    <args>
+                        <arg expression="get-property('uri.var.eventName')" />
+                        <arg expression="get-property('uri.var.eventProperties')" />
+                    </args>
+                </payloadFactory>
+            </then>
+        </filter>
+        <filter xpath="not(get-property('uri.var.subscriptionProperties') = '' or not(string(get-property('uri.var.subscriptionProperties')))) and (get-property('uri.var.eventEnabled') = '' or not(string(get-property('uri.var.eventEnabled')))) and (get-property('uri.var.eventProperties') = '' or not(string(get-property('uri.var.eventProperties'))))">
+            <then>
+                <payloadFactory media-type="json">
+                    <format>
+                        {
+                        "Events": [{
+                        "Name": "$1"
+                        }],
+
+                        "Properties": $2
+                        }
+                    </format>
+
+                    <args>
+                        <arg expression="get-property('uri.var.eventName')" />
+                        <arg expression="get-property('uri.var.subscriptionProperties')" />
+                    </args>
+                </payloadFactory>
+            </then>
+        </filter>
+        <filter xpath="(get-property('uri.var.subscriptionProperties') = '' or not(string(get-property('uri.var.subscriptionProperties')))) and not(get-property('uri.var.eventEnabled') = '' or not(string(get-property('uri.var.eventEnabled')))) and not(get-property('uri.var.eventProperties') = '' or not(string(get-property('uri.var.eventProperties'))))">
+            <then>
+                <payloadFactory media-type="json">
+                    <format>
+                        {
+                        "Events": [{
+                        "Name": "$1",
+                        "Enabled": "$2",
+                        "Properties": $3
+                        }]
+                        }
+                    </format>
+
+                    <args>
+                        <arg expression="get-property('uri.var.eventName')" />
+                        <arg expression="get-property('uri.var.eventEnabled')" />
+                        <arg expression="get-property('uri.var.eventProperties')" />
+                    </args>
+                </payloadFactory>
+            </then>
+        </filter>
+        <filter xpath="not(get-property('uri.var.subscriptionProperties') = '' or not(string(get-property('uri.var.subscriptionProperties')))) and not(get-property('uri.var.eventEnabled') = '' or not(string(get-property('uri.var.eventEnabled')))) and not(get-property('uri.var.eventProperties') = '' or (string(get-property('uri.var.eventProperties'))))">
+        <then>
+                <payloadFactory media-type="json">
+                    <format>
+                        {
+                        "Events": [{
+                        "Name": "$1",
+                        "Enabled": "$2"
+                        }],
+
+                        "Properties": $3
+                        }
+                    </format>
+
+                    <args>
+                        <arg expression="get-property('uri.var.eventName')" />
+                        <arg expression="get-property('uri.var.eventEnabled')" />
+                        <arg expression="get-property('uri.var.subscriptionProperties')" />
+                    </args>
+                </payloadFactory>
+            </then>
+        </filter>
+
+        <filter xpath="not(get-property('uri.var.subscriptionProperties') = '' or not(string(get-property('uri.var.subscriptionProperties')))) and (get-property('uri.var.eventEnabled') = '' or not(string(get-property('uri.var.eventEnabled')))) and not(get-property('uri.var.eventProperties') = '' or not(string(get-property('uri.var.eventProperties'))))">
+            <then>
+                <payloadFactory media-type="json">
+                    <format>
+                        {
+                        "Events": [{
+                        "Name": "$1",
+                        "Properties": $2
+                        }],
+
+                        "Properties": $3
+                        }
+                    </format>
+
+                    <args>
+                        <arg expression="get-property('uri.var.eventName')" />
+                        <arg expression="get-property('uri.var.eventProperties')" />
+                        <arg expression="get-property('uri.var.subscriptionProperties')" />
+                    </args>
+                </payloadFactory>
+            </then>
+        </filter>
+
+        <filter xpath="not(get-property('uri.var.subscriptionProperties') = '' or not(string(get-property('uri.var.subscriptionProperties')))) and not(get-property('uri.var.eventEnabled') = '' or not(string(get-property('uri.var.eventEnabled')))) and not(get-property('uri.var.eventProperties') = '' or not(string(get-property('uri.var.eventProperties'))))">
+            <then>
+                <payloadFactory media-type="json">
+                    <format>
+                        {
+                        "Events": [{
+                        "Name": "$1",
+                        "Enabled": "$2",
+                        "Properties": $3
+                        }],
+
+                        "Properties": $4
+                        }
+                    </format>
+
+                    <args>
+                        <arg expression="get-property('uri.var.eventName')" />
+                        <arg expression="get-property('uri.var.eventEnabled')" />
+                        <arg expression="get-property('uri.var.eventProperties')" />
+                        <arg expression="get-property('uri.var.subscriptionProperties')" />
+                    </args>
+                </payloadFactory>
+            </then>
+        </filter>
+
+
+        <filter xpath="(get-property('uri.var.subscriptionProperties') = '' or not(string(get-property('uri.var.subscriptionProperties')))) and (get-property('uri.var.eventEnabled') = '' or not(string(get-property('uri.var.eventEnabled')))) and (get-property('uri.var.eventProperties') = '' or not(string(get-property('uri.var.eventProperties'))))">
+            <then>
+                <payloadFactory media-type="json">
+                    <format>
+                        {
+                        "Events": [{
+                        "Name": "$1"
+                        }]
+                        }
+                    </format>
+
+                    <args>
+                        <arg expression="get-property('uri.var.eventName')" />
+                    </args>
+                </payloadFactory>
+            </then>
+        </filter>
+
+        <call>
+            <endpoint>
+                <http method="patch" uri-template="https://www.codeplex.com/api/projects/{uri.var.project}/hooks/{uri.var.hookId}/subscriptions/{uri.var.subscriptionId}" />
+            </endpoint>
+        </call>
+    </sequence>
+</template>
