@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="createSync" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="callbackUrl" description="Specifies maximum number of records to return."/>
+    <parameter name="createdAt" description="List of fields to be included in the operation."/>
+    <parameter name="createdBy" description="Time until the definition will be deleted."/>
+    <parameter name="status" description="Specifies what data should be included in the export."/>
+    <parameter name="syncedInstanceUri" description="User who created the definition."/>
+    <parameter name="syncEndedAt" description="Time until the staged data will be deleted."/>
+    <parameter name="syncStartedAt" description="The amount of space required to store staged data."/>
+    <parameter name="uri" description="Specifies the maximum number of records to export."/>
+
+    <sequence>
+        <property name="uri.var.status" expression="$func:status"/>
+        <property name="uri.var.callbackUrl" expression="$func:callbackUrl"/>
+        <property name="uri.var.createdAt" expression="$func:createdAt"/>
+        <property name="uri.var.createdBy" expression="$func:createdBy"/>
+        <property name="uri.var.syncedInstanceUri" expression="$func:syncedInstanceUri"/>
+        <property name="uri.var.syncEndedAt" expression="$func:syncEndedAt"/>
+        <property name="uri.var.syncStartedAt" expression="$func:syncStartedAt"/>
+        <property name="uri.var.uri" expression="$func:uri"/>
+
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "status": "$1"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.status')"/>
+            </args>
+        </payloadFactory>
+        <script language="js"><![CDATA[
+		    //request body param variables
+		    var callbackUrl = mc.getProperty('uri.var.callbackUrl');
+			var createdAt = mc.getProperty('uri.var.createdAt');
+			var createdBy = mc.getProperty('uri.var.createdBy');
+			var syncedInstanceUri = mc.getProperty('uri.var.syncedInstanceUri');
+			var syncEndedAt = mc.getProperty('uri.var.syncEndedAt');
+			var syncStartedAt = mc.getProperty('uri.var.syncStartedAt');
+			var uri = mc.getProperty('uri.var.uri');
+
+
+            //Get the existing payload
+			var payload = mc.getPayloadJSON();
+
+			if (callbackUrl != null && callbackUrl != "") {
+				payload["callbackUrl"]=callbackUrl;
+			}
+			if (createdAt != null && createdAt != "") {
+               payload["createdAt"]=createdAt;
+            }
+            if (createdBy != null && createdBy != "") {
+               payload["createdBy"]=createdBy;
+            }
+            if (syncedInstanceUri != null && syncedInstanceUri != "") {
+				payload["syncedInstanceUri"]=syncedInstanceUri;
+			}
+			if (syncEndedAt != null && syncEndedAt != "") {
+               payload["syncEndedAt"]=syncEndedAt;
+            }
+            if (syncStartedAt != null && syncStartedAt != "") {
+               payload["syncStartedAt"]=syncStartedAt;
+            }
+            if (uri != null && uri != "") {
+				payload["uri"]=uri;
+			}
+
+			//Set the newly constructed payload
+			mc.setPayloadJSON(payload);
+        	]]>
+        </script>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"></property>
+        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"/>
+        <header name="Content-Type"  value="application/json" scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.apiUrl}syncs" />
+            </endpoint>
+        </call>
+    </sequence>
+</template>

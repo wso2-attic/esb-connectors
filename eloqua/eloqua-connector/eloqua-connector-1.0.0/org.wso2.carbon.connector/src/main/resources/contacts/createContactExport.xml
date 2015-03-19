@@ -48,13 +48,11 @@
         <payloadFactory media-type="json">
             <format>
                 {
-                "name": "$1",
-                "fields":$2
+                "name": "$1"
                 }
             </format>
             <args>
                 <arg expression="get-property('uri.var.name')"/>
-                <arg expression="get-property('uri.var.fields')"/>
             </args>
         </payloadFactory>
         <script language="js"><![CDATA[
@@ -72,10 +70,10 @@
 			var updatedBy = mc.getProperty('uri.var.updatedBy');
 			var uri = mc.getProperty('uri.var.uri');
 
-            //Get the existing payload
+			//Get the existing payload
 			var payload = mc.getPayloadJSON();
 
-			if (autoDeleteDuration != null && autoDeleteDuration != "") {
+            if (autoDeleteDuration != null && autoDeleteDuration != "") {
 				payload["autoDeleteDuration"]=autoDeleteDuration;
 			}
 			if (filter != null && filter != "") {
@@ -108,6 +106,25 @@
 			if (uri != null && uri != "") {
                payload["uri"]=uri;
             }
+            if (fields != null && fields != "") {
+                var txt = '{"fieldsList":'+fields+'}';
+                var obj = eval ("(" + txt + ")");
+                var query = '{';
+                var added = 0;
+                for(var key in obj.fieldsList){
+                    if(added == 0) {
+                        query = query+'\"'+key+'\":\"{{'+obj.fieldsList[key]+'}}\"';
+                        added = 1;
+                    }
+                    else {
+                        query = query + ',\"'+key+'\":\"{{'+obj.fieldsList[key]+'}}\"';
+                    }
+                }
+                query = query + '}';
+            }
+            var q = eval ("(" + query + ")");
+            payload["fields"]=q;
+
 			//Set the newly constructed payload
 			mc.setPayloadJSON(payload);
         	]]>
