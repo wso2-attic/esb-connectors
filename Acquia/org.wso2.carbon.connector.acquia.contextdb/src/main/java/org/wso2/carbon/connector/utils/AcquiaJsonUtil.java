@@ -70,9 +70,9 @@ public class AcquiaJsonUtil extends AbstractMediator {
                         }
                     }
                 } else {
-                    if (objectInArray.has(EVENT_IMPORT_IDENTITY) && objectInArray.has(EVENT_IMPORT_IDENTITY_SOURCE)
-                            && objectInArray.has(EVENT_IMPORT_EVENT_NAME) && objectInArray.has(EVENT_IMPORT_EVENT_SOURCE)) {
-                        JSONObject jsonObject = new JSONObject(payload);
+                    JSONObject jsonObject = new JSONObject(payload);
+                    if (jsonObject!=null && jsonObject.has(EVENT_IMPORT_IDENTITY) && jsonObject.has(EVENT_IMPORT_IDENTITY_SOURCE)
+                            && jsonObject.has(EVENT_IMPORT_EVENT_NAME) && jsonObject.has(EVENT_IMPORT_EVENT_SOURCE)) {
                         basestring = new StringBuilder(jsonObject.toString());
                     } else {
                         log.error("Acquia lift ContextDB connector - Given payload does not contain the required fields");
