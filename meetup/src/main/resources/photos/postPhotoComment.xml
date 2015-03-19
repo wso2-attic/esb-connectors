@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="postPhotoComment" xmlns="http://ws.apache.org/ns/synapse"
+          description="This method posts comments that appear below photos">
+
+    <!-- Required parameters -->
+    <parameter name="photo_id" description="ID of a photo"/>
+    <parameter name="key" description="API key"/>
+    <parameter name="comment" description="photo comment"/>
+
+    <sequence>
+        <property name="uri.var.photo_id" expression="$func:photo_id"/>
+        <property name="uri.var.key" expression="$func:key"/>
+        <property name="uri.var.comment" expression="$func:comment"/>
+        <payloadFactory>
+            <format>
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                    <soapenv:Header></soapenv:Header>
+                    <soapenv:Body>
+                        <root>
+                            <photo_id>$1</photo_id>
+                            <comment>$2</comment>
+                            <key>$3</key>
+
+                        </root>
+                    </soapenv:Body>
+                </soapenv:Envelope>
+            </format>
+
+            <args>
+                <arg expression="get-property('uri.var.photo_id')"/>
+                <arg expression="get-property('uri.var.comment')"/>
+                <arg expression="get-property('uri.var.key')"/>
+
+            </args>
+
+        </payloadFactory>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="https://api.meetup.com/2/photo_comment"/>
+                <property name="messageType" value="application/x-www-form-urlencoded"
+                          scope="axis2"/>
+                <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+
+    </sequence>
+</template>

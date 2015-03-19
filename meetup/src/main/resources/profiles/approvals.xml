@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="approvals" xmlns="http://ws.apache.org/ns/synapse"
+          description="Approves one or more requests for group membership">
+
+    <!-- Required parameters -->
+    <parameter name="urlname" description="valid group urlname or domain name"/>
+    <parameter name="member"
+               description="Comma-delimited numeric pending member IDs. The maximum allowed is 200"/>
+    <parameter name="send_copy"
+               description="Optional Boolean value indicating whether or not the org should receive a copy of the message sent to the approved members "/>
+    <parameter name="welcome_message"
+               description="Optional message to send to the members being approved. If not provided, the groups default welcome message will be sent. Max message size is 2000"/>
+    <parameter name="access_token" description="token key"/>
+
+    <sequence>
+        <property name="uri.var.urlname" expression="$func:urlname"/>
+        <property name="uri.var.member" expression="$func:member"/>
+        <property name="uri.var.send_copy" expression="$func:send_copy"/>
+        <property name="uri.var.welcome_message" expression="$func:welcome_message"/>
+        <property name="uri.var.access_token" expression="$func:access_token"/>
+        <header name="Authorization"
+                expression="fn:concat('Bearer ',get-property('uri.var.access_token'))"
+                scope="transport"/>
+
+        <payloadFactory>
+            <format>
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                    <soapenv:Header></soapenv:Header>
+                    <soapenv:Body>
+                        <root>
+                            <member>$1</member>
+                            <send_copy>$2</send_copy>
+                            <welcome_message>$3</welcome_message>
+
+                        </root>
+                    </soapenv:Body>
+                </soapenv:Envelope>
+            </format>
+
+            <args>
+                <arg expression="get-property('uri.var.member')"/>
+                <arg expression="get-property('uri.var.send_copy')"/>
+                <arg expression="get-property('uri.var.welcome_message')"/>
+
+            </args>
+
+        </payloadFactory>
+
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="https://api.meetup.com/{uri.var.urlname}/member/approvals"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+
+    </sequence>
+</template>

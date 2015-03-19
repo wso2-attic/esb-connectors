@@ -1,0 +1,114 @@
+<!--
+  ~ Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="postContainerById" xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- Required Parameters -->
+    <parameter name="key" description="API key"/>
+    <parameter name="container_id" description="Name of this container id"/>
+    <parameter name="name" description="Name of this container"/>
+
+    <!-- Optional parameters -->
+    <parameter name="description" description="Description of this container"/>
+    <parameter name="facebook_urlname" description="path name without slashes"/>
+    <parameter name="link" description="must be a URL"/>
+    <parameter name="link_name" description="Name of link"/>
+    <parameter name="twitter_urlname" description="account name"/>
+
+    <sequence>
+        <property name="uri.var.key" expression="$func:key"/>
+        <property name="uri.var.container_id" expression="$func:container_id"/>
+        <property name="uri.var.name" expression="$func:name"/>
+        <property name="uri.var.description" expression="$func:description"/>
+        <property name="uri.var.facebook_urlname" expression="$func:facebook_urlname"/>
+        <property name="uri.var.link" expression="$func:link"/>
+        <property name="uri.var.link_name" expression="$func:link_name"/>
+        <property name="uri.var.twitter_urlname" expression="$func:twitter_urlname"/>
+
+
+        <filter xpath="get-property('uri.var.key') != '' and get-property('uri.var.container_id') != ''">
+
+            <then>
+
+
+                <payloadFactory media-type="xml">
+                    <format>
+                        <root>
+                            <key>$1</key>
+                            <name>$2</name>
+                            <description>$3</description>
+                            <facebook_urlname>$4</facebook_urlname>
+                            <link>$5</link>
+                            <link_name>$6</link_name>
+                            <twitter_urlname>$7</twitter_urlname>
+
+                        </root>
+                    </format>
+
+                    <args>
+                        <arg expression="get-property('uri.var.key')"/>
+                        <arg expression="get-property('uri.var.name')"/>
+                        <arg expression="get-property('uri.var.description')"/>
+                        <arg expression="get-property('uri.var.facebook_urlname')"/>
+                        <arg expression="get-property('uri.var.link')"/>
+                        <arg expression="get-property('uri.var.link_name')"/>
+                        <arg expression="get-property('uri.var.twitter_urlname')"/>
+
+
+                    </args>
+
+
+                </payloadFactory>
+
+            </then>
+
+
+        </filter>
+
+
+        <property name="messageType" scope="axis2" value="application/x-www-form-urlencoded"/>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"></property>
+
+        <log level="custom" xmlns="http://ws.apache.org/ns/synapse">
+            <property name="string" expression="fn:concat('key - ', get-property('uri.var.key'))"/>
+        </log>
+        <log level="custom" xmlns="http://ws.apache.org/ns/synapse">
+            <property name="string"
+                      expression="fn:concat('name - ', get-property('uri.var.name'))"/>
+        </log>
+        <log level="custom" xmlns="http://ws.apache.org/ns/synapse">
+            <property name="string"
+                      expression="fn:concat('container_id - ', get-property('uri.var.container_id'))"/>
+        </log>
+
+
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="{uri.var.apiUrl}/ew/container/{uri.var.container_id} "/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="Set-Cookie" scope="transport" action="remove"/>
+
+    </sequence>
+</template>

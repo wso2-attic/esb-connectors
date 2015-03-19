@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="getRSVPs" xmlns="http://ws.apache.org/ns/synapse"
+          description="Query for Event RSVPs by event">
+
+    <!-- Required parameters -->
+    <parameter name="event_id"
+               description="Multiple alphanumeric ids may be separated with commas"/>
+    <parameter name="access_token" description="Authorization token"/>
+    <!--Optional parameters -->
+    <parameter name="fields"
+               description="Parameter for requesting optional response properties, set to other_services for a list of third party services"/>
+    <parameter name="rsvp"
+               description="Filters response on RSVP status. &quot;yes&quot; if member RSVP'd yes otherwise &quot;no&quot;"/>
+    <!--Used for ordering -->
+    <parameter name="event" description="the id or time of the event"/>
+    <parameter name="name" description="the name of the attendee"/>
+    <parameter name="social" description="social connections of the authenticated member"/>
+
+
+    <sequence>
+        <property name="uri.var.event_id" expression="$func:event_id"/>
+        <property name="uri.var.access_token" expression="$func:access_token"/>
+
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <property name="uri.var.rsvp" expression="$func:rsvp"/>
+
+        <property name="uri.var.event" expression="$func:event"/>
+        <property name="uri.var.name" expression="$func:name"/>
+        <property name="uri.var.social" expression="$func:social"/>
+
+        <property name="ContentType" value="application/json" scope="axis2" type="STRING"/>
+
+        <property name="uri.var.params" value=""/>
+        <filter xpath="get-property('uri.var.event_id') = '' or not(string(get-property('uri.var.event_id')))">
+            <then>
+                <property name="uri.var.params" value="event_id="/>
+            </then>
+            <else>
+                <property name="uri.var.params"
+                          expression="fn:concat('event_id=', get-property('uri.var.event_id'))"/>
+            </else>
+        </filter>
+        <filter xpath="get-property('uri.var.fields') = '' or not(string(get-property('uri.var.fields')))">
+            <then>
+                <log level="custom">
+                    <property name="fields" value="not available"/>
+                </log>
+            </then>
+            <else>
+                <property name="uri.var.params"
+                          expression="fn:concat(get-property('uri.var.params'),'&amp;fields=', get-property('uri.var.fields'))"/>
+            </else>
+        </filter>
+        <filter xpath="get-property('uri.var.rsvp') = '' or not(string(get-property('uri.var.rsvp')))">
+            <then>
+                <log level="custom">
+                    <property name="rsvp" value="not available"/>
+                </log>
+            </then>
+            <else>
+                <property name="uri.var.params"
+                          expression="fn:concat(get-property('uri.var.params'),'&amp;rsvp=', get-property('uri.var.rsvp'))"/>
+            </else>
+        </filter>
+        <filter xpath="get-property('uri.var.event') = '' or not(string(get-property('uri.var.event')))">
+            <then>
+                <log level="custom">
+                    <property name="event" value="not available"/>
+                </log>
+            </then>
+            <else>
+                <property name="uri.var.params"
+                          expression="fn:concat(get-property('uri.var.params'),'&amp;event=', get-property('uri.var.event'))"/>
+            </else>
+        </filter>
+        <filter xpath="get-property('uri.var.name') = '' or not(string(get-property('uri.var.name')))">
+            <then>
+                <log level="custom">
+                    <property name="name" value="not available"/>
+                </log>
+            </then>
+            <else>
+                <property name="uri.var.params"
+                          expression="fn:concat(get-property('uri.var.params'),'&amp;name=', get-property('uri.var.name'))"/>
+            </else>
+        </filter>
+        <filter xpath="get-property('uri.var.social') = '' or not(string(get-property('uri.var.social')))">
+            <then>
+                <log level="custom">
+                    <property name="social" value="not available"/>
+                </log>
+            </then>
+            <else>
+                <property name="uri.var.params"
+                          expression="fn:concat(get-property('uri.var.params'),'&amp;social=', get-property('uri.var.social'))"/>
+            </else>
+        </filter>
+        <log level="custom">
+            <property name="*********" expression="get-property('uri.var.params')"/>
+        </log>
+
+        <header name="Authorization"
+                expression="fn:concat('Bearer ',get-property('uri.var.access_token'))"
+                scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="https://api.meetup.com/2/rsvps?{uri.var.params}"
+                      format="rest"/>
+                <property name="Accept" value="application/json" scope="transport"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+
+    </sequence>
+</template>

@@ -1,0 +1,117 @@
+<!--
+  ~ Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="postEventPayments" xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- Required Parameters -->
+    <parameter name="key" description="API key"/>
+    <parameter name="urlname" description="urlname name of the group"/>
+    <parameter name="event_id" description="Event id of the group"/>
+    <parameter name="member" description="A valid ID of member in the group"/>
+    <parameter name="amount" description="The monetary amount of money the member submitted."/>
+
+
+    <!-- Optional Parameters -->
+    <parameter name="paid_on" description="The time the payment was made in milliseconds"/>
+    <parameter name="quantity" description="The number of payments made."/>
+
+    <sequence>
+        <property name="uri.var.key" expression="$func:key"/>
+        <property name="uri.var.urlname" expression="$func:urlname"/>
+        <property name="uri.var.event_id" expression="$func:event_id"/>
+        <property name="uri.var.member" expression="$func:member"/>
+        <property name="uri.var.amount" expression="$func:amount"/>
+        <property name="uri.var.paid_on" expression="$func:paid_on"/>
+        <property name="uri.var.quantity" expression="$func:quantity"/>
+
+
+        <filter xpath="get-property('uri.var.paid_on') = ''">
+            <then>
+                <property name="uri.var.paid_on" value="1411294594783"/>
+            </then>
+        </filter>
+
+
+        <filter xpath="get-property('uri.var.quantity') = ''">
+            <then>
+                <property name="uri.var.quantity" value="1"/>
+            </then>
+        </filter>
+
+
+        <payloadFactory media-type="xml">
+            <format>
+                <root>
+                    <key>$1</key>
+                    <member>$2</member>
+                    <amount>$3</amount>
+                    <paid_on>$4</paid_on>
+                    <quantity>$5</quantity>
+
+
+                </root>
+            </format>
+
+            <args>
+                <arg expression="get-property('uri.var.key')"/>
+                <arg expression="get-property('uri.var.member')"/>
+                <arg expression="get-property('uri.var.amount')"/>
+                <arg expression="get-property('uri.var.paid_on')"/>
+                <arg expression="get-property('uri.var.quantity')"/>
+
+            </args>
+
+
+        </payloadFactory>
+
+
+        <property name="messageType" scope="axis2" value="application/x-www-form-urlencoded"/>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"></property>
+
+        <log level="custom" xmlns="http://ws.apache.org/ns/synapse">
+            <property name="string" expression="fn:concat('key - ', get-property('uri.var.key'))"/>
+        </log>
+        <log level="custom" xmlns="http://ws.apache.org/ns/synapse">
+            <property name="string"
+                      expression="fn:concat('member - ', get-property('uri.var.member'))"/>
+        </log>
+        <log level="custom" xmlns="http://ws.apache.org/ns/synapse">
+            <property name="string"
+                      expression="fn:concat('amount - ', get-property('uri.var.amount'))"/>
+        </log>
+        <log level="custom" xmlns="http://ws.apache.org/ns/synapse">
+            <property name="string"
+                      expression="fn:concat('paid_on - ', get-property('uri.var.paid_on'))"/>
+        </log>
+
+
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="{uri.var.apiUrl}/{uri.var.urlname}/events/{uri.var.event_id}/payments"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="Set-Cookie" scope="transport" action="remove"/>
+
+    </sequence>
+</template>

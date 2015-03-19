@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="decline" xmlns="http://ws.apache.org/ns/synapse"
+          description="Declines one or more requests for group membership">
+
+    <!-- Required parameters -->
+
+    <parameter name="anon"
+               description="Optional Boolean value indicating whether your email should be revealed to the members. Default is false."/>
+    <parameter name="ban"
+               description="Optional Boolean value indicating whether or not to ban the member in the future. Default is false"/>
+    <parameter name="explanation"
+               description="Optional explanation to send to the members being declined. Max message size is 2000"/>
+    <parameter name="member"
+               description="Comma-delimited numeric pending member IDs. The maximum allowed is 200"/>
+    <parameter name="send_copy"
+               description="Optional Boolean value indicating whether or to send a copy to the member issuing the decline. Default is true"/>
+    <parameter name="access_token" description="token key"/>
+    <parameter name="urlname" description="group urlname"/>
+
+    <sequence>
+        <property name="uri.var.anon" expression="$func:anon"/>
+        <property name="uri.var.ban" expression="$func:ban"/>
+        <property name="uri.var.explanation" expression="$func:explanation"/>
+        <property name="uri.var.member" expression="$func:member"/>
+        <property name="uri.var.send_copy" expression="$func:send_copy"/>
+        <property name="uri.var.access_token" expression="$func:access_token"/>
+        <property name="uri.var.urlname" expression="$func:urlname"/>
+        <header name="Authorization"
+                expression="fn:concat('Bearer ',get-property('uri.var.access_token'))"
+                scope="transport"/>
+
+        <payloadFactory>
+            <format>
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                    <soapenv:Header></soapenv:Header>
+                    <soapenv:Body>
+                        <root>
+                            <anon>$1</anon>
+                            <ban>$2</ban>
+                            <explanation>$3</explanation>
+                            <member>$4</member>
+                            <send_copy>$5</send_copy>
+
+                        </root>
+                    </soapenv:Body>
+                </soapenv:Envelope>
+            </format>
+
+            <args>
+                <arg expression="get-property('uri.var.anon')"/>
+                <arg expression="get-property('uri.var.ban')"/>
+                <arg expression="get-property('uri.var.explanation')"/>
+                <arg expression="get-property('uri.var.member')"/>
+                <arg expression="get-property('uri.var.send_copy')"/>
+
+            </args>
+
+        </payloadFactory>
+
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="delete"
+                      uri-template="https://api.meetup.com/{uri.var.urlname}/member/approvals"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+
+    </sequence>
+</template>

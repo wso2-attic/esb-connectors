@@ -1,0 +1,153 @@
+<!--
+  ~ Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="getmembers" xmlns="http://ws.apache.org/ns/synapse">
+
+
+    <parameter name="key" description="API key"/>
+    <parameter name="group_id"/>
+    <parameter name="member_id"/>
+    <parameter name="group_urlname"/>
+    <parameter name="service"/>
+    <parameter name="topic"/>
+    <parameter name="groupnum"/>
+    <parameter name="fields"/>
+
+    <parameter name="parameters"/>
+
+
+    <property name="meetupParameters" value=""/>
+
+    <sequence>
+
+
+        <property name="uri.var.key" expression="$func:key"/>
+        <property name="uri.var.group_id" expression="$func:group_id"/>
+        <property name="uri.var.member_id" expression="$func:member_id"/>
+        <property name="uri.var.group_urlname" expression="$func:group_urlname"/>
+        <property name="uri.var.service" expression="$func:service"/>
+        <property name="uri.var.topic" expression="$func:topic"/>
+        <property name="uri.var.groupnum" expression="$func:groupnum"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+
+
+        <property name="meetupParameters" value=""/>
+
+
+        <filter
+                xpath="get-property('uri.var.group_id') = '' or  not(string(get-property('uri.var.group_id')))">
+            <then>
+                <property name="uri.var.group_id" value=""/>
+            </then>
+            <else>
+                <property name="meetupParameters" expression="fn:concat(get-property('meetupParameters'),
+               '&amp;group_id=', get-property('uri.var.group_id'))"/>
+            </else>
+        </filter>
+
+
+        <filter
+                xpath="get-property('uri.var.member_id') = '' or  not(string(get-property('uri.var.member_id')))">
+            <then>
+                <property name="uri.var.member_id" value=""/>
+            </then>
+            <else>
+                <property name="meetupParameters" expression="fn:concat(get-property('meetupParameters'),
+               '&amp;member_id=', get-property('uri.var.member_id'))"/>
+            </else>
+        </filter>
+
+        <filter
+                xpath="get-property('uri.var.group_urlname') = '' or  not(string(get-property('uri.var.group_urlname')))">
+            <then>
+                <property name="uri.var.group_urlname" value=""/>
+            </then>
+            <else>
+                <property name="meetupParameters" expression="fn:concat(get-property('meetupParameters'),
+               '&amp;group_urlname=', get-property('uri.var.group_urlname'))"/>
+            </else>
+        </filter>
+
+        <filter
+                xpath="get-property('uri.var.service') = '' or  not(string(get-property('uri.var.service')))">
+            <then>
+                <property name="uri.var.service" value=""/>
+            </then>
+            <else>
+                <property name="meetupParameters" expression="fn:concat(get-property('meetupParameters'),
+               '&amp;service=', get-property('uri.var.service'))"/>
+            </else>
+        </filter>
+
+
+        <filter
+                xpath="get-property('uri.var.topic') = '' or  not(string(get-property('uri.var.topic')))">
+            <then>
+                <property name="uri.var.topic" value=""/>
+            </then>
+            <else>
+                <property name="meetupParameters" expression="fn:concat(get-property('meetupParameters'),
+               '&amp;topic=', get-property('uri.var.topic'))"/>
+            </else>
+        </filter>
+
+
+        <filter
+                xpath="get-property('uri.var.groupnum') = '' or  not(string(get-property('uri.var.groupnum')))">
+            <then>
+                <property name="uri.var.groupnum" value=""/>
+            </then>
+            <else>
+                <property name="meetupParameters" expression="fn:concat(get-property('meetupParameters'),
+               '&amp;groupnum=', get-property('uri.var.groupnum'))"/>
+            </else>
+        </filter>
+
+
+        <filter
+                xpath="get-property('uri.var.fields') = '' or  not(string(get-property('uri.var.fields')))">
+            <then>
+                <property name="uri.var.fields" value=""/>
+            </then>
+            <else>
+                <property name="meetupParameters" expression="fn:concat(get-property('meetupParameters'),
+               '&amp;fields=', get-property('uri.var.fields'))"/>
+            </else>
+        </filter>
+
+
+        <property name="uri.var.parameters" expression="get-property('meetupParameters')"/>
+
+
+        <call>
+
+            <endpoint>
+
+                <http method="get"
+                      uri-template="https://api.meetup.com/2/members.json/?{uri.var.parameters}&amp;key={uri.var.key}"/>
+
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+    </sequence>
+</template>
