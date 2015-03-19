@@ -828,4 +828,97 @@ public class MarketoConnectorIntegrationTest extends ConnectorIntegrationTestBas
 
         Assert.assertEquals(esbRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getString("message"), apiRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getString("message"));
     }
+    /**
+     * Positive test case for getDeletedLeads method.
+     */
+    @Test(priority = 1, dependsOnMethods = {"testGetActivityTypesWithPositiveCase"}, description = "Marketo {getDeletedLeads} integration test with positive case.")
+    public void testGetDeletedLeadsWithPositiveCase() throws IOException, JSONException {
+
+        String methodName = "getDeletedLeads";
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_getDeletedLeads_mandatory.json");
+
+        Assert.assertEquals(esbRestResponse.getBody().getString("success").toString(), "true");
+
+    }
+
+    /**
+     * Negative test case for getDeletedLeads method.
+     */
+    @Test(priority = 1, dependsOnMethods = {"testGetActivityTypesWithPositiveCase"}, description = "Marketo {getLeadChanges} integration test with negative case.")
+    public void testGetDeletedLeadsWithNegativeCase() throws IOException, JSONException {
+
+        String methodName = "getDeletedLeads";
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_getDeletedLeads_negative.json");
+
+        final String apiUrl = connectorProperties.getProperty("marketoInstanceURL") + "/rest/v1/activities/deletedleads.json";
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiUrl, "GET", apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getString("message"), apiRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getString("message"));
+    }
+    /**
+     * Positive test case for getDailyErrors method.
+     */
+    @Test(priority = 1, description = "Marketo {getDailyErrors} integration test with positive case.")
+    public void testGetDailyErrorsWithPositiveCase() throws IOException, JSONException {
+
+        String methodName = "getDailyErrors";
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_init.json");
+        final String apiUrl = connectorProperties.getProperty("marketoInstanceURL") + "/rest/v1/stats/errors.json";
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiUrl, "GET", apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("result").toString(), apiRestResponse.getBody().getJSONArray("result").toString());
+        Assert.assertEquals(esbRestResponse.getBody().getString("success").toString(), "true");
+    }
+    /**
+     * Positive test case for getDailyUsage method.
+     */
+    @Test(priority = 1, description = "Marketo {getDailyUsage} integration test with positive case.")
+    public void testGetDailyUsageWithPositiveCase() throws IOException, JSONException {
+
+        String methodName = "getDailyUsage";
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_init.json");
+
+        final String apiUrl = connectorProperties.getProperty("marketoInstanceURL") + "/rest/v1/stats/usage.json";
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiUrl, "GET", apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getBody().getString("success").toString(), "true");
+
+    }
+    /**
+     * Positive test case for getLast7DaysErrors method.
+     */
+    @Test(priority = 1, description = "Marketo {getLast7DaysErrors} integration test with positive case.")
+    public void testGetLast7DaysErrorsWithPositiveCase() throws IOException, JSONException {
+
+        String methodName = "getLast7DaysErrors";
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_init.json");
+
+        final String apiUrl = connectorProperties.getProperty("marketoInstanceURL") + "/rest/v1/stats/errors/last7days.json";
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiUrl, "GET", apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("result").toString(), apiRestResponse.getBody().getJSONArray("result").toString());
+        Assert.assertEquals(esbRestResponse.getBody().getString("success").toString(), "true");
+
+    }
+
+    /**
+     * Positive test case for getLast7DaysUsage method.
+     */
+    @Test(priority = 1, description = "Marketo {getLast7DaysUsage} integration test with positive case.")
+    public void testGetLast7DaysUsageWithPositiveCase() throws IOException, JSONException {
+
+        String methodName = "getLast7DaysUsage";
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_init.json");
+
+        final String apiUrl = connectorProperties.getProperty("marketoInstanceURL") + "/rest/v1/stats/usage/last7days.json";
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiUrl, "GET", apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getBody().getString("success").toString(), "true");
+
+    }
 }
