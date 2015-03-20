@@ -1,0 +1,35 @@
+<template name="createSchedule" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="campaignId" description="The unique id of the campaign." />
+	<parameter name="scheduledDate"
+		description="The scheduled date which the email to be sent." />
+
+	<sequence>
+		<property name="uri.var.campaignId" expression="$func:campaignId" />
+		<property name="uri.var.scheduledDate" expression="$func:scheduledDate" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"scheduled_date":"$1"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.scheduledDate')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/emailmarketing/campaigns/{uri.var.campaignId}/schedules{uri.var.apiKey}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom Headers from the API Response -->
+		<header name="X-Mashery-Error-Code" action="remove" scope="transport" />
+		<header name="X-Mashery-Responder" action="remove" scope="transport" />
+		<header name="X-Powered-By" action="remove" scope="transport" />
+		<header name="Location" action="remove" scope="transport" />
+
+	</sequence>
+</template>

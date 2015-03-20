@@ -1,0 +1,158 @@
+<template name="createCampaign" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="emailContent" description="The full HTML or XHTML content of the email campaign." />
+	<parameter name="fromEmail" description="The email address the email campaign originated from." />
+	<parameter name="fromName" description="The name displayed in the From field." />
+	<parameter name="name" description="The name of the email campaign." />
+	<parameter name="replyToEmail" description="The reply-to email address for the email campaign." />
+	<parameter name="subject" description="The Subject Line for the email campaign." />
+	<parameter name="textContent" description="The content for the text-only version of the email campaign." />
+	<parameter name="emailContentFormat" description="The email campaign message format." />
+	<parameter name="greetingName" 
+		description="The personalized content for each contact that will be used as the greeting." />
+	<parameter name="greetingSalutations" description="The salutation used in the email message." />
+	<parameter name="greetingString" description="the greeting text used if not using name and salutations." />
+	<parameter name="isPermissionReminderEnabled"
+		description="The boolean identifying whether the permission reminder text is shown." />
+	<parameter name="isViewAsWebpageEnabled"
+		description="The boolean flag indicating permission reminder text is displayed in a web page." />
+	<parameter name="messageFooter" description="The content of the email campaign message footer." />
+	<parameter name="permissionReminderText" description="The text to display in the permission reminder message." />
+	<parameter name="sentToContactLists" description="The sent_to_contact_lists" />
+	<parameter name="styleSheet" description="The lists of stylesheet elements used to format the message." />
+	<parameter name="viewAsWebPageLinkText" description="The text to display in the View As Web page link." />
+	<parameter name="viewAsWebPageText" description="The text to display with link at the top of email message." />
+	
+	<sequence>
+		<property name="uri.var.emailContent" expression="$func:emailContent" />
+		<property name="uri.var.fromEmail" expression="$func:fromEmail" />
+		<property name="uri.var.fromName" expression="$func:fromName" />
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.replyToEmail" expression="$func:replyToEmail" />
+		<property name="uri.var.subject" expression="$func:subject" />
+		<property name="uri.var.textContent" expression="$func:textContent" />
+		<property name="uri.var.emailContentFormat" expression="$func:emailContentFormat" />
+		<property name="uri.var.greetingName" expression="$func:greetingName" />
+		<property name="uri.var.greetingSalutations" expression="$func:greetingSalutations" />
+		<property name="uri.var.greetingString" expression="$func:greetingString" />
+		<property name="uri.var.isPermissionReminderEnabled" expression="$func:isPermissionReminderEnabled" />
+		<property name="uri.var.isViewAsWebpageEnabled" expression="$func:isViewAsWebpageEnabled" />
+		<property name="uri.var.messageFooter" expression="$func:messageFooter" />
+		<property name="uri.var.permissionReminderText" expression="$func:permissionReminderText" />
+		<property name="uri.var.sentToContactLists" expression="$func:sentToContactLists" />
+		<property name="uri.var.styleSheet" expression="$func:styleSheet" />
+		<property name="uri.var.viewAsWebPageLinkText" expression="$func:viewAsWebPageLinkText" />
+		<property name="uri.var.viewAsWebPageText" expression="$func:viewAsWebPageText" />
+		
+		<payloadFactory media-type="json">
+			<format>
+				{
+					"name": "$1",
+					"from_email": "$2",
+					"from_name": "$3",
+					"reply_to_email": "$4",
+					"subject": "$5",
+					"text_content": "$6"
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.name')" />
+				<arg expression="get-property('uri.var.fromEmail')" />
+				<arg expression="get-property('uri.var.fromName')" />
+				<arg expression="get-property('uri.var.replyToEmail')" />
+				<arg expression="get-property('uri.var.subject')" />
+				<arg expression="get-property('uri.var.textContent')" />
+			</args>
+		</payloadFactory>
+		
+		<script language="js">
+			<![CDATA[
+				
+				payload = mc.getPayloadJSON();
+
+				// Setting mandatory parameter emailContent since HTML tags cannot be processed by getPayloadJSON
+				var emailContent = mc.getProperty('uri.var.emailContent');
+				
+				payload.email_content = emailContent;
+
+				//Setting optional parameters.
+				var sentToContactLists = mc.getProperty('uri.var.sentToContactLists');
+				var emailContentFormat = mc.getProperty('uri.var.emailContentFormat');
+				var greetingName = mc.getProperty('uri.var.greetingName');
+				var greetingSalutations = mc.getProperty('uri.var.greetingSalutations');
+				var greetingString = mc.getProperty('uri.var.greetingString');
+				var isPermissionReminderEnabled = mc.getProperty('uri.var.isPermissionReminderEnabled');
+				var isViewAsWebpageEnabled = mc.getProperty('uri.var.isViewAsWebpageEnabled');
+				var messageFooter = mc.getProperty('uri.var.messageFooter');
+				var permissionReminderText = mc.getProperty('uri.var.permissionReminderText');
+				var sentToContactLists = mc.getProperty('uri.var.sentToContactLists');
+				var styleSheet = mc.getProperty('uri.var.styleSheet');
+				var viewAsWebPageLinkText = mc.getProperty('uri.var.viewAsWebPageLinkText');
+				var viewAsWebPageText = mc.getProperty('uri.var.viewAsWebPageText');
+					
+	            if (sentToContactLists != null && sentToContactLists != "") {
+	            	payload.sent_to_contact_lists = eval("("+sentToContactLists+")");
+	            }
+	            
+	            if (emailContentFormat != null && emailContentFormat != "") {
+	            	payload.email_content_format = emailContentFormat;
+	            }
+	            
+	            if (greetingName != null && greetingName != "") {
+	            	payload.greeting_name = greetingName;
+	            }
+	            
+	            if (greetingSalutations != null && greetingSalutations != "") {
+	            	payload.greeting_salutations = greetingSalutations;
+	            }
+	            
+	            if (greetingString != null && greetingString != "") {
+	            	payload.greeting_string = greetingString;
+	            }
+	            
+	            if (isPermissionReminderEnabled != null && isPermissionReminderEnabled != "") {
+	            	payload.is_permission_reminder_enabled = eval("("+isPermissionReminderEnabled+")");
+	            }
+	            
+	            if (isViewAsWebpageEnabled != null && isViewAsWebpageEnabled != "") {
+	            	payload.is_view_as_webpage_enabled = eval("("+isViewAsWebpageEnabled+")");
+	            }
+	            
+	            if (messageFooter != null && messageFooter != "") {
+	            	payload.message_footer = eval("("+messageFooter+")");
+	            }
+	            
+	            if (permissionReminderText != null && permissionReminderText != "") {
+	            	payload.permission_reminder_text = permissionReminderText;
+	            }
+	            
+	            if (styleSheet != null && styleSheet != "") {
+	            	payload.style_sheet = styleSheet;
+	            }
+	            
+	            if (viewAsWebPageLinkText != null && viewAsWebPageLinkText != "") {
+	            	payload.view_as_web_page_link_text = viewAsWebPageLinkText;
+	            }
+	            
+	            if (viewAsWebPageText != null && viewAsWebPageText != "") {
+	            	payload.view_as_web_page_text = viewAsWebPageText;
+	            }
+	            
+				mc.setPayloadJSON(payload);
+				
+			]]>
+		</script>
+		
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/emailmarketing/campaigns{uri.var.apiKey}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove custom Headers from the API Response -->
+		<header name="X-Mashery-Error-Code" action="remove" scope="transport" />
+		<header name="X-Mashery-Responder" action="remove" scope="transport" />
+		<header name="X-Powered-By" action="remove" scope="transport" />
+		<header name="Location" action="remove" scope="transport" />
+		
+	</sequence>
+</template>

@@ -1,0 +1,30 @@
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="apiUrl" description="The URL to access the Constant Contact API." />
+	<parameter name="apiKey" description="The api key of the account." />
+	<parameter name="apiToken" description="The api token of the account." />
+
+	<sequence>
+		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
+		<property name="uri.var.apiKey" expression="$func:apiKey" />
+		<property name="uri.var.apiToken" expression="$func:apiToken" />
+
+		<property name="Authorization"
+			expression="fn:concat('Bearer ', get-property('uri.var.apiToken'))"
+			scope="transport" type="STRING" />
+
+		<property name="uri.var.apiKey" expression="fn:concat('?api_key=',get-property('uri.var.apiKey'))" />
+
+		<property name="Content-Type" value="application/json" scope="transport" type="STRING" />
+
+		<!-- If the apiUrl is not specified, set the default value as https://api.constantcontact.com/v2 -->
+		<filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+			<then>
+				<property name="uri.var.apiUrl" value="https://api.constantcontact.com/v2" />
+			</then>
+			<else>
+				<property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/v2')" />
+			</else>
+		</filter>
+
+	</sequence>
+</template>
