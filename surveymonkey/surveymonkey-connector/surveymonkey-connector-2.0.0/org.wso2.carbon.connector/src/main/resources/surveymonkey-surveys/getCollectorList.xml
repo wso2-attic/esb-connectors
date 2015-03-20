@@ -1,0 +1,96 @@
+<template name="getCollectorList" xmlns="http://ws.apache.org/ns/synapse">
+	<!-- Required Parameters -->
+	<parameter name="surveyId"
+		description="The survey id, which must be an id of a created survey from the website." />
+	<!-- Optional Parameters -->
+	<parameter name="pageNumber" description="Pagination page number" />
+	<parameter name="pageSize" description="Number of surveys to return per page." />
+	<parameter name="startDate" description="Collectors must be created after this date" />
+	<parameter name="endDate" description="Collectors must be created before this date" />
+	<parameter name="name" description="Name of survey to search against" />
+	<parameter name="isOrderAscending"
+		description="If true sorts by creation time ASC, if false sorts by creation time DESC. Defaults to false" />
+	<parameter name="fields" description="Additional fields to return. 
+	One or more of :[url, open, type, name, date_created, date_modified]" />
+
+	<sequence>
+
+		<property name="uri.var.surveyId" expression="$func:surveyId" />
+		<property name="uri.var.pageNumber" expression="$func:pageNumber" />
+		<property name="uri.var.pageSize" expression="$func:pageSize" />
+		<property name="uri.var.startDate" expression="$func:startDate" />
+		<property name="uri.var.endDate" expression="$func:endDate" />
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.isOrderAscending" expression="$func:isOrderAscending" />
+		<property name="uri.var.fields" expression="$func:fields" />
+
+		<script language="js"><![CDATA[ 
+    		   var surveyId = mc.getProperty("uri.var.surveyId");
+	           var pageNumber = mc.getProperty("uri.var.pageNumber");
+	           var pageSize = mc.getProperty("uri.var.pageSize");
+	           var startDate = mc.getProperty("uri.var.startDate");
+	           var endDate = mc.getProperty("uri.var.endDate");
+	           var name = mc.getProperty("uri.var.name");
+	           var isOrderAscending = mc.getProperty("uri.var.isOrderAscending");
+	           var fields = mc.getProperty("uri.var.fields");
+	           var jsonPayloadString = '"survey_id":"'+surveyId+'"';
+	        
+	        if (pageNumber != null && pageNumber != "") {
+				jsonPayloadString += ',"page":' + pageNumber;
+			}
+			
+			if (pageSize != null && pageSize != "") {
+				jsonPayloadString += ',"page_size":' + pageSize;
+			}
+			
+			if (startDate != null && startDate != "") {
+				jsonPayloadString += ',"start_date":"' + startDate + '"';
+			}
+			
+			if (endDate != null && endDate != "") {
+				jsonPayloadString += ',"end_date":"' + endDate + '"';
+			}
+			
+			if (name != null && name != "") {
+				jsonPayloadString += ',"name":"' + name + '"';
+			}
+			
+			if (isOrderAscending != null && isOrderAscending != "") {
+				jsonPayloadString += ',"order_asc":' + isOrderAscending;
+			}
+			
+			if (fields != null && fields != "") {
+				jsonPayloadString += ',"fields":' + fields;
+			}
+			
+			mc.setProperty('uri.var.jsonPayloadString', jsonPayloadString);	           					           
+					         ]]></script>
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				$1
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.jsonPayloadString')" />
+			</args>
+		</payloadFactory>
+
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/v2/surveys/get_collector_list?api_key={uri.var.apiKey}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="Access-Control-Expose-Headers" scope="transport" action="remove" />
+		<header name="X-Mashery-Message-ID" scope="transport" action="remove" />
+		<header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+		<header name="SM-Request-ID" scope="transport" action="remove" />
+		<header name="X-Mashery-Responder" scope="transport" action="remove" />
+
+	</sequence>
+
+</template>
