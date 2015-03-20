@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://mandrillapp.com/api/docs/messages.JSON.html#method=search -->
+<template name="searchMessages" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="query" description="Search terms to find matching messages." />
+   <parameter name="dateFrom" description="Search by start date." />
+   <parameter name="dateTo" description="Search by end date." />
+   <parameter name="limit" description="The maximum number of results to return, defaults to 100, 1000 is the maximum." />
+   <parameter name="tags"
+      description="An array of tag names to narrow the search to, will return messages that contain ANY of the tags." />
+   <parameter name="senders"
+      description="An array of sender addresses to narrow the search to, will return messages sent by ANY of the senders" />
+   <parameter name="apiKeys"
+      description="An array of API keys to narrow the search to, will return messages sent by ANY of the keys." />
+   <sequence>
+      <property name="uri.var.query" expression="$func:query" />
+      <property name="uri.var.dateFrom" expression="$func:dateFrom" />
+      <property name="uri.var.dateTo" expression="$func:dateTo" />
+      <property name="uri.var.limit" expression="$func:limit" />
+      <property name="uri.var.tags" expression="$func:tags" />
+      <property name="uri.var.senders" expression="$func:senders" />
+      <property name="uri.var.apiKeys" expression="$func:apiKeys" />
+      <payloadFactory media-type="json">
+         <format> 
+            {
+               "key": "$1"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.apiKey')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var jsonPayload = mc.getPayloadJSON();            
+            var apiKeys = mc.getProperty('uri.var.apiKeys');
+            var dateFrom = mc.getProperty('uri.var.dateFrom');
+            var dateTo = mc.getProperty('uri.var.dateTo');
+            var limit = mc.getProperty('uri.var.limit');
+            var query = mc.getProperty('uri.var.query');
+            var senders = mc.getProperty('uri.var.senders');
+            var tags = mc.getProperty('uri.var.tags');            
+            if (apiKeys != null && apiKeys != ""){
+               jsonPayload.api_keys = eval("(" + apiKeys + ")");
+            }            
+            if (dateFrom != null && dateFrom != ""){
+               jsonPayload.date_from = dateFrom;
+            }            
+            if (dateTo != null && dateTo != ""){
+               jsonPayload.date_to = dateTo;
+            }            
+            if (limit != null && limit != ""){
+               jsonPayload.limit = limit;
+            }            
+            if (query != null && query != ""){
+               jsonPayload.query = query;
+            }            
+            if (senders != null && senders != ""){
+               jsonPayload.senders = eval("(" + senders + ")");
+            }            
+            if (tags != null && tags != ""){
+               jsonPayload.tags = eval("(" + tags + ")");
+            }            
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      
+       <!--Mandrill API expects Content-Length Header -->
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+           
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/messages/search.{uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Access-Control-Allow-Credentials" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Headers" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Methods" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+   </sequence>
+</template>
