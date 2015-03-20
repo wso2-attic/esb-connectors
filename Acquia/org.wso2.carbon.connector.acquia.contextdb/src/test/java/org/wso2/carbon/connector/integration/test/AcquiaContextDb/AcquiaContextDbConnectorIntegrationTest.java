@@ -432,7 +432,7 @@ public class AcquiaContextDbConnectorIntegrationTest extends ESBIntegrationTest 
      */
     @Test(enabled=false,groups = {"wso2.esb"}, description = "AcquiaContextDb {importEvent} ")
     public void importEventMandatory() throws Exception {
-        String jsonRequestFilePath = pathToRequestsDirectory + "AcquiaContextDb_importEventMultpleEntry.txt";
+        String jsonRequestFilePath = pathToRequestsDirectory + "AcquiaContextDb_importEventOptional.txt";
         String methodName = "AcquiaContextDb_importEvent";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String modifiedJsonString = String.format(jsonString, AcquiaContextDbConnectorProperties.getProperty("secretKey"), AcquiaContextDbConnectorProperties.getProperty("accessKey"), AcquiaContextDbConnectorProperties.getProperty("accountId"),AcquiaContextDbConnectorProperties.getProperty("payload"));
