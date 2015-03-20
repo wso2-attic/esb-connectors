@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
    WSO2 Inc. licenses this file to you under the Apache License,
    Version 2.0 (the "License"); you may not use this file except
    in compliance with the License.
@@ -17,13 +17,13 @@
 -->
 <template name="createSync" xmlns="http://ws.apache.org/ns/synapse">
     <parameter name="callbackUrl" description="Specifies maximum number of records to return."/>
-    <parameter name="createdAt" description="List of fields to be included in the operation."/>
-    <parameter name="createdBy" description="Time until the definition will be deleted."/>
+    <parameter name="createdAt" description="Timestamp when the definition was created."/>
+    <parameter name="createdBy" description="User who created the definition."/>
     <parameter name="status" description="Specifies what data should be included in the export."/>
-    <parameter name="syncedInstanceUri" description="User who created the definition."/>
-    <parameter name="syncEndedAt" description="Time until the staged data will be deleted."/>
-    <parameter name="syncStartedAt" description="The amount of space required to store staged data."/>
-    <parameter name="uri" description="Specifies the maximum number of records to export."/>
+    <parameter name="syncedInstanceUri" description="Must specify an existing definition uri."/>
+    <parameter name="syncEndedAt" description="Timestamp when the sync ends."/>
+    <parameter name="syncStartedAt" description="Timestamp when the sync started."/>
+    <parameter name="uri" description="System- generated URI that defines the definition for future referencing."/>
 
     <sequence>
         <property name="uri.var.status" expression="$func:status"/>
@@ -38,11 +38,11 @@
         <payloadFactory media-type="json">
             <format>
                 {
-                "status": "$1"
+                "syncedInstanceUri": "$1"
                 }
             </format>
             <args>
-                <arg expression="get-property('uri.var.status')"/>
+                <arg expression="get-property('uri.var.syncedInstanceUri')"/>
             </args>
         </payloadFactory>
         <script language="js"><![CDATA[
@@ -50,7 +50,7 @@
 		    var callbackUrl = mc.getProperty('uri.var.callbackUrl');
 			var createdAt = mc.getProperty('uri.var.createdAt');
 			var createdBy = mc.getProperty('uri.var.createdBy');
-			var syncedInstanceUri = mc.getProperty('uri.var.syncedInstanceUri');
+			var status = mc.getProperty('uri.var.status');
 			var syncEndedAt = mc.getProperty('uri.var.syncEndedAt');
 			var syncStartedAt = mc.getProperty('uri.var.syncStartedAt');
 			var uri = mc.getProperty('uri.var.uri');
@@ -68,8 +68,8 @@
             if (createdBy != null && createdBy != "") {
                payload["createdBy"]=createdBy;
             }
-            if (syncedInstanceUri != null && syncedInstanceUri != "") {
-				payload["syncedInstanceUri"]=syncedInstanceUri;
+            if (status != null && status != "") {
+				payload["status"]=status;
 			}
 			if (syncEndedAt != null && syncEndedAt != "") {
                payload["syncEndedAt"]=syncEndedAt;
