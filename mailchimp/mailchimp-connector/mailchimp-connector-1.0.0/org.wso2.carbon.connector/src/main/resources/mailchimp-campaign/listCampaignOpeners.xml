@@ -1,73 +1,81 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
 <template name="listCampaignOpeners" xmlns="http://ws.apache.org/ns/synapse">
-    <parameter name="campaignId" description="The campaign ID to pull stats for."/>
-    <parameter name="start" description="Control paging of lists, start results at this list #, defaults to 1st page of data (page 0)."/>
-    <parameter name="limit" description="Control paging of lists, number of lists to return with each call, defaults to 25 (max=100)."/>
-    <parameter name="sortField" description="Created (the created date, default) or web (the display order in the web app). Invalid values will fall back on created - case insensitive."/>
-    <parameter name="sortDirection" description="DESC for descending (default), ASC for Ascending."/>
-    <sequence>
-        <property name="uri.var.campaignId" expression="$func:campaignId" />
-        <property name="uri.var.start" expression="$func:start" />
-        <property name="uri.var.limit" expression="$func:limit" />
-        <property name="uri.var.sortField" expression="$func:sortField" />
-        <property name="uri.var.sortDirection" expression="$func:sortDirection" />
-
-        <payloadFactory media-type="json">
-            <format>
-                {
-                    "cid": "$1",
-                    "apikey": "$2"
-                }
-            </format>
-            <args>
-                <arg expression="get-property('uri.var.campaignId')"/>
-				<arg expression="get-property('uri.var.apiKey')"/>
-            </args>
-        </payloadFactory>
-
-        <script language="js">
+   <parameter name="campaignId" description="The campaign ID to pull stats for." />
+   <parameter name="start"
+      description="Control paging of lists, start results at this list #, defaults to 1st page of data (page 0)." />
+   <parameter name="limit"
+      description="Control paging of lists, number of lists to return with each call, defaults to 25 (max=100)." />
+   <parameter name="sortField"
+      description="Created (the created date, default) or web (the display order in the web app). Invalid values will fall back on created - case insensitive." />
+   <parameter name="sortDirection" description="DESC for descending (default), ASC for Ascending." />
+   <sequence>
+      <property name="uri.var.campaignId" expression="$func:campaignId" />
+      <property name="uri.var.start" expression="$func:start" />
+      <property name="uri.var.limit" expression="$func:limit" />
+      <property name="uri.var.sortField" expression="$func:sortField" />
+      <property name="uri.var.sortDirection" expression="$func:sortDirection" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "cid": "$1",
+               "apikey": "$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.campaignId')" />
+            <arg expression="get-property('uri.var.apiKey')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
             <![CDATA[
-                var jsonPayload = mc.getPayloadJSON();
-                
+                var jsonPayload = mc.getPayloadJSON();                
                 var limit = mc.getProperty('uri.var.limit');
                 var sortDirection = mc.getProperty('uri.var.sortDirection');
                 var sortField = mc.getProperty('uri.var.sortField');
-                var start = mc.getProperty('uri.var.start');
-				
+                var start = mc.getProperty('uri.var.start');				
                 var opts = new Object();
                 if (limit != null && limit != ""){
                     opts["limit"] = limit;
-                }
-                
+                }                
                 if (sortDirection != null && sortDirection != ""){
                     opts["sort_dir"] = sortDirection;
-                }
-                
+                }                
                 if (sortField != null && sortField != ""){
                     opts["sort_field"] = sortField;
-                }
-                
+                }                
                 if (start != null && start != ""){
                     opts["start"] = start;
                 }                
-                jsonPayload["opts"] = opts;
-                
+                jsonPayload["opts"] = opts;                
                 mc.setPayloadJSON(jsonPayload);
             ]]>
-        </script>
-		
-		<!--MailChimp API expects Content-Length Header-->
-		<property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
-
-        <call>
-            <endpoint>
-                <http method="post" uri-template="{uri.var.apiUrl}/reports/opened.{uri.var.format}"/>
-            </endpoint>
-        </call>
-
-        <!-- Remove custom Headers from the API Response -->
-        <header name="X-N" action="remove" scope="transport"/>
-        <header name="X-MailChimp-API-Error-Code" action="remove" scope="transport"/>
-
-    </sequence>
+      </script>
+      <!--MailChimp API expects Content-Length Header -->
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/reports/opened.{uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-N" action="remove" scope="transport" />
+      <header name="X-MailChimp-API-Error-Code" action="remove" scope="transport" />
+   </sequence>
 </template>

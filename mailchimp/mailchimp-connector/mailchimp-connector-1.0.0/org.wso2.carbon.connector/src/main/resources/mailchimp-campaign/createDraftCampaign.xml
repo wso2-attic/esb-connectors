@@ -1,62 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
 <template name="createDraftCampaign" xmlns="http://ws.apache.org/ns/synapse">
-    <parameter name="options" description="A struct of the standard options for this campaign."/>
-    <parameter name="content" description="The content for this campaign."/>
-    <parameter name="segmentOptions" description="Do segmentation within the Campaign."/>
-    <parameter name="typeOptions" description="Various extra options based on the campaign type."/>
-    <parameter name="type" description="The Campaign Type to create - one of 'regular', 'plaintext', 'absplit', 'ss', 'auto'."/>
-    
-    <sequence>
-        <property name="uri.var.options" expression="$func:options" />
-        <property name="uri.var.content" expression="$func:content" />
-        <property name="uri.var.segmentOptions" expression="$func:segmentOptions" />
-        <property name="uri.var.typeOptions" expression="$func:typeOptions" />
-        <property name="uri.var.type" expression="$func:type" />
-        
- 		<filter source="boolean(get-property('uri.var.typeOptions'))" regex="false">
-            <then>
-                <property name="uri.var.typeOptions" value="{}"/>
-            </then>
-        </filter>       
-        
-        <filter source="boolean(get-property('uri.var.segmentOptions'))" regex="false">
-            <then>
-                <property name="uri.var.segmentOptions" value="{}"/>
-            </then>
-        </filter>   
-                            
-        <payloadFactory media-type="json">
-            <format>
-                {
-                    "content": $1,
-                    "type": "$2",
-                    "options": $3,
-                    "apikey": "$4",
-                    "type_opts":$5,
-                    "segment_opts":$6                  
-                }
-            </format>
-            <args>
-                <arg expression="get-property('uri.var.content')"/>
-                <arg expression="get-property('uri.var.type')"/>
-                <arg expression="get-property('uri.var.options')"/>
-				<arg expression="get-property('uri.var.apiKey')"/>
-				<arg expression="get-property('uri.var.typeOptions')"/>
-				<arg expression="get-property('uri.var.segmentOptions')"/>
-            </args>
-        </payloadFactory> 
-       		
-		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
-
-        <call>
-            <endpoint>
-                <http method="post" uri-template="{uri.var.apiUrl}/campaigns/create.{uri.var.format}"/>
-            </endpoint>
-        </call>
-
-        <!-- Remove custom Headers from the API Response -->
-        <header name="X-N" action="remove" scope="transport"/>
-        <header name="X-MailChimp-API-Error-Code" action="remove" scope="transport"/>
-
-    </sequence>
+   <parameter name="options" description="A struct of the standard options for this campaign." />
+   <parameter name="content" description="The content for this campaign." />
+   <parameter name="segmentOptions" description="Do segmentation within the Campaign." />
+   <parameter name="typeOptions" description="Various extra options based on the campaign type." />
+   <parameter name="type" description="The Campaign Type to create - one of 'regular', 'plaintext', 'absplit', 'ss', 'auto'." />
+   <sequence>
+      <property name="uri.var.options" expression="$func:options" />
+      <property name="uri.var.content" expression="$func:content" />
+      <property name="uri.var.segmentOptions" expression="$func:segmentOptions" />
+      <property name="uri.var.typeOptions" expression="$func:typeOptions" />
+      <property name="uri.var.type" expression="$func:type" />
+      <filter source="boolean(get-property('uri.var.typeOptions'))" regex="false">
+         <then>
+            <property name="uri.var.typeOptions" value="{}" />
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.segmentOptions'))" regex="false">
+         <then>
+            <property name="uri.var.segmentOptions" value="{}" />
+         </then>
+      </filter>
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "content": $1,
+               "type": "$2",
+               "options": $3,
+               "apikey": "$4",
+               "type_opts":$5,
+               "segment_opts":$6
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.content')" />
+            <arg expression="get-property('uri.var.type')" />
+            <arg expression="get-property('uri.var.options')" />
+            <arg expression="get-property('uri.var.apiKey')" />
+            <arg expression="get-property('uri.var.typeOptions')" />
+            <arg expression="get-property('uri.var.segmentOptions')" />
+         </args>
+      </payloadFactory>
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/campaigns/create.{uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-N" action="remove" scope="transport" />
+      <header name="X-MailChimp-API-Error-Code" action="remove" scope="transport" />
+   </sequence>
 </template>

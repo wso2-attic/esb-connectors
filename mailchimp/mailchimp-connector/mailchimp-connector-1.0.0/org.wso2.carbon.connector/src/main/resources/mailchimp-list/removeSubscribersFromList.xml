@@ -16,20 +16,20 @@
    specific language governing permissions and limitations
    under the License.
 -->
-<template name="addSubscribersToList" xmlns="http://ws.apache.org/ns/synapse">
+<template name="removeSubscribersFromList" xmlns="http://ws.apache.org/ns/synapse">
    <parameter name="listId" description="The list ID to connect to." />
-   <parameter name="batch" description="An array of structs for each address to subscribe to the List." />
-   <parameter name="doubleOptin" description="Flag to control whether to send an opt-in confirmation email - defaults to true." />
-   <parameter name="updateExisting"
-      description="Flag to control whether to update members that are already subscribed to the list or to return an error, defaults to false (return error)." />
-   <parameter name="replaceInterests"
-      description="Flag to determine whether we replace the interest groups with the updated groups provided, or we add the provided groups to the member's interest groups (optional, defaults to true)." />
+   <parameter name="batch" description="An array of structs for each address to unsubscribe fo the List." />
+   <parameter name="deleteMember"
+      description="flag to completely delete the member from your list instead of just unsubscribing, default to false." />
+   <parameter name="sendNotify"
+      description="Flag to send the unsubscribe notification email to the address defined in the list email notification settings, defaults to false." />
+   <parameter name="sendGoodbye" description="Flag to send the goodbye email to the email addresses, defaults to true." />
    <sequence>
       <property name="uri.var.listId" expression="$func:listId" />
       <property name="uri.var.batch" expression="$func:batch" />
-      <property name="uri.var.doubleOptin" expression="$func:doubleOptin" />
-      <property name="uri.var.updateExisting" expression="$func:updateExisting" />
-      <property name="uri.var.replaceInterests" expression="$func:replaceInterests" />
+      <property name="uri.var.deleteMember" expression="$func:deleteMember" />
+      <property name="uri.var.sendNotify" expression="$func:sendNotify" />
+      <property name="uri.var.sendGoodbye" expression="$func:sendGoodbye" />
       <payloadFactory media-type="json">
          <format>
             {
@@ -47,17 +47,17 @@
       <script language="js">
             <![CDATA[
                 var jsonPayload = mc.getPayloadJSON();                
-                var doubleOptin = mc.getProperty('uri.var.doubleOptin');
-                var replaceInterests = mc.getProperty('uri.var.replaceInterests');
-                var updateExisting = mc.getProperty('uri.var.updateExisting');				
-                if (doubleOptin != null && doubleOptin != ""){
-                    jsonPayload["double_optin"] = doubleOptin;
+                var deleteMember = mc.getProperty('uri.var.deleteMember');
+                var sendGoodbye = mc.getProperty('uri.var.sendGoodbye');
+                var sendNotify = mc.getProperty('uri.var.sendNotify');				
+                if (deleteMember != null && deleteMember != ""){
+                    jsonPayload["delete_member"] = deleteMember;
                 }                
-                if (replaceInterests != null && replaceInterests != ""){
-                    jsonPayload["replace_interests"] = replaceInterests;
+                if (sendGoodbye != null && sendGoodbye != ""){
+                    jsonPayload["send_goodbye"] = sendGoodbye;
                 }                
-                if (updateExisting != null && updateExisting != ""){
-                    jsonPayload["update_existing"] = updateExisting;
+                if (sendNotify != null && sendNotify != ""){
+                    jsonPayload["send_notify"] = sendNotify;
                 }                
                 mc.setPayloadJSON(jsonPayload);
             ]]>
@@ -66,7 +66,7 @@
       <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
       <call>
          <endpoint>
-            <http method="post" uri-template="{uri.var.apiUrl}/lists/batch-subscribe.{uri.var.format}" />
+            <http method="post" uri-template="{uri.var.apiUrl}/lists/batch-unsubscribe.{uri.var.format}" />
          </endpoint>
       </call>
       <!-- Remove custom Headers from the API Response -->

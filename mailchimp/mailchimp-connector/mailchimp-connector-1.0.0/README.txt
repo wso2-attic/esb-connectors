@@ -64,11 +64,12 @@ Steps to follow when executing the Test Suite:
 	xvii)	createCampaignToName					-	To name to be used while creating the campaign.
 	xviii)	createCampaignTitleOptional				-	Optional Title to be used while creating campaign.
 	xix)	email									-	Email address to be subscribed to the List. (Need not be a real one - Stick to email format though)
-	xx)		saveStatus								-	Status value assigned by the API for created campaigns which are not yet sent. Use "save"
-	xxi)	sentStatus								-	Status value assigned by the API for sent campaigns. Use "sent"
-	xxii)	sleepTimeoutForSending					-	Time allowed for the campaign to be sent. Use "10000".
+	xx)		emailOptional							-	Email address to be subscribed to the List. (Need not be a real one - Stick to email format though)
+	xxi)	saveStatus								-	Status value assigned by the API for created campaigns which are not yet sent. Use "save"
+	xxii)	sentStatus								-	Status value assigned by the API for sent campaigns. Use "sent"
+	xxiii)	sleepTimeoutForSending					-	Time allowed for the campaign to be sent. Use "10000".
 		
-	* Properties iii), iv), v), ix), xiii), xiv), xix) needs to be changed for each execution of the Test Suite.
+	* Properties iii), iv), v), ix), xiii), xiv), xix), xx) needs to be changed for each execution of the Test Suite.
 		Hint: Use a number along with some text and increment the number for each run to change property values.
 	
  7. Navigate to "{MailChimp_Connector_Home}/mailchimp-connector/mailchimp-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
