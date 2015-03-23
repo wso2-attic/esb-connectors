@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="createCustomObjectExport" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="customObjectId" description="The id of the custom object."/>
+    <parameter name="name" description="Specifies maximum number of records to return."/>
+    <parameter name="fields" description="List of fields to be included in the operation."/>
+    <parameter name="autoDeleteDuration" description="Time until the definition will be deleted."/>
+    <parameter name="filter" description="Specifies what data should be included in the export."/>
+    <parameter name="createdAt" description="Timestamp when the definition was created."/>
+    <parameter name="createdBy" description="User who created the definition."/>
+    <parameter name="dataRetentionDuration" description="Time until the staged data will be deleted."/>
+    <parameter name="kbUsed" description="The amount of space required to store staged data."/>
+    <parameter name="maxRecords" description="Specifies the maximum number of records to export."/>
+    <parameter name="syncActions" description="Specifies additional operations to import or export."/>
+    <parameter name="updatedAt" description="Timestamp when the definition was updated."/>
+    <parameter name="updatedBy" description="User who updated the definition."/>
+    <parameter name="uri" description="System- generated URI that defines the definition for future referencing."/>
+
+    <sequence>
+        <property name="uri.var.customObjectId" expression="$func:customObjectId"/>
+        <property name="uri.var.name" expression="$func:name"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <property name="uri.var.autoDeleteDuration" expression="$func:autoDeleteDuration"/>
+        <property name="uri.var.filter" expression="$func:filter"/>
+        <property name="uri.var.createdAt" expression="$func:createdAt"/>
+        <property name="uri.var.createdBy" expression="$func:createdBy"/>
+        <property name="uri.var.dataRetentionDuration" expression="$func:dataRetentionDuration"/>
+        <property name="uri.var.kbUsed" expression="$func:kbUsed"/>
+        <property name="uri.var.maxRecords" expression="$func:maxRecords"/>
+        <property name="uri.var.syncActions" expression="$func:syncActions"/>
+        <property name="uri.var.updatedAt" expression="$func:updatedAt"/>
+        <property name="uri.var.updatedBy" expression="$func:updatedBy"/>
+        <property name="uri.var.uri" expression="$func:uri"/>
+
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "name": "$1"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.name')"/>
+            </args>
+        </payloadFactory>
+        <script language="js"><![CDATA[
+		    //request body param variables
+		    var fields = mc.getProperty('uri.var.fields');
+			var autoDeleteDuration = mc.getProperty('uri.var.autoDeleteDuration');
+			var filter = mc.getProperty('uri.var.filter');
+			var createdAt = mc.getProperty('uri.var.createdAt');
+			var createdBy = mc.getProperty('uri.var.createdBy');
+			var dataRetentionDuration = mc.getProperty('uri.var.dataRetentionDuration');
+			var kbUsed = mc.getProperty('uri.var.kbUsed');
+			var maxRecords = mc.getProperty('uri.var.maxRecords');
+			var syncActions = mc.getProperty('uri.var.syncActions');
+			var updatedAt = mc.getProperty('uri.var.updatedAt');
+			var updatedBy = mc.getProperty('uri.var.updatedBy');
+			var uri = mc.getProperty('uri.var.uri');
+
+			//Get the existing payload
+			var payload = mc.getPayloadJSON();
+
+            if (autoDeleteDuration != null && autoDeleteDuration != "") {
+				payload["autoDeleteDuration"]=autoDeleteDuration;
+			}
+			if (filter != null && filter != "") {
+               payload["filter"]=filter;
+            }
+            if (createdAt != null && createdAt != "") {
+               payload["createdAt"]=createdAt;
+            }
+            if (createdBy != null && createdBy != "") {
+				payload["createdBy"]=createdBy;
+			}
+			if (dataRetentionDuration != null && dataRetentionDuration != "") {
+               payload["dataRetentionDuration"]=dataRetentionDuration;
+            }
+            if (kbUsed != null && kbUsed != "") {
+               payload["kbUsed"]=kbUsed;
+            }
+            if (maxRecords != null && maxRecords != "") {
+				payload["maxRecords"]=maxRecords;
+			}
+			if (syncActions != null && syncActions != "") {
+               payload["syncActions"]=syncActions;
+            }
+            if (updatedAt != null && updatedAt != "") {
+               payload["updatedAt"]=updatedAt;
+            }
+            if (updatedBy != null && updatedBy != "") {
+				payload["updatedBy"]=updatedBy;
+			}
+			if (uri != null && uri != "") {
+               payload["uri"]=uri;
+            }
+            if (fields != null && fields != "") {
+                var txt = '{"fieldsList":'+fields+'}';
+                var obj = eval ("(" + txt + ")");
+                var query = '{';
+                var added = 0;
+                for(var key in obj.fieldsList){
+                    if(added == 0) {
+                        query = query+'\"'+key+'\":\"{{'+obj.fieldsList[key]+'}}\"';
+                        added = 1;
+                    }
+                    else {
+                        query = query + ',\"'+key+'\":\"{{'+obj.fieldsList[key]+'}}\"';
+                    }
+                }
+                query = query + '}';
+            }
+            var q = eval ("(" + query + ")");
+            payload["fields"]=q;
+
+			//Set the newly constructed payload
+			mc.setPayloadJSON(payload);
+        	]]>
+        </script>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"></property>
+        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"/>
+        <header name="Content-Type"  value="application/json" scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.apiUrl}customObjects/{uri.var.customObjectId}/exports" />
+            </endpoint>
+        </call>
+    </sequence>
+</template>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
    WSO2 Inc. licenses this file to you under the Apache License,
    Version 2.0 (the "License"); you may not use this file except
    in compliance with the License.
@@ -50,17 +50,16 @@
         <payloadFactory media-type="json">
             <format>
                 {
-                "name":"$1",
-                "fields":$2
+                "name":"$1"
                 }
             </format>
             <args>
                 <arg expression="get-property('uri.var.name')"/>
-                <arg expression="get-property('uri.var.fields')"/>
             </args>
         </payloadFactory>
         <script language="js"><![CDATA[
 		    //request body param variables
+		    var fields = mc.getProperty('uri.var.fields');
 			var autoDeleteDuration = mc.getProperty('uri.var.autoDeleteDuration');
 			var filter = mc.getProperty('uri.var.filter');
 			var createdAt = mc.getProperty('uri.var.createdAt');
@@ -109,6 +108,25 @@
 			if (uri != null && uri != "") {
                payload["uri"]=uri;
             }
+            if (fields != null && fields != "") {
+                var txt = '{"fieldsList":'+fields+'}';
+                var obj = eval ("(" + txt + ")");
+                var query = '{';
+                var added = 0;
+                for(var key in obj.fieldsList){
+                    if(added == 0) {
+                        query = query+'\"'+key+'\":\"{{'+obj.fieldsList[key]+'}}\"';
+                        added = 1;
+                    }
+                    else {
+                        query = query + ',\"'+key+'\":\"{{'+obj.fieldsList[key]+'}}\"';
+                    }
+                }
+                query = query + '}';
+            }
+            var q = eval ("(" + query + ")");
+            payload["fields"]=q;
+
 			//Set the newly constructed payload
 			mc.setPayloadJSON(payload);
         	]]>

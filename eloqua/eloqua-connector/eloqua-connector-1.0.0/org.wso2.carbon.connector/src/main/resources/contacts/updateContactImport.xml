@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
    WSO2 Inc. licenses this file to you under the Apache License,
    Version 2.0 (the "License"); you may not use this file except
    in compliance with the License.
@@ -26,7 +26,7 @@
     <parameter name="dataRetentionDuration" description="Time until the staged data will be deleted."/>
     <parameter name="identifierFieldName" description="Specifies which field to use to match the imported data to existing Eloqua data."/>
     <parameter name="kbUsed" description="The amount of space required to store staged data."/>
-    <parameter name="maxRecords" description="Specifies the maximum number of records to export."/>
+    <parameter name="updateRule" description="Specifies how updates should be handled."/>
     <parameter name="syncActions" description="Specifies additional operations to import or export."/>
     <parameter name="updatedAt" description="Timestamp when the definition was updated."/>
     <parameter name="updatedBy" description="User who updated the definition."/>
@@ -43,7 +43,7 @@
         <property name="uri.var.dataRetentionDuration" expression="$func:dataRetentionDuration"/>
         <property name="uri.var.identifierFieldName" expression="$func:identifierFieldName"/>
         <property name="uri.var.kbUsed" expression="$func:kbUsed"/>
-        <property name="uri.var.maxRecords" expression="$func:maxRecords"/>
+        <property name="uri.var.updateRule" expression="$func:updateRule"/>
         <property name="uri.var.syncActions" expression="$func:syncActions"/>
         <property name="uri.var.updatedAt" expression="$func:updatedAt"/>
         <property name="uri.var.updatedBy" expression="$func:updatedBy"/>
@@ -53,27 +53,25 @@
             <format>
                 {
                 "name":"$1",
-                "fields":$2,
-                "identifierFieldName":"$3"
+                "identifierFieldName":"$2"
                 }
             </format>
             <args>
                 <arg expression="get-property('uri.var.name')"/>
-                <arg expression="get-property('uri.var.fields')"/>
                 <arg expression="get-property('uri.var.identifierFieldName')"/>
             </args>
         </payloadFactory>
 
         <script language="js"><![CDATA[
 		    //request body param variables
+		    var fields = mc.getProperty('uri.var.fields');
 			var autoDeleteDuration = mc.getProperty('uri.var.autoDeleteDuration');
 			var isUpdatingMultipleMatchedRecords = mc.getProperty('uri.var.isUpdatingMultipleMatchedRecords');
 			var createdAt = mc.getProperty('uri.var.createdAt');
 			var createdBy = mc.getProperty('uri.var.createdBy');
 			var dataRetentionDuration = mc.getProperty('uri.var.dataRetentionDuration');
-			var identifierFieldName = mc.getProperty('uri.var.identifierFieldName');
 			var kbUsed = mc.getProperty('uri.var.kbUsed');
-			var maxRecords = mc.getProperty('uri.var.maxRecords');
+			var updateRule = mc.getProperty('uri.var.updateRule');
 			var syncActions = mc.getProperty('uri.var.syncActions');
 			var updatedAt = mc.getProperty('uri.var.updatedAt');
 			var updatedBy = mc.getProperty('uri.var.updatedBy');
@@ -97,14 +95,11 @@
 			if (dataRetentionDuration != null && dataRetentionDuration != "") {
                payload["dataRetentionDuration"]=dataRetentionDuration;
             }
-            if (identifierFieldName != null && identifierFieldName != "") {
-               payload["identifierFieldName"]=identifierFieldName;
-            }
             if (kbUsed != null && kbUsed != "") {
                payload["kbUsed"]=kbUsed;
             }
-            if (maxRecords != null && maxRecords != "") {
-				payload["maxRecords"]=maxRecords;
+            if (updateRule != null && updateRule != "") {
+				payload["updateRule"]=updateRule;
 			}
 			if (syncActions != null && syncActions != "") {
                payload["syncActions"]=syncActions;
@@ -118,6 +113,25 @@
 			if (uri != null && uri != "") {
                payload["uri"]=uri;
             }
+            if (fields != null && fields != "") {
+                var txt = '{"fieldsList":'+fields+'}';
+                var obj = eval ("(" + txt + ")");
+                var query = '{';
+                var added = 0;
+                for(var key in obj.fieldsList){
+                    if(added == 0) {
+                        query = query+'\"'+key+'\":\"{{'+obj.fieldsList[key]+'}}\"';
+                        added = 1;
+                    }
+                    else {
+                        query = query + ',\"'+key+'\":\"{{'+obj.fieldsList[key]+'}}\"';
+                    }
+                }
+                query = query + '}';
+            }
+            var q = eval ("(" + query + ")");
+            payload["fields"]=q;
+
 			//Set the newly constructed payload
 			mc.setPayloadJSON(payload);
         	]]>
