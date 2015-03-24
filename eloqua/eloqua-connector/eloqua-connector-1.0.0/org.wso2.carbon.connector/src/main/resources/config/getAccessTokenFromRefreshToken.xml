@@ -37,18 +37,27 @@
         <payloadFactory media-type="json">
             <format>
                 {
-
+                "grant_type":"refresh_token",
+                "refresh_token":"$1",
+                "redirect_uri":"$2",
+                "scope":"$3"
                 }
             </format>
+            <args>
+                <arg expression="get-property('uri.var.refreshToken')"/>
+                <arg expression="get-property('uri.var.redirectUri')"/>
+                <arg expression="get-property('uri.var.scope')"/>
+            </args>
         </payloadFactory>
         <property name="eloqua.authHeader"
                   expression="fn:concat(get-property('eloqua.clientId'),':',get-property('eloqua.clientSecret'))"/>
-        <header name="Authorization" expression="fn:concat('Basic ',base64Encode(get-property('eloqua.authHeader')))" scope="transport"/>
-        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
-        <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+        <header name="Content-Type" value="application/json" scope="transport"/>
+        <header name="Authorization" expression="fn:concat('Basic ',base64Encode(get-property('eloqua.authHeader')))"
+                scope="transport"/>
+        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"/>
         <call>
             <endpoint>
-                <http method="post" uri-template="https://login.eloqua.com/auth/oauth2/token?grant_type=refresh_token&amp;refresh_token={uri.var.refreshToken}&amp;redirect_uri={uri.var.redirectUri}&amp;scope={uri.var.scope}"/>
+                <http method="post" uri-template="https://login.eloqua.com/auth/oauth2/token"/>
             </endpoint>
         </call>
         <filter source="$axis2:HTTP_SC" regex="[2][0][0]">
@@ -56,7 +65,7 @@
                 <property name="accessToken" expression="json-eval($.access_token)"/>
                 <header name="Authorization" expression="fn:concat('Bearer ',get-property('accessToken'))"
                         scope="transport"/>
-                <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
+                <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"/>
                 <call>
                     <endpoint>
                         <http method="GET"

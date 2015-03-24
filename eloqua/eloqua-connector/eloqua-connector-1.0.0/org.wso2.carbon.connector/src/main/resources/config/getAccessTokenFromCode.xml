@@ -34,30 +34,34 @@
         <payloadFactory media-type="json">
             <format>
                 {
-
+                "grant_type":"authorization_code",
+                "code":"$1",
+                "redirect_uri":"$2"
                 }
             </format>
+            <args>
+                <arg expression="get-property('uri.var.code')"/>
+                <arg expression="get-property('uri.var.redirectUri')"/>
+            </args>
         </payloadFactory>
         <property name="eloqua.authHeader"
                   expression="fn:concat(get-property('eloqua.clientId'),':',get-property('eloqua.clientSecret'))"/>
-        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
+        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"/>
+        <header name="Content-Type" value="application/json" scope="transport"/>
         <header name="Authorization" expression="fn:concat('Basic ',base64Encode(get-property('eloqua.authHeader')))"
                 scope="transport"/>
-        <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
         <call>
             <endpoint>
-                <http method="post"
-                      uri-template="https://login.eloqua.com/auth/oauth2/token?grant_type=authorization_code&amp;code={uri.var.code}&amp;redirect_uri={uri.var.redirectUri}"/>
+                <http method="post" uri-template="https://login.eloqua.com/auth/oauth2/token"/>
             </endpoint>
         </call>
         <filter source="$axis2:HTTP_SC" regex="[2][0][0]">
             <then>
                 <property name="accessToken" expression="json-eval($.access_token)"/>
                 <property name="refreshToken" expression="json-eval($.refresh_token)"/>
-                <!--<log> <property name="lala" expression="get-property('refreshToken')"/></log>-->
                 <header name="Authorization" expression="fn:concat('Bearer ',get-property('accessToken'))"
                         scope="transport"/>
-                <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"></property>
+                <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"/>
                 <call>
                     <endpoint>
                         <http method="GET"
@@ -72,9 +76,6 @@
                     mc.setProperty("uri.var.apiUrl",apiUrl);
                 ]]>
                 </script>
-                <log>
-                    <property name="lala" expression="get-property('uri.var.apiUrl')"/>
-                </log>
                 <header name="Authorization" expression="fn:concat('Bearer ',get-property('accessToken'))"
                         scope="transport"/>
             </then>
