@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="createSubscription" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="planCode" description="The Plan code for the subscription." />
+   <parameter name="account" description="The account details." />
+   <parameter name="currency" description="The Currency for the subscription." />
+   <parameter name="subscriptionAddOns" description="The subscription AddOns." />
+   <parameter name="couponCode" description="The coupon code to apply to the new subscription." />
+   <parameter name="unitAmountInCents" description="The unit amount of the subscription plan in cents." />
+   <parameter name="quantity" description="The quantity." />
+   <parameter name="trialEndsAt" description="If set, overrides the default trial behavior for the subscription." />
+   <parameter name="startsAt" description="If set, the subscription will begin in the future on this date." />
+   <parameter name="totalBillingCycles" description="Renews the subscription for a specified number of cycles." />
+   <parameter name="firstRenewalDate" description="Indicates a date at which the first renewal should occur." />
+   <parameter name="collectionMethod" description="The collection method to set the collection for an invoice." />
+   <parameter name="bulk"
+      description="The bulk to be used only when needing to bypass the 60 second limit on creating subscriptions." />
+   <parameter name="termsAndConditions" description="The terms and conditions." />
+   <parameter name="customerNotes"
+      description="The customerNotes will default to the Customer Notes text specified on the Invoice Settings page in your Recurly admin." />
+   <parameter name="vatReverseChargeNotes" description="The VAT Reverse Charge Notes only appear if you have EU VAT enabled." />
+
+   <sequence>
+      <property name="uri.var.planCode" expression="$func:planCode" />
+      <property name="uri.var.account" expression="$func:account" />
+      <property name="uri.var.currency" expression="$func:currency" />
+      <property name="uri.var.subscriptionAddOns" expression="$func:subscriptionAddOns" />
+      <property name="uri.var.couponCode" expression="$func:couponCode" />
+      <property name="uri.var.unitAmountInCents" expression="$func:unitAmountInCents" />
+      <property name="uri.var.quantity" expression="$func:quantity" />
+      <property name="uri.var.trialEndsAt" expression="$func:trialEndsAt" />
+      <property name="uri.var.startsAt" expression="$func:startsAt" />
+      <property name="uri.var.totalBillingCycles" expression="$func:totalBillingCycles" />
+      <property name="uri.var.firstRenewalDate" expression="$func:firstRenewalDate" />
+      <property name="uri.var.collectionMethod" expression="$func:collectionMethod" />
+      <property name="uri.var.bulk" expression="$func:bulk" />
+      <property name="uri.var.termsAndConditions" expression="$func:termsAndConditions" />
+      <property name="uri.var.customerNotes" expression="$func:customerNotes" />
+      <property name="uri.var.vatReverseChargeNotes" expression="$func:vatReverseChargeNotes" />
+
+      <payloadFactory media-type="xml">
+         <format>
+            <subscription xmlns="">
+               <plan_code>$1</plan_code>
+               <currency>$2</currency>
+               <account>$3</account>
+               <subscription_add_ons>$4</subscription_add_ons>
+               <coupon_code>$5</coupon_code>
+               <quantity>$6</quantity>
+               <trial_ends_at>$7</trial_ends_at>
+               <starts_at>$8</starts_at>
+               <total_billing_cycles>$9</total_billing_cycles>
+               <first_renewal_date>$10</first_renewal_date>
+               <collection_method>$11</collection_method>
+               <bulk>$12</bulk>
+               <terms_and_conditions>$13</terms_and_conditions>
+               <customer_notes>$14</customer_notes>
+               <vat_reverse_charge_notes>$15</vat_reverse_charge_notes>
+               <unit_amount_in_cents>$16</unit_amount_in_cents>
+            </subscription>
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.planCode')" />
+            <arg expression="get-property('uri.var.currency')" />
+            <arg expression="get-property('uri.var.account')" />
+            <arg expression="get-property('uri.var.subscriptionAddOns')" />
+            <arg expression="get-property('uri.var.couponCode')" />
+            <arg expression="get-property('uri.var.quantity')" />
+            <arg expression="get-property('uri.var.trialEndsAt')" />
+            <arg expression="get-property('uri.var.startsAt')" />
+            <arg expression="get-property('uri.var.totalBillingCycles')" />
+            <arg expression="get-property('uri.var.firstRenewalDate')" />
+            <arg expression="get-property('uri.var.collectionMethod')" />
+            <arg expression="get-property('uri.var.bulk')" />
+            <arg expression="get-property('uri.var.termsAndConditions')" />
+            <arg expression="get-property('uri.var.customerNotes')" />
+            <arg expression="get-property('uri.var.vatReverseChargeNotes')" />
+            <arg expression="get-property('uri.var.unitAmountInCents')" />
+         </args>
+      </payloadFactory>
+
+      <!-- Remove root element via XSLT -->
+      <xslt key="recurly_removeRootElement.xslt" />
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/subscriptions" />
+         </endpoint>
+      </call>
+
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-RateLimit-Limit" action="remove" scope="transport" />
+      <header name="X-RateLimit-Remaining" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="X-RateLimit-Reset" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="X-Records" action="remove" scope="transport" />
+      <header name="WWW-Authenticate" action="remove" scope="transport" />
+   </sequence>
+</template>

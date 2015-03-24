@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+  WSO2 Inc. licenses this file to you under the Apache License,
+  Version 2.0 (the "License"); you may not use this file except
+  in compliance with the License.
+  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<template name="listEmails" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="properties" description="A list of comma seporated property names which specifies the properties to be returned" />
+   <parameter name="emailFilter" description="Xml filter, containing the filter object with the condition to retrieve the Emails" />
+   <sequence>
+      <property name="uri.var.properties" expression="$func:properties" />
+      <property name="uri.var.emailFilter" expression="$func:emailFilter" />
+      <payloadFactory media-type="xml">
+         <format>
+            <soap-env:Envelope xmlns:soap-env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="http://exacttarget.com/wsdl/partnerAPI"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+               <soap-env:Header>
+                  <fueloauth xmlns="http://exacttarget.com">$1</fueloauth>
+               </soap-env:Header>
+               <soap-env:Body>
+                  <RetrieveRequestMsg xmlns="http://exacttarget.com/wsdl/partnerAPI">
+                  </RetrieveRequestMsg>
+               </soap-env:Body>
+            </soap-env:Envelope>
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.accessToken')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            // Generates the SOAP Body with optional parameters
+            var properties = mc.getProperty('uri.var.properties');
+            var emailFilter = mc.getProperty('uri.var.emailFilter');
+            var emailProperties = <RetrieveRequest xmlns="http://exacttarget.com/wsdl/partnerAPI"><ObjectType xmlns="http://exacttarget.com/wsdl/partnerAPI">Email</ObjectType></RetrieveRequest>;
+            var propertiesArray = properties.split(",");
+            var payload = mc.getPayloadXML();
+            
+            // appends properties elements to the RetrieveRequest element
+            for(var i = 0; i < propertiesArray.length; i++){
+               emailProperties.RetrieveRequest += <Properties xmlns="http://exacttarget.com/wsdl/partnerAPI">{propertiesArray[i]}</Properties>;
+            }
+
+            // Generates the xml Filter object 
+            if(emailFilter != null && emailFilter != ''){
+               emailFilter = eval('(' + emailFilter + ')');
+               emailProperties.RetrieveRequest +=  <Filter xmlns="http://exacttarget.com/wsdl/partnerAPI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="SimpleFilterPart">
+                                                      {emailFilter.Property}
+                                                      {emailFilter.SimpleOperator}
+                                                      {emailFilter.Value}
+                                                   </Filter>;
+            }
+            
+            payload.RetrieveRequestMsg = emailProperties;
+            mc.setPayloadXML(payload);
+         ]]>
+      </script>
+      <header name="To" expression="get-property('uri.var.apiUrl')" />
+      <header name="Action" value="Retrieve" />
+      <call>
+         <endpoint>
+            <default format="soap11" />
+         </endpoint>
+      </call>
+      <!-- Remove custom header information in response -->
+      <header name="X-AspNet-Version" scope="transport" action="remove" />
+      <header name="X-Powered-By" scope="transport" action="remove" />
+   </sequence>
+</template>

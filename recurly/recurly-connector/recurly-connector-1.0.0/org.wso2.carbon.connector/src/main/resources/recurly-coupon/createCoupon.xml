@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="createCoupon" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="couponCode" description="The unique identifier of the coupon to be created." />
+   <parameter name="name" description="The name of the coupon." />
+   <parameter name="discountType" description="The type of the discount as percent or dollars." />
+   <parameter name="hostedDescription" description="The description of the coupon on the hosted payment page." />
+   <parameter name="invoiceDescription" description="The description of the coupon on the invoice." />
+   <parameter name="redeemByDate" description="The last date to redeem the coupon." />
+   <parameter name="singleUse" description="The boolean flag indicating the coupon can be used only once." />
+   <parameter name="appliesForMonths" description="The number of months the coupon is valid after redemption." />
+   <parameter name="maxRedemptions" description="The maximum number of accounts that the coupon can be used." />
+   <parameter name="appliesToAllPlans" 
+      description="The boolean flag indicating whether the coupon is applied for all the plans." />
+   <parameter name="discountPercent" description="The discount percentage if discount_type is percent." />
+   <parameter name="discountInCents" 
+      description="The mapping of discount amounts by currency if discount_type is dollars." />
+   <parameter name="planCodes" description="The array of plan codes the coupon applies to." />
+
+   <sequence>
+      <property name="uri.var.couponCode" expression="$func:couponCode" />
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.discountType" expression="$func:discountType" />
+      <property name="uri.var.hostedDescription" expression="$func:hostedDescription" />
+      <property name="uri.var.invoiceDescription" expression="$func:invoiceDescription" />
+      <property name="uri.var.redeemByDate" expression="$func:redeemByDate" />
+      <property name="uri.var.singleUse" expression="$func:singleUse" />
+      <property name="uri.var.appliesForMonths" expression="$func:appliesForMonths" />
+      <property name="uri.var.maxRedemptions" expression="$func:maxRedemptions" />
+      <property name="uri.var.appliesToAllPlans" expression="$func:appliesToAllPlans" />
+      <property name="uri.var.discountPercent" expression="$func:discountPercent" />
+      <property name="uri.var.discountInCents" expression="$func:discountInCents" />
+      <property name="uri.var.planCodes" expression="$func:planCodes" />
+
+      <payloadFactory media-type="xml">
+         <format>
+            <coupon xmlns="">
+               <coupon_code>$1</coupon_code>
+               <name>$2</name>
+               <discount_type>$3</discount_type>
+               <discount_in_cents>$4</discount_in_cents>
+               <plan_codes>$5</plan_codes>
+               <hosted_description>$6</hosted_description>
+               <invoice_description>$7</invoice_description>
+               <redeem_by_date>$8</redeem_by_date>
+               <single_use>$9</single_use>
+               <applies_for_months>$10</applies_for_months>
+               <max_redemptions>$11</max_redemptions>
+               <applies_to_all_plans>$12</applies_to_all_plans>
+               <discount_percent>$13</discount_percent>
+            </coupon>
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.couponCode')" />
+            <arg expression="get-property('uri.var.name')" />
+            <arg expression="get-property('uri.var.discountType')" />
+            <arg expression="get-property('uri.var.discountInCents')" />
+            <arg expression="get-property('uri.var.planCodes')" />
+            <arg expression="get-property('uri.var.hostedDescription')" />
+            <arg expression="get-property('uri.var.invoiceDescription')" />
+            <arg expression="get-property('uri.var.redeemByDate')" />
+            <arg expression="get-property('uri.var.singleUse')" />
+            <arg expression="get-property('uri.var.appliesForMonths')" />
+            <arg expression="get-property('uri.var.maxRedemptions')" />
+            <arg expression="get-property('uri.var.appliesToAllPlans')" />
+            <arg expression="get-property('uri.var.discountPercent')" />
+         </args>
+      </payloadFactory>
+
+      <!-- Remove values element used as root element for multiroot cases via XSLT -->
+      <xslt key="recurly_removeRootElement.xslt" />
+
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/coupons" />
+         </endpoint>
+      </call>
+
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-RateLimit-Limit" action="remove" scope="transport" />
+      <header name="X-RateLimit-Remaining" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="X-RateLimit-Reset" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="X-Records" action="remove" scope="transport" />
+      <header name="WWW-Authenticate" action="remove" scope="transport" />
+   </sequence>
+</template>

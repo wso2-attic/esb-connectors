@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="recurly_sendRemindersThroughGmail" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- Recurly parameters -->
+         <property name="recurlyApiUrl" expression="json-eval($.recurlyApiUrl)" />
+         <property name="recurlyApiKey" expression="json-eval($.recurlyApiKey)" />
+         <property name="recurlyCursor" expression="json-eval($.recurlyCursor)" />
+         <property name="recurlyRecordsPerPage" expression="json-eval($.recurlyRecordsPerPage)" />
+
+         <!-- Gmail parameters -->
+         <property name="gmailUsername" expression="json-eval($.gmailUsername)" />
+         <property name="gmailOauthAccessToken" expression="json-eval($.gmailOauthAccessToken)" />
+
+         <!-- Properties required by faultHandler -->
+         <property name="processName" value="recurly_sendRemindersThroughGmail" scope="operation" />
+         <property name="activityName" value="recurly_sendingReminderMail" scope="operation" />
+
+         <!-- List active subscriptions in recurly -->
+         <recurly.init>
+            <apiUrl>{$ctx:recurlyApiUrl}</apiUrl>
+            <apiKey>{$ctx:recurlyApiKey}</apiKey>
+         </recurly.init>
+         <recurly.listSubscriptions>
+            <cursor>{$ctx:recurlyCursor}</cursor>
+            <state>in_trial</state>
+            <perPage>{$ctx:recurlyRecordsPerPage}</perPage>
+         </recurly.listSubscriptions>
+
+         <property name="subscriptionCount" expression="count(//subscription)" scope="operation" />
+         <!-- Set error if no subscriptions retrieved -->
+         <filter xpath="0 = get-property('operation', 'subscriptionCount')">
+            <then>
+               <property name="message" value="No subscriptions were found." />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="recurly_listSubscriptions" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <property name="index" expression="0" scope="operation" />
+         <property name="messageCount" expression="0" scope="operation" />
+
+         <!-- Subscriptions iterator -->
+         <iterate continueParent="true" id="subscriptionIterator" expression="//subscription" sequential="true">
+            <target>
+               <sequence>
+                  <property name="subscriptionTrialEndDate" expression="//subscription/trial_ends_at" />
+                  <property name="planCode" expression="//plan/plan_code" />
+                  <property name="today" expression="get-property('SYSTEM_DATE', 'yyyy-MM-dd' )" scope="default" />
+
+                  <!-- Format the created date to filter -->
+                  <script language="js">
+                  <![CDATA[
+                  
+                    var subscriptionTrialEndDate = mc.getProperty('subscriptionTrialEndDate');
+                    var currentDate = mc.getProperty('today');
+                    var cal1 = java.util.Calendar.getInstance();
+                    var cal2 = java.util.Calendar.getInstance();
+                    var isNumberOfDaysValid = "";
+            
+                    if (subscriptionTrialEndDate != null && subscriptionTrialEndDate != "") {
+                        subscriptionTrialEndDateFormated = subscriptionTrialEndDate.split('T')[0];
+                    }
+            
+                    cal1.setTime(new java.text.SimpleDateFormat("yyyy-MM-dd").parse(subscriptionTrialEndDate)); 
+                    cal2.setTime(new java.text.SimpleDateFormat("yyyy-MM-dd").parse(currentDate));
+                    //Number fo miliseconds per day = 86400000 = 1000*60*60*24
+                    var numberOfDays = ((cal1.getTime().getTime() - cal2.getTime().getTime())) / 86400000;
+            
+                    if (numberOfDays < 4) {
+                        isNumberOfDaysValid = true;
+                    } else {
+                        isNumberOfDaysValid = false;
+                    }
+            
+                    mc.setProperty("isNumberOfDaysValid", isNumberOfDaysValid); 
+                    mc.setProperty("numberOfDays", numberOfDays);]]>
+                  </script>
+
+                  <filter source="boolean(get-property('isNumberOfDaysValid'))" regex="true">
+                     <then>
+                        <property name="accountCode" expression="fn:substring-after(//account/@href,'accounts/')" />
+
+                        <!-- Get account details by account code in recurly -->
+                        <recurly.init>
+                           <apiUrl>{$ctx:recurlyApiUrl}</apiUrl>
+                           <apiKey>{$ctx:recurlyApiKey}</apiKey>
+                        </recurly.init>
+                        <recurly.getAccountByCode>
+                           <accountCode>{$ctx:accountCode}</accountCode>
+                        </recurly.getAccountByCode>
+
+                        <property name="email" expression="//email/text()" />
+
+                        <!-- Set error if no email is retrieved -->
+                        <filter source="boolean(get-property('email'))" regex="false">
+                           <then>
+                              <property name="message"
+                                 value="Failed to send the email to the user since the email ID does not exist." />
+                              <property name="id" expression="fn:concat('Account Code : ', get-property('accountCode') )" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="gmail_sendRemindersToRecipients" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="Skipped" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </then>
+                           <else>
+                              <property name="userName" expression="//first_name" />
+                              <property name="days" expression="get-property('numberOfDays')" scope="operation" />
+                              <property name="expireDate" expression="fn:substring-before(get-property('operation', 'days'),'.')" />
+                              
+                              <!-- Build the message body -->
+                              <payloadFactory media-type="json">
+                                 <format>{
+                                    "mailSubject": "Renew your $3 plan",
+                                    "mailContent": "Hi $1,\n\nPlease be informed that the $3 plan that you have subscribed for will be expired in $2 days."
+                                    }
+                                 </format>
+                                 <args>
+                                    <arg expression="get-property('userName')" />
+                                    <arg expression="get-property('expireDate')" />
+                                    <arg expression="get-property('planCode')" />
+                                 </args>
+                              </payloadFactory>
+
+                              <!-- Build the message body to send in gmail -->
+                              <property name="gmailSubject" expression="json-eval($.mailSubject)" />
+                              <property name="gmailTextContent" expression="json-eval($.mailContent)" />
+
+                              <!-- Send mail in Gmail -->
+                              <filter source="boolean(get-property('gmailOauthAccessToken'))" regex="true">
+                                 <then>
+                                    <gmail.init>
+                                       <username>{$ctx:gmailUsername}</username>
+                                       <oauthAccessToken>{$ctx:gmailOauthAccessToken}</oauthAccessToken>
+                                    </gmail.init>
+                                    <gmail.sendMail>
+                                       <subject>{$ctx:gmailSubject}</subject>
+                                       <toRecipients>{$ctx:email}</toRecipients>
+                                       <textContent>{$ctx:gmailTextContent}</textContent>
+                                    </gmail.sendMail>
+
+                                    <property name="messageSubject" expression="json-eval($.sendMailResponse.message.subject)" />
+
+                                    <filter source="boolean(get-property('messageSubject'))" regex="false">
+                                       <then>
+                                          <property name="status" value="Error" />
+                                          <property name="errorMessage" expression="json-eval($.)" scope="operation" />
+                                       </then>
+                                       <else>
+                                          <property name="messageCount" expression="get-property('operation','messageCount') + 1"
+                                             scope="operation" />
+                                       </else>
+                                    </filter>
+                                 </then>
+                                 <else>
+                                    <property name="status" value="Skipped" />
+                                    <property name="message" value="Gmail oauth access token is not provided in the request." />
+                                 </else>
+                              </filter>
+                           </else>
+                        </filter>
+                     </then>
+                  </filter>
+
+                  <property name="index" expression="get-property('operation','index') + 1" scope="operation" />
+               </sequence>
+            </target>
+         </iterate>
+
+         <!-- Check for all the iterations has completed -->
+         <filter xpath="get-property('operation', 'index') = get-property('operation', 'subscriptionCount')">
+            <then>
+               <filter xpath="0 != get-property('operation', 'messageCount')">
+                  <then>
+                     <property name="status" value="Success" />
+                     <property name="message"
+                        expression="fn:concat('A reminder has been sent successfully to ', fn:substring-before(get-property('operation', 'messageCount'),'.'), ' recepient(s).' )" />
+                  </then>
+                  <else>
+                     <property name="status" value="Error" />
+                     <property name="message" expression="get-property('operation', 'errorMessage')" />
+                  </else>
+               </filter>
+               <property name="activity" value="gmail_sendRemindersToRecipients" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="{$ctx:activity}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         
+      </inSequence>
+      <outSequence>
+      
+         <payloadFactory media-type="json">
+            <format>{
+               "Response":{
+               "activity":"recurly_sendRemindersThroughGmail",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+         
+      </outSequence>
+   </target>
+   <description />
+</proxy>

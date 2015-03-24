@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="listHistoricalWebinars" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="fromTime" description="The starting time of the webinar." />
+	<parameter name="toTime" description="The end time of the webinar session." />
+	<sequence>
+		<property name="uri.var.fromTime" expression="$func:fromTime" />
+		<property name="uri.var.toTime" expression="$func:toTime" />
+		
+		<script language="js">
+            <![CDATA[
+                var fromTime = mc.getProperty('uri.var.fromTime');
+                var toTime = mc.getProperty('uri.var.toTime');
+                
+                var urlQuery = '';
+                
+                if (fromTime != null && fromTime != ""){
+					urlQuery += 'fromTime=' + fromTime + '&' ;
+                }
+                
+                if (toTime != null && toTime != ""){
+					urlQuery += 'toTime=' + toTime+ '&' ;
+                }
+                
+                if (urlQuery != "") {
+                    urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+					mc.setProperty('uri.var.urlQuery', urlQuery);    
+                }   
+                
+            ]]>
+       </script>
+		
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}/organizers/{uri.var.organizerKey}/historicalWebinars{uri.var.urlQuery}" />
+			</endpoint>
+		</call>
+
+		<!-- Removing custom headers -->
+		<header name="Content-Language" action="remove" scope="transport" />
+		<header name="Access-Control-Allow-Headers" action="remove" scope="transport" />
+		<header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+		<header name="Vary" action="remove" scope="transport" />
+		<header name="Access-Control-Max-Age" action="remove" scope="transport" />
+		<header name="Access-Control-Allow-Methods" action="remove" scope="transport" />
+		<header name="ETag" action="remove" scope="transport" />
+
+	</sequence>
+</template>

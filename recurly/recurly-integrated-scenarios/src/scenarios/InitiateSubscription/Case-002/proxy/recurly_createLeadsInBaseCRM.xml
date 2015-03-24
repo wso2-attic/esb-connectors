@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="recurly_createLeadsInBaseCRM" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- Active Campaign parameters. -->
+         <property name="activeCampaignApiUrl" expression="json-eval($.activeCampaignApiUrl)" />
+         <property name="activeCampaignApiKey" expression="json-eval($.activeCampaignApiKey)" />
+         <property name="activeCampaignApiOutput" value="json" />
+         <property name="activeCampaignCampaignId" expression="json-eval($.activeCampaignCampaignId)" />
+         <property name="activeCampaignMessageId" expression="json-eval($.activeCampaignMessageId)" />
+
+         <!-- Base CRM parameters. -->
+         <property name="baseCRMApiUrl" expression="json-eval($.baseCRMApiUrl)" />
+         <property name="baseCRMnLeadUrl" expression="json-eval($.baseCRMnLeadUrl)" />
+         <property name="baseCRMEmail" expression="json-eval($.baseCRMEmail)" />
+         <property name="baseCRMPassword" expression="json-eval($.baseCRMPassword)" />
+
+         <!-- Workaround to eliminate the Host header issue in ActiveCampaign. -->
+         <property name="Host" value="host.wso2.com" scope="transport" />
+
+         <!-- Get campaign clickers. -->
+         <activecampaign.init>
+            <apiOutput>{$ctx:activeCampaignApiOutput}</apiOutput>
+            <apiUrl>{$ctx:activeCampaignApiUrl}</apiUrl>
+            <apiKey>{$ctx:activeCampaignApiKey}</apiKey>
+         </activecampaign.init>
+         <activecampaign.getCampaignClickers>
+            <campaignId>{$ctx:activeCampaignCampaignId}</campaignId>
+            <messageId>{$ctx:activeCampaignMessageId}</messageId>
+         </activecampaign.getCampaignClickers>
+         <sequence key="removeResponseHeaders" />
+
+         <property name="noUniqueClickers" expression="count(//jsonObject/_JsonReader_PD_0/info)" scope="operation" />
+         <property name="uniqueClickersIndex" value="0" scope="operation" />
+
+         <!-- Check if there are unique clickers. -->
+         <filter xpath="get-property('operation', 'noUniqueClickers') = 0">
+            <then>
+               <property name="id" expression="get-property('activeCampaignCampaignId')" />
+               <property name="status" value="Failed" />
+               <property name="message" expression="//jsonObject/result_message/text()" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="activecampaign_listCampaignClickers" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+
+               <iterate continueParent="true" id="clicker" expression="//jsonObject/_JsonReader_PD_0/info"
+                  sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="activeCampaingClickerEmail" expression="//info/email/text()" />
+
+                        <!-- Workaround to eliminate the Host header issue in ActiveCampaign. -->
+                        <property name="Host" value="host.wso2.com" scope="transport" />
+
+                        <!-- Get clicker details. -->
+                        <activecampaign.init>
+                           <apiUrl>{$ctx:activeCampaignApiUrl}</apiUrl>
+                           <apiKey>{$ctx:activeCampaignApiKey}</apiKey>
+                           <apiOutput>{$ctx:activeCampaignApiOutput}</apiOutput>
+                        </activecampaign.init>
+                        <activecampaign.getContactByEmail>
+                           <email>{$ctx:activeCampaingClickerEmail}</email>
+                        </activecampaign.getContactByEmail>
+                        <sequence key="removeResponseHeaders" />
+                        <property name="activeCamapignResultCode" expression="//jsonObject/result_code/text()" />
+
+                        <!-- Check clicker detail received successfully. -->
+                        <filter xpath="get-property('activeCamapignResultCode') &gt; 0">
+                           <then>
+                              <property name="activeCampaingClickerID" expression="//jsonObject/id/text()" />
+                              <property name="activeCampaingClickerFirstName" expression="//jsonObject/first_name/text()" />
+                              <property name="activeCampaingClickerLastName" expression="//jsonObject/last_name/text()" />
+                              <property name="activeCampaingClickerOrgName" expression="//jsonObject/orgname/text()" />
+                              <property name="activeCampaingClickerPhone" expression="//jsonObject/phone/text()" />
+
+                              <!-- Create lead for clicker. -->
+                              <basecrm.init>
+                                 <apiUrl>{$ctx:baseCRMApiUrl}</apiUrl>
+                                 <email>{$ctx:baseCRMEmail}</email>
+                                 <password>{$ctx:baseCRMPassword}</password>
+                              </basecrm.init>
+                              <basecrm.createLead>
+                                 <leadServiceUrl>{$ctx:baseCRMnLeadUrl}</leadServiceUrl>
+                                 <leadLastName>{$ctx:activeCampaingClickerLastName}</leadLastName>
+                                 <leadCompanyName>{$ctx:activeCampaingClickerOrgName}</leadCompanyName>
+                                 <leadFirstName>{$ctx:activeCampaingClickerFirstName}</leadFirstName>
+                                 <leadEmail>{$ctx:activeCampaingClickerEmail}</leadEmail>
+                                 <leadPhone>{$ctx:activeCampaingClickerPhone}</leadPhone>
+                              </basecrm.createLead>
+                              <sequence key="removeResponseHeaders" />
+                              
+                              <property name="baseCRMLeadCreationStatus" expression="//jsonObject/success/text()"
+                                 scope="operation" />
+
+                              <!-- Check weather the lead was created. -->
+                              <filter xpath="get-property('operation', 'baseCRMLeadCreationStatus') = 'true'">
+                                 <then>
+                                    <property name="baseCRMLeadID" expression="//jsonObject/lead/id/text()" />
+                                    <property name="id" expression="fn:concat('LeadID:',get-property('baseCRMLeadID'))" />
+                                    <property name="status" value="Success" />
+                                    <property name="message" value="Lead has been created successfully." />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="baseCRM_createLead" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                     <filter source="$axis2:HTTP_SC" regex="401">
+                                       <then>
+                                          <property name="id" expression="fn:concat('Clicker ID:',get-property('activeCampaingClickerID'))" />
+                                          <property name="status" value="Failed" />
+                                          <property name="message" value="Unauthorized API call" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="baseCRM_createlead" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                          <loopback />
+                                       </then>
+                                    </filter>
+                                    <property name="id"
+                                       expression="fn:concat('Clicker ID:',get-property('activeCampaingClickerID'))" />
+                                    <property name="status" value="Failed" />
+                                    <property name="message" value="Lead creation Failed." />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="baseCRM_createLead" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </else>
+                              </filter>
+                           </then>
+                           <else>
+                              <property name="id" expression="get-property('activeCampaingClickerEmail')" />
+                              <property name="status" value="Failed" />
+                              <property name="message" value="Clicker details not found." />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="activeCampaing_getClicker" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </else>
+                        </filter>
+
+                        <property name="uniqueClickersIndex" expression="get-property('operation','uniqueClickersIndex') + 1"
+                           scope="operation" />
+                     </sequence>
+                  </target>
+               </iterate>
+
+               <filter
+                  xpath="(get-property('operation', 'noUniqueClickers') = get-property('operation', 'uniqueClickersIndex'))">
+                  <then>
+                     <loopback />
+                  </then>
+               </filter>
+            </else>
+         </filter>
+
+      </inSequence>
+      <outSequence>
+
+         <payloadFactory media-type="json">
+            <format>{ "Response":{ "process":"recurly_initiateSubscription", "activityResponse":[$1] } }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+
+      </outSequence>
+   </target>
+   <description />
+</proxy>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="logout" xmlns="http://ws.apache.org/ns/synapse">
+    <sequence>
+        <property name="uri.var.salesforce.url"
+                  expression="fn:concat(get-property('operation','apiUrl'),'/services/Soap/u/',get-property('operation','apiVersion'))"/>
+        <payloadFactory>
+            <format>
+                <soapenv:Envelope
+                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                        xmlns:urn="urn:partner.soap.sforce.com">
+                    <soapenv:Header>
+                        <urn:SessionHeader>
+                            <urn:sessionId>$1</urn:sessionId>
+                        </urn:SessionHeader>
+                    </soapenv:Header>
+                    <soapenv:Body>
+                        <urn:logout/>
+                    </soapenv:Body>
+                </soapenv:Envelope>
+            </format>
+            <args>
+                <arg expression="get-property('operation','accessToken')"/>
+            </args>
+        </payloadFactory>
+
+
+        <property name="messageType" scope="axis2" value="text/xml"/>
+        <header name="Action" value="urn:partner.soap.sforce.com/Soap/logoutRequest"/>
+
+        <property value="true" name="FORCE_ERROR_ON_SOAP_FAULT"/>
+        <property name="HTTP_METHOD" scope="axis2" value="POST"/>
+        <header name="To" expression="$ctx:uri.var.salesforce.url"/>
+        <call>
+            <endpoint>
+                <default format="soap11">
+                    <timeout>
+                        <duration>60000</duration>
+                        <responseAction>fault</responseAction>
+                    </timeout>
+                    <suspendOnFailure>
+                        <initialDuration>2000</initialDuration>
+                        <progressionFactor>1.0</progressionFactor>
+                        <maximumDuration>3000</maximumDuration>
+                    </suspendOnFailure>
+                </default>
+            </endpoint>
+        </call>
+
+        <property name="salesforce.sessionId" scope="operation"
+                  type="STRING" value="" xmlns:ns="urn:partner.soap.sforce.com"/>
+        <property name="salesforce.serviceUrl" scope="operation"
+                  type="STRING" value="" xmlns:ns="urn:partner.soap.sforce.com"/>
+        <property name="salesforce.login.done" scope="operation"
+                  type="STRING" value="false"/>
+    </sequence>
+</template>

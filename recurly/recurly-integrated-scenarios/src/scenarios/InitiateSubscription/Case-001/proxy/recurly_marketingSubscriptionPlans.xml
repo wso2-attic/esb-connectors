@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="recurly_marketingSubscriptionPlans" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- Recurly parameters -->
+         <property name="recurlyApiUrl" expression="json-eval($.recurlyApiUrl)" />
+         <property name="recurlyApiKey" expression="json-eval($.recurlyApiKey)" />
+         <property name="recurlyPlanCode" expression="json-eval($.recurlyPlanCode)" />
+         <property name="recurlyPlanName" expression="json-eval($.recurlyPlanName)" />
+         <property name="recurlyUnitAmountInCents" expression="json-eval($.recurlyUnitAmountInCents)" />
+         <property name="recurlyDescription" expression="json-eval($.recurlyDescription)" />
+         <property name="recurlyAccountingCode" expression="json-eval($.recurlyAccountingCode)" />
+         <property name="recurlyPlanIntervalUnit" expression="json-eval($.recurlyPlanIntervalUnit)" />
+         <property name="recurlyPlanIntervalLength" expression="json-eval($.recurlyPlanIntervalLength)" />
+         <property name="recurlyTrialIntervalUnit" expression="json-eval($.recurlyTrialIntervalUnit)" />
+         <property name="recurlyTrialIntervalLength" expression="json-eval($.recurlyTrialIntervalLength)" />
+         <property name="recurlySetupFeeInCents" expression="json-eval($.recurlySetupFeeInCents)" />
+         <property name="recurlyTotalBillingCycles" expression="json-eval($.recurlyTotalBillingCycles)" />
+         <property name="recurlyUnitName" expression="json-eval($.recurlyUnitName)" />
+         <property name="recurlyDisplayQuantity" expression="json-eval($.recurlyDisplayQuantity)" />
+         <property name="recurlySuccessUrl" expression="json-eval($.recurlySuccessUrl)" />
+         <property name="recurlyCancelUrl" expression="json-eval($.recurlyCancelUrl)" />
+         <property name="recurlyTaxExempt" expression="json-eval($.recurlyTaxExempt)" />
+         <property name="recurlyTaxCode" expression="json-eval($.recurlyTaxCode)" />
+
+         <!-- ActiveCampaign parameters. -->
+         <property name="activeCampaignApiUrl" expression="json-eval($.activeCampaignApiUrl)" />
+         <property name="activeCampaignApiKey" expression="json-eval($.activeCampaignApiKey)" />
+         <property name="activeCampaignFormat" expression="json-eval($.activeCampaignFormat)" />
+         <property name="activeCampaignFromEmail" expression="json-eval($.activeCampaignFromEmail)" />
+         <property name="activeCampaignFromName" expression="json-eval($.activeCampaignFromName)" />
+         <property name="activeCampaignReplyTo" expression="json-eval($.activeCampaignReplyTo)" />
+         <property name="activeCampaignPriority" expression="json-eval($.activeCampaignPriority)" />
+         <property name="activeCampaignCharset" expression="json-eval($.activeCampaignCharset)" />
+         <property name="activeCampaignEncoding" expression="json-eval($.activeCampaignEncoding)" />
+         <property name="activeCampaignHtmlConstructor" expression="json-eval($.activeCampaignHtmlConstructor)" />
+         <property name="activeCampaignHtml" expression="json-eval($.activeCampaignHtml)" />
+         <property name="activeCampaignHtmlFetch" expression="json-eval($.activeCampaignHtmlFetch)" />
+         <property name="activeCampaignHtmlFetchWhen" expression="json-eval($.activeCampaignHtmlFetchWhen)" />
+         <property name="activeCampaignTextFetch" expression="json-eval($.activeCampaignTextFetch)" />
+         <property name="activeCampaignTextFetchWhen" expression="json-eval($.activeCampaignTextFetchWhen)" />
+         <property name="activeCampaignListIds" expression="json-eval($.activeCampaignListIds)" />
+         <property name="activeCampaignType" expression="json-eval($.activeCampaignType)" />
+         <property name="activeCampaignName" expression="json-eval($.activeCampaignName)" />
+         <property name="activeCampaignIsPublic" expression="json-eval($.activeCampaignIsPublic)" />
+         <property name="activeCampaignTrackLinks" expression="json-eval($.activeCampaignTrackLinks)" />
+
+         <!-- Constructing UnitAmmountInCent and SetupFeeInCents in order to send to Recurly API by converting JSON to XML
+            tags. -->
+         <script language="js">
+          <![CDATA[
+            var currencyObject = mc.getProperty("recurlyUnitAmountInCents");
+            var setupCurrencyObject = mc.getProperty("recurlySetupFeeInCents");
+            if (currencyObject != null && currencyObject != "") {
+               var currencyObject = eval("(" + currencyObject + ")");
+               var currencyString = "<values>";
+               for(var i = 0; i < currencyObject.length; i++) {
+                  var obj = currencyObject[i];
+                  currencyString = currencyString + "<" + obj.currencyCode + ">" + obj.units + "</" + obj.currencyCode + ">" ;
+               }
+               currencyString = currencyString + "</values>";
+               mc.setProperty("recurlyUnitAmountInCents",currencyString);
+            }
+            if (setupCurrencyObject != null && setupCurrencyObject != "") {
+               var setupCurrencyObject = eval("(" + setupCurrencyObject + ")");
+               var currencyString = "<values>";
+               for(var i = 0; i < setupCurrencyObject.length; i++) {
+                  var obj = setupCurrencyObject[i];
+                  currencyString = currencyString + "<" + obj.currencyCode + ">" + obj.units + "</" + obj.currencyCode + ">" ;
+               }
+               currencyString = currencyString + "</values>";
+               mc.setProperty("recurlySetupFeeInCents",currencyString);
+            }
+          ]]>
+         </script>
+
+         <property name="messageType" value="application/xml" scope="axis2" />
+         <!-- Creating plan. -->
+         <recurly.init>
+            <apiUrl>{$ctx:recurlyApiUrl}</apiUrl>
+            <apiKey>{$ctx:recurlyApiKey}</apiKey>
+         </recurly.init>
+         <recurly.createPlan>
+            <unitAmountInCents>{$ctx:recurlyUnitAmountInCents}</unitAmountInCents>
+            <planCode>{$ctx:recurlyPlanCode}</planCode>
+            <name>{$ctx:recurlyPlanName}</name>
+            <accountingCode>{$ctx:recurlyAccountingCode}</accountingCode>
+            <setupFeeInCents>{$ctx:recurlySetupFeeInCents}</setupFeeInCents>
+            <taxCode>{$ctx:recurlyTaxCode}</taxCode>
+            <successUrl>{$ctx:recurlySuccessUrl}</successUrl>
+            <trialIntervalLength>{$ctx:recurlyTrialIntervalLength}</trialIntervalLength>
+            <planIntervalLength>{$ctx:recurlyPlanIntervalLength}</planIntervalLength>
+            <trialIntervalUnit>{$ctx:recurlyTrialIntervalUnit}</trialIntervalUnit>
+            <description>{$ctx:recurlyDescription}</description>
+            <unitName>{$ctx:recurlyUnitName}</unitName>
+            <displayQuantity>{$ctx:recurlyDisplayQuantity}</displayQuantity>
+            <cancelUrl>{$ctx:recurlyCancelUrl}</cancelUrl>
+            <totalBillingCycles>{$ctx:recurlyTotalBillingCycles}</totalBillingCycles>
+            <planIntervalUnit>{$ctx:recurlyPlanIntervalUnit}</planIntervalUnit>
+            <taxExempt>{$ctx:recurlyTaxExempt}</taxExempt>
+         </recurly.createPlan>
+         <sequence key="removeResponseHeaders" />
+
+         <!-- Check plan created. -->
+         <filter source="$axis2:HTTP_SC" regex="201">
+            <then>
+               <!-- Creating a subscription link. -->
+               <property name="subscriptionLink"
+                  expression="fn:concat(get-property('recurlyApiUrl'), '/subscribe/', get-property('recurlyPlanCode'))" />
+               <property name="activeCampaignSubject" expression="fn:concat('Subscribe for the ',get-property('recurlyPlanName'),' plan')" />
+               <property name="activeCampaignEmailTextContent"
+                  expression="fn:concat('Dear User,\n\n This is to inform that we have introduced a ', get-property('recurlyPlanName'),' plan, which you might be interested in.\n\n To subscribe please click on ', get-property('subscriptionLink'))" />
+
+               <!-- Workaround to eliminate the Host header issue in ActiveCampaign. -->
+               <property name="Host" value="host.wso2.com" scope="transport" />
+
+               <!-- Create Email message. -->
+               <activecampaign.init>
+                  <apiUrl>{$ctx:activeCampaignApiUrl}</apiUrl>
+                  <apiKey>{$ctx:activeCampaignApiKey}</apiKey>
+                  <apiOutput>json</apiOutput>
+               </activecampaign.init>
+               <activecampaign.createMessage>
+                  <format>{$ctx:activeCampaignFormat}</format>
+                  <subject>{$ctx:activeCampaignSubject}</subject>
+                  <fromEmail>{$ctx:activeCampaignFromEmail}</fromEmail>
+                  <fromName>{$ctx:activeCampaignFromName}</fromName>
+                  <replyTo>{$ctx:activeCampaignReplyTo}</replyTo>
+                  <priority>{$ctx:activeCampaignPriority}</priority>
+                  <charset>{$ctx:activeCampaignCharset}</charset>
+                  <encoding>{$ctx:activeCampaignEncoding}</encoding>
+                  <htmlConstructor>{$ctx:activeCampaignHtmlConstructor}</htmlConstructor>
+                  <html>{$ctx:activeCampaignHtml}</html>
+                  <htmlFetch>{$ctx:activeCampaignHtmlFetch}</htmlFetch>
+                  <htmlFetchWhen>{$ctx:activeCampaignHtmlFetchWhen}</htmlFetchWhen>
+                  <textConstructor>editor</textConstructor>
+                  <text>{$ctx:activeCampaignEmailTextContent}</text>
+                  <textFetch>{$ctx:activeCampaignTextFetch}</textFetch>
+                  <textFetchWhen>{$ctx:activeCampaignTextFetchWhen}</textFetchWhen>
+                  <listIds>{$ctx:activeCampaignListIds}</listIds>
+               </activecampaign.createMessage>
+               <sequence key="removeResponseHeaders" />
+
+               <property name="activeCamapignResultCode" expression="//jsonObject/result_code/text()" />
+
+               <!-- Check Email message created. -->
+               <filter xpath="get-property('activeCamapignResultCode') = 0">
+                  <then>
+                     <property name="id" expression="fn:concat('PlanCode :',get-property('recurlyPlanCode'))" />
+                     <property name="status" value="Failed" />
+                     <property name="message" expression="fn:concat('ActiveCampaign create message failed : ', //jsonObject/result_message/text())" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="activecampaign_createCampaign" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <property name="activeCampaignMessageId" expression="//jsonObject/id/text()" />
+
+                     <!-- Set messageId parameter and set it to 100 percent and combine it with list details. -->
+                     <script language="js">
+                     <![CDATA[
+                     
+                        //Construct message and list deatils.
+                        var payload = new Object();
+                        var messageId = mc.getProperty("activeCampaignMessageId");
+                        var listDetails = mc.getProperty("activeCampaignListIds");
+                                                
+                        payload = eval('(' + listDetails + ')');
+                        payload ["m[" +messageId+"]"] = 100;
+                       
+                        mc.setPayloadJSON(payload);    
+                     ]]>
+                     </script>
+
+                     <property name="activeCampaignListDetails" expression="json-eval($.)" />
+                     <property name="activeCampaignSDate" expression="get-property('SYSTEM_DATE', 'yyyy-MM-dd HH:mm:ss')" />
+
+                     <!-- Workaround to eliminate the Host header issue in ActiveCampaign. -->
+                     <property name="Host" value="host.wso2.com" scope="transport" />
+
+                     <!-- Create campaign. -->
+                     <activecampaign.init>
+                        <apiUrl>{$ctx:activeCampaignApiUrl}</apiUrl>
+                        <apiKey>{$ctx:activeCampaignApiKey}</apiKey>
+                        <apiOutput>json</apiOutput>
+                     </activecampaign.init>
+                     <activecampaign.createCampaign>
+                        <type>{$ctx:activeCampaignType}</type>
+                        <name>{$ctx:activeCampaignName}</name>
+                        <sdate>{$ctx:activeCampaignSDate}</sdate>
+                        <isStatusScheduled>1</isStatusScheduled>
+                        <isPublic>{$ctx:activeCampaignIsPublic}</isPublic>
+                        <trackLinks>{$ctx:activeCampaignTrackLinks}</trackLinks>
+                        <listDetails>{$ctx:activeCampaignListDetails}</listDetails>
+                     </activecampaign.createCampaign>
+                     <sequence key="removeResponseHeaders" />
+
+                     <property name="activeCamapignResultCode" expression="//jsonObject/result_code/text()" />
+
+                     <!-- Check campaign created. -->
+                     <filter xpath="get-property('activeCamapignResultCode') = 0">
+                        <then>
+                           <property name="id" expression="fn:concat('PlanCode:',get-property('recurlyPlanCode'),',MessageID:',get-property('activeCampaignMessageId'))" />
+                           <property name="status" value="Failed" />
+                           <property name="message" expression="//jsonObject/result_message/text()" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="activeCampaign_createCampaign" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="{$ctx:status}" />
+                              <with-param name="message" value="{$ctx:message}" />
+                           </call-template>
+                           <loopback />
+                        </then>
+                        <else>
+                           <property name="activeCamapignCampaignId" expression="//jsonObject/id/text()" />
+                           <property name="id"
+                              expression="fn:concat('PlanCode:',get-property('recurlyPlanCode'),',MessageID:',get-property('activeCampaignMessageId'),',CampaignID:',get-property('activeCamapignCampaignId'))" />
+                           <property name="status" value="Success" />
+                           <property name="message" value="Campaign has been created successfully and scheduled to be sent." />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="activeCampaign_createCampaign" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="{$ctx:status}" />
+                              <with-param name="message" value="{$ctx:message}" />
+                           </call-template>
+                           <loopback />
+                        </else>
+                     </filter>
+                  </else>
+               </filter>
+            </then>
+            <else>
+               <property name="id" expression="fn:concat('PlanCode:',get-property('recurlyPlanCode'))" />
+               <property name="status" value="Failed" />
+               <filter source="$axis2:HTTP_SC" regex="401">
+                  <then>
+                     <property name="message" value="Unauthorized API call" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="recurly_createPlan" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <property name="errorCount" expression="count(//error)" scope="operation" />
+                     <property name="errorIndex" value="0" scope="operation" />
+
+                     <iterate continueParent="true" id="accountDetailsIterator" preservePayload="true"
+                        expression="//error" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="errorField" expression="//error/@field" scope="operation" />
+                              <property name="errorMessage" expression="//error/text()" scope="operation" />
+                              <filter xpath="(get-property('operation', 'errorIndex')=0)">
+                                 <then>
+                                    <property name="message"
+                                       expression="fn:concat(get-property('operation','errorField'),': ', get-property('operation','errorMessage'))"
+                                       scope="operation" />
+                                 </then>
+                                 <else>
+                                    <property name="message"
+                                       expression="fn:concat(get-property('operation','message'),', ',get-property('operation','errorField'),': ', get-property('operation','errorMessage'))"
+                                       scope="operation" />
+                                 </else>
+                              </filter>
+
+                              <property name="errorIndex" expression="get-property('operation','errorIndex') + 1"
+                                 scope="operation" />
+                           </sequence>
+                        </target>
+                     </iterate>
+
+                     <filter xpath="(get-property('operation', 'errorCount') = get-property('operation', 'errorIndex'))">
+                        <then>
+                           <property name="message" expression="get-property('operation','message')" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="recurly_createPlan" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="{$ctx:status}" />
+                              <with-param name="message" value="{$ctx:message}" />
+                           </call-template>
+                           <loopback />
+                        </then>
+                     </filter>
+                  </else>
+               </filter>
+            </else>
+         </filter>
+
+      </inSequence>
+      <outSequence>
+
+         <payloadFactory media-type="json">
+            <format>{ "Response":{ "process":"recurly_initiateSubscription", "activityResponse":[$1] } }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+
+      </outSequence>
+   </target>
+   <description />
+</proxy>
