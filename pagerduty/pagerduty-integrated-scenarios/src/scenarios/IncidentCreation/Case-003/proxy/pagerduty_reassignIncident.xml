@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="pagerduty_reassignIncident"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- PagerDuty API call related properties -->
+         <property name="pagerdutyApiUrl" expression="json-eval($.pagerdutyApiUrl)"/>
+         <property name="pagerdutyApiToken" expression="json-eval($.pagerdutyApiToken)"/>
+         <property name="pagerdutyIncidentId" expression="json-eval($.pagerdutyIncidentId)"/>
+         <property name="pagerdutyAssignedToUser" expression="json-eval($.pagerdutyAssignedToUser)"/>
+         <property name="pagerdutyRequesterId" expression="json-eval($.pagerdutyRequesterId)"/>
+         
+         <!-- Nexmo API call related properties -->
+         <property name="nexmoApiUrl" value="https://rest.nexmo.com"/>
+         <property name="nexmoApiKey" expression="json-eval($.nexmoApiKey)"/>
+         <property name="nexmoApiSecret" expression="json-eval($.nexmoApiSecret)"/>
+         <property name="nexmoFrom" expression="json-eval($.nexmoFrom)"/>
+         
+         <!-- Podio API call related properties -->
+         <property name="podioApiUrl" value="https://api.podio.com" />
+         <property name="podioAccessToken" expression="json-eval($.podioAccessToken)" />
+
+         <property name="responseString" value="" scope="operation" />
+
+         <!-- Reassign incident in PagerDuty -->
+         <pagerduty.init>
+            <apiUrl>{$ctx:pagerdutyApiUrl}</apiUrl>
+            <apiToken>{$ctx:pagerdutyApiToken}</apiToken>
+         </pagerduty.init>
+         <pagerduty.reassignIncident>
+            <incidentId>{$ctx:pagerdutyIncidentId}</incidentId>
+            <requesterId>{$ctx:pagerdutyRequesterId}</requesterId>
+            <assignedToUser>{$ctx:pagerdutyAssignedToUser}</assignedToUser>
+         </pagerduty.reassignIncident>
+
+         <property name="responseStatus" expression="$axis2:HTTP_SC" />
+         <filter xpath="get-property('responseStatus') != 200">
+            <then>
+               <property name="id"
+                  expression="fn:concat('pagerdutyIncidentId:', get-property('pagerdutyIncidentId'), ',pagerdutyAssignedToUser:', get-property('pagerdutyAssignedToUser'))" />
+               <property name="errorMessage" expression="fn:concat('(',$axis2:HTTP_SC,'), Cannot reassign the incident in PagerDuty')" />
+               <filter xpath="get-property('responseStatus') = 400">
+                  <then>
+                     <property name="apiResponseError" expression="json-eval($.error.message)" />
+                     <property name="errorMessage" expression="fn:concat(get-property('errorMessage'), '. Error: ', get-property('apiResponseError'))" />
+                  </then>
+               </filter>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="pagerduty_reassignIncident" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:errorMessage}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+            
+               <!-- Incident reassigned successfully -->
+               <property name="id"
+                        expression="fn:concat('pagerdutyIncidentId:', get-property('pagerdutyIncidentId'), ',pagerdutyAssignedToUser:', get-property('pagerdutyAssignedToUser'))" />
+               <property name="errorMessage" value="The incident has been successfully reassigned" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="pagerduty_reassignIncident" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Success" />
+                  <with-param name="message" value="{$ctx:errorMessage}" />
+               </call-template>
+            
+               <!-- Retrieve user contact method of type SMS -->
+               <pagerduty.init>
+                  <apiUrl>{$ctx:pagerdutyApiUrl}</apiUrl>
+                  <apiToken>{$ctx:pagerdutyApiToken}</apiToken>
+               </pagerduty.init>
+               <pagerduty.listContactMethods>
+                  <userId>{$ctx:pagerdutyAssignedToUser}</userId>
+               </pagerduty.listContactMethods>
+               
+               <property name="id"
+                        expression="fn:concat('pagerdutyIncidentId:', get-property('pagerdutyIncidentId'), ',pagerdutyAssignedToUser:', get-property('pagerdutyAssignedToUser'))" />
+               <property name="responseStatus" expression="$axis2:HTTP_SC" />
+               <filter xpath="get-property('responseStatus') != 200">
+                  <then>
+                     <property name="errorMessage" expression="fn:concat('(',$axis2:HTTP_SC,'), Cannot retrieve contact information from PagerDuty')" />
+                     <filter xpath="get-property('responseStatus') = 400">
+                        <then>
+                           <property name="apiResponseError" expression="json-eval($.error.message)" />
+                           <property name="errorMessage" expression="fn:concat(get-property('errorMessage'), '. Error: ', get-property('apiResponseError'))" />
+                        </then>
+                     </filter>
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="nexmo_sendMessage" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Error" />
+                        <with-param name="message" value="{$ctx:errorMessage}" />
+                     </call-template>
+                  </then>
+                  <else>
+                     
+                     <property name="countryCode" expression="//contact_methods[type = 'SMS']/country_code" />
+                     <property name="phoneNumber" expression="//contact_methods[type = 'SMS']/address" />
+                     <property name="nexmoMessageTo" expression="fn:concat(get-property('countryCode'), get-property('phoneNumber'))"/>
+                     
+                     <!-- Construct the message to be sent -->
+                     <property name="nexmoMessageText"
+                        expression="fn:concat('You have been assigned an incident in PagerDuty. Incident Id: ', get-property('pagerdutyIncidentId'))" />
+                     
+                     <!-- Send message to the assignee -->
+                     <nexmo.init>
+                        <responseType>json</responseType>
+                        <apiUrl>{$ctx:nexmoApiUrl}</apiUrl>
+                        <apiSecret>{$ctx:nexmoApiSecret}</apiSecret>
+                        <apiKey>{$ctx:nexmoApiKey}</apiKey>
+                     </nexmo.init>
+                     <nexmo.sendMessage>
+                        <to>{$ctx:nexmoMessageTo}</to>
+                        <text>{$ctx:nexmoMessageText}</text>
+                        <from>{$ctx:nexmoFrom}</from>
+                     </nexmo.sendMessage>
+                     
+                     <property name="id"
+                        expression="fn:concat('pagerdutyIncidentId:', get-property('pagerdutyIncidentId'), ',recipientPhoneNumber:', get-property('nexmoMessageTo'))" />
+                     <property name="apiResponseError" expression="json-eval($.messages[0].error-text)" />
+                     <filter source="boolean(get-property('apiResponseError'))" regex="true">
+                        <then>
+                           <property name="errorMessage" expression="fn:concat('Cannot send message via Nexmo. Error: ', get-property('apiResponseError'))" />
+                           <property name="status" value="Error" />
+                        </then>
+                        <else>
+                           <property name="errorMessage" value="Message has been successfully sent to the assignee via Nexmo" />
+                           <property name="status" value="Success" />
+                        </else>
+                     </filter>
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="nexmo_sendMessage" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:errorMessage}" />
+                     </call-template>
+                  </else>
+               </filter>
+               
+               <!-- Task creation in Podio happens along side with send message -->
+               <pagerduty.init>
+                  <apiUrl>{$ctx:pagerdutyApiUrl}</apiUrl>
+                  <apiToken>{$ctx:pagerdutyApiToken}</apiToken>
+               </pagerduty.init>
+               <pagerduty.getIncidentById>
+                  <incidentId>{$ctx:pagerdutyIncidentId}</incidentId>
+               </pagerduty.getIncidentById>
+               
+               <property name="id" expression="fn:concat('pagerdutyIncidentId:', get-property('pagerdutyIncidentId'))" />
+               <property name="responseStatus" expression="$axis2:HTTP_SC" />
+               <filter xpath="get-property('responseStatus') != 200">
+                  <then>
+                     <property name="errorMessage" expression="fn:concat('(',$axis2:HTTP_SC,'), Cannot retreive incident details from PagerDuty')" />
+                     <filter xpath="get-property('responseStatus') = 400">
+                        <then>
+                           <property name="apiResponseError" expression="json-eval($.error.message)" />
+                           <property name="errorMessage" expression="fn:concat(get-property('errorMessage'), '. Error: ', get-property('apiResponseError'))" />
+                        </then>
+                     </filter>
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="podio_createTask" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Error" />
+                        <with-param name="message" value="{$ctx:errorMessage}" />
+                     </call-template>
+                  </then>
+                  <else>
+                  
+                     <property name="incidentText" expression="json-eval($.trigger_summary_data.description)" />
+                     <!-- Create the task in Podio. -->
+                     <podio.init>
+                        <apiUrl>{$ctx:podioApiUrl}</apiUrl>
+                        <accessToken>{$ctx:podioAccessToken}</accessToken>
+                     </podio.init>
+                     <podio.createTask>
+                        <text>{$ctx:incidentText}</text>
+                        <externalId>{$ctx:pagerdutyIncidentId}</externalId>
+                     </podio.createTask>
+                     
+                     <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                     <filter xpath="get-property('responseStatus') != 200">
+                        <then>
+                           <property name="apiResponseError" expression="json-eval($.error_description)" />
+                           <property name="errorMessage"
+                              expression="fn:concat('(',$axis2:HTTP_SC,'), Cannot create a task in Podio. Error: ', get-property('apiResponseError'))" />
+                           <property name="status" value="Error" />
+                        </then>
+                        <else>
+                           <property name="podioTaskId" expression="json-eval($.task_id)" />
+                           <property name="id" expression="fn:concat(get-property('id'), ',podioTaskId:', get-property('podioTaskId'))" />
+                           <property name="errorMessage" value="Task has been successfully created in Podio" />
+                           <property name="status" value="Success" />
+                        </else>
+                     </filter>
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="podio_createTask" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:errorMessage}" />
+                     </call-template>
+                  </else>
+               </filter>
+               <loopback />
+            </else>
+         </filter>
+         
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <!-- Generate the chained response of all the API calls in createLeads -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"pagerduty_reassignIncident",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
