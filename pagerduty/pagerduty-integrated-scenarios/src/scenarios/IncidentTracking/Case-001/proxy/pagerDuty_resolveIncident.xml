@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pagerDuty_resolveIncident" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- Podio parameters -->
+         <property name="podioApiUrl" value="https://api.podio.com" />
+         <property name="podioAccessToken" expression="json-eval($.podioAccessToken)" />
+         <property name="podioTaskId" expression="json-eval($.podioTaskId)" />
+         <property name="podioIsHook" expression="json-eval($.podioIsHook)" />
+         <property name="podioIsSilent" expression="json-eval($.podioIsSilent)" />
+
+         <!-- PagerDuty parameters -->
+         <property name="pagerDutyApiUrl" expression="json-eval($.pagerDutyApiUrl)" />
+         <property name="pagerDutyApiToken" expression="json-eval($.pagerDutyApiToken)" />
+         <property name="pagerDutyRequesterId" expression="json-eval($.pagerDutyRequesterId)" />
+         <property name="pagerDutyNoteContent" expression="json-eval($.pagerDutyNoteContent)" />
+
+         <!-- SurveyMonkey parameters -->
+         <property name="surveyMonkeyApiUrl" value="https://api.surveymonkey.net" />
+         <property name="surveyMonkeyAccessToken" expression="json-eval($.surveyMonkeyAccessToken)" />
+         <property name="surveyMonkeyApiKey" expression="json-eval($.surveyMonkeyApiKey)" />
+         <property name="surveyMonkeyTitle" expression="json-eval($.surveyMonkeyTitle)" />
+         <property name="surveyMonkeySurveyId" expression="json-eval($.surveyMonkeySurveyId)" />
+
+         <!-- Gmail parameters -->
+         <property name="gmailUsername" expression="json-eval($.gmailUsername)" />
+         <property name="gmailOAuthAccessToken" expression="json-eval($.gmailOAuthAccessToken)" />
+
+         <!-- Complete Task. -->
+         <podio.init>
+            <apiUrl>{$ctx:podioApiUrl}</apiUrl>
+            <accessToken>{$ctx:podioAccessToken}</accessToken>
+         </podio.init>
+         <podio.completeTask>
+            <isSilent>{$ctx:podioIsSilent}</isSilent>
+            <taskId>{$ctx:podioTaskId}</taskId>
+            <isHook>{$ctx:podioIsHook}</isHook>
+         </podio.completeTask>
+
+         <!-- Check whether Task is completed. -->
+         <filter source="$axis2:HTTP_SC" regex="200">
+            <then>
+            
+               <property name="id" expression="fn:concat('Task ID :',get-property('podioTaskId'))" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="podio_completeTask" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Success" />
+                  <with-param name="message" value="Task has been marked as completed." />
+               </call-template>
+                           
+               <header name="Via" scope="transport" action="remove" />
+
+               <!-- Get Task. -->
+               <podio.init>
+                  <apiUrl>{$ctx:podioApiUrl}</apiUrl>
+                  <accessToken>{$ctx:podioAccessToken}</accessToken>
+               </podio.init>
+               <podio.getTask>
+                  <taskId>{$ctx:podioTaskId}</taskId>
+               </podio.getTask>
+
+               <property name="responseStatus" expression="$axis2:HTTP_SC" />
+               <filter xpath="get-property('responseStatus') != 200">
+                  <then>
+                     <property name="errorMessage" expression="//jsonObject/error_description/text()" />
+                     <property name="message"
+                        expression="fn:concat('Cannot retrieve task information from Podio. Error: ',get-property('errorMessage'))" />
+                     <property name="id" expression="fn:concat('Task ID :',get-property('podioTaskId'))" />
+                     <property name="status" value="Failed" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="pagerDuty_createNote" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+               </filter>
+
+               <property name="pagerDutyIncidentId" expression="//jsonObject/external_id/text()" />
+               <header name="Via" scope="transport" action="remove" />
+
+               <!-- Create Note. -->
+               <pagerduty.init>
+                  <apiUrl>{$ctx:pagerDutyApiUrl}</apiUrl>
+                  <apiToken>{$ctx:pagerDutyApiToken}</apiToken>
+               </pagerduty.init>
+               <pagerduty.createNote>
+                  <incidentId>{$ctx:pagerDutyIncidentId}</incidentId>
+                  <requesterId>{$ctx:pagerDutyRequesterId}</requesterId>
+                  <noteContent>{$ctx:pagerDutyNoteContent}</noteContent>
+               </pagerduty.createNote>
+
+               <!-- Check whether Note is added. -->
+               <filter source="$axis2:HTTP_SC" regex="201">
+                  <then>
+                     <header name="Via" scope="transport" action="remove" />
+
+                     <!-- Get Incident. -->
+                     <pagerduty.init>
+                        <apiUrl>{$ctx:pagerDutyApiUrl}</apiUrl>
+                        <apiToken>{$ctx:pagerDutyApiToken}</apiToken>
+                     </pagerduty.init>
+                     <pagerduty.getIncidentById>
+                        <incidentId>{$ctx:pagerDutyIncidentId}</incidentId>
+                     </pagerduty.getIncidentById>
+
+                     <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                     <filter xpath="get-property('responseStatus') != 200">
+                        <then>
+                           <property name="errorMessage" expression="//jsonObject/error/message/text()" />
+                           <property name="message"
+                              expression="fn:concat('Cannot retrieve incident information from PagerDuty. Error: ',get-property('errorMessage'))" />
+                           <property name="id" expression="fn:concat('Incident ID :',get-property('pagerDutyIncidentId'))" />
+                           <property name="status" value="Failed" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="pagerDuty_createNote" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="{$ctx:status}" />
+                              <with-param name="message" value="{$ctx:message}" />
+                           </call-template>
+                           <loopback />
+                        </then>
+                     </filter>
+
+                     <property name="pagerDutyClientEmail" expression="//jsonObject/trigger_summary_data/client/text()" />
+                     <property name="pagerDutyIncidentDesc" expression="//jsonObject/trigger_summary_data/description/text()" />
+                     <property name="pagerDutyAssigneeEmail" expression="//jsonObject/assigned_to_user/email/text()" />
+                     <header name="Via" scope="transport" action="remove" />
+
+                     <!-- Resolve Incident. -->
+                     <pagerduty.init>
+                        <apiUrl>{$ctx:pagerDutyApiUrl}</apiUrl>
+                        <apiToken>{$ctx:pagerDutyApiToken}</apiToken>
+                     </pagerduty.init>
+                     <pagerduty.resolveIncident>
+                        <incidentId>{$ctx:pagerDutyIncidentId}</incidentId>
+                        <requesterId>{$ctx:pagerDutyRequesterId}</requesterId>
+                     </pagerduty.resolveIncident>
+
+                     <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                     <filter xpath="get-property('responseStatus') != 200">
+                        <then>
+                           <property name="errorMessage" expression="//jsonObject/error/message/text()" />
+                           <property name="id" expression="fn:concat('Incident ID :',get-property('pagerDutyIncidentId'))" />
+                           <property name="status" value="Failed" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="pagerDuty_resolveIncident" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="{$ctx:status}" />
+                              <with-param name="message" value="{$ctx:errorMessage}" />
+                           </call-template>
+                           <loopback />
+                        </then>
+                     </filter>
+                     
+                     <property name="id" expression="fn:concat('Incident ID :',get-property('pagerDutyIncidentId'))" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="pagerDuty_resolveIncident" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Success" />
+                        <with-param name="message" value="Note has been added and Incident has been marked as resolved." />
+                     </call-template>
+                     
+                     <!-- Construct parameters to be used in Gmail and SurveyMonky. -->
+                     <payloadFactory media-type="json">
+                        <format>
+                           {
+                              "surveyMonkeyRecipients":[{
+                                    "email":"$1"
+                                 }],
+                              "gmailSubject":"Incident :$2 Resolved",
+                              "gmailTextContent":"Hi. \n\n The incident that you reported has been resolved. \n\n Incident :$2\n\nThank you."
+                           }
+                        </format>
+                        <args>
+                           <arg expression="get-property('pagerDutyClientEmail')" />
+                           <arg expression="get-property('pagerDutyIncidentDesc')" />
+                        </args>
+                     </payloadFactory>
+                     <property name="surveyMonkeySurveyReplyMail" expression="json-eval($.surveyMonkeyRecipients)" />
+                     <property name="gmailSubject" expression="json-eval($.gmailSubject)" />
+                     <property name="gmailTextContent" expression="json-eval($.gmailTextContent)" />
+                    
+                     <!-- Send Email. -->
+                     <gmail.gmailinit>
+                        <access_token>{$ctx:gmailOAuthAccessToken}</access_token>
+                        <userId>{$ctx:gmailUsername}</userId>
+                     </gmail.gmailinit>
+                     <gmail.createAMail>
+                        <to>{$ctx:pagerDutyClientEmail}</to>
+                        <subject>{$ctx:gmailSubject}</subject>
+                        <from>{$ctx:pagerDutyAssigneeEmail}</from>
+                        <messageBody>{$ctx:gmailTextContent}</messageBody>
+                     </gmail.createAMail>
+
+                     <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                     <property name="id" expression="fn:concat('Incident ID :',get-property('pagerDutyIncidentId'))" />
+                     <filter xpath="get-property('responseStatus') = 200">
+                        <then>
+                           <property name="message"
+                              expression="fn:concat('Incident has been sucsessfully resolved and a mail with incident details is sent to [',get-property('pagerDutyClientEmail'),']')" />
+                           <property name="status" value="Success" />
+                        </then>
+                        <else>
+                           <property name="status" value="Failed" />
+                           <filter xpath="get-property('responseStatus') != 404">
+                              <then>
+                                 <property name="message" expression="//jsonObject/error/message/text()" />
+                              </then>
+                              <else>
+                                 <property name="message" value="Invalid Credentials" />
+                              </else>
+                           </filter>
+                        </else>
+                     </filter>
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="gmail_sendEmail" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:errorMessage}" />
+                     </call-template>
+
+                     <!-- Build the message body to send in survey email -->
+                     <property name="surveyMonkeySubject" expression="fn:concat('Incident : ', get-property('pagerDutyIncidentDesc'),' Survey')" />
+                     <property name="surveyMonkeyContent"
+                        value="Hi. Please complete the following survey in order to evaluate our service using this link: [SurveyLink] To unsubscribe use the following link: [RemoveLink] Thank you." />
+
+                     <!-- Create survey. -->
+                     <surveymonkey.init>
+                        <accessToken>{$ctx:surveyMonkeyAccessToken}</accessToken>
+                        <apiKey>{$ctx:surveyMonkeyApiKey}</apiKey>
+                        <apiUrl>{$ctx:surveyMonkeyApiUrl}</apiUrl>
+                     </surveymonkey.init>
+                     <surveymonkey.createFlow>
+                        <surveyTitle>{$ctx:surveyMonkeyTitle}</surveyTitle>
+                        <fromSurveyId>{$ctx:surveyMonkeySurveyId}</fromSurveyId>
+                        <collectorType>email</collectorType>
+                        <collectorName>Email Collector</collectorName>
+                        <recipients>{$ctx:surveyMonkeySurveyReplyMail}</recipients>
+                        <collectorSend>true</collectorSend>
+                        <replyEmail>{$ctx:pagerDutyAssigneeEmail}</replyEmail>
+                        <messageSubject>{$ctx:surveyMonkeySubject}</messageSubject>
+                        <messageBody>{$ctx:surveyMonkeyContent}</messageBody>
+                     </surveymonkey.createFlow>
+                     <property name="id" expression="fn:concat('Incident ID :',get-property('pagerDutyIncidentId'))" />
+
+                     <filter source="$axis2:HTTP_SC" regex="201">
+                        <then>
+                           <property name="status" value="Success" />
+                           <property name="message"
+                              expression="fn:concat('Survey has been scheduled to be sent to - [', get-property('pagerDutyClientEmail'), '].')" />
+                        </then>
+                        <else>
+                           <filter source="$axis2:HTTP_SC" regex="403">
+                              <then>
+                                 <property name="errorMessage" value="Unauthorized API call." />
+                              </then>
+                              <else>
+                                 <property name="errorMessage" expression="//jsonObject/errmsg/text()" />
+                              </else>
+                           </filter>
+                           <property name="message"
+                              expression="fn:concat('Cannot create a survey. Error: ',get-property('errorMessage'))" />
+                           <property name="status" value="Failed" />
+                        </else>
+                     </filter>
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="surveyMonkey_createSurvey" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+
+                  </then>
+                  <else>
+                     <filter source="$axis2:HTTP_SC" regex="401">
+                        <then>
+                           <property name="errorMessage" value="Unauthorized API call." />
+                        </then>
+                        <else>
+                           <property name="errorMessage" expression="//jsonObject/error/message/text()" />
+                        </else>
+                     </filter>
+                     <property name="id" expression="fn:concat('Incident ID :',get-property('pagerDutyIncidentId'))" />
+                     <property name="status" value="Failed" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="pagerDuty_createNote" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:errorMessage}" />
+                     </call-template>
+                     <loopback />
+                  </else>
+               </filter>
+
+            </then>
+            <else>
+               <property name="errorMessage" expression="//jsonObject/error_description/text()" />
+               <property name="id" expression="fn:concat('Task ID :',get-property('podioTaskId'))" />
+               <property name="status" value="Failed" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="podio_completeTask" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:errorMessage}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response": {
+                        "process":"pagerDuty_resolveIncident",
+                        "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

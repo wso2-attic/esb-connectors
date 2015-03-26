@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pagerduty_initiateIncidentFromGmail" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Gmail parameters -->
+         <property name="gmailAccessToken" expression="json-eval($.gmailAccessToken)" />
+         <property name="gmailUserId" expression="json-eval($.gmailUserId)" />
+         <property name="gmailIncidentLabelId" expression="json-eval($.gmailIncidentLabelId)" />
+         <property name="gmailArchivedIncidentLabelId" expression="json-eval($.gmailArchivedIncidentLabelId)" />
+         
+         <!-- Pagerduty parameters -->
+         <property name="pagerdutyServiceKey" expression="json-eval($.pagerdutyServiceKey)" />
+         
+         <!-- List all mails in Gmail -->
+         <gmail.gmailinit>
+            <access_token>{$ctx:gmailAccessToken}</access_token>
+            <userId>{$ctx:gmailUserId}</userId>
+         </gmail.gmailinit>
+         <gmail.listAllMails>
+            <q>label:Incidents</q>
+         </gmail.listAllMails>
+         
+         <property name="responseStatus" expression="$axis2:HTTP_SC" />
+         <filter xpath="get-property('responseStatus') != 200">
+            <then>
+               <property name="status" value="Failed" />
+               <filter xpath="get-property('responseStatus') = 404">
+                  <then>
+                     <property name="message" value="Invalid Credentials" />
+                  </then>
+                  <else>
+                     <property name="message" expression="//jsonObject/error/message/text()" />
+                  </else>
+               </filter>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="gmail_listMails" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         
+         <property name="messagesCount" expression="count(//messages)" scope="operation" />
+         <!-- Set error if no mail was found -->
+         <filter xpath="get-property('operation', 'messagesCount') = 0">
+            <then>
+               <property name="message" value="No messages were found." />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="gmail_listMails" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         
+         <property name="responseString" value="" scope="operation" />
+         <property name="index" expression="0" scope="operation" />
+         <!-- messages iterater -->
+         <iterate continueParent="true" id="messagesIterator" expression="//messages" sequential="true">
+            <target>
+               <sequence>
+                  <property name="messageType" value="application/json" scope="axis2" />
+                  <property name="gmailMessageId" expression="json-eval($.messages.id)" />
+                  
+                  <!-- Retrieve an email -->
+                  <gmail.gmailinit>
+                     <access_token>{$ctx:gmailAccessToken}</access_token>
+                     <userId>{$ctx:gmailUserId}</userId>
+                  </gmail.gmailinit>
+                  <gmail.getAMail>
+                     <id>{$ctx:gmailMessageId}</id>
+                  </gmail.getAMail>
+                  <property name="gmailDescription" expression="//parts[mimeType='text/plain']/body/data" />
+                  <property name="email"
+                     expression="fn:substring-before(fn:substring-after(//headers[name='From']/value/text(), '&lt;'), '&gt;')" />
+                  
+                  <!-- Base64Decode and get the JSON object from Base64Encoded String. -->
+                  <script language="js">
+                     <![CDATA[
+                        function base64_decode(data) {
+                           var b64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+                           var o1, o2, o3, h1, h2, h3, h4, bits, i = 0, ac = 0, dec = '', tmp_arr = [];
+                                   
+                           if (data.trim().length == 0) {
+                             return data;
+                           } else {
+                             data += '';
+                           }
+                                                
+                           do {
+                              // unpack four hexets into three octets using index points in b64
+                              h1 = b64.indexOf(data.charAt(i++));
+                              h2 = b64.indexOf(data.charAt(i++));
+                              h3 = b64.indexOf(data.charAt(i++));
+                              h4 = b64.indexOf(data.charAt(i++));
+                                      
+                              bits = h1 << 18 | h2 << 12 | h3 << 6 | h4;
+                                      
+                              o1 = bits >> 16 & 0xff;
+                              o2 = bits >> 8 & 0xff;
+                              o3 = bits & 0xff;
+                                      
+                              if (h3 == 64) {
+                                 tmp_arr[ac++] = String.fromCharCode(o1);
+                              } else if (h4 == 64) {
+                                 tmp_arr[ac++] = String.fromCharCode(o1, o2);
+                              } else {
+                                 tmp_arr[ac++] = String.fromCharCode(o1, o2, o3);
+                              }
+                           } while (i < data.length);
+                                   
+                           dec = tmp_arr.join('');
+                                   
+                           return dec.replace(/\0+$/, '');
+                        }
+                                              
+                        var binaryString = mc.getProperty('gmailDescription');
+                                              
+                        if(binaryString != null && binaryString != ""){
+                           var gmailDescription = base64_decode(binaryString);
+                           mc.setProperty('gmailDescription' , gmailDescription);
+                        }           
+                     ]]>
+                  </script>
+
+                  <!-- Replace new lines in mail body to space -->
+                  <script language="js">
+                     <![CDATA[
+                        //request body optional parameters
+                        var gmailDescription = mc.getProperty('gmailDescription');
+                        var gmailDescriptionEncoded = encodeURIComponent(gmailDescription);
+                        var gmailDescriptionNewLineRemoved = gmailDescriptionEncoded.replace( /%0d%0a/g , '%20');
+                        var gmailDescription = decodeURIComponent(gmailDescriptionNewLineRemoved);
+                        mc.setProperty('gmailDescription' , gmailDescription);
+                     ]]>
+                  </script>
+                  
+                  <!-- Call pagerduty_initiateIncidentFromGmail template -->
+                  <call-template target="pagerduty_initiateIncidentFromGmail">
+                     <with-param name="serviceKey" value="{$ctx:pagerdutyServiceKey}" />
+                     <with-param name="description" value="{$ctx:gmailDescription}" />
+                     <with-param name="client" value="{$ctx:email}" />
+                     <with-param name="gmailMessageId" value="{$ctx:gmailMessageId}" />
+                     <with-param name="eventType" value="trigger" />
+                     <with-param name="gmailAccessToken" value="{$ctx:gmailAccessToken}" />
+                     <with-param name="gmailUserId" value="{$ctx:gmailUserId}" />
+                     <with-param name="gmailIncidentLabelId" value="{$ctx:gmailIncidentLabelId}" />
+                     <with-param name="gmailArchivedIncidentLabelId" value="{$ctx:gmailArchivedIncidentLabelId}" />
+                  </call-template>
+                  
+                  <property name="index" expression="get-property('operation','index') + 1" scope="operation" />
+               </sequence>
+            </target>
+         </iterate>
+         <!-- Check for all the iterations has completed -->
+         <filter xpath="get-property('operation', 'index') = get-property('operation', 'messagesCount')">
+            <then>
+               <loopback />
+            </then>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{ 
+                     "activity":"pagerduty_initiateIncidentFromGmail",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
