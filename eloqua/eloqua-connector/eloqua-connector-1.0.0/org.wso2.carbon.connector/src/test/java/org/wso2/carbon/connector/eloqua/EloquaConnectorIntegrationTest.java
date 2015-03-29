@@ -1706,7 +1706,6 @@ public class EloquaConnectorIntegrationTest extends ConnectorIntegrationTestBase
         String methodName = "deleteContactExportData";
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "deleteContactExportData.json");
-
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 204);
     }
 
@@ -1719,7 +1718,6 @@ public class EloquaConnectorIntegrationTest extends ConnectorIntegrationTestBase
         String methodName = "deleteContactExport";
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "deleteContactExport.json");
-
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 204);
     }
 
@@ -1732,7 +1730,6 @@ public class EloquaConnectorIntegrationTest extends ConnectorIntegrationTestBase
         String methodName = "deleteContactImportData";
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "deleteContactImportData.json");
-
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 204);
     }
 
@@ -1745,10 +1742,6 @@ public class EloquaConnectorIntegrationTest extends ConnectorIntegrationTestBase
         String methodName = "deleteContactImport";
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "deleteContactImport.json");
-        System.out.println("\n\n\n\n+++++++++++++++++++++++++++++++++\n\n\n\n");
-        System.out.println(esbRestResponse.getHttpStatusCode());
-        System.out.println("\n\n\n\n+++++++++++++++++++++++++++++++++\n\n\n\n");
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 204);
     }
 }
-
