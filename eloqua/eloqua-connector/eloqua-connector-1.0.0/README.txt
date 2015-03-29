@@ -66,7 +66,7 @@ STEPS:
 
       - scope - The scope of the token.
    
-      -Get the values for contactFieldId, contactFilterId, contactListId, contactSegmentId, emailGroupId, accountFieldId, accountListId, activityTypeId and customObjectId
+      - Get the values for contactFieldId, contactFilterId, contactListId, contactSegmentId, emailGroupId, accountFieldId, accountListId, activityTypeId and customObjectId.
 
  4. Navigate to "{ELOQUA_CONNECTOR_HOME}/eloqua-connector/eloqua-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
