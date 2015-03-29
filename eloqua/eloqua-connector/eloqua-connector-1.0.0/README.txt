@@ -44,15 +44,15 @@ STEPS:
 
         for more details see, "http://docs.oracle.com/cloud/latest/marketingcs_gs/OMCBB/index.html#C_Tutorials/authenticate-using-oauth.htm%3FTocPath%3DTutorials%7C_____2"
 	 
- 4. Update the eloqua properties file at location "{ELOQUA_CONNECTOR_HOME}/eloqua-connector/eloqua-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config/" as below.
+ 3. Update the eloqua properties file at location "{ELOQUA_CONNECTOR_HOME}/eloqua-connector/eloqua-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config/" as below.
  
-      - refreshToken -  Use the refreshToken you got from step 3.
+      - refreshToken -  Use the refreshToken you got from step 2.
 
-      - clientId - Use the clientId you got from step 3.
+      - clientId - Use the clientId you got from step 2.
 	
-	  - clientSecret - Use the clientSecret you got from step 3.
+	  - clientSecret - Use the clientSecret you got from step 2.
 	
-      - redirectUri - Use the redirectUri you got from step 3.
+      - redirectUri - Use the redirectUri you got from step 2.
 
       - apiUrl - The api url of Eloqua.
 
@@ -68,7 +68,7 @@ STEPS:
    
       -Get the values for contactFieldId, contactFilterId, contactListId, contactSegmentId, emailGroupId, accountFieldId, accountListId, activityTypeId and customObjectId
 
- 5. Navigate to "{ELOQUA_CONNECTOR_HOME}/eloqua-connector/eloqua-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 4. Navigate to "{ELOQUA_CONNECTOR_HOME}/eloqua-connector/eloqua-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
 
 
