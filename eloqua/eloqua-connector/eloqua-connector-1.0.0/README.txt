@@ -29,18 +29,7 @@ STEPS:
      iv)Get the code from the following call-https://login.eloqua.com/auth/oauth2/authorize?response_type=code&client_id={clientId}&redirect_
          uri={redirectUri}&scope=full&state=xyz
 
-      v)Get the refreshToken from the following call, The request must also authenticate your app using HTTP basic authentication using your App’s client identifier as the username and your App’s client secret as the password.
-       The format is: client_id:client_secret
-       Encode the string with base-64 encoding, and you can pass it as an authentication header.
-
-        POST https://login.eloqua.com/auth/oauth2/token
-        Authorization: Basic XXXXXXXXXXX
-        Content-Type   application/json
-        {
-           "grant_type":"authorization_code",
-           "code":"code",
-           "redirect_uri":"redirectUri"
-        }
+      v)Use the getAccessTokenFromCode in Eloqua connector to get the refreshToken.
 
         for more details see, "http://docs.oracle.com/cloud/latest/marketingcs_gs/OMCBB/index.html#C_Tutorials/authenticate-using-oauth.htm%3FTocPath%3DTutorials%7C_____2"
 	 
