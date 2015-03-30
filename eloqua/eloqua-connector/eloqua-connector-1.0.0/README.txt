@@ -26,8 +26,7 @@ STEPS:
 
      iii)Create the app with the required details.
 
-     iv)Get the code from the following call-https://login.eloqua.com/auth/oauth2/authorize?response_type=code&client_id={clientId}&redirect_
-         uri={redirectUri}&scope=full&state=xyz
+     iv)Get the code from the following call-https://login.eloqua.com/auth/oauth2/authorize?response_type=code&client_id={clientId}&redirect_uri={redirectUri}&scope=full&state=xyz
 
       v)Use the getAccessTokenFromCode in Eloqua connector to get the refreshToken.
 
