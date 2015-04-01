@@ -58,7 +58,6 @@ public class CodeplexProjectsTest extends ESBIntegrationTest {
     private String pathToRequestsDirectory = null;
 
     /**
-     *
      * This class will log in to esb instance as admin user to execute codeplex project
      * related test cases.
      *
@@ -69,14 +68,19 @@ public class CodeplexProjectsTest extends ESBIntegrationTest {
 
         super.init();
 
-        ConfigurationContextProvider configurationContextProvider = ConfigurationContextProvider.getInstance();
+        ConfigurationContextProvider configurationContextProvider =
+                ConfigurationContextProvider.getInstance();
         ConfigurationContext cc = configurationContextProvider.getConfigurationContext();
         mediationLibUploadStub =
-                new MediationLibraryUploaderStub(cc, esbServer.getBackEndUrl() + "MediationLibraryUploader");
+                new MediationLibraryUploaderStub(cc,
+                                                 esbServer.getBackEndUrl() +
+                                                 "MediationLibraryUploader");
         AuthenticateStub.authenticateStub("admin", "admin", mediationLibUploadStub);
 
         adminServiceStub =
-                new MediationLibraryAdminServiceStub(cc, esbServer.getBackEndUrl() + "MediationLibraryAdminService");
+                new MediationLibraryAdminServiceStub(cc,
+                                                     esbServer.getBackEndUrl() +
+                                                     "MediationLibraryAdminService");
 
         AuthenticateStub.authenticateStub("admin", "admin", adminServiceStub);
 
@@ -85,12 +89,16 @@ public class CodeplexProjectsTest extends ESBIntegrationTest {
         } else {
             repoLocation = System.getProperty("connector_repo").replace("/", "/");
         }
-        proxyAdmin = new ProxyServiceAdminClient(esbServer.getBackEndUrl(), esbServer.getSessionCookie());
+        proxyAdmin = new ProxyServiceAdminClient(esbServer.getBackEndUrl(),
+                                                 esbServer.getSessionCookie());
 
-        codeplexConnectorProperties = ConnectorIntegrationUtil.getConnectorConfigProperties(CONNECTOR_NAME);
+        codeplexConnectorProperties =
+                ConnectorIntegrationUtil.getConnectorConfigProperties(CONNECTOR_NAME);
 
-        pathToProxiesDirectory = repoLocation + codeplexConnectorProperties.getProperty("proxyDirectoryRelativePath");
-        pathToRequestsDirectory = repoLocation + codeplexConnectorProperties.getProperty("requestDirectoryRelativePath");
+        pathToProxiesDirectory = repoLocation +
+                                 codeplexConnectorProperties.getProperty("proxyDirectoryRelativePath");
+        pathToRequestsDirectory = repoLocation +
+                                  codeplexConnectorProperties.getProperty("requestDirectoryRelativePath");
 
     }
 
@@ -103,6 +111,7 @@ public class CodeplexProjectsTest extends ESBIntegrationTest {
 
     /**
      * Mandatory parameter test case for getProjects method.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 4,
@@ -118,8 +127,9 @@ public class CodeplexProjectsTest extends ESBIntegrationTest {
 
         int headerResponse;
         try {
-            headerResponse = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName),
-                                                                                  jsonString);
+            headerResponse =
+                    ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName),
+                                                                         jsonString);
 
             Assert.assertEquals(headerResponse, 200);
         } finally {
@@ -130,6 +140,7 @@ public class CodeplexProjectsTest extends ESBIntegrationTest {
 
     /**
      * Test negative case for getProjects method.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 5,
@@ -145,8 +156,9 @@ public class CodeplexProjectsTest extends ESBIntegrationTest {
 
         int headerResponse;
         try {
-            headerResponse = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName),
-                                                                                  jsonString);
+            headerResponse =
+                    ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName),
+                                                                         jsonString);
 
             Assert.assertEquals(headerResponse, 404);
         } finally {
@@ -157,6 +169,7 @@ public class CodeplexProjectsTest extends ESBIntegrationTest {
 
     /**
      * Test case for getAuthenticatedUserProjects method.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 6,
@@ -169,7 +182,8 @@ public class CodeplexProjectsTest extends ESBIntegrationTest {
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
 
@@ -177,8 +191,9 @@ public class CodeplexProjectsTest extends ESBIntegrationTest {
 
         int headerResponse;
         try {
-            headerResponse = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName),
-                                                                                  modifiedJsonString);
+            headerResponse =
+                    ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName),
+                                                                         modifiedJsonString);
             Assert.assertEquals(headerResponse, 200);
         } finally {
 
@@ -189,6 +204,7 @@ public class CodeplexProjectsTest extends ESBIntegrationTest {
 
     /**
      * Test negative case for getAuthenticatedUserProjects method.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 7,
@@ -203,7 +219,8 @@ public class CodeplexProjectsTest extends ESBIntegrationTest {
 
         JSONObject jsonResponse;
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), jsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                jsonString);
 
             Assert.assertEquals(jsonResponse.getString("Message"), "Authentication required.");
         } finally {

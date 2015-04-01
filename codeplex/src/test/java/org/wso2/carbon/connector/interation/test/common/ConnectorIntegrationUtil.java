@@ -68,7 +68,8 @@ public class ConnectorIntegrationUtil {
 
         List<LibraryFileItem> uploadLibraryInfoList = new ArrayList<LibraryFileItem>();
         LibraryFileItem uploadedFileItem = new LibraryFileItem();
-        uploadedFileItem.setDataHandler(new DataHandler(new URL("file:" + "///" + repoLocation + "/" + strFileName)));
+        uploadedFileItem.setDataHandler(new DataHandler(new URL("file:" + "///" + repoLocation +
+                                                                "/" + strFileName)));
         uploadedFileItem.setFileName(strFileName);
         uploadedFileItem.setFileType("zip");
         uploadLibraryInfoList.add(uploadedFileItem);
@@ -244,9 +245,9 @@ public class ConnectorIntegrationUtil {
         ProductConstant.init();
         try {
             connectorConfigFile =
-                    ProductConstant.SYSTEM_TEST_SETTINGS_LOCATION + File.separator + "artifacts" + File.separator
-                    + "ESB" + File.separator + "connector" + File.separator + "config" + File.separator
-                    + connectorName + ".properties";
+                    ProductConstant.SYSTEM_TEST_SETTINGS_LOCATION + File.separator + "artifacts" +
+                    File.separator + "ESB" + File.separator + "connector" + File.separator +
+                    "config" + File.separator + connectorName + ".properties";
             File connectorPropertyFile = new File(connectorConfigFile);
             InputStream inputStream = null;
             if (connectorPropertyFile.exists()) {
@@ -296,7 +297,8 @@ public class ConnectorIntegrationUtil {
             }
         } catch (AxisFault axisFault) {
             log.error(axisFault.getMessage());
-            throw new AxisFault("AxisFault while getting response :" + axisFault.getMessage(), axisFault);
+            throw new AxisFault("AxisFault while getting response :" + axisFault.getMessage(),
+                                axisFault);
         }
         return response;
     }

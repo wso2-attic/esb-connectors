@@ -59,7 +59,6 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
 
     /**
-     *
      * This class will log in to esb instance as admin user to execute codeplex hooks
      * related test cases.
      *
@@ -70,14 +69,17 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
         super.init();
 
-        ConfigurationContextProvider configurationContextProvider = ConfigurationContextProvider.getInstance();
+        ConfigurationContextProvider configurationContextProvider =
+                ConfigurationContextProvider.getInstance();
         ConfigurationContext cc = configurationContextProvider.getConfigurationContext();
         mediationLibUploadStub =
-                new MediationLibraryUploaderStub(cc, esbServer.getBackEndUrl() + "MediationLibraryUploader");
+                new MediationLibraryUploaderStub(cc, esbServer.getBackEndUrl() +
+                                                     "MediationLibraryUploader");
         AuthenticateStub.authenticateStub("admin", "admin", mediationLibUploadStub);
 
         adminServiceStub =
-                new MediationLibraryAdminServiceStub(cc, esbServer.getBackEndUrl() + "MediationLibraryAdminService");
+                new MediationLibraryAdminServiceStub(cc, esbServer.getBackEndUrl() +
+                                                         "MediationLibraryAdminService");
 
         AuthenticateStub.authenticateStub("admin", "admin", adminServiceStub);
 
@@ -86,12 +88,16 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         } else {
             repoLocation = System.getProperty("connector_repo").replace("/", "/");
         }
-        proxyAdmin = new ProxyServiceAdminClient(esbServer.getBackEndUrl(), esbServer.getSessionCookie());
+        proxyAdmin = new ProxyServiceAdminClient(esbServer.getBackEndUrl(),
+                                                 esbServer.getSessionCookie());
 
-        codeplexConnectorProperties = ConnectorIntegrationUtil.getConnectorConfigProperties(CONNECTOR_NAME);
+        codeplexConnectorProperties =
+                ConnectorIntegrationUtil.getConnectorConfigProperties(CONNECTOR_NAME);
 
-        pathToProxiesDirectory = repoLocation + codeplexConnectorProperties.getProperty("proxyDirectoryRelativePath");
-        pathToRequestsDirectory = repoLocation + codeplexConnectorProperties.getProperty("requestDirectoryRelativePath");
+        pathToProxiesDirectory =
+                repoLocation + codeplexConnectorProperties.getProperty("proxyDirectoryRelativePath");
+        pathToRequestsDirectory =
+                repoLocation + codeplexConnectorProperties.getProperty("requestDirectoryRelativePath");
 
     }
 
@@ -101,7 +107,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
      *
      * @throws java.lang.Exception
      */
-    @Test(groups = {"wso2.esb"}, priority = 8, description = "codeplex {getSupportedHooks} integration test.")
+    @Test(groups = {"wso2.esb"}, priority = 8,
+          description = "codeplex {getSupportedHooks} integration test.")
     public void testGetSupportedHooks() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "getSupportedHooks_mandatory.txt";
@@ -120,7 +127,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         JSONObject jsonResponse;
         int supportedHookCount;
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             supportedHookCount = Integer.parseInt(jsonResponse.get("Count").toString());
             Assert.assertTrue(supportedHookCount >= 1);
         } finally {
@@ -144,12 +152,14 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
         JSONObject jsonResponse;
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
 
             Assert.assertEquals(jsonResponse.getString("Message"), "Project does not exist.");
         } finally {
@@ -160,6 +170,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Test case for createSubscription method with mandatory parameters.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 10,
@@ -172,7 +183,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
 
@@ -182,7 +194,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         int subscriptionId;
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             subscriptionId = Integer.parseInt(jsonResponse.get("Id").toString());
 
             Assert.assertTrue(subscriptionId >= 1);
@@ -197,9 +210,11 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
-                                           codeplexConnectorProperties.getProperty("refreshToken"), subscriptionId);
+                                           codeplexConnectorProperties.getProperty("refreshToken"),
+                                           subscriptionId);
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -212,6 +227,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Test case for createSubscription method with optional parameters.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 10,
@@ -227,7 +243,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
 
@@ -237,7 +254,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         int subscriptionId;
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             subscriptionId = Integer.parseInt(jsonResponse.get("Id").toString());
 
             Assert.assertTrue(subscriptionId >= 1);
@@ -252,13 +270,16 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
-                                           codeplexConnectorProperties.getProperty("refreshToken"), subscriptionId);
+                                           codeplexConnectorProperties.getProperty("refreshToken"),
+                                           subscriptionId);
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
-            ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                 modifiedJsonString);
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -268,6 +289,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Negative test case for createSubscription method.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 11,
@@ -283,7 +305,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
@@ -291,8 +314,10 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         JSONObject response;
 
         try {
-            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertEquals(response.getString("Message"), "There was an issue with one or more input values.");
+            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                            modifiedJsonString);
+            Assert.assertEquals(response.getString("Message"),
+                                "There was an issue with one or more input values.");
         } finally {
 
             proxyAdmin.deleteProxy(methodName);
@@ -301,6 +326,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Test case for getSubscription method with mandatory parameters.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 12,
@@ -313,7 +339,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
 
@@ -323,7 +350,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         int subscriptionId;
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             subscriptionId = Integer.parseInt(jsonResponse.get("Id").toString());
 
         } finally {
@@ -336,15 +364,18 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
-                                           codeplexConnectorProperties.getProperty("refreshToken"), subscriptionId);
+                                           codeplexConnectorProperties.getProperty("refreshToken"),
+                                           subscriptionId);
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             Assert.assertEquals(jsonResponse.getInt("Id"), subscriptionId);
         } finally {
 
@@ -357,9 +388,11 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
-                                           codeplexConnectorProperties.getProperty("refreshToken"), subscriptionId);
+                                           codeplexConnectorProperties.getProperty("refreshToken"),
+                                           subscriptionId);
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -373,6 +406,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Negative test case for getSubscription method.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 13,
@@ -388,7 +422,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
 
@@ -397,7 +432,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         JSONObject jsonResponse;
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             Assert.assertEquals(jsonResponse.getString("Message"), "The subscription was not found.");
         } finally {
             proxyAdmin.deleteProxy(methodName);
@@ -407,6 +443,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Test case for getHookSubscriptions method with mandatory parameters.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 14,
@@ -419,7 +456,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
 
@@ -429,7 +467,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         int subscriptionId;
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             subscriptionId = Integer.parseInt(jsonResponse.get("Id").toString());
 
         } finally {
@@ -442,13 +481,16 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
-                                           codeplexConnectorProperties.getProperty("refreshToken"), subscriptionId);
+                                           codeplexConnectorProperties.getProperty("refreshToken"),
+                                           subscriptionId);
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             Assert.assertTrue(jsonResponse.getInt("Count") > 0);
         } finally {
 
@@ -461,9 +503,11 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
-                                           codeplexConnectorProperties.getProperty("refreshToken"), subscriptionId);
+                                           codeplexConnectorProperties.getProperty("refreshToken"),
+                                           subscriptionId);
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -477,6 +521,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Negative test case for getHookSubscriptions method.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 15,
@@ -492,7 +537,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
 
@@ -502,7 +548,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         int subscriptionId;
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             subscriptionId = Integer.parseInt(jsonResponse.get("Id").toString());
 
         } finally {
@@ -515,14 +562,16 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
                                            codeplexConnectorProperties.getProperty("refreshToken"),
                                            subscriptionId);
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             Assert.assertEquals(jsonResponse.getString("Message"), "Project does not exist.");
         } finally {
 
@@ -534,6 +583,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Test case for DeleteSubscription method with mandatory parameters.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 16,
@@ -546,7 +596,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
 
@@ -556,7 +607,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         int subscriptionId;
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             subscriptionId = Integer.parseInt(jsonResponse.get("Id").toString());
 
         } finally {
@@ -569,7 +621,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
                                            codeplexConnectorProperties.getProperty("refreshToken"),
                                            subscriptionId);
@@ -578,8 +631,9 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         int responseHeader;
         try {
 
-            responseHeader = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName),
-                                                                                  modifiedJsonString);
+            responseHeader =
+                    ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName),
+                                                                         modifiedJsonString);
             Assert.assertEquals(responseHeader, 204);
         } finally {
 
@@ -591,6 +645,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Negative test case for DeleteSubscription method.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 17,
@@ -607,7 +662,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
@@ -616,7 +672,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
         try {
 
-            responseHeader = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName),
+            responseHeader =
+                    ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName),
                                                                                   modifiedJsonString);
             Assert.assertEquals(responseHeader, 404);
 
@@ -630,6 +687,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Test case for updateSubscription method with mandatory parameters.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 18,
@@ -642,7 +700,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
 
@@ -652,7 +711,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         int subscriptionId;
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             subscriptionId = Integer.parseInt(jsonResponse.get("Id").toString());
 
         } finally {
@@ -666,7 +726,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
                                            codeplexConnectorProperties.getProperty("refreshToken"),
                                            subscriptionId);
@@ -675,8 +736,10 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         JSONObject response;
         try {
 
-            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertEquals(response.getJSONArray("Events").getJSONObject(0).getString("Name"), "Code Change");
+            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                            modifiedJsonString);
+            Assert.assertEquals(response.getJSONArray("Events").getJSONObject(0).getString("Name"),
+                                "Code Change");
         } finally {
 
             proxyAdmin.deleteProxy(methodName);
@@ -688,7 +751,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
                                            codeplexConnectorProperties.getProperty("refreshToken"),
                                            subscriptionId);
@@ -705,6 +769,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Test case for updateSubscription method with all optional parameters.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 19,
@@ -720,7 +785,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
 
@@ -730,7 +796,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         int subscriptionId;
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             subscriptionId = Integer.parseInt(jsonResponse.get("Id").toString());
 
         } finally {
@@ -744,7 +811,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
                                            codeplexConnectorProperties.getProperty("refreshToken"),
                                            subscriptionId);
@@ -753,8 +821,10 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         JSONObject response;
         try {
 
-            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertEquals(response.getJSONArray("Events").getJSONObject(0).getString("Name"), "Code Change");
+            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                            modifiedJsonString);
+            Assert.assertEquals(response.getJSONArray("Events").getJSONObject(0).getString("Name"),
+                                "Code Change");
         } finally {
 
             proxyAdmin.deleteProxy(methodName);
@@ -766,7 +836,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
                                            codeplexConnectorProperties.getProperty("refreshToken"),
                                            subscriptionId);
@@ -783,6 +854,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Negative test case for updateSubscription method.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 20,
@@ -798,7 +870,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
@@ -806,7 +879,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         JSONObject response;
         try {
 
-            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                            modifiedJsonString);
             Assert.assertEquals(response.getString("Message"), "Project does not exist.");
         } finally {
 
@@ -819,6 +893,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Test case for updateSubscription method with optional parameter one.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 21,
@@ -831,7 +906,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
 
@@ -841,7 +917,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         int subscriptionId;
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             subscriptionId = Integer.parseInt(jsonResponse.get("Id").toString());
 
         } finally {
@@ -855,7 +932,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
                                            codeplexConnectorProperties.getProperty("refreshToken"),
                                            subscriptionId);
@@ -864,8 +942,10 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         JSONObject response;
         try {
 
-            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertEquals(response.getJSONArray("Events").getJSONObject(0).getString("Name"), "Code Change");
+            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                            modifiedJsonString);
+            Assert.assertEquals(response.getJSONArray("Events").getJSONObject(0).getString("Name"),
+                                "Code Change");
         } finally {
 
             proxyAdmin.deleteProxy(methodName);
@@ -877,7 +957,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
                                            codeplexConnectorProperties.getProperty("refreshToken"),
                                            subscriptionId);
@@ -894,6 +975,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Test case for updateSubscription method with optional parameter two.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 21,
@@ -910,7 +992,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
 
@@ -920,7 +1003,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         int subscriptionId;
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             subscriptionId = Integer.parseInt(jsonResponse.get("Id").toString());
 
         } finally {
@@ -934,7 +1018,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
                                            codeplexConnectorProperties.getProperty("refreshToken"),
                                            subscriptionId);
@@ -943,8 +1028,10 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         JSONObject response;
         try {
 
-            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertEquals(response.getJSONArray("Events").getJSONObject(0).getString("Name"), "Code Change");
+            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                            modifiedJsonString);
+            Assert.assertEquals(response.getJSONArray("Events").getJSONObject(0).getString("Name"),
+                                "Code Change");
         } finally {
 
             proxyAdmin.deleteProxy(methodName);
@@ -956,7 +1043,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
                                            codeplexConnectorProperties.getProperty("refreshToken"),
                                            subscriptionId);
@@ -973,6 +1061,7 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
 
     /**
      * Test case for updateSubscription method with optional parameter three.
+     *
      * @throws java.lang.Exception
      */
     @Test(groups = {"wso2.esb"}, priority = 22,
@@ -989,7 +1078,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        String modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        String modifiedJsonString = String.format(jsonString,
+                                                  codeplexConnectorProperties.getProperty("clientId"),
                                                   codeplexConnectorProperties.getProperty("clientSecret"),
                                                   codeplexConnectorProperties.getProperty("refreshToken"));
 
@@ -999,7 +1089,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         int subscriptionId;
 
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                                modifiedJsonString);
             subscriptionId = Integer.parseInt(jsonResponse.get("Id").toString());
 
         } finally {
@@ -1013,7 +1104,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
                                            codeplexConnectorProperties.getProperty("refreshToken"),
                                            subscriptionId);
@@ -1022,8 +1114,10 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         JSONObject response;
         try {
 
-            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            Assert.assertEquals(response.getJSONArray("Events").getJSONObject(0).getString("Name"), "Code Change");
+            response = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName),
+                                                            modifiedJsonString);
+            Assert.assertEquals(response.getJSONArray("Events").getJSONObject(0).getString("Name"),
+                                "Code Change");
         } finally {
 
             proxyAdmin.deleteProxy(methodName);
@@ -1035,7 +1129,8 @@ public class CodeplexHooksTest extends ESBIntegrationTest {
         jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
 
-        modifiedJsonString = String.format(jsonString, codeplexConnectorProperties.getProperty("clientId"),
+        modifiedJsonString = String.format(jsonString,
+                                           codeplexConnectorProperties.getProperty("clientId"),
                                            codeplexConnectorProperties.getProperty("clientSecret"),
                                            codeplexConnectorProperties.getProperty("refreshToken"),
                                            subscriptionId);
