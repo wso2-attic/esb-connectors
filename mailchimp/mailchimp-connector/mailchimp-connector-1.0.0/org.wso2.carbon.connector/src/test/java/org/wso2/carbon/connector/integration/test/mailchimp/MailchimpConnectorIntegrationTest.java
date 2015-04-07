@@ -29,6 +29,7 @@ import org.testng.annotations.Test;
 import org.wso2.connector.integration.test.base.ConnectorIntegrationTestBase;
 import org.wso2.connector.integration.test.base.RestResponse;
 
+
 public class MailchimpConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     
     private Map<String, String> esbRequestHeadersMap = new HashMap<String, String>();    
@@ -493,6 +494,76 @@ public class MailchimpConnectorIntegrationTest extends ConnectorIntegrationTestB
         // Assert code and error
         Assert.assertEquals(esbRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getString("code"),
                 apiRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getString("code"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getString("error"),
+                apiRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getString("error"));
+
+    }
+    
+    /**
+     * Positive test case for removeSubscribersFromList method with mandatory parameters.
+     * @throws InterruptedException 
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSendCampaignWithNegativeCase" },
+            description = "mailchimp {removeSubscribersFromList} integration test with mandatory parameters.")
+    public void testRemoveSubscribersFromListWithMandatoryParameters() throws IOException, JSONException, InterruptedException {
+
+        esbRequestHeadersMap.put("Action", "urn:removeSubscribersFromList");        
+        sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_removeSubscribersFromList_mandatory.json");
+        
+        final String apiEndPoint = apiBaseUrl + "/lists/member-info.json";
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap,
+                "api_removeSubscribersFromList_mandatory.json");
+        
+        
+        // Assert whether the removed email appears in the error section of the response.
+        Assert.assertEquals(connectorProperties.getProperty("email"),
+                apiRestResponse.getBody().getJSONArray("data").getJSONObject(0).getJSONObject("merges").getString("EMAIL"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("data").getJSONObject(0).getString("status"),
+                "unsubscribed");
+    } 
+    
+    /**
+     * Positive test case for removeSubscribersFromList method with mandatory parameters.
+     * @throws InterruptedException 
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testRemoveSubscribersFromListWithMandatoryParameters" },
+            description = "mailchimp {removeSubscribersFromList} integration test with mandatory parameters.")
+    public void testRemoveSubscribersFromListWithOptionalParameters() throws IOException, JSONException, InterruptedException {
+        // Subscribe an email
+        String apiEndPoint = apiBaseUrl + "/lists/batch-subscribe.json";
+        sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap,
+                "api_addSubscribersToList.json");
+        
+        esbRequestHeadersMap.put("Action", "urn:removeSubscribersFromList");        
+        sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_removeSubscribersFromList_optional.json");
+        
+        apiEndPoint = apiBaseUrl + "/lists/member-info.json";
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap,
+                "api_removeSubscribersFromList_optional.json");
+        
+        // Assert whether the removed email appears in the error section of the response.
+        Assert.assertEquals(connectorProperties.getProperty("emailOptional"),
+                apiRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getJSONObject("email").getString("email"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getString("error"),
+                "The email address passed does not exist on this list");
+    } 
+    
+    /**
+     * Negative test case for removeSubscribersFromList method.
+     */
+    @Test(groups = { "wso2.esb" }, description = "mailchimp {removeSubscribersFromList} integration test with negative case.")
+    public void testRemoveSubscribersFromListWithNegativeCase() throws IOException, JSONException {
+
+        esbRequestHeadersMap.put("Action", "urn:removeSubscribersFromList");        
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                "esb_removeSubscribersFromList_negative.json");
+        
+        final String apiEndPoint = apiBaseUrl + "/lists/batch-unsubscribe.json";
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap,
+                "api_removeSubscribersFromList_negative.json");
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getJSONObject("email").getString("email"),
+                apiRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getJSONObject("email").getString("email"));
         Assert.assertEquals(esbRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getString("error"),
                 apiRestResponse.getBody().getJSONArray("errors").getJSONObject(0).getString("error"));
 
