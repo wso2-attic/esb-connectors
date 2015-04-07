@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://developer.pagerduty.com/documentation/rest/incidents/reassign -->
+<template name="reassignIncident" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="incidentId" description="The unique identifier of the incident." />
+   <parameter name="requesterId" description="The unique identifier of the user who is making the request." />
+   <parameter name="assignedToUser" description="The unique identifier of the user to be assigned." />
+   <parameter name="escalationPolicy" description="The ID of an escalation policy." />
+   <parameter name="escalationLevel" description="The level of the incident for the escalation policy." />
+   <sequence>
+      <property name="uri.var.incidentId" expression="$func:incidentId" />
+      <property name="uri.var.requesterId" expression="$func:requesterId" />
+      <property name="uri.var.assignedToUser" expression="$func:assignedToUser" />
+      <property name="uri.var.escalationPolicy" expression="$func:escalationPolicy" />
+      <property name="uri.var.escalationLevel" expression="$func:escalationLevel" />
+      <property name="uri.var.urlQuery" value="" />
+      <script language="js">
+         <![CDATA[
+            var escalationPolicy = mc.getProperty('uri.var.escalationPolicy');
+            var escalationLevel = mc.getProperty('uri.var.escalationLevel');
+            var urlQuery = "";
+            if (escalationPolicy != null && escalationPolicy != "") {
+               urlQuery += "escalation_policy=" + escalationPolicy + '&';
+            }
+            if (escalationLevel != null && escalationLevel != "") {
+               urlQuery += "escalation_level=" + escalationLevel + '&';
+            }
+            if (urlQuery != "") {
+               urlQuery = '&' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+         ]]>
+      </script>
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="put"
+               uri-template="{uri.var.apiUrl}/incidents/{uri.var.incidentId}/reassign?requester_id={uri.var.requesterId}&amp;assigned_to_user={uri.var.assignedToUser}{uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="X-UA-Compatible" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+      <header name="Access-Control-Max-Age" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+   </sequence>
+</template>

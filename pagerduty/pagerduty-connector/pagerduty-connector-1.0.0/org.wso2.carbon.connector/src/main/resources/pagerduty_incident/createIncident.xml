@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://developer.pagerduty.com/documentation/integration/events/ -->
+<template name="createIncident" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="serviceKey" description="The GUID of one of your Generic API services." />
+   <parameter name="eventType" description="The type of the event. Should be set to trigger." />
+   <parameter name="description" description="A short description of the issue." />
+   <parameter name="incidentKey"
+      description="Identifier of the incident to which this trigger event should be applied." />
+   <parameter name="client" description="The name of the monitoring client that is triggering this event." />
+   <parameter name="clientUrl" description="The URL of the monitoring client." />
+   <parameter name="details" description="An arbitrary JSON object containing data to include in the incident log." />
+   <sequence>
+      <property name="uri.var.serviceKey" expression="$func:serviceKey" />
+      <property name="uri.var.eventType" expression="$func:eventType" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.incidentKey" expression="$func:incidentKey" />
+      <property name="uri.var.client" expression="$func:client" />
+      <property name="uri.var.clientUrl" expression="$func:clientUrl" />
+      <property name="uri.var.details" expression="$func:details" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "service_key": "$1",
+               "event_type": "$2",
+               "description": "$3"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.serviceKey')" />
+            <arg expression="get-property('uri.var.eventType')" />
+            <arg expression="get-property('uri.var.description')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            //request body optional parameters
+            var client = mc.getProperty('uri.var.client');
+            var clientUrl = mc.getProperty('uri.var.clientUrl');
+            var details = mc.getProperty('uri.var.details');
+            var incidentKey = mc.getProperty('uri.var.incidentKey');
+            var payload = mc.getPayloadJSON();
+            if (incidentKey != null && incidentKey != "") {
+               payload.incident_key = incidentKey;
+            }
+            if (client != null && client != "") {
+               payload.client = client;
+            }
+            if (clientUrl != null && clientUrl != "") {
+               payload.client_url = clientUrl;
+            }
+            if (details != null && details != "") {
+               payload.details = eval("(" + details + ")");
+            }
+            mc.setPayloadJSON(payload);
+         ]]>
+      </script>
+      <!-- The incident creation endpoint is a fixed URL and different from other API calls -->
+      <call>
+         <endpoint>
+            <http method="post" uri-template="https://events.pagerduty.com/generic/2010-04-15/create_event.json" />
+         </endpoint>
+      </call>
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="X-UA-Compatible" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+      <header name="Access-Control-Max-Age" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+   </sequence>
+</template>

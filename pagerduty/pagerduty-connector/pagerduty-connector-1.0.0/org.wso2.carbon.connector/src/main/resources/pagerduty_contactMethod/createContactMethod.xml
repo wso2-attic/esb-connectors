@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://developer.pagerduty.com/documentation/rest/users/contact_methods/create -->
+<template name="createContactMethod" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="userId" description="The unique identifier of the user." />
+   <parameter name="type" description="The type of the contact method. One of the phone, SMS and email." />
+   <parameter name="address" description="The address of the contact depending on the type." />
+   <parameter name="countryCode" description="The country code when the type is SMS and phone." />
+   <parameter name="label" description="The label for identifying the contact method." />
+   <parameter name="isSendShortEmail"
+      description="The boolean flag indicating whether to send an abbreviated email message." />
+   <sequence>
+      <property name="uri.var.userId" expression="$func:userId" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.address" expression="$func:address" />
+      <property name="uri.var.countryCode" expression="$func:countryCode" />
+      <property name="uri.var.label" expression="$func:label" />
+      <property name="uri.var.isSendShortEmail" expression="$func:isSendShortEmail" />
+      <payloadFactory media-type="json">
+         <format> 
+            {
+               "contact_method": { 
+                  "type":"$1",
+                  "address":"$2"
+               }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.type')" />
+            <arg expression="get-property('uri.var.address')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            //request body optional parameters
+            var countryCode = mc.getProperty('uri.var.countryCode');
+            var label = mc.getProperty('uri.var.label');
+            var isSendShortEmail = mc.getProperty('uri.var.isSendShortEmail');
+            var payload = mc.getPayloadJSON();
+            if (countryCode != null && countryCode != "") {
+               payload.contact_method.country_code = countryCode;
+            }
+            if (label != null && label != "") {
+               payload.contact_method.label = label;
+            }
+            if (isSendShortEmail != null && isSendShortEmail != "") {
+               payload.contact_method.send_short_email = eval("(" + isSendShortEmail + ")");
+            }
+            mc.setPayloadJSON(payload);
+         ]]>
+      </script>
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/users/{uri.var.userId}/contact_methods" />
+         </endpoint>
+      </call>
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="X-UA-Compatible" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+      <header name="Access-Control-Max-Age" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+   </sequence>
+</template>

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- The template creates an incident in pagerduty. -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="pagerduty_initiateIncidentFromGmail">
+   <parameter name="serviceKey" description="Service Key of the pagerduty API." />
+   <parameter name="eventType" description="The type of the event to be created." />
+   <parameter name="description" description="The detailed description of the incident." />
+   <parameter name="client" description="Client information of the incident." />
+   <parameter name="gmailMessageId" description="ID of the email in Gmail API." />
+   <parameter name="gmailAccessToken" description="The access token of the Gmail API." />
+   <parameter name="gmailUserId" description="The ID of the user." />
+   <parameter name="gmailIncidentLabelId" description="The ID of the incidents label." />
+   <parameter name="gmailArchivedIncidentLabelId" description="The ID of the archived incidents label." />
+   
+   <sequence>
+      <property name="uri.var.serviceKey" expression="$func:serviceKey" />
+      <property name="uri.var.eventType" expression="$func:eventType" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.client" expression="$func:client" />
+      <property name="uri.var.gmailMessageId" expression="$func:gmailMessageId" />
+      <property name="uri.var.gmailAccessToken" expression="$func:gmailAccessToken" />
+      <property name="uri.var.gmailUserId" expression="$func:gmailUserId" />
+      <property name="uri.var.gmailIncidentLabelId" expression="$func:gmailIncidentLabelId" />
+      <property name="uri.var.gmailArchivedIncidentLabelId" expression="$func:gmailArchivedIncidentLabelId" />
+      
+      <!-- Create an Incident in pagerduty -->
+      <filter source="boolean(get-property('uri.var.serviceKey'))" regex="true">
+         <then>
+            <pagerduty.createIncident>
+               <serviceKey>{$ctx:uri.var.serviceKey}</serviceKey>
+               <eventType>{$ctx:uri.var.eventType}</eventType>
+               <description>{$ctx:uri.var.description}</description>
+               <client>{$ctx:uri.var.client}</client>
+            </pagerduty.createIncident>
+            <property name="uri.var.incidentKey" expression="json-eval($.incident_key)" />
+            
+            <!-- Set error if incident was created -->
+            <filter source="boolean(get-property('uri.var.incidentKey'))" regex="false">
+               <then>
+                  <property name="uri.var.id" expression="fn:concat('message Id:', get-property('uri.var.gmailMessageId') )" />
+                  <property name="uri.var.status" value="Error" />
+                  <property name="uri.var.message" expression="json-eval($.errors)" />
+               </then>
+               <else>
+                  <!-- Constructing JSON Objects -->
+                  <payloadFactory media-type="json">
+                     <format> 
+                        { 
+                           "addLabelIds":["$1"], 
+                           "removeLabelIds":["$2"] 
+                        }
+                     </format>
+                     <args>
+                        <arg expression="get-property('uri.var.gmailArchivedIncidentLabelId')" />
+                        <arg expression="get-property('uri.var.gmailIncidentLabelId')" />
+                     </args>
+                  </payloadFactory>
+                  <property name="uri.var.addLabelIds" expression="json-eval($.addLabelIds)" />
+                  <property name="uri.var.removeLabelIds" expression="json-eval($.removeLabelIds)" />
+                  
+                  <!-- Move to archived Incident label -->
+                  <gmail.gmailinit>
+                     <access_token>{$ctx:uri.var.gmailAccessToken}</access_token>
+                     <userId>{$ctx:uri.var.gmailUserId}</userId>
+                  </gmail.gmailinit>
+                  <gmail.modifyExistingMessages>
+                     <id>{$ctx:uri.var.gmailMessageId}</id>
+                     <addLabelIds>{$ctx:uri.var.addLabelIds}</addLabelIds>
+                     <removeLabelIds>{$ctx:uri.var.removeLabelIds}</removeLabelIds>
+                  </gmail.modifyExistingMessages>
+                  
+                  <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                  <filter xpath="get-property('responseStatus') = 200">
+                     <then>
+                        <property name="uri.var.id" expression="fn:concat('incident Key:', get-property('uri.var.incidentKey') )" />
+                        <property name="uri.var.status" value="Success" />
+                        <property name="uri.var.message"
+                           value="Incident has been successfully created and the mail has been labeled as archivedIncident" />
+                     </then>
+                     <else>
+                        <property name="uri.var.id" expression="fn:concat('incident Key:', get-property('uri.var.incidentKey') )" />
+                        <property name="uri.var.status" value="Success" />
+                        <property name="uri.var.message"
+                           value="Incident has been successfully created but the mail could not be labeled as archivedIncident. Please label this as manually. " />
+                     </else>
+                  </filter>
+               </else>
+            </filter>
+         </then>
+         <else>
+            <property name="uri.var.status" value="Skipped" />
+            <property name="uri.var.message" value="Pagerduty service key is not provided in the request." />
+         </else>
+      </filter>
+      
+      <property name="uri.var.activity" value="pageduty_initiateIncident" />
+      <call-template target="responseHandlerTemplate">
+         <with-param name="activity" value="{$ctx:uri.var.activity}" />
+         <with-param name="id" value="{$ctx:uri.var.id}" />
+         <with-param name="status" value="{$ctx:uri.var.status}" />
+         <with-param name="message" value="{$ctx:uri.var.message}" />
+      </call-template>
+   </sequence>
+</template>

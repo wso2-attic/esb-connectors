@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pagerduty_initiateIncidentFromLivechat" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- LiveChat parameters -->
+         <property name="liveChatApiUrl" value="https://api.livechatinc.com" />
+         <property name="liveChatApiKey" expression="json-eval($.liveChatApiKey)" />
+         <property name="liveChatLogin" expression="json-eval($.liveChatLogin)" />
+         
+         <!-- Pagerduty parameters -->
+         <property name="pagerdutyServiceKey" expression="json-eval($.pagerdutyServiceKey)" />
+         
+         <!-- Get current date and previous date -->
+         <script language="js">
+            <![CDATA[
+             var currentDate = new Date();
+             var responseDateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd");
+             var currentDateFormatted = responseDateFormat.format(currentDate);
+   
+             mc.setProperty('currentDate' , currentDateFormatted);
+            ]]>
+         </script>
+         
+         <!-- List tickets in livechat -->
+         <livechat.init>
+            <apiUrl>{$ctx:liveChatApiUrl}</apiUrl>
+            <login>{$ctx:liveChatLogin}</login>
+            <apiKey>{$ctx:liveChatApiKey}</apiKey>
+         </livechat.init>
+         <livechat.listTickets>
+            <dateFrom>{$ctx:currentDate}</dateFrom>
+            <status>open,pending</status>
+         </livechat.listTickets>
+         <sequence key="removeResponseHeaders" />
+         
+         <property name="ticketsCount" expression="count(//tickets)" scope="operation" />
+         <!-- Set error if no ticket was found -->
+         <filter xpath="0 = get-property('operation', 'ticketsCount')">
+            <then>
+               <property name="message" value="No tickets were found." />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="livechat_listTickets" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         
+         <property name="responseString" value="" scope="operation" />
+         <property name="index" expression="0" scope="operation" />
+         <!-- Subscriptions iterater -->
+         <iterate continueParent="true" id="subscriptionIterator" expression="//tickets" sequential="true">
+            <target>
+               <sequence>
+                  <property name="messageType" value="application/json" scope="axis2" />
+                  <property name="subject" expression="//tickets/subject" />
+                  <property name="pagerdutyClient" expression="//tickets/requester/mail" />
+                  <property name="ticketMessage" expression="//tickets/events[1]/message/text()" />
+                  
+                  <!-- Replace new lines in mail body to space -->
+                  <script language="js">
+                     <![CDATA[
+                        //request body optional parameters
+                        var ticketMessage = mc.getProperty('ticketMessage');
+                        var ticketMessageEncoded = encodeURIComponent(ticketMessage);
+                        var ticketMessageNewLineRemoved = ticketMessageEncoded.replace( /%0d%0a/g , '%20');
+                        var ticketMessage = decodeURIComponent(ticketMessageNewLineRemoved);
+                        mc.setProperty('ticketMessage' , ticketMessage);
+                     ]]>
+                  </script>
+                  
+                  <property name="ticketId" expression="//tickets/id" />
+                  <property name="pagerdutyDescription" expression="fn:concat(get-property('subject'), ' : ', get-property('ticketMessage'))" />
+                  
+                  <!-- Call pagerduty_initiateIncidentFromLivechat template -->
+                  <call-template target="pagerduty_initiateIncidentFromLivechat">
+                     <with-param name="serviceKey" value="{$ctx:pagerdutyServiceKey}" />
+                     <with-param name="description" value="{$ctx:pagerdutyDescription}" />
+                     <with-param name="client" value="{$ctx:pagerdutyClient}" />
+                     <with-param name="ticketId" value="{$ctx:ticketId}" />
+                     <with-param name="eventType" value="trigger" />
+                  </call-template>
+                  
+                  <property name="index" expression="get-property('operation','index') + 1" scope="operation" />
+               </sequence>
+            </target>
+         </iterate>
+         
+         <!-- Check for all the iterations has completed -->
+         <filter xpath="get-property('operation', 'index') = get-property('operation', 'ticketsCount')">
+            <then>
+               <loopback />
+            </then>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{ 
+                     "activity":"pagerduty_initiateIncidentFromLivechat",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

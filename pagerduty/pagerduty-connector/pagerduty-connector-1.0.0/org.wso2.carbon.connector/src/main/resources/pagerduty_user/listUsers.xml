@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://developer.pagerduty.com/documentation/rest/users/list -->
+<template name="listUsers" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="query" description="The string value to search users by the name." />
+   <parameter name="include" description="The array of data containing what extra objects should be returned." />
+   <parameter name="limit" description="The number of records to be returned." />
+   <parameter name="offset" description="The offset of the first record returned." />
+   <sequence>
+      <property name="uri.var.query"  expression="$func:query"/>
+      <property name="uri.var.include"  expression="$func:include"/>
+      <property name="uri.var.limit" expression="$func:limit" />
+      <property name="uri.var.offset" expression="$func:offset" />
+      <property name="uri.var.urlQuery" value="" />
+      <script language="js">
+         <![CDATA[
+            var query = mc.getProperty('uri.var.query');
+            var include = mc.getProperty('uri.var.include');
+            var limit = mc.getProperty('uri.var.limit');
+            var offset = mc.getProperty('uri.var.offset');
+            var urlQuery = "";
+            if (query != null && query != "") {
+               urlQuery += "query=" + encodeURI(query) + '&';
+            }
+            if (limit != null && limit != "") {
+               urlQuery += "limit=" + limit + '&';
+            }
+            if (offset != null && offset != "") {
+               urlQuery += "offset=" + offset + '&';
+            }
+            if (include != null && include != "") {
+               include = eval("(" + include + ")");
+               for(includeItem in include) {
+                  urlQuery += "include[]=" + include[includeItem] + '&';
+               }
+            }
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/users{uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="X-UA-Compatible" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+      <header name="Access-Control-Max-Age" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+   </sequence>
+</template>
