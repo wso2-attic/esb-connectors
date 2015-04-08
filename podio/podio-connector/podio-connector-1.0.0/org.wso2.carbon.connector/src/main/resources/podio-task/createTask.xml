@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://developers.podio.com/doc/tasks/create-task-22419 -->
+<template name="createTask" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="text" description="The text of the task." />
+   <parameter name="isHook" description="The value to enable hooks to be executed." />
+   <parameter name="isSilent" description="The value to enable stream and notifications for object." />
+   <parameter name="description" description="The description of the task." />
+   <parameter name="isPrivate" description="The boolean value to make task private or not." />
+   <parameter name="dueDate" description="The due date of the task." />
+   <parameter name="dueTime" description="The due time of the task." />
+   <parameter name="dueOn" description="The due date and time of the task." />
+   <parameter name="responsible" description="The contact(s) responsible for the task." />
+   <parameter name="fileIds" description="The list of files to attach to this task." />
+   <parameter name="labels" description="The list of labels for the task." />
+   <parameter name="labelIds" description="The list label ids for the task." />
+   <parameter name="remindDelta" description="The reminder value for the task." />
+   <parameter name="recurrenceName" description="The name of the recurrence for the task." />
+   <parameter name="recurrenceConfigDays" description="The list of weekdays for the recurrence." />
+   <parameter name="recurrenceRepeatOn" description="The repeat day for the recurrence." />
+   <parameter name="recurrenceStep" description="The step size for the recurrence." />
+   <parameter name="recurrenceUntil" description="The latest date the recurrence should take place." />
+   <parameter name="externalId" description="The external id for the task." />
+   <sequence>
+      <property name="uri.var.text" expression="$func:text" />
+      <property name="uri.var.isHook" expression="$func:isHook" />
+      <property name="uri.var.isSilent" expression="$func:isSilent" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.isPrivate" expression="$func:isPrivate" />
+      <property name="uri.var.dueDate" expression="$func:dueDate" />
+      <property name="uri.var.dueTime" expression="$func:dueTime" />
+      <property name="uri.var.dueOn" expression="$func:dueOn" />
+      <property name="uri.var.responsible" expression="$func:responsible" />
+      <property name="uri.var.fileIds" expression="$func:fileIds" />
+      <property name="uri.var.labels" expression="$func:labels" />
+      <property name="uri.var.labelIds" expression="$func:labelIds" />
+      <property name="uri.var.remindDelta" expression="$func:remindDelta"/>
+      <property name="uri.var.recurrenceName" expression="$func:recurrenceName" />
+      <property name="uri.var.recurrenceConfigDays" expression="$func:recurrenceConfigDays" />
+      <property name="uri.var.recurrenceRepeatOn" expression="$func:recurrenceRepeatOn"/>
+      <property name="uri.var.recurrenceStep" expression="$func:recurrenceStep"/>
+      <property name="uri.var.recurrenceUntil" expression="$func:recurrenceUntil" />
+      <property name="uri.var.externalId" expression="$func:externalId" />
+      <property name="uri.var.apiParameters" value="" />
+      <property name="uri.var.podioLabelIds" value="" />
+      <property name="uri.var.podioFileIds" value="" />
+      <property name="uri.var.podioResponsible" value="" />
+      <!-- In order to add INTEGERs and INTEGER arrays as it is to the payload. -->
+      <script language="js">
+      <![CDATA[
+         var labelIds = mc.getProperty('uri.var.labelIds');
+         var fileIds = mc.getProperty('uri.var.fileIds');
+         var responsible = mc.getProperty('uri.var.responsible');
+         if (labelIds == null || labelIds == "") {
+            mc.setProperty("uri.var.podioLabelIds","[]");
+         } else {
+            mc.setProperty("uri.var.podioLabelIds",labelIds);
+         }
+         if (fileIds == null || fileIds == "") {
+            mc.setProperty("uri.var.podioFileIds","[]");
+         } else {
+            mc.setProperty("uri.var.podioFileIds",fileIds);
+         }
+         if (responsible == null || responsible == "") {
+            mc.setProperty("uri.var.podioResponsible","[]");
+         } else {
+            mc.setProperty("uri.var.podioResponsible",responsible);
+         }
+      ]]>
+      </script>
+      <payloadFactory media-type="json">
+         <format> 
+            { 
+               "text":"$1", 
+               "label_ids":$2, 
+               "file_ids":$3, 
+               "responsible":$4
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.text')" />
+            <arg expression="get-property('uri.var.podioLabelIds')" />
+            <arg expression="get-property('uri.var.podioFileIds')" />
+            <arg expression="get-property('uri.var.podioResponsible')" />
+         </args>
+      </payloadFactory>
+      <!-- If not empty, values are converted into INTEGER types in order to attach to payload. -->
+      <filter xpath="boolean(get-property('uri.var.remindDelta'))">
+         <then>
+            <property name="uri.var.remindDelta" expression="get-property('uri.var.remindDelta')" type="INTEGER"/>
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.recurrenceStep'))">
+         <then>
+            <property name="uri.var.recurrenceStep" expression="get-property('uri.var.recurrenceStep')" type="INTEGER"/>
+         </then>
+      </filter>
+      <script language="js">
+      <![CDATA[
+         payload = mc.getPayloadJSON();
+         var description = mc.getProperty('uri.var.description');
+         var isPrivate = mc.getProperty('uri.var.isPrivate');
+         var dueDate = mc.getProperty('uri.var.dueDate');
+         var dueTime = mc.getProperty('uri.var.dueTime');
+         var dueOn = mc.getProperty('uri.var.dueOn');
+         var labels = mc.getProperty('uri.var.labels');
+         var remindDelta = mc.getProperty('uri.var.remindDelta');
+         var recurrenceName = mc.getProperty('uri.var.recurrenceName');
+         var recurrenceConfigDays = mc.getProperty('uri.var.recurrenceConfigDays');
+         var recurrenceRepeatOn = mc.getProperty('uri.var.recurrenceRepeatOn');
+         var recurrenceStep = mc.getProperty('uri.var.recurrenceStep');
+         var recurrenceUntil = mc.getProperty('uri.var.recurrenceUntil');
+         var externalId = mc.getProperty('uri.var.externalId');
+         var labelIds = mc.getProperty('uri.var.labelIds');
+         var fileIds = mc.getProperty('uri.var.fileIds');
+         var responsible = mc.getProperty('uri.var.responsible');
+         var isSilent = mc.getProperty('uri.var.isSilent');
+         var isHook = mc.getProperty('uri.var.isHook');
+         var apiParameters = mc.getProperty('uri.var.apiParameters');
+         if (isSilent != null && isSilent != "") {
+            apiParameters ="?silent=" + isSilent;
+         }
+         if (isHook != null && isHook != "") {
+            if (isSilent != null && isSilent != "") {
+               apiParameters =apiParameters + "&hook=" + isHook;
+            } else {
+               apiParameters ="?hook=" + isHook;
+            }
+         }
+         mc.setProperty("uri.var.apiParameters",apiParameters);
+         if (description != null && description != "") {
+            payload.description = description;
+         }
+         if (isPrivate != null && isPrivate != "") {
+            payload ["private"] =  eval("("+isPrivate+")");
+         }
+         if (dueDate != null && dueDate != "") {
+            payload.due_date = dueDate;
+         }
+         if (dueTime != null && dueTime != "") {
+            payload.due_time = dueTime;
+         }
+         if (dueOn != null && dueOn != "") {
+            payload.due_on = dueOn;
+         }
+         if (labels != null && labels != "") {
+            payload.labels = eval("("+labels+")");
+         }
+         if (remindDelta != null && remindDelta != "") {
+            payload.reminder = {};
+            payload.reminder.remind_delta = remindDelta;
+         }
+         if (recurrenceName != null && recurrenceName != "" && recurrenceConfigDays != null && recurrenceConfigDays != "") {
+            payload.recurrence = {};
+            payload.recurrence.name = recurrenceName;
+            payload.recurrence.config = {};
+            payload.recurrence.config.days = eval("("+recurrenceConfigDays+")");
+            if (recurrenceRepeatOn != null && recurrenceRepeatOn != "") {
+                payload.recurrence.config.repeat_on = recurrenceRepeatOn;
+            }
+            if (recurrenceUntil != null && recurrenceUntil != "") {
+               payload.recurrence.until = recurrenceUntil;
+            }
+            if (recurrenceStep != null && recurrenceStep != "") {
+               payload.recurrence.step = recurrenceStep;
+            }
+         }
+         if (externalId != null && externalId != "") {
+            payload.external_id = externalId;
+         }
+         //If vaules are not sent in arrays the parameters are removed from the payload.
+         if (labelIds == null || labelIds == "") {
+            delete payload.label_ids;
+         }
+         if (fileIds == null || fileIds == "") {
+            delete payload.file_ids;
+         }
+         if (responsible == null || responsible == "") {
+            delete payload.responsible;
+         }
+         mc.setPayloadJSON(payload);    
+      ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/task{uri.var.apiParameters}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Podio-Auth-Ref" scope="transport" action="remove" />
+      <header name="X-Podio-Request-Id" scope="transport" action="remove" />
+      <header name="X-Rate-Limit-Limit" scope="transport" action="remove" />
+      <header name="X-Rate-Limit-Remaining" scope="transport" action="remove" />
+      <header name="X-Served-By" scope="transport" action="remove" />
+   </sequence>
+</template>

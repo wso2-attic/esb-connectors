@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://developers.podio.com/doc/files/attach-file-22518 -->
+<template name="attachFile" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="fileId" description="The unique identifier of the file" />
+   <parameter name="refType" description="The referrence type of the file" />
+   <parameter name="refId" description="The unique identifier of the referrence" />
+   <parameter name="isSilent" description="If  true, the object will not be bumped up in the stream" />
+   <sequence>
+      <property name="uri.var.fileId" expression="$func:fileId" />
+      <property name="uri.var.refType" expression="$func:refType" />
+      <property name="uri.var.refId" expression="$func:refId" />
+      <property name="uri.var.isSilent" expression="$func:isSilent" />
+      <property name="uri.var.urlParams" value="" />
+      <filter xpath="boolean(get-property('uri.var.refId'))">
+         <then>
+            <property name="uri.var.refId" expression="$func:refId" type="INTEGER" />
+         </then>
+      </filter>
+      <script language="js">
+      <![CDATA[
+         var payload = new Object{};
+         var refType = mc.getProperty('uri.var.refType');
+         var refId = mc.getProperty('uri.var.refId');
+         if (refType != null && refType != "") {
+            payload.ref_type = refType;
+         }
+         if (refId != null && refId != "") {
+            payload.ref_id = refId;
+         }
+         mc.setPayloadJSON(payload);    
+      ]]>
+      </script>
+      <filter source="boolean(get-property('uri.var.isSilent'))" regex="true">
+         <then>
+            <property name="uri.var.urlParams" expression="fn:concat('?silent=', get-property('uri.var.isSilent'))" />
+         </then>
+      </filter>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/file/{uri.var.fileId}/attach{uri.var.urlParams}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Podio-Auth-Ref" scope="transport" action="remove" />
+      <header name="X-Podio-Request-Id" scope="transport" action="remove" />
+      <header name="X-Rate-Limit-Limit" scope="transport" action="remove" />
+      <header name="X-Rate-Limit-Remaining" scope="transport" action="remove" />
+      <header name="X-Served-By" scope="transport" action="remove" />
+   </sequence>
+</template>

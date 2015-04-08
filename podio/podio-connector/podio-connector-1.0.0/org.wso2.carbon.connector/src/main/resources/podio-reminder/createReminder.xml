@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://developers.podio.com/doc/reminders/create-or-update-reminder-3315055 -->
+<template name="createReminder" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="refType" description="The type of the object the reminder is on." />
+   <parameter name="refId" description="The id of the object the reminder is on." />
+   <parameter name="remindDelta" description="The number of minutes to remind before the due date of the object." />
+   <sequence>
+      <property name="uri.var.refType" expression="$func:refType" />
+      <property name="uri.var.refId" expression="$func:refId" />
+      <property name="uri.var.remindDelta" expression="$func:remindDelta" />
+      <filter xpath="boolean(get-property('uri.var.remindDelta'))">
+         <then>
+            <payloadFactory media-type="json">
+               <format>
+                  {
+                  "remind_delta":$1
+                  }
+               </format>
+               <args>
+                  <arg expression="get-property('uri.var.remindDelta')" />
+               </args>
+            </payloadFactory>
+         </then>
+         <else>
+            <payloadFactory media-type="json">
+               <format>
+                  {
+                  "remind_delta":""
+                  }
+               </format>
+               <args>
+                  <arg expression="get-property('uri.var.remindDelta')" />
+               </args>
+            </payloadFactory>
+         </else>
+      </filter>
+      <call>
+         <endpoint>
+            <http method="put" uri-template="{uri.var.apiUrl}/reminder/{uri.var.refType}/{uri.var.refId}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Podio-Auth-Ref" scope="transport" action="remove" />
+      <header name="X-Podio-Request-Id" scope="transport" action="remove" />
+      <header name="X-Rate-Limit-Limit" scope="transport" action="remove" />
+      <header name="X-Rate-Limit-Remaining" scope="transport" action="remove" />
+      <header name="X-Served-By" scope="transport" action="remove" />
+   </sequence>
+</template>
