@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+    WSO2 Inc. licenses this file to you under the Apache License,
+    Version 2.0 (the "License"); you may not use this file except
+    in compliance with the License.
+    You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+<template name="getAnEmailGroup" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="emailGroupId" description="Unique identifier of the email group."/>
+    <parameter name="depth"
+               description="The RequestDepth. It can be 'complete' or 'Reference' or 'Minimal' or 'Partial'"/>
+    <parameter name="extensions" description="The extensions to filter. Must follow the pattern : ^[A-Za-z0-9]+$."/>
+    <sequence>
+        <property name="uri.var.emailGroupId" expression="$func:emailGroupId"/>
+        <property name="uri.var.depth" expression="$func:depth"/>
+        <property name="uri.var.extensions" expression="$func:extensions"/>
+        <filter xpath="(not(get-property('uri.var.depth') = '' or (not(string(get-property('uri.var.depth'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'depth=',get-property('uri.var.depth'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.extensions') = '' or (not(string(get-property('uri.var.extensions'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'extensions=',get-property('uri.var.extensions'))"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="{uri.var.apiUrl}assets/email/group/{uri.var.emailGroupId}?{uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>
