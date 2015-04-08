@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="salesBinder_createFulfillmentsByRetrievingPO" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence>
+         <property name="salesbinder.apiUrl" expression="json-eval($.salesBinderApiUrl)" />
+         <property name="salesbinder.apiKey" expression="json-eval($.salesBinderApiToken)" />
+         <property name="salesbinder.purchaseOrderCount" expression="count(//salesbinderPurchaseOrderIds)"
+            scope="operation" />
+         <property name="salesbinder.purchaseOrderIndex" expression="0" scope="operation" />
+         <property name="orderMap" expression="json-eval($.orderMap)" />
+         <property name="shopify.apiUrl" expression="json-eval($.shopifyApiUrl)" />
+         <property name="shopify.accessToken" expression="json-eval($.shopifyAccessToken)" />
+         <property name="idObject" value="" />
+
+         <filter xpath="get-property('operation','salesbinder.purchaseOrderCount') = 0">
+            <then>
+               <property name="idObject" value="{}" />
+               <property name="status" value="Skipped" />
+               <property name="message" value="No purchase orders to process." />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:idObject}" />
+                  <with-param name="activity" value="salesbinder_getPurchaseOrders" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <iterate continueParent="true" id="companies" expression="//salesbinderPurchaseOrderIds"
+                  sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="salesbinder.documentId" expression="//salesbinderPurchaseOrderIds/text()" />
+                        <header name="Via" scope="transport" action="remove" />
+                        <salesbinder.init>
+                           <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+                           <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+                        </salesbinder.init>
+                        <salesbinder.getDocumentById>
+                           <id>{$ctx:salesbinder.documentId}</id>
+                        </salesbinder.getDocumentById>
+                        <property name="salesbinder.id" expression="json-eval($.Document.id)" />
+                        <filter source="boolean(get-property('salesbinder.id'))" regex="false">
+                           <then>
+                              <property name="idObject" value="{}" />
+                              <property name="status" value="Skipped" />
+                              <property name="message" value="invalid." />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="id" value="{$ctx:idObject}" />
+                                 <with-param name="activity" value="salesbinder_retrievePurchaseOrder" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </then>
+                           <else>
+                              <property name="salesbinder.status" expression="json-eval($.Status.name)" />
+                              <property name="salesbinder.dropShipId" expression="json-eval($.Document.drop_ship_customer_id)" />
+                              <property name="idObject"
+                                 expression="fn:concat('{salesbinder_purchaseOrderId:',get-property('salesbinder.documentId'),'}')" />
+                              <filter source="boolean(get-property('salesbinder.dropShipId'))" regex="false">
+                                 <then>
+                                    <property name="status" value="Skipped" />
+                                    <property name="message" value="Purchase order is not a dropped ship order." />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:idObject}" />
+                                       <with-param name="activity" value="salesbinder_retrievePurchaseOrder" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                    <filter xpath="fn:lower-case(get-property('salesbinder.status')) !='received'">
+                                       <then>
+                                          <property name="status" value="Skipped" />
+                                          <property name="message" value="Purchase order is not a received order." />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:idObject}" />
+                                             <with-param name="activity" value="salesbinder_retrievePurchaseOrder" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <script language="js">
+                                             var poId = mc.getProperty('salesbinder.documentId');
+                                             var orderMap = eval("(" + mc.getProperty('orderMap') + ")");
+                                             var
+                                             shopifyOrder = orderMap[poId];
+
+                                             mc.setProperty("shopify.orderId", shopifyOrder);
+                                          </script>
+
+                                          <filter xpath="get-property('shopify.orderId') = 'undefined' ">
+                                             <then>
+                                                <property name="idObject"
+                                                   expression="fn:concat('purchaseOrder_id:',get-property('salesbinder.documentId'))" />
+                                                <property name="status" value="Skipped" />
+                                                <property name="message"
+                                                   expression="fn:concat('Mapping order ID in Shopify for the salesBinder purchaseOrder ID ',get-property('salesbinder.documentId'),' cannot be found in the request.')" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="id" value="{$ctx:idObject}" />
+                                                   <with-param name="activity" value="shopify_OrderDetails" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <property name="shopify.trackNo"
+                                                   expression="fn:concat('trackNo_',get-property('salesbinder.documentId'))" />
+                                                <payloadFactory media-type="json">
+                                                   <format>
+                                                      {
+                                                         "fulfillment":{
+                                                            "tracking_number": "$1",
+                                                            "notify_customer":true
+                                                         }
+                                                      }
+                                                   </format>
+                                                   <args>
+                                                      <arg evaluator="xml" expression="get-property('shopify.trackNo')" />
+                                                   </args>
+                                                </payloadFactory>
+                                                <property name="shopify.fulfillment" expression="json-eval($.fulfillment)" />
+                                                <property name="shopify.format" value="json" />
+                                                <shopify.init>
+                                                   <accessToken>{$ctx:shopify.accessToken}</accessToken>
+                                                   <apiUrl>{$ctx:shopify.apiUrl}</apiUrl>
+                                                   <format>{$ctx:shopify.format}</format>
+                                                </shopify.init>
+                                                <shopify.createFulfillment>
+                                                   <fulfillment>{$ctx:shopify.fulfillment}</fulfillment>
+                                                   <orderId>{$ctx:shopify.orderId}</orderId>
+                                                </shopify.createFulfillment>
+                                                <property name="shopify.fulfillmentId" expression="json-eval($.fulfillment.id)" />
+                                                <filter source="$axis2:HTTP_SC" regex="201">
+                                                   <then>
+                                                      <property name="idObject"
+                                                         expression="fn:concat('{purchaseOrderId:',get-property('salesbinder.documentId'),',fulfillmentId:',get-property('shopify.fulfillmentId'),'}')" />
+                                                      <property name="status" value="success" />
+                                                      <property name="message" value="The fulfillment has been created." />
+                                                   </then>
+                                                   <else>
+                                                      <property name="status" value="error" />
+                                                      <property name="message" expression="json-eval($)" />
+                                                   </else>
+                                                </filter>
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="shopify_createFulfillment" />
+                                                   <with-param name="id" value="{$ctx:idObject}" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </else>
+                                          </filter>
+                                       </else>
+                                    </filter>
+                                 </else>
+                              </filter>
+                           </else>
+                        </filter>
+                        <property name="salesbinder.purchaseOrderIndex" expression="get-property('operation','salesbinder.purchaseOrderIndex') + 1"
+                           scope="operation" />
+                     </sequence>
+                  </target>
+               </iterate>
+               <filter
+                  xpath="get-property('operation','salesbinder.purchaseOrderIndex') = get-property('operation', 'salesbinder.purchaseOrderCount')">
+                  <then>
+                     <loopback />
+                  </then>
+               </filter>
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"SalesBinder-createFulfillmentsByRetrievingPO",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
+                                

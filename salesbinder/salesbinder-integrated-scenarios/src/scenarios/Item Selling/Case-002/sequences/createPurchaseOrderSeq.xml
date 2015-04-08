@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="createPurchaseOrderSeq">
+
+   <property name="po.idObject" expression="fn:concat('{shopifyOrderId:',get-property('shopify.orderId'),'}')" />
+
+   <!--Creating Purchase Order in SalesBinder:BEGIN -->
+   <filter xpath="get-property('salesbinder.hasValidContact')='true'">
+      <then>
+         <filter source="boolean(get-property('operation','salesbinder.inventoryItemIds'))" regex="true">
+            <then>
+               <property name="salesbinder.inventoryItemIds"
+                  expression="fn:substring(get-property('operation','salesbinder.inventoryItemIds'), 1, fn:string-length(get-property('operation','salesbinder.inventoryItemIds'))-1)"
+                  scope="operation" />
+               <property name="salesbinder.documentsItem" expression="fn:concat('[',get-property('operation', 'salesbinder.inventoryItemIds'),']')" />
+               <script language="js">
+                  var currentDate=new Date();
+                  var currentday=""+currentDate.getDate();
+                  if(currentday.length==1){
+                     currentday="0"+currentday;
+                  }
+                  var dateString=currentDate.getFullYear() + "-" + Number(currentDate.getMonth()+1) + "-" + currentday ;
+                  mc.setProperty('salesbinder.issueDate', dateString);
+               </script>
+
+               <!-- Calling SalesBinder createDocument method to create a new purchase order -->
+               <salesbinder.init>
+                  <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+                  <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+               </salesbinder.init>
+               <property name="salesbinder.authorizationHeader" expression="$trp:Authorization" />
+               <salesbinder.createDocument>
+                  <!-- Context ID is 11 for the purchase orders. -->
+                  <contextId>11</contextId>
+                  <customerId>{$ctx:salesbinder.customerId}</customerId>
+                  <documentsItem>{$ctx:salesbinder.documentsItem}</documentsItem>
+                  <dropShipCustomerId>{$ctx:salesbinder.customerId}</dropShipCustomerId>
+                  <issueDate>{$ctx:salesbinder.issueDate}</issueDate>
+               </salesbinder.createDocument>
+
+               <filter source="$axis2:HTTP_SC" regex="302">
+                  <then>
+                     <property name="uri.var.location" expression="$trp:Location" />
+                     <property name="Authorization" expression="$ctx:salesbinder.authorizationHeader" scope="transport"
+                        type="STRING" />
+
+                     <call>
+                        <endpoint>
+                           <http method="get" uri-template="{uri.var.location}" />
+                        </endpoint>
+                     </call>
+
+                     <filter source="$axis2:HTTP_SC" regex="200">
+                        <then>
+                           <property name="documentId" expression="json-eval($.Document.id)" />
+                           <property name="po.idObject"
+                              expression="fn:concat('{shopifyOrderId:',get-property('shopify.orderId'),',salesBinderDocumentId:',get-property('documentId'),'}')" />
+                           <property name="status" value="success" />
+                           <property name="message" value="Purchase order was successfully created." />
+                        </then>
+                        <else>
+                           <property name="status" value="error" />
+                           <property name="message" expression="json-eval($.)" />
+                        </else>
+                     </filter>
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:po.idObject}" />
+                        <with-param name="activity" value="salesbinder_createPurchaseOrder" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                  </then>
+                  <else>
+                     <property name="status" value="error" />
+                     <property name="message" expression="json-eval($.)" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:po.idObject}" />
+                        <with-param name="activity" value="salesbinder_createPurchaseOrder" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                  </else>
+               </filter>
+
+            </then>
+            <else>
+               <property name="status" value="skipped" />
+               <property name="message" value="No valid Sales Binder inventory item(s) to create purchase Order" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:po.idObject}" />
+                  <with-param name="activity" value="salesbinder_createPurchaseOrder" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+            </else>
+         </filter>
+      </then>
+      <else>
+         <property name="status" value="skipped" />
+         <property name="message" value="No valid Sales Binder customer to create purchase Order" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="id" value="{$ctx:po.idObject}" />
+            <with-param name="activity" value="salesbinder_createPurchaseOrder" />
+            <with-param name="status" value="{$ctx:status}" />
+            <with-param name="message" value="{$ctx:message}" />
+         </call-template>
+      </else>
+   </filter>
+   <!--Creating Purchase Order in SalesBinder:END -->
+
+
+   <!--Creating Purchase Order in ZohoBooks:BEGIN -->
+   <property name="po.idObject" expression="fn:concat('{shopifyOrderId:',get-property('shopify.orderId'),'}')" />
+   <filter xpath="get-property('zohobooks.hasValidContact')='true'">
+      <then>
+         <filter source="boolean(get-property('operation','zohobooks.itemIds'))" regex="true">
+            <then>
+               <property name="zohobooks.itemIds"
+                  expression="fn:substring(get-property('operation','zohobooks.itemIds'), 1, fn:string-length(get-property('operation','zohobooks.itemIds'))-1)" />
+               <property name="zohobooks.lineItems" expression="fn:concat('[',get-property('operation', 'zohobooks.itemIds'),']')" />
+               <property name="zohobooks.contactPersons" expression="fn:concat('[&quot;',get-property('zohobooks.contactPersonId'),'&quot;]')" />
+
+               <!-- Calling ZohoBooks createPurchaseOrder method to create a new purchase order -->
+               <zohobooks.init>
+                  <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                  <authToken>{$ctx:zohobooks.authToken}</authToken>
+                  <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+               </zohobooks.init>
+               <zohobooks.createPurchaseOrder>
+                  <vendorId>{$ctx:zohobooks.contactId}</vendorId>
+                  <contactPersons>{$ctx:zohobooks.contactPersons}</contactPersons>
+                  <lineItems>{$ctx:zohobooks.lineItems}</lineItems>
+               </zohobooks.createPurchaseOrder>
+
+               <filter source="$axis2:HTTP_SC" regex="201">
+                  <then>
+                     <property name="zohobooks.purchaseOrderId" expression="json-eval($.purchaseorder.purchaseorder_id)" />
+                     <property name="zohobooks.items"
+                        expression="fn:substring(get-property('operation','zohobooks.items'), 1, fn:string-length(get-property('operation','zohobooks.items'))-1)" />
+
+                     <property name="po.idObject"
+                        expression="fn:concat('{shopifyOrderId:',get-property('shopify.orderId'),',zohoBooksPurchaseOrderId:',get-property('zohobooks.purchaseOrderId'),'}')" />
+                     <property name="status" value="success" />
+                     <property name="message" value="Purchase order was successfully created." />
+                  </then>
+                  <else>
+                     <property name="status" value="error" />
+                     <property name="message" expression="json-eval($.)" />
+                  </else>
+               </filter>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:po.idObject}" />
+                  <with-param name="activity" value="zohobooks_createPurchaseOrder" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+
+            </then>
+            <else>
+               <property name="status" value="skipped" />
+               <property name="message" value="No valid line item(s) to create purchase Order" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:po.idObject}" />
+                  <with-param name="activity" value="zohobooks_createPurchaseOrder" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+            </else>
+         </filter>
+      </then>
+      <else>
+         <property name="status" value="skipped" />
+         <property name="message" value="No valid contact to create purchase Order" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="id" value="{$ctx:order.idObject}" />
+            <with-param name="activity" value="zohobooks_createPurchaseOrder" />
+            <with-param name="status" value="{$ctx:status}" />
+            <with-param name="message" value="{$ctx:message}" />
+         </call-template>
+      </else>
+   </filter>
+   <!--Creating Purchase Order in ZohoBooks:END -->
+
+</sequence>  

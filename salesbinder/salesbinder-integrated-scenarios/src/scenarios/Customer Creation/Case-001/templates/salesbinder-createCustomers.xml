@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This template is to create customers in SalesBinder-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="salesbinder-createCustomers">
+   <!--Sales Binder parameters-->
+   <parameter name="salesbinder.apiKey" description="Encrypted alphanumeric string to authenticate the Sales Binder credentials." />
+   <parameter name="salesbinder.apiUrl" description="The salesbinder API URL." />
+   <parameter name="salesbinder.contextId" description="The context ID which defines the Account type." />
+   <parameter name="salesbinder.url" description="Company website address." />
+   <parameter name="salesbinder.billingAddress1" description="Part one of the billing address of the account . " />
+   <parameter name="salesbinder.billingAddress2" description="Part two of the billing address of the account . " />
+   <parameter name="salesbinder.billingPostalCode" description="The post code of the billing address. " />
+   <parameter name="salesbinder.billingCity" description="The city for which the billing address belong. " />
+   <parameter name="salesbinder.billingCountry" description="Billing country of the account. " />
+   <parameter name="salesbinder.shippingAddress1" description="Part one of the shipping address of the account. " />
+   <parameter name="salesbinder.shippingAddress2" description="Part two of the shipping address of the account. " />
+   <parameter name="salesbinder.shippingPostalCode" description="Post code of the shipping address." />
+   <parameter name="salesbinder.shippingCountry" description="Shipping country of the account." />
+   <parameter name="salesbinder.shippingCity" description="The city which the shipping address belongs" />
+   <parameter name="salesbinder.name" description="Name of the account." />
+   <parameter name="salesbinder.officeEmail" description="Office email of the account." />
+   <parameter name="salesbinder.officeFax" description="Office fax of the account." />
+   <parameter name="salesbinder.billingRegion" description="Billing region the account." />
+   <parameter name="salesbinder.shippingRegion" description="Shipping region of the account." />
+   <parameter name="salesbinder.customerLabelId" description="Customer labeld ID of the account." />
+   <parameter name="salesbinder.officeNumber" description="Office number of the account." />
+   
+   
+   <!--common parameters-->
+   <parameter name="clevertimcrm.id" description="Id as Key value pair(s) for response handler (Ex. id1:value1,id2:value2)." />
+
+   <sequence>
+      <property name="salesbinder.apiKey" expression="$func:salesbinder.apiKey" />
+      <property name="salesbinder.apiUrl" expression="$func:salesbinder.apiUrl" />
+      <property name="salesbinder.contextId" expression="$func:salesbinder.contextId" />
+      <property name="salesbinder.url" expression="$func:salesbinder.url" />
+      <property name="salesbinder.billingAddress1" expression="$func:salesbinder.billingAddress1" />
+      <property name="salesbinder.billingAddress2" expression="$func:salesbinder.billingAddress2" />
+      <property name="salesbinder.billingPostalCode" expression="$func:salesbinder.billingPostalCode" />
+      <property name="salesbinder.billingCity" expression="$func:salesbinder.billingCity" />
+      <property name="salesbinder.billingCountry" expression="$func:salesbinder.billingCountry" />
+      <property name="salesbinder.shippingAddress1" expression="$func:salesbinder.shippingAddress1" />
+      <property name="salesbinder.shippingAddress2" expression="$func:salesbinder.shippingAddress2" />
+      <property name="salesbinder.shippingPostalCode" expression="$func:salesbinder.shippingPostalCode" />
+      <property name="salesbinder.shippingCountry" expression="$func:salesbinder.shippingCountry" />
+      <property name="salesbinder.name" expression="$func:salesbinder.name" />
+      <property name="salesbinder.officeEmail" expression="$func:salesbinder.officeEmail" />
+      <property name="salesbinder.officeFax" expression="$func:salesbinder.officeFax" />
+      <property name="salesbinder.customerLabelId" expression="$func:salesbinder.customerLabelId" />
+      <property name="salesbinder.billingRegion" expression="$func:salesbinder.billingRegion" />
+      <property name="salesbinder.shippingRegion" expression="$func:salesbinder.shippingRegion" />
+      <property name="salesbinder.officeNumber" expression="$func:salesbinder.officeNumber" />
+
+      <property name="clevertimcrm.id" expression="$func:clevertimcrm.id" />
+
+      <!--Process creating Account only if the salesbinder api key is given-->
+      <filter source="boolean(get-property('salesbinder.apiKey'))" regex="true">
+         <then>
+		 
+            <!--Call SalesBinder createAccount method create Accounts with the specific type-->
+            <salesbinder.init>
+               <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+               <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+            </salesbinder.init>
+            <property name="authorizationHeader" expression="$trp:Authorization" />
+            <salesbinder.createAccount>
+               <billingAddress1>{$ctx:salesbinder.billingAddress1}</billingAddress1>
+               <shippingPostalCode>{$ctx:salesbinder.shippingPostalCode}</shippingPostalCode>
+               <shippingAddress1>{$ctx:salesbinder.shippingAddress1}</shippingAddress1>
+               <url>{$ctx:salesbinder.url}</url>
+               <contextId>{$ctx:salesbinder.contextId}</contextId>
+               <billingPostalCode>{$ctx:salesbinder.billingPostalCode}</billingPostalCode>
+               <officeEmail>{$ctx:salesbinder.officeEmail}</officeEmail>
+               <name>{$ctx:salesbinder.name}</name>
+               <billingCity>{$ctx:salesbinder.billingCity}</billingCity>
+               <shippingCountry>{$ctx:salesbinder.shippingCountry}</shippingCountry>
+               <billingCountry>{$ctx:salesbinder.billingCountry}</billingCountry>
+               <shippingCity>{$ctx:salesbinder.shippingCity}</shippingCity>
+               <billingAddress2>{$ctx:salesbinder.billingAddress2}</billingAddress2>
+               <officeFax>{$ctx:salesbinder.officeFax}</officeFax>
+               <shippingAddress2>{$ctx:salesbinder.shippingAddress2}</shippingAddress2>
+               <billingRegion>{$ctx:salesbinder.billingRegion}</billingRegion>
+               <officeNumber>{$ctx:salesbinder.officeNumber}</officeNumber>
+               <shippingRegion>{$ctx:salesbinder.shippingRegion}</shippingRegion>
+               <customerLabelId>{$ctx:salesbinder.customerLabelId}</customerLabelId>
+            </salesbinder.createAccount>
+
+            <filter source="$axis2:HTTP_SC" regex="302">
+               <then>
+                  <property name="uri.var.location" expression="$trp:Location" />
+                  <property name="Authorization" expression="$ctx:authorizationHeader" scope="transport" type="STRING" />
+                  <call>
+                     <endpoint>
+                        <http method="get" uri-template="{uri.var.location}" />
+                     </endpoint>
+                  </call>
+				  
+                  <property name="salesbinder.customerId" expression="json-eval($.Customer.id)" />
+				  
+                  <filter source="boolean(get-property('salesbinder.customerId'))" regex="false">
+                     <then>
+                        <filter source="boolean(get-property('clevertimcrm.id'))" regex="false">
+                           <then>
+                              <property name="id" value="{}" />
+                           </then>
+                           <else>
+                              <property name="id" expression="fn:concat('{ companyId:',get-property('clevertimcrm.id'),'}')" />
+                           </else>
+                        </filter>
+						
+                        <property name="status" value="error" />
+                        <property name="message" expression="json-eval($)" />
+                     </then>
+                     <else>
+                        <filter source="boolean(get-property('clevertimcrm.id'))" regex="false">
+                           <then>
+                              <property name="id" expression="fn:concat('{ accountId:',get-property('salesbinder.customerId'),'}')" />
+                           </then>
+                           <else>
+                              <property name="id"
+                                 expression="fn:concat('{ companyId:',get-property('clevertimcrm.id'),',accountId:',get-property('salesbinder.customerId'),'}')" />
+                           </else>
+                        </filter>
+						
+                        <property name="status" value="success" />
+                        <property name="message" value="The Account has been created successfully." />
+                     </else>
+                  </filter>
+               </then>
+               <else>
+                  <filter source="boolean(get-property('clevertimcrm.id'))" regex="false">
+                     <then>
+                        <property name="id" value="{}" />
+                     </then>
+                     <else>
+                        <property name="id" expression="fn:concat('{ companyId:',get-property('clevertimcrm.id'),'}')" />
+                     </else>
+                  </filter>
+                  <property name="status" value="error" />
+                  <property name="message" expression="json-eval($)" />
+               </else>
+            </filter>
+			 <!--Call the responseHandler template-->
+            <call-template target="responseHandlerTemplate">
+               <with-param name="activity" value="salesbinder_createAccount" />
+               <with-param name="id" value="{$ctx:id}" />
+               <with-param name="status" value="{$ctx:status}" />
+               <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+         </then>
+      </filter>
+   </sequence>
+</template>

@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="salesBinder_createProductsByRetrievingInventoryItems"
+   transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!--SalesBinder Properties -->
+         <property name="salesbinder.apiUrl" expression="json-eval($.salesbinderApiUrl)" />
+         <property name="salesbinder.apiKey" expression="json-eval($.salesbinderApiKey)" />
+         <property name="salesbinder.inventoryItemsCount" expression="count(//salesbinderInventoryItemIds)"
+            scope="operation" />
+         <property name="salesbinder.inventoryItemIndex" value="0" scope="operation" />
+
+         <!--Shopify Properties -->
+         <property name="shopify.apiUrl" expression="json-eval($.shopifyApiUrl)" />
+         <property name="shopify.accessToken" expression="json-eval($.shopifyAccessToken)" />
+
+         <!--Common Properties -->
+         <property name="idObject" value="{}" />
+
+         <!--Process only if the inventory item IDs array is not empty -->
+         <filter xpath="get-property('operation','salesbinder.inventoryItemsCount') >0">
+            <then>
+               <!--FOR EACH inventory items : BEGIN -->
+               <iterate continueParent="true" id="events" expression="//salesbinderInventoryItemIds" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="salesbinder.inventoryItemId" expression="//salesbinderInventoryItemIds/inventoryitemId/text()" />
+                        <property name="item.isProductPublished" expression="//salesbinderInventoryItemIds/isPublish/text()" />
+						
+						<filter source="boolean(get-property('salesbinder.inventoryItemId'))" regex="false">
+						   <then>
+						      <property name="status" value="skipped" />
+							  <property name="message" value="Inventory item ID is empty." />
+						   </then>
+						   <else>
+                              <property name="idObject" expression="fn:concat('{inventoryItemId:',get-property('salesbinder.inventoryItemId'),'}')" />
+							  <filter xpath="fn:lower-case(get-property('item.isProductPublished')) !='true'">
+							   <then>
+								  <property name="item.isProductPublished" value="true" />
+							   </then>
+							   <else>
+								  <property name="item.isProductPublished" value="false" />
+							   </else>
+							</filter>
+
+							<!-- Call SalesBinder getInventoryItemById to retrieve inventory item details. -->
+							<salesbinder.init>
+							   <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+							   <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+							</salesbinder.init>
+							<salesbinder.getInventoryItemById>
+							   <id>{$ctx:salesbinder.inventoryItemId}</id>
+							</salesbinder.getInventoryItemById>
+
+							<!--Process only if the inventory item ID is not valid -->
+							<filter source="$axis2:HTTP_SC" regex="200">
+							   <then>
+								  <property name="item.name" expression="json-eval($.Item.name)" />
+								  <property name="item.description" expression="json-eval($.Item.description)" />
+
+								  <payloadFactory media-type="json">
+									 <format>
+										{
+										"product": {
+											  "title": "$1",
+											  "body_html": "&lt;strong&gt;$2&lt;/strong&gt;",
+											  "published": "$3"
+										   }
+										}
+									 </format>
+									 <args>
+										<arg expression="get-property('item.name')" />
+										<arg expression="get-property('item.description')" />
+										<arg expression="get-property('item.isProductPublished')" />
+									 </args>
+								  </payloadFactory>
+								  <property name="shopify.product" expression="json-eval($.product)" />
+
+								  <!-- Call Shopify createProduct to create a new product. -->
+								  <shopify.init>
+									 <apiUrl>{$ctx:shopify.apiUrl}</apiUrl>
+									 <accessToken>{$ctx:shopify.accessToken}</accessToken>
+									 <format>json</format>
+								  </shopify.init>
+								  <shopify.createProduct>
+									 <product>{$ctx:shopify.product}</product>
+								  </shopify.createProduct>
+
+								  <filter source="$axis2:HTTP_SC" regex="201">
+									 <then>
+										<property name="productId" expression="json-eval($.product.id)" />
+										<property name="idObject"
+										   expression="fn:concat('{inventoryItemId:',get-property('salesbinder.inventoryItemId'),',productId:',get-property('productId'),'}')" />
+										<property name="status" value="success" />
+										<property name="message" value="Product was successfully created." />
+									 </then>
+									 <else>
+										<property name="status" value="error" />
+										<property name="message" expression="json-eval($.)" />
+									 </else>
+								  </filter>
+
+							   </then>
+							   <else>
+								  <property name="status" value="skipped" />
+								  <property name="message" value="Failed to get a valid inventory item ID." />
+							   </else>
+							</filter>
+						   </else>
+						</filter>
+						
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="id" value="{$ctx:idObject}" />
+                           <with-param name="activity" value="shopify_createProduct" />
+                           <with-param name="status" value="{$ctx:status}" />
+                           <with-param name="message" value="{$ctx:message}" />
+                        </call-template>
+
+                        <property name="salesbinder.inventoryItemIndex" expression="get-property('operation','salesbinder.inventoryItemIndex') + 1"
+                           scope="operation" />
+
+                        <filter
+                           xpath="get-property('operation','salesbinder.inventoryItemsCount') = get-property('operation','salesbinder.inventoryItemIndex')">
+                           <then>
+                              <loopback />
+                           </then>
+                        </filter>
+
+                     </sequence>
+                  </target>
+               </iterate>
+               <!--FOR EACH inventory items : END -->
+            </then>
+            <else>
+               <property name="status" value="skipped" />
+               <property name="message" value="No inventory item(s) to process." />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:idObject}" />
+                  <with-param name="activity" value="shopify_createProduct" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"SalesBinder-createProductsByRetrievingInventoryItems",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

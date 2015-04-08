@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="createOrderLineItemSeq">
+
+   <property name="item.idObject" expression="fn:concat('{shopifyLineItemId:',get-property('shopify.lineItem.id'),'}')" />
+
+   <script language="js">
+      <![CDATA[
+         var orderLineItemData=mc.getProperty("order.lineItemData");
+         var shopifyLineItemId=mc.getProperty("shopify.lineItem.id");
+          
+         var orderLineItemDataObj = eval('(' + orderLineItemData + ')');
+         var itemDataObj=orderLineItemDataObj[shopifyLineItemId];
+         
+         var salesBinderItemId;
+         var zohoBooksItemId;
+         if(itemDataObj!=undefined){
+            salesBinderItemId=itemDataObj["salesBinderItemId"];
+            zohoBooksItemId=itemDataObj["zohoBooksItemId"];
+         }
+         
+         mc.setProperty("salesbinder.itemId",salesBinderItemId);
+         mc.setProperty("zohobooks.itemId",zohoBooksItemId);
+         
+      ]]>
+   </script>
+
+   <!--Manage inventory line item in SalesBinder:BEGIN -->
+   <property name="salesbinder.hasValidLineItem" value="false" />
+   <filter xpath="get-property('salesbinder.itemId')!='undefined' or get-property('salesbinder.itemId')!=''">
+      <then>
+         <!-- Call SalesBinder getInventoryItemById to validate retrieved request item id -->
+         <salesbinder.init>
+            <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+            <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+         </salesbinder.init>
+         <salesbinder.getInventoryItemById>
+            <id>{$ctx:salesbinder.itemId}</id>
+         </salesbinder.getInventoryItemById>
+         <filter source="$axis2:HTTP_SC" regex="200">
+            <then>
+               <property name="itemId" expression="json-eval($.Item.id)" />
+
+               <filter xpath="get-property('salesbinder.itemId')=get-property('itemId')">
+                  <then>
+                     <property name="salesbinder.hasValidLineItem" value="true" />
+
+                     <payloadFactory media-type="json">
+                        <format>
+                           {
+                              "salesBinderlineItem":{
+                                 "item_id":"$1",
+                                 "quantity":"$2",
+                                 "price":"$3"
+                              }
+                           }
+                        </format>
+                        <args>
+                           <arg expression="get-property('itemId')" />
+                           <arg expression="get-property('lineItem.quantity')" />
+                           <arg expression="get-property('lineItem.price')" />
+                        </args>
+                     </payloadFactory>
+                     <property name="salesBinderlineItem" expression="json-eval($.salesBinderlineItem)" />
+
+                     <property name="salesbinder.inventoryItemIds"
+                        expression="fn:concat(get-property('operation','salesbinder.inventoryItemIds'),get-property('salesBinderlineItem'),',')"
+                        scope="operation" />
+                  </then>
+               </filter>
+            </then>
+         </filter>
+      </then>
+   </filter>
+
+   <!--Create a new inventory item in SalesBinder only if the line item does not exist. -->
+   <filter xpath="get-property('salesbinder.hasValidLineItem')='false'">
+      <then>
+         <salesbinder.init>
+            <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+            <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+         </salesbinder.init>
+         <property name="salesbinder.authorizationHeader" expression="$trp:Authorization" />
+         <salesbinder.addInventoryItem>
+            <name>{$ctx:lineItem.name}</name>
+            <price>{$ctx:lineItem.price}</price>
+            <multiple>1</multiple>
+            <cost>0</cost>
+         </salesbinder.addInventoryItem>
+
+         <filter source="$axis2:HTTP_SC" regex="302">
+            <then>
+               <property name="uri.var.location" expression="$trp:Location" />
+               <property name="Authorization" expression="$ctx:salesbinder.authorizationHeader" scope="transport"
+                  type="STRING" />
+               <call>
+                  <endpoint>
+                     <http method="get" uri-template="{uri.var.location}" />
+                  </endpoint>
+               </call>
+
+               <filter source="$axis2:HTTP_SC" regex="200">
+                  <then>
+                     <property name="itemId" expression="json-eval($.Item.id)" />
+                     <property name="salesbinder.hasValidLineItem" value="true" />
+                     <property name="item.idObject"
+                        expression="fn:concat('{shopifyLineItemId:',get-property('shopify.lineItem.id'),',salesBinderInventoryItemId:',get-property('itemId'),'}')" />
+
+                     <payloadFactory media-type="json">
+                        <format>
+                           {
+                              "salesBinderlineItem":{
+                                 "item_id":"$1",
+                                 "quantity":"$2",
+                                 "price":"$3"
+                              }
+                           }
+                        </format>
+                        <args>
+                           <arg expression="get-property('itemId')" />
+                           <arg expression="get-property('lineItem.quantity')" />
+                           <arg expression="get-property('lineItem.price')" />
+                        </args>
+                     </payloadFactory>
+                     <property name="salesBinderlineItem" expression="json-eval($.salesBinderlineItem)" />
+
+                     <property name="salesbinder.inventoryItemIds"
+                        expression="fn:concat(get-property('operation','salesbinder.inventoryItemIds'),get-property('salesBinderlineItem'),',')"
+                        scope="operation" />
+
+                     <property name="status" value="success" />
+                     <property name="message" value="Inventory item was successfully created." />
+                  </then>
+                  <else>
+                     <property name="status" value="error" />
+                     <property name="message" expression="json-eval($.)" />
+                  </else>
+               </filter>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:item.idObject}" />
+                  <with-param name="activity" value="salesbinder_createInventoryItem" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+            </then>
+            <else>
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($.)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:item.idObject}" />
+                  <with-param name="activity" value="salesbinder_createInventoryItem" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+            </else>
+         </filter>
+      </then>
+   </filter>
+   <!--Manage inventory line item in SalesBinder:END -->
+
+   <!--Manage item in ZohoBooks:BEGIN -->
+   <property name="item.idObject" expression="fn:concat('{shopifyLineItemId:',get-property('shopify.lineItem.id'),'}')" />
+   <property name="zohobooks.hasValidItem" value="false" />
+   <filter xpath="get-property('zohobooks.itemId')!='undefined' or get-property('zohobooks.itemId')!=''">
+      <then>
+         <!-- Call ZohoBooks getItem to validate retrieved request item id -->
+         <zohobooks.init>
+            <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+            <authToken>{$ctx:zohobooks.authToken}</authToken>
+            <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+         </zohobooks.init>
+         <zohobooks.getItem>
+            <itemId>{$ctx:zohobooks.itemId}</itemId>
+         </zohobooks.getItem>
+
+         <property name="itemId" expression="json-eval($.item.item_id)" />
+         <filter xpath="get-property('zohobooks.itemId')=get-property('itemId')">
+            <then>
+               <property name="zohobooks.hasValidItem" value="true" />
+
+               <payloadFactory media-type="json">
+                  <format>
+                     {
+                        "zohobookslineItem":{
+                           "item_id": "$1",
+                           "quantity": $3,
+                           "rate": $2
+                        }
+                     }
+                  </format>
+                  <args>
+                     <arg expression="get-property('itemId')" />
+                     <arg expression="get-property('lineItem.quantity')" />
+                     <arg expression="get-property('lineItem.price')" />
+                  </args>
+               </payloadFactory>
+               <property name="zohobookslineItem" expression="json-eval($.zohobookslineItem)" />
+
+               <property name="zohobooks.itemIds"
+                  expression="fn:concat(get-property('operation','zohobooks.itemIds'),get-property('zohobookslineItem'),',')"
+                  scope="operation" />
+            </then>
+         </filter>
+      </then>
+   </filter>
+
+   <!--Create a new item in ZohoBooks only if the item does not exist. -->
+   <filter xpath="get-property('zohobooks.hasValidItem')='false'">
+      <then>
+         <zohobooks.init>
+            <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+            <authToken>{$ctx:zohobooks.authToken}</authToken>
+            <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+         </zohobooks.init>
+         <zohobooks.createItem>
+            <itemName>{$ctx:lineItem.name}</itemName>
+            <rate>{$ctx:lineItem.price}</rate>
+            <itemType>purchases</itemType>
+            <purchaseRate>{$ctx:lineItem.price}</purchaseRate>
+            <purchaseAccountId>{$ctx:zohobooks.purchaseAccountId}</purchaseAccountId>
+         </zohobooks.createItem>
+
+         <filter source="$axis2:HTTP_SC" regex="201">
+            <then>
+               <property name="itemId" expression="json-eval($.item.item_id)" />
+               <property name="zohobooks.hasValidItem" value="true" />
+               <property name="item.idObject"
+                  expression="fn:concat('{shopifyLineItemId:',get-property('shopify.lineItem.id'),',zohoBooksItemId:',get-property('itemId'),'}')" />
+
+
+               <payloadFactory media-type="json">
+                  <format>
+                     {
+                        "zohobookslineItem":{
+                           "item_id": "$1",
+                           "quantity": $3,
+                           "rate": $2
+                        }
+                     }
+                  </format>
+                  <args>
+                     <arg expression="get-property('itemId')" />
+                     <arg expression="get-property('lineItem.quantity')" />
+                     <arg expression="get-property('lineItem.price')" />
+                  </args>
+               </payloadFactory>
+               <property name="zohobookslineItem" expression="json-eval($.zohobookslineItem)" />
+
+
+               <property name="zohobooks.itemIds"
+                  expression="fn:concat(get-property('operation','zohobooks.itemIds'),get-property('zohobookslineItem'),',')"
+                  scope="operation" />
+
+               <property name="status" value="success" />
+               <property name="message" value="Item was successfully created." />
+            </then>
+            <else>
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($.)" />
+            </else>
+         </filter>
+         <call-template target="responseHandlerTemplate">
+            <with-param name="id" value="{$ctx:item.idObject}" />
+            <with-param name="activity" value="zohobooks_createItem" />
+            <with-param name="status" value="{$ctx:status}" />
+            <with-param name="message" value="{$ctx:message}" />
+         </call-template>
+      </then>
+   </filter>
+   <!--Manage item in ZohoBooks:END -->
+
+</sequence>  

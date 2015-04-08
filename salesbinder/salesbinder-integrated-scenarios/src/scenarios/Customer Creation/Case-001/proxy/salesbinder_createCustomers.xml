@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="salesBinder_createCustomers" transports="https http" startOnLoad="true" trace="disable">
+   <target>
+      <inSequence>
+         <!-- CleverTim Properties-->
+         <property name="clevertimcrm.apiUrl" value="https://www.clevertim.com" />
+         <property name="clevertimcrm.apiKey" expression="json-eval($.cleverTimCrmApiToken)" />
+         <property name="clevertimcrm.companyCount" expression="count(//cleverTimCrmCompanyIds)" scope="operation" />
+         <property name="clevertimcrm.companyIndex" expression="0" scope="operation" />
+         
+		 <!-- SalesBinder Properties-->
+         <property name="salesbinder.apiUrl" expression="json-eval($.salesBinderApiUrl)" />
+         <property name="salesbinder.apiKey" expression="json-eval($.salesBinderApiToken)" />
+         <property name="salesbinder.customerCount" expression="count(//salesbinderCustomers)" scope="operation" />
+         <property name="salesbinder.customerIndex" expression="0" scope="operation" />
+        
+		<!--Array of salesbinder customer object Map-->
+         <property name="salesbinder.customerObjects" expression="json-eval($.salesbinderCustomers)" />
+
+         <filter xpath="get-property('operation','clevertimcrm.companyCount') = 0">
+            <then>
+               <filter xpath="get-property('operation','salesbinder.customerCount') = 0">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="status" value="Skipped" />
+                     <property name="message" value="No entries to process." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="salesbinder_createCustomers" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+					 <!--Call createAccountIterator sequence to create customers directly 
+						   in salesbinder-->
+                     <sequence key="createAccountIterator" />
+
+                  </else>
+               </filter>
+            </then>
+            <else>
+               <!--FOR EACH company : BEGIN-->
+               <iterate continueParent="false" id="companies" expression="//cleverTimCrmCompanyIds" sequential="true">
+                  <target>
+                     <sequence>
+
+                        <property name="clevertimcrm.companyId" expression="//cleverTimCrmCompanyIds/id/text()" />
+                        <property name="clevertimcrm.copiedToShip" expression="//cleverTimCrmCompanyIds/copiedToShip/text()" />
+                        <filter source="boolean(get-property('clevertimcrm.companyId'))" regex="false">
+                           <then>
+                              <property name="id" value="{}" />
+                              <property name="status" value="Skipped" />
+                              <property name="message" value="No company ID is given to process." />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="activity" value="clevertimcrm_retrieveCompanies" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </then>
+                           <else>
+						     <!--Call CleverTimCRM getCompany method retrieve cdetails for a specific selected company-->
+                              <clevertimcrm.init>
+                                 <apiUrl>{$ctx:clevertimcrm.apiUrl}</apiUrl>
+                                 <apiKey>{$ctx:clevertimcrm.apiKey}</apiKey>
+                              </clevertimcrm.init>
+                              <clevertimcrm.getCompany>
+                                 <id>{$ctx:clevertimcrm.companyId}</id>
+                              </clevertimcrm.getCompany>
+
+                              <filter source="$axis2:HTTP_SC" regex="200">
+                                 <then>
+                                    <property name="clevertimcrm.id" expression="json-eval($.content[0].id)" />
+							  
+							        <!--Process only if the specified company ID is valid-->
+                                    <filter xpath="get-property('clevertimcrm.id') = '[]'">
+                                       <then>
+                                          <property name="id" expression="fn:concat('{companyId:',get-property('clevertimcrm.companyId'),'}')" />
+                                          <property name="status" value="Skipped" />
+                                          <property name="message" value="Company ID does not belong to an existing company." />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="activity" value="clevertimcrm_retrieveCompanies" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <property name="clevertimcrm.type" expression="json-eval($.content[0].ctype)" />
+                                          <property name="clevertimcrm.name" expression="json-eval($.content[0].cn)" />
+                                          <property name="clevertimcrm.email" expression="json-eval($.content[0].email[0])" />
+                                          <property name="clevertimcrm.url" expression="json-eval($.content[0].website[0])" />
+                                          <property name="clevertimcrm.billingAddress" expression="json-eval($.content[0].address)" />
+                                          <property name="clevertimcrm.billingCity" expression="json-eval($.content[0].city)" />
+                                          <property name="clevertimcrm.billingPostcode" expression="json-eval($.content[0].postcode)" />
+                                          <property name="clevertimcrm.url" expression="json-eval($.content[0].website[0])" />
+                                          <property name="clevertimcrm.billingCountry" expression="json-eval($.content[0].country)" />
+
+                                          <filter xpath="get-property('clevertimcrm.copiedToShip')= 'true'">
+                                             <then>
+                                                <property name="salesbinder.shippingAddress" expression="get-property('clevertimcrm.billingAddress')" />
+                                                <property name="salesbinder.shippingCity" expression="get-property('clevertimcrm.billingCity')" />
+                                                <property name="salesbinder.shippingPostCode" expression="get-property('clevertimcrm.billingPostcode')" />
+                                                <property name="salesbinder.shippingCountry" expression="get-property('clevertimcrm.billingCountry')" />
+                                             </then>
+                                          </filter>
+										  <!-- Process only for the three company types (Customer,prospect and supplier)-->
+                                          <switch source="get-property('clevertimcrm.type')">
+                                             <case regex="C">
+                                                <property name="salesbinder.contextId" value="2" />
+                                             </case>
+                                             <case regex="P">
+                                                <property name="salesbinder.contextId" value="8" />
+                                             </case>
+                                             <case regex="S">
+                                                <property name="salesbinder.contextId" value="10" />
+                                             </case>
+                                             <default>
+                                                <property name="id" expression="fn:concat('{companyId:',get-property('clevertimcrm.companyId'),'}')" />
+                                                <property name="status" value="Skipped" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="clevertimcrm_retrieveCompanies" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="This company does not belong to a required account type" />
+                                                </call-template>
+                                             </default>
+                                          </switch>
+
+                                          <header name="Via" action="remove" scope="transport" />
+										  
+										  <!--Call SalesBinder salesbinder-createCustomers template to create Accounts with the specific type-->
+                                          <call-template target="salesbinder-createCustomers">
+                                             <!-- parameter values will be passed on to a sequence template -->
+                                             (
+                                             <with-param name="salesbinder.apiKey" value="{$ctx:salesbinder.apiKey}" />
+                                             |
+                                             <with-param name="salesbinder.apiUrl" value="{$ctx:salesbinder.apiUrl}" />
+                                             |
+                                             <with-param name="salesbinder.contextId" value="{$ctx:salesbinder.contextId}" />
+                                             |
+                                             <with-param name="salesbinder.url" value="{$ctx:clevertimcrm.url}" />
+                                             |
+                                             <with-param name="salesbinder.billingAddress1" value="{$ctx:clevertimcrm.billingAddress}" />
+                                             |
+                                             <with-param name="salesbinder.billingPostalCode" value="{$ctx:clevertimcrm.billingPostcode}" />
+                                             |
+                                             <with-param name="salesbinder.billingCity" value="{$ctx:clevertimcrm.billingCity}" />
+                                             |
+                                             <with-param name="salesbinder.billingCountry" value="{$ctx:clevertimcrm.billingCountry}" />
+                                             |
+                                             <with-param name="salesbinder.shippingAddress1" value="{$ctx:salesbinder.shippingAddress}" />
+                                             |
+                                             <with-param name="salesbinder.shippingPostalCode" value="{$ctx:salesbinder.shippingPostCode}" />
+                                             |
+                                             <with-param name="salesbinder.shippingCountry" value="{$ctx:salesbinder.shippingCountry}" />
+                                             |
+                                             <with-param name="salesbinder.name" value="{$ctx:clevertimcrm.name}" />
+                                             |
+                                             <with-param name="salesbinder.officeEmail" value="{$ctx:clevertimcrm.email}" />
+                                             |
+                                             <with-param name="clevertimcrm.id" value="{$ctx:clevertimcrm.companyId}" />
+                                             |
+                                             ) *
+                                          </call-template>
+                                       </else>
+                                    </filter>
+                                 </then>
+                                 <else>
+                                    <property name="id" value="{}" />
+                                    <property name="status" value="Error" />
+                                    <property name="message" expression="json-eval($)" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="clevertimcrm_retrieveCompanies" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </else>
+                              </filter>
+                           </else>
+                        </filter>
+                        <property name="clevertimcrm.companyIndex" expression="get-property('operation','clevertimcrm.companyIndex') + 1"
+                           scope="operation" />
+						   
+						<!--Process direct customer creation once the customer creation done for the clevertimcrm companies-->
+                        <filter xpath="get-property('operation','clevertimcrm.companyIndex') = get-property('operation', 'clevertimcrm.companyCount')">
+                           <then>
+                              <property name="salesbinder.customerIndex" expression="0" scope="operation" />
+
+                              <filter xpath="get-property('operation','salesbinder.customerCount') = 0">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                                 <else>
+									<!--Set the salesbinderCustomers Payload for iteration.-->
+                                    <payloadFactory media-type="json">
+                                       <format>{
+                                          "salesbinderCustomers": $1
+                                          }
+                                       </format>
+                                       <args>
+                                          <arg expression="get-property('salesbinder.customerObjects')" />
+                                       </args>
+                                    </payloadFactory>
+                       
+									<!--Call createAccountIterator sequence to create customers directly -->
+                                    <sequence key="createAccountIterator" />
+
+                                 </else>
+                              </filter>
+                           </then>
+                        </filter>
+                     </sequence>
+                  </target>
+               </iterate>
+               <!--FOR EACH company end : END-->
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>{
+               "Response":{
+                  "process":"salesbinder_createCustomers",
+                  "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
