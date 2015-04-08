@@ -16,7 +16,6 @@
   ~ specific language governing permissions and limitations
   ~ under the License.
   -->
-
 <template name="getLeadActivities" xmlns="http://ws.apache.org/ns/synapse">
     <!-- Required parameters -->
     <parameter name="activityTypeIds" description="Comma separated list of activity type ids."/>
@@ -31,15 +30,15 @@
         <property name="uri.var.nextPageToken" expression="$func:nextPageToken"/>
         <script language="js">
             <![CDATA[
-				var activityTypeIds = mc.getProperty('uri.var.activityTypeIds');
+                var activityTypeIds = mc.getProperty('uri.var.activityTypeIds');
                 var query="";
                 var ids=activityTypeIds.split(',');
                 for(var i = 0; i < ids.length; i++){
                     query+='activityTypeIds='+ids[i]+'&';
                 }
 
-                mc.setProperty('uri.var.activityTypeIds', query);
-			]]>
+                mc.setProperty('uri.var.activityTypeId', query);
+            ]]>
         </script>
         <filter xpath="(not(get-property('uri.var.batchSize') = '' or (not(string(get-property('uri.var.batchSize'))))))">
             <then>
@@ -56,8 +55,42 @@
         <call>
             <endpoint>
                 <http method="get"
-                      uri-template="{uri.var.apiUrl}/activities.json?{uri.var.activityTypeIds}&amp;nextPageToken={uri.var.nextPageToken}&amp;{uri.var.apiParameters}"/>
+                      uri-template="{uri.var.apiUrl}/activities.json?{uri.var.activityTypeId}&amp;nextPageToken={uri.var.nextPageToken}&amp;{uri.var.apiParameters}"/>
             </endpoint>
         </call>
+        <property name="nextPageToken" expression="//nextPageToken/text()" scope="default" type="STRING"/>
+        <property name="moreResult" expression="//moreResult/text()" scope="default" type="STRING"/>
+        <filter xpath="boolean(//result)">
+            <then>
+                <enrich>
+                    <source type="property" property="RESULTS"/>
+                    <target type="body" action="child"/>
+                </enrich>
+                <enrich>
+                    <source type="custom" clone="true" xpath="//result"/>
+                    <target type="property" property="RESULTS"/>
+                </enrich>
+            </then>
+        </filter>
+        <filter xpath="((get-property('moreResult') = 'true' ))">
+            <then>
+                <header name="Authorization" expression="fn:concat('Bearer ',get-property('accessToken'))"
+                        scope="transport"/>
+                <marketo.getLeadActivities>
+                    <listId>{get-property('uri.var.listId')}</listId>
+                    <activityTypeIds>{get-property('uri.var.activityTypeIds')}</activityTypeIds>
+                    <batchSize>{get-property('uri.var.batchSize')}</batchSize>
+                    <nextPageToken>{get-property('nextPageToken')}</nextPageToken>
+                </marketo.getLeadActivities>
+            </then>
+        </filter>
+        <payloadFactory media-type="json">
+            <format>
+                $1
+            </format>
+            <args>
+                <arg expression="get-property('RESULTS')"/>
+            </args>
+        </payloadFactory>
     </sequence>
 </template>

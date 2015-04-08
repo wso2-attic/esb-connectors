@@ -772,35 +772,6 @@ public class MarketoConnectorIntegrationTest extends ConnectorIntegrationTestBas
     }
 
     /**
-     * Positive test case for getLeadActivities method.
-     */
-    @Test(priority = 1, dependsOnMethods = {"testGetActivityTypesWithPositiveCase"}, description = "Marketo {getLeadActivities} integration test with positive case.")
-    public void testGetLeadActivitiesWithPositiveCase() throws IOException, JSONException {
-
-        String methodName = "getLeadActivities";
-        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_getLeadActivities_mandatory.json");
-
-        Assert.assertEquals(esbRestResponse.getBody().getString("success").toString(), "true");
-
-    }
-
-    /**
-     * Negative test case for getLeadActivities method.
-     */
-    @Test(priority = 1, dependsOnMethods = {"testGetActivityTypesWithPositiveCase"}, description = "Marketo {getLeadActivities} integration test with negative case.")
-    public void testGetLeadActivitiesWithNegativeCase() throws IOException, JSONException {
-
-        String methodName = "getLeadActivities";
-        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_getLeadActivities_negative.json");
-
-        final String apiUrl = connectorProperties.getProperty("marketoInstanceURL") + "/rest/v1/activities.json?nextPageToken=" + connectorProperties.getProperty("nextPageToken") + "&activityTypeIds=" + connectorProperties.getProperty("invalidLeadId");
-
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiUrl, "GET", apiRequestHeadersMap);
-
-        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("errors").toString(), apiRestResponse.getBody().getJSONArray("errors").toString());
-    }
-
-    /**
      * Positive test case for getLeadChanges method.
      */
     @Test(priority = 1, dependsOnMethods = {"testGetActivityTypesWithPositiveCase"}, description = "Marketo {getLeadChanges} integration test with positive case.")
