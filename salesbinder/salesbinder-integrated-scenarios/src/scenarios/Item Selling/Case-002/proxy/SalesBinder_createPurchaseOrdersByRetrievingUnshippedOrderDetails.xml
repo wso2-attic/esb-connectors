@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="salesBinder_createPurchaseOrdersByRetrievingUnshippedOrderDetails"
+   transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!--SalesBinder Properties -->
+         <property name="salesbinder.apiUrl" expression="json-eval($.salesbinderApiUrl)" />
+         <property name="salesbinder.apiKey" expression="json-eval($.salesbinderApiKey)" />
+         <property name="salesbinder.customerId" expression="json-eval(unshippedOrderDetails.orderContactDetails.salesBinderCustomerId)" />
+
+         <!--Shopify Properties -->
+         <property name="shopify.apiUrl" expression="json-eval($.shopifyApiUrl)" />
+         <property name="shopify.accessToken" expression="json-eval($.shopifyAccessToken)" />
+         <property name="shopify.orderId" expression="json-eval($.unshippedOrderDetails.orderId)" />
+
+         <!--ZohoBooks Properties -->
+         <property name="zohobooks.apiUrl" value="https://books.zoho.com" />
+         <property name="zohobooks.authToken" expression="json-eval($.zohobooksAuthToken)" />
+         <property name="zohobooks.organizationId" expression="json-eval($.zohobooksOrganizationId)" />
+         <property name="zohobooks.purchaseAccountId" expression="json-eval($.zohobooksPurchaseAccountId)" />
+         <property name="zohobooks.contactId" expression="json-eval(unshippedOrderDetails.orderContactDetails.zohoBooksContactId)" />
+
+         <!--Order Properties -->
+         <property name="order.unshippedOrderDetails" expression="json-eval($.unshippedOrderDetails)" />
+         <property name="order.lineItemData" expression="json-eval($.lineItemData)" />
+
+         <!--Common Properties -->
+         <property name="idObject" expression="fn:concat('{shopify_orderId:',get-property('shopify.orderId'),'}')" />
+
+         <filter source="boolean(get-property('shopify.orderId'))" regex="true">
+            <then>
+               <!-- Call Shopify getOrderById method to retrieve order details. -->
+               <shopify.init>
+                  <apiUrl>{$ctx:shopify.apiUrl}</apiUrl>
+                  <accessToken>{$ctx:shopify.accessToken}</accessToken>
+                  <format>json</format>
+               </shopify.init>
+               <shopify.getOrderById>
+                  <orderId>{$ctx:shopify.orderId}</orderId>
+               </shopify.getOrderById>
+
+               <property name="order.id" expression="json-eval($.order.id)" />
+               <property name="order.lineItems" expression="json-eval($.order.line_items)" />
+
+               <!--Process only if the order is valid -->
+               <filter xpath="get-property('shopify.orderId')=get-property('order.id')">
+                  <then>
+                     <property name="shopify.order.fulfillmentStatus" expression="json-eval($.order.fulfillment_status)" />
+
+                     <!-- Process only, if the order is unshipped -->
+                     <filter xpath="get-property('shopify.order.fulfillmentStatus')='null'">
+                        <then>
+                           <!--Create/validate contacts in SalesBinder and ZohoBooks APIs:BEGIN -->
+
+                           <property name="order.customer" expression="json-eval($.order.customer)" />
+                           <property name="order.customer.id" expression="json-eval($.order.customer.id)" />
+                           <property name="order.customer.email" expression="json-eval($.order.customer.email)" />
+                           <property name="order.customer.name" expression="json-eval($.order.customer.default_address.name)" />
+                           <property name="order.customer.company" expression="json-eval($.order.customer.company)" />
+
+                           <property name="salesbinder.hasValidContact" value="false" />
+                           <property name="zohobooks.hasValidContact" value="false" />
+
+                           <!-- Call createContactSeq sequence to create Contacts in SalesBinder and ZohoBooks if valid contacts
+                              doesn't exist -->
+                           <sequence key="createContactSeq" />
+
+                           <!--Create/validate contacts in SalesBinder and ZohoBooks APIs:END -->
+
+                           <!--Create/validate line items in SalesBinder and ZohoBooks APIs:BEGIN -->
+
+                           <payloadFactory media-type="json">
+                              <format>
+                                 {
+                                    "lineItems": $1
+                                 }
+                              </format>
+                              <args>
+                                 <arg expression="get-property('order.lineItems')" />
+                              </args>
+                           </payloadFactory>
+
+                           <property name="order.lineItemIndex" expression="0" scope="operation" />
+                           <property name="order.lineItemCount" expression="count(//lineItems)" scope="operation" />
+
+                           <iterate continueParent="false" id="lineItems" expression="//lineItems" sequential="true">
+                              <target>
+                                 <sequence>
+                                    <property name="shopify.lineItem.id" expression="//lineItems/id/text()" />
+                                    <property name="lineItem.price" expression="//lineItems/price/text()" />
+                                    <property name="lineItem.name" expression="//lineItems/name/text()" />
+                                    <property name="lineItem.quantity" expression="//lineItems/quantity/text()" />
+
+                                    <!-- Call createOrderLineItems sequence to create order line items in SalesBinder and
+                                       ZohoBooks if valid line items doesn't exist -->
+                                    <sequence key="createOrderLineItemSeq" />
+
+                                    <!--Create/validate line items in SalesBinder and ZohoBooks APIs:END -->
+
+                                    <property name="order.lineItemIndex" expression="get-property('operation','order.lineItemIndex') + 1"
+                                       scope="operation" />
+
+                                    <filter
+                                       xpath="get-property('operation','order.lineItemCount')=get-property('operation', 'order.lineItemIndex')">
+                                       <then>
+                                          <!-- Calling createPurchaseOrderSeq sequence to create purchase orders in SalesBinder
+                                             and ZohoBooks -->
+                                          <sequence key="createPurchaseOrderSeq" />
+                                          <loopback />
+                                       </then>
+                                    </filter>
+
+                                 </sequence>
+                              </target>
+                           </iterate>
+
+                        </then>
+                        <else>
+                           <property name="status" value="skipped" />
+                           <property name="message" value="This order is not an unshipped order." />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="id" value="{$ctx:idObject}" />
+                              <with-param name="activity" value="shopify_retrieveUnshipedOrderDetails" />
+                              <with-param name="status" value="{$ctx:status}" />
+                              <with-param name="message" value="{$ctx:message}" />
+                           </call-template>
+                           <loopback />
+                        </else>
+                     </filter>
+
+                  </then>
+                  <else>
+                     <property name="status" value="skipped" />
+                     <property name="message" value="Invalid shopify order ID." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:idObject}" />
+                        <with-param name="activity" value="shopify_retrieveUnshipedOrderDetails" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </else>
+               </filter>
+            </then>
+            <else>
+               <property name="idObject" value="{}" />
+               <property name="status" value="skipped" />
+               <property name="message" value="No Shopify order ID to process." />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="shopify_retrieveUnshipedOrderDetails" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"SalesBinder-createPurchaseOrdersByRetrievingUnshippedOrderDetails",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

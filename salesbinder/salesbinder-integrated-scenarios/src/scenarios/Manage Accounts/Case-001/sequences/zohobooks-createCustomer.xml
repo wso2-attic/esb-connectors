@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="zohobooks-createCustomer">
+   <salesbinder.init>
+      <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+      <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+   </salesbinder.init>
+   <salesbinder.getAccountById>
+      <id>{$ctx:salesbinder.customerId}</id>
+   </salesbinder.getAccountById>
+   <filter source="$axis2:HTTP_SC" regex="200">
+      <then>
+         <property name="zohobooks.contactName" expression="json-eval($.Customer.name)" />
+         <property name="zohobooks.contactEmail" expression="json-eval($.Customer.office_email)" />
+         <property name="zohobooks.contactPhone" expression="json-eval($.Customer.office_phone)" />
+
+         <property name="zohobooks.shippingAddress.address" expression="json-eval($.Customer.shipping_address_1)" />
+         <property name="zohobooks.shippingAddress.city" expression="json-eval($.Customer.shipping_city)" />
+         <property name="zohobooks.shippingAddress.state" expression="json-eval($.Customer.shipping_region)" />
+         <property name="zohobooks.shippingAddress.zip" expression="json-eval($.Customer.shipping_postal_code)" />
+         <property name="zohobooks.shippingAddress.country" expression="json-eval($.Customer.shipping_country)" />
+
+         <property name="zohobooks.billingAddress.address" expression="json-eval($.Customer.billing_address_1)" />
+         <property name="zohobooks.billingAddress.city" expression="json-eval($.Customer.billing_city)" />
+         <property name="zohobooks.billingAddress.state" expression="json-eval($.Customer.billing_region)" />
+         <property name="zohobooks.billingAddress.zip" expression="json-eval($.Customer.billing_postal_code)" />
+         <property name="zohobooks.billingAddress.country" expression="json-eval($.Customer.billing_country)" />
+
+         <script language="js">
+                     <![CDATA[
+
+                     var email = mc.getProperty('zohobooks.contactEmail');
+                     var phone = mc.getProperty('zohobooks.contactPhone');
+                     var shippingAddress = mc.getProperty('zohobooks.shippingAddress.address');
+                     var shippingCity = mc.getProperty('zohobooks.shippingAddress.city');
+                     var shippingState = mc.getProperty('zohobooks.shippingAddress.state');
+                     var shippingZip = mc.getProperty('zohobooks.shippingAddress.zip');
+                     var shippingCountry = mc.getProperty('zohobooks.shippingAddress.country');
+                     
+                     var billingAddress = mc.getProperty('zohobooks.billingAddress.address');
+                     var billingCity = mc.getProperty('zohobooks.billingAddress.city');
+                     var billingState = mc.getProperty('zohobooks.billingAddress.state');
+                     var billingZip = mc.getProperty('zohobooks.billingAddress.zip');
+                     var billingCountry = mc.getProperty('zohobooks.billingAddress.country');
+                     
+                     var zohoRequestParamsObj = {};
+                     var contactPersons = [];
+                     var shippingAddressObj = {};
+                     var billingAddressObj = {};
+                     
+                     contactPersons.push({"email" : email , "phone" : phone});
+                     zohoRequestParamsObj['contactPerson'] = contactPersons;
+                     
+                     shippingAddressObj.address = shippingAddress;
+                     shippingAddressObj.city = shippingCity;
+                     shippingAddressObj.state = shippingState;
+                     shippingAddressObj.zip = shippingZip;
+                     shippingAddressObj.country = shippingCountry;
+                     zohoRequestParamsObj['shippingAddress'] = shippingAddressObj;
+                     
+                     billingAddressObj.address = billingAddress;
+                     billingAddressObj.city = billingCity;
+                     billingAddressObj.state = billingState;
+                     billingAddressObj.zip = billingZip;
+                     billingAddressObj.country = billingCountry;
+                     zohoRequestParamsObj['billingAddress'] = billingAddressObj;
+                     
+                     mc.setPayloadJSON(zohoRequestParamsObj);
+
+                     ]]>
+         </script>
+
+         <property name="zohobooks.contactPersons" expression="json-eval($.contactPerson)" />
+         <property name="zohobooks.shippingAddress" expression="json-eval($.shippingAddress)" />
+         <property name="zohobooks.billingAddress" expression="json-eval($.billingAddress)" />
+         <zohobooks.init>
+            <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+            <authToken>{$ctx:zohobooks.authToken}</authToken>
+            <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+         </zohobooks.init>
+         <zohobooks.createContact>
+            <contactName>{$ctx:zohobooks.contactName}</contactName>
+            <contactPersons>{$ctx:zohobooks.contactPersons}</contactPersons>
+            <shippingAddress>{$ctx:zohobooks.shippingAddress}</shippingAddress>
+            <billingAddress>{$ctx:zohobooks.billingAddress}</billingAddress>
+         </zohobooks.createContact>
+
+         <!-- Remove uri.var.contactPersons property from message context to avoid conflicts -->
+         <property name="uri.var.contactPersons" action="remove" />
+
+         <filter source="$axis2:HTTP_SC" regex="201">
+            <then>
+               <property name="zohobooks.contactId" expression="json-eval($.contact.contact_id)" />
+               <property name="status" value="success" />
+               <property name="contactIdObject"
+                  expression="fn:concat(get-property('customerIdObj'),',contactId:',get-property('zohobooks.contactId'))" />
+               <property name="message" value="Contact has been created successfully." />
+            </then>
+            <else>
+               <property name="contactIdObject" expression="get-property('customerIdObj')" />
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($.)" />
+            </else>
+         </filter>
+         <call-template target="responseHandlerTemplate">
+            <with-param name="id" value="{$ctx:contactIdObject}" />
+            <with-param name="activity" value="zohobooks_createContact" />
+            <with-param name="status" value="{$ctx:status}" />
+            <with-param name="message" value="{$ctx:message}" />
+         </call-template>
+      </then>
+      <else>
+         <!-- Failed to retrive salesbinder customer details -->
+         <property name="contactIdObject" expression="get-property('customerIdObj')" />
+
+         <call-template target="responseHandlerTemplate">
+            <with-param name="id" value="{$ctx:contactIdObject}" />
+            <with-param name="activity" value="salesbinder_retriveCustomerDetails" />
+            <with-param name="status" value="error" />
+            <with-param name="message" value="Invalid salesbinder Customer Id." />
+         </call-template>
+      </else>
+   </filter>
+</sequence>

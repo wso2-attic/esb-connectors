@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="zohobooks-createDocuments">
+
+   <property name="zohobooks.itemString" expression="get-property('operation','zohobooks.itemString')" />
+   <property name="customerIdObj" expression="fn:concat('customerId:',get-property('zohobooks.contactId'))" />
+   <script language="js">
+      <![CDATA[
+       var zohobooksItemString = ''+mc.getProperty('zohobooks.itemString');
+       var zohobooksContactId = mc.getProperty('zohobooks.contactId');
+       zohobooksItemString = zohobooksItemString.substring(0, zohobooksItemString.length - 1);
+       var invoiceObject = {};
+       var lineItems = [];
+       var itemArray = zohobooksItemString.split(',');
+       for (var i = 0; i < itemArray.length ; i++) {
+            var item = '' + itemArray[i];
+            var itemDetailsArray = item.split(':');
+                                    
+            var itemId = itemDetailsArray[0];
+            var qty = itemDetailsArray[1];
+            var price = itemDetailsArray[2];
+                                    
+            lineItems.push({"item_id" : itemId , "rate" : price , "quantity" : qty});
+       }
+       invoiceObject['customerId'] = zohobooksContactId ;
+       invoiceObject['lineItems'] = lineItems;
+       mc.setPayloadJSON(invoiceObject);
+      ]]>
+   </script>
+
+   <property name="zohobooks.lineItems" expression="json-eval($.lineItems)" />
+   <zohobooks.init>
+      <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+      <authToken>{$ctx:zohobooks.authToken}</authToken>
+      <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+   </zohobooks.init>
+   <switch source="get-property('salesbinder.contextId')">
+      <case regex="5">
+         <zohobooks.createInvoice>
+            <customerId>{$ctx:zohobooks.contactId}</customerId>
+            <lineItems>{$ctx:zohobooks.lineItems}</lineItems>
+            <date>{$ctx:common.issueDate}</date>
+         </zohobooks.createInvoice>
+         <property name="zohobooks.activityName" value="zohobooks_createInvoice" />
+         <property name="zohobooks.documentId" expression="json-eval($.invoice.invoice_id)" />
+      </case>
+      <case regex="11">
+         <zohobooks.createPurchaseOrder>
+            <vendorId>{$ctx:zohobooks.contactId}</vendorId>
+            <lineItems>{$ctx:zohobooks.lineItems}</lineItems>
+            <date>{$ctx:common.issueDate}</date>
+         </zohobooks.createPurchaseOrder>
+         <property name="zohobooks.activityName" value="zohobooks_purchaseOrder" />
+         <property name="zohobooks.documentId" expression="json-eval($.purchaseorder.purchaseorder_id)" />
+      </case>
+      <case regex="4">
+         <zohobooks.createEstimate>
+            <customerId>{$ctx:zohobooks.contactId}</customerId>
+            <lineItems>{$ctx:zohobooks.lineItems}</lineItems>
+            <date>{$ctx:common.issueDate}</date>
+         </zohobooks.createEstimate>
+         <property name="zohobooks.activityName" value="zohobooks_createEstimate" />
+         <property name="zohobooks.documentId" expression="json-eval($.estimate.estimate_id)" />
+      </case>
+   </switch>
+
+   <filter source="$axis2:HTTP_SC" regex="201">
+      <then>
+         <property name="status" value="success" />
+         <property name="documentIdObject"
+            expression="fn:concat(get-property('customerIdObj'),',',get-property('salesbinder.documentKey'),'Id:',get-property('zohobooks.documentId'))" />
+         <property name="message" expression="fn:concat(get-property('salesbinder.documentName'),' has been created successfully.')" />
+      </then>
+      <else>
+         <property name="documentIdObject" expression="get-property('customerIdObj')" />
+         <property name="status" value="error" />
+         <property name="message" expression="json-eval($.)" />
+      </else>
+   </filter>
+   <call-template target="responseHandlerTemplate">
+      <with-param name="id" value="{$ctx:documentIdObject}" />
+      <with-param name="activity" value="{$ctx:zohobooks.activityName}" />
+      <with-param name="status" value="{$ctx:status}" />
+      <with-param name="message" value="{$ctx:message}" />
+   </call-template>
+</sequence>

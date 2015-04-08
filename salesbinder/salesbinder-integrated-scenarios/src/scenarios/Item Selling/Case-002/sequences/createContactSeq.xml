@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="createContactSeq">
+
+   <property name="contact.contact.idObject" expression="fn:concat('{shopifyOrderCustomerId:',get-property('order.customer.id'),'}')" />
+
+   <!--Manage SalesBinder Account Customer:BEGIN -->
+   <filter source="boolean(get-property('salesbinder.customerId'))" regex="true">
+      <then>
+
+         <!-- Call SalesBinder getAccountById method to validate the customer. -->
+         <salesbinder.init>
+            <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+            <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+         </salesbinder.init>
+         <salesbinder.getAccountById>
+            <id>{$ctx:salesbinder.customerId}</id>
+         </salesbinder.getAccountById>
+
+         <filter source="$axis2:HTTP_SC" regex="200">
+            <then>
+               <property name="customerId" expression="json-eval($.Customer.id)" />
+
+               <filter xpath="get-property('salesbinder.customerId')=get-property('customerId')">
+                  <then>
+                     <property name="salesbinder.hasValidContact" value="true" />
+                  </then>
+               </filter>
+            </then>
+         </filter>
+      </then>
+   </filter>
+
+   <!--Create a new customer in SalesBinder only if the customer does not exist. -->
+   <filter xpath="get-property('salesbinder.hasValidContact')='false'">
+      <then>
+
+         <!--Set company name to contact name, only if company name is not null -->
+         <filter source="boolean(get-property('order.customer.company'))" regex="true">
+            <then>
+               <property name="salesbinder.accountName" expression="get-property('order.customer.company')" />
+            </then>
+            <else>
+               <property name="salesbinder.accountName" expression="get-property('order.customer.name')" />
+            </else>
+         </filter>
+
+         <!--Removing the Content-Encoding and Transfer-Encoding Headers. -->
+         <header name="Content-Encoding" action="remove" scope="transport" />
+         <header name="Transfer-Encoding" action="remove" scope="transport" />
+
+         <!--Call SalesBinder createAccount method to create a new Account Customer -->
+         <salesbinder.init>
+            <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+            <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+         </salesbinder.init>
+         <property name="salesbinder.authorizationHeader" expression="$trp:Authorization" />
+         <salesbinder.createAccount>
+            <contextId>2</contextId>
+            <name>{$ctx:salesbinder.accountName}</name>
+            <officeEmail>{$ctx:order.customer.email}</officeEmail>
+         </salesbinder.createAccount>
+
+         <filter source="$axis2:HTTP_SC" regex="302">
+            <then>
+               <property name="uri.var.location" expression="$trp:Location" />
+               <property name="Authorization" expression="$ctx:salesbinder.authorizationHeader" scope="transport"
+                  type="STRING" />
+               <call>
+                  <endpoint>
+                     <http method="get" uri-template="{uri.var.location}" />
+                  </endpoint>
+               </call>
+
+               <filter source="$axis2:HTTP_SC" regex="200">
+                  <then>
+                     <property name="salesbinder.customerId" expression="json-eval($.Customer.id)" />
+                     <property name="salesbinder.hasValidContact" value="true" />
+
+                     <property name="contact.idObject"
+                        expression="fn:concat('{shopifyOrderCustomerId:',get-property('order.customer.id'),',salesBinderCustomerId:',get-property('salesbinder.customerId'),'}')" />
+                     <property name="status" value="success" />
+                     <property name="message" value="Customer was successfully created." />
+
+                  </then>
+                  <else>
+                     <property name="status" value="error" />
+                     <property name="message" expression="json-eval($.)" />
+                  </else>
+               </filter>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:contact.idObject}" />
+                  <with-param name="activity" value="salesbinder_createCustomer" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+            </then>
+            <else>
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($.)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:contact.idObject}" />
+                  <with-param name="activity" value="salesbinder_createCustomer" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+            </else>
+         </filter>
+      </then>
+   </filter>
+   <!--Manage SalesBinder Account Customer:END -->
+
+   <!--Manage ZohoBooks Contact :BEGIN -->
+   <property name="contact.contact.idObject" expression="fn:concat('{shopifyOrderCustomerId:',get-property('order.customer.id'),'}')" />
+   <filter source="boolean(get-property('zohobooks.contactId'))" regex="true">
+      <then>
+         <!-- Call ZohoBooks getContact method to validate the contact. -->
+         <zohobooks.init>
+            <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+            <authToken>{$ctx:zohobooks.authToken}</authToken>
+            <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+         </zohobooks.init>
+         <zohobooks.getContact>
+            <contactId>{$ctx:zohobooks.contactId}</contactId>
+         </zohobooks.getContact>
+
+         <property name="contactId" expression="json-eval($.contact.contact_id)" />
+         <filter xpath="get-property('zohobooks.contactId')=get-property('contactId')">
+            <then>
+			   <property name="zohobooks.contactPersonId" expression="json-eval($.contact.contact_persons[0].contact_person_id)" />
+               <property name="zohobooks.hasValidContact" value="true" />
+            </then>
+         </filter>
+      </then>
+   </filter>
+
+   <!--Creating a new contact in ZohoBooks, only if the contact does not exist. -->
+   <filter xpath="get-property('zohobooks.hasValidContact')='false'">
+      <then>
+
+         <!--Set company name to contact name, only if company name is not null -->
+         <filter source="boolean(get-property('order.customer.company'))" regex="true">
+            <then>
+               <property name="zohobooks.contactName" expression="get-property('order.customer.company')" />
+            </then>
+            <else>
+               <property name="zohobooks.contactName" expression="get-property('order.customer.name')" />
+            </else>
+         </filter>
+
+         <property name="zohobooks.contactEmail" expression="get-property('order.customer.email')" />
+
+         <script language="js">
+            <![CDATA[
+
+               var email = mc.getProperty('zohobooks.contactEmail');
+                     
+               var zohoRequestParamsObj = {};
+               var contactPersons = [];
+                     
+               contactPersons.push({"email" : email});
+               zohoRequestParamsObj['contactPerson'] = contactPersons;
+                     
+               mc.setPayloadJSON(zohoRequestParamsObj);
+
+            ]]>
+         </script>
+
+         <property name="zohobooks.contactPersons" expression="json-eval($.contactPerson)" />
+         <property name="zohobooks.contactName" expression="get-property('zohobooks.contactName')" />
+         <zohobooks.init>
+            <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+            <authToken>{$ctx:zohobooks.authToken}</authToken>
+            <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+         </zohobooks.init>
+         <zohobooks.createContact>
+            <contactName>{$ctx:zohobooks.contactName}</contactName>
+            <contactPersons>{$ctx:zohobooks.contactPersons}</contactPersons>
+         </zohobooks.createContact>
+
+         <filter source="$axis2:HTTP_SC" regex="201">
+            <then>
+               <property name="zohobooks.hasValidContact" value="true" />
+               <property name="zohobooks.contactId" expression="json-eval($.contact.contact_id)" />
+               <property name="zohobooks.contactPersonId" expression="json-eval($.contact.contact_persons[0].contact_person_id)" />
+
+               <property name="contact.idObject"
+                  expression="fn:concat('{shopifyOrderCustomerId:',get-property('order.customer.id'),',zohoBooksContactId:',get-property('zohobooks.contactId'),'}')" />
+               <property name="status" value="success" />
+               <property name="message" value="Contact was successfully created." />
+            </then>
+            <else>
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($.)" />
+            </else>
+         </filter>
+         <call-template target="responseHandlerTemplate">
+            <with-param name="id" value="{$ctx:contact.idObject}" />
+            <with-param name="activity" value="zohobooks_createContact" />
+            <with-param name="status" value="{$ctx:status}" />
+            <with-param name="message" value="{$ctx:message}" />
+         </call-template>
+      </then>
+   </filter>
+   <!--Manage ZohoBooks Contact :END -->
+</sequence>

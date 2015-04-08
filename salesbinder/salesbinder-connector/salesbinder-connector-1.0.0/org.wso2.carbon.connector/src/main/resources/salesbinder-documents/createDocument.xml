@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Documentation URL - http://www.salesbinder.com/kb/api-functions/create-new-document -->
+<template name="createDocument" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="contextId" description="Id of the context" />
+   <parameter name="customerId" description="Id of the customer" />
+   <parameter name="totalCost" description="Total amount of the cost" />
+   <parameter name="totalTax" description="Total amount of the tax" />
+   <parameter name="totalTax2" description="Total amount of the tax2" />
+   <parameter name="totalPrice" description="Total value of the price." />
+   <parameter name="issueDate" description="The date of issue" />
+   <parameter name="shippingAddress" description="The shipping address" />
+   <parameter name="documentsItem" description="Array of the documents item." />
+   <parameter name="dropShipCustomerId" description="Customer id for the drop ship." />
+   <sequence>
+      <property name="uri.var.contextId" expression="$func:contextId" />
+      <property name="uri.var.customerId" expression="$func:customerId" />
+      <property name="uri.var.totalCost" expression="$func:totalCost" />
+      <property name="uri.var.totalTax" expression="$func:totalTax" />
+      <property name="uri.var.totalTax2" expression="$func:totalTax2" />
+      <property name="uri.var.totalPrice" expression="$func:totalPrice" />
+      <property name="uri.var.issueDate" expression="$func:issueDate" />
+      <property name="uri.var.shippingAddress" expression="$func:shippingAddress" />
+      <property name="uri.var.documentsItem" expression="$func:documentsItem" />
+      <property name="uri.var.dropShipCustomerId" expression="$func:dropShipCustomerId" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "Document":{
+                  "context_id":"$1",
+                  "issue_date":"$2"
+                }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.contextId')" />
+            <arg expression="get-property('uri.var.issueDate')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var customerId=mc.getProperty("uri.var.customerId");
+            var totalCost=mc.getProperty("uri.var.totalCost");
+            var totalTax=mc.getProperty("uri.var.totalTax");
+            var totalTax2=mc.getProperty("uri.var.totalTax2");
+            var totalPrice=mc.getProperty("uri.var.totalPrice");
+            var shippingAddress=mc.getProperty("uri.var.shippingAddress"); 
+            var dropShipCustomerId=mc.getProperty("uri.var.dropShipCustomerId");     
+            var documentsItem=mc.getProperty("uri.var.documentsItem"); 
+             
+            payload = mc.getPayloadJSON();
+            
+            if(customerId!=null && customerId != ""){
+               payload.Document.customer_id= customerId;
+            }
+            if(totalCost!=null && totalCost != ""){
+               payload.Document.total_cost= totalCost;
+            }
+            if(totalTax!=null && totalTax != ""){
+               payload.Document.total_tax= totalTax;
+            }
+            if(totalTax2!=null && totalTax2 != ""){
+               payload.Document.total_tax2= totalTax2;
+            }
+            if(totalPrice!=null && totalPrice != ""){
+               payload.Document.total_price= totalPrice;
+            }
+            if(shippingAddress!=null && shippingAddress != ""){
+               payload.Document.shipping_address= shippingAddress;
+            }
+            if(dropShipCustomerId!=null && dropShipCustomerId != ""){
+               payload.Document.drop_ship_customer_id= dropShipCustomerId;
+            }
+            if(documentsItem!=null && documentsItem != ""){
+               payload.DocumentsItem= eval('(' + documentsItem + ')');
+            }
+            mc.setPayloadJSON(payload);   
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/documents.json" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="P3P" action="remove" scope="transport" />
+      <header name="Via" action="remove" scope="transport" />
+      <header name="Server" action="remove" scope="transport" />
+   </sequence>
+</template>
