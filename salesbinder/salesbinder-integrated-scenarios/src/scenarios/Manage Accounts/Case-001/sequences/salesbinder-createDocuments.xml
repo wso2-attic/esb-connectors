@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="salesbinder-createDocuments">
+
+
+   <property name="salesbinder.isSuccess" value="false" />
+
+   <script language="js">
+     <![CDATA[
+                     
+       var documentItems=mc.getProperty("common.documentItems");
+       
+       //Check documentItems is an Array or not.                 
+       if(documentItems.charCodeAt(0) != '91'){
+          documentItems = '[' + documentItems + ']';
+       }   
+          var documentItemsObj = eval('(' + documentItems + ')');
+                          
+       for(var i = 0 ; i < documentItemsObj.length; i++){
+           var documentItem = documentItemsObj[i];
+           var itemIds = documentItem['itemIds'];
+           var salesBinderItemId = itemIds['salesBinderItemId'];
+                           
+           delete documentItem['itemIds'];
+           delete documentItem['zohobooksPurchaseAccountId']; 
+           documentItem['item_id'] = salesBinderItemId;
+                              
+       }
+                       
+       mc.setPayloadJSON(documentItemsObj);
+       ]]>
+   </script>
+   <property name="salesbinder.documentsItem" expression="json-eval($.)" />
+   <filter source="boolean(get-property('salesbinder.apiKey'))" regex="true">
+      <then>
+         <salesbinder.init>
+            <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+            <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+         </salesbinder.init>
+         <property name="salesbinder.authorizationHeader" expression="$trp:Authorization" />
+         <salesbinder.createDocument>
+            <contextId>{$ctx:salesbinder.contextId}</contextId>
+            <customerId>{$ctx:salesbinder.customerId}</customerId>
+            <documentsItem>{$ctx:salesbinder.documentsItem}</documentsItem>
+            <issueDate>{$ctx:common.issueDate}</issueDate>
+            <dropShipCustomerId>{$ctx:salesbinder.dropShipCustomerId}</dropShipCustomerId>
+            <shippingAddress>{$ctx:salesbinder.shippingAddress}</shippingAddress>
+         </salesbinder.createDocument>
+         <!-- Remove  uri.var.shippingAddress property from message context to avoid conflicts -->
+         <property name="uri.var.shippingAddress" action="remove" />
+
+         <filter source="$axis2:HTTP_SC" regex="302">
+            <then>
+               <property name="uri.var.location" expression="$trp:Location" />
+               <property name="Authorization" expression="$ctx:salesbinder.authorizationHeader" scope="transport"
+                  type="STRING" />
+
+               <call>
+                  <endpoint>
+                     <http method="get" uri-template="{uri.var.location}" />
+                  </endpoint>
+               </call>
+
+               <filter source="$axis2:HTTP_SC" regex="200">
+                  <then>
+                     <property name="salesbinder.documentId" expression="json-eval($.Document.id)" />
+                     <property name="status" value="success" />
+                     <property name="message"
+                        expression="fn:concat(get-property('salesbinder.documentName'),' has been created successfully.')" />
+                     <property name="documentIdObject"
+                        expression="fn:concat(get-property('customerIdObj'),',',get-property('salesbinder.documentKey'),'Id:',get-property('salesbinder.documentId'))" />
+                     <property name="salesbinder.isSuccess" value="true" />
+                  </then>
+                  <else>
+                     <property name="documentIdObject" expression="get-property('customerIdObj')" />
+                     <property name="status" value="error" />
+                     <property name="message" expression="json-eval($.)" />
+                  </else>
+               </filter>
+            </then>
+            <else>
+               <property name="documentIdObject" expression="get-property('customerIdObj')" />
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($.)" />
+            </else>
+         </filter>
+
+         <call-template target="responseHandlerTemplate">
+            <with-param name="id" value="{$ctx:documentIdObject}" />
+            <with-param name="activity" value="salesbinder_createDocument" />
+            <with-param name="status" value="{$ctx:status}" />
+            <with-param name="message" value="{$ctx:message}" />
+         </call-template>
+      </then>
+   </filter>
+</sequence>

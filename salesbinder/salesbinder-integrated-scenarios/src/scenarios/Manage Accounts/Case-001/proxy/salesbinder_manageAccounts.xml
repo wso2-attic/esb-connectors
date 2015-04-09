@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="salesbinder_manageAccounts" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!--SalesBinder Properties -->
+         <property name="salesbinder.apiUrl" expression="json-eval($.salesbinderApiUrl)" />
+         <property name="salesbinder.apiKey" expression="json-eval($.salesbinderApiKey)" />
+         <property name="salesbinder.contextId" expression="json-eval($.salesbinderContextId)" />
+         <property name="salesbinder.customerId" expression="json-eval($.salesBinderCustomerId)" />
+         <property name="salesbinder.dropShipCustomerId" expression="json-eval($.salesBinderDropShipCustomerId)" />
+         <property name="salesbinder.shippingAddress" expression="json-eval($.salesBinderShippingAddress)" />
+
+         <!--Zohobooks Properties -->
+         <property name="zohobooks.apiUrl" value="https://books.zoho.com" />
+         <property name="zohobooks.authToken" expression="json-eval($.zohobooksAuthToken)" />
+         <property name="zohobooks.organizationId" expression="json-eval($.zohobooksOrganizationId)" />
+         <property name="zohobooks.contactId" expression="json-eval($.zohobooksCustomerId)" />
+
+
+         <!--Common Properties -->
+         <property name="common.documentItems" expression="json-eval($.documentItems)" />
+         <property name="common.issueDate" expression="json-eval($.issueDate)" />
+         <property name="responseString" value="" scope="operation" />
+         <property name="zohobooks.itemType" value="sales" />
+         <property name="customerIdObj" expression="fn:concat('customerId:',get-property('salesbinder.customerId'))" />
+         
+         <switch source="get-property('salesbinder.contextId')">
+            <case regex="5">
+               <property name="salesbinder.documentName" value="Invoice" />
+               <property name="salesbinder.documentKey" value="invoice" />
+            </case>
+            <case regex="11">
+               <property name="salesbinder.documentName" value="Purchase Order" />
+               <property name="salesbinder.documentKey" value="purchaseOrder" />
+               <property name="zohobooks.itemType" value="purchases" />
+            </case>
+            <case regex="4">
+               <property name="salesbinder.documentName" value="Estimate" />
+               <property name="salesbinder.documentKey" value="estimate" />
+            </case>
+            <default>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:customerId}" />
+                  <with-param name="activity" value="salesbinder_manageAccounts" />
+                  <with-param name="status" value="error" />
+                  <with-param name="message" value="Invalid Context Id" />
+               </call-template>
+               <loopback />
+            </default>
+         </switch>
+         
+
+         <sequence key="salesbinder-createDocuments" />
+
+         <filter xpath="(get-property('salesbinder.isSuccess') = 'false')">
+            <then>
+               <loopback />
+            </then>
+         </filter>
+
+         <filter source="boolean(get-property('zohobooks.contactId'))" regex="true">
+            <then>
+               <zohobooks.init>
+                  <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                  <authToken>{$ctx:zohobooks.authToken}</authToken>
+                  <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+               </zohobooks.init>
+               <zohobooks.getContact>
+                  <contactId>{$ctx:zohobooks.contactId}</contactId>
+               </zohobooks.getContact>
+               <filter source="$axis2:HTTP_SC" regex="200">
+                  <then>
+                     <property name="zohobooks.hasContact" value="true" />
+                  </then>
+               </filter>
+            </then>
+         </filter>
+
+         <!-- START : Create Zohobooks Customer -->
+         <filter source="boolean(get-property('zohobooks.hasContact'))" regex="false">
+            <then>
+               <sequence key="zohobooks-createCustomer" />
+            </then>
+
+         </filter>
+         <!-- END : Create Zohobooks Customer -->
+
+         <filter source="boolean(get-property('zohobooks.contactId'))" regex="true">
+            <then>
+               <script language="js">
+                     <![CDATA[
+                     
+                        var documentItems=mc.getProperty("common.documentItems");
+                        //Check documentItems is an Array or not.
+                        if(documentItems.charCodeAt(0) != '91'){
+                           documentItems = '[' + documentItems + ']';
+                        }
+                        var documentItemsObj = {};   
+                        documentItemsObj['documentItems']  = eval('(' + documentItems + ')');
+                        mc.setPayloadJSON(documentItemsObj);
+                       ]]>
+               </script>
+
+               <property name="itemCount" expression="count(//documentItems)" scope="operation" />
+               <property name="itemIndex" value="0" scope="operation" />
+               <property name="zohobooks.itemString" value="" scope="operation" />
+               <!--FOR EACH Product : BEGIN -->
+               <iterate continueParent="false" id="items" expression="//documentItems" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="messageType" value="application/json" scope="axis2" />
+                        <property name="zohobooks.itemId" expression="json-eval($.documentItems.itemIds.zohoBooksItemId)" />
+                        <property name="itemIdObject" expression="fn:concat('salesbinderItemId:',get-property('salesbinder.itemId'))" />
+                        <property name="zohobooks.itemQuantity" expression="json-eval($.documentItems.quantity)" />
+                        <property name="zohobooks.itemPrice" expression="json-eval($.documentItems.price)" />
+                        <property name="zohobooks.itemTax" expression="json-eval($.documentItems.tax)" />
+
+                        <filter xpath="(get-property('zohobooks.itemId') = '') or (get-property('zohobooks.itemId') = 'null')">
+                           <then>
+                              <property name="salesbinder.itemId" expression="json-eval($.documentItems.itemIds.salesBinderItemId)" />
+                              <property name="zohobooks.itemId" expression="json-eval($.documentItems.itemIds.zohoBooksItemId)" />
+                              <property name="salesbinderItemIdObject"
+                                 expression="fn:concat('salesbinderItemId:',get-property('salesbinder.itemId'))" />
+                              <property name="zohobooks.itemQuantity" expression="json-eval($.documentItems.quantity)" />
+                              <property name="zohobooks.itemPrice" expression="json-eval($.documentItems.price)" />
+                              <property name="zohobooks.itemTax" expression="json-eval($.documentItems.tax)" />
+                              <property name="zohobooks.purchaseAccountId" expression="json-eval($.documentItems.zohobooksPurchaseAccountId)" />
+
+                              <salesbinder.init>
+                                 <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+                                 <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+                              </salesbinder.init>
+                              <salesbinder.getInventoryItemById>
+                                 <id>{$ctx:salesbinder.itemId}</id>
+                              </salesbinder.getInventoryItemById>
+                              <filter source="$axis2:HTTP_SC" regex="200">
+                                 <then>
+                                    <property name="salesbinder.itemName" expression="json-eval($.Item.name)" />
+                                    <property name="salesbinder.itemDescription" expression="json-eval($.Item.description)" />
+                                    <property name="salesbinder.itemPrice" expression="json-eval($.Item.price)" />
+                                    <property name="salesbinder.itemCost" expression="json-eval($.Item.cost)" />
+                                    <zohobooks.init>
+                                       <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                                       <authToken>{$ctx:zohobooks.authToken}</authToken>
+                                       <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                                    </zohobooks.init>
+                                    <zohobooks.createItem>
+                                       <itemName>{$ctx:salesbinder.itemName}</itemName>
+                                       <description>{$ctx:salesbinder.itemDescription}</description>
+                                       <rate>{$ctx:salesbinder.itemPrice}</rate>
+                                       <purchaseRate>{$ctx:salesbinder.itemCost}</purchaseRate>
+                                       <itemType>{$ctx:zohobooks.itemType}</itemType>
+                                       <purchaseAccountId>{$ctx:zohobooks.purchaseAccountId}</purchaseAccountId>
+                                    </zohobooks.createItem>
+                                    <filter source="$axis2:HTTP_SC" regex="201">
+                                       <then>
+                                          <property name="zohobooks.itemId" expression="json-eval($.item.item_id)" />
+                                          <property name="itemIdObject"
+                                             expression="fn:concat('salesbinderItemId:',get-property('salesbinder.itemId'),',zohobooksItemId:',get-property('zohobooks.itemId'))" />
+                                          <property name="status" value="success" />
+                                          <property name="message" value="Item has been created successfully." />
+                                       </then>
+                                       <else>
+                                          <property name="itemIdObject" expression="get-property('salesbinderItemIdObject')" />
+                                          <property name="status" value="error" />
+                                          <property name="message" expression="json-eval($.)" />
+                                       </else>
+                                    </filter>
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:itemIdObject}" />
+                                       <with-param name="activity" value="zohobooks_createItem" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:salesbinderItemIdObject}" />
+                                       <with-param name="activity" value="salesBinder_getItemDetails" />
+                                       <with-param name="status" value="error" />
+                                       <with-param name="message" value="Couldn't retrive Item details." />
+                                    </call-template>
+                                 </else>
+                              </filter>
+                           </then>
+                        </filter>
+                        <property name="zohobooks.itemString"
+                           expression="fn:concat(get-property('operation','zohobooks.itemString'),get-property('zohobooks.itemId'),':',get-property('zohobooks.itemQuantity'),':',get-property('zohobooks.itemPrice'),',')"
+                           scope="operation" />
+                        <property name="zohobooks.itemId" action="remove" />
+
+                        <property name="itemIndex" expression="get-property('operation','itemIndex') + 1"
+                           scope="operation" />
+                        <filter xpath="get-property('operation','itemCount') = get-property('operation','itemIndex') ">
+                           <then>
+                              <sequence key="zohobooks-createDocuments" />
+                              <loopback />
+                           </then>
+                        </filter>
+                     </sequence>
+                  </target>
+               </iterate>
+            </then>
+            <else>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:customerId}" />
+                  <with-param name="activity" value="zohobooks-createDocument" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="message" value="Couldn't find customer data in Zohobooks." />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"salesbinder_manageAccounts",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg  expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy> 
