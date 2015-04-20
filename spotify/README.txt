@@ -5,11 +5,11 @@ Pre-requisites:
 
 Tested Platform:
 - Mac OSx 10.9
-- WSO2 ESB 4.8.1
+- WSO2 ESB 4.9.0-M7-SNAPSHOT
 - Java 1.7
 
 STEPS:
-1. Make sure the ESB 4.8.1 zip file with latest patches available at "spotify/repository/".
+1. Make sure the ESB 4.9.0-M7-SNAPSHOT zip file with latest patches available at "spotify/repository/".
 	- import the Spotify CERTIFICATE to your ESB client’s keystore.
 	- import your spotify certificates in to wso2esb client’s keystore as follows:
 		Go to https://developer.spotify.com in your browser and click the HTTPS trust icon (padlock) on the address bar.
@@ -22,7 +22,20 @@ STEPS:
 
 2. Copy spotify connector zip file (spotify.zip) to the location "spotify/repository/"
 
-3. Add following code block, just after the listeners block (Remove or comment all the other test blocks) in following file - "spotify/src/test/resources/testng.xml"
+3.  ESB should be configured as below.
+   	 Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
+
+	 <messageFormatter contentType="text/html"
+							class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+	 <messageBuilder contentType="text/html"
+							class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+     <messageFormatter contentType="text/plain"
+                            class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+     <messageBuilder contentType="text/plain"
+                            class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+
+4. Add following code block, just after the listeners block (Remove or comment all the other test blocks) in
+following file - "spotify/src/test/resources/testng.xml"
 
 	<test name="Spotify-Connector-Test" preserve-order="true" verbose="2">
         <packages>
@@ -30,11 +43,12 @@ STEPS:
         </packages>
     </test> 
 
-4. Copy proxy files to following location "spotify/src/test/resources/artifacts/ESB/config/proxies/spotify/"
+5. Copy proxy files to following location "spotify/src/test/resources/artifacts/ESB/config/proxies/spotify/"
 
-5. Copy request files to following "spotify/src/test/resources/artifacts/ESB/config/restRequests/spotify/"
+6. Copy request files to following "spotify/src/test/resources/artifacts/ESB/config/restRequests/spotify/"
 
-6. Edit the "spotify.properties" at spotify/src/test/resources/artifacts/connector/config/ using valid and relevant data. Parameters to be changed are mentioned below.
+7. Edit the "spotify.properties" at spotify/src/test/resources/artifacts/connector/config/ using valid and relevant
+data. Parameters to be changed are mentioned below.
 
 	- proxyDirectoryRelativePath: relative path of the Rest Request files folder from target.
 	- requestDirectoryRelativePath: relative path of proxy folder from target.
@@ -44,7 +58,7 @@ STEPS:
 	- refresh_token: refresh token is to get the access token.
 	
 		
-7. Following data set can be used for the first testsuite run.
+8. Following data set can be used for the first testsuite run.
 
 	- proxyDirectoryRelativePath=/../src/test/resources/artifacts/ESB/config/proxies/spotify/
 	- requestDirectoryRelativePath=/../src/test/resources/artifacts/ESB/config/restRequests/spotify/
