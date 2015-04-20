@@ -195,12 +195,12 @@ public class ReliableMessageUtil {
 
     }
 
-    public static String getUpdatedFileLocation(RMParameters inputParams) throws ConnectException {
+    public static File getUpdatedFile(RMParameters inputParams) throws ConnectException {
 
         String baseRetransmissionIntervalQuery = "//beans/*[name()='cxf:bus']/*[name()='cxf:features']/*[name()='wsrm-mgr:reliableMessaging']/*[name()='wsrm-policy:RMAssertion']/*[name()='wsrm-policy:BaseRetransmissionInterval']";
         String acknowledgementIntervalQuery = "//beans/*[name()='cxf:bus']/*[name()='cxf:features']/*[name()='wsrm-mgr:reliableMessaging']/*[name()='wsrm-policy:RMAssertion']/*[name()='wsrm-policy:AcknowledgementInterval']";
         String intraMessageThresholdQuery = "//beans/*[name()='cxf:bus']/*[name()='cxf:features']/*[name()='wsrm-mgr:reliableMessaging']/*[name()='wsrm-mgr:destinationPolicy']/*[name()='wsrm-mgr:acksPolicy']";
-        File tempFile;
+        File tempFile = null;
 
         try {
             String configurationFilePath = ReliableMessageUtil.class.getResource("/config/client.xml").getFile();
@@ -235,17 +235,19 @@ public class ReliableMessageUtil {
             TransformerFactory.newInstance().newTransformer().transform(xmlSource, outputTarget);
             InputStream is = new ByteArrayInputStream(outputStream.toByteArray());
             tempFile = File.createTempFile(RMConstants.TMP_FILE_PREFIX, RMConstants.TMP_FILE_SUFFIX);
-            tempFile.deleteOnExit();
             FileOutputStream out = new FileOutputStream(tempFile);
             IOUtils.copy(is, out);
 
         } catch (Exception e) {
+            if(tempFile != null) {
+                tempFile.delete();
+            }
             String message = "Exception occurred while setup the given configurations";
             log.error(message);
             throw new ConnectException(e, message);
         }
 
-        return tempFile.toString();
+        return tempFile;
     }
 
 }

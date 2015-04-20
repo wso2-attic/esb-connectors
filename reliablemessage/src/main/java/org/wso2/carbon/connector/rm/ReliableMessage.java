@@ -36,6 +36,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.ws.Dispatch;
 import javax.xml.ws.Service;
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -53,10 +54,8 @@ public class ReliableMessage extends AbstractConnector {
         RMParameters inputParams = populateInputParameters(messageContext);
         //Validate and set default values to the parameters
         ReliableMessageUtil.validateInputs(inputParams);
-        //update configuration file with the given configurations
-        String configurationFileLocation = ReliableMessageUtil.getUpdatedFileLocation(inputParams);
         //SpringBuss initialize
-        initiateSpringBuss(configurationFileLocation, inputParams.isDynamicParam());
+        initiateSpringBuss(inputParams);
         //Invoke backend reliable message service
         Source response = invokeBackendRMService(messageContext, inputParams);
         //Set response back to the message context
@@ -104,16 +103,19 @@ public class ReliableMessage extends AbstractConnector {
 
     }
 
-    private void initiateSpringBuss(String fileLocation, boolean dynamicParamFlag) {
+    private void initiateSpringBuss(RMParameters inputParams) throws ConnectException{
 
-        if(springBus == null || dynamicParamFlag) {
+        if(springBus == null || inputParams.isDynamicParam()) {
+            //update configuration file with the given configurations
+            File configurationFile = ReliableMessageUtil.getUpdatedFile(inputParams);
+
             SpringBusFactory bf = new SpringBusFactory();
-            springBus = bf.createBus(fileLocation.toString());
+            springBus = bf.createBus(configurationFile.toString());
             log.debug("SpringBus initialized");
             BusFactory.setDefaultBus(springBus);
+            //Delete temporary configuration file
+            configurationFile.delete();
         }
-
-
 
     }
 
