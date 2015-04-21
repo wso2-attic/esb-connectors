@@ -20,9 +20,7 @@ STEPS:
         and place the certificate file in following location also.
 		"{SPOTIFY_CONNECTOR_HOME}/src/test/resources/keystores/products/"
 
-2. Copy spotify connector zip file (spotify.zip) to the location "spotify/repository/"
-
-3.  ESB should be configured as below.
+2.  ESB should be configured as below.
    	 Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
 
 	 <messageFormatter contentType="text/html"
@@ -34,7 +32,7 @@ STEPS:
      <messageBuilder contentType="text/plain"
                             class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
-4. Add following code block, just after the listeners block (Remove or comment all the other test blocks) in
+3. Add following code block, just after the listeners block (Remove or comment all the other test blocks) in
 following file - "spotify/src/test/resources/testng.xml"
 
 	<test name="Spotify-Connector-Test" preserve-order="true" verbose="2">
@@ -43,11 +41,11 @@ following file - "spotify/src/test/resources/testng.xml"
         </packages>
     </test> 
 
-5. Copy proxy files to following location "spotify/src/test/resources/artifacts/ESB/config/proxies/spotify/"
+4. Copy proxy files to following location "spotify/src/test/resources/artifacts/ESB/config/proxies/spotify/"
 
-6. Copy request files to following "spotify/src/test/resources/artifacts/ESB/config/restRequests/spotify/"
+5. Copy request files to following "spotify/src/test/resources/artifacts/ESB/config/restRequests/spotify/"
 
-7. Edit the "spotify.properties" at spotify/src/test/resources/artifacts/connector/config/ using valid and relevant
+6. Edit the "spotify.properties" at spotify/src/test/resources/artifacts/connector/config/ using valid and relevant
 data. Parameters to be changed are mentioned below.
 
 	- proxyDirectoryRelativePath: relative path of the Rest Request files folder from target.
@@ -58,7 +56,7 @@ data. Parameters to be changed are mentioned below.
 	- refresh_token: refresh token is to get the access token.
 	
 		
-8. Following data set can be used for the first testsuite run.
+7. Following data set can be used for the first testsuite run.
 
 	- proxyDirectoryRelativePath=/../src/test/resources/artifacts/ESB/config/proxies/spotify/
 	- requestDirectoryRelativePath=/../src/test/resources/artifacts/ESB/config/restRequests/spotify/
