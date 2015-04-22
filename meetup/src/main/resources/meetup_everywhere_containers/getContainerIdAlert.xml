@@ -1,0 +1,110 @@
+<!--
+  ~ Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="getContainerIdAlert" xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- Required Parameters -->
+    <parameter name="key" description="API key"/>
+    <parameter name="container_id" description="To retrieve results based on id"/>
+
+
+    <!-- Optional Parameters -->
+    <parameter name="comments" description="To retrieve results based on comments"/>
+    <parameter name="rsvps" description="To retrieve results based on rsvps"/>
+    <parameter name="updates" description="To retrieve results based on updates"/>
+
+
+    <sequence>
+        <property name="uri.var.key" expression="$func:key"/>
+        <property name="uri.var.container_id" expression="$func:container_id"/>
+        <property name="uri.var.comments" expression="$func:comments"/>
+        <property name="uri.var.rsvps" expression="$func:rsvps"/>
+        <property name="uri.var.updates" expression="$func:updates"/>
+        <property name="uri.var.query" value=""/>
+
+        <script language="js">
+            <![CDATA[
+
+            var comments = mc.getProperty('uri.var.comments');
+			var rsvps = mc.getProperty('uri.var.rsvps');
+			var updates = mc.getProperty('uri.var.updates');
+			var query = mc.getProperty('uri.var.query');
+
+
+
+
+
+			if (comments != null && comments != "") {
+			    var encoded_comments = encodeURIComponent(mc.getProperty('uri.var.comments'));
+				query = query + '&comments=' + encoded_comments;
+			}
+
+            if (rsvps != null && rsvps != "") {
+                var encoded_rsvps = encodeURIComponent(mc.getProperty('uri.var.rsvps'));
+				query = query + '&rsvps=' + encoded_rsvps;
+			}
+
+			if (updates != null && updates != "") {
+			    var encoded_updates = encodeURIComponent(mc.getProperty('uri.var.updates'));
+				query = query + '&updates=' + encoded_updates;
+			}
+
+
+			mc.setProperty('uri.var.query', query);
+
+	 		]]>
+        </script>
+
+
+        <filter
+                xpath="get-property('uri.var.key') = '' or not(string(get-property('uri.var.key')))">
+            <then>
+                <property name="uri.var.key" value=""/>
+            </then>
+        </filter>
+
+
+        <log level="custom" xmlns="http://ws.apache.org/ns/synapse">
+            <property name="string" expression="fn:concat('key - ', get-property('uri.var.key'))"/>
+        </log>
+        <log level="custom" xmlns="http://ws.apache.org/ns/synapse">
+            <property name="string"
+                      expression="fn:concat('query - ', get-property('uri.var.query'))"/>
+        </log>
+        <log level="custom" xmlns="http://ws.apache.org/ns/synapse">
+            <property name="string"
+                      expression="fn:concat('id - ', get-property('uri.var.container_id'))"/>
+        </log>
+
+
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/ew/container/{uri.var.container_id}/alerts?key={uri.var.key}{uri.var.query}"/>
+            </endpoint>
+        </call>
+
+
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+    </sequence>
+</template>

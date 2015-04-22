@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="getPhotoComments" xmlns="http://ws.apache.org/ns/synapse"
+          description="This method returns comments on meetup photos. To post messages, see the corresponding write method">
+
+    <!-- Required parameters -->
+    <parameter name="photo_id" description="OEmbed URL"/>
+    <parameter name="key" description="API key"/>
+    <parameter name="access_token" description="OAuth token key"/>
+    <parameter name="fields"
+               description="Request that additional fields (separated by commas) be included in the output."/>
+    <parameter name="member_id"
+               description="Return comments for the given member_ids, separated by commas. The member ids must match up with one of the provided photo ids"/>
+    <!-- Required parameters -->
+    <parameter name="name" description="the name of the member"/>
+    <parameter name="time" description="Order by the time that each comment was posted"/>
+
+    <sequence>
+        <property name="uri.var.photoID" expression="$func:photo_id"/>
+        <property name="uri.var.key" expression="$func:key"/>
+        <property name="uri.var.access_token" expression="$func:access_token"/>
+
+        <filter xpath="get-property('uri.var.access_token') = '' or not(string(get-property('uri.var.access_token')))">
+            <then>
+                <filter xpath="get-property('uri.var.member_id') = '' or not(string(get-property('uri.var.member_id')))">
+                    <then>
+                        <call>
+                            <endpoint>
+                                <http method="get"
+                                      uri-template="https://api.meetup.com/2/photo_comments?photo_id={uri.var.photoID}&amp;key={uri.var.key}&amp;fields={uri.var.fields}&amp;name={uri.var.name}&amp;time={uri.var.time}"/>
+
+                            </endpoint>
+                        </call>
+                    </then>
+                    <else>
+                        <call>
+                            <endpoint>
+                                <http method="get"
+                                      uri-template="https://api.meetup.com/2/photo_comments?photo_id={uri.var.photoID}&amp;key={uri.var.key}&amp;fields={uri.var.fields}&amp;name={uri.var.name}&amp;time={uri.var.time}&amp;member_id={uri.var.member_id}"/>
+
+                            </endpoint>
+                        </call>
+                    </else>
+                </filter>
+
+            </then>
+            <else>
+                <header name="Authorization"
+                        expression="fn:concat('Bearer ',get-property('uri.var.access_token'))"
+                        scope="transport"/>
+                <filter xpath="get-property('uri.var.member_id') = '' or not(string(get-property('uri.var.member_id')))">
+                    <then>
+                        <call>
+                            <endpoint>
+                                <http method="get"
+                                      uri-template="https://api.meetup.com/2/photo_comments?photo_id={uri.var.photoID}&amp;fields={uri.var.fields}&amp;name={uri.var.name}&amp;time={uri.var.time}"/>
+
+                            </endpoint>
+                        </call>
+                    </then>
+                    <else>
+                        <call>
+                            <endpoint>
+                                <http method="get"
+                                      uri-template="https://api.meetup.com/2/photo_comments?photo_id={uri.var.photoID}&amp;fields={uri.var.fields}&amp;name={uri.var.name}&amp;time={uri.var.time}&amp;member_id={uri.var.member_id}"/>
+
+                            </endpoint>
+                        </call>
+                    </else>
+                </filter>
+
+
+            </else>
+        </filter>
+
+
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+
+    </sequence>
+</template>
