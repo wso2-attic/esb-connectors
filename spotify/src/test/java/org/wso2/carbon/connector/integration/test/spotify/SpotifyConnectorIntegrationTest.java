@@ -17,10 +17,12 @@
 */
 package org.wso2.carbon.connector.integration.test.spotify;
 
+import java.lang.System;
 import java.net.URL;
 import java.util.Properties;
 import javax.activation.DataHandler;
 
+import netscape.javascript.JSObject;
 import org.apache.axis2.context.ConfigurationContext;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -46,7 +48,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
 
     private String repoLocation = null;
 
-    private String spotifyConnectorFileName = "spotify.zip";
+    private String spotifyConnectorFileName = CONNECTOR_NAME+".zip";
 
     private Properties spotifyConnectorProperties = null;
 
@@ -840,7 +842,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
     }
 
     /**
-     * Mandatory parameter test case for getAListUsersLPlaylists method.
+     * Mandatory parameter test case for getAListUsersPlaylists method.
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "spotify {getAListUsersPlaylists} integration test with mandatory parameter.")
     public void testGetAListUsersPlaylistsMandatoryParameter() throws Exception {
@@ -852,7 +854,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonResponse;
         try {
-            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), jsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
             Assert.assertTrue(jsonResponse.length() > 0);
         } finally {
 
