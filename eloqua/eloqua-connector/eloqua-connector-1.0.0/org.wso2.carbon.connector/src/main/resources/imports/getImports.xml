@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="getImports" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="limit" description="Specifies maximum number of records to return."/>
+    <parameter name="offset" description="Specifies an offset that allows to retrieve the next batch of records."/>
+    <parameter name="orderBy" description="Term to order the results by."/>
+    <parameter name="q" description="Specifies query criteria used to filter results."/>
+    <parameter name="totalResults" description="the total number of records that satisfy the request."/>
+    <sequence>
+        <property name="uri.var.limit" expression="$func:limit"/>
+        <property name="uri.var.offset" expression="$func:offset"/>
+        <property name="uri.var.orderBy" expression="$func:orderBy"/>
+        <property name="uri.var.q" expression="$func:q"/>
+        <property name="uri.var.totalResults" expression="$func:totalResults"/>
+        <property name="uri.var.optionalParameters" value=""/>
+        <filter
+                xpath="get-property('uri.var.limit') = '' or  not(string(get-property('uri.var.limit')))">
+            <then>
+                <property name="uri.var.limit" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;limit=', get-property('uri.var.limit'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.offset') = '' or  not(string(get-property('uri.var.offset')))">
+            <then>
+                <property name="uri.var.offset" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;offset=', get-property('uri.var.offset'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.orderBy') = '' or  not(string(get-property('uri.var.orderBy')))">
+            <then>
+                <property name="uri.var.orderBy" value=""/>
+            </then>
+            <else>
+                <script language="js"><![CDATA[
+                    var query = mc.getProperty('uri.var.orderBy');
+                    var encodedQuery = encodeURIComponent(query);
+                    mc.setProperty('uri.var.orderBy', encodedQuery);
+                ]]>
+                </script>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;orderBy=', get-property('uri.var.orderBy'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.q') = '' or  not(string(get-property('uri.var.q')))">
+            <then>
+                <property name="uri.var.q" value=""/>
+            </then>
+            <else>
+                <script language="js"><![CDATA[
+                    var query = mc.getProperty('uri.var.q');
+                    var encodedQuery = encodeURIComponent(query);
+                    mc.setProperty('uri.var.q', encodedQuery);
+        	    ]]>
+                </script>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;q=', get-property('uri.var.q'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.totalResults') = '' or  not(string(get-property('uri.var.totalResults')))">
+            <then>
+                <property name="uri.var.totalResults" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.optionalParameters" expression="fn:concat(get-property('uri.var.optionalParameters'),
+                '&amp;totalResults=', get-property('uri.var.totalResults'))"/>
+            </else>
+        </filter>
+        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"/>
+        <header name="Content-Type" value="application/json" scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="{uri.var.apiUrl}imports?{uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

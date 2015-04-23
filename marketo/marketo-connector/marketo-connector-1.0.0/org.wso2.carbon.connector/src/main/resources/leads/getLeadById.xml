@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="getLeadById" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- Required parameters -->
+    <parameter name="leadId" description="The Marketo Id of the lead."/>
+    <!-- Optional parameters -->
+    <parameter name="fields" description="List of fields to be returned in response."/>
+    <sequence>
+        <property name="uri.var.leadId" expression="$func:leadId"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <filter xpath="(not(get-property('uri.var.fields') = '' or (not(string(get-property('uri.var.fields'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'fields=',get-property('uri.var.fields'))"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/lead/{uri.var.leadId}.json?{uri.var.apiParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>
