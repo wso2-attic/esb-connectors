@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--API Documentation URL- http://www.bugzilla.org/docs/tip/en/html/api/Bugzilla/WebService/User.html#get -->
+<template name="searchUsers" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="ids" description="An array of integers, representing user ids." />
+   <parameter name="names" description="An array of login names." />
+   <parameter name="match" description="An array of strings. This works just like 'user matching' in Bugzilla itself." />
+   <parameter name="limit" description="Limit the number of users matched by the match parameter." />
+   <parameter name="groupIds" description="An array of numeric ids for groups that a user can be in." />
+   <parameter name="groups" description="An array of names of groups that a user can be in." />
+   <parameter name="includeDisabled "
+      description="By default, when using the match parameter, disabled users are excluded from the returned results unless their full username is identical to the match string " />
+   <parameter name="includeFields"
+      description="An array of strings, representing the names of fields in the return value. Only the fields specified in this hash will be returned." />
+   <parameter name="excludeFields"
+      description="An array of strings, representing the names of fields in the return value. The fields specified will not be included in the returned hashes." />
+   <sequence>
+      <property name="uri.var.ids" expression="$func:ids" />
+      <property name="uri.var.names" expression="$func:names" />
+      <property name="uri.var.match" expression="$func:match" />
+      <property name="uri.var.limit" expression="$func:limit" />
+      <property name="uri.var.groupIds" expression="$func:groupIds" />
+      <property name="uri.var.groups" expression="$func:groups" />
+      <property name="uri.var.includeDisabled " expression="$func:includeDisabled " />
+      <property name="uri.var.includeFields" expression="$func:includeFields" />
+      <property name="uri.var.excludeFields" expression="$func:excludeFields" />
+      <script language="js">
+         <![CDATA[
+            var includeFields = mc.getProperty('uri.var.includeFields');
+            var excludeFields = mc.getProperty('uri.var.excludeFields');
+            var ids = mc.getProperty('uri.var.ids');
+            var names = mc.getProperty('uri.var.names');
+            var match = mc.getProperty('uri.var.match');
+            var limit = mc.getProperty('uri.var.limit');
+            var groupIds = mc.getProperty('uri.var.groupIds');
+            var groups = mc.getProperty('uri.var.groups');
+			var includeDisabled = mc.getProperty('uri.var.includeDisabled');
+            var urlQuery = '&';
+            if (includeFields != null && includeFields != ""){
+               urlQuery += 'include_fields=' + includeFields + '&';
+            }
+            if (excludeFields != null && excludeFields != ""){
+               urlQuery += 'exclude_fields=' + encodeURI(excludeFields) + '&';
+            }
+            if (ids != null && ids != ""){
+               if(ids.charCodeAt(0) != '91' && ids.charCodeAt(ids.length-1) != '93'){
+                  urlQuery += 'ids=' + ids + '&';
+               }else {
+                  ids=eval("(" + ids + ")");
+                  for(i=0;i<ids.length;i++){
+                     urlQuery +='ids='+ids[i] + '&'; 
+                  }
+               }
+            }
+            if (names != null && names != ""){
+               if(names.charCodeAt(0) != '91' && names.charCodeAt(names.length-1) != '93'){
+                  urlQuery += 'names=' + names + '&';
+               }else{
+                  names=eval("(" + names + ")");
+                  for(i=0;i<names.length;i++){
+                     urlQuery +='names='+names[i] + '&'; 
+                  }
+                }
+            }
+            if (match != null && match != ""){
+               if(match.charCodeAt(0) != '91' && match.charCodeAt(match.length-1) != '93'){
+                  urlQuery += 'match=' + match + '&';
+               }else{
+                  match=eval("(" + match + ")");
+                  for(i=0;i<match.length;i++){
+                     urlQuery +='match='+match[i] + '&'; 
+                  }
+                }
+            }
+			if (limit != null && limit != ""){
+               urlQuery += 'limit=' + limit + '&';
+            }
+            if (groupIds != null && groupIds != ""){
+               if(groupIds.charCodeAt(0) != '91' && groupIds.charCodeAt(groupIds.length-1) != '93'){
+                  urlQuery += 'group_ids=' + groupIds + '&';
+               }else{
+                  groupIds=eval("(" + groupIds + ")");
+                  for(i=0;i<groupIds.length;i++){
+                    urlQuery +='group_ids='+groupIds[i] + '&'; 
+                  }
+               }
+            }
+			if (groups != null && groups != ""){
+               if(groups.charCodeAt(0) != '91' && groups.charCodeAt(groups.length-1) != '93'){
+                  urlQuery += 'groups=' + groups + '&';
+               }else{
+                  groups=eval("(" + groups + ")");
+                  for(i=0;i<groups.length;i++){
+                    urlQuery +='groups ='+groups[i] + '&'; 
+                  }
+               }
+            }
+            if (includeDisabled != null && includeDisabled != ""){
+               urlQuery += 'include_disabled =' + encodeURI(includeDisabled) + '&';
+            }
+            // Remove the trailing '&'
+            urlQuery = urlQuery.substring(0, urlQuery.length - 1);
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/user{uri.var.apiKey}{uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!--Removing custom headers from the Response. -->
+      <header name="X-frame-options" action="remove" scope="transport" />
+      <header name="X-xss-protection" action="remove" scope="transport" />
+      <header name="Etag" action="remove" scope="transport" />
+      <header name="X-content-type-options" action="remove" scope="transport" />
+      <header name="Access-control-allow-origin" action="remove" scope="transport" />
+      <header name="Access-control-allow-headers" action="remove" scope="transport" />
+   </sequence>
+</template>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ 
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+ 
+     http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<!--API Documentation URL- http://www.bugzilla.org/docs/tip/en/html/api/Bugzilla/WebService/User.html#create -->
+<template name="createUser" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="email" description="The email address for the new user." />
+   <parameter name="fullName" description="The user's full name. Will be set to empty if not specified." />
+   <parameter name="password" description="The password for the new user account, in plain text." />
+   <sequence>
+      <property name="uri.var.email" expression="$func:email" />
+      <property name="uri.var.fullName" expression="$func:fullName" />
+      <property name="uri.var.password" expression="$func:password" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "email":"$1"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.email')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+        <![CDATA[
+         payload = mc.getPayloadJSON();   
+         var fullName = mc.getProperty('uri.var.fullName');
+         var password  = mc.getProperty('uri.var.password'); 
+         if (fullName != null && fullName != "") {
+             payload.full_name =fullName;
+         }     
+         if (password != null && password != "") {
+             payload.password=password;
+         }         
+         mc.setPayloadJSON(payload);
+        ]]>
+      </script>
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/user{uri.var.apiKey}" />
+         </endpoint>
+      </call>
+      <!--Removing custom headers from the Response. -->
+      <header name="X-frame-options" action="remove" scope="transport" />
+      <header name="X-xss-protection" action="remove" scope="transport" />
+      <header name="Etag" action="remove" scope="transport" />
+      <header name="X-content-type-options" action="remove" scope="transport" />
+      <header name="Access-control-allow-origin" action="remove" scope="transport" />
+      <header name="Access-control-allow-headers" action="remove" scope="transport" />
+   </sequence>
+</template>
