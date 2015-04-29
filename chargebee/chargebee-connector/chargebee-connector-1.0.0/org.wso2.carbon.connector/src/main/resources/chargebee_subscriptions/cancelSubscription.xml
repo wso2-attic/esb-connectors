@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://apidocs.chargebee.com/docs/api/subscriptions#cancel_a_subscription -->
+<template name="cancelSubscription" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="subscriptionId" description="The unique identifier of the subscription." />
+   <parameter name="isEndOfTerm"
+      description="The boolean flag indicating the cancellation is done at the end of the term." />
+   <sequence>
+      <property name="uri.var.subscriptionId" expression="$func:subscriptionId" />
+      <property name="uri.var.isEndOfTerm" expression="$func:isEndOfTerm" />
+      <property name="uri.var.apiParameters" value="" />
+      <filter xpath="boolean(get-property('uri.var.isEndOfTerm'))">
+         <then>
+            <property name="uri.var.apiParameters"
+               expression="fn:concat('?end_of_term=',get-property('uri.var.isEndOfTerm'))" />
+         </then>
+      </filter>
+      <call>
+         <endpoint>
+            <http method="post"
+               uri-template="{uri.var.apiUrl}/subscriptions/{uri.var.subscriptionId}/cancel/{uri.var.apiParameters}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+      <header name="Pragma" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="Expires" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+   </sequence>
+</template>
