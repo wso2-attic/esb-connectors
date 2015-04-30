@@ -46,7 +46,7 @@ Steps to follow in setting integration test.
 							  class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
 
- 4. Compress the modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{Zohobooks_Connector_Home}/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 4. Compress the modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<Zohobooks_Connector_Home>/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
  5. Create a Zohobooks trial account and derive the API Key.
 	i) 	Using the URL "https://www.zoho.com/books/signup/" create a Zohobooks trial account.
@@ -58,7 +58,7 @@ Steps to follow in setting integration test.
 	ii) Navigate to "Users" under the settings, and invite to new user as a timesheet staff by clicking "Invite User" button.
 	iii)Log in to newly created user's email (created in step 6 ii) ) and click "Join Account" URL to join with zohobooks account.
 
- 7. Update the Zohobooks properties file at location "{Zohobooks_Connector_Home}/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 7. Update the Zohobooks properties file at location "<ZOHOBOOKS_CONNECTOR_HOME>/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i)		apiUrl 							- 	The API URL specific to the created Zohobooks account (https://books.zoho.com).
 	ii) 	authToken						-   Use the access token obtained under step 5 ii).
@@ -100,7 +100,7 @@ Steps to follow in setting integration test.
 	
 	* Values need to be changed for each execution of the Test Suite. Please make sure the values are unique in the context of the same account.
 	
- 8. Navigate to "{Zohobooks_Connector_Home}/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 8. Navigate to "<ZOHOBOOKS_CONNECTOR_HOME>/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
 
 		
