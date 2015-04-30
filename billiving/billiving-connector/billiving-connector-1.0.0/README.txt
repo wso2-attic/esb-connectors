@@ -42,7 +42,7 @@ STEPS:
          NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from Billiving with the extension. (e.g. billiving.crt)
                 CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. Billiving).
 
-5. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "<BILLIVING_CONNECTOR_HOME>/billiving-connector/billiving-connector-1.0.0/org.wso2.carbon.connector/repository/".
+5. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<BILLIVING_CONNECTOR_HOME>/billiving-connector/billiving-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
 6. Update the property file billiving.properties found in <BILLIVING_CONNECTOR_HOME>/billiving-connector/billiving-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config as follows:
 
