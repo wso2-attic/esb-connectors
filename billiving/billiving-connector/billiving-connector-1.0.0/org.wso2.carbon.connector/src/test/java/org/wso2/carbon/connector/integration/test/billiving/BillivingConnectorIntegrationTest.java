@@ -77,7 +77,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
         connectorProperties.put("clientId", clientId);
         
         String apiEndPoint = apiUrl + "/api2/v1/clients/" + clientId;
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequestHTTPS(apiEndPoint, "GET", apiRequestHeadersMap, null, null, true);
 
         //This is the only parameter returns 
         Assert.assertEquals(apiRestResponse.getBody().getString("Email"), connectorProperties.get("clientEmail"));
@@ -97,7 +97,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
         connectorProperties.put("clientId2", clientId2);
         
         String apiEndPoint = apiUrl + "/api2/v1/clients/" + clientId2;
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequestHTTPS(apiEndPoint, "GET", apiRequestHeadersMap, null, null, true);
 
         Assert.assertEquals(clientId2, apiRestResponse.getBody().getString("Id"));
         Assert.assertEquals(apiRestResponse.getBody().getString("Email"), connectorProperties.get("clientEmail"));
@@ -120,7 +120,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
        
        String apiEndPoint = apiUrl + "/api2/v1/clients";
        RestResponse<JSONObject> apiRestResponse =
-             sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_createClient_negative.json");
+             sendJsonRestRequestHTTPS(apiEndPoint, "POST", apiRequestHeadersMap, "api_createClient_negative.json", null, true);
        
        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
        
@@ -137,7 +137,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getClient_mandatory.json");
         
         String apiEndPoint = apiUrl + "/api2/v1/clients/" + connectorProperties.getProperty("clientId");
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequestHTTPS(apiEndPoint, "GET", apiRequestHeadersMap, null, null, true);
         
         Assert.assertEquals(esbRestResponse.getBody().getString("ContactName"), apiRestResponse.getBody().getString("ContactName"));
         Assert.assertEquals(esbRestResponse.getBody().getString("OrganizationName"), apiRestResponse.getBody().getString("OrganizationName"));
@@ -159,7 +159,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
         JSONObject esbObject = esbResponseArray.getJSONObject(0);
         
         String apiEndPoint = apiUrl + "/api2/v1/clients";
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequestHTTPS(apiEndPoint, "GET", apiRequestHeadersMap, null, null, true);
         
         String apiResponseArrayString = apiRestResponse.getBody().getString("output");
         JSONArray apiResponseArray = new JSONArray(apiResponseArrayString);
@@ -187,7 +187,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
        JSONObject esbObject = esbResponseArray.getJSONObject(0);
        
        String apiEndPoint = apiUrl + "/api2/v1/clients?Top=2";
-       RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+       RestResponse<JSONObject> apiRestResponse = sendJsonRestRequestHTTPS(apiEndPoint, "GET", apiRequestHeadersMap, null, null, true);
        
        String apiResponseArrayString = apiRestResponse.getBody().getString("output");
        JSONArray apiResponseArray = new JSONArray(apiResponseArrayString);
@@ -213,7 +213,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
        JSONObject esbObject = esbResponseArray.getJSONObject(0);
        
        String apiEndPoint = apiUrl + "/api2/v1/clients?StatusId=Invalid";
-       RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+       RestResponse<JSONObject> apiRestResponse = sendJsonRestRequestHTTPS(apiEndPoint, "GET", apiRequestHeadersMap, null, null, true);
        
        String apiResponseArrayString = apiRestResponse.getBody().getString("output");
        JSONArray apiResponseArray = new JSONArray(apiResponseArrayString);
@@ -238,7 +238,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
         connectorProperties.put("invoiceId", invoiceId);
         
         String apiEndPoint = apiUrl + "/api2/v1/invoices/" + invoiceId;
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequestHTTPS(apiEndPoint, "GET", apiRequestHeadersMap, null, null, true);
         
         Assert.assertEquals(esbRestResponse.getBody().getString("Uri"), apiRestResponse.getBody().getString("Uri"));
         Assert.assertEquals(apiRestResponse.getBody().getString("ClientId"), connectorProperties.getProperty("clientId"));
@@ -258,7 +258,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
         connectorProperties.put("invoiceId2", invoiceId2);
         
         String apiEndPoint = apiUrl + "/api2/v1/invoices/" + invoiceId2;
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequestHTTPS(apiEndPoint, "GET", apiRequestHeadersMap, null, null, true);
 
         String apiDocItemsArrayString = apiRestResponse.getBody().getString("DocItems");
         JSONArray apiDocItemsArray = new JSONArray(apiDocItemsArrayString);
@@ -284,7 +284,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
        
        String apiEndPoint = apiUrl + "/api2/v1/invoices";
        RestResponse<JSONObject> apiRestResponse =
-             sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_createInvoice_negative.json");
+             sendJsonRestRequestHTTPS(apiEndPoint, "POST", apiRequestHeadersMap, "api_createInvoice_negative.json", null,true);
        
        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
        
@@ -297,21 +297,22 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
     public void testGetInvoiceWithMandatoryParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:getInvoice");
+        log.info("HTTPS:ESB");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getInvoice_mandatory.json");
-        
+        log.info("HTTPS:API");
         String apiEndPoint = apiUrl + "/api2/v1/invoices/" + connectorProperties.getProperty("invoiceId2");
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequestHTTPS(apiEndPoint, "GET", apiRequestHeadersMap, null,null,true);
+        log.info("HTTPS:API2");
         Assert.assertEquals(esbRestResponse.getBody().getString("IssueDate"), apiRestResponse.getBody().getString("IssueDate"));
         Assert.assertEquals(esbRestResponse.getBody().getString("CurrencyId"), apiRestResponse.getBody().getString("CurrencyId"));
         Assert.assertEquals(esbRestResponse.getBody().getString("ClientId"), apiRestResponse.getBody().getString("ClientId"));
     }
     
     /**
-     * Positive test case for listInvoices method with mandatory parameters.
+     * Positive test case for listInvoices method with mandatory parameters.     * 
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetInvoiceWithMandatoryParameters" }, description = "Billiving {listInvoices} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetInvoiceWithMandatoryParameters" },  description = "Billiving {listInvoices} integration test with mandatory parameters.")
     public void testListInvoicesWithMandatoryParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:listInvoices");
@@ -323,7 +324,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
         JSONObject esbObject = esbResponseArray.getJSONObject(0);
         
         String apiEndPoint = apiUrl + "/api2/v1/invoices";
-        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequestHTTPS(apiEndPoint, "GET", apiRequestHeadersMap, null,null,true);
         
         String apiResponseArrayString = apiRestResponse.getBody().getString("output");
         JSONArray apiResponseArray = new JSONArray(apiResponseArrayString);
@@ -338,7 +339,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
     /**
      * Positive test case for listInvoices method with optional parameters.
      */
-    @Test(dependsOnMethods = { "testListClientsWithMandatoryParameters" }, description = "Billiving {listInvoices} integration test with optional parameters.")
+    @Test(dependsOnMethods = { "testListInvoicesWithMandatoryParameters" }, description = "Billiving {listInvoices} integration test with optional parameters.")
     public void testListInvoicesWithOptionalParameters() throws IOException, JSONException {
     
        esbRequestHeadersMap.put("Action", "urn:listInvoices");
@@ -351,7 +352,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
        JSONObject esbObject = esbResponseArray.getJSONObject(0);
        
        String apiEndPoint = apiUrl + "/api2/v1/invoices?Top=2";
-       RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+       RestResponse<JSONObject> apiRestResponse = sendJsonRestRequestHTTPS(apiEndPoint, "GET", apiRequestHeadersMap, null,null,true);
        
        String apiResponseArrayString = apiRestResponse.getBody().getString("output");
        JSONArray apiResponseArray = new JSONArray(apiResponseArrayString);
@@ -379,7 +380,7 @@ public class BillivingConnectorIntegrationTest extends ConnectorIntegrationTestB
        JSONObject esbObject = esbResponseArray.getJSONObject(0);
        
        String apiEndPoint = apiUrl + "/api2/v1/invoices?Status=Invalid";
-       RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+       RestResponse<JSONObject> apiRestResponse = sendJsonRestRequestHTTPS(apiEndPoint, "GET", apiRequestHeadersMap, null,null,true);
        
        String apiResponseArrayString = apiRestResponse.getBody().getString("output");
        JSONArray apiResponseArray = new JSONArray(apiResponseArrayString);
