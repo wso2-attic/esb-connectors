@@ -29,22 +29,22 @@ Steps to follow in setting integration test.
 
    i)     apiUrl                 - The API URL specific to the domain of the created account. e.g. https://soft-test.chargebee.com
    ii)    apiKey                 - Use the API Key obtained under Step 3 iii).
-   iii)   discountAmount         - Use a Integer value as a discount amount in coupon.
+   iii)   discountAmount         - Use an integer value as a discount amount in coupon.
    iv)    durationType           - Use a valid discount type of a coupon as documented in the API documentation
    v)     invoiceNameOpt         - Use a valid string value as invoice name.
    vi)    invoiceNotesOpt        - Use a valid string value as invoice notes.
    vii)   validTill              - Use a valid future UTC timestamp in seconds.
-   viii)  maxRedemptions         - Use a Integer value.
+   viii)  maxRedemptions         - Use an integer value.
    ix)    paidOnAfter            - Use a valid past UTC timestamp in seconds.
    x)     companyName            - Use a valid string value as company name.
-   xi)    email                  - Use a any email address which is correctly formatted.
+   xi)    email                  - Use any email address which is correctly formatted.
    xii)   firstName              - Use a valid string value as customer's first name.
    xiii)  lastName               - Use a valid string value as customer's last name.
    xiv)   notes                  - Use a valid string value as note's content.
    xv)    firstNameUpdated       - Use a valid string value as customer's first name.
    xvi)   lastNameUpdated        - Use a valid string value as customer's last name.
    xvii)  notesUpdated           - Use a valid string value as note's content.
-   xviii) emailUpdated           - Use a any email address which is correctly formatted.
+   xviii) emailUpdated           - Use any email address which is correctly formatted.
 
  5. Navigate to "<CHARGEBEE_CONNECTOR_HOME>/chargebee-connector/chargebee-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
