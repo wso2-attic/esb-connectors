@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API method Url: https://www.planyo.com/api.php?topic=is_resource_available -->
+<template name="checkResourceAvailability" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="resourceId" description="The unique identifier of the resource." />
+   <parameter name="startTime" description="The beginning of rental duration." />
+   <parameter name="endTime" description="The end of rental duration." />
+   <parameter name="quantity" description="The number of units." />
+   <parameter name="sharingMode"
+      description="Specifies the desired sharing mode(ie.,1=sharing not allowed, 1 = sharing allowed, 2 = sharing forced)." />
+   <sequence>
+      <property name="uri.var.resourceId" expression="$func:resourceId" />
+      <property name="uri.var.startTime" expression="$func:startTime" />
+      <property name="uri.var.endTime" expression="$func:endTime" />
+      <property name="uri.var.quantity" expression="$func:quantity" />
+      <property name="uri.var.sharingMode" expression="$func:sharingMode" />
+      <script language="js">
+         <![CDATA[
+            var version = mc.getProperty('uri.var.version');
+            var language = mc.getProperty('uri.var.language');
+            var resourceId = mc.getProperty('uri.var.resourceId');
+            var startTime = mc.getProperty('uri.var.startTime');
+            var endTime = mc.getProperty('uri.var.endTime');
+            var quantity = mc.getProperty('uri.var.quantity');
+            var sharingMode = mc.getProperty('uri.var.sharingMode');
+            //setting required params for the url
+            var urlQuery = '?api_key=' + encodeURIComponent(mc.getProperty('uri.var.apiKey')) + '&method=is_resource_available&resource_id=' + resourceId + '&start_time=' + encodeURIComponent(startTime) + '&end_time=' + encodeURIComponent(endTime) + '&quantity=' + quantity;
+            //setting optional params for the url
+            if (version != null && version != '') {
+               urlQuery += '&version=' + version;
+            }
+             if (language != null && language != '') {
+               urlQuery += '&language=' + encodeURIComponent(language);
+            }
+            if (sharingMode != null && sharingMode != '') {
+               urlQuery += '&wants_share=' + sharingMode;
+            }
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}{uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Powered-By" scope="transport" action="remove" />
+      <header name="Via" scope="transport" action="remove" />
+   </sequence>
+</template>

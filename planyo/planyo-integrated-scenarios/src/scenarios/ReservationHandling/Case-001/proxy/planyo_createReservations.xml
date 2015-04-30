@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="planyo_createReservations" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Planyo properties -->
+         <property name="planyoAPIKey" expression="json-eval($.planyoAPIKey)" />
+
+         <!-- Nexmo properties -->
+         <property name="nexmoAPIKey" expression="json-eval($.nexmoAPIKey)" />
+         <property name="nexmoApiSecret" expression="json-eval($.nexmoApiSecret)" />
+         <property name="nexmoSender" expression="json-eval($.nexmoSender)" />
+         <property name="messageType" value="application/xml" scope="axis2" />
+
+         <!-- Common properties -->
+         <property name="reseravtionIndex" value="0" scope="operation" />
+         <property name="reservationDetails" expression="json-eval($.reservationDetails)" />
+
+         <!-- Checks whether the reservationDetails is empty. If so, returns an error response, otherwise proceed to create 
+            reservation -->
+         <property name="reservationCount" expression="count(//reservationDetails[string-length(node()) > 0])"
+            scope="operation" />
+         <filter xpath="get-property('operation', 'reservationCount') = 0">
+            <then>
+               <property name="emptyID" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:emptyID}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="activity" value="planyo_makeReservationAndSendSMS" />
+                  <with-param name="message"
+                     value="Please provide valid values for reservationDetails parameter to make reservation" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- Iterates over reservationDetails to extract information and proceed with make reservation -->
+         <iterate id="reservationIterator" expression="//reservationDetails[string-length(node()) > 0]"
+            sequential="true">
+            <target>
+               <sequence>
+                  <property name="planyoResourceId" expression="//reservationDetails/planyoResourceId" />
+                  <property name="planyoStartTime" expression="//reservationDetails/planyoStartTime" />
+                  <property name="planyoEndTime" expression="//reservationDetails/planyoEndTime" />
+                  <property name="planyoFirstName" expression="//reservationDetails/planyoFirstName" />
+                  <property name="planyoLastName" expression="//reservationDetails/planyoLastName" />
+                  <property name="planyoAddress" expression="//reservationDetails/planyoAddress" />
+                  <property name="planyoCity" expression="//reservationDetails/planyoCity" />
+                  <property name="planyoZip" expression="//reservationDetails/planyoZip" />
+                  <property name="planyoState" expression="//reservationDetails/planyoState" />
+                  <property name="planyoCountry" expression="//reservationDetails/planyoCountry" />
+                  <property name="planyoQuantity" expression="//reservationDetails/planyoQuantity" />
+                  <property name="planyoEmail" expression="//reservationDetails/planyoEmail" />
+                  <property name="planyoMobilePrefix" expression="//reservationDetails/planyoMobilePrefix" />
+                  <property name="planyoMobileNumber" expression="//reservationDetails/planyoMobileNumber" />
+                  <property name="planyoPhonePrefix" expression="//reservationDetails/planyoPhonePrefix" />
+                  <property name="planyoPhoneNumber" expression="//reservationDetails/planyoPhoneNumber" />
+                  <property name="nexmoContactNumber"
+                     expression="fn:concat(get-property('planyoMobilePrefix'), get-property('planyoMobileNumber'))" />
+
+                  <call-template target="planyo-createReservationsAndSendMessages">
+                     <!-- parameter values will be passed on to a sequence template -->
+                     (
+                     <with-param name="planyoAPIKey" value="{$ctx:planyoAPIKey}" />
+                     |
+                     <with-param name="planyoAddress" value="{$ctx:planyoAddress}" />
+                     |
+                     <with-param name="planyoCity" value="{$ctx:planyoCity}" />
+                     |
+                     <with-param name="planyoZip" value="{$ctx:planyoZip}" />
+                     |
+                     <with-param name="planyoState" value="{$ctx:planyoState}" />
+                     |
+                     <with-param name="planyoCountry" value="{$ctx:planyoCountry}" />
+                     |
+                     <with-param name="nexmoAPIKey" value="{$ctx:nexmoAPIKey}" />
+                     |
+                     <with-param name="nexmoApiSecret" value="{$ctx:nexmoApiSecret}" />
+                     |
+                     <with-param name="nexmoSender" value="{$ctx:nexmoSender}" />
+                     |
+                     <with-param name="planyoResourceId" value="{$ctx:planyoResourceId}" />
+                     |
+                     <with-param name="planyoStartTime" value="{$ctx:planyoStartTime}" />
+                     |
+                     <with-param name="planyoEndTime" value="{$ctx:planyoEndTime}" />
+                     |
+                     <with-param name="planyoFirstName" value="{$ctx:planyoFirstName}" />
+                     |
+                     <with-param name="planyoLastName" value="{$ctx:planyoLastName}" />
+                     |
+                     <with-param name="planyoQuantity" value="{$ctx:planyoQuantity}" />
+                     |
+                     <with-param name="planyoEmail" value="{$ctx:planyoEmail}" />
+                     |
+                     <with-param name="planyoMobilePrefix" value="{$ctx:planyoMobilePrefix}" />
+                     |
+                     <with-param name="planyoPhoneNumber" value="{$ctx:planyoPhoneNumber}" />
+                     |
+                     <with-param name="planyoPhonePrefix" value="{$ctx:planyoPhonePrefix}" />
+                     |
+                     <with-param name="planyoMobileNumber" value="{$ctx:planyoMobileNumber}" />
+                     |
+                     <with-param name="nexmoContactNumber" value="{$ctx:nexmoContactNumber}" />
+                     |
+                     )*
+                  </call-template>
+                  <property name="reseravtionIndex" expression="get-property('operation','reseravtionIndex') + 1"
+                     scope="operation" />
+               </sequence>
+            </target>
+         </iterate>
+         <filter xpath="get-property('operation', 'reseravtionIndex') = get-property('operation', 'reservationCount')">
+            <then>
+               <loopback />
+            </then>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <!-- Generate the chained response of all the API calls in createReservationAndSendMessage -->
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"planyo_makeReservationAndSendSMS",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
+                                

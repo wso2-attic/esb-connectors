@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template checks availability of the resource using the Planyo API. If the resource is available, makes the reservation 
+   in the Planyo API and sends the reservation details to client using the Nexmo API. -->
+<template name="planyo-createReservationsAndSendMessages" xmlns="http://ws.apache.org/ns/synapse">
+   <!-- Planyo parameters -->
+   <parameter name="planyoAPIUrl" description="Planyo API Url." />
+   <parameter name="planyoAPIKey" description="Planyo API key for authentication." />
+   <parameter name="planyoAddress" description="The Address of the Planyo user" />
+   <parameter name="planyoCity" description="The city of the Planyo user." />
+   <parameter name="planyoZip" description="The zip code of the Planyo user." />
+   <parameter name="planyoState" description="The state of the Planyo user." />
+   <parameter name="planyoCountry" description="A two letter Country code of the Planyo user according to ISO 3166-1 alpha-2 format." />
+   <parameter name="planyoResourceId" description="The unique identifier of the resource." />
+   <parameter name="planyoStartTime" description="The beginning of rental duration." />
+   <parameter name="planyoEndTime" description="The end of rental duration." />
+   <parameter name="planyoFirstName" description="The First name of the Planyo user." />
+   <parameter name="planyoLastName" description="The last name of the Planyo user." />
+   <parameter name="planyoQuantity" description="The number of units to be reserved." />
+   <parameter name="planyoEmail" description="The email address of the Planyo user." />
+   <parameter name="planyoMobilePrefix" description="The Planyo User's Mobile number's Country code (e.g. 1 for USA and Canada)." />
+   <parameter name="planyoMobileNumber" description="The Mobile Number of the Planyo user without the country code." />
+   <parameter name="planyoPhonePrefix" description="The Planyo user's Phone's Country code (e.g. 1 for USA and Canada)." />
+   <parameter name="planyoPhoneNumber" description="The Phone Number of the Planyo user without the country code." />
+
+   <!-- Nexmo parameters -->
+   <parameter name="nexmoAPIUrl" description="Nexmo API Url." />
+   <parameter name="nexmoAPIKey" description="Nexmo API Key for authentication." />
+   <parameter name="nexmoApiSecret" description="Nexmo API Secret for authentication." />
+   <parameter name="nexmoSender" description="Address of the sender." />
+   <parameter name="nexmoContactNumber" description="Mobile number of the reciepient in internationl format." />
+
+   <sequence>
+      <!-- Planyo properties -->
+      <property name="uri.var.planyoAPIUrl" value="http://api.planyo.com" />
+      <property name="uri.var.planyoAPIKey" expression="$func:planyoAPIKey" />
+      <property name="uri.var.planyoAddress" expression="$func:planyoAddress" />
+      <property name="uri.var.planyoCity" expression="$func:planyoCity" />
+      <property name="uri.var.planyoZip" expression="$func:planyoZip" />
+      <property name="uri.var.planyoState" expression="$func:planyoState" />
+      <property name="uri.var.planyoCountry" expression="$func:planyoCountry" />
+      <property name="uri.var.planyoResourceId" expression="$func:planyoResourceId" />
+      <property name="uri.var.planyoStartTime" expression="$func:planyoStartTime" />
+      <property name="uri.var.planyoEndTime" expression="$func:planyoEndTime" />
+      <property name="uri.var.planyoFirstName" expression="$func:planyoFirstName" />
+      <property name="uri.var.planyoLastName" expression="$func:planyoLastName" />
+      <property name="uri.var.planyoQuantity" expression="$func:planyoQuantity" />
+      <property name="uri.var.planyoEmail" expression="$func:planyoEmail" />
+      <property name="uri.var.planyoMobilePrefix" expression="$func:planyoMobilePrefix" />
+      <property name="uri.var.planyoMobileNumber" expression="$func:planyoMobileNumber" />
+      <property name="uri.var.planyoPhonePrefix" expression="$func:planyoPhonePrefix" />
+      <property name="uri.var.planyoPhoneNumber" expression="$func:planyoPhoneNumber" />
+      <property name="uri.var.planyoIsAdminMode" value="true" />
+
+      <!-- Nexmo Properties -->
+      <property name="uri.var.nexmoAPIUrl" value="https://rest.nexmo.com" />
+      <property name="uri.var.nexmoAPIKey" expression="$func:nexmoAPIKey" />
+      <property name="uri.var.nexmoApiSecret" expression="$func:nexmoApiSecret" />
+      <property name="uri.var.nexmoSender" expression="$func:nexmoSender" />
+      <property name="uri.var.nexmoContactNumber" expression="$func:nexmoContactNumber" />
+      <property name="uri.var.nexmoResponseType" value="json" />
+
+      <!-- Checks whether the resource is available, if not returns an error response, otherwise proceed to make reservation -->
+      <planyo.init>
+         <apiUrl>{$ctx:uri.var.planyoAPIUrl}</apiUrl>
+         <apiKey>{$ctx:uri.var.planyoAPIKey}</apiKey>
+      </planyo.init>
+      <planyo.checkResourceAvailability>
+         <startTime>{$ctx:uri.var.planyoStartTime}</startTime>
+         <resourceId>{$ctx:uri.var.planyoResourceId}</resourceId>
+         <quantity>{$ctx:uri.var.planyoQuantity}</quantity>
+         <endTime>{$ctx:uri.var.planyoEndTime}</endTime>
+      </planyo.checkResourceAvailability>
+
+      <!-- Checks whether the checkResourceAvailability method is executed successfully, if so checks resource availability 
+         for the given time period. If resource is available continue to make reservation , otherwise returns an error response. -->
+      <property name="uri.var.responseCode" expression="json-eval($.response_code)" />
+      <filter xpath="get-property('uri.var.responseCode') = 0">
+         <else>
+            <property name="uri.var.message" expression="json-eval($.response_message)" />
+            <property name="uri.var.id" expression="fn:concat('planyoResourceId:' ,get-property('uri.var.planyoResourceId'))" />
+            <property name="uri.var.status" value="Error" />
+            <property name="uri.var.activity" value="planyo_checkResourceAvailability" />
+            <property name="uri.var.message"
+               expression="fn:concat('Could not check the availability of the resource. ',get-property('uri.var.message'))" />
+
+            <!-- Generate response for error in check resource availability -->
+            <call-template target="responseHandlerTemplate">
+               <with-param name="id" value="{$ctx:uri.var.id}" />
+               <with-param name="status" value="{$ctx:uri.var.status}" />
+               <with-param name="activity" value="{$ctx:uri.var.activity}" />
+               <with-param name="message" value="{$ctx:uri.var.message}" />
+            </call-template>
+         </else>
+         <then>
+            <property name="uri.var.isAvailable" expression="json-eval($.data.is_available)" />
+            <property name="uri.var.message" expression="json-eval($.response_message)" />
+            <filter source="get-property('uri.var.isAvailable')" regex="true">
+               <else>
+                  <property name="uri.var.message" expression="json-eval($.response_message)" />
+                  <property name="uri.var.id" expression="fn:concat('planyoResourceId:' ,get-property('uri.var.planyoResourceId'))" />
+                  <property name="uri.var.status" value="Error" />
+                  <property name="uri.var.activity" value="planyo_checkResourceAvailability" />
+                  <property name="uri.var.message" value="Resource is not available for the given time period" />
+
+                  <!-- Generate response for error in check resource availability -->
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="id" value="{$ctx:uri.var.id}" />
+                     <with-param name="status" value="{$ctx:uri.var.status}" />
+                     <with-param name="activity" value="{$ctx:uri.var.activity}" />
+                     <with-param name="message" value="{$ctx:uri.var.message}" />
+                  </call-template>
+               </else>
+               <then>
+                  <!-- Create reservation -->
+                  <planyo.init>
+                     <apiUrl>{$ctx:uri.var.planyoAPIUrl}</apiUrl>
+                     <apiKey>{$ctx:uri.var.planyoAPIKey}</apiKey>
+                  </planyo.init>
+                  <planyo.createReservation>
+                     <resourceId>{$ctx:uri.var.planyoResourceId}</resourceId>
+                     <startTime>{$ctx:uri.var.planyoStartTime}</startTime>
+                     <endTime>{$ctx:uri.var.planyoEndTime}</endTime>
+                     <quantity>{$ctx:uri.var.planyoQuantity}</quantity>
+                     <email>{$ctx:uri.var.planyoEmail}</email>
+                     <firstName>{$ctx:uri.var.planyoFirstName}</firstName>
+                     <lastName>{$ctx:uri.var.planyoLastName}</lastName>
+                     <address>{$ctx:uri.var.planyoAddress}</address>
+                     <city>{$ctx:uri.var.planyoCity}</city>
+                     <zip>{$ctx:uri.var.planyoZip}</zip>
+                     <state>{$ctx:uri.var.planyoState}</state>
+                     <country>{$ctx:uri.var.planyoCountry}</country>
+                     <phonePrefix>{$ctx:uri.var.planyoPhonePrefix}</phonePrefix>
+                     <phoneNumber>{$ctx:uri.var.planyoPhoneNumber}</phoneNumber>
+                     <mobilePrefix>{$ctx:uri.var.planyoMobilePrefix}</mobilePrefix>
+                     <mobileNumber>{$ctx:uri.var.planyoMobileNumber}</mobileNumber>
+                     <isAdminMode>{$ctx:uri.var.planyoIsAdminMode}</isAdminMode>
+                  </planyo.createReservation>
+
+                  <!-- Checks whether the reservation has been made successfully, if not returns an error response, otherwise 
+                     proceed to send message -->
+                  <property name="uri.var.responseCode" expression="json-eval($.response_code)" />
+                  <filter xpath="get-property('uri.var.responseCode') != 0">
+                     <then>
+                        <property name="uri.var.id"
+                           expression="fn:concat('planyoResourceId:' ,get-property('uri.var.planyoResourceId'))" />
+                        <property name="uri.var.status" value="Error" />
+                        <property name="uri.var.activity" value="planyo_makeReservation" />
+                        <property name="uri.var.message" expression="json-eval($.response_message)" />
+                        <property name="uri.var.message"
+                           expression="fn:concat('Could not make the reservation for user ',get-property('uri.var.planyoEmail'),'. ',get-property('uri.var.message'))" />
+
+                        <!-- Generate response for error in make reservation -->
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="id" value="{$ctx:uri.var.id}" />
+                           <with-param name="activity" value="{$ctx:uri.var.activity}" />
+                           <with-param name="status" value="{$ctx:uri.var.status}" />
+                           <with-param name="message" value="{$ctx:uri.var.message}" />
+                        </call-template>
+                     </then>
+                     <else>
+                        <property name="uri.var.reservationId" expression="json-eval($.data.reservation_id)" />
+                        <property name="uri.var.id"
+                           expression="fn:concat('planyoResourceId:', get-property('uri.var.planyoResourceId'), ',planyoReservationId:', get-property('uri.var.reservationId'))" />
+                        <property name="uri.var.status" value="Success" />
+                        <property name="uri.var.activity" value="planyo_makeReservation" />
+                        <property name="uri.var.message"
+                           expression="fn:concat('Successfully made the reservation for user, Email:',get-property('uri.var.planyoEmail'))" />
+
+                        <!-- Generate response for make reservation -->
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="id" value="{$ctx:uri.var.id}" />
+                           <with-param name="activity" value="planyo_makeReservation" />
+                           <with-param name="status" value="Success" />
+                           <with-param name="message" value="{$ctx:uri.var.message}" />
+                        </call-template>
+
+                        <!-- Continue to send message only if the Nexmo API Key has been provided. Allowing user to choose 
+                           whether to send the message -->
+                        <filter source="boolean(get-property('uri.var.nexmoAPIKey'))" regex="true">
+                           <else>
+                              <property name="uri.var.userName"
+                                 expression="fn:concat(get-property('uri.var.planyoFirstName'),' ',get-property('uri.var.planyoLastName'))" />
+                              <property name="uri.var.id"
+                                 expression="fn:concat('planyoResourceId:', get-property('uri.var.planyoResourceId'), ',planyoReservationId:', get-property('uri.var.reservationId'))" />
+                              <property name="uri.var.status" value="Skipped" />
+                              <property name="uri.var.activity" value="nexmo_sendMessages" />
+                              <property name="uri.var.message"
+                                 expression="fn:concat('The Nexmo API Key is not provided. Hence the reservation details message not sent to the user ',get-property('uri.var.userName'))" />
+                           </else>
+                           <then>
+                              <!-- Getting the user-text related to the reservation to build the message text to be sent -->
+                              <planyo.init>
+                                 <apiUrl>{$ctx:uri.var.planyoAPIUrl}</apiUrl>
+                                 <apiKey>{$ctx:uri.var.planyoAPIKey}</apiKey>
+                              </planyo.init>
+                              <planyo.getReservationById>
+                                 <reservationId>{$ctx:uri.var.reservationId}</reservationId>
+                              </planyo.getReservationById>
+
+                              <!-- Checks whether the get reservation data has been succeeded, if so continue to send message -->
+                              <property name="
+                           uri.var.responseCode " expression="json-eval($.response_code)" />
+                              <filter xpath="get-property('uri.var.responseCode') = 0">
+                                 <else>
+                                    <property name="uri.var.id"
+                                       expression="fn:concat('planyoResourceId:', get-property('uri.var.planyoResourceId'), ',planyoReservationId:', get-property('uri.var.reservationId'))" />
+                                    <property name="uri.var.status" value="Success" />
+                                    <property name="uri.var.activity" value="planyo_makeReservation" />
+                                    <property name="uri.var.message"
+                                       expression="fn:concat('Could not retrieve the reservation details for newly created reservation. This reservation has been entered and now needs to be accepted by the administrator. Please note if you are a new user Your reservation will be valid only after your email address has been verified. Check your mailbox and follow the directions in the email that was just sent to you. Check your spam folder if you do not receive the email within a few minutes')" />
+                                 </else>
+                                 <then>
+                                    <property name="uri.var.userText" expression="json-eval($.data.user_text)" />
+                                    <property name="uri.var.nexmoMessageText"
+                                       expression="fn:concat('Hi',' ',get-property('uri.var.planyoFirstName'),', your Planyo reservation Id is',' ',get-property('uri.var.reservationId'),'.',get-property('uri.var.userText'),' Please note if you are a new user Your reservation will be valid only after your email address has been verified. Check your mailbox and follow the directions in the email that was just sent to you. Check your spam folder if you do not receive the email within a few minutes. Thanks.')" />
+                                    <property name="uri.var.messageType" value="application/json" scope="axis2" />
+
+                                    <!-- Sending message to the user -->
+                                    <nexmo.init>
+                                       <responseType>{$ctx:uri.var.nexmoResponseType}</responseType>
+                                       <apiUrl>{$ctx:uri.var.nexmoAPIUrl}</apiUrl>
+                                       <apiSecret>{$ctx:uri.var.nexmoApiSecret}</apiSecret>
+                                       <apiKey>{$ctx:uri.var.nexmoAPIKey}</apiKey>
+                                    </nexmo.init>
+                                    <nexmo.sendMessage>
+                                       <to>{$ctx:uri.var.nexmoContactNumber}</to>
+                                       <text>{$ctx:uri.var.nexmoMessageText}</text>
+                                       <from>{$ctx:uri.var.nexmoSender}</from>
+                                    </nexmo.sendMessage>
+
+                                    <!-- Checks whether the message has been successfully sent to the user, if not returns 
+                                       an error response, otherwise returns a success response -->
+                                    <property name="uri.var.messageStatus" expression="json-eval($.messages[0].status)" />
+                                    <filter xpath="get-property('uri.var.messageStatus') = 0">
+                                       <else>
+                                          <property name="uri.var.errorText" expression="json-eval($.messages[0].error-text)" />
+                                          <property name="uri.var.userName"
+                                             expression="fn:concat(get-property('uri.var.planyoFirstName'),' ',get-property('uri.var.planyoLastName'))" />
+                                          <property name="uri.var.id"
+                                             expression="fn:concat('planyoResourceId:', get-property('uri.var.planyoResourceId'), ',planyoReservationId:', get-property('uri.var.reservationId'))" />
+                                          <property name="uri.var.status" value="Error" />
+                                          <property name="uri.var.activity" value="nexmo_sendMessages" />
+                                          <property name="uri.var.message"
+                                             expression="fn:concat('Error in sending message to user ',get-property('uri.var.userName'),',',get-property('uri.var.errorText'))" />
+                                       </else>
+                                       <then>
+                                          <property name="uri.var.messageId" expression="json-eval($.messages.[0].message-id)" />
+                                          <property name="uri.var.id"
+                                             expression="fn:concat('planyoResourceId:', get-property('uri.var.planyoResourceId'), ',planyoReservationId:', get-property('uri.var.reservationId'), ',nexmoMessageId:', get-property('uri.var.messageId'))" />
+                                          <property name="uri.var.status" value="Success" />
+                                          <property name="uri.var.activity" value="nexmo_sendMessages" />
+                                          <property name="uri.var.message"
+                                             expression="fn:concat('Reservation details successfully sent to contact number',' ', get-property('uri.var.nexmoContactNumber'))" />
+                                       </then>
+                                    </filter>
+                                    <!-- END: Nexmo send message response check -->
+
+                                 </then>
+                              </filter>
+                              <!-- END: Planyo get reservation data response check -->
+
+                           </then>
+                        </filter>
+                        <!-- END: Nexmo API Key availability check -->
+
+                        <!-- Generate response for Nexmo message sending -->
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="id" value="{$ctx:uri.var.id}" />
+                           <with-param name="status" value="{$ctx:uri.var.status}" />
+                           <with-param name="activity" value="{$ctx:uri.var.activity}" />
+                           <with-param name="message" value="{$ctx:uri.var.message}" />
+                        </call-template>
+
+                     </else>
+                  </filter>
+                  <!-- END: Planyo create reservation response check -->
+               </then>
+
+            </filter>
+         </then>
+      </filter>
+      <!-- END: Planyo resource availability response check -->
+   </sequence>
+</template>

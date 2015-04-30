@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="planyo_createInvoices" transports="https,http" statistics="disable"
+   trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Planyo properties -->
+         <property name="planyoApiUrl" expression="json-eval($.planyoApiUrl)" />
+         <property name="planyoApiKey" expression="json-eval($.planyoApiKey)" />
+         <!-- FreshBooks properties -->
+         <property name="freshbooksApiUrl" expression="json-eval($.freshbooksApiUrl)" />
+         <property name="freshbooksApiKey" expression="json-eval($.freshbooksApiKey)" />
+         <!-- Common properties -->
+         <property name="index" value="0" scope="operation" />
+         <property name="invoiceDetails" expression="json-eval($.invoiceDetails)" />
+         <property name="noOfInvoices" expression="count(//invoiceDetails[string-length(node()) > 0])" scope="operation" />
+
+         <!-- START: Checks if invoiceDetails are provided by the user -->
+         <filter xpath="get-property('operation', 'noOfInvoices') = 0">
+            <then>
+               <!-- Generate the response when invoiceDetails are not provided -->
+               <property name="emptyID" value="{}"/>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:emptyID}" />
+                  <with-param name="activity" value="planyo_createInvoice" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="Please provide invoiceDetails to create Invoices" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- END: invoiceDEtails availability check -->
+
+         <!-- START: Iterates over non-empty invoiceDEtails to extract information and proceed with Invoice creation -->
+         <iterate id="reservationIterator" expression="//invoiceDetails[string-length(node()) > 0]"
+            continueParent="true" preservePayload="true" sequential="true">
+            <target>
+               <sequence>
+                  <property name="planyoReservationId" expression="//planyoReservationId/text()" />
+                  <call-template target="planyo-retrieveInvoiceItemsAndCreateInvoicesInFreshBooks">
+                     <!-- parameter values will be passed on to a sequence template -->
+                     (
+                     <with-param name="planyoApiUrl" value="{$ctx:planyoApiUrl}" />
+                     |
+                     <with-param name="planyoApiKey" value="{$ctx:planyoApiKey}" />
+                     |
+                     <with-param name="planyoReservationId" value="{$ctx:planyoReservationId}" />
+                     |
+                     <with-param name="freshbooksApiUrl" value="{$ctx:freshbooksApiUrl}" />
+                     |
+                     <with-param name="freshbooksApiKey" value="{$ctx:freshbooksApiKey}" />
+                     |
+                     ) *
+                  </call-template>
+                  <property name="index" expression="get-property('operation','index') + 1" scope="operation" />
+               </sequence>
+            </target>
+         </iterate>
+
+         <filter xpath="get-property('operation', 'index') = get-property('operation', 'noOfInvoices')">
+            <then>
+               <loopback />
+            </then>
+         </filter>
+
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+
+         <!-- Generate the chained response of all the API calls in createLeads -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"planyo_createInvoices",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>       
