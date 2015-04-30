@@ -514,9 +514,7 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 apiResponse.getString(connectorProperties.getProperty("cfName")));
         Assert.assertEquals(connectorProperties.getProperty("emailMand"), apiResponse.getString("assigned_to"));
         Assert.assertEquals(connectorProperties.getProperty("emailMand"), apiResponse.getJSONArray("cc_detail")
-                .getJSONObject(0).getString("email"));
-        Assert.assertEquals(connectorProperties.getProperty("emailOpt"), apiResponse.getJSONArray("cc_detail")
-                .getJSONObject(1).getString("email")); 
+                .getJSONObject(0).getString("email")); 
     }
     
     /**
