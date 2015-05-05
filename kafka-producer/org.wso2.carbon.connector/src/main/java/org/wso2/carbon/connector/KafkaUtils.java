@@ -40,106 +40,105 @@ public class KafkaUtils {
     /**
      * Read the value from the input parameter
      */
-	public static String lookupTemplateParameter(MessageContext messageContext,
-			String paramName) {
-		return (String) ConnectorUtils.lookupTemplateParamater(messageContext, paramName);
-	}
+    public static String lookupTemplateParameter(MessageContext messageContext,
+                                                 String paramName) {
+        return (String) ConnectorUtils.lookupTemplateParamater(messageContext, paramName);
+    }
 
     /**
      * The ProducerConfig class encapsulates the values required for establishing the connection with brokers such as the broker list, message
      * partition class, serializer class for the message, and partition key,etc.
      */
-	public static Producer<String, String> getProducer(MessageContext messageContext) {
+    public static Producer<String, String> getProducer(MessageContext messageContext) {
 
-		Axis2MessageContext axis2mc = (Axis2MessageContext) messageContext;
-		axis2mc.getAxis2MessageContext();
-		String brokers = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.brokerList");
-		String serializationClass = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.serializationClass");
-		String requiredAck = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.requiredAck");
-		String producerType = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.producerType");
-		String compressionCodec = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.compressionCodec");
-		String keySerializerClass = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.keySerializerClass");
-		String partitionClass = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.partitionClass");
-		String compressedTopics = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.compressedTopics");
-		String messageSendMaxRetries = (String) axis2mc
-				.getAxis2MessageContext().getOperationContext()
-				.getProperty("kafka.messageSendMaxRetries");
-		String retryBackOff = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.retryBackOff");
-		String refreshInterval = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.refreshInterval");
-		String bufferingMaxMessages = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext()
-				.getProperty("kafka.bufferingMaxMessages");
-		String batchNoMessages = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.batchNoMessages");
-		String sendBufferSize = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.sendBufferSize");
-		String requestTimeout = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.requestTimeout");
-		String bufferingMaxTime = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.bufferingMaxTime");
-		String enqueueTimeout = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.enqueueTimeout");
-		String clientId = (String) axis2mc.getAxis2MessageContext()
-				.getOperationContext().getProperty("kafka.clientId");
+        Axis2MessageContext axis2mc = (Axis2MessageContext) messageContext;
+        axis2mc.getAxis2MessageContext();
+        String brokers = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.brokerList");
+        String serializationClass = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.serializationClass");
+        String requiredAck = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.requiredAck");
+        String producerType = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.producerType");
+        String compressionCodec = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.compressionCodec");
+        String keySerializerClass = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.keySerializerClass");
+        String partitionClass = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.partitionClass");
+        String compressedTopics = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.compressedTopics");
+        String messageSendMaxRetries = (String) axis2mc
+                .getAxis2MessageContext().getOperationContext()
+                .getProperty("kafka.messageSendMaxRetries");
+        String retryBackOff = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.retryBackOff");
+        String refreshInterval = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.refreshInterval");
+        String bufferingMaxMessages = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext()
+                .getProperty("kafka.bufferingMaxMessages");
+        String batchNoMessages = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.batchNoMessages");
+        String sendBufferSize = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.sendBufferSize");
+        String requestTimeout = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.requestTimeout");
+        String bufferingMaxTime = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.bufferingMaxTime");
+        String enqueueTimeout = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.enqueueTimeout");
+        String clientId = (String) axis2mc.getAxis2MessageContext()
+                .getOperationContext().getProperty("kafka.clientId");
 
-		Properties prop = new Properties();
-        prop.put(KafkaConnectConstants.BROKER_LIST, brokers);
-		prop.put(KafkaConnectConstants.SERIALIZATION_CLASS, serializationClass);
-		prop.put(KafkaConnectConstants.REQUIRED_ACK, requiredAck);
-		prop.put(KafkaConnectConstants.PRODUCER_TYPE, producerType);
-		prop.put(KafkaConnectConstants.COMPRESSION_TYPE, compressionCodec);
-		prop.put(KafkaConnectConstants.KEY_SERIALIZER_CLASS, keySerializerClass);
-		prop.put(KafkaConnectConstants.PARTITION_CLASS, partitionClass);
-		prop.put(KafkaConnectConstants.COMPRESSED_TOPIC, compressedTopics);
-		prop.put(KafkaConnectConstants.MESSAGE_SEND_MAX_RETRIES,
-				messageSendMaxRetries);
-		prop.put(KafkaConnectConstants.TIME_REFRESH_METADATA, retryBackOff);
-		prop.put(KafkaConnectConstants.TIME_REFRESH_METADATA_AFTER_TOPIC,
-				refreshInterval);
-		prop.put(KafkaConnectConstants.BUFFER_MAX_MESSAGES,
-				bufferingMaxMessages);
-		prop.put(KafkaConnectConstants.NO_MESSAGE_BATCHED_PRODUCER,
-				batchNoMessages);
-		prop.put(KafkaConnectConstants.BUFFER_SIZE, sendBufferSize);
-		prop.put(KafkaConnectConstants.REQUEST_TIMEOUT, requestTimeout);
-		prop.put(KafkaConnectConstants.BUFFER_MAX_TIME, bufferingMaxTime);
-		prop.put(KafkaConnectConstants.ENQUEUE_TIMEOUT, enqueueTimeout);
-		prop.put(KafkaConnectConstants.CLIENT_ID, clientId);
+        Properties producerConfigProperties = new Properties();
+        producerConfigProperties.put(KafkaConnectConstants.BROKER_LIST, brokers);
+        producerConfigProperties.put(KafkaConnectConstants.SERIALIZATION_CLASS, serializationClass);
+        producerConfigProperties.put(KafkaConnectConstants.REQUIRED_ACK, requiredAck);
+        producerConfigProperties.put(KafkaConnectConstants.PRODUCER_TYPE, producerType);
+        producerConfigProperties.put(KafkaConnectConstants.COMPRESSION_TYPE, compressionCodec);
+        producerConfigProperties.put(KafkaConnectConstants.KEY_SERIALIZER_CLASS, keySerializerClass);
+        producerConfigProperties.put(KafkaConnectConstants.PARTITION_CLASS, partitionClass);
+        producerConfigProperties.put(KafkaConnectConstants.COMPRESSED_TOPIC, compressedTopics);
+        producerConfigProperties.put(KafkaConnectConstants.MESSAGE_SEND_MAX_RETRIES,
+                messageSendMaxRetries);
+        producerConfigProperties.put(KafkaConnectConstants.TIME_REFRESH_METADATA, retryBackOff);
+        producerConfigProperties.put(KafkaConnectConstants.TIME_REFRESH_METADATA_AFTER_TOPIC,
+                refreshInterval);
+        producerConfigProperties.put(KafkaConnectConstants.BUFFER_MAX_MESSAGES,
+                bufferingMaxMessages);
+        producerConfigProperties.put(KafkaConnectConstants.NO_MESSAGE_BATCHED_PRODUCER,
+                batchNoMessages);
+        producerConfigProperties.put(KafkaConnectConstants.BUFFER_SIZE, sendBufferSize);
+        producerConfigProperties.put(KafkaConnectConstants.REQUEST_TIMEOUT, requestTimeout);
+        producerConfigProperties.put(KafkaConnectConstants.BUFFER_MAX_TIME, bufferingMaxTime);
+        producerConfigProperties.put(KafkaConnectConstants.ENQUEUE_TIMEOUT, enqueueTimeout);
+        producerConfigProperties.put(KafkaConnectConstants.CLIENT_ID, clientId);
 
-		return new Producer<String, String>(new ProducerConfig(prop));
-	}
+        return new Producer<String, String>(new ProducerConfig(producerConfigProperties));
+    }
 
-   /**
-    * Format the messages when the messages are sent to the kafka broker
-    */
-	public static String formatMessage(
-		org.apache.axis2.context.MessageContext messageContext) throws AxisFault {
-		OMOutputFormat format = BaseUtils.getOMOutputFormat(messageContext);
-		MessageFormatter messageFormatter;
-		messageFormatter = MessageProcessorSelector.getMessageFormatter(messageContext);
-		OutputStream out;
-		StringWriter stringWriter;
+    /**
+     * Format the messages when the messages are sent to the kafka broker
+     */
+    public static String formatMessage(
+            org.apache.axis2.context.MessageContext messageContext) throws AxisFault {
+        OMOutputFormat format = BaseUtils.getOMOutputFormat(messageContext);
+        MessageFormatter messageFormatter;
+        messageFormatter = MessageProcessorSelector.getMessageFormatter(messageContext);
+        OutputStream out;
+        StringWriter stringWriter;
         stringWriter = new StringWriter();
-		out = new WriterOutputStream(stringWriter, format.getCharSetEncoding());
-		try {
-			if (out != null) {
-				messageFormatter.writeTo(messageContext, format, out, true);
-				out.close();
-			}
-		}
-		catch (IOException e) {
-		}
+        out = new WriterOutputStream(stringWriter, format.getCharSetEncoding());
+        try {
+            if (out != null) {
+                messageFormatter.writeTo(messageContext, format, out, true);
+                out.close();
+            }
+        } catch (IOException e) {
+        }
 
-		return stringWriter.toString();
-	}
+        return stringWriter.toString();
+    }
 }

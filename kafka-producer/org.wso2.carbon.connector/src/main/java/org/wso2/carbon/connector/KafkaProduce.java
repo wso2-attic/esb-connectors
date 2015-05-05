@@ -32,73 +32,70 @@ import org.wso2.carbon.connector.core.*;
  * Produce the messages to the kafka brokers
  */
 public class KafkaProduce extends AbstractConnector {
-	public void connect(MessageContext messageContext) throws ConnectException {
+    public void connect(MessageContext messageContext) throws ConnectException {
 
-		SynapseLog log = getLog(messageContext);
-		log.auditLog("SEND : send message to  Broker lists");
+        SynapseLog log = getLog(messageContext);
+        log.auditLog("SEND : send message to  Broker lists");
         //Get the producer with the configuration
-		Producer<String, String> producer = KafkaUtils
-				.getProducer(messageContext);
-		String topic = this.getTopic(messageContext);
-		String key = this.getKey(messageContext);
-		try {
+        Producer<String, String> producer = KafkaUtils
+                .getProducer(messageContext);
+        String topic = this.getTopic(messageContext);
+        String key = this.getKey(messageContext);
+        try {
             String message = this.getMessage(messageContext);
             send(producer, topic, key, message);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Kafka producer connector : Error sending the message to broker lists ");
-			throw new ConnectException(e);
-		}
-        finally {
+            throw new ConnectException(e);
+        } finally {
             //Close the producer pool connections to all kafka brokers.Also closes the zookeeper client connection if any
             producer.close();
         }
     }
 
     /**
-     * Read the topic from the parameter,if the topic is null, topic is set to test
+     * Read the topic from the parameter
      */
-	private String getTopic(MessageContext messageContext) {
-		String topic = KafkaUtils.lookupTemplateParameter(messageContext,
-				KafkaConnectConstants.PARAM_TOPIC);
-        if(topic==null)
-        {
+    private String getTopic(MessageContext messageContext) {
+        String topic = KafkaUtils.lookupTemplateParameter(messageContext,
+                KafkaConnectConstants.PARAM_TOPIC);
+        if (topic == null) {
             log.error("Kafka producer connector : The request does not contain the required 'topic' field");
             throw new SynapseException("The request does not contain the required 'topic' field");
         }
-		return topic;
-	}
+        return topic;
+    }
 
     /**
      * Read the key from the parameter
      */
     private String getKey(MessageContext messageContext) {
-		String key = KafkaUtils.lookupTemplateParameter(messageContext,
-				KafkaConnectConstants.PARAM_KEY);
-		return key;
-	}
+        String key = KafkaUtils.lookupTemplateParameter(messageContext,
+                KafkaConnectConstants.PARAM_KEY);
+        return key;
+    }
 
     /**
      * Get the messages from the message context and format the messages
      */
     private String getMessage(MessageContext messageContext) throws AxisFault {
-		Axis2MessageContext axisMsgContext = (Axis2MessageContext) messageContext;
-		org.apache.axis2.context.MessageContext msgContext = axisMsgContext
-				.getAxis2MessageContext();
-		String messages = KafkaUtils
-				.formatMessage((org.apache.axis2.context.MessageContext) msgContext);
-		return messages;
-	}
+        Axis2MessageContext axisMsgContext = (Axis2MessageContext) messageContext;
+        org.apache.axis2.context.MessageContext msgContext = axisMsgContext
+                .getAxis2MessageContext();
+        String messages = KafkaUtils
+                .formatMessage((org.apache.axis2.context.MessageContext) msgContext);
+        return messages;
+    }
 
     /**
      * Send the messages to the kafka broker with topic and the key that is optional
      */
     private void send(Producer<String, String> producer, String topic,
-			String key, String message) {
-		if (key == null) {
-			producer.send(new KeyedMessage<String, String>(topic, message));
-		} else {
-			producer.send(new KeyedMessage<String, String>(topic, key, message));
-		}
-	}
+                      String key, String message) {
+        if (key == null) {
+            producer.send(new KeyedMessage<String, String>(topic, message));
+        } else {
+            producer.send(new KeyedMessage<String, String>(topic, key, message));
+        }
+    }
 }
