@@ -1,5 +1,4 @@
 /*
- *
  *  Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
@@ -15,7 +14,6 @@
  *  KIND, either express or implied.  See the License for the
  *  specific language governing permissions and limitations
  *  under the License.
- * /
  */
 package org.wso2.carbon.connector.rm;
 
@@ -36,97 +34,160 @@ import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.ws.Dispatch;
 import javax.xml.ws.Service;
-import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
+import javax.xml.ws.soap.SOAPBinding;
 
-
+/**
+ * Reliable message connector
+ */
 public class ReliableMessage extends AbstractConnector {
 
     private static Log log = LogFactory.getLog(ReliableMessage.class);
     private Bus springBus = null;
 
+    /**
+     * Connect method which is establish connection between ESB with the Reliable backend
+     *
+     * @param messageContext ESB messageContext.
+     * @throws ConnectException
+     */
     public void connect(MessageContext messageContext) throws ConnectException {
 
-        log.info("Start: Reliable message connector");
+        log.debug("Start: Reliable message connector");
 
-        //Input parameters initialize
+        // Input parameters population
         RMParameters inputParams = populateInputParameters(messageContext);
-        //Validate and set default values to the parameters
+        // Validate and set default values to the parameters
         ReliableMessageUtil.validateInputs(inputParams);
-        //SpringBuss initialize
+        // SpringBuss initialize
         initiateSpringBuss(inputParams);
-        //Invoke backend reliable message service
+        // Invoke backend reliable message service
         Source response = invokeBackendRMService(messageContext, inputParams);
-        //Set response back to the message context
+        // Set response back to the message context
         setResponse(messageContext, response);
-        //SpringBuss shutdown
-        shutdownSpringBuss(inputParams.isDynamicParam());
 
     }
 
+    /**
+     * populateInputParameters method used to populate connector inputs.
+     *
+     * @param messageContext ESB messageContext.
+     * @return RMParameters input parameters.
+     */
     private RMParameters populateInputParameters(MessageContext messageContext) {
 
         RMParameters inputParams = new RMParameters();
 
-        if (messageContext.getProperty(RMConstants.WSDL_URL) != null) {
-            inputParams.setWsdlUrl(messageContext.getProperty(RMConstants.WSDL_URL).toString());
+        if (messageContext.getProperty(RMConstants.ENDPOINT) != null) {
+            inputParams.setEndpoint(messageContext.getProperty(RMConstants.ENDPOINT).toString());
         }
         if (messageContext.getProperty(RMConstants.SERVICE_NAME) != null) {
             inputParams.setServiceName(messageContext.getProperty(RMConstants.SERVICE_NAME).toString());
+        }
+
+        if (messageContext.getProperty(RMConstants.NAMESPACE) != null) {
+            inputParams.setNamespace(messageContext.getProperty(RMConstants.NAMESPACE).toString());
         }
 
         if (messageContext.getProperty(RMConstants.PORT_NAME) != null) {
             inputParams.setPortName(messageContext.getProperty(RMConstants.PORT_NAME).toString());
         }
 
-        if (messageContext.getProperty(RMConstants.ACK_INTERVAL) != null) {
-            inputParams.setAckInterval(messageContext.getProperty(RMConstants.ACK_INTERVAL).toString());
+        if (messageContext.getProperty(RMConstants.SOAP_VERSION) != null) {
+            inputParams.setSoapVersion(messageContext.getProperty(RMConstants.SOAP_VERSION).toString());
         }
 
-        if (messageContext.getProperty(RMConstants.RE_TRANS_INTERVAL) != null) {
-            inputParams.setRetransmissionInterval(messageContext.getProperty(RMConstants.RE_TRANS_INTERVAL).toString());
-        }
-
-        if (messageContext.getProperty(RMConstants.INTRA_MESSAGE_THRESHOLD) != null) {
-            inputParams.setIntraMessageThreshold(messageContext.getProperty(RMConstants.INTRA_MESSAGE_THRESHOLD).toString());
-        }
-
-        if (messageContext.getProperty(RMConstants.DYNAMIC_PARAM) != null) {
-
-            if ("true".equals(messageContext.getProperty(RMConstants.DYNAMIC_PARAM).toString())) {
-                inputParams.setDynamicParam(true);
-            }
+        if (messageContext.getProperty(RMConstants.CONF_LOCATION) != null) {
+            inputParams.setConfigLocation(messageContext.getProperty(RMConstants.CONF_LOCATION).toString());
         }
 
         return inputParams;
 
     }
 
-    private void initiateSpringBuss(RMParameters inputParams) throws ConnectException{
+    /**
+     * This method used to initializing springBuss instance
+     *
+     * @param inputParams connector input parameters.
+     * @throws ConnectException
+     */
+    private void initiateSpringBuss(RMParameters inputParams) throws ConnectException {
 
-        if(springBus == null || inputParams.isDynamicParam()) {
-            //update configuration file with the given configurations
-            File configurationFile = ReliableMessageUtil.getUpdatedFile(inputParams);
+        if (springBus == null) {
 
-            SpringBusFactory bf = new SpringBusFactory();
-            springBus = bf.createBus(configurationFile.toString());
-            log.debug("SpringBus initialized");
-            BusFactory.setDefaultBus(springBus);
-            //Delete temporary configuration file
-            configurationFile.delete();
+            synchronized (this) {
+
+                if (springBus == null) {
+                    SpringBusFactory bf = new SpringBusFactory();
+                    springBus = bf.createBus(inputParams.getConfigLocation());
+                    log.debug("SpringBus initialized");
+                    BusFactory.setDefaultBus(springBus);
+                }
+            }
         }
 
     }
 
-    private void shutdownSpringBuss(boolean dynamicParamFlag) {
-        if(dynamicParamFlag) {
-            springBus.shutdown(true);
-            log.debug("Shutdown SpringBus");
+
+    /**
+     * This method used to create dispatcher
+     *
+     * @param inputParams input parameters.
+     * @return Dispatch source dispatcher
+     * @throws ConnectException
+     */
+    private Dispatch<Source> createDispatch(RMParameters inputParams) throws ConnectException {
+
+        String portName = inputParams.getPortName();
+        String serviceName = inputParams.getServiceName();
+        String nameSpace = inputParams.getNamespace();
+
+        QName serviceQName = new QName(nameSpace, serviceName);
+        QName portQName = new QName(nameSpace, portName);
+        Service service = Service.create(serviceQName);
+
+        if (service == null) {
+            String message = "Service instance cannot initialize";
+            log.error(message);
+            throw new ConnectException(message);
         }
+
+        if (RMConstants.SOAP_V_11.equals(inputParams.getSoapVersion())) {
+            service.addPort(portQName, SOAPBinding.SOAP11HTTP_BINDING, inputParams.getEndpoint());
+        } else {
+            service.addPort(portQName, SOAPBinding.SOAP12HTTP_BINDING, inputParams.getEndpoint());
+        }
+
+        return service.createDispatch(portQName, Source.class, Service.Mode.MESSAGE);
     }
 
-    private void setResponse(MessageContext messageContext, Source response) throws ConnectException {
+
+    /**
+     * This method used to invoke backend reliable message service.
+     *
+     * @param messageContext ESB messageContext.
+     * @param inputParams    input parameters.
+     * @return Source backend service response.
+     * @throws ConnectException
+     */
+    private Source invokeBackendRMService(MessageContext messageContext, RMParameters inputParams)
+            throws ConnectException {
+        log.debug("Backend service invoking");
+        Dispatch<Source> sourceDispatch = createDispatch(inputParams);
+        Source source = new StreamSource(ReliableMessageUtil.getSOAPEnvelopAsStreamSource(messageContext.getEnvelope()));
+        return sourceDispatch.invoke(source);
+
+    }
+
+
+    /**
+     * This method used to set response to the messageContext
+     *
+     * @param messageContext ESB messageContext.
+     * @param response       backend reliable service response
+     * @throws ConnectException
+     */
+    private void setResponse(MessageContext messageContext, Source response)
+            throws ConnectException {
 
         if (response != null) {
 
@@ -143,31 +204,5 @@ public class ReliableMessage extends AbstractConnector {
         }
 
     }
-
-    private Source invokeBackendRMService(MessageContext messageContext, RMParameters inputParams) throws ConnectException {
-        log.info("Backend service invoking");
-        Dispatch<Source> sourceDispatch = createDispatch(inputParams.getWsdlUrl(), inputParams.getServiceName(), inputParams.getPortName());
-        Source source = new StreamSource(ReliableMessageUtil.getSOAPEnvelopAsStreamSource(messageContext.getEnvelope()));
-        return sourceDispatch.invoke(source);
-
-    }
-
-    private Dispatch<Source> createDispatch(String wsdlUrl, String serviceName, String portName) throws ConnectException {
-
-        URL wsdl;
-        try {
-            wsdl = new URL(wsdlUrl);
-        } catch (MalformedURLException e) {
-            String message = "Malformed WSDL URL has occurred";
-            log.error(message);
-            throw new ConnectException(e, message);
-        }
-        String nameSpace = ReliableMessageUtil.getNamespaceForGivenPort(wsdl, portName);
-        QName serviceQName = new QName(nameSpace, serviceName);
-        QName portQName = new QName(nameSpace, portName);
-        Service service = Service.create(wsdl, serviceQName);
-        return service.createDispatch(portQName, Source.class, Service.Mode.MESSAGE);
-    }
-
 
 }

@@ -1,5 +1,4 @@
 /*
- *
  *  Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
@@ -15,27 +14,28 @@
  *  KIND, either express or implied.  See the License for the
  *  specific language governing permissions and limitations
  *  under the License.
- * /
  */
 package org.wso2.carbon.connector.rm;
 
+/**
+ * DAO for the input parameters
+ */
 public class RMParameters {
 
-    private String wsdlUrl;
+    private String endpoint;
     private String serviceName;
     private String portName;
-    private String ackInterval;
-    private String retransmissionInterval;
-    private String intraMessageThreshold;
-    //Default value = false
-    private boolean dynamicParam = false;
+    private String namespace;
+    private String soapVersion;
+    private String configLocation;
 
-    public String getWsdlUrl() {
-        return wsdlUrl;
+
+    public String getEndpoint() {
+        return endpoint;
     }
 
-    public void setWsdlUrl(String wsdlUrl) {
-        this.wsdlUrl = wsdlUrl;
+    public void setEndpoint(String endpoint) {
+        this.endpoint = endpoint;
     }
 
     public String getServiceName() {
@@ -54,35 +54,27 @@ public class RMParameters {
         this.portName = portName;
     }
 
-    public String getAckInterval() {
-        return ackInterval;
+    public String getNamespace() {
+        return namespace;
     }
 
-    public void setAckInterval(String ackInterval) {
-        this.ackInterval = ackInterval;
+    public String getSoapVersion() {
+        return soapVersion;
     }
 
-    public String getRetransmissionInterval() {
-        return retransmissionInterval;
+    public void setSoapVersion(String soapVersion) {
+        this.soapVersion = soapVersion;
     }
 
-    public void setRetransmissionInterval(String retransmissionInterval) {
-        this.retransmissionInterval = retransmissionInterval;
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
     }
 
-    public String getIntraMessageThreshold() {
-        return intraMessageThreshold;
+    public String getConfigLocation() {
+        return configLocation;
     }
 
-    public void setIntraMessageThreshold(String intraMessageThreshold) {
-        this.intraMessageThreshold = intraMessageThreshold;
-    }
-
-    public boolean isDynamicParam() {
-        return dynamicParam;
-    }
-
-    public void setDynamicParam(boolean dynamicParam) {
-        this.dynamicParam = dynamicParam;
+    public void setConfigLocation(String configLocation) {
+        this.configLocation = configLocation;
     }
 }

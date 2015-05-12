@@ -25,6 +25,8 @@ Steps to follow in setting integration test.
 	Follow these steps before start testing.
     a)  Navigate to “{RM_CONNECTOR_HOME}/src/test/resources/rmserver” and run the following command to run backend RM server.
         java -jar rm_server.jar
+    b)  Navigate to “{RM_CONNECTOR_HOME}/src/test/resources/artifacts/ESB/config/synapse" and change the synapseRMConnectorConfig.xml configLocation property
+        according to the current running environment. Required configuration file(client.xml) locate inside the "test/resource" folder.
 
  5. Navigate to "{RM_CONNECTOR_HOME}" and run the following command.
     $ mvn clean install

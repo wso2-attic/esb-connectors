@@ -1,5 +1,4 @@
 /*
- *
  *  Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
@@ -15,7 +14,6 @@
  *  KIND, either express or implied.  See the License for the
  *  specific language governing permissions and limitations
  *  under the License.
- * /
  */
 package org.wso2.carbon.connector.integration.test;
 
@@ -82,7 +80,7 @@ public class RMConnectorIntegrationTest extends ESBIntegrationTest {
         Thread.sleep(30000);
 
         adminServiceStub.updateStatus("{org.wso2.carbon.connector}" + CONNECTOR_NAME, CONNECTOR_NAME,
-                "org.wso2.carbon.connector", "enabled");
+                                      "org.wso2.carbon.connector", "enabled");
 
         reliableMessagingConnectorProperties = ConnectorIntegrationUtil.getConnectorConfigProperties(CONNECTOR_NAME);
         pathToRequestsDirectory = repoLocation + reliableMessagingConnectorProperties.getProperty("requestDirectoryPath");

@@ -1,5 +1,4 @@
 /*
- *
  *  Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
@@ -15,47 +14,42 @@
  *  KIND, either express or implied.  See the License for the
  *  specific language governing permissions and limitations
  *  under the License.
- * /
  */
 package org.wso2.carbon.connector.rm.utils;
 
 
-import com.sun.org.apache.xpath.internal.jaxp.XPathFactoryImpl;
 import org.apache.axiom.soap.SOAPEnvelope;
 import org.apache.axiom.soap.impl.builder.StAXSOAPModelBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.cxf.helpers.IOUtils;
 import org.apache.cxf.staxutils.StaxUtils;
 import org.compass.core.util.reader.StringReader;
 import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.wso2.carbon.connector.core.ConnectException;
 import org.wso2.carbon.connector.rm.RMParameters;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpression;
-import javax.xml.xpath.XPathFactory;
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.Charset;
 
+/**
+ * Reliable message utility methods
+ */
 public class ReliableMessageUtil {
 
     private static Log log = LogFactory.getLog(ReliableMessageUtil.class);
 
+    /**
+     * Convert string xml content to axiom SoapEnvelop
+     *
+     * @param xmlContent String soapEnvelop content
+     * @return SOAPEnvelope backend reliable service response
+     */
     public static org.apache.axiom.soap.SOAPEnvelope toOMSOAPEnvelope(String xmlContent) {
         XMLStreamReader reader = StaxUtils.createXMLStreamReader(new ByteArrayInputStream(xmlContent.getBytes()));
         // Get a SOAP OM Builder.  Passing null causes the version to be automatically triggered
@@ -64,70 +58,15 @@ public class ReliableMessageUtil {
         return builder.getSOAPEnvelope();
     }
 
-    public static String getNamespaceForGivenPort(URL wsdl, String portName) throws ConnectException {
-
-        HttpURLConnection connection = null;
-        Document document = null;
-
-        try {
-
-            connection = (HttpURLConnection) wsdl.openConnection();
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            dbf.setNamespaceAware(true);
-            DocumentBuilder db = dbf.newDocumentBuilder();
-            document = db.parse(new InputSource(connection.getInputStream()));
-
-        } catch (IOException e) {
-            String message = "Problem occurred while retrieving given WSDL from the location";
-            log.error(message);
-            throw new ConnectException(e, message);
-        } catch (SAXException e) {
-            String message = "Problem occurred while parsing WSDL"; //TODO need to add multi-catching exceptions(only in java7 >)
-            log.error(message);
-            throw new ConnectException(e, message);
-        } catch (ParserConfigurationException e) {
-            String message = "Problem occurred while parsing WSDL";
-            log.error(message);
-            throw new ConnectException(e, message);
-        } finally {
-            if(connection != null) {
-                connection.disconnect();
-            }
-        }
-
-        NodeList portTagList = document.getElementsByTagName(RMConstants.PORT_TAG_NAME);
-
-        if (portTagList == null || portTagList.getLength() == 0) {
-            String message = "Port is not define in the WSDL";
-            log.error(message);
-            throw new ConnectException(message);
-        }
-
-        Node selectedNode = null;
-
-        for (int i = 0; i < portTagList.getLength(); i++) {
-            Node node = portTagList.item(i).getAttributes().getNamedItem(RMConstants.PORT_NAME_ATTRIBUTE_NAME);
-
-            if (node != null) {
-                if (node.getNodeValue().equals(portName)) {
-                    selectedNode = portTagList.item(i).getAttributes().getNamedItem(RMConstants.BINDING_ATTRIBUTE_NAME);
-                }
-            }
-
-        }
-
-        if (selectedNode == null) {
-            String message = "No matching port found in the given WSDL";
-            log.error(message);
-            throw new ConnectException(message);
-        }
-
-        String[] splitTag = selectedNode.getNodeValue().split(":");
-        return document.getFirstChild().lookupNamespaceURI(splitTag[0]);
-    }
-
-
-    public static InputStream getSOAPEnvelopAsStreamSource(SOAPEnvelope soapEnvelope) throws ConnectException {
+    /**
+     * Convert SOAPEnvelope to inputStream
+     *
+     * @param soapEnvelope soapEnvelop.
+     * @throws ConnectException
+     * @retuen InputStream converted inputStream.
+     */
+    public static InputStream getSOAPEnvelopAsStreamSource(SOAPEnvelope soapEnvelope)
+            throws ConnectException {
 
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder;
@@ -138,7 +77,10 @@ public class ReliableMessageUtil {
             docBuilder = documentBuilderFactory.newDocumentBuilder();
             stringWriter = new StringWriter();
 
-            String soapEnvelop = soapEnvelope.getBody().toString();
+            String soapEnvelop = "";
+            if(soapEnvelope != null && soapEnvelope.getBody() != null) {
+                soapEnvelop = soapEnvelope.getBody().toString();
+            }
             Document doc = docBuilder.parse(new InputSource(new StringReader(soapEnvelop)));
 
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -151,8 +93,7 @@ public class ReliableMessageUtil {
 
         } catch (Exception e) {
             String message = "Failed to parse SOAPEnvelop request in to StreamSource";
-            log.error(message + ":" + e.getMessage());
-            throw new ConnectException(e, message);
+            throwException(message, e);
         } finally {
 
             try {
@@ -160,19 +101,35 @@ public class ReliableMessageUtil {
                     stringWriter.close();
                 }
             } catch (IOException e) {
-                log.warn("Failed to close String writer:" + e.getMessage()); //TODO need to chk handle
+                log.warn("Failed to close String writer:" + e.getMessage());
             }
         }
         return new ByteArrayInputStream(stringWriter.toString().getBytes());
     }
 
-
+    /**
+     * Validate input parameters.
+     *
+     * @param inputParams input parameters.
+     * @throws ConnectException
+     */
     public static void validateInputs(RMParameters inputParams) throws ConnectException {
+        validateMandatoryInputs(inputParams);
+        validateSoapVersion(inputParams);
+    }
+
+    /**
+     * Validate mandatory input parameters.
+     *
+     * @param inputParams input parameters.
+     * @throws ConnectException
+     */
+    private static void validateMandatoryInputs(RMParameters inputParams) throws ConnectException {
 
         StringBuffer fields = new StringBuffer();
         boolean valid = true;
 
-        if (inputParams.getWsdlUrl() == null || inputParams.getWsdlUrl().isEmpty()) {
+        if (inputParams.getEndpoint() == null || inputParams.getEndpoint().isEmpty()) {
             fields.append("wsdlURL ");
             valid = false;
         }
@@ -187,67 +144,51 @@ public class ReliableMessageUtil {
             valid = false;
         }
 
+        if (inputParams.getNamespace() == null || inputParams.getNamespace().isEmpty()) {
+            fields.append("namespace ");
+            valid = false;
+        }
+
+        if (inputParams.getConfigLocation() == null || inputParams.getConfigLocation().isEmpty()) {
+            fields.append("configLocation ");
+            valid = false;
+        }
+
         if (!valid) {
-            String message = fields + " cannot null";
-            log.error(message);
-            throw new ConnectException(message);
+            String message = fields + " cannot be null";
+            throwException(message);
         }
 
     }
 
-    public static File getUpdatedFile(RMParameters inputParams) throws ConnectException {
+    /**
+     * Validate soap version.
+     *
+     * @param inputParams input parameters.
+     * @throws ConnectException
+     */
+    private static void validateSoapVersion(RMParameters inputParams) throws ConnectException {
 
-        String baseRetransmissionIntervalQuery = "//beans/*[name()='cxf:bus']/*[name()='cxf:features']/*[name()='wsrm-mgr:reliableMessaging']/*[name()='wsrm-policy:RMAssertion']/*[name()='wsrm-policy:BaseRetransmissionInterval']";
-        String acknowledgementIntervalQuery = "//beans/*[name()='cxf:bus']/*[name()='cxf:features']/*[name()='wsrm-mgr:reliableMessaging']/*[name()='wsrm-policy:RMAssertion']/*[name()='wsrm-policy:AcknowledgementInterval']";
-        String intraMessageThresholdQuery = "//beans/*[name()='cxf:bus']/*[name()='cxf:features']/*[name()='wsrm-mgr:reliableMessaging']/*[name()='wsrm-mgr:destinationPolicy']/*[name()='wsrm-mgr:acksPolicy']";
-        File tempFile = null;
-
-        try {
-            String configurationFilePath = ReliableMessageUtil.class.getResource("/config/client.xml").getFile();
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            Document document = dbf.newDocumentBuilder().parse(new File(configurationFilePath));
-
-            XPathFactory xpf = new XPathFactoryImpl();
-            XPath xpath = xpf.newXPath();
-
-            if (inputParams.getAckInterval() != null && !inputParams.getAckInterval().isEmpty()) {
-                XPathExpression baseRetransmissionIntervalExpression = xpath.compile(baseRetransmissionIntervalQuery);
-                Node baseRetransmissionIntervalNode = (Node) baseRetransmissionIntervalExpression.evaluate(document, XPathConstants.NODE);
-                baseRetransmissionIntervalNode.getAttributes().getNamedItem(RMConstants.RE_TRANS_INTERVAL_PROP_NAME).setNodeValue(inputParams.getAckInterval());
-            }
-
-            if (inputParams.getRetransmissionInterval() != null && !inputParams.getRetransmissionInterval().isEmpty()) {
-                XPathExpression acknowledgementIntervalExpression = xpath.compile(acknowledgementIntervalQuery);
-                Node acknowledgementIntervalNode = (Node) acknowledgementIntervalExpression.evaluate(document, XPathConstants.NODE);
-                acknowledgementIntervalNode.getAttributes().getNamedItem(RMConstants.ACK_INTERVAL_PROP_NAME).setNodeValue(inputParams.getRetransmissionInterval());
-            }
-
-            if (inputParams.getIntraMessageThreshold() != null && !inputParams.getIntraMessageThreshold().isEmpty()) {
-                XPathExpression intraMessageThresholdExpression = xpath.compile(intraMessageThresholdQuery);
-                Node intraMessageThresholdNode = (Node) intraMessageThresholdExpression.evaluate(document, XPathConstants.NODE);
-                intraMessageThresholdNode.getAttributes().getNamedItem(RMConstants.INTRA_MESSAGE_THRESHOLD_PROP_NAME).setNodeValue(inputParams.getIntraMessageThreshold());
-            }
-
-
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            Source xmlSource = new DOMSource(document);
-            Result outputTarget = new StreamResult(outputStream);
-            TransformerFactory.newInstance().newTransformer().transform(xmlSource, outputTarget);
-            InputStream is = new ByteArrayInputStream(outputStream.toByteArray());
-            tempFile = File.createTempFile(RMConstants.TMP_FILE_PREFIX, RMConstants.TMP_FILE_SUFFIX);
-            FileOutputStream out = new FileOutputStream(tempFile);
-            IOUtils.copy(is, out);
-
-        } catch (Exception e) {
-            if(tempFile != null) {
-                tempFile.delete();
-            }
-            String message = "Exception occurred while setup the given configurations";
-            log.error(message);
-            throw new ConnectException(e, message);
+        if (inputParams.getSoapVersion() == null || inputParams.getSoapVersion().isEmpty()) {
+            inputParams.setSoapVersion(RMConstants.SOAP_V_11); //set default soap version(1.1)
         }
 
-        return tempFile;
+        if (!RMConstants.SOAP_V_11.equals(inputParams.getSoapVersion()) && !RMConstants.SOAP_V_12.equals(inputParams.getSoapVersion())) {
+            String message = "Invalid soap version defined";
+            throwException(message);
+        }
+
     }
+
+    private static void throwException(String message, Exception e) throws ConnectException {
+        log.error(message);
+        throw new ConnectException(e, message);
+    }
+
+    private static void throwException(String message) throws ConnectException {
+        log.error(message);
+        throw new ConnectException(message);
+    }
+
 
 }
