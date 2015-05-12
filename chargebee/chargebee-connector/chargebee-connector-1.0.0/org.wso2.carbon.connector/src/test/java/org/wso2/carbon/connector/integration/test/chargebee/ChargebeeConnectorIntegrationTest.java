@@ -1207,10 +1207,9 @@ public class ChargebeeConnectorIntegrationTest extends ConnectorIntegrationTestB
    public void testListEventsWithOptionalParameters() throws IOException, JSONException {
    
       esbRequestHeadersMap.put("Action", "urn:listEvents");
-      String eventOccurredAfter = String.valueOf((System.currentTimeMillis() - 100000) / 1000);
-      String eventOccurredBefore = String.valueOf((System.currentTimeMillis() + 100000) / 1000);
-      connectorProperties.setProperty("eventOccurredAfter", eventOccurredAfter);
-      connectorProperties.setProperty("eventOccurredBefore", eventOccurredBefore);
+      
+      String eventOccurredAfter = connectorProperties.getProperty("eventOccurredAfter");
+      String eventOccurredBefore = connectorProperties.getProperty("eventOccurredBefore");
       
       final RestResponse<JSONObject> esbRestResponse =
             sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listEvents_optional.json");
