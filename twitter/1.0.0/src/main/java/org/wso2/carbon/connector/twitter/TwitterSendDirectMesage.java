@@ -41,7 +41,7 @@ public class TwitterSendDirectMesage extends AbstractConnector {
 	    String screenName = TwitterUtils.lookupTemplateParamater(messageContext, SCREEN_NAME);
 	    String message = TwitterUtils.lookupTemplateParamater(messageContext, MESSAGE);
 	    Twitter twitter = new TwitterClientLoader(messageContext).loadApiClient();
-	    if (userID != null && userID.isEmpty()) {
+	    if (userID != null && !userID.isEmpty()) {
 		twitter.sendDirectMessage(Long.parseLong(userID), message);
 	    }
 
