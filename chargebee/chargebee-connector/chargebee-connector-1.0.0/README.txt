@@ -45,6 +45,9 @@ Steps to follow in setting integration test.
    xvi)   lastNameUpdated        - Use a valid string value as customer's last name.
    xvii)  notesUpdated           - Use a valid string value as note's content.
    xviii) emailUpdated           - Use any email address which is correctly formatted.
+   xix)   eventOccurredAfter     - Use a valid past UTC timestamp in seconds.
+   xx)    eventOccurredBefore    - Use a valid future UTC timestamp in seconds.
+        Note - There should be at least a difference of 10 minutes between eventOccurredAfter value and eventOccurredBefore value.   
 
  5. Navigate to "<CHARGEBEE_CONNECTOR_HOME>/chargebee-connector/chargebee-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
