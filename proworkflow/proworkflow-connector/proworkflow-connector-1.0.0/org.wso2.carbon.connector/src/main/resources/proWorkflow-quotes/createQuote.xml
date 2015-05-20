@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Document URL https://api.proworkflow.net/?calls -->
+<template name="createQuote" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="contactId" description="The client contact ID." />
+   <parameter name="fixedCostItems"
+      description="A single fixed cost item object or an array of fixed cost item objects. Mandotory fields:name,cost. " />
+   <parameter name="lineItems" description="A single line item object or an array of line item objects. Mandotory fields:name,cost." />
+   <parameter name="staffRates"
+      description="A single staff rate object or an array of staff rate objects. Mandotory fields:contactid (ID of Staff Contact), rate (cost per hour) and time (in minutes)." />
+   <parameter name="taskRates"
+      description="A single task rate object or an array of task rate objects. Mandotory fields:name, rate (cost per hour) and time (in minutes)." />
+   <parameter name="title" description="The title of the quote." />
+   <parameter name="apiFields" description="The API Field Value/s. Mandotory fields:id and value." />
+   <parameter name="isClientView"
+      description="The ClientView, true - Client can view Quote, false - Client cannot view Quote. Default:false." />
+   <parameter name="description" description="The description of the quote." />
+   <parameter name="discountDescription" description="The discount description. Default:Discount." />
+   <parameter name="discountValue" description="The discount value. Can be given as number or number% ." />
+   <parameter name="number" description="The number. Possible values:number - Number,auto - Use Autonumbering. Default:auto." />
+   <parameter name="projectId" description="The projectId,to which quote should be attached to." />
+   <parameter name="quotedDate"
+      description="The quoted date. Specific date - Date in yyyy-mm-dd format, Relative date - +/-Xd/w/m/y. Default:current date." />
+   <parameter name="taxable" description="The taxable status, true - Taxable, false - Non-Taxable. Default:true." />
+   <parameter name="taxRate" description="The taxRate(overrides default rate)." />
+   <parameter name="type" description="The quote type. Possible values:estimate,quote. Default:quote." />
+   <parameter name="validToDate"
+      description="The valid to date. Specific date - Date in yyyy-mm-dd format, Relative date - +/-Xd/w/m/y (if not specified then this will be calculated automatically from Quoted Date and default payment settings)." />
+   <sequence>
+      <property name="uri.var.contactId" expression="$func:contactId" />
+      <property name="uri.var.fixedCostItems" expression="$func:fixedCostItems" />
+      <property name="uri.var.title" expression="$func:title" />
+      <property name="uri.var.lineItems" expression="$func:lineItems" />
+      <property name="uri.var.staffRates" expression="$func:staffRates" />
+      <property name="uri.var.taskRates" expression="$func:taskRates" />
+      <property name="uri.var.apiFields" expression="$func:apiFields" />
+      <property name="uri.var.isClientView" expression="$func:isClientView" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.discountDescription" expression="$func:discountDescription" />
+      <property name="uri.var.discountValue" expression="$func:discountValue" />
+      <property name="uri.var.number" expression="$func:number" />
+      <property name="uri.var.projectId" expression="$func:projectId" />
+      <property name="uri.var.quotedDate" expression="$func:quotedDate" />
+      <property name="uri.var.taxable" expression="$func:taxable" />
+      <property expression="$func:taxRate" name="uri.var.taxRate" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.validToDate" expression="$func:validToDate" />
+      <!-- Generate the request payload with mandatory parameters -->
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "contactid":"$1",
+            "fixedcostitems":$2,
+            "title":"$3"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.contactId')" />
+            <arg expression="get-property('uri.var.fixedCostItems')" />
+            <arg expression="get-property('uri.var.title')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[ 
+            // Generate payload with optional parameters
+            var lineItems = mc.getProperty('uri.var.lineItems');
+            var staffRates = mc.getProperty('uri.var.staffRates');
+            var taskRates = mc.getProperty('uri.var.taskRates');
+            var apiFields = mc.getProperty('uri.var.apiFields');
+            var isClientView = mc.getProperty('uri.var.isClientView');
+            var description = mc.getProperty('uri.var.description');
+            var discountDescription = mc.getProperty('uri.var.discountDescription');
+            var discountValue = mc.getProperty('uri.var.discountValue');
+            var number = mc.getProperty('uri.var.number');
+            var projectId = mc.getProperty('uri.var.projectId');
+            var quotedDate = mc.getProperty('uri.var.quotedDate');
+            var taxable = mc.getProperty('uri.var.taxable');
+            var taxRate = mc.getProperty('uri.var.taxRate');
+            var type = mc.getProperty('uri.var.type');
+            var validToDate = mc.getProperty('uri.var.validToDate');            
+            // Retrieve payload to set custom properties
+            payload = mc.getPayloadJSON();
+            if (lineItems != null && lineItems != "") {
+               payload.lineitems = eval('(' + lineItems + ')');
+            }
+            if (staffRates != null && staffRates != "") {
+               payload.staffrates = eval('(' + staffRates + ')');
+            }
+            if (taskRates != null && taskRates != "") {
+               payload.taskrates = eval('(' + taskRates + ')');
+            }          
+            if (apiFields != null && apiFields != "") {
+               payload.apifields = eval('(' + apiFields + ')');
+            }          
+            if (isClientView != null && isClientView != "") {
+               payload.clientview = isClientView;
+            }
+            if (description != null && description != "") {
+               payload.description = description;
+            }           
+            if (discountDescription != null && discountDescription != "") {
+               payload.discountdescription = discountDescription;
+            }           
+            if (discountValue != null && discountValue != "") {
+               payload.discountvalue = discountValue;
+            }           
+            if (number != null && number != "") {
+               payload.number = number;
+            }           
+            if (projectId != null && projectId != "") {
+               payload.projectid = projectId;
+            }            
+            if (quotedDate != null && quotedDate != "") {
+               payload.quoteddate = quotedDate;
+            }        
+            if (taxable != null && taxable != "") {
+               payload.taxable = taxable;
+            }         
+            if (taxRate != null && taxRate != "") {
+               payload.taxrate = taxRate;
+            }           
+            if (type != null && type != "") {
+               payload.type = type;
+            }
+            if (validToDate != null && validToDate != "") {
+               payload.validtodate = validToDate;
+            }
+            mc.setPayloadJSON(payload);                         
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/quotes" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+      <header name="X-RateLimit-Limit" scope="transport" action="remove" />
+      <header name="X-RateLimit-Remaining" scope="transport" action="remove" />
+      <header name="X-RateLimit-Reset" scope="transport" action="remove" />
+      <header name="Access-Control-Max-Age" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Credentials" scope="transport" action="remove" />
+      <header name="Allow" scope="transport" action="remove" />
+      <header name="X-Powered-By" scope="transport" action="remove" />
+      <header name="X-TimeTaken-Resource" scope="transport" action="remove" />
+      <header name="X-TimeTaken-Total" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+   </sequence>
+</template>
