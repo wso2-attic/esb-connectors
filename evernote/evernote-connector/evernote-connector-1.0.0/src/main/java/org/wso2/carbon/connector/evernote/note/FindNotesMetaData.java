@@ -194,7 +194,7 @@ public class FindNotesMetaData extends AbstractConnector {
                 for (NoteMetadata next : notes) {
 
                     OMElement omNote = EvernoteUtil.createOMElement("note");
-                    next = notesMetadata.getNotesIterator().next();
+//                    next = notesMetadata.getNotesIterator().next();
                     EvernoteUtil.addAttribute(omNote, "guid", next.getGuid());
                     if (includeTitle) {
                         EvernoteUtil.addElement(omNote, "title", next.getTitle());
