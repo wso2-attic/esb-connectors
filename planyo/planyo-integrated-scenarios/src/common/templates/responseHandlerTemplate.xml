@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--The template builds JSON response and appends it to a operation-scoped responseString.-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="responseHandlerTemplate">
+    <parameter name="id" description="Id provided in the following format: id1:value1,id2:value2 ." />
+    <parameter name="status" description="Brief string that describes the status." />
+    <parameter name="message" description="Descriptive message that explains the operation." />
+	<parameter name="activity" description="The name of Activity." />
+	
+    <sequence>
+        <property name="id" expression="$func:id" />
+        <property name="status" expression="$func:status" />
+        <property name="message" expression="$func:message" />
+		<property name="activity" expression="$func:activity" />
+		
+        <script language="js">
+			<![CDATA[	
+				var status = mc.getProperty("status");
+				var message = mc.getProperty("message");
+				var activity = mc.getProperty("activity");
+				var messageString = "";
+				var id = '' + mc.getProperty("id");
+				var responseStringVal ="{\n";
+				var idString = '""';
+			  
+				// Check whether the ID is an JSON object or not to append to the id String
+			 
+				if(id.charCodeAt(0) != '123' && id.charCodeAt(0) != '91'){					
+					if(id != null && id != ""){
+						idString = "{\n";
+						if(id.indexOf(',') != -1){
+						
+							var idMap = id.split(',');
+							for (var i = 0; i < idMap.length ; i++) {						
+								var idMapElement = '' + idMap[i];
+								if(idMapElement.indexOf(':') != -1){
+									var keyValuePair = idMap[i].split(':');						
+									idString += '"' + keyValuePair[0] + '" :"' + keyValuePair[1] + '",';						
+								} else {
+									idString += '"' + idMapElement + '" :"",';
+								}						
+							}
+							idString = idString.substring(0, idString.length - 1);
+							idString +=  "}";
+						} else if (id.indexOf(':') != -1){						
+							var keyValuePair = id.split(':');						
+							idString += '"' + keyValuePair[0] + '" :"' + keyValuePair[1] + '"';								
+							idString +=  "}";
+						
+						} else{
+							idString = '"'+id+'"';
+						}					
+					}
+				} else {
+					idString = id;
+				}
+				
+				
+				// Check weather the message is an JSON object or not to append to the message String
+				if(message.charCodeAt(0) != '123' && message.charCodeAt(0) != '91'){
+					message = '"' + message +'"';
+				}
+						
+				// Add activity name to JSON response only if provided.	
+				if(activity != null && activity !=''){
+					responseStringVal += '"activity":"' + activity + '",\n';
+				}
+					
+				responseStringVal += '"id":' + idString + ',\n';
+				responseStringVal += '"status":"' + status + '",\n';
+				responseStringVal += '"message":' + message + '\n';
+				responseStringVal += "}";				
+					
+				mc.setProperty('uri.var.responseString', '\n' + responseStringVal);
+			]]>
+		</script>
+		
+		<filter source="boolean(get-property('operation','responseString'))" regex="true">
+			<then>
+				<property name="responseString" expression="fn:concat(get-property('operation','responseString'), ',', get-property('uri.var.responseString'))" scope="operation" />
+			</then>
+			<else>
+				<property name="responseString" expression="get-property('uri.var.responseString')" scope="operation" />
+			</else>
+		</filter>
+		
+    </sequence>
+</template>

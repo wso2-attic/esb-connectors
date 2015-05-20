@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="planyo_retrieveVouchersAndMarketing" transports="https http" startOnLoad="true" trace="disable">
+   <target>
+      <inSequence>
+         <!-- Planyo Properties -->
+         <property name="planyo.apiUrl" value="http://api.planyo.com" />
+         <property name="planyo.apiKey" expression="json-eval($.planyoApiKey)" />
+         <property name="planyo.version" value="1" />
+         <property name="planyo.language" value="EN" />
+         <property name="planyo.rentalStartTime" expression="json-eval($.planyoRentalStartTime)" />
+         <property name="planyo.rentalEndTime" expression="json-eval($.planyoRentalEndTime)" />
+
+         <!-- ConstantContact Properties -->
+         <property name="constantContact.apiUrl" value="https://api.constantcontact.com" />
+         <property name="constantContact.apiToken" expression="json-eval($.constantContactApiToken)" />
+         <property name="constantContact.apiKey" expression="json-eval($.constantContactApiKey)" />
+         <property name="constantContact.fromEmail" expression="json-eval($.fromEmail)" />
+         <property name="constantContact.sendToContactList" expression="json-eval($.constantContactSentToContactLists)" />
+         <property name="constantContact.replyToEmail" expression="json-eval($.constantContactReplyToEmail)" />
+         <property name="constantContact.fromName" expression="json-eval($.fromName)" />
+         <property name="constantContact.campaignName" expression="json-eval($.constantContactCampaignName)" />
+
+         <!-- Mandrill Properties -->
+         <property name="mandrill.apiUrl" value="https://mandrillapp.com" />
+         <property name="mandrill.apiKey" expression="json-eval($.mandrillApiKey)" />
+         <property name="mandrill.to" value="" scope="operation" />
+
+         <property name="userIndex" expression="0" scope="operation" />
+
+         <!-- All vouchers details retreive that user required by calling listVouchers method in planyo connector -->
+         <planyo.init>
+            <apiUrl>{$ctx:planyo.apiUrl}</apiUrl>
+            <apiKey>{$ctx:planyo.apiKey}</apiKey>
+            <version>{$ctx:planyo.version}</version>
+            <language>{$ctx:planyo.language}</language>
+         </planyo.init>
+         <planyo.listVouchers>
+            <rentalStartTime>{$ctx:planyo.rentalStartTime}</rentalStartTime>
+            <rentalEndTime>{$ctx:planyo.rentalEndTime}</rentalEndTime>
+            <resourceId>{$ctx:resourceId}</resourceId>
+            <siteId>{$ctx:siteId}</siteId>
+            <voucherCodePrefix>{$ctx:voucherCodePrefix}</voucherCodePrefix>
+            <isCheckReservationTime>{$ctx:isCheckReservationTime}</isCheckReservationTime>
+         </planyo.listVouchers>
+
+         <property name="responseCode" expression="json-eval($.response_code)" />
+
+         <!-- BEGIN: If planyo vouchers successfully retrieved -->
+         <filter xpath="get-property('responseCode') != 0">
+            <then>
+               <property name="id" value="{}" />
+               <property name="message" expression="json-eval($.)" />
+
+               <!-- Response generator if vouchers not successfully retrieved -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="planyo_retrieveVouchers" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <property name="results" expression="json-eval($.)" />
+
+               <!-- Script mediator to construct the email campaign body using retreived voucher details -->
+               <script language="js">
+                  <![CDATA[
+                     
+                     var voucherResults = eval("(" + mc.getProperty('results') + ")");
+
+                     var templateBody = "<html><head><style>table, th, td {border: 1px solid black;border-collapse: collapse;}th, td {padding: 5px;text-align: left;}</style></head><body><h4>Dear user,</h4><p>Planyo has introduced exciting vouchers. Please find more details as follows.</p>";
+
+                     var voucherCount = 0;
+                     
+                     //Construct email campaign template body with the voucher details
+                     for (var key in voucherResults.data.results) {
+                          templateBody += "<table style='width:100%'><tr><th colspan='2'>Voucher Code: " + voucherResults.data.results[key].code + "</th></tr>";
+                          templateBody += "<tr><td>Available Quantity</td><td>" + (voucherResults.data.results[key].quantity - voucherResults.data.results[key].quantity_used) + "</td></tr>";
+                          templateBody += "<tr><td>Discount</td><td>" + voucherResults.data.results[key].discount_value + "</td></tr>";
+                          templateBody += "<tr><td>Rental Period</td><td>" + voucherResults.data.results[key].rental_start_date + " to " + voucherResults.data.results[key].rental_end_date + "</td></tr>";
+                          templateBody += "<tr><td>Reservation Period</td><td>" + voucherResults.data.results[key].reservation_start_date + " to " + voucherResults.data.results[key].reservation_end_date + "</td></tr></table><br/>";
+                          voucherCount += 1;
+                     }
+
+                     templateBody += "<a href='https://www.planyo.com/vouchers.php'>For more details please click here</a><p>Best Regards,</p><p>" + mc.getProperty('constantContact.fromName') + "</p></body></html>";
+                     
+                     mc.setProperty("voucherCount", voucherCount);
+                     mc.setProperty("constantContact.templateBody", templateBody);
+                     
+                  ]]>
+               </script>
+
+               <!-- Process campaign creation only if the voucher details are available -->
+               <filter xpath="get-property('voucherCount') = 0">
+                  <then>
+                     <property name="id" value="{}" />
+                     <!-- Response generator if no voucher details retreived -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="planyo_retrieveVouchers" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Error" />
+                        <with-param name="message" value="Voucher list is empty - No vouchers to be processed" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <!-- Script mediator to construct future time to be schedule the campaign to be send its contact list -->
+                     <script language="js">
+                        <![CDATA[
+
+                              var systemDate = new Date();
+                              var minutes = systemDate.getMinutes();
+                              var hours = systemDate.getHours();
+                              var currentDate = "" + systemDate.getDate();
+                              
+                              var sheduledMins = minutes + 5;
+
+                              if(sheduledMins < 10) {
+                                 sheduledMins = "0" + sheduledMins;
+                              }
+                                                      
+                              if(currentDate.length == 1) {
+                                 currentDate = "0" + currentDate;
+                              }
+                              var dateString = systemDate.getFullYear() + "-" + Number(systemDate.getMonth() + 1) + "-" + currentDate;
+                              
+                              var sheduledDate = dateString + "T" + hours + ":" + sheduledMins + ":00.000Z";
+                              
+                              mc.setProperty("constantContact.sheduledDate", sheduledDate);
+
+                        ]]>
+                     </script>
+
+                     <!-- BEGIN: Process creation and send of campaign only if the access token is given otherwise give error message -->
+                     <filter source="(boolean(get-property('constantContact.apiToken')) and boolean(get-property('constantContact.apiKey')))" regex="false">
+                        <then>
+                           <property name="id" value="{}" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="constantcontact_createAndSendCampaign" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="Skipped" />
+                              <with-param name="message" value="Please provide the constant contact API Token and API Key" />
+                           </call-template>
+                        </then>
+                        <else>
+                           <!-- Calling planyo-sendCampaignAndNotify template to create and send campaign in constant contact -->
+                           <call-template target="planyo-sendCampaignAndNotify">
+                              <!-- Parameter values will be passed on to a sequence template -->
+                              (
+                              <with-param name="constantContact.apiUrl" value="{$ctx:constantContact.apiUrl}" />
+                              |
+                              <with-param name="constantContact.apiToken" value="{$ctx:constantContact.apiToken}" />
+                              |
+                              <with-param name="constantContact.apiKey" value="{$ctx:constantContact.apiKey}" />
+                              |
+                              <with-param name="constantContact.fromEmail" value="{$ctx:constantContact.fromEmail}" />
+                              |
+                              <with-param name="constantContact.sendToContactList" value="{$ctx:constantContact.sendToContactList}" />
+                              |
+                              <with-param name="constantContact.replyToEmail" value="{$ctx:constantContact.replyToEmail}" />
+                              |
+                              <with-param name="constantContact.fromName" value="{$ctx:constantContact.fromName}" />
+                              |
+                              <with-param name="constantContact.templateBody" value="{$ctx:constantContact.templateBody}" />
+                              |
+                              <with-param name="constantContact.sheduledDate" value="{$ctx:constantContact.sheduledDate}" />
+                              |
+                              <with-param name="constantContact.campaignName" value="{$ctx:constantContact.campaignName}" />
+                              |
+                              ) *
+                           </call-template>
+                        </else>
+                     </filter> <!-- END: Process creation and send of campaign only if the access token is given -->
+
+                     <!-- BEGIN: Process send email notification for Planyo users if api key of Mandrill is given otherwise give skipped message -->
+                     <filter source="boolean(get-property('mandrill.apiKey'))" regex="false">
+                        <then>
+                           <property name="id" value="{}" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="mandrill_sendMessage" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="Skipped" />
+                              <with-param name="message" value="Please provide the mandrill API Key" />
+                           </call-template>
+                           <loopback />
+                        </then>
+                        <else>
+                           <!-- Retrieve existing list of users from the Planyo by calling listUsers method -->
+                           <planyo.init>
+                              <apiUrl>{$ctx:planyo.apiUrl}</apiUrl>
+                              <apiKey>{$ctx:planyo.apiKey}</apiKey>
+                              <version>{$ctx:planyo.version}</version>
+                              <language>{$ctx:planyo.language}</language>
+                           </planyo.init>
+                           <planyo.listUsers>
+                              <page>0</page>
+                              <pageSize>1000</pageSize>
+                              <siteId>{$ctx:siteId}</siteId>
+                              <detailLevel>{$ctx:detailLevel}</detailLevel>
+                              <userFilterName>{$ctx:userFilterName}</userFilterName>
+                              <userFilterValue>{$ctx:userFilterValue}</userFilterValue>
+                              <userFilterValueInc>{$ctx:userFilterValueInc}</userFilterValueInc>
+                              <firstName>{$ctx:firstName}</firstName>
+                              <lastName>{$ctx:lastName}</lastName>
+                              <email>{$ctx:email}</email>
+                              <country>{$ctx:country}</country>
+                              <address>{$ctx:address}</address>
+                              <city>{$ctx:city}</city>
+                              <zip>{$ctx:zip}</zip>
+                              <phoneNumber>{$ctx:phoneNumber}</phoneNumber>
+                              <phoneCountryCode>{$ctx:phoneCountryCode}</phoneCountryCode>
+                              <mobileNumber>{$ctx:mobileNumber}</mobileNumber>
+                              <mobileCountryCode>{$ctx:mobileCountryCode}</mobileCountryCode>
+                              <isListUnconfirmed>true</isListUnconfirmed>
+                           </planyo.listUsers>
+
+                           <property name="userCount" expression="count(//users)" scope="operation" />
+
+                           <!-- BEGIN: Loops through users and get each user's email to send notification email using Mandrill -->
+                           <iterate continueParent="false" id="userIterator" preservePayload="true" expression="//users" sequential="true">
+                              <target>
+                                 <sequence>
+                                    <!-- Retrieve each user information to send emails -->
+                                    <property name="planyo.email" expression="//users/email/text()" />
+                                    <property name="planyo.firstName" expression="//users/first_name/text()" />
+
+                                    <!-- Construct Mandrill recipient information as comma seperated JSON Objects -->
+                                    <property name="mandrill.to" expression="fn:concat(get-property('operation','mandrill.to'),'{ &quot;email&quot;: &quot;',get-property('planyo.email'),'&quot;, &quot;name&quot;: &quot;',get-property('planyo.firstName'),'&quot;, &quot;type&quot;: &quot;bcc&quot; },')" scope="operation"/>
+
+                                    <property name="userIndex" expression="get-property('operation','userIndex') + 1" scope="operation" />
+
+                                    <!-- BEGIN: Resriction filter to complete the iteration of user details -->
+                                    <filter xpath="get-property('operation','userIndex') = get-property('operation', 'userCount')">
+                                       <then>
+                                          <!-- Construct Mandrill array of recipient information by removing last comma -->
+                                          <property name="mandrill.to" expression="fn:concat('[',fn:substring(get-property('operation','mandrill.to'),1,fn:string-length(get-property('operation','mandrill.to'))-1),']')" />
+
+                                          <property name="constantContact.apiToken" value="" />
+
+                                          <!-- Calling planyo-sendCampaignAndNotify template to send voucher details to existing users in Planyo as an email notification via the Mandrill -->
+                                          <call-template target="planyo-sendCampaignAndNotify">
+                                             <!-- Parameter values will be passed on to a sequence template -->
+                                             (
+                                             <with-param name="mandrill.apiUrl" value="{$ctx:mandrill.apiUrl}" />
+                                             |
+                                             <with-param name="mandrill.apiKey" value="{$ctx:mandrill.apiKey}" />
+                                             |
+                                             <with-param name="mandrill.to" value="{$ctx:mandrill.to}" />
+                                             |
+                                             ) *
+                                          </call-template>
+
+                                          <property name="id" value="{}" />
+
+                                          <!-- Call the responseHandler template -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="mandrill_sendMessage" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+
+                                          <loopback />
+                                       </then>
+                                    </filter> <!-- END: Restriction filter -->
+                                 </sequence>
+                              </target>
+                           </iterate> <!-- END: Looping of users -->
+                        </else>
+                     </filter> <!-- END: Process send email notification for Planyo users -->
+                  </else>
+               </filter> <!-- END: Campaign creation process -->
+            </else>
+         </filter> <!-- END: If planyo vouchers successfully retrieved -->
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"planyo_retrieveVouchersAndMarketing",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

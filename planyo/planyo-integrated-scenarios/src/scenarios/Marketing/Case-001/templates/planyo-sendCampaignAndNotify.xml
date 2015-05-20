@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template is responsible to create a campaign in ConstantContact and send the campaign to contact list. Independently this will send voucher details to existing users in Planyo as an email notification via the Mandrill API -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="planyo-sendCampaignAndNotify">
+
+   <!-- Constant Contact parameters -->
+   <parameter name="constantContact.apiUrl" description="The constantContact API URL." />
+   <parameter name="constantContact.apiToken" description="Encrypted alphanumeric string to authenticate the Constant Contact credentials." />
+   <parameter name="constantContact.apiKey" description="The constantContact API Key." />
+   <parameter name="constantContact.fromEmail" description="The name of the campaign." />
+   <parameter name="constantContact.sendToContactList" description="The contactList id to send the campaign." />
+   <parameter name="constantContact.replyToEmail" description="The email address to send replies." />
+   <parameter name="constantContact.fromName" description="The campaign sender's name." />
+   <parameter name="constantContact.templateBody" description="Part of the email content of the campaign." />
+   <parameter name="constantContact.sheduledDate" description="The sheduled date to send the campaign." />
+   <parameter name="constantContact.campaignName" description="Unique name to create a campaign." />
+
+   <!-- Mandrill Parameters -->
+   <parameter name="mandrill.apiUrl" description="Base endpoint URL of Mandrill API." />
+   <parameter name="mandrill.apiKey" description="API Key to access data of Mandrill account." />
+   <parameter name="mandrill.to" description="An array of recipient information." />
+
+   <sequence>
+      <property name="constantContact.apiUrl" expression="$func:constantContact.apiUrl" />
+      <property name="constantContact.apiToken" expression="$func:constantContact.apiToken" />
+      <property name="constantContact.apiKey" expression="$func:constantContact.apiKey" />
+      <property name="constantContact.fromEmail" expression="$func:constantContact.fromEmail" />
+      <property name="constantContact.sendToContactList" expression="$func:constantContact.sendToContactList" />
+      <property name="constantContact.replyToEmail" expression="$func:constantContact.replyToEmail" />
+      <property name="constantContact.fromName" expression="$func:constantContact.fromName" />
+      <property name="constantContact.templateBody" expression="$func:constantContact.templateBody" />
+      <property name="constantContact.sheduledDate" expression="$func:constantContact.sheduledDate" />
+      <property name="constantContact.campaignName" expression="$func:constantContact.campaignName" />
+      <property name="mandrill.apiUrl" expression="$func:mandrill.apiUrl" />
+      <property name="mandrill.apiKey" expression="$func:mandrill.apiKey" />
+      <property name="mandrill.to" expression="$func:mandrill.to" />
+
+      <property name="constantContact.subject" value="Exciting Planyo Vouchers" />
+      <property name="constantContact.textContent" value="This email is not supported HTML preview." />
+
+      <!-- BEGIN: Process creation of campaign only if the access token is given -->
+      <filter source="boolean(get-property('constantContact.apiToken'))" regex="true">
+         <then>
+            <constantcontact.init>
+               <apiUrl>{$ctx:constantContact.apiUrl}</apiUrl>
+               <apiToken>{$ctx:constantContact.apiToken}</apiToken>
+               <apiKey>{$ctx:constantContact.apiKey}</apiKey>
+            </constantcontact.init>
+            <constantcontact.createCampaign>
+               <subject>{$ctx:constantContact.subject}</subject>
+               <emailContentFormat>HTML</emailContentFormat>
+               <emailContent>{$ctx:constantContact.templateBody}</emailContent>
+               <name>{$ctx:constantContact.campaignName}</name>
+               <fromEmail>{$ctx:constantContact.fromEmail}</fromEmail>
+               <greetingString>Welcome</greetingString>
+               <replyToEmail>{$ctx:constantContact.replyToEmail}</replyToEmail>
+               <sentToContactLists>{$ctx:constantContact.sendToContactList}</sentToContactLists>
+               <fromName>{$ctx:constantContact.fromName}</fromName>
+               <textContent>{$ctx:constantContact.textContent}</textContent>
+            </constantcontact.createCampaign>
+
+            <property name="uri.var.campaignId" expression="json-eval($.id)" />
+
+            <!-- If campaign creation failed construct error message, if success gives successful message -->
+            <filter xpath="get-property('uri.var.campaignId') = 'null'">
+               <then>
+                  <property name="campaignId" value="{}" />
+                  <property name="status" value="Error" />
+                  <property name="message" expression="json-eval($.)" />
+               </then>
+               <else>
+                  <property name="campaignId" expression="fn:concat('{campaignId:',get-property('uri.var.campaignId'),'}')" />
+                  <property name="status" value="Success" />
+                  <property name="message" value="Constant Contact email campaign has been successfully created" />
+               </else>
+            </filter>
+
+            <!-- Calling the response handler template to give custom error message when campaign creation successful -->
+            <call-template target="responseHandlerTemplate">
+               <with-param name="id" value="{$ctx:campaignId}" />
+               <with-param name="activity" value="constantcontact_createCampaign" />
+               <with-param name="status" value="{$ctx:status}" />
+               <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+
+            <!-- BEGIN: Shedule the campaign, only if campaign is created -->
+            <filter xpath="get-property('uri.var.campaignId') != 'null'">
+               <then>
+                  <constantcontact.init>
+                     <apiToken>{$ctx:constantContact.apiToken}</apiToken>
+                     <apiUrl>{$ctx:constantContact.apiUrl}</apiUrl>
+                     <apiKey>{$ctx:constantContact.apiKey}</apiKey>
+                  </constantcontact.init>
+                  <constantcontact.createSchedule>
+                     <campaignId>{$ctx:uri.var.campaignId}</campaignId>
+                     <scheduledDate>{$ctx:constantContact.sheduledDate}</scheduledDate>
+                  </constantcontact.createSchedule>
+
+                  <property name="uri.var.campaignSendId" expression="json-eval($.id)" />
+
+                  <!-- If created campaign is schedule to be sent gives successful message, otherwise gives error message -->
+                  <filter xpath="get-property('uri.var.campaignSendId') = 'null'">
+                     <then>
+                        <property name="campaignSendId" value="{}" />
+                        <property name="status" value="Error" />
+                        <property name="message" expression="json-eval($.)" />
+                     </then>
+                     <else>
+                        <property name="campaignSendId" expression="fn:concat('{campaignSendId:',get-property('uri.var.campaignSendId'),'}')" />
+                        <property name="status" value="Success" />
+                        <property name="message"
+                           expression="fn:concat('Campaign has been sheduled for - [',get-property('constantContact.sheduledDate'),']')" />
+                     </else>
+                  </filter>
+
+                  <!-- Calling the response handler template to give custom error message when campaign scheduling is successful -->
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="id" value="{$ctx:campaignSendId}" />
+                     <with-param name="activity" value="constantcontact_sheduledCampaign" />
+                     <with-param name="status" value="{$ctx:status}" />
+                     <with-param name="message" value="{$ctx:message}" />
+                  </call-template>
+               </then>
+            </filter> <!-- END: Shedule the campaign -->
+         </then>
+      </filter> <!-- END: Process creation of campaign if access token provided -->
+
+      <!-- BEGIN: Process send email notification if api key of Mandrill is given otherwise give error message -->
+      <filter source="boolean(get-property('mandrill.apiKey'))" regex="true">
+         <then>
+            <!-- BEGIN: If user not provided from email set status as Error -->
+            <filter source="boolean(get-property('constantContact.fromEmail'))" regex="false">
+               <then>
+                  <property name="status" value="Error" />
+               </then>
+            </filter> <!-- END: If user not provided from email -->
+
+            <mandrill.init>
+               <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+               <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+               <format>json</format>
+            </mandrill.init>
+            <mandrill.sendMessage>
+               <html>{$ctx:constantContact.templateBody}</html>
+               <subject>{$ctx:constantContact.subject}</subject>
+               <fromEmail>{$ctx:constantContact.fromEmail}</fromEmail>
+               <fromName>{$ctx:constantContact.fromName}</fromName>
+               <important>false</important>
+               <autoHtml>true</autoHtml>
+               <to>{$ctx:mandrill.to}</to>
+            </mandrill.sendMessage>
+
+            <property name="mandrillSendMessageStatusCode" expression="$axis2:HTTP_SC" />
+
+            <!-- BEGIN: If mandrill sendMessage successful give success response else gives error message -->
+            <filter xpath="get-property('mandrillSendMessageStatusCode') != 200">
+               <then>
+                  <property name="status" value="Error" />
+                  <property name="message" expression="json-eval($.)" />
+               </then>
+               <else>
+                  <property name="sentEmails" expression="json-eval($.)" />
+
+                  <!-- Script mediator to iterate each and every sent email response by checking sent status of emails to construct successful message or error message -->
+                  <script language="js">
+                     <![CDATA[
+                        
+                        var sentEmails = eval("(" + mc.getProperty('sentEmails') + ")");
+                        var sentEmailCount = 0;
+
+                        for(var index in sentEmails){
+                           var status = sentEmails[index].status;
+
+                           if(status == 'sent' || status == 'queued'){
+                              sentEmailCount += 1;
+                           }
+                        }
+
+                        if(sentEmailCount > 0){
+                           mc.setProperty('isSentEmailAvailable', 'true');
+                        } else {
+                           mc.setProperty('isSentEmailAvailable', 'false');
+                        }
+                        
+                     ]]>
+                  </script>
+
+                  <!-- BEGIN: If at least one sent email message available construct success message else construct error message -->
+                  <filter xpath="get-property('isSentEmailAvailable') = 'true'">
+                     <then>
+                        <property name="status" value="Success" />
+                        <property name="message" expression="json-eval($.)" />
+                     </then>
+                     <else>
+                        <property name="status" value="Error" />
+                        <property name="message" expression="json-eval($.)" />
+                     </else> 
+                  </filter> <!-- END: If at least one sent email message -->
+               </else>
+            </filter> <!-- If mandrill sendMessage successful -->
+         </then>
+      </filter> <!-- END: Process of send email notification -->
+   </sequence>
+</template>
