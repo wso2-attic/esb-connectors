@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights
+   Reserved. WSO2 Inc. licenses this file to you under the Apache License, Version
+   2.0 (the "License"); you may not use this file except in compliance with
+   the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+   Unless required by applicable law or agreed to in writing, software distributed
+   under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+   OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+   the specific language governing permissions and limitations under the License. -->
+<!-- Method Documentation URL: http://www.freshbooks.com/developers/docs/time-entries#time_entry.update -->
+<template name="updateTimeEntry" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="timeEntryId" description="The Id of a timeEntry." />
+   <parameter name="projectId" description="The project Id of the TimeEntry." />
+   <parameter name="taskId" description="The task Id of the TimeEntry." />
+   <parameter name="staffId" description="The staff Id of the TimeEntry." />
+   <parameter name="hours" description="number of hours of timeEntry." />
+   <parameter name="notes" description="The additional notes." />
+   <parameter name="date" description="Effective date of timeEntry" />
+   <sequence>
+      <property name="uri.var.timeEntryId" expression="$func:timeEntryId" />
+      <property name="uri.var.projectId" expression="$func:projectId" />
+      <property name="uri.var.taskId" expression="$func:taskId" />
+      <property name="uri.var.staffId" expression="$func:staffId" />
+      <property name="uri.var.hours" expression="$func:hours" />
+      <property name="uri.var.notes" expression="$func:notes" />
+      <property name="uri.var.date" expression="$func:date" />
+      <payloadFactory media-type="xml">
+         <format>
+            <request method="time_entry.update" xmlns="">
+               <time_entry>
+                  <time_entry_id>$1</time_entry_id>
+               </time_entry>
+            </request>
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.timeEntryId')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+             <![CDATA[
+            //request body param variables
+            var projectId = mc.getProperty('uri.var.projectId');
+            var taskId = mc.getProperty('uri.var.taskId');
+            var staffId = mc.getProperty('uri.var.staffId');
+            var hours = mc.getProperty('uri.var.hours');
+            var notes = mc.getProperty('uri.var.notes');
+            var date = mc.getProperty('uri.var.date');
+            var payload = mc.getPayloadXML();
+            if (projectId != null && projectId != "") {
+               payload.time_entry.project_id = projectId;
+            }
+            if (taskId != null && taskId != "") {
+               payload.time_entry.task_id = taskId;
+            }
+            if (staffId != null && staffId != "") {
+               payload.time_entry.staff_id = staffId;
+            }
+            if (hours != null && hours != "") {
+               payload.time_entry.hours = hours;
+            }
+            if (notes != null && notes != "") {
+               payload.time_entry.notes = notes;
+            }
+            if (date != null && date != "") {
+               payload.time_entry.date = date;
+            }
+            mc.setPayloadXML(payload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/api/2.1/xml-in" />
+         </endpoint>
+      </call>
+      <!-- Remove custom header information in response -->
+      <header name="X-Frame-Options" scope="transport" action="remove" />
+      <header name="Strict-Transport-Security" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="P3P" scope="transport" action="remove" />
+   </sequence>
+</template>
