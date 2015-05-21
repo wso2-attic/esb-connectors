@@ -18,14 +18,23 @@ Steps to follow in setting integration test.
  1. Download ESB 4.9.0 by following the URL: https://svn.wso2.org/repos/wso2/people/jeewantha/4.9.0_release/released/M4/wso2esb-4.9.0-SNAPSHOT.zip.
 	Apply the patches found in https://www.dropbox.com/s/bs83ll1m8kwgylq/patch0009.zip?dl=0 by copying the extracted files into <ESB_HOME>/repository/components/patches.
 
- 2. Compress the modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<AGILEZEN_CONNECTOR_HOME>/agilezen-connector/agilezen-connector-1.0.0/org.wso2.carbon.connector/repository/".
-	If required install the formstack security certificate (extracted from https://agilezen.com) to the following keystores:
-		i) 	client-truststore.jks located in the <ESB_HOME>/repository/resources/security directory.
-		ii) wso2carbon.jks located in the <AGILEZEN_CONNECTOR_HOME>/agilezen-connector/agilezen-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products directory.
+ 2. i)  Install the formstack security certificate (login to https://agilezen.com and extract the certificate) to the following keystores:
+		a) 	client-truststore.jks located in the <ESB_HOME>/repository/resources/security directory.
+		b) wso2carbon.jks located in the <AGILEZEN_CONNECTOR_HOME>/agilezen-connector/agilezen-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products directory.
 	
+	ii)	 Add the following message formatter and message builder to the axis2.xml file of the ESB.
+						<messageFormatter contentType="text/html"
+									class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+						<messageBuilder contentType="text/html" 
+													class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+													
+	iii) Compress the modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<AGILEZEN_CONNECTOR_HOME>/agilezen-connector/agilezen-connector-1.0.0/org.wso2.carbon.connector/repository/".
+		
  3. Create a agilezen trial account and derive the API Token.
 	i) 	 Using the URL "http://www.agilezen.com/" create an agilezen trial account.
-	ii)	 In the account homepage click on 'Settings' ->'Developer' -> 'New API Key' -> Copy and retain the token for further use (Make sure the token is enabled).
+	ii)	 In the account homepage click on 'Settings' -> 'Developer' -> 'New API Key' -> Copy and retain the token for further use (Enable the token, provide a description and save it).
+	iii) Create a project in the account. (Free accounts allow only one project to be created)
+	iv)  Create a Story inside the project and move it to 'blocked' status. Give any reason for blocking.
 	
  4. Update the agilezen properties file at location "<AGILEZEN_CONNECTOR_HOME>/agilezen-connector/agilezen-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 																			  
