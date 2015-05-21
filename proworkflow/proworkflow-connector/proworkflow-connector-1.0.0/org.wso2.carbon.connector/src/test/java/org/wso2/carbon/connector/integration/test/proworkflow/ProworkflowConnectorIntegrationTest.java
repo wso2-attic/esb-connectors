@@ -396,7 +396,7 @@ public class ProworkflowConnectorIntegrationTest extends ConnectorIntegrationTes
       Assert.assertEquals(quoteDescription, apiJSONData.getString("description"));
       Assert.assertEquals(discountDescription, apiJSONData.getString("discountdescription"));
       Assert.assertEquals(connectorProperties.getProperty("quoteNumber"), apiJSONData.getString("number"));
-      Assert.assertEquals(connectorProperties.getProperty("taxRate"), apiJSONData.getString("taxrate"));
+      Assert.assertEquals(Double.valueOf(connectorProperties.getProperty("taxRate")), apiJSONData.getDouble("taxrate"));
       Assert.assertEquals(Float.valueOf(connectorProperties.getProperty("quoteDiscountValue")).toString(),
             apiJSONData.getString("discountvalue"));
    }
