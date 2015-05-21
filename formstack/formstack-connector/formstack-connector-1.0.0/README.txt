@@ -19,8 +19,10 @@ Steps to follow in setting integration test.
 	Apply the patches found in https://www.dropbox.com/s/bs83ll1m8kwgylq/patch0009.zip?dl=0 by copying the extracted files into <ESB_HOME>/repository/components/patches.
 
  2. Compress the modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<FORMSTACK_CONNECTOR_HOME>/formstack-connector/formstack-connector-1.0.0/org.wso2.carbon.connector/repository/".
-	If required install the formstack security certificate (extracted from https://www.formstack.com) to client-truststore.jks located in the <ESB_HOME>/repository/resources/security directory.
-
+	If required install the formstack security certificate (extracted from https://www.formstack.com) to the following keystores:
+		i) 	client-truststore.jks located in the <ESB_HOME>/repository/resources/security directory.
+		ii) wso2carbon.jks located in the <FORMSTACK_CONNECTOR_HOME>/formstack-connector/formstack-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products directory.
+		
  3. Create a formstack trial account and derive the API Token.
 	i) 	 Using the URL "https://www.formstack.com/" create an formstack trial account.
 	ii)	 In the account homepage click on user icon, choose 'API' and create a 'New Application'. Fill all the mandatory fields and 'Create Application'. Get the Access token from the next screen and retain it for further use.
