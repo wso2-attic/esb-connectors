@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://apidocs.chargebee.com/docs/api/coupons#list_coupons -->
+<template name="listCoupons" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="limit" description="Limits the number of resources to be returned." />
+   <parameter name="offset" description="Allows to fetch the next set of resources." />
+   <sequence>
+      <property name="uri.var.limit" expression="$func:limit" />
+      <property name="uri.var.offset" expression="$func:offset" />
+      <property name="uri.var.apiParameters" value="" />
+      <filter xpath="boolean(get-property('uri.var.limit'))">
+         <then>
+            <property name="uri.var.apiParameters"
+               expression="fn:concat(get-property('uri.var.apiParameters'),'limit=',get-property('uri.var.limit'), '&amp;')" />
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.offset'))">
+         <then>
+            <property name="uri.var.apiParameters"
+               expression="fn:concat(get-property('uri.var.apiParameters'),'offset=',get-property('uri.var.offset'), '&amp;')" />
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.apiParameters'))">
+         <then>
+            <property name="uri.var.apiParameters"
+               expression="fn:concat('?', fn:substring(get-property('uri.var.apiParameters'), 1, fn:string-length(get-property('uri.var.apiParameters'))-1))" />
+         </then>
+      </filter>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/coupons{uri.var.apiParameters}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+      <header name="Pragma" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="Expires" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+   </sequence>
+</template>
