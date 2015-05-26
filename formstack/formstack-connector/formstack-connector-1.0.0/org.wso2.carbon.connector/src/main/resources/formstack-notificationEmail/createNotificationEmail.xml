@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: http://developers.formstack.com/v2.0/docs/form-id-notification-post -->
+<template name="createNotificationEmail" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="name" description="Name of the notification email." />
+   <parameter name="message" description="The email message (if type = fields)." />
+   <parameter name="attachLimit" description="Only attach files if under this limit (in KBytes)." />
+   <parameter name="mailformat" description="Whether the Notification Email should be Rich HTML or Plain Text (html, plaintext)." />
+   <parameter name="fromType" description="The type of from address (noreply, custom, field)." />
+   <parameter name="fromValue" description="Custom email address or field id." />
+   <parameter name="recipients" description="Email address to send notification to (split with return character '\n')." />
+   <parameter name="subject" description="The subject of the email." />
+   <parameter name="type" description="What is included in the message (data, link, or fields)." />
+   <parameter name="hideEmpty" description="Flag to not include empty fields in the email." />
+   <parameter name="showSection" description="Flag to show section headings in email." />
+   <parameter name="formId" description="ID of the form to which the notification email belongs." />
+   <sequence>
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.message" expression="$func:message" />
+      <property name="uri.var.attachLimit" expression="$func:attachLimit" />
+      <property name="uri.var.mailformat" expression="$func:mailformat" />
+      <property name="uri.var.fromType" expression="$func:fromType" />
+      <property name="uri.var.fromValue" expression="$func:fromValue" />
+      <property name="uri.var.recipients" expression="$func:recipients" />
+      <property name="uri.var.subject" expression="$func:subject" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.hideEmpty" expression="$func:hideEmpty" />
+      <property name="uri.var.showSection" expression="$func:showSection" />
+      <property name="uri.var.formId" expression="$func:formId" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "from_type": "$1",
+                "recipients": "$2",
+                "subject": "$3",
+                "type": "$4",
+                "from_value": "$5"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.fromType')" />
+            <arg expression="get-property('uri.var.recipients')" />
+            <arg expression="get-property('uri.var.subject')" />
+            <arg expression="get-property('uri.var.type')" />
+            <arg expression="get-property('uri.var.fromValue')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var jsonPayload = mc.getPayloadJSON();
+            var attachLimit = mc.getProperty('uri.var.attachLimit');
+            var mailformat = mc.getProperty('uri.var.mailformat');
+            var hideEmpty = mc.getProperty('uri.var.hideEmpty');
+            var message = mc.getProperty('uri.var.message');
+            var name = mc.getProperty('uri.var.name');
+            var showSection = mc.getProperty('uri.var.showSection');
+            if (attachLimit != null && attachLimit != ""){
+               jsonPayload.attach_limit = attachLimit;
+            }            
+            if (mailformat != null && mailformat != ""){
+               jsonPayload.format = mailformat;
+            }            
+            if (hideEmpty != null && hideEmpty != ""){
+               jsonPayload.hide_empty = eval("(" + hideEmpty + ")");
+            }            
+            if (message != null && message != ""){
+               jsonPayload.message = message;
+            }            
+            if (name != null && name != ""){
+               jsonPayload.name = name;
+            }            
+            if (showSection != null && showSection != ""){
+               jsonPayload.show_section = eval("(" + showSection + ")");
+            }            
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/form/{uri.var.formId}/notification.{uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Robots-Tag" action="remove" scope="transport" />
+      <header name="P3P" action="remove" scope="transport" />
+   </sequence>
+</template>

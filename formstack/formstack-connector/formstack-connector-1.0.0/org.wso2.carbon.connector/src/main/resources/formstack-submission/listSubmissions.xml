@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: http://developers.formstack.com/v2.0/docs/form-id-submission-get -->
+<template name="listSubmissions" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="formId" description="ID of the form whose submissions would be listed." />
+   <parameter name="encryptionPassword" description="The encryption password for the form." />
+   <parameter name="minTime"
+      description="Return submissions after given date/time - YYYY-MM-DD or YYYY-MM-DD HH:mm:SS expected (Based around Eastern Time)." />
+   <parameter name="maxTime"
+      description="Return submissions before given date/time - YYYY-MM-DD or YYYY-MM-DD HH:mm:SS expected (Based around Eastern Time)." />
+   <parameter name="searchFields"
+      description="Field ids for search_values_x. Where x is a number 0-10 (note: encrypted forms are not searchable)." />
+   <parameter name="searchValues"
+      description="Search a specific field for this value. Where x is a number 0-10 corresponding with search_field_x (note: encrypted forms are not searchable)." />
+   <parameter name="page" description="The page number of results to return." />
+   <parameter name="perPage" description="The number of submissions to return per page. Maximum of 100 per request." />
+   <parameter name="sort" description="Sort the submissions by id with DESC or ASC." />
+   <parameter name="data" description="Flag to include submission data." />
+   <parameter name="expandData" description="Flag to expand submission data." />
+   <sequence>
+      <property name="uri.var.formId" expression="$func:formId" />
+      <property name="uri.var.encryptionPassword" expression="$func:encryptionPassword" />
+      <property name="uri.var.minTime" expression="$func:minTime" />
+      <property name="uri.var.maxTime" expression="$func:maxTime" />
+      <property name="uri.var.searchFields" expression="$func:searchFields" />
+      <property name="uri.var.searchValues" expression="$func:searchValues" />
+      <property name="uri.var.page" expression="$func:page" />
+      <property name="uri.var.perPage" expression="$func:perPage" />
+      <property name="uri.var.sort" expression="$func:sort" />
+      <property name="uri.var.data" expression="$func:data" />
+      <property name="uri.var.expandData" expression="$func:expandData" />
+      <script language="js">
+         <![CDATA[
+            var data = mc.getProperty('uri.var.data');
+            var encryptionPassword = mc.getProperty('uri.var.encryptionPassword');
+            var expandData = mc.getProperty('uri.var.expandData');
+            var maxTime = mc.getProperty('uri.var.maxTime');
+            var minTime = mc.getProperty('uri.var.minTime');
+            var page = mc.getProperty('uri.var.page');
+            var perPage = mc.getProperty('uri.var.perPage');
+            var searchFields = mc.getProperty('uri.var.searchFields');
+            var searchValues = mc.getProperty('uri.var.searchValues');
+            var sort = mc.getProperty('uri.var.sort');
+            var urlQuery = '';
+            if (encryptionPassword != null && encryptionPassword != "") {
+               urlQuery += 'encryption_password=' + encryptionPassword + '&';
+            }
+            if (minTime != null && minTime != "") {
+               urlQuery += 'min_time=' + minTime + '&';
+            }
+            if (maxTime != null && maxTime != "") {
+               urlQuery += 'max_time=' + maxTime + '&';
+            }
+            // Search fields are extracted from Array and added to JSON payload.
+            if (searchFields != null && searchFields != ""){
+               searchFields = eval("(" + searchFields + ")");
+               for(var i=0; i<searchFields.length; i++){
+                  var searchField = 'search_field_' + searchFields[i].fieldNo;
+                  var value = searchFields[i].value;
+                  urlQuery += searchField + '=' + value + '&';
+               }               
+            }            
+            // Search values are extracted from Array and added to JSON payload.
+            if (searchValues != null && searchValues != ""){
+               searchValues = eval("(" + searchValues + ")");
+               for(var i=0; i<searchValues.length; i++){
+                  var searchValue = 'search_value_' + searchValues[i].fieldNo;
+                  var value = searchValues[i].value;
+                  urlQuery += searchValue + '=' + value + '&';
+               }               
+            }  
+            if (page != null && page != "") {
+               urlQuery += 'page=' + page + '&';
+            }
+            if (perPage != null && perPage != "") {
+               urlQuery += 'per_page=' + perPage + '&';
+            }
+            if (sort != null && sort != "") {
+               urlQuery += 'sort=' + sort + '&';
+            }
+            if (data != null && data != "") {
+               urlQuery += 'data=' + data + '&';
+            }
+            if (expandData != null && expandData != "") {
+               urlQuery += 'expand_data=' + expandData + '&';
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', encodeURI(urlQuery));
+            }
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/form/{uri.var.formId}/submission.{uri.var.format}{uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Robots-Tag" action="remove" scope="transport" />
+      <header name="P3P" action="remove" scope="transport" />
+   </sequence>
+</template>
