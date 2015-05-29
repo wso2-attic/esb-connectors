@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="bugzilla_createProductsAndComponents" transports="https http"
+   startOnLoad="true" trace="disable">
+   <description />
+   <target>
+      <inSequence>
+         <!--Tsheets Properties -->
+         <property name="tsheets.apiUrl" expression="json-eval($.tsheetsApiUrl)" />
+         <property name="tsheets.accessToken" expression="json-eval($.tsheetsAccessToken)" />
+
+         <!--Bugzilla Properties -->
+         <property name="bugzilla.apiUrl" expression="json-eval($.bugzillaApiUrl)" />
+         <property name="bugzilla.apiKey" expression="json-eval($.bugzillaApiKey)" />
+
+
+         <!--Common Properties -->
+         <property name="responseString" value="" scope="operation" />
+         <property name="jobCodeCount" expression="count(//jobCodeDetails)" scope="operation" />
+         <property name="jobCodeIndex" value="0" scope="operation" />
+         <property name="componentsCount" value="0" scope="operation" />
+         <property name="componentsIndex" value="0" scope="operation" />
+
+         <!--ZohoBooks Properties -->
+         <property name="zohobooks.apiUrl" value="https://books.zoho.com" />
+         <property name="zohobooks.authToken" expression="json-eval($.zohobooksAuthToken)" />
+         <property name="zohobooks.organizationId" expression="json-eval($.zohobooksOrganizationId)" />
+
+         <!--FOR EACH JobCode Details : BEGIN -->
+         <iterate continueParent="true" id="jobCodeDetails" expression="//jobCodeDetails" sequential="true">
+            <target>
+               <sequence>
+                  <property name="messageType" value="application/json" scope="axis2" />
+                  <property name="tsheets.parentJobCode" expression="json-eval($.jobCodeDetails.parentJobCode)" />
+                  <property name="zohobooks.projectId" expression="json-eval($.jobCodeDetails.zohobooksProjectId)" />
+                  <property name="bugzilla.productDesc" expression="json-eval($.jobCodeDetails.description)" />
+                  <property name="bugzilla.productVersion" expression="json-eval($.jobCodeDetails.version)" />
+                  <property name="bugzilla.defaultAssignee" expression="json-eval($.jobCodeDetails.defaultAssignee)" />
+                  <property name="tsheets.childJobCodes" expression="json-eval($.jobCodeDetails.childJobCodes)" />
+                  <property name="parentJobCodeObj" expression="fn:concat('jobCode:',get-property('tsheets.parentJobCode'))" />
+
+                  <!-- Retrieve Tsheets child jobcodes by parent jobcode id -->
+                  <tsheets.init>
+                     <accessToken>{$ctx:tsheets.accessToken}</accessToken>
+                     <apiUrl>{$ctx:tsheets.apiUrl}</apiUrl>
+                  </tsheets.init>
+                  <tsheets.listJobCodes>
+                     <parentIds>{$ctx:tsheets.parentJobCode}</parentIds>
+                  </tsheets.listJobCodes>
+
+                  <header name="Transfer-Encoding" scope="transport" action="remove" />
+                  <header name="Content-Encoding" scope="transport" action="remove" />
+                  <header name="Content-Length" scope="transport" action="remove" />
+
+                  <property name="tsheets.parentJobCodeName" expression="json-eval($.supplemental_data.jobcodes.*.name)" />
+                  <!-- Create component object for bugzilla -->
+                  <script language="js">
+                   <![CDATA[
+                     var parentJobCodeName=''+eval("(" + mc.getProperty("tsheets.parentJobCodeName") + ")");
+                     var childJobCodes=mc.getProperty("tsheets.childJobCodes");
+					 
+                     mc.setProperty("tsheets.parentJobCodeName",parentJobCodeName);
+					 if(childJobCodes.charCodeAt(0) != '91' && childJobCodes.charCodeAt(childJobCodes.length-1) != '93'){
+						childJobCodes = '['+childJobCodes+']';
+					 }
+					 childJobCodes=eval("(" + childJobCodes + ")");
+                     payload = mc.getPayloadJSON();
+                     var jobCodes = payload.results.jobcodes;
+                     var components = [];
+                     for (var i = 0; i < childJobCodes.length ; i++) {
+						var childJobCode=childJobCodes[i];
+                        var jobCodeId = childJobCode.childJobCodeId;
+						var email=childJobCode.defaultAsigneeEmail;
+						var userName=childJobCode.defaultAssigneeName;
+						var billableRate=childJobCode.billableRate;
+                  
+                        var component = {};
+                        var jobCode = jobCodes[jobCodeId];
+                        component.childJobCode = ''+jobCodeId;
+                        //assign component name, description and product name only if child jobcode is valid.
+                        if(jobCode){
+                           component.name = jobCode['name'];
+                           component.description = parentJobCodeName +' : '+ jobCode['name'];
+                           component.product = parentJobCodeName;
+                           component.userName=userName;
+                           component.email=email;
+						   if(billableRate!=null && billableRate!=""){
+						      component.billableRate=billableRate;
+						   }
+                        }
+                        components.push(component);
+                     }
+                     mc.setPayloadJSON(components);
+                      ]]>
+                  </script>
+
+                  <property name="tsheets.componentsArray" expression="json-eval($.)" />
+
+                  <!-- Bugzilla create Product -->
+                  <bugzilla.init>
+                     <apiUrl>{$ctx:bugzilla.apiUrl}</apiUrl>
+                     <apiKey>{$ctx:bugzilla.apiKey}</apiKey>
+                  </bugzilla.init>
+                  <bugzilla.createProduct>
+                     <name>{$ctx:tsheets.parentJobCodeName}</name>
+                     <description>{$ctx:bugzilla.productDesc}</description>
+                     <version>{$ctx:bugzilla.productVersion}</version>
+                  </bugzilla.createProduct>
+
+                  <filter source="$axis2:HTTP_SC" regex="201">
+                     <then>
+                        <property name="bugzilla.productId" expression="json-eval($.id)" />
+                        <property name="productIdObject"
+                           expression="fn:concat(get-property('parentJobCodeObj'),',productId:',get-property('bugzilla.productId'))" />
+                        <property name="message"
+                           expression="fn:concat('Product ',get-property('tsheets.parentJobCodeName'), ' has been created successfully.')" />
+                        <property name="status" value="success" />
+                     </then>
+                     <else>
+                        <property name="productIdObject" expression="get-property('parentJobCodeObj')" />
+                        <property name="status" value="error" />
+                        <property name="message" expression="json-eval($.)" />
+                     </else>
+                  </filter>
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="id" value="{$ctx:productIdObject}" />
+                     <with-param name="activity" value="bugzilla_createProducts" />
+                     <with-param name="status" value="{$ctx:status}" />
+                     <with-param name="message" value="{$ctx:message}" />
+                  </call-template>
+
+                  <property name="jobCodeIndex" expression="get-property('operation','jobCodeIndex') + 1"
+                     scope="operation" />
+
+                  <!-- Add tsheets.componentsArray to components payload to iterate and create components -->
+                  <payloadFactory media-type="json">
+                     <format>
+                        {
+                           "components":$1
+                        }
+                     </format>
+                     <args>
+                        <arg evaluator="xml" expression="get-property('tsheets.componentsArray')" />
+                     </args>
+                  </payloadFactory>
+
+                  <property name="componentsCount" expression="get-property('operation','componentsCount') + count(//components)"
+                     scope="operation" />
+
+                  <!--FOR EACH Components : BEGIN -->
+                  <iterate continueParent="true" id="components" expression="//components" sequential="true">
+                     <target>
+                        <sequence>
+                           <property name="tsheets.componentName" expression="json-eval($.components.name)" />
+                           <property name="tsheets.product" expression="json-eval($.components.product)" />
+                           <property name="tsheets.componentDescription" expression="json-eval($.components.description)" />
+                           <property name="tsheets.childJobCode" expression="json-eval($.components.childJobCode)" />
+						   <property name="tsheets.billableRate" expression="json-eval($.components.billableRate)" />
+                           
+                           <property name="user.name" expression="json-eval($.components.userName)"/>
+                           <property name="user.email" expression="json-eval($.components.email)"/>
+                           
+                           <property name="childJobCodeObject"
+                              expression="fn:concat(get-property('parentJobCodeObj'),',childJobCode:',get-property('tsheets.childJobCode'))" />
+
+                           <!-- Filter for valid child jobcodes -->
+                           <filter source="boolean(get-property('tsheets.componentName'))" regex="false">
+                              <then>
+                                 <call-template target="responseHandlerTemplate">
+                                    <with-param name="id" value="{$ctx:childJobCodeObject}" />
+                                    <with-param name="activity" value="bugzilla_createComponents" />
+                                    <with-param name="status" value="skipped" />
+                                    <with-param name="message" value="Invalid Child Jobcode." />
+                                 </call-template>
+                              </then>
+                              <else>
+                                 <!-- Create Bugzilla Components -->
+                                 <bugzilla.init>
+                                    <apiUrl>{$ctx:bugzilla.apiUrl}</apiUrl>
+                                    <apiKey>{$ctx:bugzilla.apiKey}</apiKey>
+                                 </bugzilla.init>
+                                 <bugzilla.createComponent>
+                                    <name>{$ctx:tsheets.componentName}</name>
+                                    <product>{$ctx:tsheets.product}</product>
+                                    <description>{$ctx:tsheets.componentDescription}</description>
+                                    <defaultAssignee>{$ctx:bugzilla.defaultAssignee}</defaultAssignee>
+                                 </bugzilla.createComponent>
+
+                                 <filter source="$axis2:HTTP_SC" regex="201">
+                                    <then>
+                                       
+                                       <property name="isComponentCreated" value="true"/>
+                                       
+                                       <property name="bugzilla.componentId" expression="json-eval($.id)" />
+                                       <property name="componentIdObject"
+                                          expression="fn:concat(get-property('childJobCodeObject'),',componentId:',get-property('bugzilla.componentId'))" />
+                                       <property name="message"
+                                          expression="fn:concat('Component ',get-property('tsheets.componentName'), ' has been created successfully.')" />
+                                       <property name="status" value="success" />
+
+                                       <call-template target="responseHandlerTemplate">
+                                          <with-param name="id" value="{$ctx:componentIdObject}" />
+                                          <with-param name="activity" value="bugzilla_createComponent" />
+                                          <with-param name="status" value="{$ctx:status}" />
+                                          <with-param name="message" value="{$ctx:message}" />
+                                       </call-template>
+									   
+									   <!-- Updating TSheets job code to set the billable rate -->
+									   <payloadFactory media-type="json">
+									      <format>
+										     {
+											    "data":[
+												   {
+												      "id":$1,
+												      "billable_rate":"$2"
+												   }
+												]
+											 }
+										  </format>
+									      <args>
+										     <arg expression="get-property('tsheets.childJobCode')" />
+											 <arg expression="get-property('tsheets.billableRate')" />
+									      </args>
+								       </payloadFactory>
+									   
+									   <property name="Authorization" expression="fn:concat('Bearer ', get-property('tsheets.accessToken'))" scope="transport" type="STRING" />
+									   <property name="uri.var.location" expression="fn:concat(get-property('tsheets.apiUrl'),'/api/v1/jobcodes')"/>
+									   <call>
+									      <endpoint>
+									         <http method="put" uri-template="{uri.var.location}" />
+									      </endpoint>
+										</call>
+                                       <!-- List users in zohobooks -->
+                                       <zohobooks.init>
+                                          <authToken>{$ctx:zohobooks.authToken}</authToken>
+                                          <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                                          <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                                       </zohobooks.init>
+                                       <zohobooks.listUsers />
+
+                                       <!-- Preserve listUsers response for future use -->
+                                       <property name="zohobooks.users" expression="json-eval($.)" scope="operation" />
+
+                                       <!-- Retreve zohobooks listUser response from operation scope -->
+                                       <property name="zohobooks.users" expression="get-property('operation','zohobooks.users')" />
+                                       <script language="js">
+                                       <![CDATA[
+                           
+                                         //Create JSON object form String
+                                          payload = eval("(" + mc.getProperty("zohobooks.users") + ")");
+                                          var users = payload.users;
+                                          var userEmail = mc.getProperty('user.email');
+                                           for(var key in users){
+                                             var user = users[key];
+                                             var email = user.email;
+                                             if(email == userEmail){
+                                               mc.setProperty('zohobooks.userId',user.user_id);
+                                               break;
+                                             }
+                                            
+                                          }
+                                       
+                                       ]]>
+                                       </script>
+                                       
+                                       <!-- Create zohobooks user if not exsist -->
+                                       <filter source="boolean(get-property('zohobooks.userId'))" regex="false">
+                                          <then>
+                                             <zohobooks.init>
+                                                <authToken>{$ctx:zohobooks.authToken}</authToken>
+                                                <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                                                <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                                             </zohobooks.init>
+                                             <zohobooks.createUser>
+                                                <email>{$ctx:user.email}</email>
+                                                <name>{$ctx:user.name}</name>
+                                                <userRole>timesheetstaff</userRole>
+                                             </zohobooks.createUser>
+
+                                             <header name="Transfer-Encoding" scope="transport" action="remove" />
+                                             <header name="Content-Encoding" scope="transport" action="remove" />
+                                             <header name="Content-Length" scope="transport" action="remove" />
+
+                                             <filter source="$axis2:HTTP_SC" regex="201">
+                                                <then>
+                                                   <property name="zohobooks.userId" expression="json-eval($.user.user_id)" />
+                                                   <property name="userIdObject"
+                                                      expression="fn:concat('userId:',get-property('zohobooks.userId'))" />
+                                                   <property name="message"
+                                                      expression="fn:concat('User ',get-property('user.name'), ' has been created successfully.')" />
+                                                   <property name="status" value="success" />
+                                                </then>
+                                                <else>
+                                                   <property name="userIdObject"
+                                                      expression="fn:concat('email:',get-property('user.email'))" />
+                                                   <property name="status" value="error" />
+                                                   <property name="message" expression="json-eval($.)" />
+                                                </else>
+                                             </filter>
+                                             <call-template target="responseHandlerTemplate">
+                                                <with-param name="id" value="{$ctx:userIdObject}" />
+                                                <with-param name="activity" value="zohobooks_createUser" />
+                                                <with-param name="status" value="{$ctx:status}" />
+                                                <with-param name="message" value="{$ctx:message}" />
+                                             </call-template>
+                                          </then>
+                                       </filter>
+
+                                       <filter source="boolean(get-property('zohobooks.userId'))" regex="true">
+                                          <then>
+                                             <property name="uri.var.userAssignemnt"
+                                                expression="fn:concat(get-property('zohobooks.apiUrl'),'/api/v3/projects/',get-property('zohobooks.projectId'),'/users/',get-property('zohobooks.userId'),'?authtoken=',get-property('zohobooks.authToken'),'&amp;organization_id=',get-property('zohobooks.organizationId'))" />
+                                             <!-- Get zohobooks user assignment details -->
+                                             <call>
+                                                <endpoint>
+                                                   <http method="get" uri-template="{uri.var.userAssignemnt}" />
+                                                </endpoint>
+                                             </call>
+
+                                             <!-- Add Project assignments if not assigned -->
+                                             <filter source="$axis2:HTTP_SC" regex="404">
+                                                <then>
+                                                   <script language="js">
+                                                   <![CDATA[
+                                                      var userId = mc.getProperty('zohobooks.userId');
+                                                      var users = [];
+                                                      var user ={};
+                                                      user.user_id = userId;
+                                                      users.push(user);
+                                                      mc.setPayloadJSON(users); 
+                                          
+                                                   ]]>
+                                                   </script>
+                                                   <property name="zohobooks.users" expression="json-eval($.)" />
+                                                                                                     <!-- Assign user to zohobooks project -->
+                                                   <zohobooks.init>
+                                                      <authToken>{$ctx:zohobooks.authToken}</authToken>
+                                                      <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                                                      <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                                                   </zohobooks.init>
+                                                   <zohobooks.assignUsersToProject>
+                                                      <users>{$ctx:zohobooks.users}</users>
+                                                      <projectId>{$ctx:zohobooks.projectId}</projectId>
+                                                   </zohobooks.assignUsersToProject>
+
+                                                   <filter source="$axis2:HTTP_SC" regex="201">
+                                                      <then>
+                                                         <property name="userIdObject"
+                                                            expression="fn:concat('userId:',get-property('zohobooks.userId'))" />
+                                                         <property name="status" value="success" />
+                                                         <property name="message"
+                                                            expression="fn:concat('User ',get-property('user.name'), ' has been added successfully.')" />
+                                                      </then>
+                                                      <else>
+                                                         <property name="userIdObject"
+                                                            expression="fn:concat('email:',get-property('user.email'))" />
+                                                         <property name="status" value="error" />
+                                                         <property name="message" expression="json-eval($.)" />
+                                                      </else>
+                                                   </filter>
+                                                   <call-template target="responseHandlerTemplate">
+                                                      <with-param name="id" value="{$ctx:userIdObject}" />
+                                                      <with-param name="activity" value="zohobooks_assignUserToProject" />
+                                                      <with-param name="status" value="{$ctx:status}" />
+                                                      <with-param name="message" value="{$ctx:message}" />
+                                                   </call-template>
+
+                                                </then>
+                                             </filter>
+                                          </then>
+                                       </filter>
+                                    </then>
+                                 </filter>
+                              </else>
+                           </filter>
+                           <property name="componentsIndex" expression="get-property('operation','componentsIndex') + 1"
+                              scope="operation" />
+
+                           <filter
+                              xpath="(get-property('operation','jobCodeCount') = get-property('operation','jobCodeIndex')) and  (get-property('operation','componentsCount') = get-property('operation','componentsIndex'))">
+                              <then>
+                                 <loopback />
+                              </then>
+                           </filter>
+                        </sequence>
+
+                     </target>
+                  </iterate>
+                  <!--FOR EACH Components : END -->
+               </sequence>
+            </target>
+         </iterate>
+         <!--FOR EACH JobCode Details : END -->
+
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"bugzilla_createProjectsAndComponents",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+</proxy>

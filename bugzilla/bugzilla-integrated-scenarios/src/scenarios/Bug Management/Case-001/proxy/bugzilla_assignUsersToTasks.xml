@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="bugzilla_assignUsersToTasks" transports="https,http" statistics="disable" trace="disable"
+   startOnLoad="true">
+   <target>
+      <inSequence>
+         <!--Bugzilla Properties -->
+         <property name="bugzilla.apiUrl" expression="json-eval($.bugzillaApiUrl)" />
+         <property name="bugzilla.apiKey" expression="json-eval($.bugzillaApiKey)" />
+       
+		 <!--TSheets Properties-->
+         <property name="tsheets.apiUrl" expression="json-eval($.tsheetsApiUrl)" />
+         <property name="tsheets.accessToken" expression="json-eval($.tsheetsAccessToken)" />
+         <property name="responseString" value="" scope="operation" />
+
+		<!-- Call bugzilla connector searchBugs method to retrieve confirmed bugs -->
+         <bugzilla.init>
+            <apiUrl>{$ctx:bugzilla.apiUrl}</apiUrl>
+            <apiKey>{$ctx:bugzilla.apiKey}</apiKey>
+         </bugzilla.init>
+         <bugzilla.searchBugs>
+            <status>IN_PROGRESS</status>
+         </bugzilla.searchBugs>
+
+         <filter source="$axis2:HTTP_SC" regex="200">
+            <then>
+               <property name="bugsCount" expression="count(//bugs)" scope="operation" />
+               <property name="bugIndex" expression="0" scope="operation" />
+
+               <filter xpath="get-property('operation', 'bugsCount') = 0">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="message" value="There are no bugs to process." />
+                     <property name="status" value="Skipped" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="bugzilla_retrieveBugs" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+					 <!--FOR EACH bug : BEGIN-->
+                     <iterate continueParent="false" id="bugIterator" expression="//bugs" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="messageType" value="application/json" scope="axis2" />
+                              <property name="bugzilla.id" expression="json-eval($.bugs.id)" />
+                              <property name="bugzilla.username" expression="json-eval($.bugs.assigned_to)" />
+                              <property name="bugzilla.summary" expression="json-eval($.bugs.summary)" />
+                              <property name="tsheets.taskId" expression="json-eval($.bugs.cf_taskid)" />
+
+                              <filter xpath="get-property('tsheets.taskId') = 0 ">
+                                 <then>
+                                    <property name="id" expression="fn:concat('bugId:',get-property('bugzilla.id'))" />
+                                    <property name="status" value="Skipped" />
+                                    <property name="message" value="Tsheet child job code ID is not given for the bug." />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="activity" value="tsheets_JobCodeAssignments" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                    <property name="uri.var.urlQuery" action="remove" />
+									
+									<!-- Call tsheets connector listUsers method to get user details of the particular user.-->
+                                    <tsheets.init>
+                                       <accessToken>{$ctx:tsheets.accessToken}</accessToken>
+                                       <apiUrl>{$ctx:tsheets.apiUrl}</apiUrl>
+                                    </tsheets.init>
+                                    <tsheets.listUsers>
+                                    </tsheets.listUsers>
+
+                                    <script language="js">
+									<![CDATA[
+										payload = mc.getPayloadJSON();
+                                    
+										var users = payload.results.users;
+										var bugAssignee = mc.getProperty('bugzilla.username');
+                                    
+										for(var key in users) {
+											var userIds = users[key];
+											var userEmail = userIds['email']; 
+											if(userEmail == bugAssignee ) {
+												var userId = userIds['id'];
+												mc.setProperty("tsheet.userId",userId);
+												break;
+											}
+										}
+									]]></script>
+
+                                    <filter source="boolean(get-property('tsheet.userId') )" regex="false">
+                                       <then>
+                                          <property name="id" expression="fn:concat('bugId:',get-property('bugzilla.id'))" />
+                                          <property name="status" value="Skipped" />
+                                          <property name="message" value="Tsheet user related to the bug, is not found." />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="activity" value="tsheets_JobCodeAssignments" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+										  <!-- Call tsheets connector listJobCodeAssignments method to get jobe code assignments for the particular user.-->
+                                          <tsheets.init>
+                                             <accessToken>{$ctx:tsheets.accessToken}</accessToken>
+                                             <apiUrl>{$ctx:tsheets.apiUrl}</apiUrl>
+                                          </tsheets.init>
+                                          <tsheets.listJobCodeAssignments>
+                                             <userIds>{$ctx:tsheet.userId}</userIds>
+                                          </tsheets.listJobCodeAssignments>
+
+                                          <script language="js">
+										  <![CDATA[
+											payload = mc.getPayloadJSON();
+                                    
+											var jobCodeAssignments = payload.results.jobcode_assignments;
+											var taskId = mc.getProperty('tsheets.taskId');
+                                    
+											for(var key in jobCodeAssignments) {
+												var assignmentIds = jobCodeAssignments[key];
+												var jobcodeId = assignmentIds['jobcode_id']; 
+												if(jobcodeId == taskId ) {
+													var assignmentStatus = assignmentIds['active'];
+													if(assignmentStatus == true) {
+														mc.setProperty("tsheet.assignmentFlag","true");
+														break;
+													}
+												}
+											}
+										  ]]></script>
+
+                                          <filter source="boolean(get-property('tsheet.assignmentFlag'))" regex="false">
+                                             <then>
+                                                <script language="js">
+												<![CDATA[
+													var userId=mc.getProperty('tsheet.userId');
+													var jobcodeId=mc.getProperty('tsheets.taskId');
+													var jobCodeAssignObj = {};   
+													jobCodeAssignObj.user_id  = userId;
+													jobCodeAssignObj.jobcode_id = jobcodeId;
+													mc.setPayloadJSON(jobCodeAssignObj);
+												]]>
+                                                </script>
+                                                <property name="tsheets.jobCodeAssign" expression="json-eval($.)" />
+                                         
+                                                <!-- Call tsheets connector addJobCodeAssignments method to assign user to the created task.-->
+                                                <tsheets.init>
+                                                   <accessToken>{$ctx:tsheets.accessToken}</accessToken>
+                                                   <apiUrl>{$ctx:tsheets.apiUrl}</apiUrl>
+                                                </tsheets.init>
+                                                <tsheets.addJobCodeAssignments>
+                                                   <jobCodeAssignments>{$ctx:tsheets.jobCodeAssign}</jobCodeAssignments>
+                                                </tsheets.addJobCodeAssignments>
+
+												<filter source="$axis2:HTTP_SC" regex="200">
+                                                   <then>
+                                                      <property name="tsheets.jobCodeAssignmentId" expression="json-eval($.results.jobcode_assignments.1.id)" />
+                                                      <property name="jobCodeIdObject"
+                                                         expression="fn:concat('jobCodeAssignmentId:',get-property('tsheets.jobCodeAssignmentId'))" />
+                                                      <property name="message" expression="fn:concat('Job code [',get-property('bugzilla.summary'),'] has been assigned to the user [',get-property('bugzilla.username'),'] successfully.')" />
+                                                      <property name="status" value="success" />
+                                                   </then>
+                                                   <else>
+                                                      <property name="jobCodeIdObject" expression="get-property('projectNameObj')" />
+                                                      <property name="status" value="error" />
+                                                      <property name="message" expression="json-eval($.)" />
+                                                   </else>
+                                                </filter>
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="id" value="{$ctx:jobCodeIdObject}" />
+                                                   <with-param name="activity" value="tsheets_JobCodeAssignments" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </then>
+                                          </filter>
+                                       </else>
+                                    </filter>
+                                 </else>
+                              </filter>
+                              <property name="bugIndex" expression="get-property('operation','bugIndex') + 1" scope="operation" />
+                              <filter xpath="(get-property('operation','bugIndex') = get-property('operation', 'bugsCount'))">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>
+               <!--FOR EACH bug : END-->
+                  </else>
+               </filter>
+            </then>
+         </filter>
+      </inSequence>
+      <outSequence>
+		 <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>{
+                     "Response":{
+						"process":"bugzilla-assignUsersToTasks",
+						"activityResponse":"All users have been assigned to tasks."
+                     }
+                  }
+                  </format>
+               </payloadFactory>
+            </then>
+			<else>
+				<payloadFactory media-type="json">
+					<format>{
+						"Response":{
+							"process":"bugzilla-assignUsersToTasks",
+							"activityResponse":[$1]
+						}
+					}
+					</format>
+					<args>
+						<arg expression="get-property('operation', 'responseString')" />
+					</args>
+				</payloadFactory>
+		    </else>
+		 </filter>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy> 

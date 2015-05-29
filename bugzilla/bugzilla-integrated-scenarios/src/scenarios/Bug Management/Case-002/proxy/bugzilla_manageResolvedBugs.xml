@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="bugzilla_manageResolvedBugs" transports="https,http" statistics="disable" trace="disable"
+   startOnLoad="true">
+   <target>
+      <inSequence>
+         <!--Bugzilla Properties -->
+         <property name="bugzilla.apiUrl" expression="json-eval($.bugzillaApiUrl)" />
+         <property name="bugzilla.apiKey" expression="json-eval($.bugzillaApiKey)" />
+         <property name="bugzilla.date" expression="json-eval($.bugzillaLastInvoicedDate)" />
+         <property name="bugzilla.product" expression="json-eval($.bugzillaProduct)" />
+       
+       <!--TSheets Properties-->
+         <property name="tsheets.apiUrl" expression="json-eval($.tsheetsApiUrl)" />
+         <property name="tsheets.accessToken" expression="json-eval($.tsheetsAccessToken)" />
+
+        <!--ZohoBooks Properties-->
+         <property name="zohobooks.apiUrl" value="https://books.zoho.com" />
+         <property name="zohobooks.authToken" expression="json-eval($.zohoBooksAuthToken)" />
+         <property name="zohobooks.organizationId" expression="json-eval($.zohoBooksOrganizationId)" />
+		 <property name="zohobooks.projectId" expression="json-eval($.zohoBookProjectId)" />
+		 
+       
+       <!--Freshdesk Properties -->
+         <property name="freshdesk.apiUrl" expression="json-eval($.freshdeskApiUrl)" />
+         <property name="freshdesk.apiKey" expression="json-eval($.freshdeskApiKey)" />
+
+         <property name="timeEntryMap" expression="json-eval($.timeEntryMap)" />
+         <property name="productMap" expression="json-eval($.productMap)" />
+         <property name="responseString" value="" scope="operation" />
+
+         <property name="bugIdString" value="" scope="operation" />
+       
+         <filter source="boolean(get-property('zohobooks.projectId'))" regex="false">
+            <then>
+               <property name="id" expression="fn:concat('bugId:',get-property('bugzilla.id'))" />
+               <property name="status" value="Skipped" />
+               <property name="message"
+                  expression="fn:concat('Mapping project ID in Zohobooks for the product of the bug ',get-property('bugzilla.product'),' cannot be found in the request.')" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="zohobooks_getProject" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+            </then>
+            <else>
+       
+       <!-- Call bugzilla connector searchBugs method to retrieve resolved bugs -->
+               <bugzilla.init>
+                  <apiUrl>{$ctx:bugzilla.apiUrl}</apiUrl>
+                  <apiKey>{$ctx:bugzilla.apiKey}</apiKey>
+               </bugzilla.init>
+               <bugzilla.searchBugs>
+                  <status>RESOLVED</status>
+                  <lastChangeTime>{$ctx:bugzilla.date}</lastChangeTime>
+                  <product>{$ctx:bugzilla.product}</product>
+               </bugzilla.searchBugs>
+
+               <filter source="$axis2:HTTP_SC" regex="200">
+                  <then>
+                     <property name="bugsCount" expression="count(//bugs)" scope="operation" />
+                     <property name="bugIndex" expression="0" scope="operation" />
+
+                     <filter xpath="get-property('operation', 'bugsCount') = 0">
+                        <then>
+                           <property name="id" value="{}" />
+                           <property name="status" value="Skipped" />
+                           <property name="message" value="There are no bugs to process." />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="activity" value="bugzilla_retrieveBugs" />
+                              <with-param name="status" value="{$ctx:status}" />
+                              <with-param name="message" value="{$ctx:message}" />
+                           </call-template>
+                           <loopback />
+                        </then>
+                        <else>
+						   <!--FOR EACH Bug : BEGIN-->
+                           <iterate continueParent="false" id="bugIterator" expression="//bugs" sequential="true">
+                              <target>
+                                 <sequence>
+                                    <property name="messageType" value="application/json" scope="axis2" />
+                                    <property name="bugzilla.id" expression="json-eval($.bugs.id)" />
+                                    <property name="bugzilla.isBillable" expression="json-eval($.bugs.cf_isbugbillable)" />
+                                    <property name="tsheets.taskId" expression="json-eval($.bugs.cf_taskid)" />
+                                    <property name="bugzilla.description" expression="json-eval($.bugs.summary)" />
+                                    <property name="bugzilla.creationTime" expression="json-eval($.bugs.creation_time)" />
+                                    <property name="bugzilla.product" expression="json-eval($.bugs.product)" />
+                                    <property name="bugzilla.component" expression="json-eval($.bugs.component)" />
+                                    <property name="bugzilla.hasInvoiced" expression="json-eval($.bugs.cf_hasinvoiced)" />
+									
+                                    <script language="js">
+									<![CDATA[
+										var startDate=mc.getProperty('bugzilla.creationTime');
+										startDate=startDate.split('T')[0];
+										mc.setProperty("tsheets.startDate",startDate);
+                        
+										var currentDate=new Date();
+										var currentday=""+currentDate.getDate();
+										if(currentday.length==1){
+											currentday="0"+currentday;
+										}
+										var month=""+Number(currentDate.getMonth()+1);
+										if(month.length==1){
+											month="0"+month;
+										}  
+										var dateString=currentDate.getFullYear() + "-" + month + "-" + currentday ;
+										mc.setProperty('tsheets.endDate', dateString);
+									]]>
+                                    </script>
+
+                                    <property name="freshdesk.ticketId" expression="json-eval($.bugs.cf_freshdesk_ticketid)" />
+
+                                    <filter xpath="get-property('bugzilla.hasInvoiced') !='null'">
+                                       <then>
+                                          <property name="id" expression="fn:concat('bugId:',get-property('bugzilla.id'))" />
+                                          <property name="status" value="Skipped" />
+                                          <property name="message" value="This bug has been invoiced already." />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="activity" value="zohobooks_createInvoice" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+										  <!-- Calling freshDesk_updateTicketsSeq sequence to update tickets as resolved  in FreshDesk doesn't exist -->
+										  <sequence key="freshDesk_updateTicketsSeq" />
+										  
+                                          <filter xpath="get-property('bugzilla.isBillable') !='true'">
+                                             <then>
+                                                <property name="id" expression="fn:concat('bugId:',get-property('bugzilla.id'))" />
+                                                <property name="message" value="This bug is not billable." />
+                                                <property name="status" value="Skipped" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="activity" value="zohobooks_createInvoice" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <filter xpath="get-property('tsheets.taskId') = '0'">
+                                                   <then>
+                                                      <property name="id" expression="fn:concat('bugId:',get-property('bugzilla.id'))" />
+                                                      <property name="status" value="Skipped" />
+                                                      <property name="message" value="There is no task ID given for the bug." />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="activity" value="tsheet_retrieveTimeSheets" />
+                                                         <with-param name="status" value="{$ctx:status}" />
+                                                         <with-param name="message" value="{$ctx:message}" />
+                                                      </call-template>
+                                                   </then>
+                                                   <else>
+													 <!-- Call tsheets connector listTimeSheets method to list timesheets -->
+                                                      <tsheets.init>
+                                                         <accessToken>{$ctx:tsheets.accessToken}</accessToken>
+                                                         <apiUrl>{$ctx:tsheets.apiUrl}</apiUrl>
+                                                      </tsheets.init>
+                                                      <tsheets.listTimeSheets>
+                                                         <jobCodeIds>{$ctx:tsheets.taskId}</jobCodeIds>
+                                                         <startDate>{$ctx:tsheets.startDate}</startDate>
+                                                         <endDate>{$ctx:tsheets.endDate}</endDate>
+                                                      </tsheets.listTimeSheets>
+                                                      <property name="tsheets.timeSheets" expression="json-eval($.results.timesheets)" />
+
+                                                      <filter xpath="get-property('tsheets.timeSheets') = '[]'">
+                                                         <then>
+                                                            <property name="id" expression="fn:concat('bugId:',get-property('bugzilla.id'))" />
+                                                            <property name="status" value="Skipped" />
+                                                            <property name="message" value="There are no timesheets associated with the bug." />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="activity" value="tsheets_retrieveTimeSheets" />
+                                                               <with-param name="status" value="{$ctx:status}" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                         </then>
+                                                         <else>
+                                                            <script language="js"><![CDATA[
+																payload = mc.getPayloadJSON();
+                                    
+																var timeSheet = payload.results.timesheets;
+																var allJobCodes = payload.supplemental_data.jobcodes;
+																var bugId = mc.getProperty('bugzilla.id');
+																var bugComponent = mc.getProperty('bugzilla.component');
+                                    
+																var tDate = "";
+																var tDuration = 0 ;
+																var jobCodeId = "";
+																var childJobName = "";
+																var parentJobCode = "";
+																var jobCodeRate = "";
+																var datesArray = [];
+                           
+																for(var key in timeSheet) {
+																	var timeSheetId = timeSheet[key];
+																	tDate = timeSheetId['date']; 
+																	datesArray.push(tDate);
+																	tDuration += timeSheetId['duration']; 
+																	jobCodeId = timeSheetId['jobcode_id'];
+																}
+																
+																var maxDate = datesArray[0];
+																for(var i=0;i<datesArray.length;i++) {
+																	if (datesArray[i] > maxDate)
+																		maxDate = datesArray[i];
+																	}
+																for(var key in allJobCodes) {
+																	var allJobCodeIds = allJobCodes[key];
+																	var jobCodes = allJobCodeIds['id']; 
+																	if(jobCodes == jobCodeId) {
+																		childJobName = allJobCodeIds['name'];
+																		parentJobCode = allJobCodeIds['parent_id'];
+																		break;
+																	}
+																}
+																for(var key in allJobCodes) {
+																	var allJobCodeIds = allJobCodes[key];
+																	var jobCodes = allJobCodeIds['id']; 
+																	if(jobCodes == parentJobCode) {
+																		jobCodeRate = allJobCodeIds['billable_rate'];
+																		break;
+																	}
+																}
+																
+															    var noOfHours = tDuration/3600;     
+																var roundedHours = noOfHours.toFixed(2);
+            
+																var hours = roundedHours.split('.')[0];
+            
+																var minutes = roundedHours.split('.')[1];
+																if(hours.length == 1) {
+																	hours = "0"+hours;
+																}
+																var logTime = hours + ":" + minutes ;
+            
+																mc.setProperty("zohobooks.logTime",logTime);
+																mc.setProperty("zohobooks.invoiceHours",roundedHours);
+                                       
+																var timeEntryObject = eval("(" + mc.getProperty('timeEntryMap') + ")");
+																var userId = timeEntryObject[bugComponent];
+																mc.setProperty("zohobooks.userId", userId);
+														
+																mc.setProperty("tsheet.date",maxDate);
+																mc.setProperty("zohobooks.taskName",childJobName);
+																mc.setProperty("zohobooks.rate",jobCodeRate);
+															]]></script>
+
+                                                            <filter source="boolean(get-property('zohobooks.userId') )" regex="false">
+                                                               <then>
+                                                                  <property name="id" expression="fn:concat('bugId:',get-property('bugzilla.id'))" />
+                                                                  <property name="status" value="Skipped" />
+                                                                  <property name="message"
+                                                                     expression="fn:concat('Mapping user ID in ZohoBooks for the component of the bug ',get-property('bugzilla.component'),' cannot be found in the request.')" />
+                                                                  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="id" value="{$ctx:id}" />
+                                                                     <with-param name="activity" value="zohobooks_getUser" />
+                                                                     <with-param name="status" value="{$ctx:status}" />
+                                                                     <with-param name="message" value="{$ctx:message}" />
+                                                                  </call-template>
+                                                               </then>
+                                                               <else>
+
+                                                                  <property name="lineItemDescription"
+                                                                     expression="fn:concat('[ Component :',get-property('bugzilla.component'),' ; Bug ID :',get-property('bugzilla.id'),' ]')" />
+																  <!-- Calling createTasksAndTimeEntries Template to create tasks, time entries in zohobooks -->
+                                                                  <call-template target="createTasksAndTimeEntries">
+																	<!-- parameter values will be passed on to a sequence template -->
+                                                                     (
+                                                                     <with-param name="zohobooks.apiUrl" value="{$ctx:zohobooks.apiUrl}" />
+                                                                     |
+                                                                     <with-param name="zohobooks.authToken" value="{$ctx:zohobooks.authToken}" />
+                                                                     |
+                                                                     <with-param name="zohobooks.organizationId" value="{$ctx:zohobooks.organizationId}" />
+                                                                     |
+                                                                     <with-param name="zohobooks.projectId" value="{$ctx:zohobooks.projectId}" />
+                                                                     |
+                                                                     <with-param name="zohobooks.timeEntryDate" value="{$ctx:tsheet.date}" />
+                                                                     |
+                                                                     <with-param name="zohobooks.logTime" value="{$ctx:zohobooks.logTime}" />
+                                                                     |
+                                                                     <with-param name="zohobooks.invoiceHours" value="{$ctx:zohobooks.invoiceHours}" />
+                                                                     |
+                                                                     <with-param name="zohobooks.userId" value="{$ctx:zohobooks.userId}" />
+                                                                     |
+                                                                     <with-param name="zohobooks.taskName" value="{$ctx:zohobooks.taskName}" />
+                                                                     |
+                                                                     <with-param name="tsheet.timesheetId" value="{$ctx:timeSheet.id}" />
+                                                                     |
+                                                                     <with-param name="zohobooks.taskRate" value="{$ctx:zohobooks.rate}" />
+                                                                     |
+                                                                     <with-param name="bugzilla.id" value="{$ctx:bugzilla.id}" />
+                                                                     |
+                                                                     <with-param name="bugzilla.description" value="{$ctx:lineItemDescription}" />
+                                                                     |
+                                                                     ) *
+                                                                  </call-template>
+                                                               </else>
+                                                            </filter>
+                                                         </else>
+                                                      </filter>
+                                                   </else>
+                                                </filter>
+
+                                             </else>
+                                          </filter>
+                                       </else>
+                                    </filter>
+                                    <property name="bugIndex" expression="get-property('operation','bugIndex') + 1" scope="operation" />
+
+                                    <filter xpath="(get-property('operation','bugIndex') = get-property('operation', 'bugsCount'))">
+                                       <then>
+                                          <property name="invoiceObjects"
+                                             expression="fn:substring(get-property('operation','invoiceObjects'), 1, fn:string-length(get-property('operation','invoiceObjects'))-1)" />
+
+                                          <filter xpath="get-property('invoiceObjects') = ''">
+                                             <then>
+                                                <property name="id" value="{}" />
+                                                <property name="status" value="Skipped" />
+                                                <property name="message" value="There are no bugs to create an invoice." />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="activity" value="zohobooks_createInvoice" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+												<loopback/>
+                                             </then>
+                                             <else>
+                                                <payloadFactory media-type="json">
+                                                   <format>{
+                                                      "line_items": [$1]
+                                                      }
+                                                   </format>
+                                                   <args>
+                                                      <arg expression="get-property('invoiceObjects')" />
+                                                   </args>
+                                                </payloadFactory>
+
+                                                <property name="zohobooks.invoiceItems" expression="json-eval($.line_items)" />
+
+                                <!-- Call zohobooks connector createInvoice method to create invoice for the bug.-->
+                                                <zohobooks.init>
+                                                   <authToken>{$ctx:zohobooks.authToken}</authToken>
+                                                   <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                                                   <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                                                </zohobooks.init>
+                                                <zohobooks.createInvoice>
+                                                   <customerId>{$ctx:zohobooks.customerId}</customerId>
+                                                   <contactPersons>{$ctx:zohobooks.contactPerson}</contactPersons>
+                                                   <lineItems>{$ctx:zohobooks.invoiceItems}</lineItems>
+                                                   <send>true</send>
+                                                </zohobooks.createInvoice>
+                                                <property name="zohobooks.invoiceId" expression="json-eval($.invoice.invoice_id)" />
+
+                                                <filter source="boolean(get-property('zohobooks.invoiceId'))" regex="false">
+                                                   <then>
+                                                      <property name="id" value="{}" />
+                                                      <property name="status" value="error" />
+                                                      <property name="message" expression="json-eval($)" />
+                                                   </then>
+                                                   <else>
+                                                      <property name="id" expression="fn:concat('zohobooksInvoiceId:',get-property('zohobooks.invoiceId'))" />
+                                                      <property name="status" value="success" />
+                                                      <property name="message" value="Invoice has been created for resolved bugs." />
+                                                   </else>
+                                                </filter>
+												<!--Call the responseHandler template-->
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="zohobooks_createInvoices" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+
+                                                <filter source="boolean(get-property('zohobooks.invoiceId'))" regex="true">
+                                                   <then>
+													  <!-- Calling bugzilla-updateBugsSeq sequence to update bugs with invoice Id-->
+                                                      <sequence key="bugzilla-updateBugsSeq" />
+                                                   </then>
+                                                </filter>
+                                             </else>
+                                          </filter>
+
+                                          <filter xpath="(get-property('operation','updatedBugIndex') = get-property('operation', 'updatedBugsCount'))">
+                                             <then>
+                                                <loopback />
+                                             </then>
+                                          </filter>
+                                       </then>
+                                    </filter>
+                                 </sequence>
+                              </target>
+                           </iterate>
+						   <!--FOR EACH Bug : END-->
+                        </else>
+                     </filter>
+                  </then>
+               </filter>
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>{
+               "Response":{
+					"process":"bugzilla-manageResolvedBugs",
+					"activityResponse":[$1]
+               }
+            }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
