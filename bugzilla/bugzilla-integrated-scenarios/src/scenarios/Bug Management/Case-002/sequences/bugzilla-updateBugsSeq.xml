@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="bugzilla-updateBugsSeq">
+
+   <property name="bugIds" expression="fn:substring(get-property('operation','bugIdString'), 1, fn:string-length(get-property('operation','bugIdString'))-1)" />
+
+   <payloadFactory media-type="json">
+      <format>{
+			"bugArray": [$1]
+         }
+      </format>
+      <args>
+         <arg expression="get-property('bugIds')" />
+      </args>
+   </payloadFactory>
+
+   <property name="bugArray" expression="json-eval($.bugArray)" />
+
+   <property name="updatedBugsCount" expression="count(//bugArray)" scope="operation" />
+   <property name="updatedBugIndex" expression="0" scope="operation" />
+
+   <iterate continueParent="false" id="bugIterator" expression="//bugArray" sequential="true">
+      <target>
+         <sequence>
+            <property name="bugzilla.id" expression="json-eval($.bugArray)" />
+
+            <payloadFactory media-type="json">
+               <format>{
+                  "customFields":
+					{
+						"cf_hasinvoiced":"$1"
+					}
+                  }
+               </format>
+               <args>
+                  <arg expression="get-property('zohobooks.invoiceId')" />
+               </args>
+            </payloadFactory>
+
+            <property name="bugzilla.invoiceId" expression="json-eval($.customFields)" />
+
+           <!-- Call bugzilla connector updateBug method to update the bug with timeSheet IDs -->
+            <bugzilla.init>
+               <apiUrl>{$ctx:bugzilla.apiUrl}</apiUrl>
+               <apiKey>{$ctx:bugzilla.apiKey}</apiKey>
+            </bugzilla.init>
+            <bugzilla.updateBug>
+               <bugId>{$ctx:bugzilla.id}</bugId>
+               <customFields>{$ctx:bugzilla.invoiceId}</customFields>
+            </bugzilla.updateBug>
+            <property name="updateBugResponse" expression="json-eval($.bugs[0].changes)" />
+			<property name="statusCode" expression="$axis2:HTTP_SC"/>
+            
+			<filter xpath="get-property('statusCode') !='200'">
+               <then>
+                  <property name="id" expression="fn:concat('bugId:',get-property('bugzilla.id'))" />
+                  <property name="status" value="error" />
+                  <property name="message" expression="json-eval($)" />
+				  
+				  <!--Call the responseHandler template-->
+			   <call-template target="responseHandlerTemplate">
+				   <with-param name="activity" value="bugzilla_updateBug" />
+				   <with-param name="id" value="{$ctx:id}" />
+                   <with-param name="status" value="{$ctx:status}" />
+                   <with-param name="message" value="{$ctx:message}" />
+			   </call-template>
+               </then>
+            </filter>
+            <property name="updatedBugIndex" expression="get-property('operation','updatedBugIndex') + 1" scope="operation" />
+         </sequence>
+      </target>
+   </iterate>
+</sequence>

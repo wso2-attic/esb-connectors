@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="freshDesk_updateTicketsSeq">
+
+   <property name="idObject" expression="fn:concat('{bugId:',get-property('bugzilla.id'),'}')" />
+
+   <!-- Calling FreshDesk updateTicket method to change the ticket status as resolved -->
+   <freshdesk.init>
+      <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+      <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+      <format>json</format>
+   </freshdesk.init>
+   <freshdesk.updateTicket>
+      <ticketId>{$ctx:freshdesk.ticketId}</ticketId>
+      <status>Resolved</status>
+   </freshdesk.updateTicket>
+
+   <filter source="$axis2:HTTP_SC" regex="200">
+      <then>
+         <property name="ticketStatus" expression="json-eval($.ticket.status_name)" />
+         <filter xpath="get-property('ticketStatus')='Resolved'">
+            <then>
+               <property name="idObject"
+                  expression="fn:concat('bugId:',get-property('bugzilla.id'),',ticketId:',get-property('freshdesk.ticketId'))" />
+               <property name="status" value="success" />
+               <property name="message" value="Ticket has been successfully updated as resolved." />
+            </then>
+            <else>
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($.)" />
+            </else>
+         </filter>
+
+      </then>
+      <else>
+         <property name="status" value="error" />
+         <property name="message" expression="json-eval($.)" />
+      </else>
+   </filter>
+
+   <call-template target="responseHandlerTemplate">
+      <with-param name="id" value="{$ctx:idObject}" />
+      <with-param name="activity" value="freshdesk_updateTicket" />
+      <with-param name="status" value="{$ctx:status}" />
+      <with-param name="message" value="{$ctx:message}" />
+   </call-template>
+
+</sequence>
