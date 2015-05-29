@@ -361,6 +361,7 @@ public class EloquaConnectorIntegrationTest extends ConnectorIntegrationTestBase
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 201);
 
         String exportUri = esbRestResponse.getBody().get("uri").toString();
+        connectorProperties.put("syncedInstanceUri", exportUri);
         String exportId = exportUri.substring(18, exportUri.length());
         connectorProperties.put("contactExportId", exportId);
         String apiEndPoint =
@@ -445,9 +446,8 @@ public class EloquaConnectorIntegrationTest extends ConnectorIntegrationTestBase
         String methodName = "createContactImport";
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "createContactImport.json");
-
-        String importUri = esbRestResponse.getBody().get("uri").toString();
-        connectorProperties.put("syncedInstanceUri", importUri);
+       String importUri = esbRestResponse.getBody().get("uri").toString();
+//        connectorProperties.put("syncedInstanceUri", importUri);
         String importId = importUri.substring(18, importUri.length());
         connectorProperties.put("contactImportId", importId);
         String apiEndPoint =
@@ -693,7 +693,7 @@ public class EloquaConnectorIntegrationTest extends ConnectorIntegrationTestBase
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "getSyncs.json");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
-        Assert.assertEquals(esbRestResponse.getBody().toString(), apiRestResponse.getBody().toString());
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
     }
 
     /**
@@ -808,7 +808,7 @@ public class EloquaConnectorIntegrationTest extends ConnectorIntegrationTestBase
         String methodName = "getSyncsDataById";
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "getSyncsDataById.json");
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 500);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
     }
 
 
