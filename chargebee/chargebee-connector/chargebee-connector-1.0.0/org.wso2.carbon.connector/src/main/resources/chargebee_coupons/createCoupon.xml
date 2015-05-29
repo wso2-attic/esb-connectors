@@ -28,8 +28,7 @@
    <parameter name="applyOn" description="The invoice items for which the discounts need to be applied." />
    <parameter name="planConstraint" description="Plans the coupon can be applied to." />
    <parameter name="addonConstraint" description="Addons the coupon can be applied to." />
-   <parameter name="planIds" description="List of IDs of the plans." />
-   <parameter name="addonIds" description="List of IDs of the addons." />
+   <parameter name="planAndAddonIds" description="JSON Object containing all the IDs of the plans and addons." />
    <parameter name="durationType" description="Specifies the time duration the coupon is applicable." />
    <parameter name="durationMonth" description="The duration in months for the coupon to be applied." />
    <parameter name="validTill" description="Date upto which the coupon can be applied to new subscriptions." />
@@ -46,32 +45,18 @@
       <property name="uri.var.applyOn" expression="$func:applyOn" />
       <property name="uri.var.planConstraint" expression="$func:planConstraint" />
       <property name="uri.var.addonConstraint" expression="$func:addonConstraint" />
-      <property name="uri.var.planIds" expression="$func:planIds" />
-      <property name="uri.var.addonIds" expression="$func:addonIds" />
+      <property name="uri.var.planAndAddonIds" expression="$func:planAndAddonIds" />
       <property name="uri.var.durationType" expression="$func:durationType" />
       <property name="uri.var.durationMonth" expression="$func:durationMonth" />
       <property name="uri.var.validTill" expression="$func:validTill" />
       <property name="uri.var.maxRedemptions" expression="$func:maxRedemptions" />
       <property name="uri.var.invoiceNotes" expression="$func:invoiceNotes" />
-      <payloadFactory media-type="json">
-         <format> 
-            { 
-               "id": "$1", 
-               "name": "$2", 
-               "discount_type":"$3", 
-               "apply_on":"$4" 
-            }
-         </format>
-         <args>
-            <arg expression="get-property('uri.var.couponId')" />
-            <arg expression="get-property('uri.var.couponName')" />
-            <arg expression="get-property('uri.var.discountType')" />
-            <arg expression="get-property('uri.var.applyOn')" />
-         </args>
-      </payloadFactory>
       <script language="js">
          <![CDATA[
-            //request body optional parameters
+            var couponId = mc.getProperty('uri.var.couponId');
+            var couponName = mc.getProperty('uri.var.couponName');
+            var discountType = mc.getProperty('uri.var.discountType');
+            var applyOn = mc.getProperty('uri.var.applyOn');
             var invoiceName = mc.getProperty('uri.var.invoiceName');
             var discountAmount = mc.getProperty('uri.var.discountAmount');
             var discountPercentage = mc.getProperty('uri.var.discountPercentage');
@@ -79,13 +64,40 @@
             var durationType = mc.getProperty('uri.var.durationType');
             var planConstraint = mc.getProperty('uri.var.planConstraint');
             var addonConstraint = mc.getProperty('uri.var.addonConstraint');
-            var planIds = mc.getProperty('uri.var.planIds');
-            var addonIds = mc.getProperty('uri.var.addonIds');
+            var planAndAddonIds = mc.getProperty('uri.var.planAndAddonIds');
             var durationMonth = mc.getProperty('uri.var.durationMonth');
             var validTill = mc.getProperty('uri.var.validTill');
             var maxRedemptions = mc.getProperty('uri.var.maxRedemptions');
             var invoiceNotes = mc.getProperty('uri.var.invoiceNotes');
-            var payload = mc.getPayloadJSON();
+            // Add the planAndAddonIds parameter containing both plan Ids an the addon Ids
+            // Directly added to the payload, since the paramters contain multiple occurrences
+            if (planAndAddonIds != null && planAndAddonIds != "") {
+               payload = eval("(" + planAndAddonIds + ")");
+            } else {
+               payload = new Object();
+            }
+            //Add the mandatory parameters to the payload
+            if (couponId != null && couponId != "") {
+               payload.id = couponId;
+            } else {
+               payload.id = "";
+            }
+            if (couponName != null && couponName != "") {
+               payload.name = couponName;
+            } else {
+               payload.name = "";
+            }
+            if (discountType != null && discountType != "") {
+               payload.discount_type = discountType;
+            } else {
+               payload.discount_type = "";
+            }
+            if (applyOn != null && applyOn != "") {
+               payload.apply_on = applyOn;
+            } else {
+               payload.apply_on = "";
+            }
+            //Add the optional parameters to the payload
             if (invoiceName != null && invoiceName != "") {
                payload.invoice_name = invoiceName;
             }
@@ -106,12 +118,6 @@
             }
             if (addonConstraint != null && addonConstraint != "") {
                payload.addon_constraint = addonConstraint;
-            }
-            if (planIds != null && planIds != "") {
-               payload.plan_ids = planIds;
-            }
-            if (addonIds != null && addonIds != "") {
-               payload.addon_ids = addonIds;
             }
             if (durationMonth != null && durationMonth != "") {
                payload.duration_month = durationMonth;
