@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="chargebee_addInvoicesToBilliving"
+       transports="https,http"
+       statistics="disable"
+       trace="disable"
+       startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- ChargeBee API call related properties -->
+         <property name="chargebeeApiUrl" expression="json-eval($.chargebeeApiUrl)" />
+         <property name="chargebeeApiKey" expression="json-eval($.chargebeeApiKey)" />
+         <property name="chargebeePaidOnAfter" expression="json-eval($.chargebeePaidOnAfter)" />
+
+         <!-- Billiving API call related properties -->
+         <property name="billivingApiUrl" value="https://www.billiving.com"/>
+         <property name="billivingAccessToken" expression="json-eval($.billivingAccessToken)"/>
+
+         <property name="selectedInvoices" expression="0" scope="operation" />         
+         <property name="responseString" value="" scope="operation" />
+         
+         <!-- Call the sequence to recursively fetch ChargeBee invoice list of multiple pages using the offset parameter in the response -->
+         <sequence key="addInvoicesToBillivingSeq" />
+
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+
+         <!-- Generate the chained response of all the API calls in createLeads -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"chargebee_addInvoicesToBilliving",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

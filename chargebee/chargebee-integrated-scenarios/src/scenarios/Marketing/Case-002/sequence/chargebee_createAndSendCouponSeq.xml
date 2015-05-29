@@ -1,0 +1,156 @@
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="chargebee_createAndSendCouponSeq">
+
+   <!-- Retrieve all customers -->
+   <chargebee.init>
+      <apiUrl>{$ctx:chargebeeApiUrl}</apiUrl>
+      <apiKey>{$ctx:chargebeeApiKey}</apiKey>
+   </chargebee.init>
+   <chargebee.listCustomers>
+      <offset>{$ctx:chargebeeOffset}</offset>
+   </chargebee.listCustomers>
+
+   <property name="responseStatus" expression="$axis2:HTTP_SC" />
+   <filter xpath="get-property('responseStatus') != 200">
+      <then>
+         <property name="id" value="{}" />
+         <property name="apiErrorMessage" expression="json-eval($.message)" />
+         <property name="errorMessage" expression="fn:concat('(',$axis2:HTTP_SC,'), ', get-property('apiErrorMessage'))" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="chargebee_listCustomers" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Error" />
+            <with-param name="message" value="{$ctx:errorMessage}" />
+         </call-template>
+         <loopback />
+      </then>
+   </filter>
+
+   <property name="customerCount" expression="count(//list)" scope="operation" />
+   <property name="customerIndex" expression="0" scope="operation" />
+
+   <filter xpath="0 = get-property('operation', 'customerCount')">
+      <then>
+         <property name="id" value="{}" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="chargebee_listCustomers" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Error" />
+            <with-param name="message" value="No customers were returned from ChargeBee" />
+         </call-template>
+         <loopback />
+      </then>
+   </filter>
+
+   <property name="chargebeeOffsetValue" expression="//jsonObject/next_offset/text()" />
+
+   <iterate id="customerIterator" expression="//list" sequential="true" continueParent="true" preservePayload="true">
+      <target>
+         <sequence>
+            <property name="customerEmail" expression="//customer/email" />
+
+            <!-- Filter customers with email -->
+            <filter xpath="boolean(get-property('customerEmail'))">
+               <then>
+                  <property name="customerFirstName" expression="//customer/first_name" />
+
+
+                  <!-- Construct the gmail body. -->
+                  <payloadFactory media-type="json">
+                     <format>{
+                        "mailSubject": "Special offer is available to you.",
+                        "mailContent": "Hi $1,\n\nWe are introducing a coupon [$2] as a special offer. $3 \n\nThank You."
+                        }
+                     </format>
+                     <args>
+                        <arg expression="get-property('customerFirstName')" />
+                        <arg expression=" get-property('chargebeeCouponId')" />
+                        <arg expression="get-property('mailCouponDetails')" />
+                        <arg expression="get-property('operation', 'planCode')" />
+                     </args>
+                  </payloadFactory>
+                  <property name="gmailSubject" expression="json-eval($.mailSubject)" />
+                  <property name="gmailTextContent" expression="json-eval($.mailContent)" />
+                  <!-- Send email. -->
+                  <gmail.gmailinit>
+                     <access_token>{$ctx:gmailOAuthAccessToken}</access_token>
+                     <userId>{$ctx:gmailUsername}</userId>
+                  </gmail.gmailinit>
+                  <gmail.createAMail>
+                     <to>{$ctx:customerEmail}</to>
+                     <subject>{$ctx:gmailSubject}</subject>
+                     <from>{$ctx:gmailFromAddress}</from>
+                     <messageBody>{$ctx:gmailTextContent}</messageBody>
+                  </gmail.createAMail>
+                  <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                  <filter xpath="get-property('responseStatus') != 200">
+                     <then>
+                        <property name="status" value="Failed" />
+                        <filter xpath="get-property('responseStatus') = 404">
+                           <then>
+                              <property name="message" value="Invalid Credentials" />
+                              <property name="id" expression="fn:concat('email:',get-property('customerEmail'))" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="gmail_sendMails" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="Skipped" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                              <loopback />
+                           </then>
+                           <else>
+                              <property name="gmailSendFailedIndex" expression="get-property('operation','gmailSendFailedIndex') + 1"
+                                 scope="operation" />
+                           </else>
+                        </filter>
+                     </then>
+                     <else>
+                        <property name="gmailSentIndex" expression="get-property('operation','gmailSentIndex') + 1"
+                           scope="operation" />
+                     </else>
+                  </filter>
+                  <property name="customerIndex" expression="get-property('operation','customerIndex') + 1"
+                     scope="operation" />
+               </then>
+            </filter>
+         </sequence>
+      </target>
+   </iterate>
+
+   <filter xpath="get-property('operation', 'customerCount') = get-property('operation', 'customerIndex')">
+      <then>
+         <!-- Call the sequence recursively with the next offset value -->
+         <filter xpath="boolean(get-property('chargebeeOffsetValue'))">
+            <then>
+               <property name="chargebeeOffset" expression="get-property('chargebeeOffsetValue')" />
+               <sequence key="chargebee_createAndSendCouponSeq" />
+            </then>
+            <else>
+               <property name="chargebeeOffsetFinal" value="true" />
+            </else>
+         </filter>
+         <filter source="get-property('chargebeeOffsetFinal')" regex="true">
+            <property name="id" expression="fn:concat('chargebeeCouponId:', get-property('chargebeeCouponId'))" />
+            <filter xpath="get-property('operation', 'gmailSendFailedIndex') &gt; 0">
+               <then>
+                  <property name="message"
+               expression="fn:concat('Coupon details have been successfully sent to ',fn:substring-before(get-property('operation','gmailSentIndex'),'.0'),' customers and failed to send to ',fn:substring-before(get-property('operation','gmailSendFailedIndex'),'.0'),' customers')" />
+           
+               </then>
+               <else>
+                  <property name="message"
+                     expression="fn:concat('Coupon details have been successfully sent to ',fn:substring-before(get-property('operation','gmailSentIndex'),'.0'),' customers.')" />
+               </else>
+            </filter>
+            <call-template target="responseHandlerTemplate">
+               <with-param name="activity" value="gmail_sendMail" />
+               <with-param name="id" value="{$ctx:id}" />
+               <with-param name="status" value="Success" />
+               <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+            <loopback />
+         </filter>
+      </then>
+   </filter>
+
+</sequence>
+   
