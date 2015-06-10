@@ -20,11 +20,9 @@ Note:
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.8.1 from official website.
+ 1. Download ESB 4.9.0-ALPHA.
  
- 2. Deploy relevant patches, if applicable.
- 
- 3. The ESB should be configured as below.
+ 2. The ESB should be configured as below.
 	i) Please make sure that the below mentioned Axis configurations are enabled (/repository/conf/axis2/axis2.xml).
 		
 		Message Formatter :
@@ -41,9 +39,9 @@ Steps to follow in setting integration test.
 		Message Builder :
 		<messageBuilder contentType="multipart/form-data" class="org.apache.axis2.builder.MultipartFormDataBuilder"/>
 
- 4. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Canvas_Connector_Home}/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 3. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/"..
 
- 5. Prerequisites for Canvas Connector Integration Testing
+ 4. Prerequisites for Canvas Connector Integration Testing
 
 		i) 	Create a Canvas account using the URL "https://canvas.instructure.com/register_from_website".
 			Note: Sign-up as a Teacher account (Select "I'm a Teacher" option) when the creating a new Canvas account.
@@ -52,10 +50,10 @@ Steps to follow in setting integration test.
 		
 		iii) Retrieve a new access token from canvas dashboard "settings" tab, by selecting "New Access Token" option. 
 
- 6. Update the Canvas properties file at location "{Canvas_Connector_Home}/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 5. Update the Canvas properties file at location "{Canvas_Connector_Home}/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i)		apiUrl					-	Use the API URL as "https://canvas.instructure.com".
-	ii)		accessToken				-	Place the created access token in step 5 [iii].
+	ii)		accessToken				-	Place the created access token in step 4 [iii].
 	iii)	calenderEventStartDate	-	Date for create calendar event start (The date must be a future date and date format should be as '2014-10-21').
 	iv)		eventTitle				-	Title for create event.
 	v)		eventDescription		-	Description for the event creation.
@@ -68,8 +66,12 @@ Steps to follow in setting integration test.
 	xii)	courseCode				-	Short course code for create course optional case (e.g.:JMS).
 	
 	
- 7. Navigate to "{Canvas_Connector_Home}/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+ 6. Make sure that the canvas connector is set as a module in esb-connectors parent pom.
+       <module>canvas/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector</module>
+
+
+ 7. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+       $ mvn clean install
 
 
  NOTE : Following are the credentials for the Canvas account used for integration tests.

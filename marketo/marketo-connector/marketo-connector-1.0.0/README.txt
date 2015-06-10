@@ -36,11 +36,11 @@ STEPS:
  
       - marketoInstanceURL - Url of your marketo instance.
 
-      - clientId - Use the clientId you got from step 3.
+      - clientId - Use the clientId you got from step 4.
 	
-	  - clientSecret - Use the clientSecret you got from step 3.
+	  - clientSecret - Use the clientSecret you got from step 4.
 	
-      - accessToken - Use the accessToken you got from step 3.
+      - accessToken - Use the accessToken you got from step 4.
 
       - Unique values for leadFirstName, leadLastName, leadEmail, leadFirstNameOptional1, leadLastNameOptional, leadEmailOptional1,
         leadFirstNameOptional2, leadLastNameOptional2, leadEmailOptional2, leadFirstNameOptional3,leadLastNameOptional3, leadEmailOptional3
