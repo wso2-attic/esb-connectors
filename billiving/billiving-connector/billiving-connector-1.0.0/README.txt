@@ -41,7 +41,7 @@ STEPS:
 5. Update the property file billiving.properties found in <BILLIVING_CONNECTOR_HOME>/billiving-connector/billiving-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config as follows:
 
     i)    apiUrl              -  API endpoint to which the service calls are made. e.g. https://www.billiving.com.
-    ii)   accessToken         -  Use the Access token obtained in Step 3 - ii.
+    ii)   accessToken         -  Use the Access token obtained in Step 2 - ii.
     iii)  internalNotes       -  Use Any string value.
     iv)   clientEmail         -  Use a valid email address.
     v)    clientEmailoptional -  Use a valid email address.
