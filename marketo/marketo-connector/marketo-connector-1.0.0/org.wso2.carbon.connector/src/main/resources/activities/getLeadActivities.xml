@@ -58,39 +58,46 @@
                       uri-template="{uri.var.apiUrl}/activities.json?{uri.var.activityTypeId}&amp;nextPageToken={uri.var.nextPageToken}&amp;{uri.var.apiParameters}"/>
             </endpoint>
         </call>
-        <property name="nextPageToken" expression="//nextPageToken/text()" scope="default" type="STRING"/>
-        <property name="moreResult" expression="//moreResult/text()" scope="default" type="STRING"/>
-        <filter xpath="boolean(//result)">
+        <filter xpath="get-property('uri.var.batchSize') = '' or (string(get-property('uri.var.batchSize')))">
             <then>
-                <enrich>
-                    <source type="property" property="RESULTS"/>
-                    <target type="body" action="child"/>
-                </enrich>
-                <enrich>
-                    <source type="custom" clone="true" xpath="//result"/>
-                    <target type="property" property="RESULTS"/>
-                </enrich>
+                <respond/>
             </then>
+            <else>
+                <property name="nextPageToken" expression="//nextPageToken/text()" scope="default" type="STRING"/>
+                <property name="moreResult" expression="//moreResult/text()" scope="default" type="STRING"/>
+                <filter xpath="boolean(//result)">
+                    <then>
+                        <enrich>
+                            <source type="property" property="RESULTS"/>
+                            <target type="body" action="child"/>
+                        </enrich>
+                        <enrich>
+                            <source type="custom" clone="true" xpath="//result"/>
+                            <target type="property" property="RESULTS"/>
+                        </enrich>
+                    </then>
+                </filter>
+                <filter xpath="((get-property('moreResult') = 'true' )) and (get-property('uri.var.batchSize') = '' or (string(get-property('uri.var.batchSize'))))">
+                    <then>
+                        <header name="Authorization" expression="fn:concat('Bearer ',get-property('accessToken'))"
+                                scope="transport"/>
+                        <marketo.getLeadChanges>
+                            <listId>{get-property('uri.var.listId')}</listId>
+                            <fields>{get-property('uri.var.fields')}</fields>
+                            <batchSize>{get-property('uri.var.batchSize')}</batchSize>
+                            <nextPageToken>{get-property('nextPageToken')}</nextPageToken>
+                        </marketo.getLeadChanges>
+                    </then>
+                </filter>
+                <payloadFactory media-type="json">
+                    <format>
+                        $1
+                    </format>
+                    <args>
+                        <arg expression="get-property('RESULTS')"/>
+                    </args>
+                </payloadFactory>
+            </else>
         </filter>
-        <filter xpath="((get-property('moreResult') = 'true' ))">
-            <then>
-                <header name="Authorization" expression="fn:concat('Bearer ',get-property('accessToken'))"
-                        scope="transport"/>
-                <marketo.getLeadActivities>
-                    <listId>{get-property('uri.var.listId')}</listId>
-                    <activityTypeIds>{get-property('uri.var.activityTypeIds')}</activityTypeIds>
-                    <batchSize>{get-property('uri.var.batchSize')}</batchSize>
-                    <nextPageToken>{get-property('nextPageToken')}</nextPageToken>
-                </marketo.getLeadActivities>
-            </then>
-        </filter>
-        <payloadFactory media-type="json">
-            <format>
-                $1
-            </format>
-            <args>
-                <arg expression="get-property('RESULTS')"/>
-            </args>
-        </payloadFactory>
     </sequence>
 </template>

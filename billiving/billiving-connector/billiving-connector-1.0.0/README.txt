@@ -15,20 +15,14 @@ Product: Integration tests for WSO2 ESB Billiving connector
  
 STEPS:
 
-1. Download ESB 4.9.0 by following the URL: https://svn.wso2.org/repos/wso2/people/jeewantha/4.9.0_release/released/M4/wso2esb-4.9.0-SNAPSHOT.zip..
+1. Download ESB 4.9.0-ALPHA by following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/
 
-2. Apply the patches found in https://www.dropbox.com/s/bs83ll1m8kwgylq/patch0009.zip?dl=0 by copying the extracted files into <ESB_HOME>/repository/components/patches.
-
-  Please make sure that the below mentioned Axis configuration is enabled (\repository\conf\axis2\axis2.xml).
-
-    <parameter name="HostnameVerifier">AllowAll</parameter>
-
-3. Follow the below mentioned steps to create a new Billiving account:
+2. Follow the below mentioned steps to create a new Billiving account:
 
     i)   Navigate to the following url and create an account in Billiving: https://www.billiving.com/Signup and activate the account.
     ii)  Login to Billiving account and navigate to 'Settings' and click "API Integration", retrieve the Authentication Token and save it for further use.
 
-4. Follow the below mentioned steps to add valid certificate to access Billiving API over https.
+3. Follow the below mentioned steps to add valid certificate to access Billiving API over https.
 
     i)   Extract the certificate from browser(Mozilla Firefox) by navigating to 'https://www.billiving.com/' 
     ii)  Place the downloaded certificate into "<BILLIVING_CONNECTOR_HOME>/billiving-connector/billiving-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products" folder.
@@ -42,9 +36,9 @@ STEPS:
          NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from Billiving with the extension. (e.g. billiving.crt)
                 CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. Billiving).
 
-5. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
+4. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
 
-6. Update the property file billiving.properties found in <BILLIVING_CONNECTOR_HOME>/billiving-connector/billiving-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config as follows:
+5. Update the property file billiving.properties found in <BILLIVING_CONNECTOR_HOME>/billiving-connector/billiving-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config as follows:
 
     i)    apiUrl              -  API endpoint to which the service calls are made. e.g. https://www.billiving.com.
     ii)   accessToken         -  Use the Access token obtained in Step 3 - ii.
@@ -59,8 +53,8 @@ STEPS:
 
     Note: Use different values for clientEmail and clientEmailoptional for each execution.
 
-7. Make sure that the billiving connector is set as a module in esb-connectors parent pom.
+5. Make sure that the billiving connector is set as a module in esb-connectors parent pom.
       <module>billiving/billiving-connector/billiving-connector-1.0.0/org.wso2.carbon.connector</module>
 
-8. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
       $ mvn clean install

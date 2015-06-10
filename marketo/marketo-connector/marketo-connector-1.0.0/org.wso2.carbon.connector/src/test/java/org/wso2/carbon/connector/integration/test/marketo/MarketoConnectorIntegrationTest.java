@@ -40,6 +40,8 @@ public class MarketoConnectorIntegrationTest extends ConnectorIntegrationTestBas
 
     private String multipartProxyUrl;
 
+//	String authString, authorizationHeader;
+
     /**
      * Set up the environment.
      */
@@ -65,6 +67,22 @@ public class MarketoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         multipartProxyUrl = getProxyServiceURL(multipartPoxyName);
     }
 
+//	/**
+//	 * Retrieve access token
+//	 */
+//	@Test(priority = 1, description = "Marketo {getAccessToken}.")
+//	public void getAccessTokenMethod() throws IOException, JSONException {
+//
+//		String methodName = "init";
+//		RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_init.json");
+//		String accessToken = esbRestResponse.getBody().getString("access_token");
+//		connectorProperties.put("accessToken", accessToken);
+//		authString = connectorProperties.getProperty("accessToken");
+//		System.out.println("12112112112\n\n\n\n\n"+authString);
+//		authorizationHeader = "Bearer " + authString;
+//		apiRequestHeadersMap.put("Authorization", authorizationHeader);
+//	}
+
     /**
      * Positive test case for createAndUpdateLeads method with mandatory parameters.
      */
@@ -79,7 +97,8 @@ public class MarketoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         final String apiUrl = connectorProperties.getProperty("marketoInstanceURL") + "/rest/v1/lead/" + connectorProperties.getProperty("leadId") + ".json";
 
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiUrl, "GET", apiRequestHeadersMap);
-        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("result").getJSONObject(0).getString("id"), connectorProperties.getProperty("leadId"));
+	    System.out.println("12121314134341\n\n\n\n\n\n\n\n"+apiRestResponse.getBody().toString());
+	    Assert.assertEquals(apiRestResponse.getBody().getJSONArray("result").getJSONObject(0).getString("id"), connectorProperties.getProperty("leadId"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONArray("result").getJSONObject(0).getString("firstName"), connectorProperties.getProperty("leadFirstName"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONArray("result").getJSONObject(0).getString("lastName"), connectorProperties.getProperty("leadLastName"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONArray("result").getJSONObject(0).getString("email"), connectorProperties.getProperty("leadEmail"));

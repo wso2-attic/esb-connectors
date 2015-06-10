@@ -14,7 +14,7 @@ Tested Platform:
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file available at "{MARKETO_CONNECTOR_HOME}/marketo-connector/marketo-connector-1.0.0/org.wso2.carbon.connector/repository/"
+ 1. Download the ESB 4.9.0-ALPHA.zip.
 
  2. This ESB should be configured as below;
 	In Axis configurations (/repository/conf/axis2/axis2.xml).
@@ -28,10 +28,11 @@ STEPS:
             <messageBuilder contentType="multipart/form-data" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
  
 
- 3. Create a marketo instance and get the clientId and clientSecret. See, "http://developers.marketo.com/blog/quick-start-guide-for-marketo-rest-api/"
+ 3. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
 
+ 4. Create a marketo instance and get the clientId and clientSecret. See, "http://developers.marketo.com/blog/quick-start-guide-for-marketo-rest-api/"
 	 
- 4. Update the marketo properties file at location "{MARKETO_CONNECTOR_HOME}/marketo-connector/marketo-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config/" as below.
+ 5. Update the marketo properties file at location "{MARKETO_CONNECTOR_HOME}/marketo-connector/marketo-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config/" as below.
  
       - marketoInstanceURL - Url of your marketo instance.
 
@@ -50,11 +51,17 @@ STEPS:
 
       - listName - Name of the created list.
 
-      - campaignId- Create a new smart campaign under the created program.
+      - campaignId - Create a new smart campaign under the created program.
 
-      - rCampaignId- Create a new smart campaign under the created program. The Smart Campaign must have a “Campaign is Requested” trigger with a Web Service API source.
-    
- 5. Navigate to "{MARKETO_CONNECTOR_HOME}/marketo-connector/marketo-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+      - rCampaignId - Create a new smart campaign under the created program. The Smart Campaign must have a “Campaign is Requested” trigger with a Web Service API source.
+
+      - cookie - A valid marketo cookie value
+
+ 6. Make sure that the marketo connector is set as a module in esb-connectors parent pom.
+        <module>marketo/marketo-connector/marketo-connector-1.0.0/org.wso2.carbon.connector</module>
+
+
+ 7. Navigate to "{ESB_CONNECTORS_HOME}/" and run the following command.
       $ mvn clean install
 
 
