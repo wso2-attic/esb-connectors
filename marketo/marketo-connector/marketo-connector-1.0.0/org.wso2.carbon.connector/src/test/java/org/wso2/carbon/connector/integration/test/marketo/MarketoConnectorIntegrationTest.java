@@ -40,8 +40,6 @@ public class MarketoConnectorIntegrationTest extends ConnectorIntegrationTestBas
 
     private String multipartProxyUrl;
 
-//	String authString, authorizationHeader;
-
     /**
      * Set up the environment.
      */
@@ -66,22 +64,6 @@ public class MarketoConnectorIntegrationTest extends ConnectorIntegrationTestBas
 
         multipartProxyUrl = getProxyServiceURL(multipartPoxyName);
     }
-
-//	/**
-//	 * Retrieve access token
-//	 */
-//	@Test(priority = 1, description = "Marketo {getAccessToken}.")
-//	public void getAccessTokenMethod() throws IOException, JSONException {
-//
-//		String methodName = "init";
-//		RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_init.json");
-//		String accessToken = esbRestResponse.getBody().getString("access_token");
-//		connectorProperties.put("accessToken", accessToken);
-//		authString = connectorProperties.getProperty("accessToken");
-//		System.out.println("12112112112\n\n\n\n\n"+authString);
-//		authorizationHeader = "Bearer " + authString;
-//		apiRequestHeadersMap.put("Authorization", authorizationHeader);
-//	}
 
     /**
      * Positive test case for createAndUpdateLeads method with mandatory parameters.
