@@ -11,19 +11,19 @@ Pre-requisites:
 Tested Platform:
 
  - MacOS 10.9
- - WSO2 ESB 4.8.1
- - Java 1.6
+ - WSO2 ESB 4.9.0-ALPHA
+ - Java 1.7
 
 STEPS:
 
-1. Make sure the ESB 4.8.1 zip file with latest patches available at {base.codeplex.connector.dir}/repository folder.
-   If you want to use another location edit the pom.xml as follows.
+1. Download ESB 4.9.0-ALPHA by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/.
 
-          <carbon.zip>
-            ${basedir}/../test/wso2esb-${esb.version}.zip
-          </carbon.zip>
+2. Copy wso2esb-4.9.0-ALPHA.zip file in to location "{ESB_Connector_Home}/repository/".
 
-2. This section describes how to obtain an access token from the codeplex.
+3. Make sure that codeplex is specified as a module in ESB_Connector_Parent pom.
+    <module>codeplex</module>
+
+4. This section describes how to obtain an access token from the codeplex.
 
 	i)   Login to your codeplex account[1], then navigate to url[2] and create new application. After creating application it will return a client secret and client id.
 	
@@ -41,7 +41,7 @@ STEPS:
 	
 	vi) More information on codeplex authentication available at codeplex online documentation site[5].
 
-3. Following authentication information has used in integration test suite.
+5. Following authentication information has used in integration test suite.
 
    Authentication parameters can be modified under following property file which will effective on all authentication required
    positive test cases.
@@ -55,9 +55,9 @@ STEPS:
 
 		proxyDirectoryPath   = "{codeplex-connector-home}/src/test/resources/artifacts/ESB/config/proxies/codeplex/"
 		requestDirectoryPath = "{codeplex-connector-home}/src/test/resources/artifacts/ESB/config/restRequests/codeplex/"
-		clientId                     = "e2ca3fc77e334c679f0c5c50257f9f36"
-		clientSecret                 = "44c635345fbd408d96e675b0aaf1334d"
-		refreshToken                 = "L4Eo!IAAAAL3yP6zFRfsriup7jYcQThecBNIpHJ4UJFfYfGKDP2MNsQAAAAHxh0bbfEjjP7RDQBsRrELlW6cZDe4sGcT5jp3jNGxSkmwUZya3qDhgcPVxOyIuj-SC0fhdc5LP8xIqOWqR1SjiDa9d29uvopFxv-da14X2i_QByD1XCKPUHie04VKVphk_q0ta9AjsXc9MrUR9a6O24U_Da9srHendD0TJJKfygjHgYvFzkO3KIcoHmG2abPHybkBOBQHyltaHJwfESYohqHqRhL_FwJfnSRJjrzq8dg"
+		clientId             = "e2ca3fc77e334c679f0c5c50257f9f36"
+		clientSecret         = "44c635345fbd408d96e675b0aaf1334d"
+		refreshToken         = "L4Eo!IAAAAL3yP6zFRfsriup7jYcQThecBNIpHJ4UJFfYfGKDP2MNsQAAAAHxh0bbfEjjP7RDQBsRrELlW6cZDe4sGcT5jp3jNGxSkmwUZya3qDhgcPVxOyIuj-SC0fhdc5LP8xIqOWqR1SjiDa9d29uvopFxv-da14X2i_QByD1XCKPUHie04VKVphk_q0ta9AjsXc9MrUR9a6O24U_Da9srHendD0TJJKfygjHgYvFzkO3KIcoHmG2abPHybkBOBQHyltaHJwfESYohqHqRhL_FwJfnSRJjrzq8dg"
 
        Sample CodePlex Account Credentials :
        
@@ -65,8 +65,7 @@ STEPS:
        		password: wso2test1
 
 
-4. From the codeplex connector base directory run following command to build and execute integration test suite.
-
+6. Navigate to "{ESB_Connector_Home}/" and run the following command.
 		$ mvn clean install
 
 
