@@ -10,16 +10,14 @@ Product: Integration tests for WSO2 ESB Constant Contact connector
    Tested Platforms: 
 
     - Microsoft WINDOWS V-7
-    - Ubuntu 13.04
-    - WSO2 ESB 4.8.1
+    - Ubuntu 13.04, Mac OSx 10.9
+    - WSO2 ESB 4.9.0-ALPHA
  
 STEPS:
 
-1. Download ESB 4.8.1 from official website.
+1. Download ESB 4.9.0-ALPHA by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/.
 
-2. Deploy relevant patches, if applicable.
-
-3. Follow the below mentioned steps to create a new Constant Contact account:
+2. Follow the below mentioned steps to create a new Constant Contact account:
 
 	i) 	 Navigate to the following url and create an account in Constant Contact: https://www.constantcontact.com/signup.jsp.
 	ii)  Navigate to the following url and create a account in Constant Contact API management: https://constantcontact.mashery.com/member/register.
@@ -28,10 +26,10 @@ STEPS:
 	v) 	 Generate the API Token as mentioned in the following URL.
 			http://developer.constantcontact.com/docs/authentication/authentication.html
 	
-4. Follow the below mentioned steps to add valid certificate to access ConstantContact API over https.
+3. Follow the below mentioned steps to add valid certificate to access ConstantContact API over https.
 
 	i) 	Extract the certificate from browser(Mozilla Firefox) by navigating to 'https://api.constantcontact.com/' 
-	ii)  Go to new ESB 4.8.1 folder and place the downloaded certificate into "<ESB_HOME>/repository/resources/security/" and 
+	ii)  Go to new ESB 4.9.0-ALPHA folder and place the downloaded certificate into "<ESB_HOME>/repository/resources/security/" and
 		 "{ConstantContact_Connector_Home}/constantcontact-connector/constantcontact-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products" folders.
     iii) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute the following command.
 	
@@ -53,13 +51,13 @@ STEPS:
 		 NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from ConstantContact with the extension. (e.g. constantcontact.crt)
 			    CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. ConstantContact)
 	   
-5. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{ConstantContact_Connector_Home}/constantcontact-connector/constantcontact-connector-1.0.0/org.wso2.carbon.connector/repository/".
+4. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
 	
-6. Update the property file constantcontact.properties found in {ConstantContact_Connector_Home}/constantcontact-connector/constantcontact-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config as follows:
+5. Update the property file constantcontact.properties found in {ConstantContact_Connector_Home}/constantcontact-connector/constantcontact-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config as follows:
 	
 	i)		apiUrl 							- 	API endpoint to which the service calls are made. e.g. https://api.constantcontact.com.
-	ii)		apiKey 							- 	Use the API key obtained in Step 3 - iv.
-	iii)	apiToken 						-  	Use the apiToken obtained in Step 3 - v.
+	ii)		apiKey 							- 	Use the API key obtained in Step 2 - iv.
+	iii)	apiToken 						-  	Use the apiToken obtained in Step 2 - v.
 	iv)		subject 						-	Use a valid string value for the subject of the email.
 	v)		email 							- 	Use the email address for which the Constant Contact account is created.
 	vi)		status 							- 	Use the value 'ACTIVE'.
@@ -76,5 +74,8 @@ STEPS:
 
 	Note:	The property values of campaignName, campaignNameOptional, contactEmailAddresses, contactEmailAddressesOptional, contactEmailAddressesUpdate should be changed to unique different values for each integration execution.
 
-7. Navigate to "{ConstantContact_Connector_Home}/constantcontact-connector/constantcontact-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+6. Make sure that activecampaign is specified as a module in ESB_Connector_Parent pom.
+    <module>activecampaign/activecampaign-connector/activecampaign-connector-1.0.0/org.wso2.carbon.connector</module>
+
+7. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
