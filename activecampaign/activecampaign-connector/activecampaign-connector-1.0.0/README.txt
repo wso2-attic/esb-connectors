@@ -10,15 +10,15 @@ Product: Integration tests for WSO2 ESB ActiveCampaign connector
    Tested Platforms: 
 
     - Microsoft WINDOWS V-7
-    - Ubuntu 13.04
-    - WSO2 ESB 4.8.1
+    - Ubuntu 13.04, Mac OSx 10.9
+    - WSO2 ESB 4.9.0-ALPHA
+    - Java 1.7
 
 STEPS:
 
-1. Download ESB 4.8.1 from official website.
+1. Download ESB 4.9.0-ALPHA by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/.
 
-2. Deploy relevant patches, if applicable and the ESB should be configured as below.
-   Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
+2. Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
 
     <messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
     <messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
@@ -30,9 +30,12 @@ STEPS:
    iii) Create a campaign which contains a URL to be clicked by the receivers and send it to a contact list which contain at least two contacts. Retrieve the ID of the campaign and the ID of the message related to the campaign for further use.
    iv)  Make sure the the URL of the campaign has been clicked by at least one of the receivers.
 
-4. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{ActiveCampaign_Connector_Home}/activecampaign-connector/activecampaign-connector-1.0.0/org.wso2.carbon.connector/repository/".
+4. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
 
-5. Update the property file activeCampaign.properties found in {ActiveCampaign_Connector_Home}/activecampaign-connector/activecampaign-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config as follows:
+5. Make sure that activecampaign is specified as a module in ESB_Connector_Parent pom.
+    <module>activecampaign/activecampaign-connector/activecampaign-connector-1.0.0/org.wso2.carbon.connector</module>
+
+6. Update the property file activeCampaign.properties found in {ActiveCampaign_Connector_Home}/activecampaign-connector/activecampaign-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config as follows:
 
    i)   apiUrl         -  API URL to which the service calls are made obtained in Step 3 - ii. e.g. https://anusoft.api-us1.com.
    ii)  apiKey         -  Use the API key obtained in Step 3 - ii.
@@ -49,5 +52,5 @@ STEPS:
 
    Note: The property values of subject, emailMandatory, emailOptional should be changed to unique different values for each integration execution.
 
-7. Navigate to "{ActiveCampaign_Connector_Home}/activecampaign-connector/activecampaign-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+7. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install

@@ -7,17 +7,17 @@ Pre-requisites:
 Tested Platform: 
 
 - Mac OSx 10.9
-- WSO2 ESB wso2esb-4.9.0-M7-SNAPSHOT
+- WSO2 ESB 4.9.0-ALPHA
 - Java 1.7
 
 STEPS:
 
-1. Make sure the wso2esb-4.9.0-M7-SNAPSHOT.zip file at "{Eloqua_Connector_Home}/eloqua-connector/eloqua-connector-1.0.0/org.wso2.carbon.connector/repository/".
+1. Download ESB 4.9.0-ALPHA by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/.
 
 2. Follow the below mentioned steps to add valid certificate to access Eloqua API over https.
 
-	i) 	 Extract the certificate from browser(Mozilla Firefox) by navigating to 'https://login.eloqua.com/' 
-	ii)  Go to new ESB 4.8.1 folder and place the downloaded certificate into "<ESB_HOME>/repository/resources/security/" and 
+	i) 	 Extract the certificate from browser(Mozilla Firefox) by navigating to 'https://login.eloqua.com/'
+	ii)  Go to new ESB 4.9.0-ALPHA folder and place the downloaded certificate into "<ESB_HOME>/repository/resources/security/" and
 		 "{Eloqua_Connector_Home}/eloqua-connector/eloqua-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products" folders.
     iii) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute the following command.
 	
@@ -47,6 +47,12 @@ STEPS:
 		Required message builders
         	<messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
+
+5. Compress the modified ESB zip and copy that in to location "{ESB_Connector_Home}/repository/".
+
+6. Make sure that eloquaStandardAPI is specified as a module in ESB_Connector_Parent pom.
+    <module>eloquaStandardAPI/eloqua-connector/eloqua-connector-1.0.0/org.wso2.carbon.connector</module>
+
 4. Modify the proxy file in following location "{Eloqua_Connector_Home}/eloqua-connector/eloqua-connector-1.0.0/org
 .wso2.carbon.connector/src/test/resources/artifacts/ESB/config/proxies/eloqua/"
 
@@ -60,6 +66,5 @@ STEPS:
 	- username: the username that the user use to login.
 	- password: the password that the user use to login.
 
-7. Navigate to "{Eloqua_Connector_Home}/eloqua-connector/eloqua-connector-1.0.0/org.wso2.carbon.connector/" and run
-the following command.
+7. Navigate to "{ESB_Connector_Home}/" and run the following command.
     $ mvn clean install
