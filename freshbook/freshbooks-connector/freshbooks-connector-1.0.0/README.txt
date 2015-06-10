@@ -13,10 +13,9 @@
     - WSO2 ESB 4.8.1
 
 Steps to follow in setting integration test.
- 1.  Download ESB 4.8.1 from official website.
- 2.  Deploy relevant patches, if applicable.
+ 1.  Download ESB 4.9.0-ALPHA from official website.
 
- 3.  Navigate to location "/wso2esb-4.8.1/repository/conf/axis2" and add/uncomment following lines in "axis2.xml" and Message Formatters and Message Builders should be added for each of the content types of the files to be added as attachments.
+ 3.  Navigate to location "/wso2esb-4.9.0-ALPHA/repository/conf/axis2" and add/uncomment following lines in "axis2.xml" and Message Formatters and Message Builders should be added for each of the content types of the files to be added as attachments.
 
         Message Formatters :-
 
@@ -28,7 +27,7 @@ Steps to follow in setting integration test.
         <messageBuilder contentType="image/png" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
         <messageBuilder contentType="multipart/related" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
- 4.  Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "<FRESHBOOKS_CONNECTOR_HOME>/freshbooks-connector/freshbooks-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 4.  Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
     
  5.  Prerequisites for Freshbooks Connector Integration Testing
 
@@ -86,5 +85,8 @@ Steps to follow in setting integration test.
 
 		NOTE:- taxName,taxNameOptional,taxNameUpdated values should be changed before executing the integration test each time. 
 		
- 6. Navigate to "<FRESHBOOKS_CONNECTOR_HOME>/freshbooks-connector/freshbooks-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-     $ mvn clean install
+ 5. Make sure that the freshbook connector is set as a module in esb-connectors parent pom.
+        <module>freshbook/freshbooks-connector/freshbooks-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+          $ mvn clean install

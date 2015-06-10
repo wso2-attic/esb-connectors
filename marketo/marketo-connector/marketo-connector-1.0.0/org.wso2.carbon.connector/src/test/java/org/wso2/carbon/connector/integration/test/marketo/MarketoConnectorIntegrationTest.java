@@ -79,7 +79,8 @@ public class MarketoConnectorIntegrationTest extends ConnectorIntegrationTestBas
         final String apiUrl = connectorProperties.getProperty("marketoInstanceURL") + "/rest/v1/lead/" + connectorProperties.getProperty("leadId") + ".json";
 
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiUrl, "GET", apiRequestHeadersMap);
-        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("result").getJSONObject(0).getString("id"), connectorProperties.getProperty("leadId"));
+	    System.out.println("12121314134341\n\n\n\n\n\n\n\n"+apiRestResponse.getBody().toString());
+	    Assert.assertEquals(apiRestResponse.getBody().getJSONArray("result").getJSONObject(0).getString("id"), connectorProperties.getProperty("leadId"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONArray("result").getJSONObject(0).getString("firstName"), connectorProperties.getProperty("leadFirstName"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONArray("result").getJSONObject(0).getString("lastName"), connectorProperties.getProperty("leadLastName"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONArray("result").getJSONObject(0).getString("email"), connectorProperties.getProperty("leadEmail"));

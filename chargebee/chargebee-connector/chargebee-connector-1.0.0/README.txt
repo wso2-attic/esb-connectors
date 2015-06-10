@@ -15,10 +15,9 @@ Tested Platform:
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.9.0 by following the URL: https://svn.wso2.org/repos/wso2/people/jeewantha/4.9.0_release/released/M4/wso2esb-4.9.0-SNAPSHOT.zip.
-   Apply the patches found in https://www.dropbox.com/s/bs83ll1m8kwgylq/patch0009.zip?dl=0 by copying the extracted files into <ESB_HOME>/repository/components/patches.
+ 1. Download ESB 4.9.0-ALPHA by following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/
 
- 2. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<CHARGEBEE_CONNECTOR_HOME>/chargebee-connector/chargebee-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 2. Copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
 
  3. Create a ChargeBee trial account and derive the API Key.
    i)    Using the URL "http://www.chargebee.com/" create a ChargeBee trial account.
@@ -49,5 +48,8 @@ Steps to follow in setting integration test.
    xx)    eventOccurredBefore    - Use a valid future UTC timestamp in seconds.
         Note - There should be at least a difference of 10 minutes between eventOccurredAfter value and eventOccurredBefore value.   
 
- 5. Navigate to "<CHARGEBEE_CONNECTOR_HOME>/chargebee-connector/chargebee-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+ 5. Make sure that the chargebee connector is set as a module in esb-connectors parent pom.
+      <module>chargebee/chargebee-connector/chargebee-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+          $ mvn clean install
