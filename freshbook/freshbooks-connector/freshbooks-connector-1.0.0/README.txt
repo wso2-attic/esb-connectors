@@ -4,13 +4,13 @@
     - Maven 3.x
     - Java 1.6 or above
     - The org.wso2.esb.integration.integration-base project is required. The test suite has been configured to download this project automatically. If the automatic download fails, download the following project and compile it using the mvn clean install command to update your local repository:
-      https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
+               https://github.com/wso2/esb-connectors/tree/master/integration-base-1.0.1
 
     Tested Platforms: 
 
     - Microsoft WINDOWS V-7
     - Ubuntu 13.04
-    - WSO2 ESB 4.8.1
+    - WSO2 ESB 4.9.0-ALPHA
 
 Steps to follow in setting integration test.
  1.  Download ESB 4.9.0-ALPHA from official website.
