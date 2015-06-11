@@ -51,7 +51,7 @@ STEPS:
    Copy request files to following directory.
    
    {codeplex-connector-home}/src/test/resources/artifacts/ESB/config/restRequests/codeplex
-   
+
 
 		proxyDirectoryPath   = "{codeplex-connector-home}/src/test/resources/artifacts/ESB/config/proxies/codeplex/"
 		requestDirectoryPath = "{codeplex-connector-home}/src/test/resources/artifacts/ESB/config/restRequests/codeplex/"
