@@ -4,18 +4,17 @@ Pre-requisites:
 
  - Maven 3.x
  - Java 1.6 or above
- - org.wso2.esb.integration.integration-base is required. this test suite has been configured to download this automatically.
-   however if its fail download following project and compile using mvn clean install command to update your local repository.
-   https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
+ - The org.wso2.esb.integration.integration-base project is required. The test suite has been configured to download this project automatically. If the automatic download fails, download the following project and compile it using the mvn clean install command to update your local repository:
+         https://github.com/wso2/esb-connectors/tree/master/integration-base-1.0.1
 
 Tested Platform:
 
  - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - 4.9.0-ALPHA
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file at "{PATH_TO_SOURCE_BUNDLE}/evernote-connector/evernote-connector-1.0.0/org.wso2.carbon.connector/repository/"
+ 1. Make sure the ESB 4.9.0-ALPHA zip file at "{ESB-CONNECTORS-HOME}/repository/"
 
  2. Create a Evernote account and derive the developer token:
 	i) 	Using the URL "http://evernote.com/sign-up/" create a Evernote account.
@@ -52,9 +51,11 @@ STEPS:
     Following properties should be changed to facilitate the createSharedNotebook test cases.
         xii) email - email address to test createSharedNotebook
 
- 4. Navigate to "{PATH_TO_SOURCE_BUNDLE}/evernote-connector/evernote-connector-1.0.0/" and run the following command.
-      $ mvn clean install
+ 4. Make sure that the evernote connector is set as a module in esb-connectors parent pom.
+        <module>evernote/evernote-connector/evernote-connector-1.0.0</module>
 
+ 5. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+           $ mvn clean install
 
  NOTE : Following Evernote account, can be used for run the integration tests.
     Username : wso2evernoteconnector@gmail.com
