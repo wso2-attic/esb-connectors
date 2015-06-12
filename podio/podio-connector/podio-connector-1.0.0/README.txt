@@ -10,15 +10,17 @@ Product: Integration tests for WSO2 ESB Podio connector
    Tested Platforms: 
 
     - Microsoft WINDOWS V-7
-    - Ubuntu 13.04
-    - WSO2 ESB 4.8.1
+    - Ubuntu 14.04
+    - WSO2 ESB-4.9.0-ALPHA
  
 STEPS:
 
-1. Download ESB 4.8.1 from official website.
+1. Make sure the ESB 4.9.0-ALPHA zip file at "{ESB-CONNECTORS-HOME}/repository/"
 
-2. Deploy relevant patches, if applicable.
-   Please make sure that Axis configurations are enabled (\repository\conf\axis2\axis2.xml) according to the file type to be uploaded.
+2. Please make sure that Axis configurations are enabled (\repository\conf\axis2\axis2.xml) according to the file type to be uploaded.
+   eg:upload text file
+       <messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+       <messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
 3. Follow the below mentioned steps to create a new Podio account:
 
@@ -29,7 +31,7 @@ STEPS:
 4. Follow the below mentioned steps to add valid certificate to access Podio API over https.
 
     i)   Extract the certificate from browser(Mozilla Firefox) by navigating to 'https://podio.com/' 
-    ii)  Go to new ESB 4.8.1 folder and place the downloaded certificate into "<ESB_HOME>/repository/resources/security/" and 
+    ii)  Go to new ESB 4.9.0-ALPHA folder and place the downloaded certificate into "<ESB_HOME>/repository/resources/security/" and
          "{Podio_Connector_Home}/podio-connector/podio-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products" folders.
     iii) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute the following command.
 
@@ -51,7 +53,7 @@ STEPS:
          NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from Podio with the extension. (e.g. podio.crt)
                 CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. Podio).
 
-5. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Podio_Connector_Home}/podio-connector/podio-connector-1.0.0/org.wso2.carbon.connector/repository/".
+5. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "{Podio_Connector_Home}/podio-connector/podio-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
 6. Add the file which is used for upload file method to the following location and update the value of the property iii corresponding to the added file.
     Location: "{Podio_Connector_Home}/podio-connector/podio-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/config/resources/podio/"
@@ -66,5 +68,5 @@ STEPS:
     vi) remindDelta      -  Use a positive integer value lower than 1440 for the minutes to use in reminder.
     vii)timeOut          -  Time out value for waiting since the podio API limit the continuous endpoint calls (recommended value is 5000)
 
-8. Navigate to "{Podio_Connector_Home}/podio-connector/podio-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+8.Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+             $ mvn clean install
