@@ -11,6 +11,7 @@ Product: Integration tests for WSO2 ESB Billiving connector
 
     - Microsoft WINDOWS V-7
     - Ubuntu 13.04
+    - Mac OSx 10.9
     - WSO2 ESB 4.9.0-ALPHA
  
 STEPS:
