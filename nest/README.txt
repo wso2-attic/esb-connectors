@@ -14,14 +14,13 @@ STEPS:
 
 1. Make sure the wso2esb-4.9.0-SNAPSHOT.zip file at "nest/repository/".
 
-2. Add following code block, just after the listeners block (Remove or comment all the other test blocks) in following
-   file - "nest/src/test/resources/testng.xml"
-
-    	<test name="Nest-Connector-Test" preserve-order="true" verbose="2">
-        	<packages>
-            	<package name="org.wso2.carbon.connector.integration.test.nest"/>
-			</packages>
-	    </test>
+2. Follow these steps to setup Nest
+     1) Navigate to https://developer.nest.com/ and create an account.
+     2) Add nest extension at google chrome.
+     3) Navigate to https://developer.nest.com/clients and register a client.
+           Follow https://developer.nest.com/documentation/cloud/register-client to create a client.
+     4) Go to your installed nest extension at google chrome browser and add Thermostats and CO-Alarms.
+     5) Find CO alarm Id, Thermostat Id and Structure Id and put the values in properties for smokeCOAlarmDeviceId, deviceIdThermostat and structureId accordingly.
 
 3. Copy proxy files to following location "nest/src/test/resources/artifacts/ESB/config/proxies/nest/"
 
