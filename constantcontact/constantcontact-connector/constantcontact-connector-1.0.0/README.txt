@@ -74,8 +74,8 @@ STEPS:
 
 	Note:	The property values of campaignName, campaignNameOptional, contactEmailAddresses, contactEmailAddressesOptional, contactEmailAddressesUpdate should be changed to unique different values for each integration execution.
 
-6. Make sure that activecampaign is specified as a module in ESB_Connector_Parent pom.
-    <module>activecampaign/activecampaign-connector/activecampaign-connector-1.0.0/org.wso2.carbon.connector</module>
+6. Make sure that constantcontact is specified as a module in ESB_Connector_Parent pom.
+    <module>constantcontact/constantcontact-connector/constantcontact-connector-1.0.0/org.wso2.carbon.connector</module>
 
 7. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
