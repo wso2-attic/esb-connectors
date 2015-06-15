@@ -10,13 +10,13 @@ Pre-requisites:
 Tested Platform: 
 
  - Microsoft WINDOWS V-7
- - UBUNTU 13.04
- - WSO2 ESB 4.9.0-SNAPSHOT
+ - UBUNTU 13.04, Mac OSx 10.9
+ - WSO2 ESB 4.9.0-ALPHA
+ - Java 1.7
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.9.0 by following the URL: https://svn.wso2.org/repos/wso2/people/jeewantha/4.9.0_release/released/M4/wso2esb-4.9.0-SNAPSHOT.zip.
-	Apply the patches found in https://www.dropbox.com/s/bs83ll1m8kwgylq/patch0009.zip?dl=0 by copying the extracted files into {ESB_HOME}/repository/components/patches.
+ 1. Download ESB 4.9.0-ALPHA by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/.
 
  2. Extract the certificate from browser by navigating to "https://books.zoho.com" and place the certificate file in following locations. 
 
@@ -46,23 +46,26 @@ Steps to follow in setting integration test.
 							  class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
 
- 4. Compress the modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<Zohobooks_Connector_Home>/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 4. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
 
- 5. Create a Zohobooks trial account and derive the API Key.
+ 5. Make sure that zohobooks is specified as a module in ESB_Connector_Parent pom.
+        <module>zohobooks/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 6. Create a Zohobooks trial account and derive the API Key.
 	i) 	Using the URL "https://www.zoho.com/books/signup/" create a Zohobooks trial account.
 	ii)	Obtain the auth token and organization ID as instructed in "https://www.zoho.com/books/api/v3/".
 	
- 6. Prerequisites for ZohoBooks Connector Integration Testing
+ 7. Prerequisites for ZohoBooks Connector Integration Testing
 
 	i) 	Navigate to the URL "https://books.zoho.com/app#/accountant/chartofaccounts" and create at least one accountant with the Account type 'Expense'.
 	ii) Navigate to "Users" under the settings, and invite to new user as a timesheet staff by clicking "Invite User" button.
-	iii)Log in to newly created user's email (created in step 6 ii) ) and click "Join Account" URL to join with zohobooks account.
+	iii)Log in to newly created user's email (created in step 7 ii) ) and click "Join Account" URL to join with zohobooks account.
 
- 7. Update the Zohobooks properties file at location "<ZOHOBOOKS_CONNECTOR_HOME>/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 8. Update the Zohobooks properties file at location "<ZOHOBOOKS_CONNECTOR_HOME>/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i)		apiUrl 							- 	The API URL specific to the created Zohobooks account (https://books.zoho.com).
-	ii) 	authToken						-   Use the access token obtained under step 5 ii).
-	iii)	organizationId					-	Use the organization ID obtained under step 5 ii).
+	ii) 	authToken						-   Use the access token obtained under step 6 ii).
+	iii)	organizationId					-	Use the organization ID obtained under step 6 ii).
 	iv)*    itemNameMandatory				-	Use a unique string for the item name (Used for createItem - Mandatory testcase).
 	v)*		itemNameOptional				- 	Use a unique string for the item name (Used for createItem - Optional testcase).
 	vi)		rate							-   Use a numeric value, either integer or decimal (limit to 1 decimal place).
@@ -96,11 +99,9 @@ Steps to follow in setting integration test.
 	xxxiv)	logTime							-   Use a valid time for the time entries log time with the format of 'hh:mm' (e.g.08:30)
 	xxxv)	isBillable						-	Use a boolean value ("true" or "false") to assign the time enties as billable or not.
 	xxxvi)	timeEntryNotes					-   Use a string as the time entry note (e.g. Foo Bar Baz).
-	xxxvii)	taskUserId						-	Place the user ID created under step 6 ii).
+	xxxvii)	taskUserId						-	Place the user ID created under step 7 ii).
 	
 	* Values need to be changed for each execution of the Test Suite. Please make sure the values are unique in the context of the same account.
 	
- 8. Navigate to "<ZOHOBOOKS_CONNECTOR_HOME>/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
-
-		
+ 9. Navigate to "{ESB_Connector_Home}/" and run the following command.
+         $ mvn clean install
