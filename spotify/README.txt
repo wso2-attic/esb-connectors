@@ -43,7 +43,10 @@ STEPS:
 
 7. Copy request files to following "spotify/src/test/resources/artifacts/ESB/config/restRequests/spotify/"
 
-8. Edit the "spotify.properties" at spotify/src/test/resources/artifacts/connector/config/ using valid and relevant data. Parameters to be changed are mentioned below.
+8. Create an account at https://www.spotify.com.
+      Note: Spotify is currently not available in Sri Lanka.
+
+9. Edit the "spotify.properties" at spotify/src/test/resources/artifacts/connector/config/ using valid and relevant data. Parameters to be changed are mentioned below.
 
 	- proxyDirectoryRelativePath: relative path of the Rest Request files folder from target.
 	- requestDirectoryRelativePath: relative path of proxy folder from target.
@@ -51,8 +54,21 @@ STEPS:
     - client_secret: to get the access token for a particular client_secret.
    	- grant_type: to get the access token with refresh token.
 	- refresh_token: refresh token is to get the access token.
+	- artistId1: use an available valid artist id.
+	- artistId2: use an available valid artist id.
+	- artistIdToGetAlbums: an artist id. It should have at least one album.
+	- trackId1: use an available valid track id.
+	- trackId2: use an available valid track id.
+	- trackId3: use an available valid track id.
+	- trackId4: use an available valid track id.
+	- albumId1: use an available valid album id.
+	- albumId2: use an available valid album id.
+	- searchQueryForArtist: use the name of an available artist.
+	- userId: use id of the created user.
 
-9. Following data set can be used for the first testsuite run.
+    Note: Login and create at least two tracks to the current user by navigating https://developer.spotify.com/web-api/console/put-current-user-saved-tracks/.
+
+10. Following data set can be used for the first testsuite run.
 
 	- proxyDirectoryRelativePath=/../src/test/resources/artifacts/ESB/config/proxies/spotify/
 	- requestDirectoryRelativePath=/../src/test/resources/artifacts/ESB/config/restRequests/spotify/
@@ -60,6 +76,17 @@ STEPS:
 	- client_secret=b421eecdfe184be29b1d297505befcac
 	- grant_type=refresh_token
 	- refresh_token=AQCQPj6__vnciBWMpS1lJ_V_oefCZUy2V7z_Ha7WBoZZTKRsVPgDTtecOMN5rxXs9mvtencluvX3m_RNCsTqTTJtwZCmcrte_1Ar_SzXDug-AtdbSiZXMObPa8Kw0-8tE8c
+	- artistId1=0oSGxfWSnnOXhD2fKuz2Gy
+	- artistId2=3dBVyJ7JuOMt4GE9607Qin
+	- artistIdToGetAlbums=1vCWHaC5f2uS3yhpwWbIA6
+	- trackId1=7ouMYWpwJ422jRcDASZB7P
+	- trackId2=4VqPOruhp5EdPBeR92t6lQ
+	- trackId3=4iV5W9uYEdYUVa79Axb7Rh
+	- trackId4=1301WleyT98MSxVHPZCA6M
+	- albumId1=0sNOF9WDwhWunNAHPD3Baj
+	- albumId2=41MnTivkwTO3UUJ8DrqEJJ
+	- searchQueryForArtist=Tania bowra
+	- userId=keerthu
 
-10. Navigate to "{ESB_Connector_Home}/" and run the following command.
+11. Navigate to "{ESB_Connector_Home}/" and run the following command.
      $ mvn clean install
