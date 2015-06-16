@@ -14,9 +14,34 @@ Tested Platform:
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{PATH_TO_SOURCE_BUNDLE}/Foursquare-connector/Foursquare-connector-1.0.0/repository/"
+ 1. Follow the below mentioned steps for adding valid certificate to access Foursquare API over https. If the certificates are already available in keystores, you can skip this step.
 
- 2. This ESB should be configured as below;
+	i) 	 Extract the certificate from browser(Mozilla Firefox) by navigating to https://developer.foursquare.com/
+	ii)  Go to new ESB 4.8.1 folder and place the downloaded certificate into "<ESB_HOME>/repository/resources/security/" and 
+		 "{FOURSQURE_CONNECTOR_HOME}/foursquare-connector/foursquare-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" folders.
+	iii) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute the following command.
+	
+				keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME"
+				
+		 This command will import Foursquare certificate into keystore. 
+		 To import the certificate give "wso2carbon" as password. Press "Y" to complete certificate import process.
+		 
+		 NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from Foursquare with the extension. (e.g. foursquare.crt)
+			    CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. Foursquare)
+				
+	iv) Navigate to "{FOURSQURE_CONNECTOR_HOME}/foursquare-connector/foursquare-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute the following command.
+				
+				keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME"
+				
+		This command will import Foursquare certificate into keystore. 
+		To import the certificate give "wso2carbon" as password. Press "Y" to complete certificate import process.
+		
+		NOTE : 	CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from Foursquare with the extension. (e.g. foursquare.crt)
+			    CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. Foursquare)
+
+ 2. Make sure the ESB 4.8.1 zip file with latest patches available at "{PATH_TO_SOURCE_BUNDLE}/Foursquare-connector/Foursquare-connector-1.0.0/repository/"
+
+ 3. This ESB should be configured as below;
 	Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
 
    <messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
@@ -45,12 +70,12 @@ STEPS:
 		
 
 
- 3. Create a Foursquare account and derive the access token:
+ 4. Create a Foursquare account and derive the access token:
 	i) 	Using the URL "https://www.foursquare.com/" create a Foursquare account.
 	ii) Derive the access token by following the instructions at "https://developer.foursquare.com/overview/auth".
 
 
- 4. Update the Foursquare properties file at location "{PATH_TO_SOURCE_BUNDLE}/foursquare-connector/foursquare-connector-1.0.0/src/test/resources/artifacts/ESB/connector/config" as below.
+ 5. Update the Foursquare properties file at location "{PATH_TO_SOURCE_BUNDLE}/foursquare-connector/foursquare-connector-1.0.0/src/test/resources/artifacts/ESB/connector/config" as below.
    
 		i) accessToken - Use the access token you got from step 3.
 		ii) apiUrl - api url of foursquare (https://api.foursquare.com).
@@ -77,7 +102,7 @@ STEPS:
 
 
 		foursquare/foursquare-connector/foursquare-connector-1.0.0/pom.xml
- 5. Navigate to "{PATH_TO_SOURCE_BUNDLE}/fousquare/foursquare-connector/foursquare-connector-1.0.0/" and run the following command.
+ 6. Navigate to "{PATH_TO_SOURCE_BUNDLE}/fousquare/foursquare-connector/foursquare-connector-1.0.0/" and run the following command.
       $ mvn clean install
 
 
