@@ -10,12 +10,12 @@ Pre-requisites:
 Tested Platform: 
 
  - Microsoft WINDOWS V-7
- - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - UBUNTU 14.04
+ - WSO2 ESB 4.9.0-Alpha
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{DROPBOX_CONNECTOR_HOME}/dropbox-connector/dropbox-connector-1.0.0/org.wso2.carbon.connector/repository/"
+ 1. Make sure the ESB 4.9.0-Alpha zip file with latest patches available at "{DROPBOX_CONNECTOR_HOME}/dropbox-connector/dropbox-connector-1.0.0/org.wso2.carbon.connector/repository/"
 
  2. This ESB should be configured as below;
 	Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
@@ -72,8 +72,10 @@ STEPS:
 		xi) fileName - File name of the uploaded file.
 		xii) root - This parameter should always be set to "dropbox".
 		
- 5. Navigate to "{DROPBOX_CONNECTOR_HOME}/dropbox-connector/dropbox-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+ 5. Make sure that the Dropbox connector is set as a module in esb-connectors parent pom.
+                <module>dropbox/dropbox-connector/dropbox-connector-1.0.0/org.wso2.carbon.connector</module>
+        Navigate to "esb-connectors" and run the following command.
+        $ mvn clean install
 
 
  NOTE : Following DropBox account, can be used for run the integration tests.
