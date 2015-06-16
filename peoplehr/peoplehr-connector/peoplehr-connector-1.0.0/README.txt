@@ -86,7 +86,7 @@ Steps to follow in setting integration test.
 
  7. Make sure that the peoplehr connector is set as a module in esb-connectors parent pom.
                 <module>peoplehr/peoplehr-connector/peoplehr-connector-1.0.0/org.wso2.carbon.connector</module>
- 7. Navigate to "{PeopleHR_Connector_Home}/peoplehr-connector/peoplehr-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 8. Navigate to "{PeopleHR_Connector_Home}/peoplehr-connector/peoplehr-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
 	  
 	  Note:- People HR trial account expires within 30 days.

@@ -85,8 +85,8 @@ Steps to follow in setting integration test.
 	
 	Note:-  customerEmail1 and customerEmail2 should be an email which is not associated with an existing customer in your Shopify account. Also change this email before running the integration test each time.
 
- 7. Make sure that the shopify connector is set as a module in esb-connectors parent pom.
+ 8. Make sure that the shopify connector is set as a module in esb-connectors parent pom.
             <module>shopify/shopify-connector/shopify-connector-1.0.0/org.wso2.carbon.connector</module>
 	
- 8. Navigate to "{SHOPIFY_CONNECTOR_HOME}/shopify-connector/shopify-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 9. Navigate to "{SHOPIFY_CONNECTOR_HOME}/shopify-connector/shopify-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
