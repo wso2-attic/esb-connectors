@@ -10,8 +10,8 @@ Pre-requisites:
 Tested Platform: 
 
  - Microsoft WINDOWS V-7
- - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - UBUNTU 14.04
+ - WSO2 ESB 4.9.0-Alpha
 
 Note:
 	This test suite can be executed based on two scenarios.
@@ -20,7 +20,7 @@ Note:
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.8.1 from official website.
+ 1. Download ESB 4.9.0-Alpha from official website.
  
  2. Deploy relevant patches, if applicable.
  
@@ -28,7 +28,7 @@ Steps to follow in setting integration test.
 
 	i) 	 Extract the certificate from browser(Mozilla Firefox) by navigating to https://api.tradegecko.com
 	   
-	ii)  Go to new ESB 4.8.1 folder and place the downloaded certificate in "<ESB_HOME>/repository/resources/security/"
+	ii)  Go to new ESB 4.9.0-Alpha folder and place the downloaded certificate in "<ESB_HOME>/repository/resources/security/"
 
 	iii) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" in command line to import Tradegecko certificate in to keystore. 
 		 Give "wso2carbon" as password. Press "Y" to complete certificate import process.
@@ -36,7 +36,7 @@ Steps to follow in setting integration test.
 		 NOTE : CERT_FILE_NAME is the file name which was extracted from Tradegecko. (e.g. *.tradegecko.com)
 			    CERT_NAME is arbitrary name for the certificate. (e.g. Tradegecko)
 
- 4. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Tradegecko_Connector_Home}/tradegecko-connector/tradegecko-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 4. Compress modified ESB as wso2esb-4.9.0-Alpha.zip and copy that zip file in to location "{Tradegecko_Connector_Home}/tradegecko-connector/tradegecko-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
  5. Prerequisites for Tradegecko Connector Integration Testing
 
@@ -71,7 +71,9 @@ Steps to follow in setting integration test.
 	xii)	optionalStockVariantId	- Variant ID of a valid product for stock adjustment optional test case.
 	xiii)	stockLocationId			- A valid location ID from your account. 
 	
- 7. Navigate to "{Tradegecko_Connector_Home}/tradegecko-connector/tradegecko-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 7.  7.Make sure that the Tradegecko connector is set as a module in esb-connectors parent pom.
+              <module>tradegecko/tradegecko-connector/tradegecko-connector-1.0.0/org.wso2.carbon.connector</module>
+      Navigate to "esb-connectors" and run the following command.
       $ mvn clean install
 
  Credentials of test account: 
