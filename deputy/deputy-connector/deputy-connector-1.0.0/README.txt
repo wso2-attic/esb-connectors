@@ -52,7 +52,10 @@ Steps to follow in setting integration test.
 	
 	Note :- leaveStartDate, leaveEndDate, intStartTimestamp, intEndTimestamp, employeeEmail, updateEmployeeFirstName and employeeFirstName needs to be set with unique values before running the integration test each time.
 	
-6. Navigate to "{ESB_Connector_Home}/" and run the following command.
+6. Make sure that the Deputy connector is set as a module in esb-connectors parent pom.
+        <module>deputy/deputy-connector/deputy-connector-1.0.0/org.wso2.carbon.connector</module>
+
+7. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
 	  
 	  Note:- Deputy trial account expires within 30 days.

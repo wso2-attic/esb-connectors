@@ -73,5 +73,8 @@ STEPS:
 
    Note: The property values of couponCode, couponCodeOpt, accountCode, accountCodeOpt, planCode, planCodeOptional should be changed to unique different values for each integration execution.
 
-7. Navigate to "{ESB_Connector_Home}/" and run the following command.
+7.Make sure that the recurly connector is set as a module in esb-connectors parent pom.
+        <module>recurly/recurly-connector/recurly-connector-1.0.0/org.wso2.carbon.connector</module>
+
+8. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
