@@ -65,7 +65,7 @@ Steps to follow in setting integration test.
 	
 	Note:- When providing dates for 'createTrainingStartDate','createTrainingEndDate','updateTrainingStartDate','updateTrainingEndDate' provide recent dates that falls within the trial period of the current account.
 		
- 7. Make sure that the Simplenote connector is set as a module in esb-connectors parent pom.
+ 7. Make sure that the gototraining connector is set as a module in esb-connectors parent pom.
         <module>gototraining/gototraining-connector/gototraining-connector-1.0.0/org.wso2.carbon.connector</module>
 
  8. Navigate to "{ESB_Connector_Home}/" and run the following command.

@@ -84,5 +84,8 @@ Steps to follow in setting integration test.
 	
 	* Values need to be changed for each execution of the Test Suite. Please make sure the values are unique in the context of the same account.
 	
- 9. Navigate to "{ESB_Connector_Home}/" and run the following command.
+ 9. Make sure that the livechat connector is set as a module in esb-connectors parent pom.
+        <module>livechat/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector</module>
+
+10. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
