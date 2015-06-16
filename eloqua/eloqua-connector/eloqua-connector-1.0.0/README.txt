@@ -56,6 +56,9 @@ STEPS:
    
       - Get the values for contactFieldId, contactFilterId, contactListId, contactSegmentId, emailGroupId, accountFieldId, accountListId, activityTypeId and customObjectId.
 
+ 5. Make sure that the eloqua connector is set as a module in esb-connectors parent pom.
+        <module>eloqua/eloqua-connector/eloqua-connector-1.0.0/org.wso2.carbon.connector</module>
+
  4. Navigate to "{ELOQUA_CONNECTOR_HOME}/eloqua-connector/eloqua-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
 
