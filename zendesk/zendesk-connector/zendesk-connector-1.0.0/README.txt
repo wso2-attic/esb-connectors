@@ -51,5 +51,8 @@ STEPS:
 	 
   5. Change the query parameter in the zendesk.properties for a proper search in your created account.
 
-  6. Navigate to "{ZENDESK_CONNECTOR_HOME}/zendesk-connector/zendesk-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+  6.Make sure that the zendesk connector is set as a module in esb-connectors parent pom.
+            <module>zendesk/zendesk-connector/zendesk-connector-1.0.0/org.wso2.carbon.connector</module>
+
+  7. Navigate to "{ZENDESK_CONNECTOR_HOME}/zendesk-connector/zendesk-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       	$ mvn clean install

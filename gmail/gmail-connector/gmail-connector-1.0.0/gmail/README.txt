@@ -20,21 +20,24 @@ STEPS:
 	- Sign in with your Gmail account or select the preferred account if you have already signed in.
 	- Accept the permission to view and manage your e-mails
 	- Click on “Exchange authorization code for tokens” button to get the access token
-	
-3. Update connector properties file "gmail.properties" located in "Gmail_Connector_Home/src/test/resources/artifacts/ESB/connector/config/", 
+
+3.Update the java-gmail-imap-1.4.4-gm-ext-0.5.jar and samples.oauth2-0.0.1-SNAPSHOT.jar in Gmail_Connector_Home/src/test/resources/lib
+
+4. Update connector properties file "gmail.properties" located in "Gmail_Connector_Home/src/test/resources/artifacts/ESB/connector/config/",
 with following information
 	- userEmailAddress : give your e-mail address
 	- oauthAccessToken : obtained access token
 	- password 	   : password of the above given e-mail account
 	- recipient1/recipient2/recipient3 : Give some other e-mail addresses to receive e-mails. These can even be comma separated lists of e-mail addresses.
 	
-4. If there are too many simultaneous connections to your Gmail account, sign out from those. Because Gmail allows only 15 simultaneous connections.
+5. If there are too many simultaneous connections to your Gmail account, sign out from those. Because Gmail allows only 15 simultaneous connections.
 (Below steps can be used to sign out from existing Gmail connections)
 	- Log in to the Gmail account in browser
 	- Scroll down and click on the link "Details" which is near the label "Last account activity: xx minutes ago"
 	- Click on "Sign out all other sessions"
 
-5.  Navigate to "Gmail_Connector_Home" and run the following command.
-      $ mvn clean install
+6.Make sure that the gmail connector is set as a module in esb-connectors parent pom.
+          <module>gmail/gmail-connector/gmail-connector-1.0.0/org.wso2.carbon.connector</module>
 
-	
+6.  Navigate to "Gmail_Connector_Home" and run the following command.
+      $ mvn clean install
