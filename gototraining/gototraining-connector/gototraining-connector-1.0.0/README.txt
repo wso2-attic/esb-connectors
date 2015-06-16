@@ -11,28 +11,28 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - WSO2 ESB 4.9.0-ALPHA
 
 Note:
 	This test suite can be executed by setting up a new GoToTraining trial account and a Citrix account and follow all the instruction given below in step 4 and 5.
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.8.1 from official website.
+ 1. Download WSO2 ESB 4.9.0-ALPHA from official website.
 
  2. Deploy relevant patches, if applicable and the ESB should be configured as below.
 																				           
- 3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{GoToTraining_Connector_Home}/gototraining-connector/gototraining-connector-1.0.0/org.wso2.carbon.connector/repository".
+ 3. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository".
 
  4. Create a Citrix account and obtain a client ID.
 	i) 		Using the URL "https://developer.citrixonline.com/user/register" create a Citrix online account.
 	ii)		Login to the Citrix account and go to 'My Apps' and add a new app.
 	iii)	Select the above created app and obtain the Consumer Key.
- 
+
  5. Create a GoToTraining trial account and obtain the access token and the organizer_key.
 	i)		Using the URL "https://secure.citrixonline.com/secure/gototraining/commerce/try/register" create a Goto training free trial account using following details.
 			a)Select number of organizer seats as 9.
-			b)Enter the relevant information to create the account.
+			b)Enter the relevant information to create the account.Me!
     ii)	    Follow the instructions in the 	"https://developer.citrixonline.com/page/direct-login" and make a GET request to the URL "https://api.citrixonline.com/oauth/access_token" passing the below parameters
 			a)grant_type -   Use "password".
 			b)user_id    -   User email address that you used to create the GoTo Training account.
@@ -40,7 +40,7 @@ Steps to follow in setting integration test.
 			d)client_id  -	 Use the Consumer Key you obtained under Step 4 iii).
 	iii)	Get the ornanizer_key and the access token from the response.
 			
- 6. Update the GoToTraining properties file at location "{GoToTraining_Connector_Home}/gototraining-connector/gototraining-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 6. Update the GoToTraining properties file at location "{ESB_Connector_Home}/gototraining/gototraining-connector/gototraining-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i)		apiUrl 									- 	Use "https://api.citrixonline.com".
 	ii)		accessToken								-	Use the access token obtained in Step 5 iii).
@@ -65,7 +65,10 @@ Steps to follow in setting integration test.
 	
 	Note:- When providing dates for 'createTrainingStartDate','createTrainingEndDate','updateTrainingStartDate','updateTrainingEndDate' provide recent dates that falls within the trial period of the current account.
 		
- 7. Navigate to "{GoToTraining_Connector_Home}/gototraining-connector/gototraining-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 7. Make sure that the Simplenote connector is set as a module in esb-connectors parent pom.
+        <module>gototraining/gototraining-connector/gototraining-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 8. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
 	  
 	  Note:- GoToTraining trial account expires within 30 days.
