@@ -89,7 +89,7 @@ Steps to follow in setting integration test.
 		
 		NOTE : Update the access token , user info.
 
- 5. Make sure that the billiving connector is set as a module in esb-connectors parent pom.
+ 5. Make sure that the concur connector is set as a module in esb-connectors parent pom.
          <module>concur/concur-connector/concur-connector-1.0.0/org.wso2.carbon.connector</module>
 
 
