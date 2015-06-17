@@ -28,7 +28,10 @@ Steps to follow in setting integration test.
 	ii)	 In the account homepage click on user icon, choose 'API' and create a 'New Application'. Fill all the mandatory fields and 'Create Application'. Get the Access token from the next screen and retain it for further use.
 	iii) Create a new folder in formstack account (click on 'New Folder' in Forms section).
 	iv)  Create a new form inside the folder created in 3. iii)
+		 - When creating a form, it should have at least 3 text fields (onto which data has to be entered when submitting).
+		 - A form can also be created from an existing template but please make sure that there are at least 3 text fields in the form.
 	v) 	 Form created in 3. iv) should have at least 2 submissions before executing the test suite.
+		- Data should be entered into all the text field of the form when making a submission.
 	
  4. Update the formstack properties file at location "<FORMSTACK_CONNECTOR_HOME>/formstack-connector/formstack-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
