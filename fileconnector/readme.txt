@@ -17,8 +17,14 @@ STEPS:
 
 2. Copy the wso2esb-4.9.0-ALPHA.zip in to location "{ESB_Connector_Home}/repository/".
 
-3. Please change the file locations with the accessible file locations in the fileconnector.xml
-    (fileconenctor.xml file can be found from <fileconnetor>/src/test/resources/artifacts/ESB/config/proxies/fileconnector/ )
+3. Please do these changes on fileconnector.xml (fileconenctor.xml file can be found from <fileconnetor>/src/test/resources/artifacts/ESB/config/proxies/fileconnector/).
+    1) Change the file locations with the accessible file locations.
+
+    2) Copy an 'mp4' or a large file at the location specified in <fileconnector.copylarge></fileconnector.copylarge> for copylarge method.
+
+    3) Create a file at the location specified in <fileconnector.copy></fileconnector.copy> for copy method.
+
+    3) Create at least one folder and a file at the location specified in  <filelocation></filelocation> archive method.
 
 4. Make sure that fileconnector is specified as a module in ESB_Connector_Parent pom.
        <module>fileconnector/fileconnector-1.0.0</module>
