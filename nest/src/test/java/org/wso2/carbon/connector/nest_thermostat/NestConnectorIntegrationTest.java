@@ -785,7 +785,7 @@ public class NestConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Test case for setETA method.
      */
-    @Test(groups = {"wso2.esb"}, priority = 2, description = "nest {setETA} integration test.")
+    @Test(groups = {"wso2.esb"}, priority = 2, dependsOnMethods = {"setAwayState"}, description = "nest {setETA} integration test.")
     public void setETA() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "setETA.txt";
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
@@ -796,7 +796,7 @@ public class NestConnectorIntegrationTest extends ESBIntegrationTest {
         try {
             JSONObject responseConnector = ConnectorIntegrationUtil.sendRequest("POST", getProxyServiceURL(methodName), modifiedJsonString);
             JSONObject jo = new JSONObject(modifiedJsonString);
-            Assert.assertTrue((responseConnector.has("error") && responseConnector.getString("error").equals("Not in away mode")) || (responseConnector.getString("trip_id").equals(jo.getString("tripId").toString()) && responseConnector.getString("estimated_arrival_window_begin").equals(jo.getString("begin").toString()) && responseConnector.getString("estimated_arrival_window_end").equals(jo.getString("end").toString())));
+            Assert.assertTrue((responseConnector.has("error") && responseConnector.getString("error").equals("Not in away mode")) || (!responseConnector.has("error") && (responseConnector.getString("trip_id").equals(jo.getString("tripId").toString()) && responseConnector.getString("estimated_arrival_window_begin").equals(jo.getString("begin").toString()) && responseConnector.getString("estimated_arrival_window_end").equals(jo.getString("end").toString()))));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
