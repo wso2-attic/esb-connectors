@@ -9,13 +9,13 @@ Pre-requisites:
 
 Tested Platform: 
 
- - Microsoft WINDOWS V-7
- - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - Java 1.7
+ - UBUNTU 14.04
+ - WSO2 ESB wso2esb-4.9.0-ALPHA
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.8.1 from official website.
+ 1. Download ESB 4.9.0-ALPHA by following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/
  
  2. Follow the below mentioned steps for adding valid certificate to access Clio API over https
 
@@ -28,7 +28,7 @@ Steps to follow in setting integration test.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from Clio, change it accordingly. (e.g. -.clio.com)
 			   CERT_NAME is name of the certificate. (e.g. clio)
 	   
-	iii)Go to new ESB 4.8.1 folder and place the downloaded certificate in "<ESB_HOME>/repository/resources/security/"
+	iii)Go to new ESB wso2esb-4.9.0-ALPHA folder and place the downloaded certificate in "<ESB_HOME>/repository/resources/security/"
 
 	iv) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" in command line to import Clio certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from Clio, change it accordingly. (e.g. -.clio.com)
@@ -50,7 +50,7 @@ Steps to follow in setting integration test.
 							  class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
 
- 4. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Clio_Connector_Home}/clio-connector/clio-connector-1.0.0/org.wso2.carbon.connector/repository/".
+4. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
 
  5. Create a Clio trial account and derive the API Key.
 	i) 		Using the URL "http://www.goclio.com/sign-up/" create a Clio trial account.
@@ -86,7 +86,10 @@ Steps to follow in setting integration test.
 	xxv)    updateFirstName					-	Use a valid string as the first name of the contact.This value must be different than the value given for 'firstName'.
 	xxvi)	updateLastName					-	Use a valid string as the last name of the contact.This value must be different than the value given for 'lastName'.
 	
- 7. Navigate to "{Clio_Connector_Home}/clio-connector/clio-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+ 7. Make sure that the clio connector is set as a module in esb-connectors parent pom.
+          <module>clio/clio-connector/clio-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 8. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+          $ mvn clean install
 
 		
