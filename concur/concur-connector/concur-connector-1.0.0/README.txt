@@ -4,12 +4,13 @@
     - Maven 3.x
     - Java 1.6 or above
 	- The org.wso2.esb.integration.integration-base project is required. The test suite has been configured to download this project automatically. If the automatic download fails, download the following project and compile it using the mvn clean install command to update your local repository:
-      https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
+            https://github.com/wso2/esb-connectors/tree/master/integration-base-1.0.1
 
     Tested Platforms: 
 
     - Microsoft WINDOWS V-7
     - Ubuntu 13.04
+    - Mac OSx 10.9
     - WSO2 ESB 4.8.1
 
 Note:
@@ -18,10 +19,9 @@ Note:
 		2. Setup new concur account and follow all the instruction given below in step 5.
 	
 Steps to follow in setting integration test.
- 1.  Download ESB 4.8.1 from official website.
- 2.  Deploy relevant patches, if applicable.
+ 1.  Download ESB 4.9.0-ALPHA by following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/
     
- 3.  Navigate to location "/wso2esb-4.8.1/repository/conf/axis2" and add/uncomment following lines in "axis2.xml" and Message Formatters and Message Builders should be added for each of the content types of the files to be added as attachments.
+ 2.  Navigate to location "/wso2esb-4.8.1/repository/conf/axis2" and add/uncomment following lines in "axis2.xml" and Message Formatters and Message Builders should be added for each of the content types of the files to be added as attachments.
 		
 		Message Formatters :-
 		
@@ -37,10 +37,10 @@ Steps to follow in setting integration test.
         <messageBuilder contentType="image/jpeg" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
         <messageBuilder contentType="image/png" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 			
- 4.  Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{CONCUR_CONNECTOR_HOME}/concur-connector/concur-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 3.  Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
 
          
- 5.  Prerequisites for Concur Connector Integration Testing
+ 4.  Prerequisites for Concur Connector Integration Testing
 
      Follow these steps before start testing.
 	 
@@ -89,8 +89,12 @@ Steps to follow in setting integration test.
 		
 		NOTE : Update the access token , user info.
 
- 6. Navigate to "{CONCUR_CONNECTOR_HOME}/concur-connector/concur-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-     $ mvn clean install
+ 5. Make sure that the billiving connector is set as a module in esb-connectors parent pom.
+         <module>concur/concur-connector/concur-connector-1.0.0/org.wso2.carbon.connector</module>
+
+
+ 6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+          $ mvn clean install
 
      credential of test account:
      API URL: https://www.concursolutions.com
