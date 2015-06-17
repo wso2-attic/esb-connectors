@@ -9,9 +9,9 @@ Pre-requisites:
 
 Tested Platform: 
 
- - Microsoft Windows 7
- - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - Java 1.7
+ - UBUNTU 14.04
+ - WSO2 wso2esb-4.9.0-ALPHA
 
 Note:
 	This Test Suite can be executed by setting up a new MailChimp trial account and following all the instruction given below.
@@ -25,11 +25,11 @@ Special Note:
 
 Steps to follow when executing the Test Suite:
 
- 1. Download ESB 4.8.1 from official website.
+ 1. Download ESB 4.9.0-ALPHA by following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/
 
  2. Deploy relevant patches if applicable.
 																				           
- 3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{MailChimp_Connector_Home}/mailchimp-connector/mailchimp-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 3. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
 
  4. Create a MailChimp account and obtain an API Key.
 	i) 		Using the URL "https://login.mailchimp.com/signup?" create a MailChimp online account.
@@ -72,8 +72,11 @@ Steps to follow when executing the Test Suite:
 	* Properties iii), iv), v), ix), xiii), xiv), xix), xx) needs to be changed for each execution of the Test Suite.
 		Hint: Use a number along with some text and increment the number for each run to change property values.
 	
- 7. Navigate to "{MailChimp_Connector_Home}/mailchimp-connector/mailchimp-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+ 7.  Make sure that the clio connector is set as a module in esb-connectors parent pom.
+              <module>mailchimp/mailchimp-connector/mailchimp-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 8. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+              $ mvn clean install
 	  
 	  Note:- Account is in Trial mode (can only send campaigns to less than 100 emails).
 
