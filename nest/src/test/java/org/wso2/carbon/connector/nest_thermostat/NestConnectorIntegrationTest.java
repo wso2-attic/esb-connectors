@@ -636,7 +636,7 @@ public class NestConnectorIntegrationTest extends ESBIntegrationTest {
         try {
             JSONObject responseConnector = ConnectorIntegrationUtil.sendRequest("POST", getProxyServiceURL(methodName), modifiedJsonString);
             JSONObject jo = new JSONObject(modifiedJsonString);
-            Assert.assertTrue((responseConnector.has("error") && responseConnector.getString("error").equals("Cannot change fan_timer_active while structure is away")) || responseConnector.getString("fan_timer_active").equals(jo.getString("fanTimerState").toString()));
+            Assert.assertTrue((responseConnector.has("error") && responseConnector.getString("error").equals("Cannot change fan_timer_active while structure is away")) || (!responseConnector.has("error") && responseConnector.getString("fan_timer_active").equals(jo.getString("fanTimerState").toString())));
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
@@ -676,9 +676,9 @@ public class NestConnectorIntegrationTest extends ESBIntegrationTest {
             JSONObject responseConnector = ConnectorIntegrationUtil.sendRequest("POST", getProxyServiceURL(methodName), modifiedJsonString);
             JSONObject jo = new JSONObject(modifiedJsonString);
             if (jo.getString("scale").toString().toLowerCase().equals("f")) {
-                Assert.assertTrue((responseConnector.getString("target_temperature_f").equals(jo.getString("targetTemperature").toString())) || (responseConnector.has("error") && responseConnector.getString("error").equals("Cannot change target temperature while structure is away")));
+                Assert.assertTrue((!responseConnector.has("error") && responseConnector.getString("target_temperature_f").equals(jo.getString("targetTemperature").toString())) || (responseConnector.has("error") && responseConnector.getString("error").equals("Cannot change target temperature while structure is away")));
             } else if (jo.getString("scale").toString().toLowerCase().equals("c")) {
-                Assert.assertTrue((responseConnector.getString("target_temperature_c").equals(jo.getString("targetTemperature").toString())) || (responseConnector.has("error") && responseConnector.getString("error").equals("Cannot change target temperature while structure is away")));
+                Assert.assertTrue((!responseConnector.has("error") && responseConnector.getString("target_temperature_c").equals(jo.getString("targetTemperature").toString())) || (responseConnector.has("error") && responseConnector.getString("error").equals("Cannot change target temperature while structure is away")));
             }
         } finally {
             proxyAdmin.deleteProxy(methodName);
