@@ -4,8 +4,8 @@ Pre-requisites:
 
  - Maven 3.x
  - Java 1.6 or above
- - org.wso2.esb.integration.integration-base is required. this test suite has been configured to download this automatically. however if its fail download following project and compile using mvn clean install command to update your local repository.
-   https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
+ - The org.wso2.esb.integration.integration-base project is required. The test suite has been configured to download this project automatically. If the automatic download fails, download the following project and compile it using the mvn clean install command to update your local repository:
+               https://github.com/wso2/esb-connectors/tree/master/integration-base-1.0.1
 
 Tested Platform: 
 
@@ -14,16 +14,14 @@ Tested Platform:
 
 STEPS:
 
-1. Make sure the ESB 4.8.1 zip available at "{PATH_TO_SOURCE_BUNDLE}/yelp-connector/yelp-connector-1.0.0/repository/"
+1. Make sure the ESB 4.9.0-ALPHA zip available at "{<ESB_CONNECTORS_HOME>/repository/"
 
-3. Make sure "integration-base" project is placed at "{PATH_TO_SOURCE_BUNDLE}/../"
-
-3. Create a Yelp account and get the api access keys:
+2. Create a Yelp account and get the api access keys:
 	i) 	Using the URL "http://www.yelp.com/SignUp" create a yelp account.
 	ii) Get the api access keys from this url "http://www.yelp.com/developers/manage_api_keys".
 
 
-4. Update the Yelp properties file at location "{PATH_TO_SOURCE_BUNDLE}/yelp-connector/yelp-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+3. Update the Yelp properties file at location "{PATH_TO_SOURCE_BUNDLE}/yelp-connector/yelp-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
    
 		i)   consumerKey - Use the consumerKey you got from step 8.
         ii)  consumerKeySecret - Use the consumerKeySecret you got from step 8.
@@ -31,8 +29,11 @@ STEPS:
         iv)  accessTokenSecret - Use the accessTokenSecret you got from step 8.
 
 		
-5. Navigate to "{PATH_TO_SOURCE_BUNDLE}/yelp-connector/yelp-connector-1.0.0/" and run the following command.
-      $ mvn clean install
+4. Make sure that the yelp connector is set as a module in esb-connectors parent pom.
+        <module>yelp/yelp-connector/yelp-connector-1.0.0</module>
+
+5. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+         $ mvn clean install
 
 
 NOTE : Following Yelp account, can be used for run the integration tests.
