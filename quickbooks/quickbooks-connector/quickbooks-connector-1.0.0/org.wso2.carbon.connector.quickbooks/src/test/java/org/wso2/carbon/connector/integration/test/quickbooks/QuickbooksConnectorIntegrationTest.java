@@ -170,6 +170,7 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
         
         JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("Customer");
         String customerId = esbResponseObject.getString("Id");
+        connectorProperties.setProperty("customerId", customerId);
         
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/customer/" + customerId;
@@ -260,7 +261,7 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createVendor_mandatory.json");
         JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("Vendor");
         String vendorId = esbResponseObject.getString("Id");
-        
+        connectorProperties.setProperty("vendorId", vendorId);
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/vendor/" + vendorId;
         String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
@@ -337,6 +338,74 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
     }
     
     /**
+     * Positive test case for updateVendor method with mandatory parameters.
+     */
+    @Test(priority = 2, description = "quickbooks {updateVendor} integration test with mandatory parameters.")
+    public void testUpdateVendorWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateVendor");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateVendor_mandatory.json");
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/vendor/"
+                        + connectorProperties.getProperty("vendorRef");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("Vendor").get("Title").toString(),
+                connectorProperties.getProperty("updatedMandatoryVendorTitle"));
+        
+    }
+    
+    /**
+     * Positive test case for updateVendor method with optional parameters.
+     */
+    @Test(priority = 3, description = "quickbooks {updateVendor} integration test with optional parameters.")
+    public void testUpdateVendorWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateVendor");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateVendor_optional.json");
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/vendor/"
+                        + connectorProperties.getProperty("vendorRef");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("Vendor").get("Title").toString(),
+                connectorProperties.getProperty("updatedOptionalVendorTitle"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("Vendor").get("GivenName").toString(),
+                connectorProperties.getProperty("updatedVendorGivenName"));
+        
+    }
+    
+    /**
+     * Negative test case for updateVendor method.
+     */
+    @Test(priority = 3, description = "quickbooks {updateVendor} integration test negative case.")
+    public void testUpdateVendorNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateVendor");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateVendor_negative.json");
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/vendor?operation=update";
+        String OAuthHeader = getOAuthHeader("POST", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_updateVendor_negative.json");
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("Fault").get("type").toString(), esbRestResponse
+                .getBody().getJSONObject("Fault").get("type").toString());
+        
+    }
+    
+    /**
      * Positive test case for createItem method with mandatory parameters.
      */
     @Test(priority = 1, description = "quickbooks {createItem} integration test with mandatory parameters.")
@@ -393,7 +462,8 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
         Assert.assertEquals(connectorProperties.getProperty("itemNameOptional"), apiResponseObject.getString("Name"));
         Assert.assertEquals("Item description", apiResponseObject.getString("Description"));
         Assert.assertEquals("1500", apiResponseObject.getString("QtyOnHand"));
-        Assert.assertEquals(connectorProperties.getProperty("inventoryStartDate"), apiResponseObject.getString("InvStartDate"));
+        Assert.assertEquals(connectorProperties.getProperty("inventoryStartDate"),
+                apiResponseObject.getString("InvStartDate"));
         
     }
     
@@ -423,6 +493,417 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
                 .getString("Message"));
         Assert.assertEquals(apiResponseArray.getJSONObject(0).getString("code"), esbResponseArray.getJSONObject(0)
                 .getString("code"));
+    }
+    
+    /**
+     * Positive test case for updateSalesReceipt method with mandatory parameters.
+     */
+    @Test(priority = 2, description = "quickbooks {updateSalesReceipt} integration test with mandatory parameters.")
+    public void testUpdateSalesReceiptWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateSalesReceipt");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateSalesReceipt_mandatory.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/salesreceipt/"
+                        + connectorProperties.getProperty("salesReceiptIdMandatory");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("SalesReceipt").get("Id").toString(),
+                apiRestResponse.getBody().getJSONObject("SalesReceipt").get("Id").toString());
+        Assert.assertEquals(
+                apiRestResponse.getBody().getJSONObject("SalesReceipt").getJSONArray("Line").getJSONObject(0)
+                        .get("Description").toString(),
+                connectorProperties.getProperty("updateSalesReceiptDescription"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("SalesReceipt").get("DocNumber").toString(),
+                apiRestResponse.getBody().getJSONObject("SalesReceipt").get("DocNumber").toString());
+    }
+    
+    /**
+     * Positive test case for updateSalesReceipt method with optional parameters.
+     */
+    @Test(priority = 2, description = "quickbooks {updateSalesReceipt} integration test with optional parameters.")
+    public void testUpdateSalesReceiptWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateSalesReceipt");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateSalesReceipt_optional.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/salesreceipt/"
+                        + connectorProperties.getProperty("salesReceiptIdOptional");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("SalesReceipt").get("Id").toString(),
+                apiRestResponse.getBody().getJSONObject("SalesReceipt").get("Id").toString());
+        Assert.assertEquals(
+                apiRestResponse.getBody().getJSONObject("SalesReceipt").getJSONArray("Line").getJSONObject(0)
+                        .get("Description").toString(),
+                connectorProperties.getProperty("updateSalesReceiptDescription"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("SalesReceipt").get("TxnDate").toString(),
+                apiRestResponse.getBody().getJSONObject("SalesReceipt").get("TxnDate").toString());
+    }
+    
+    /**
+     * Negative test case for updateSalesReceipt method.
+     */
+    @Test(priority = 3, description = "quickbooks {updateSalesReceipt} integration test with negative case.")
+    public void testUpdateSalesReceiptWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateSalesReceipt");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateSalesReceipt_negative.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId
+                        + "/salesreceipt?operation=update";
+        String OAuthHeader = getOAuthHeader("POST", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_updateSalesReceipt_negative.json");
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error").getJSONObject(0)
+                .get("code").toString(), apiRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error")
+                .getJSONObject(0).get("code").toString());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Fault").get("type").toString(), apiRestResponse
+                .getBody().getJSONObject("Fault").get("type").toString());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error").getJSONObject(0)
+                .get("Message").toString(), apiRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error")
+                .getJSONObject(0).get("Message").toString());
+    }
+    
+    /**
+     * Positive test case for updateEstimate method with mandatory parameters.
+     */
+    @Test(priority = 2, description = "quickbooks {updateEstimate} integration test with mandatory parameters.")
+    public void testUpdateEstimateWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateEstimate");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateEstimate_mandatory.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/estimate/"
+                        + connectorProperties.getProperty("estimateId");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Estimate").get("Id").toString(), apiRestResponse
+                .getBody().getJSONObject("Estimate").get("Id").toString());
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Estimate").get("TxnDate").toString(),
+                apiRestResponse.getBody().getJSONObject("Estimate").get("TxnDate").toString());
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Estimate").getJSONArray("Line").getJSONObject(0)
+                .get("Amount").toString(), connectorProperties.getProperty("amount"));
+        
+    }
+    
+    /**
+     * Positive test case for updateEstimate method with optional parameters.
+     */
+    @Test(priority = 2, description = "quickbooks {updateEstimate} integration test with optional parameters.")
+    public void testUpdateEstimateWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateEstimate");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateEstimate_optional.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/estimate/"
+                        + connectorProperties.getProperty("estimateIdOptional");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Estimate").get("Id").toString(), apiRestResponse
+                .getBody().getJSONObject("Estimate").get("Id").toString());
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("Estimate").getJSONArray("Line").getJSONObject(0)
+                .get("Amount").toString(), connectorProperties.getProperty("amount"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("Estimate").get("TxnDate").toString(),
+                connectorProperties.getProperty("txnDate"));
+        
+    }
+    
+    /**
+     * Negative test case for updateEstimate method.
+     */
+    @Test(priority = 3, description = "quickbooks {updateEstimate} integration test with negative case.")
+    public void testUpdateEstimateWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateEstimate");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateEstimate_negative.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/estimate?operation=update";
+        String OAuthHeader = getOAuthHeader("POST", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_updateEstimate_negative.json");
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error").getJSONObject(0)
+                .get("code").toString(), apiRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error")
+                .getJSONObject(0).get("code").toString());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Fault").get("type").toString(), apiRestResponse
+                .getBody().getJSONObject("Fault").get("type").toString());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error").getJSONObject(0)
+                .get("Message").toString(), apiRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error")
+                .getJSONObject(0).get("Message").toString());
+    }
+    
+    /**
+     * Positive test case for updatePurchaseOrder method with mandatory parameters.
+     */
+    @Test(priority = 2, description = "quickbooks {updatePurchaseOrder} integration test with mandatory parameters.")
+    public void testUpdatePurchaseOrderWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updatePurchaseOrder");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updatePurchaseOrder_mandatory.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/purchaseorder/"
+                        + connectorProperties.getProperty("purchaseOrderId");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("PurchaseOrder").get("Id").toString(),
+                apiRestResponse.getBody().getJSONObject("PurchaseOrder").get("Id").toString());
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("PurchaseOrder").get("TxnDate").toString(),
+                apiRestResponse.getBody().getJSONObject("PurchaseOrder").get("TxnDate").toString());
+        
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("PurchaseOrder").getJSONArray("Line")
+                .getJSONObject(0).get("Amount").toString(), connectorProperties.getProperty("amount"));
+        
+    }
+    
+    /**
+     * Positive test case for updatePurchaseOrder method with optional parameters.
+     */
+    @Test(priority = 2, description = "quickbooks {updatePurchaseOrder} integration test with optional parameters.")
+    public void testUpdatePurchaseOrderWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updatePurchaseOrder");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updatePurchaseOrder_optional.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/purchaseorder/"
+                        + connectorProperties.getProperty("purchaseOrderIdOptional");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("PurchaseOrder").get("Id").toString(),
+                apiRestResponse.getBody().getJSONObject("PurchaseOrder").get("Id").toString());
+        
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("PurchaseOrder").get("TxnDate").toString(),
+                connectorProperties.getProperty("txnDate"));
+        
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("PurchaseOrder").getJSONArray("Line")
+                .getJSONObject(0).get("Amount").toString(), connectorProperties.getProperty("amount"));
+        
+    }
+    
+    /**
+     * Negative test case for updatePurchaseOrder method.
+     */
+    @Test(priority = 3, description = "quickbooks {updatePurchaseOrder} integration test with negative case.")
+    public void testUpdatePurchaseOrderWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updatePurchaseOrder");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updatePurchaseOrder_negative.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId
+                        + "/purchaseorder?operation=update";
+        String OAuthHeader = getOAuthHeader("POST", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_updatePurchaseOrder_negative.json");
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error").getJSONObject(0)
+                .get("code").toString(), apiRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error")
+                .getJSONObject(0).get("code").toString());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Fault").get("type").toString(), apiRestResponse
+                .getBody().getJSONObject("Fault").get("type").toString());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error").getJSONObject(0)
+                .get("Message").toString(), apiRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error")
+                .getJSONObject(0).get("Message").toString());
+    }
+    
+    /**
+     * Positive test case for updateCustomer method with mandatory parameters.
+     */
+    @Test(priority = 2, description = "quickbooks {updateCustomer} integration test with mandatory parameters.")
+    public void testUpdateCustomerWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateCustomer");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateCustomer_mandatory.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/customer/"
+                        + connectorProperties.getProperty("customerId");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Customer").get("Id").toString(), apiRestResponse
+                .getBody().getJSONObject("Customer").get("Id").toString());
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Customer").get("Title").toString(),
+                connectorProperties.getProperty("customerTitle"));
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Customer").get("FullyQualifiedName").toString(),
+                apiRestResponse.getBody().getJSONObject("Customer").get("FullyQualifiedName").toString());
+        
+    }
+    
+    /**
+     * Positive test case for updateCustomer method with optional parameters.
+     */
+    @Test(priority = 2, description = "quickbooks {updateCustomer} integration test with optional parameters.")
+    public void testUpdateCustomerWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateCustomer");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateCustomer_optional.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/customer/"
+                        + connectorProperties.getProperty("customerRef");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Customer").get("Id").toString(), apiRestResponse
+                .getBody().getJSONObject("Customer").get("Id").toString());
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Customer").get("DisplayName").toString(),
+                connectorProperties.getProperty("customerDisplayName"));
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Customer").get("Title").toString(),
+                connectorProperties.getProperty("customerTitle"));
+        
+    }
+    
+    /**
+     * Negative test case for updateCustomer method.
+     */
+    @Test(priority = 3, description = "quickbooks {updateCustomer} integration test with negative case.")
+    public void testUpdateCustomerWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateCustomer");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateCustomer_negative.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/customer?operation=update";
+        String OAuthHeader = getOAuthHeader("POST", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_updateCustomer_negative.json");
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error").getJSONObject(0)
+                .get("code").toString(), apiRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error")
+                .getJSONObject(0).get("code").toString());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Fault").get("type").toString(), apiRestResponse
+                .getBody().getJSONObject("Fault").get("type").toString());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error").getJSONObject(0)
+                .get("Message").toString(), apiRestResponse.getBody().getJSONObject("Fault").getJSONArray("Error")
+                .getJSONObject(0).get("Message").toString());
+    }
+    
+    /**
+     * Positive test case for updateItem method with mandatory parameters.
+     */
+    @Test(priority = 2, description = "quickbooks {updateItem} integration test with mandatory parameters.")
+    public void tesUpdateItemWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateItem");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateItem_mandatory.json");
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/item/"
+                        + connectorProperties.getProperty("ItemRef1");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("Item").get("Name").toString(), connectorProperties
+                .getProperty("updatedMandatoryItemName").toString());
+        
+    }
+    
+    /**
+     * Positive test case for updateItem method with optional parameters.
+     */
+    @Test(priority = 3, description = "quickbooks {updateItem} integration test with optional parameters.")
+    public void tesUpdateItemWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateItem");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateItem_optional.json");
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/item/"
+                        + connectorProperties.getProperty("ItemRef1");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("Item").get("Description").toString(),
+                connectorProperties.getProperty("updatedItemDescription").toString());
+        
+    }
+    
+    /**
+     * Negative test case for updateItem method.
+     */
+    @Test(priority = 3, description = "quickbooks {updateItem} integration test negative case.")
+    public void tesUpdateItemNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateItem");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateItem_negative.json");
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/item?operation=update";
+        String OAuthHeader = getOAuthHeader("POST", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_updateItem_negative.json");
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("Fault").get("type").toString(), esbRestResponse
+                .getBody().getJSONObject("Fault").get("type").toString());
+        
     }
     
     /**
@@ -536,6 +1017,7 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
         
         JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("PurchaseOrder");
         String purchaseOrderId = esbResponseObject.getString("Id");
+        connectorProperties.setProperty("purchaseOrderId", purchaseOrderId);
         
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/purchaseorder/"
@@ -573,6 +1055,7 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
         
         JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("PurchaseOrder");
         String purchaseOrderId = esbResponseObject.getString("Id");
+        connectorProperties.setProperty("purchaseOrderIdOptional", purchaseOrderId);
         
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/purchaseorder/"
@@ -711,7 +1194,7 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createInvoice_mandatory.json");
         JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("Invoice");
         String invoiceId = esbResponseObject.getString("Id");
-        
+        connectorProperties.put("invoiceIdMandatory", invoiceId);
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/invoice/" + invoiceId;
         String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
@@ -735,7 +1218,7 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createInvoice_optional.json");
         JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("Invoice");
         String invoiceId = esbResponseObject.getString("Id");
-        
+        connectorProperties.put("invoiceIdOptional", invoiceId);
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/invoice/" + invoiceId;
         String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
@@ -773,6 +1256,76 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
                 .getString("Message"));
         Assert.assertEquals(apiResponseArray.getJSONObject(0).getString("code"), esbResponseArray.getJSONObject(0)
                 .getString("code"));
+    }
+    
+    /**
+     * Positive test case for updateInvoice method with mandatory parameters.
+     */
+    @Test(priority = 2, description = "quickbooks {updateInvoice} integration test with mandatory parameters.")
+    public void testUpdateInvoiceWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateInvoice");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateInvoice_mandatory.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/invoice/"
+                        + connectorProperties.getProperty("invoiceIdMandatory");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("Invoice").getJSONArray("Line").getJSONObject(0)
+                .get("Amount").toString(), connectorProperties.getProperty("updateInvoiceLineAmount").toString());
+        
+    }
+    
+    /**
+     * Positive test case for updateInvoice method with optional parameters.
+     */
+    @Test(priority = 2, description = "quickbooks {updateInvoice} integration test with optional parameters.")
+    public void testUpdateInvoiceWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateInvoice");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateInvoice_optional.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/invoice/"
+                        + connectorProperties.getProperty("invoiceIdOptional");
+        String OAuthHeader = getOAuthHeader("GET", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("Invoice").get("DocNumber").toString(),
+                connectorProperties.getProperty("updateInvoiceDocNumber").toString());
+        
+    }
+    
+    /**
+     * Negative test case for updateInvoice method.
+     */
+    @Test(priority = 3, description = "quickbooks {updateInvoice} integration test negative case.")
+    public void testUpdateInvoiceNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateInvoice");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateInvoice_negative.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/invoice/"
+                        + connectorProperties.getProperty("invoiceIdOptional") + "?operation=update";
+        String OAuthHeader = getOAuthHeader("POST", apiEndPoint);
+        apiRequestHeadersMap.put("Authorization", OAuthHeader);
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_updateInvoice_negative.json");
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("Fault").get("type").toString(), esbRestResponse
+                .getBody().getJSONObject("Fault").get("type").toString());
+        
     }
     
     /**
@@ -864,6 +1417,7 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createSalesReceipt_mandatory.json");
         JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("SalesReceipt");
         String salesReceiptId = esbResponseObject.getString("Id");
+        connectorProperties.setProperty("salesReceiptIdMandatory", salesReceiptId);
         
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/salesreceipt/"
@@ -889,6 +1443,7 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createSalesReceipt_optional.json");
         JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("SalesReceipt");
         String salesReceiptId = esbResponseObject.getString("Id");
+        connectorProperties.setProperty("salesReceiptIdOptional", salesReceiptId);
         
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/salesreceipt/"
@@ -1026,6 +1581,7 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createEstimate_mandatory.json");
         JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("Estimate");
         String estimateId = esbResponseObject.getString("Id");
+        connectorProperties.setProperty("estimateId", estimateId);
         
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/estimate/" + estimateId;
@@ -1055,6 +1611,7 @@ public class QuickbooksConnectorIntegrationTest extends ConnectorIntegrationTest
         JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("Estimate");
         
         String estimateId = esbResponseObject.getString("Id");
+        connectorProperties.setProperty("estimateIdOptional", estimateId);
         
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v3/company/" + companyId + "/estimate/" + estimateId;
