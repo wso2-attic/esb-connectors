@@ -25,8 +25,8 @@ STEPS:
 
                        <messageFormatter contentType="multipart/form-data"
                           class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
-   
-   ii) Enable following message builders 
+
+   ii) Enable following message builders
 
 			<messageBuilder contentType="application/x-www-form-urlencoded"
                           class="org.apache.synapse.commons.builders.XFormURLEncodedBuilder"/>
