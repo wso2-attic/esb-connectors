@@ -10,11 +10,11 @@ Product: Integration tests for WSO2 ESB Braintree connector
     Tested Platforms: 
 
     - Microsoft WINDOWS V-7
-    - Ubuntu 13.04
-    - WSO2 ESB 4.8.1
+    - Ubuntu 14.04
+    - WSO2 ESB 4.9.0-Alpha
  
 Steps to follow in setting integration test.
- 1.  Download ESB 4.8.1 from official website.
+ 1.  Download ESB 4.9.0-Alpha from official website.
  2.  Deploy relevant patches, if applicable.
  
 	Special Note: Created transactions can be refunded only after they are settled. Settlement of transaction is a scheduled backend process which takes around a day to be processed.
@@ -56,7 +56,7 @@ STEPS:
 	ii) In the merchant account section copy the token related to default merchant account.
 		(default merchant account is considered as "Master Merchant Account")
 	
- 5. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{BRAINTREE_CONNECTOR_HOME}/braintree-connector/braintree-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 5. Compress modified ESB as wso2esb-4.9.0-Alpha.zip and copy that zip file in to location "{BRAINTREE_CONNECTOR_HOME}/braintree-connector/braintree-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
  6. Update the Braintree properties file at location "{BRAINTREE_CONNECTOR_HOME}/braintree-connector/braintree-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
@@ -81,5 +81,7 @@ STEPS:
 	xvi)	resourceNotFoundException - Error message currently sent by the ESB for Not Found Exceptions thrown by Braintree SDK.
 	xvii)	cardholderName - Any suitable string value.
 			
- 7. Navigate to "{BRAINTREE_CONNECTOR_HOME}/braintree-connector/braintree-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install 
+ 7. Make sure that the Braintree connector is set as a module in esb-connectors parent pom.
+                      <module>braintree/braintree-connector/braintree-connector-1.0.0/org.wso2.carbon.connector</module>
+              Navigate to "esb-connectors" and run the following command.
+              $ mvn clean install
