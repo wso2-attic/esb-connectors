@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="supportbee_createStoryAndSendNotification" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Supportbee Properties -->
+         <property name="supportbee.apiUrl" expression="json-eval($.supportbee.apiUrl)" />
+         <property name="supportbee.authToken" expression="json-eval($.supportbee.authToken)" />
+         
+		 <!-- Agilezen Properties -->
+         <property name="agilezen.apiUrl" value="https://agilezen.com" />
+         <property name="agilezen.format" value="json" />
+         <property name="agilezen.apiKey" expression="json-eval($.agilezen.apiKey)" />
+         <property name="agilezen.size" expression="json-eval($.agilezen.size)" />
+         <property name="agilezen.priority" expression="json-eval($.agilezen.priority)" />
+         <property name="agilezen.color" expression="json-eval($.agilezen.color)" />
+         <property name="agilezen.projectId" expression="json-eval($.agilezen.projectId)" />
+         
+		 <!-- Mandrill Properties -->
+         <property name="mandrill.apiUrl" value="https://mandrillapp.com" />
+         <property name="mandrill.format" value="json" />
+         <property name="mandrill.apiKey" expression="json-eval($.mandrill.apiKey)" />
+         <property name="mandrill.fromEmail" expression="json-eval($.mandrill.fromEmail)" />
+         <property name="mandrill.fromName" expression="json-eval($.mandrill.fromName)" />
+		 
+         <!-- Operation scoped properties -->
+         <property name="noOftickets" expression="count(//jsonObject/ticketIds)" scope="operation" />
+         <property name="ticketIndex" expression="0" scope="operation" />
+		 
+         <!-- START: Proceed to process the tickets if there are any. -->
+         <filter source="get-property('operation', 'noOfTickets')" regex="0.0">
+            <then>
+               <!-- Skipped case: Append an skipped message to be sent to the user. -->
+               <property name="id" value="{}" />
+               <property name="errorResponse" expression="json-eval($)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="User has not provided any ticket id." />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!--FOR EACH ticket: BEGIN -->
+               <iterate continueParent="false" id="tickets" expression="//jsonObject/ticketIds" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="ticketId" expression="//ticketIds/text()" />
+						
+                        <supportbee.init>
+                           <apiUrl>{$ctx:supportbee.apiUrl}</apiUrl>
+                           <authToken>{$ctx:supportbee.authToken}</authToken>
+                        </supportbee.init>
+                        <supportbee.getTicket>
+                           <ticketId>{$ctx:ticketId}</ticketId>
+                        </supportbee.getTicket>
+						<sequence key="removeResponseHeaders" />
+						
+						<property name="supportbee.ticketId" expression="json-eval($.ticket.id)" />
+                        <property name="supportbee.ticket.labels" expression="json-eval($.ticket.labels)" />
+                       
+                        <script language="js">
+							<![CDATA[
+								var ticketLabels = mc.getProperty('supportbee.ticket.labels');
+								var ticketId = mc.getProperty('supportbee.ticketId');
+								if(ticketId != null && ticketId != ''){
+									var proceed = 'true';
+								} else {
+									var proceed = 'false';
+								}								
+								
+								if(ticketLabels != null && ticketLabels != ''){
+									ticketLabels = eval("(" + ticketLabels + ")");
+									if(ticketLabels.length > 0){
+										for(var i=0; i<ticketLabels.length; i++){
+											if(ticketLabels[i].name.toLowerCase() == 'enhancement'){
+												proceed = 'false';
+												break;
+											}
+										}
+									}
+								}
+								
+								mc.setProperty('ticket.proceed', proceed);
+							]]>
+                        </script>
+						
+                        <!-- START: Proceed to create the story, only if 'enhancement' label is not added to the ticket. -->
+                        <filter source="get-property('ticket.proceed')" regex="true">
+                           <then>
+						      <property name="supportbee.ticketCreateDate" expression="json-eval($.ticket.created_at)" />
+							  <property name="supportbee.assigneeName" expression="json-eval($.ticket.current_assignee.user.name)" />
+                              <property name="supportbee.assigneeEmail" expression="json-eval($.ticket.current_assignee.user.email)" />
+						      <property name="requester.email" expression="json-eval($.ticket.requester.email)" />
+							  <property name="requester.name" expression="json-eval($.ticket.requester.name)" />
+                              <property name="agilezen.text" expression="json-eval($.ticket.subject)" />
+                              <property name="agilezen.details" expression="json-eval($.ticket.content.text)" />
+                              <property name="agilezen.tags" expression="fn:concat('[&quot;SupportBee-Ticket-ID:',get-property('ticketId'),'&quot;]')" />
+							  
+                              <!-- Create a story for the ticket. -->
+                              <agilezen.init>
+                                 <apiUrl>{$ctx:agilezen.apiUrl}</apiUrl>
+                                 <apiKey>{$ctx:agilezen.apiKey}</apiKey>
+                                 <format>{$ctx:agilezen.format}</format>
+                              </agilezen.init>
+                              <agilezen.createStory>
+                                 <details>{$ctx:agilezen.details}</details>
+                                 <size>{$ctx:agilezen.size}</size>
+                                 <priority>{$ctx:agilezen.priority}</priority>
+                                 <color>{$ctx:agilezen.color}</color>
+                                 <tags>{$ctx:agilezen.tags}</tags>
+                                 <text>{$ctx:agilezen.text}</text>
+                                 <projectId>{$ctx:agilezen.projectId}</projectId>
+                              </agilezen.createStory>						
+							  <sequence key="removeResponseHeaders" />	  
+                              <property name="agilezen.storyId" expression="json-eval($.id)" />
+							  
+                              <!-- START: Proceed to send the notification and add the label to the ticket, only if the story was successfully created. -->
+                              <filter source="boolean(get-property('agilezen.storyId'))" regex="true">
+                                 <then>
+                                    <!-- Success case: Append a success message to be sent to the user. -->
+                                    <property name="id" expression="fn:concat('supportbee_ticketId:', get-property('ticketId'),',agilezen_storyId:', get-property('agilezen.storyId'))" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="agilezen_createStory" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Success" />
+                                       <with-param name="message" value="A story has been successfully created for the ticket." />
+                                    </call-template>
+                                    <property name="uri.var.tags" action="remove" />
+                                    
+									<!-- Construct the message to send via Mandrill. -->
+									<script language="js">
+										<![CDATA[
+											var requesterName = mc.getProperty('requester.name');
+											var requesterEmail = mc.getProperty('requester.email');
+											var ticketSubject = mc.getProperty('agilezen.text');
+											var ticketCreateDate = mc.getProperty('supportbee.ticketCreateDate');
+											var ticketContent = mc.getProperty('agilezen.details');
+											var assigneeName = mc.getProperty('supportbee.assigneeName');
+											var assigneeEmail = mc.getProperty('supportbee.assigneeEmail');
+											
+											var html = '<h3>Dear ' + requesterName + ',</h3><p>The enhancement request submitted by you on <b>' + ticketCreateDate.split('T')[0] + '</b> at <b>' + ticketCreateDate.split('T')[1].split('Z')[0] + '</b> has been recorded in the system.</p><p>Subject: <b>' + ticketSubject + '</b></p><p>Content: <i>' + ticketContent + '</i></p><p>Our agent will attend to it and get it done as soon as possible. You will be notified by email when the request is completed.</p><p>Should you have any concerns or suggestions on how you want the request to be processed, feel free to contact our agent - <b>' + assigneeName + '</b> via ' + assigneeEmail + '.</p><p>This is an auto-generated email. Please do not reply.</p>';
+											var mailTo = '[{"email":"' + requesterEmail + '", "name":"' + requesterName + '", "type":"to"}]';
+											var mailSubject = 'Request Confirmed [' + ticketSubject + ']';
+											
+											mc.setProperty('mandrill.html', html);
+											mc.setProperty('mandrill.subject', mailSubject);
+											mc.setProperty('mandrill.to', mailTo);
+										]]>
+									</script>
+									
+									<property name="mandrill.html" expression="fn:concat('&lt;html&gt;', get-property('mandrill.html'), '&lt;/html&gt;')" />
+									
+									<!-- Send notification to the requester. -->
+                                    <mandrill.init>
+                                       <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                       <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                       <format>{$ctx:mandrill.format}</format>
+                                    </mandrill.init>
+                                    <mandrill.sendMessage>
+                                       <html>{$ctx:mandrill.html}</html>
+                                       <subject>{$ctx:mandrill.subject}</subject>
+                                       <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+                                       <fromName>{$ctx:mandrill.fromName}</fromName>
+                                       <to>{$ctx:mandrill.to}</to>
+                                    </mandrill.sendMessage>
+									<sequence key="removeResponseHeaders" />	  
+									
+                                    <property name="mandrill.messageId" expression="json-eval($[0]._id)" />
+                                    <filter source="boolean(get-property('mandrill.messageId'))" regex="true">
+                                       <then>
+                                          <property name="id" expression="fn:concat('mandrill_messageId:', get-property('mandrill.messageId'))" />
+                                          <property name="status" value="Success" />
+                                          <property name="message" value="Notification has been successfully sent to the requester." />
+                                       </then>
+                                       <else>
+                                          <property name="id" value="{}" />
+                                          <property name="status" value="Failure" />
+                                          <property name="message" expression="json-eval($)" />
+                                       </else>
+                                    </filter>
+									
+                                    <!-- Append message to be sent to the user. -->
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="mandrill_sendMessage" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+									
+                                    <!-- Add the 'enhancement' label to the ticket. -->
+                                    <supportbee.init>
+                                       <apiUrl>{$ctx:supportbee.apiUrl}</apiUrl>
+                                       <authToken>{$ctx:supportbee.authToken}</authToken>
+                                    </supportbee.init>
+                                    <supportbee.addLabel>
+                                       <ticketId>{$ctx:ticketId}</ticketId>
+                                       <labelName>enhancement</labelName>
+                                    </supportbee.addLabel>
+									<sequence key="removeResponseHeaders" />	  
+									
+                                    <property name="supportbee.labelId" expression="json-eval($.label.id)" />
+                                    
+                                    <filter source="boolean(get-property('supportbee.labelId'))" regex="false">
+                                       <then>
+                                          <property name="id" expression="fn:concat('supportbee_ticketId:', get-property('ticketId'))" />
+                                          <property name="message" expression="json-eval($)" />									   
+										  <!-- Failure case: Append an error message to be sent to the user. -->
+										  <call-template target="responseHandlerTemplate">
+											 <with-param name="activity" value="supportbee_addLabel" />
+											 <with-param name="id" value="{$ctx:id}" />
+											 <with-param name="status" value="Failure" />
+											 <with-param name="message" value="{$ctx:message}" />
+										  </call-template>
+                                       </then>
+                                    </filter>
+									
+                                 </then>
+                                 <else>
+                                    <!-- Failure case: Append an error message to be sent to the user. -->
+                                    <property name="message" expression="json-eval($)" />
+                                    <property name="id" value="{}" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="agilezen_createStory" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Failure" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </else>
+                              </filter>
+                              <!-- END: Proceed to send the notification, and add the label to the ticket, only if the story was successfully created. -->
+                           </then>
+                           <else>
+                              <!-- Skipped case: Append an skipped message to be sent to the user. -->
+                              <property name="id" expression="fn:concat('ticketId:', get-property('ticketId'))" />
+                              <property name="errorResponse" expression="json-eval($)" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="supportbee_getTicket" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="Skipped" />
+                                 <with-param name="message" value="Ticket is not found or 'Enhancement' label is already added to the ticket." />
+                              </call-template>
+                           </else>
+                        </filter>
+                        <!-- END: Proceed to create story, only if the 'enhancement' label is not added to the ticket. -->
+						
+                        <property name="ticketIndex" expression="get-property('operation', 'ticketIndex') + 1" scope="operation" />
+						
+                        <filter xpath="(get-property('operation', 'noOftickets') = get-property('operation', 'ticketIndex'))">
+                           <then>
+                              <loopback />
+                           </then>
+                        </filter>
+						
+                     </sequence>
+                  </target>
+               </iterate>
+               <!--FOR EACH ticket - END -->
+            </else>
+         </filter>
+         <!-- END: Proceed to process the tickets if there are any. -->
+      </inSequence>
+      <outSequence>
+         <!-- Send the constructed response to the user. -->
+         <payloadFactory media-type="json">
+            <format>
+			{
+				"Response":{
+					"process":"supportbee_createStoryAndSendNotification", "activityResponse":[$1]
+				}
+			}
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+</proxy>
