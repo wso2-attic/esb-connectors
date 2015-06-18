@@ -20,6 +20,7 @@ package org.wso2.carbon.connector.integration.test.zohocrm;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.HashMap;
@@ -57,10 +58,10 @@ public class ZohocrmConnectorIntegrationTest extends ConnectorIntegrationTestBas
     }
     
     /**
-     * This method // Creates the resources within the Zoho account to be used in API calls to follow.
+     * This method Creates the resources within the Zoho account to be used in API calls to follow.
      * 
-     * @throws IOException
-     * @throws JSONException
+     * @throws java.io.IOException
+     * @throws org.json.JSONException
      */
     private void createResources() throws IOException, JSONException {
     
@@ -475,224 +476,524 @@ public class ZohocrmConnectorIntegrationTest extends ConnectorIntegrationTestBas
         esbRequestHeadersMap.put("Action", "urn:getRelatedRecords");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getRelatedRecords_mandatory.json");
-       
-       
-        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/crm/private/json/Leads/getRelatedRecords?id=" + connectorProperties.getProperty("parentModuleId")
-                        + "&authtoken=" + connectorProperties.getProperty("accessToken") + "&scope=" + connectorProperties.getProperty("scope") + "&parentModule=Campaigns" ;
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/crm/private/json/Leads/getRelatedRecords?id="
+                        + connectorProperties.getProperty("parentModuleId") + "&authtoken="
+                        + connectorProperties.getProperty("accessToken") + "&scope="
+                        + connectorProperties.getProperty("scope") + "&parentModule=Campaigns";
         
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
         
-        String leadIdESB="";
-        String leadIdAPI="";
-        String leadOwnerIdESB="";
-        String leadOwnerIdAPI="";
+        String leadIdESB = "";
+        String leadIdAPI = "";
+        String leadOwnerIdESB = "";
+        String leadOwnerIdAPI = "";
         
-        //JSON object structure changes when the result contains multiple rows
-        if(esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").get("row") instanceof JSONObject){
-            leadIdESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONObject("row").getJSONArray("FL").getJSONObject(0).get("content").toString();
-            leadIdAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONObject("row").getJSONArray("FL").getJSONObject(0).get("content").toString();
-            leadOwnerIdESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONObject("row").getJSONArray("FL").getJSONObject(1).get("content").toString();
-            leadOwnerIdAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONObject("row").getJSONArray("FL").getJSONObject(1).get("content").toString();
-        }else{
-            leadIdESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(0).get("content").toString();
-            leadIdAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(0).get("content").toString();
-            leadOwnerIdESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(1).get("content").toString();
-            leadOwnerIdAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(1).get("content").toString();
-        }   
-
-        Assert.assertEquals(leadIdESB,leadIdAPI);
-        Assert.assertEquals(leadOwnerIdESB,leadOwnerIdAPI);
+        // JSON object structure changes when the result contains multiple rows
+        if (esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                .get("row") instanceof JSONObject) {
+            leadIdESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONObject("row").getJSONArray("FL").getJSONObject(0).get("content").toString();
+            leadIdAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONObject("row").getJSONArray("FL").getJSONObject(0).get("content").toString();
+            leadOwnerIdESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONObject("row").getJSONArray("FL").getJSONObject(1).get("content").toString();
+            leadOwnerIdAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONObject("row").getJSONArray("FL").getJSONObject(1).get("content").toString();
+        } else {
+            leadIdESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(0).get("content")
+                            .toString();
+            leadIdAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(0).get("content")
+                            .toString();
+            leadOwnerIdESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(1).get("content")
+                            .toString();
+            leadOwnerIdAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(1).get("content")
+                            .toString();
+        }
+        
+        Assert.assertEquals(leadIdESB, leadIdAPI);
+        Assert.assertEquals(leadOwnerIdESB, leadOwnerIdAPI);
     }
     
     /**
      * Positive test case for getRelatedRecords method with optional parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods={"testGetRelatedRecordsWithMandatoryParameters"}, description = "zohocrm {getRelatedRecords} integration test with optional parameters")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetRelatedRecordsWithMandatoryParameters" }, description = "zohocrm {getRelatedRecords} integration test with optional parameters")
     public void testGetRelatedRecordsWithOptionalParameters() throws Exception {
     
         esbRequestHeadersMap.put("Action", "urn:getRelatedRecords");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getRelatedRecords_optional.json");
-       
-       
-        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/crm/private/json/Leads/getRelatedRecords?id=" + connectorProperties.getProperty("parentModuleId")
-                        + "&authtoken=" + connectorProperties.getProperty("accessToken") + "&scope=" + connectorProperties.getProperty("scope") + "&parentModule=Campaigns&" + "newFormat=1";
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/crm/private/json/Leads/getRelatedRecords?id="
+                        + connectorProperties.getProperty("parentModuleId") + "&authtoken="
+                        + connectorProperties.getProperty("accessToken") + "&scope="
+                        + connectorProperties.getProperty("scope") + "&parentModule=Campaigns&" + "newFormat=1";
         
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
         
-        String leadIdESB="";
-        String leadIdAPI="";
-        String leadOwnerIdESB="";
-        String leadOwnerIdAPI="";
+        String leadIdESB = "";
+        String leadIdAPI = "";
+        String leadOwnerIdESB = "";
+        String leadOwnerIdAPI = "";
         
-        //JSON object structure changes when the result contains multiple rows
-        if(esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").get("row") instanceof JSONObject){
-            leadIdESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONObject("row").getJSONArray("FL").getJSONObject(0).get("content").toString();
-            leadIdAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONObject("row").getJSONArray("FL").getJSONObject(0).get("content").toString();
-            leadOwnerIdESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONObject("row").getJSONArray("FL").getJSONObject(1).get("content").toString();
-            leadOwnerIdAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONObject("row").getJSONArray("FL").getJSONObject(1).get("content").toString();
-        }else{
-            leadIdESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(0).get("content").toString();
-            leadIdAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(0).get("content").toString();
-            leadOwnerIdESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(1).get("content").toString();
-            leadOwnerIdAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(1).get("content").toString();
-        }   
-
-        Assert.assertEquals(leadIdESB,leadIdAPI);
-        Assert.assertEquals(leadOwnerIdESB,leadOwnerIdAPI);
+        // JSON object structure changes when the result contains multiple rows
+        if (esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                .get("row") instanceof JSONObject) {
+            leadIdESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONObject("row").getJSONArray("FL").getJSONObject(0).get("content").toString();
+            leadIdAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONObject("row").getJSONArray("FL").getJSONObject(0).get("content").toString();
+            leadOwnerIdESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONObject("row").getJSONArray("FL").getJSONObject(1).get("content").toString();
+            leadOwnerIdAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONObject("row").getJSONArray("FL").getJSONObject(1).get("content").toString();
+        } else {
+            leadIdESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(0).get("content")
+                            .toString();
+            leadIdAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(0).get("content")
+                            .toString();
+            leadOwnerIdESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(1).get("content")
+                            .toString();
+            leadOwnerIdAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Leads")
+                            .getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(1).get("content")
+                            .toString();
+        }
+        
+        Assert.assertEquals(leadIdESB, leadIdAPI);
+        Assert.assertEquals(leadOwnerIdESB, leadOwnerIdAPI);
     }
     
     /**
      * Negative test case for getRelatedRecords method .
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods={"testGetRelatedRecordsWithOptionalParameters"}, description = "zohocrm {getRelatedRecords} integration test negative case")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetRelatedRecordsWithOptionalParameters" }, description = "zohocrm {getRelatedRecords} integration test negative case")
     public void testGetRelatedRecordNegativeCase() throws Exception {
     
         esbRequestHeadersMap.put("Action", "urn:getRelatedRecords");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getRelatedRecords_negative.json");
-       
-        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/crm/private/json/Leads/getRelatedRecords?id=-" + "&authtoken=" + connectorProperties.getProperty("accessToken") + "&scope=" + connectorProperties.getProperty("scope") + "&parentModule=Campaigns";
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/crm/private/json/Leads/getRelatedRecords?id=-"
+                        + "&authtoken=" + connectorProperties.getProperty("accessToken") + "&scope="
+                        + connectorProperties.getProperty("scope") + "&parentModule=Campaigns";
         
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("code").toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("code").toString());
-        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("message").toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("message").toString());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("code")
+                .toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("code")
+                .toString());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("message")
+                .toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("message")
+                .toString());
     }
     
     /**
      * Positive test case for getSearchRecords method with mandatory parameters.
      */
-    @Test(groups = { "wso2.esb" }, dependsOnMethods={"testGetRelatedRecordNegativeCase"}, description = "zohocrm {getSearchRecords} integration test with mandatory parameters")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetRelatedRecordNegativeCase" }, description = "zohocrm {getSearchRecords} integration test with mandatory parameters")
     public void testGetSearchRecordsWithMandatoryParameters() throws Exception {
     
         esbRequestHeadersMap.put("Action", "urn:getSearchRecords");
         RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getSearchRecords_mandatory.json");       
-       
-        String apiEndPoint = connectorProperties.getProperty("apiUrl") + 
-                    "/crm/private/json/Campaigns/getSearchRecords?selectColumns=" + URLEncoder.encode("Campaigns(Campaign Name,Status)", Charset.defaultCharset().toString())
-                        + "&authtoken=" + connectorProperties.getProperty("accessToken") + "&scope=" + connectorProperties.getProperty("scope") + "&searchCondition="+ URLEncoder.encode("(Campaign Name|contains|*Campaign*)", Charset.defaultCharset().toString()) ;
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getSearchRecords_mandatory.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl")
+                        + "/crm/private/json/Campaigns/getSearchRecords?selectColumns="
+                        + URLEncoder.encode("Campaigns(Campaign Name,Status)", Charset.defaultCharset().toString())
+                        + "&authtoken=" + connectorProperties.getProperty("accessToken") + "&scope="
+                        + connectorProperties.getProperty("scope") + "&searchCondition="
+                        + URLEncoder.encode("(Campaign Name|contains|*Campaign*)", Charset.defaultCharset().toString());
         
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
         
-        String campaignIdESB="";
-        String campaignIdAPI="";
-        String campaignStatusESB="";
-        String campaignStatusAPI="";
-        if(esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").get("row") instanceof JSONObject){
-            campaignIdESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(0).get("content").toString();
-            campaignIdAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(0).get("content").toString();
-            campaignStatusESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(1).get("content").toString();
-            campaignStatusAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(1).get("content").toString();
-        }else{
-            campaignIdESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(0).get("content").toString();
-            campaignIdAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(0).get("content").toString();
-            campaignStatusESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(1).get("content").toString();
-            campaignStatusAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(1).get("content").toString();
-        }   
+        String campaignIdESB = "";
+        String campaignIdAPI = "";
+        String campaignStatusESB = "";
+        String campaignStatusAPI = "";
+        if (esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns")
+                .get("row") instanceof JSONObject) {
+            campaignIdESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(0)
+                            .get("content").toString();
+            campaignIdAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(0)
+                            .get("content").toString();
+            campaignStatusESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(1)
+                            .get("content").toString();
+            campaignStatusAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(1)
+                            .get("content").toString();
+        } else {
+            campaignIdESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL")
+                            .getJSONObject(0).get("content").toString();
+            campaignIdAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL")
+                            .getJSONObject(0).get("content").toString();
+            campaignStatusESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL")
+                            .getJSONObject(1).get("content").toString();
+            campaignStatusAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL")
+                            .getJSONObject(1).get("content").toString();
+        }
         
-        Assert.assertEquals(campaignIdESB,campaignIdAPI);
-        Assert.assertEquals(campaignStatusESB,campaignStatusAPI);
+        Assert.assertEquals(campaignIdESB, campaignIdAPI);
+        Assert.assertEquals(campaignStatusESB, campaignStatusAPI);
     }
-     
-     /**
-      * Positive test case for getSearchRecords method with optional parameters.
-      */
-     @Test(groups = { "wso2.esb" }, dependsOnMethods={"testGetSearchRecordsWithMandatoryParameters"}, description = "zohocrm {getSearchRecords} integration test with Optional parameters")
-     public void testGetSearchRecordsWithOptionalParameters() throws Exception {
-     
-         esbRequestHeadersMap.put("Action", "urn:getSearchRecords");
-         RestResponse<JSONObject> esbRestResponse =
-                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getSearchRecords_optional.json");       
+    
+    /**
+     * Positive test case for getSearchRecords method with optional parameters.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetSearchRecordsWithMandatoryParameters" }, description = "zohocrm {getSearchRecords} integration test with Optional parameters")
+    public void testGetSearchRecordsWithOptionalParameters() throws Exception {
+    
+        esbRequestHeadersMap.put("Action", "urn:getSearchRecords");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getSearchRecords_optional.json");
         
-         String apiEndPoint = connectorProperties.getProperty("apiUrl") + 
-                "/crm/private/json/Campaigns/getSearchRecords?selectColumns=" + URLEncoder.encode("Campaigns(Campaign Name,Status)", Charset.defaultCharset().toString())
-                + "&authtoken=" + connectorProperties.getProperty("accessToken") + "&scope=" + connectorProperties.getProperty("scope") + "&searchCondition="+ URLEncoder.encode("(Campaign Name|contains|*Campaign*)", Charset.defaultCharset().toString()) +"&newFormat=1" ;
-         
-         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
-         
-         String campaignIdESB="";
-         String campaignIdAPI="";
-         String campaignStatusESB="";
-         String campaignStatusAPI="";
-         if(esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").get("row") instanceof JSONObject){
-            campaignIdESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(0).get("content").toString();
-            campaignIdAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(0).get("content").toString();
-            campaignStatusESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(1).get("content").toString();
-            campaignStatusAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(1).get("content").toString();
-         }else{
-            campaignIdESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(0).get("content").toString();
-            campaignIdAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(0).get("content").toString();
-            campaignStatusESB = esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(1).get("content").toString();
-            campaignStatusAPI = apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL").getJSONObject(1).get("content").toString();
-         }   
-         
-         Assert.assertEquals(campaignIdESB,campaignIdAPI);
-         Assert.assertEquals(campaignStatusESB,campaignStatusAPI);
-     }
-      
-      /**
-       * Negative test case for getSearchRecords method.
-       */
-       @Test(groups = { "wso2.esb" }, dependsOnMethods={"testGetSearchRecordsWithOptionalParameters"}, description = "zohocrm {getSearchRecords} integration negative test case")
-      public void testGetSearchRecordsNegativeTestCase() throws Exception {
-      
-          esbRequestHeadersMap.put("Action", "urn:getSearchRecords");
-          RestResponse<JSONObject> esbRestResponse =
-                  sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getSearchRecords_negative.json"); 
-         
-          String apiEndPoint = connectorProperties.getProperty("apiUrl") + 
-                "/crm/private/json/Campaigns/getSearchRecords?selectColumns=" + URLEncoder.encode("Campaigns(Campaign Name,Status)", Charset.defaultCharset().toString())
-                + "&authtoken=" + connectorProperties.getProperty("accessToken") + "&scope=" + connectorProperties.getProperty("scope") + "&searchCondition=-";
-          
-          RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
-          
-          Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("code").toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("code").toString());
-          Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("message").toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("message").toString());
-      }
-       
-       /**
-        * Positive test case for updatRelatedRecords method with mandatory parameters.
-        */
-       @Test(groups = { "wso2.esb" }, dependsOnMethods={"testGetSearchRecordsNegativeTestCase"}, description = "zohocrm {updatRelatedRecords} integration test with mandatory parameters")
-       public void testUpdatRelatedRecordsWithMandatoryParameters() throws Exception {
-       
-           esbRequestHeadersMap.put("Action", "urn:updateRelatedRecords");           
-           //Direct call is not used in this test case since the updated info cannot be retrieved via an API call.
-           RestResponse<JSONObject> esbRestResponse =
-                   sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateRelatedRecords_mandatory.json"); 
-           
-           Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("status").get("code").toString(), "200");
-           Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("success").get("code").toString(), "4800");
-           
-       }
-       
-       /**
-        * Negative test case for updatRelatedRecords method.
-        */
-       @Test(groups = { "wso2.esb" }, dependsOnMethods={"testUpdatRelatedRecordsWithMandatoryParameters"}, description = "zohocrm {updatRelatedRecords} integration test negative test case")
-       public void testUpdatRelatedRecordsWithNegativecase() throws Exception {
-       
-           esbRequestHeadersMap.put("Action", "urn:updateRelatedRecords");
-           
-           //Direct call is not used in this test case since the updated info cannot be retrieved via an API call.
-           RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateRelatedRecords_negative.json"); 
-           
-           String apiEndPoint = connectorProperties.getProperty("apiUrl") + 
-                   "/crm/private/json/Campaigns/updateRelatedRecords?relatedModule=-&id=" + URLEncoder.encode(connectorProperties.getProperty("parentModuleId"), Charset.defaultCharset().toString())
-                   + "&authtoken=" + connectorProperties.getProperty("accessToken") + "&scope=" + connectorProperties.getProperty("scope") + "&xmlData=" + URLEncoder.encode("<Leads> <row no=\"1\"> <FL val=\"LEADID\">%s(relatedModuleId)</FL> <FL val=\"member_status\">Sent</FL> </row> </Leads>", Charset.defaultCharset().toString());
-           RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
-           
-           Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("code").toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("code").toString());
-           Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("message").toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("message").toString());
-       }
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl")
+                        + "/crm/private/json/Campaigns/getSearchRecords?selectColumns="
+                        + URLEncoder.encode("Campaigns(Campaign Name,Status)", Charset.defaultCharset().toString())
+                        + "&authtoken=" + connectorProperties.getProperty("accessToken") + "&scope="
+                        + connectorProperties.getProperty("scope") + "&searchCondition="
+                        + URLEncoder.encode("(Campaign Name|contains|*Campaign*)", Charset.defaultCharset().toString())
+                        + "&newFormat=1";
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
+        
+        String campaignIdESB = "";
+        String campaignIdAPI = "";
+        String campaignStatusESB = "";
+        String campaignStatusAPI = "";
+        if (esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns")
+                .get("row") instanceof JSONObject) {
+            campaignIdESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(0)
+                            .get("content").toString();
+            campaignIdAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(0)
+                            .get("content").toString();
+            campaignStatusESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(1)
+                            .get("content").toString();
+            campaignStatusAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONObject("row").getJSONArray("FL").getJSONObject(1)
+                            .get("content").toString();
+        } else {
+            campaignIdESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL")
+                            .getJSONObject(0).get("content").toString();
+            campaignIdAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL")
+                            .getJSONObject(0).get("content").toString();
+            campaignStatusESB =
+                    esbRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL")
+                            .getJSONObject(1).get("content").toString();
+            campaignStatusAPI =
+                    apiRestResponse.getBody().getJSONObject("response").getJSONObject("result")
+                            .getJSONObject("Campaigns").getJSONArray("row").getJSONObject(0).getJSONArray("FL")
+                            .getJSONObject(1).get("content").toString();
+        }
+        
+        Assert.assertEquals(campaignIdESB, campaignIdAPI);
+        Assert.assertEquals(campaignStatusESB, campaignStatusAPI);
+    }
+    
+    /**
+     * Negative test case for getSearchRecords method.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetSearchRecordsWithOptionalParameters" }, description = "zohocrm {getSearchRecords} integration negative test case")
+    public void testGetSearchRecordsNegativeTestCase() throws Exception {
+    
+        esbRequestHeadersMap.put("Action", "urn:getSearchRecords");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getSearchRecords_negative.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl")
+                        + "/crm/private/json/Campaigns/getSearchRecords?selectColumns="
+                        + URLEncoder.encode("Campaigns(Campaign Name,Status)", Charset.defaultCharset().toString())
+                        + "&authtoken=" + connectorProperties.getProperty("accessToken") + "&scope="
+                        + connectorProperties.getProperty("scope") + "&searchCondition=-";
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("code")
+                .toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("code")
+                .toString());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("message")
+                .toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("message")
+                .toString());
+    }
+    
+    /**
+     * Positive test case for updatRelatedRecords method with mandatory parameters.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testGetSearchRecordsNegativeTestCase" }, description = "zohocrm {updatRelatedRecords} integration test with mandatory parameters")
+    public void testUpdatRelatedRecordsWithMandatoryParameters() throws Exception {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateRelatedRecords");
+        // Direct call is not used in this test case since the updated info cannot be retrieved via an API
+        // call.
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateRelatedRecords_mandatory.json");
+        
+        Assert.assertEquals(
+                esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("status")
+                        .get("code").toString(), "200");
+        Assert.assertEquals(
+                esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("success")
+                        .get("code").toString(), "4800");
+        
+    }
+    
+    /**
+     * Negative test case for updatRelatedRecords method.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdatRelatedRecordsWithMandatoryParameters" }, description = "zohocrm {updatRelatedRecords} integration test negative test case")
+    public void testUpdatRelatedRecordsWithNegativecase() throws Exception {
+    
+        esbRequestHeadersMap.put("Action", "urn:updateRelatedRecords");
+        
+        // Direct call is not used in this test case since the updated info cannot be retrieved via an API
+        // call.
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateRelatedRecords_negative.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl")
+                        + "/crm/private/json/Campaigns/updateRelatedRecords?relatedModule=-&id="
+                        + URLEncoder.encode(connectorProperties.getProperty("parentModuleId"), Charset.defaultCharset()
+                                .toString())
+                        + "&authtoken="
+                        + connectorProperties.getProperty("accessToken")
+                        + "&scope="
+                        + connectorProperties.getProperty("scope")
+                        + "&xmlData="
+                        + URLEncoder
+                                .encode("<Leads> <row no=\"1\"> <FL val=\"LEADID\">%s(relatedModuleId)</FL> <FL val=\"member_status\">Sent</FL> </row> </Leads>",
+                                        Charset.defaultCharset().toString());
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("code")
+                .toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("code")
+                .toString());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("message")
+                .toString(), apiRestResponse.getBody().getJSONObject("response").getJSONObject("error").get("message")
+                .toString());
+    }
+    
+    /**
+     * Positive test case for searchRecords method with mandatory parameters.
+     * 
+     * @throws InterruptedException
+     * @throws NumberFormatException
+     * @throws org.json.JSONException
+     * @throws java.io.IOException
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdatRelatedRecordsWithNegativecase" }, description = "zohocrm {searchRecords} integration test with mandatory parameters")
+    public void testSearchRecordsWithMandatoryParameters() throws NumberFormatException, InterruptedException,
+            IOException, JSONException {
+    
+        // Sleeps the test case to avoid request failures.
+        Thread.sleep(Integer.parseInt(connectorProperties.getProperty("sleepTime")));
+        
+        esbRequestHeadersMap.put("Action", "urn:searchRecords");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchRecords_mandatory.json");
+        
+        String urlEncodedCriteria =
+                URLEncoder.encode("(Campaign Name:" + connectorProperties.getProperty("campaignName1") + ")", Charset
+                        .defaultCharset().toString());
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/crm/private/json/Campaigns/searchRecords?authtoken="
+                        + connectorProperties.getProperty("accessToken") + "&scope="
+                        + connectorProperties.getProperty("scope") + "&criteria=" + urlEncodedCriteria;
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        JSONObject esbCampaignsObj =
+                esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns");
+        JSONObject apiCampaignsObj =
+                apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns");
+        
+        JSONArray esbCampaignDetailsArray = null;
+        JSONArray apiCampaignDetailsArray = null;
+        
+        // If there is only one Campaign is adhering to the search criteria, it will return an object,
+        // otherwise an array. Following code handles the response accordingly.
+        if (esbCampaignsObj.get("row") instanceof JSONObject) {
+            Assert.assertTrue(apiCampaignsObj.get("row") instanceof JSONObject);
+            esbCampaignDetailsArray = esbCampaignsObj.getJSONObject("row").getJSONArray("FL");
+            apiCampaignDetailsArray = apiCampaignsObj.getJSONObject("row").getJSONArray("FL");
+        } else {
+            Assert.assertTrue(apiCampaignsObj.get("row") instanceof JSONArray);
+            esbCampaignDetailsArray = esbCampaignsObj.getJSONArray("row").getJSONObject(0).getJSONArray("FL");
+            apiCampaignDetailsArray = apiCampaignsObj.getJSONArray("row").getJSONObject(0).getJSONArray("FL");
+        }
+        
+        Assert.assertEquals(esbCampaignDetailsArray.getJSONObject(0).getString("content"), apiCampaignDetailsArray
+                .getJSONObject(0).getString("content"));
+        Assert.assertEquals(esbCampaignDetailsArray.getJSONObject(0).getString("val"), apiCampaignDetailsArray
+                .getJSONObject(0).getString("val"));
+        Assert.assertEquals(esbCampaignDetailsArray.getJSONObject(1).getString("content"), apiCampaignDetailsArray
+                .getJSONObject(1).getString("content"));
+        Assert.assertEquals(esbCampaignDetailsArray.getJSONObject(1).getString("val"), apiCampaignDetailsArray
+                .getJSONObject(1).getString("val"));
+    }
+    
+    /**
+     * Positive test case for searchRecords method with optional parameters.
+     **/
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSearchRecordsWithMandatoryParameters" }, description = "zohocrm {searchRecords} integration test with optional parameters")
+    public void testSearchRecordsWithOptionalParameters() throws NumberFormatException, InterruptedException,
+            IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:searchRecords");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchRecords_optional.json");
+        
+        String urlEncodedCriteria =
+                URLEncoder.encode("(Campaign Name:" + connectorProperties.getProperty("campaignName2") + ")", Charset
+                        .defaultCharset().toString());
+        
+        String urlEncodedSelectColumns =
+                URLEncoder.encode("Campaigns(Campaign Owner)", Charset.defaultCharset().toString());
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/crm/private/json/Campaigns/searchRecords?authtoken="
+                        + connectorProperties.getProperty("accessToken") + "&scope="
+                        + connectorProperties.getProperty("scope") + "&criteria=" + urlEncodedCriteria
+                        + "&selectColumns=" + urlEncodedSelectColumns;
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        JSONObject esbCampaignsObj =
+                esbRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns");
+        JSONObject apiCampaignsObj =
+                apiRestResponse.getBody().getJSONObject("response").getJSONObject("result").getJSONObject("Campaigns");
+        
+        JSONArray esbCampaignDetailsArray = null;
+        JSONArray apiCampaignDetailsArray = null;
+        
+        // If there is only one Campaign adhering to the search criteria returns an row object, otherwise
+        // an array. Here we retrieve the FL array accordingly.
+        if (esbCampaignsObj.get("row") instanceof JSONObject) {
+            Assert.assertTrue(apiCampaignsObj.get("row") instanceof JSONObject);
+            esbCampaignDetailsArray = esbCampaignsObj.getJSONObject("row").getJSONArray("FL");
+            apiCampaignDetailsArray = apiCampaignsObj.getJSONObject("row").getJSONArray("FL");
+        } else {
+            Assert.assertTrue(apiCampaignsObj.get("row") instanceof JSONArray);
+            esbCampaignDetailsArray = esbCampaignsObj.getJSONArray("row").getJSONObject(0).getJSONArray("FL");
+            apiCampaignDetailsArray = apiCampaignsObj.getJSONArray("row").getJSONObject(0).getJSONArray("FL");
+        }
+        
+        // Parameter to check the availability of 'Campaign Owner' in the response. Initially sets to false.
+        boolean isCampaignOwnerPresent = false;
+        for (int i = 0; i < esbCampaignDetailsArray.length(); i++) {
+            
+            String value = esbCampaignDetailsArray.getJSONObject(i).getString("val");
+            // Here, as per the request it should only return 'Campaign Owner' value apart from the ID's
+            // returned.
+            // 'Campaign Name' should not be present in response.
+            if ("Campaign Name".equals(value)) {
+                Assert.assertTrue(false);
+            }
+            if ("Campaign Owner".equals(value)) {
+                Assert.assertEquals(esbCampaignDetailsArray.getJSONObject(i).getString("content"),
+                        esbCampaignDetailsArray.getJSONObject(i).getString("content"));
+                isCampaignOwnerPresent = true;
+            }
+        }
+        
+        // Checks weather the Campaign owner was present in response. Only passes if it was found in response.
+        Assert.assertTrue(isCampaignOwnerPresent);
+        // Checks the equality of the ID's normally returned in default.
+        Assert.assertEquals(esbCampaignDetailsArray.getJSONObject(0).getString("content"), apiCampaignDetailsArray
+                .getJSONObject(0).getString("content"));
+        
+    }
+    
+    /**
+     * Negative test case for searchRecords method. Uses an invalid criteria.
+     * 
+     * @throws org.json.JSONException
+     * @throws java.io.IOException
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSearchRecordsWithOptionalParameters" }, description = "zohocrm {searchRecords} integration test with negative case")
+    public void testSearchRecordsNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:searchRecords");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchRecords_negative.json");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/crm/private/json/Campaigns/searchRecords?authtoken="
+                        + connectorProperties.getProperty("accessToken") + "&scope="
+                        + connectorProperties.getProperty("scope") + "&criteria=INVALID";
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getJSONObject("error")
+                .getString("code"), apiRestResponse.getBody().getJSONObject("response").getJSONObject("error")
+                .getString("code"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("response").getString("uri"), apiRestResponse
+                .getBody().getJSONObject("response").getString("uri"));
+        Assert.assertEquals(
+                esbRestResponse.getBody().getJSONObject("response").getJSONObject("error").getString("message"),
+                apiRestResponse.getBody().getJSONObject("response").getJSONObject("error").getString("message"));
+    }
     
     /**
      * Positive test case for uploadFile method with mandatory parameters.
      */
-    
-    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdatRelatedRecordsWithNegativecase" }, description = "zohocrm {uploadFile} integration test with mandatory parameters")
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testSearchRecordsNegativeCase" }, description = "zohocrm {uploadFile} integration test with mandatory parameters")
     public void testUploadFileWithMandatoryParameters() throws Exception {
     
         String fileUploadProxyUrl = getProxyServiceURL("zohocrm_uploadFile");
@@ -728,6 +1029,5 @@ public class ZohocrmConnectorIntegrationTest extends ConnectorIntegrationTestBas
         
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
     }
-    
     
 }
