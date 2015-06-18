@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="listJobCodeAssignments" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="userIds" description="Integer. Comma separated string of one or more user ids." />
+   <parameter name="type" description="String. Refers to the jobcode type - regular, pto, or all. Defaults to regular." />
+   <parameter name="jobcodeParentId" description="Integer. When omitted, all jobcode assignments are returned regardless of jobcode parent." />
+   <parameter name="active"
+      description="String. yes, no, or both. Default is both. Yes means the assignment is active, no means it is deleted/inactive." />
+   <parameter name="modifiedBefore"
+      description="String (ISO8601 format). Only jobcode assignments modified before this date/time will be returned (i.e. 2004-02-12T15:19:21+00:00)." />
+   <parameter name="modifiedSince"
+      description="String (ISO8601 format). Only jobcode assignments modified since this date/time will be returned (i.e. 2004-02-12T15:19:21+00:00)." />
+   <parameter name="perPage"
+      description="Integer. Represents how many results like to retrieve per request (page). Default is 50. Max is 50." />
+   <parameter name="page" description="Integer. Represents the page of results like to retrieve." />
+   <sequence>
+      <property name="uri.var.userIds" expression="$func:userIds" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.active" expression="$func:active" />
+      <property name="uri.var.jobcodeParentId" expression="$func:jobcodeParentId" />
+      <property name="uri.var.modifiedBefore" expression="$func:modifiedBefore" />
+      <property name="uri.var.modifiedSince" expression="$func:modifiedSince" />
+      <property name="uri.var.perPage" expression="$func:perPage" />
+      <property name="uri.var.page" expression="$func:page" />
+      <!--Construct endpoint with optional url parameters -->
+      <script language="js">
+      <![CDATA[
+        var urlQuery="";
+        var userIds = mc.getProperty("uri.var.userIds");
+        var type = mc.getProperty("uri.var.type");
+        var active = mc.getProperty("uri.var.active");
+        var jobcodeParentId = mc.getProperty("uri.var.jobcodeParentId");
+        var modifiedBefore = mc.getProperty("uri.var.modifiedBefore");
+        var modifiedSince = mc.getProperty("uri.var.modifiedSince");
+        var perPage = mc.getProperty("uri.var.perPage");
+        var page = mc.getProperty("uri.var.page");
+        if (userIds != null && userIds != ""){
+           urlQuery += 'user_ids=' + encodeURIComponent(userIds) + '&';
+        }
+        if (type != null && type != ""){
+           urlQuery += 'type=' + type + '&';
+        }      
+        if (active != null && active != ""){
+           urlQuery += 'active=' + active + '&';
+        }  
+        if (jobcodeParentId != null && jobcodeParentId != ""){
+           urlQuery += 'jobcode_parent_id=' + jobcodeParentId + '&';
+        }  
+        if (jobcodeParentId != null && jobcodeParentId != ""){
+           urlQuery += 'jobcode_parent_id=' + jobcodeParentId + '&';
+        } 
+        if (modifiedBefore != null && modifiedBefore != ""){
+           urlQuery += 'modified_before=' + encodeURIComponent(modifiedBefore) + '&';
+        }
+        if (modifiedSince != null && modifiedSince != ""){
+           urlQuery += 'modified_since=' + encodeURIComponent(modifiedSince) + '&';
+        } 
+        if (perPage != null && perPage != ""){
+           urlQuery += 'per_page=' + perPage + '&';
+        } 
+         if (page != null && page != ""){
+           urlQuery += 'page=' + page + '&';
+        }  
+        // Prefix the urlQuery with '?' and remove the trailing '&'
+        if (urlQuery != "") {
+           urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+           mc.setProperty('uri.var.urlQuery', urlQuery);    
+        } 
+      ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/jobcode_assignments{uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Removing custom headers -->
+      <header name="Vary" action="remove" scope="transport" />
+   </sequence>
+</template>
