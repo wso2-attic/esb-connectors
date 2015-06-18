@@ -34,7 +34,7 @@ STEPS:
 
 5. Copy the connector properties file at "googlecustomsearch/src/test/resources/artifacts/ESB/connector/config/googlecustomsearch.properties".
     i)  apiKey - Use the API key you got from step 3.
-    ii) cseID - Use the Search engine ID you got from step 3.
+    ii) cseID - Use the Search engine ID you got from step 4.
 
 6. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install

@@ -46,7 +46,7 @@ STEPS:
 	
 	Note: Add the aforementioned message formatters and the message builders to the axis file, if they are not available by default.
  
- 3. Make sure that the ESB 4.8.1 zip file with latest patches  and the changes in step 1 and 2, is available at "{ZOHO_PEOPLE_CONNECTOR_HOME}/zohopeople-connector/zohopeople-connector-1.0.0/org.wso2.carbon.connector/repository"	
+ 3. Download ESB 4.9.0-ALPHA by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/ and copy the wso2esb-4.9.0-ALPHA.zip file in to location "{ESB_Connector_Home}/repository/".
  
  4. Complete features of ZohoPeople API can be accessed via Zoho People Premium Edition account. Follow the below steps to create an account.
 
@@ -83,11 +83,14 @@ STEPS:
 	vii)  toLeaveDateESB    - A date string in the following format,dd-mmm-yyyy.
 	viii) fromLeaveDateAPI	- A date string in the following format,dd-mmm-yyyy. Make sure this is different to the fromLeaveDateESB given in step vi.
 	ix)   toLeaveDateAPI	- A date string in the following format,dd-mmm-yyyy. Make sure this is different to the toLeaveDateESB given in step vii.
- 
- 9. Navigate to "{ZOHO_PEOPLE_CONNECTOR_HOME}/zohopeople-connector/zohopeople-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+
+ 9. Make sure that zohopeople is specified as a module in ESB_Connector_Parent pom.
+      <module>zohopeople/zohopeople-connector/zohopeople-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 10. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
 	  
- 10. Account Details
+ 11. Account Details
 	Username: zohopeopletest2014@gmail.com
 	Password: 1qaz2wsx@
 	
