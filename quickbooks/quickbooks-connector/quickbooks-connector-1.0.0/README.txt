@@ -123,7 +123,7 @@ xxxviii) updatedVendorGivenName - A String value to update vendor given name.
    Repeat viii) to xxi) before each run. Make sure that the names given for each of those parameters are different from each other. 
     
 
-5. Make sure that the billiving connector is set as a module in esb-connectors parent pom.
+5. Make sure that the quickbooks connector is set as a module in esb-connectors parent pom.
       <module>quickbooks/quickbooks-connector/quickbooks-connector-1.0.0/org.wso2.carbon.connector.quickbooks</module>
 
 6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
