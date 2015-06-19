@@ -70,14 +70,13 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         esbRequestHeadersMap.put("Action", "urn:createProduct");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createProduct_mandatory.json");
-        
-        final String productId = esbRestResponse.getBody().getString("id");
+        final String productId = esbRestResponse.getBody().getJSONObject("result").getString("id");
         connectorProperties.put("productId", productId);
         
         final String apiEndpoint = apiEndpointUrl + "/product/" + productId + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
-        
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("products").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("products").getJSONObject(0);
         
         Assert.assertEquals(connectorProperties.getProperty("productName"), apiResponse.getString("name"));
         Assert.assertEquals(connectorProperties.getProperty("productDescription"), apiResponse.getString("description"));
@@ -98,20 +97,21 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createProduct_optional.json");
         
-        final String productIdOpt = esbRestResponse.getBody().getString("id");
+        final String productIdOpt = esbRestResponse.getBody().getJSONObject("result").getString("id");
         connectorProperties.put("productIdOpt", productIdOpt);
         
         final String apiEndpoint = apiEndpointUrl + "/product/" + productIdOpt + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("products").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("products").getJSONObject(0);
         
         Assert.assertEquals(connectorProperties.getProperty("productNameOpt"), apiResponse.getString("name"));
         Assert.assertEquals(connectorProperties.getProperty("productDescriptionOpt"),
                 apiResponse.getString("description"));
         Assert.assertEquals(connectorProperties.getProperty("productConfirmation"),
                 apiResponse.getString("has_unconfirmed"));
-        Assert.assertEquals(connectorProperties.getProperty("productIsOpen"), apiResponse.getString("is_active"));  
+        Assert.assertEquals(connectorProperties.getProperty("productIsOpen"), apiResponse.getString("is_active"));
     }
     
     /**
@@ -132,9 +132,10 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 sendJsonRestRequest(apiEndpoint, "POST", apiRequestHeadersMap, "api_createProduct_negative.json");
         
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
-        Assert.assertEquals(esbRestResponse.getBody().getString("code"), apiRestResponse.getBody().getString("code"));
-        Assert.assertEquals(esbRestResponse.getBody().getString("message"),
-                apiRestResponse.getBody().getString("message"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("result").getString("code"), apiRestResponse
+                .getBody().getJSONObject("result").getString("code"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("result").getString("message"), apiRestResponse
+                .getBody().getJSONObject("result").getString("message"));
     }
     
     /**
@@ -150,13 +151,15 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchProducts_mandatory.json");
         
-        JSONObject esbResponse = esbRestResponse.getBody().getJSONArray("products").getJSONObject(0);
+        JSONObject esbResponse =
+                esbRestResponse.getBody().getJSONObject("result").getJSONArray("products").getJSONObject(0);
         
         final String apiEndpoint =
                 apiEndpointUrl + "/product" + authString + "&ids=" + connectorProperties.getProperty("productId");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("products").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("products").getJSONObject(0);
         
         Assert.assertEquals(apiResponse.getString("name"), esbResponse.getString("name"));
         Assert.assertEquals(apiResponse.getString("description"), esbResponse.getString("description"));
@@ -176,13 +179,15 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchProducts_includeFields.json");
         
-        JSONObject esbResponse = esbRestResponse.getBody().getJSONArray("products").getJSONObject(0);
+        JSONObject esbResponse =
+                esbRestResponse.getBody().getJSONObject("result").getJSONArray("products").getJSONObject(0);
         
         final String apiEndpoint =
                 apiEndpointUrl + "/product" + authString + "&ids=" + connectorProperties.getProperty("productId");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("products").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("products").getJSONObject(0);
         
         Assert.assertEquals(apiResponse.getString("name"), esbResponse.getString("name"));
         Assert.assertEquals(apiResponse.getString("id"), esbResponse.getString("id"));
@@ -203,13 +208,15 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchProducts_excludeFields.json");
         
-        JSONObject esbResponse = esbRestResponse.getBody().getJSONArray("products").getJSONObject(0);
+        JSONObject esbResponse =
+                esbRestResponse.getBody().getJSONObject("result").getJSONArray("products").getJSONObject(0);
         
         final String apiEndpoint =
                 apiEndpointUrl + "/product" + authString + "&ids=" + connectorProperties.getProperty("productId");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("products").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("products").getJSONObject(0);
         
         Assert.assertEquals(apiResponse.getString("id"), esbResponse.getString("id"));
         Assert.assertEquals(apiResponse.getString("is_active"), esbResponse.getString("is_active"));
@@ -236,9 +243,10 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap, "api_searchProducts_negative.json");
         
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
-        Assert.assertEquals(esbRestResponse.getBody().getString("code"), apiRestResponse.getBody().getString("code"));
-        Assert.assertEquals(esbRestResponse.getBody().getString("message"),
-                apiRestResponse.getBody().getString("message"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("result").getString("code"), apiRestResponse
+                .getBody().getJSONObject("result").getString("code"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("result").getString("message"), apiRestResponse
+                .getBody().getJSONObject("result").getString("message"));
     }
     
     /**
@@ -254,13 +262,14 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createUser_mandatory.json");
         
-        final String userId = esbRestResponse.getBody().getString("id");
+        final String userId = esbRestResponse.getBody().getJSONObject("result").getString("id");
         connectorProperties.put("userId", userId);
         
         final String apiEndpoint = apiEndpointUrl + "/user/" + userId + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("users").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("users").getJSONObject(0);
         
         Assert.assertEquals(connectorProperties.getProperty("emailMand"), apiResponse.getString("email"));
     }
@@ -278,12 +287,13 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createUser_optional.json");
         
-        final String userId = esbRestResponse.getBody().getString("id");
+        final String userId = esbRestResponse.getBody().getJSONObject("result").getString("id");
         
         final String apiEndpoint = apiEndpointUrl + "/user/" + userId + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("users").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("users").getJSONObject(0);
         
         Assert.assertEquals(connectorProperties.getProperty("emailOpt"), apiResponse.getString("email"));
         Assert.assertEquals(connectorProperties.getProperty("userName"), apiResponse.getString("real_name"));
@@ -302,13 +312,13 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createUser_negative.json");
         
-        JSONObject esbResponse = esbRestResponse.getBody();
+        JSONObject esbResponse = esbRestResponse.getBody().getJSONObject("result");
         
         final String apiEndpoint = apiEndpointUrl + "/user" + authString;
         RestResponse<JSONObject> apiRestResponse =
                 sendJsonRestRequest(apiEndpoint, "POST", apiRequestHeadersMap, "api_createUser_negative.json");
         
-        JSONObject apiResponse = apiRestResponse.getBody();
+        JSONObject apiResponse = apiRestResponse.getBody().getJSONObject("result");
         
         Assert.assertEquals(apiResponse.get("code"), esbResponse.get("code"));
         Assert.assertEquals(apiResponse.get("error"), esbResponse.get("error"));
@@ -328,13 +338,15 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchUsers_optional.json");
         
-        JSONObject esbResponse = esbRestResponse.getBody().getJSONArray("users").getJSONObject(0);
+        JSONObject esbResponse =
+                esbRestResponse.getBody().getJSONObject("result").getJSONArray("users").getJSONObject(0);
         
         final String apiEndpoint =
                 apiEndpointUrl + "/user" + authString + "&ids=" + connectorProperties.getProperty("userId");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("users").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("users").getJSONObject(0);
         
         Assert.assertEquals(apiResponse.getString("id"), esbResponse.getString("id"));
         Assert.assertEquals(apiResponse.getString("name"), esbResponse.getString("name"));
@@ -356,12 +368,12 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchUsers_negative.json");
         
-        JSONObject esbResponse = esbRestResponse.getBody();
+        JSONObject esbResponse = esbRestResponse.getBody().getJSONObject("result");
         
         final String apiEndpoint = apiEndpointUrl + "/user" + authString + "&ids=INVALID";
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody();
+        JSONObject apiResponse = apiRestResponse.getBody().getJSONObject("result");
         
         Assert.assertEquals(apiResponse.get("code"), esbResponse.get("code"));
         Assert.assertEquals(apiResponse.get("error"), esbResponse.get("error"));
@@ -382,15 +394,15 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createComponent_mandatory.json");
         
-        final String componentId = esbRestResponse.getBody().getString("id");
+        final String componentId = esbRestResponse.getBody().getJSONObject("result").getString("id");
         
         final String apiEndpoint =
                 apiEndpointUrl + "/product/" + connectorProperties.getProperty("productId") + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
         JSONObject apiResponse =
-                apiRestResponse.getBody().getJSONArray("products").getJSONObject(0).getJSONArray("components")
-                        .getJSONObject(0);
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("products").getJSONObject(0)
+                        .getJSONArray("components").getJSONObject(0);
         
         Assert.assertEquals(componentId, apiResponse.getString("id"));
         Assert.assertEquals(connectorProperties.getProperty("componentName"), apiResponse.getString("name"));
@@ -417,8 +429,8 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
         JSONObject apiResponse =
-                apiRestResponse.getBody().getJSONArray("products").getJSONObject(0).getJSONArray("components")
-                        .getJSONObject(0);
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("products").getJSONObject(0)
+                        .getJSONArray("components").getJSONObject(0);
         
         Assert.assertEquals(connectorProperties.getProperty("componentName"), apiResponse.getString("name"));
         Assert.assertEquals(connectorProperties.getProperty("componentDescription"),
@@ -444,9 +456,10 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 sendJsonRestRequest(apiEndpoint, "POST", apiRequestHeadersMap, "api_createComponent_negative.json");
         
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
-        Assert.assertEquals(esbRestResponse.getBody().getString("code"), apiRestResponse.getBody().getString("code"));
-        Assert.assertEquals(esbRestResponse.getBody().getString("message"),
-                apiRestResponse.getBody().getString("message"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("result").getString("code"), apiRestResponse
+                .getBody().getJSONObject("result").getString("code"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("result").getString("message"), apiRestResponse
+                .getBody().getJSONObject("result").getString("message"));
     }
     
     /**
@@ -463,13 +476,14 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createBug_mandatory.json");
         
-        final String bugId = esbRestResponse.getBody().getString("id");
+        final String bugId = esbRestResponse.getBody().getJSONObject("result").getString("id");
         connectorProperties.put("bugId", bugId);
         
         final String apiEndpoint = apiEndpointUrl + "/bug/" + bugId + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         Assert.assertEquals(connectorProperties.getProperty("productName"), apiResponse.getString("product"));
         Assert.assertEquals(connectorProperties.getProperty("componentName"), apiResponse.getString("component"));
         Assert.assertEquals(connectorProperties.getProperty("bugSummary"), apiResponse.getString("summary"));
@@ -499,13 +513,14 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createBug_optional.json");
         
-        final String bugId = esbRestResponse.getBody().getString("id");
+        final String bugId = esbRestResponse.getBody().getJSONObject("result").getString("id");
         connectorProperties.put("bugIdOpt", bugId);
         
         final String apiEndpoint = apiEndpointUrl + "/bug/" + bugId + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         
         Assert.assertEquals(connectorProperties.getProperty("bugAlias"), apiResponse.getJSONArray("alias").getString(0));
         Assert.assertEquals(connectorProperties.getProperty("bugStatus").toLowerCase(), apiResponse.getString("status")
@@ -514,7 +529,7 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 apiResponse.getString(connectorProperties.getProperty("cfName")));
         Assert.assertEquals(connectorProperties.getProperty("emailMand"), apiResponse.getString("assigned_to"));
         Assert.assertEquals(connectorProperties.getProperty("emailMand"), apiResponse.getJSONArray("cc_detail")
-                .getJSONObject(0).getString("email")); 
+                .getJSONObject(0).getString("email"));
     }
     
     /**
@@ -535,10 +550,12 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 sendJsonRestRequest(apiEndpoint, "POST", apiRequestHeadersMap, "api_createBug_negative.json");
         
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(), esbRestResponse.getHttpStatusCode());
-        Assert.assertEquals(apiRestResponse.getBody().getString("error"), esbRestResponse.getBody().getString("error"));
-        Assert.assertEquals(apiRestResponse.getBody().getString("message"),
-                esbRestResponse.getBody().getString("message"));
-        Assert.assertEquals(apiRestResponse.getBody().getString("code"), esbRestResponse.getBody().getString("code"));   
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("result").getString("error"), esbRestResponse
+                .getBody().getJSONObject("result").getString("error"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("result").getString("message"), esbRestResponse
+                .getBody().getJSONObject("result").getString("message"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("result").getString("code"), esbRestResponse
+                .getBody().getJSONObject("result").getString("code"));
     }
     
     /**
@@ -554,12 +571,14 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getBug_mandatory.json");
         
-        JSONObject esbResponse = esbRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject esbResponse =
+                esbRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         
         final String apiEndpoint = apiEndpointUrl + "/bug/" + connectorProperties.getProperty("bugId") + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         
         Assert.assertEquals(apiResponse.getString("product"), esbResponse.getString("product"));
         Assert.assertEquals(apiResponse.getString("component"), esbResponse.getString("component"));
@@ -584,18 +603,20 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getBug_includeFields.json");
         
-        JSONObject esbResponse = esbRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject esbResponse =
+                esbRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         
         final String apiEndpoint = apiEndpointUrl + "/bug/" + connectorProperties.getProperty("bugId") + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         
         Assert.assertEquals(apiResponse.getString("product"), esbResponse.getString("product"));
         Assert.assertEquals(apiResponse.getString("component"), esbResponse.getString("component"));
         Assert.assertNotEquals(apiResponse.has("summary"), esbResponse.has("summary"));
         Assert.assertNotEquals(apiResponse.has("severity"), esbResponse.has("severity"));
-        Assert.assertNotEquals(apiResponse.has("platform"), esbResponse.has("platform")); 
+        Assert.assertNotEquals(apiResponse.has("platform"), esbResponse.has("platform"));
     }
     
     /**
@@ -611,12 +632,14 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getBug_excludeFields.json");
         
-        JSONObject esbResponse = esbRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject esbResponse =
+                esbRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         
         final String apiEndpoint = apiEndpointUrl + "/bug/" + connectorProperties.getProperty("bugId") + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         
         Assert.assertEquals(apiResponse.getString("severity"), esbResponse.getString("severity"));
         Assert.assertEquals(apiResponse.getString("platform"), esbResponse.getString("platform"));
@@ -639,19 +662,21 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchBugs_mandatory.json");
         
-        JSONObject esbResponse = esbRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject esbResponse =
+                esbRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         
         final String apiEndpoint = apiEndpointUrl + "/bug" + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         
-        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("bugs").length(), esbRestResponse.getBody()
-                .getJSONArray("bugs").length());
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").length(),
+                esbRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").length());
         Assert.assertEquals(apiResponse.getString("id"), esbResponse.getString("id"));
         Assert.assertEquals(apiResponse.getString("product"), esbResponse.getString("product"));
         Assert.assertEquals(apiResponse.getString("component"), esbResponse.getString("component"));
-        Assert.assertEquals(apiResponse.getString("summary"), esbResponse.getString("summary"));  
+        Assert.assertEquals(apiResponse.getString("summary"), esbResponse.getString("summary"));
     }
     
     /**
@@ -668,7 +693,8 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_searchBugs_optional.json");
         
-        JSONObject esbResponse = esbRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject esbResponse =
+                esbRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         
         final String apiEndpoint =
                 apiEndpointUrl + "/bug" + authString + "&op_sys=" + connectorProperties.getProperty("bugOPSys")
@@ -677,14 +703,15 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
                         + connectorProperties.getProperty("bugPriority") + "&version="
                         + connectorProperties.getProperty("productVersion");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
-        JSONObject apiResponse = apiRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         
-        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("bugs").length(), esbRestResponse.getBody()
-                .getJSONArray("bugs").length());
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").length(),
+                esbRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").length());
         Assert.assertEquals(apiResponse.getString("id"), esbResponse.getString("id"));
         Assert.assertEquals(apiResponse.getString("product"), esbResponse.getString("product"));
         Assert.assertEquals(apiResponse.getString("component"), esbResponse.getString("component"));
-        Assert.assertEquals(apiResponse.getString("summary"), esbResponse.getString("summary"));  
+        Assert.assertEquals(apiResponse.getString("summary"), esbResponse.getString("summary"));
     }
     
     /**
@@ -704,10 +731,12 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(), esbRestResponse.getHttpStatusCode());
-        Assert.assertEquals(apiRestResponse.getBody().getString("error"), esbRestResponse.getBody().getString("error"));
-        Assert.assertEquals(apiRestResponse.getBody().getString("message"),
-                esbRestResponse.getBody().getString("message"));
-        Assert.assertEquals(apiRestResponse.getBody().getString("code"), esbRestResponse.getBody().getString("code"));  
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("result").getString("error"), esbRestResponse
+                .getBody().getJSONObject("result").getString("error"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("result").getString("message"), esbRestResponse
+                .getBody().getJSONObject("result").getString("message"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("result").getString("code"), esbRestResponse
+                .getBody().getJSONObject("result").getString("code"));
     }
     
     /**
@@ -722,12 +751,12 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
     
         final String apiEndpoint = apiEndpointUrl + "/bug/" + connectorProperties.getProperty("bugIdOpt") + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
-        JSONObject apiResponseBeforeUpdate = apiRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject apiResponseBeforeUpdate = apiRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         
         esbRequestHeadersMap.put("Action", "urn:updateBug");
         sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateBug_optional.json");
         apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
-        JSONObject apiResponseAfterUpdate = apiRestResponse.getBody().getJSONArray("bugs").getJSONObject(0);
+        JSONObject apiResponseAfterUpdate = apiRestResponse.getBody().getJSONObject("result").getJSONArray("bugs").getJSONObject(0);
         
         Assert.assertNotEquals(apiResponseBeforeUpdate.get("summary"), apiResponseAfterUpdate.get("summary"));
         Assert.assertNotEquals(apiResponseBeforeUpdate.get("deadline"), apiResponseAfterUpdate.get("deadline"));
@@ -748,13 +777,13 @@ public class BugzillaConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateBug_negative.json");
         
-        JSONObject esbResponse = esbRestResponse.getBody();
+        JSONObject esbResponse = esbRestResponse.getBody().getJSONObject("result");
         
         final String apiEndpoint = apiEndpointUrl + "/bug/" + connectorProperties.getProperty("bugId") + authString;
         RestResponse<JSONObject> apiRestResponse =
                 sendJsonRestRequest(apiEndpoint, "PUT", apiRequestHeadersMap, "api_updateBug_negative.json");
         
-        JSONObject apiResponse = apiRestResponse.getBody();
+        JSONObject apiResponse = apiRestResponse.getBody().getJSONObject("result");
         
         Assert.assertEquals(apiResponse.get("code"), esbResponse.get("code"));
         Assert.assertEquals(apiResponse.get("error"), esbResponse.get("error"));
