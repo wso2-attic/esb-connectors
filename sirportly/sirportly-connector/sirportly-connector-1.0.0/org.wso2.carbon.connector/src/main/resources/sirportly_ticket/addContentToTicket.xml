@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://sirportly.com/docs/api-specification/tickets/posting-an-update -->
+<template name="addContentToTicket" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="ticketReference" description="The reference of the ticket to be update." />
+   <parameter name="message" description="The content of the ticket." />
+   <parameter name="subject" description="The subject of the ticket." />
+   <parameter name="isAuthenticated" description="Whether or not this update is authenticated." />
+   <parameter name="postedAt" description="The date/time the updated was posted." />
+   <parameter name="htmlBody" description="The html body to show as content." />
+   <parameter name="htmlSafe" description="If 1 html body will displayed to user." />
+   <sequence>
+      <property name="uri.var.ticketReference" expression="$func:ticketReference" />
+      <property name="uri.var.message" expression="$func:message" />
+      <property name="uri.var.subject" expression="$func:subject" />
+      <property name="uri.var.isAuthenticated" expression="$func:isAuthenticated" />
+      <property name="uri.var.postedAt" expression="$func:postedAt" />
+      <property name="uri.var.htmlBody" expression="$func:htmlBody" />
+      <property name="uri.var.htmlSafe" expression="$func:htmlSafe" />
+      <script language="js">
+         <![CDATA[
+            payload = new Object();
+            var ticketReference = mc.getProperty('uri.var.ticketReference');
+            var message = mc.getProperty('uri.var.message');
+            var subject = mc.getProperty('uri.var.subject');
+            var isAuthenticated = mc.getProperty('uri.var.isAuthenticated');
+            var postedAt = mc.getProperty('uri.var.postedAt');
+            var htmlBody = mc.getProperty('uri.var.htmlBody');
+            var htmlSafe = mc.getProperty('uri.var.htmlSafe');
+            // Set the mandatory parameters
+            payload.ticket = ticketReference;
+            payload.message = message;
+            // Set the optional parameters
+            if (subject != null && subject != "") {
+               payload.subject = subject;
+            }
+            if (isAuthenticated != null && isAuthenticated != "") {
+               payload.authenticated = isAuthenticated;
+            }
+            if (postedAt != null && postedAt != "") {
+               payload.posted_at = postedAt;
+            }
+            if (htmlBody != null && htmlBody != "") {
+               payload.html_body = htmlBody;
+            }
+            if (htmlSafe != null && htmlSafe != "") {
+               payload.html_safe = htmlSafe;
+            }
+            mc.setPayloadJSON(payload);
+         ]]>
+      </script>
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/tickets/post_update" />
+         </endpoint>
+      </call>
+      <!-- Remove unwanted headers -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+   </sequence>
+</template>
