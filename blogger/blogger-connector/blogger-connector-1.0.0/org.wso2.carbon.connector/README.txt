@@ -33,4 +33,3 @@ Product: WSO2 ESB Connector for Blogger + Integration Tests
 
  5. Navigate to "{ESB_Connector_Home}/" and run the following command.
        "$ mvn clean install"
-
