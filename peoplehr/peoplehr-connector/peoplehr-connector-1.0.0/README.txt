@@ -26,14 +26,29 @@ Steps to follow in setting integration test.
 
  3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{PeopleHR_Connector_Home}/peoplehr-connector/peoplehr-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
- 4. Create a PeopleHR trial account and derive the API Key.
+ 4. Follow the below mentioned steps for adding valid certificate to access peopleHr API over https.
+
+   	i) 	 Extract the certificate from browser(Mozilla Firefox) by navigating to https://{instance_name}.peoplehr.net
+   	ii)  Go to new ESB 4.8.1 folder and place the downloaded certificate in both "<ESB_HOME>/repository/resources/security/" and "{peoplehr_CONNECTOR_HOME}/peoplehr-connector/peoplehr-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" folders.
+   	iii) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" in command line to import peoplehr certificate in to keystore.
+   		 Give "wso2carbon" as password. Press "Y" to complete certificate import process.
+
+   		 NOTE : CERT_FILE_NAME is the file name which was extracted from peoplehr. (e.g. *.peoplehr.com)
+   			    CERT_NAME is an arbitrary name for the certificate. (e.g. peoplehr)
+
+   	iv) Navigate to "{peoplehr_CONNECTOR_HOME}/peoplehr-connector/peoplehr-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME" in command line to import Shopify certificate in to keystore.
+   		Give "wso2carbon" as password.
+
+   		NOTE : CERT_FILE_NAME is the file name which was extracted from peoplehr, change it accordingly. (e.g. *.peoplehr.com)
+   			   CERT_NAME is an arbitrary name for the certificate. (e.g. peoplehr)
+ 5. Create a PeopleHR trial account and derive the API Key.
 	i) 		Using the URL "http://www.trial.peoplehr.com/" create a PeopleHR trial account.
 	ii)		Login to the created People HR account and go to Settings >> API >> Under API Key Management >> Create an API Key.
 	iii)	Create at least two projects and at least one task should be added for each of them. 
 			Go to Settings >> Timesheets >> Project/Task >> Select '+(Manage This List)' from the drop down list and add project/task.
 			Keep the project names and the task names for further reference.
 
- 5. Update the PeopleHR properties file at location "{PeopleHR_Connector_Home}/peoplehr-connector/peoplehr-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 6. Update the PeopleHR properties file at location "{PeopleHR_Connector_Home}/peoplehr-connector/peoplehr-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i)		apiUrl 							- 	Use "https://api.peoplehr.net".
 	ii) 	apiKey							-   Use the API Key obtained under Step 4 ii).
@@ -68,8 +83,10 @@ Steps to follow in setting integration test.
 	Note :- 
 		1. empIdMandatory, empIdOptional,empEmail and empEmailUpdated needs to be set with unique values before running the integration test teach time.
 		2. leaveDate, timesheetDate and timesheetDateOpt should contain three different date values.
-	
- 6. Navigate to "{PeopleHR_Connector_Home}/peoplehr-connector/peoplehr-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+
+ 7. Make sure that the peoplehr connector is set as a module in esb-connectors parent pom.
+                <module>peoplehr/peoplehr-connector/peoplehr-connector-1.0.0/org.wso2.carbon.connector</module>
+ 8. Navigate to "{PeopleHR_Connector_Home}/peoplehr-connector/peoplehr-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
 	  
 	  Note:- People HR trial account expires within 30 days.

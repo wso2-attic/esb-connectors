@@ -35,8 +35,9 @@ STEPS:
     consumerKeySecret=f20cca596738e959
     accessToken=72157642842074863-5faf0186518885ab
     accessTokenSecret=70cd37fb502cb6fd
-
-4. Navigate to "${basedir}" and run the following command.
+4.Make sure that the flickr connector is set as a module in esb-connectors parent pom.
+      <module>flickr</module>
+5. Navigate to "${basedir}" and run the following command.
      $ mvn clean install
 
 Account details used in the tests are as follows.

@@ -79,6 +79,8 @@ Steps to follow in setting integration test.
 	xvii)	itemQuantity1		  - Use a valid item quantity.
 	xviii)	itemPrice2			  - Use a valid price value for the item.
 	xix)	itemQuantity2		  - Use a valid item quantity.
-	
- 8. Navigate to "<PIPEDRIVE_CONNECTOR_HOME>/pipedrive-connector/pipedrive-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+
+8. Make sure that the pipedrive connector is set as a module in esb-connectors parent pom.
+               <module>pipedrive/pipedrive-connector/pipedrive-connector-1.0.0/org.wso2.carbon.connector</module>
+9. Navigate to "<PIPEDRIVE_CONNECTOR_HOME>/pipedrive-connector/pipedrive-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
