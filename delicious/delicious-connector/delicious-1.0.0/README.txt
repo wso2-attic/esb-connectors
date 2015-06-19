@@ -8,17 +8,13 @@ Pre-requisites:
 
 Tested Platform: 
 
- - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - UBUNTU 14.04
+ - WSO2 ESB 4.9.0-ALPHA
+ - Java 1.6
+
 
 STEPS:
-
- 1. Make sure WSO2 ESB 4.8.1 to the {basedir}/test folder.
-    If you want to use another location, please change it accordigly in the pom.xml as follows.
-
-          <carbon.zip>
-            ${basedir}/../test/wso2esb-${esb.version}.zip
-          </carbon.zip>
+ 1. Download ESB 4.9.0-ALPHA by following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/
 
  2. This ESB should be configured as below;
   Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
@@ -53,6 +49,12 @@ STEPS:
     
  5. Navigate to "{PATH_TO_SOURCE_BUNDLE}/delicious-connector/delicious-connector-1.0.0/" and run the following command.
       $ mvn clean install
+
+     5. Make sure that the delicious connector is set as a module in esb-connectors parent pom.
+           <module>delicious/delicious-connector/delicious-connector-1.0.0</module>
+
+     6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+           $ mvn clean install
 
 
  NOTE : Following Delicious account, can be used for run the integration tests.
