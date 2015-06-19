@@ -11,22 +11,20 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.9.0-SNAPSHOT
+ - WSO2 ESB 4.9.0-ALPHA
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.9.0 from official website.
- 
- 2. Deploy relevant patches, if applicable.
- 		
- 3. Set up a new ProworkFlow trial account by completing the wizard in https://www.proworkflow.com/signup/trial_signup.cfm url. 
+ 1. Download WSO2 ESB 4.9.0-ALPHA from official website.
+
+ 2. Set up a new ProworkFlow trial account by completing the wizard in https://www.proworkflow.com/signup/trial_signup.cfm url.
 	Then, login to the account and navigate to settings -> API Settings and obtain the Customer Key.
 
- 4. Follow the below mentioned steps for adding valid certificate to access ProWorkflow API over https.
+ 3. Follow the below mentioned steps for adding valid certificate to access ProWorkflow API over https.
 
 	i) 	 Extract the certificate from browser(Mozilla Firefox) by navigating to https://api.proworkflow.net
-	ii)  Go to new ESB 4.9.0 folder and place the downloaded certificate in both "<ESB_HOME>/repository/resources/security/" and "{PROWORKFLOW_CONNECTOR_HOME}/proworkflow-connector/proworkflow-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" folders.
-	iii) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute the following command.
+	ii)  Go to new ESB 4.9.0 folder and place the downloaded certificate in both "<ESB_Connector_Home>/repository/resources/security/" and "{ESB_Connector_Home}/proworkflow-connector/proworkflow/proworkflow-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" folders.
+	iii) Navigate to "<ESB_Connector_Home>/repository/resources/security/" using command prompt and execute the following command.
 	
 				keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" 
 				
@@ -36,7 +34,7 @@ Steps to follow in setting integration test.
 		 NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from ProWorkflow with the extension. (e.g. ProWorkflow.crt)
 			    CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. ProWorkflow)
 				
-	iv)  Navigate to "{PROWORKFLOW_CONNECTOR_HOME}/proworkflow-connector/proworkflow-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute the following command.
+	iv)  Navigate to "{ESB_Connector_Home}/proworkflow/proworkflow-connector/proworkflow-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute the following command.
 	
 				keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME" 
 				
@@ -46,14 +44,14 @@ Steps to follow in setting integration test.
 		 NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from ProWorkflow with the extension. (e.g. ProWorkflow.crt)
 			    CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. ProWorkflow)
 
- 5. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{PROWORKFLOW_CONNECTOR_HOME}/proworkflow-connector/proworkflow-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 4. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
 
- 6. Update the properties in 'proworkflow.properties' file at location "{PROWORKFLOW_CONNECTOR_HOME}/proworkflow-connector/proworkflow-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 5. Update the properties in 'proworkflow.properties' file at location "{ESB_Connector_Home}/proworkflow/proworkflow-connector/proworkflow-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i) 		apiUrl 		          	 - Use the API url as "https://api.proworkflow.net".
-	ii)		apiKey 		          	 - Use the Customer Key obtained in step 3.
-	iii)	username			  	 - The username of the account created in step 3. Instead you can provide the account email here.
-	iv)		password			  	 - The password of the account created in step 3.
+	ii)		apiKey 		          	 - Use the Customer Key obtained in step 2.
+	iii)	username			  	 - The username of the account created in step 2. Instead you can provide the account email here.
+	iv)		password			  	 - The password of the account created in step 2.
 	v)		city				  	 - Use a valid city.
 	vi)		country				  	 - Use a valid country.
 	vii)	email				  	 - Use a valid email address.
@@ -64,6 +62,9 @@ Steps to follow in setting integration test.
 	xii)	quoteDiscountValue	  	 - Use a valid percentage value for quote discount. (e.g. 5)
 	xiii)	updateQuoteDiscountValue - Use a valid percentage value for quote discount (e.g. 10). Use a different value than the quoteDiscountValue parameter value. 
 	xiv)	taxRate					 - Use a valid percentage value for quote tax rate. (e.g. 15)
-	
- 7. Navigate to "{PROWORKFLOW_CONNECTOR_HOME}/proworkflow-connector/proworkflow-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+
+ 6. Make sure that the proworkflow connector is set as a module in esb-connectors parent pom.
+         <module>proworkflow/proworkflow-connector/proworkflow-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 7. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
