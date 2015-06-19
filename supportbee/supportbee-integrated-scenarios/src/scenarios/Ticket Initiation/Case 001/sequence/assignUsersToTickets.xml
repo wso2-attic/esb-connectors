@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--The sequence retrieves the currently available agentId and assign the agent to the current ZohoCRM case or FormStack submission -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="assignUsersToTickets">
+   <!--Retrieve the current supportBeeAgentIndex from the global scope-->
+   <property name="supportbeeAgentIndex" expression="get-property('operation', 'supportbeeAgentIndex')" />
+   
+   <!--Processing to retrieve the currently available agentId -->
+   <script language="js"><![CDATA[
+			//converting the index value to string and getting only the integer value (since it comes as a double value)
+			var supportbeeAgentIndexString = '' + mc.getProperty('supportbeeAgentIndex');
+			supportbeeAgentIndexString = supportbeeAgentIndexString.split('.')[0];	
+			
+			//split the agentIds string by comma and accessing the agentIds one by one
+			var agents = mc.getProperty('supportbee.agentIds');
+			var agentArray = agents.split(',');
+			
+			mc.setProperty('supportbee.currentAgentId', agentArray[supportbeeAgentIndexString]);
+			
+			//consider incrementing the index by '1' or setting it back to '0' if the length of the agentIds array is reached 
+			if(supportbeeAgentIndexString < agentArray.length - 1){
+				supportbeeAgentIndexString = java.lang.Integer.parseInt(supportbeeAgentIndexString) + 1;		
+			} else {			
+				supportbeeAgentIndexString = 0;
+			}
+			mc.setProperty('supportbeeAgentIndex', supportbeeAgentIndexString);
+	]]></script>
+	
+   <property name="supportbeeAgentIndex" expression="get-property('supportbeeAgentIndex')" scope="operation" />
+  
+  <!--Assign the ticket to the agent -->
+   <supportbee.init>
+      <apiUrl>{$ctx:supportbee.apiUrl}</apiUrl>
+      <authToken>{$ctx:supportbee.authToken}</authToken>
+   </supportbee.init>
+   <supportbee.assignUser>
+      <ticketId>{$ctx:supportBee.ticketId}</ticketId>
+      <userId>{$ctx:supportbee.currentAgentId}</userId>
+   </supportbee.assignUser>
+   
+   <!--Removing unused headers -->
+   <sequence key="removeResponseHeaders" />
+   
+   <property name="supportBee.assignmentId" expression="json-eval($.assignment.id)" />
+   
+   <!--Failure case: Display the error message given by the API.-->
+   <filter source="boolean(get-property('supportBee.assignmentId'))" regex="false">
+      <then>
+         <property name="errorResponse" expression="json-eval($)" />
+         <property name="id" expression="fn:concat('supportbee_ticketId:',get-property('supportBee.ticketId'))" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="supportbee_assignUser" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Failure" />
+            <with-param name="message" value="{$ctx:errorResponse}" />
+         </call-template>
+      </then>
+      <else>
+         <!-- Success case: Append a message to be sent to the user saying that the assignment is successful for the case. -->
+         <property name="id" expression="fn:concat('supportbee_ticketId:',get-property('supportBee.ticketId'),',supportbee_agentId:',get-property('supportbee.currentAgentId'))" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="supportbee_assignUser" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Success" />
+            <with-param name="message" value="Agent has been successfully assigned to the ticket." />
+         </call-template>
+      </else>
+   </filter>
+</sequence>

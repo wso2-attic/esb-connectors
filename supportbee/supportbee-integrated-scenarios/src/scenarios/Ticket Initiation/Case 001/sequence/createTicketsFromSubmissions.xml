@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Retrieves the unread report submissions for the given bug-report in formStack for the day and creates a ticket for each one of them in SupportBee.-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="createTicketsFromSubmissions">
+   <script language="js">
+		<![CDATA[
+			mc.setProperty('formStack.minTime', new java.text.SimpleDateFormat("yyyy-MM-dd '00:00:00'").format(new java.util.Date()));
+		]]>
+	</script>
+   
+   <!--List all the submissions of the given bug report for the day. -->
+   <formstack.init>
+      <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+      <accessToken>{$ctx:formstack.authToken}</accessToken>
+      <format>json</format>
+   </formstack.init>
+   <formstack.listSubmissions>
+      <formId>{$ctx:formstack.bugReportFormId}</formId>
+      <minTime>{$ctx:formStack.minTime}</minTime>
+      <page>1</page>
+      <perPage>100</perPage>
+      <sort>ASC</sort>
+      <data>true</data>
+      <expandData>true</expandData>
+   </formstack.listSubmissions>
+   
+   <!--Removing unused headers -->
+   <sequence key="removeResponseHeaders" />
+   
+   <property name="formStack.submissions" expression="json-eval($.submissions)" />
+   <property name="id" expression="fn:concat('formstack_bugReportFormId:', get-property('formstack.bugReportFormId'))" />
+   
+   <!--Failure case: Display the error message given by the API if listing the submissions caused an error.-->
+   <filter source="boolean(get-property('formStack.submissions'))" regex="false">
+      <then>
+         <property name="errorResponse" expression="json-eval($)" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="formstack_listSubmissions" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Failure" />
+            <with-param name="message" value="{$ctx:errorResponse}" />
+         </call-template>
+         <loopback />
+      </then>
+      <else>
+         <property name="formstack.submissionCount" expression="count(//jsonObject/submissions)" />
+         <property name="formstack.submissionIndex" expression="0" scope="operation" />
+         <!--'formstack.readSubmissions' keeps track the number of read submissions.-->
+		 <property name="formstack.readSubmissions" expression="0" scope="operation" />
+         
+		 <!-- START: Proceed to process the submissions if there are any. -->
+         <filter source="get-property('formstack.submissionCount')" regex="0.0">
+            <then>
+               <!-- Failure case: Append an error message to be sent to the user. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="formstack_listSubmissions" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="There are no submissions for the form during the day." />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!--START LOOP: Retrieve details of each submission array -->
+               <iterate continueParent="false" id="submissionsIterator" expression="//submissions" sequential="true">
+                  <target>
+                     <sequence>
+                        <!--Check for the unread submissions -->
+                        <property name="formstack.submissionRead" expression="//submissions/read" />
+                        <filter source="get-property('formstack.submissionRead')" regex="0">
+                           <then>
+                              <!--Incrementing the read submission count by 1 -->
+                              <property name="formstack.readSubmissions" expression="get-property('operation', 'formstack.readSubmissions') + 1" scope="operation" />
+                              
+							  <property name="formstack.submissionId" expression="//submissions/id" />
+                              
+							  <!--get only the specific submission to retrieve detailed information -->
+                              <formstack.init>
+                                 <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+                                 <accessToken>{$ctx:formstack.authToken}</accessToken>
+                                 <format>json</format>
+                              </formstack.init>
+                              <formstack.getSubmission>
+                                 <submissionId>{$ctx:formstack.submissionId}</submissionId>
+                              </formstack.getSubmission>
+							  
+							  <!--Removing unused headers -->
+							  <sequence key="removeResponseHeaders" />							  
+							                              
+							  <!--Retrieving the name of the requester -->
+                              <property name="formstack.requesterFirstName" expression="//jsonObject/data[1]/value/first/text()" />
+                              <property name="formstack.requesterLastName" expression="//jsonObject/data[1]/value/last/text()" />
+                              <property name="formstack.requesterName" expression="fn:concat(get-property('formstack.requesterFirstName'),' ',get-property('formstack.requesterLastName'))" />
+                              
+							  <!--Retrieving the email of the requester -->
+                              <property name="formstack.requesterEmail" expression="//jsonObject/data[2]/value/text()" />
+                              <!--Retrieving the subject of the submission  -->
+                              <property name="formstack.submissionSubject" expression="//jsonObject/data[3]/value/text()" />
+                              <!--Retrieving the content of the submission  -->
+                              <property name="formstack.submissionContent" expression="//jsonObject/data[4]/value/text()" />
+                              <!--Retrieving the CC email of the submission  -->
+                              <property name="formstack.submissionCCEmail" expression="//jsonObject/data[5]/value/text()" />
+                              <!--Retrieving the CC email of the submission  -->
+                              <property name="formstack.submissionNotifyRequester" expression="//jsonObject/data[6]/value/text()" />
+                              
+							  <!--Setting 'notifyRequester' param with a boolean value based on the value set for 'formstack.submissionNotifyRequester' in the submission  -->
+							  <filter source="boolean(get-property('formstack.submissionNotifyRequester'))" regex="false">
+                                 <then>
+                                    <property name="formstack.submissionNotifyRequester" value="false" />
+                                 </then>
+                                 <else>
+                                    <property name="formstack.submissionNotifyRequester" value="true" />
+                                 </else>
+                              </filter>
+                              
+							  <!--Constructing the html with the value retrieved from Content. -->
+                              <property name="formstack.html" expression="fn:concat('&lt;p&gt;',get-property('formstack.submissionContent'),'&lt;/p&gt;')" />
+                              
+							  <!--Create the Ticket in SupportBee -->
+                              <supportbee.init>
+                                 <apiUrl>{$ctx:supportbee.apiUrl}</apiUrl>
+                                 <authToken>{$ctx:supportbee.authToken}</authToken>
+                              </supportbee.init>
+                              <supportbee.createTicket>
+                                 <subject>{$ctx:formstack.submissionSubject}</subject>
+                                 <requesterName>{$ctx:formstack.requesterName}</requesterName>
+                                 <requesterEmail>{$ctx:formstack.requesterEmail}</requesterEmail>
+                                 <notifyRequester>{$ctx:formstack.submissionNotifyRequester}</notifyRequester>
+                                 <text>{$ctx:formstack.submissionContent}</text>
+                                 <html>{$ctx:formstack.html}</html>
+                              </supportbee.createTicket>
+							  
+							  <!--Removing unused headers -->
+							  <sequence key="removeResponseHeaders" />							  
+                              
+							  <property name="supportBee.ticketId" expression="json-eval($.ticket.id)" />
+                              
+							  <!--Failure case: Display the error message given by the API if there occurs an error while creating the ticket.-->
+                              <filter source="boolean(get-property('supportBee.ticketId'))" regex="false">
+                                 <then>
+                                    <property name="errorResponse" expression="json-eval($)" />
+                                    <property name="id" expression="fn:concat('formstack_bugReportFormId:', get-property('formstack.bugReportFormId'))" />
+                                    
+									<call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="supportbee_createTicket" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Failure" />
+                                       <with-param name="message" value="{$ctx:errorResponse}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                    <!-- Success case: Append a message to be sent to the user saying that the ticket is successfully created in SupportBee. -->
+                                    <property name="id" expression="fn:concat('formstack_submissionId:', get-property('formstack.submissionId'),',supportbee_ticketId:',get-property('supportBee.ticketId'))" />
+                                    
+									<call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="supportbee_createTicket" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Success" />
+                                       <with-param name="message" value="Ticket is successfully created for the submission." />
+                                    </call-template>
+									
+									<!-- Call the sequence to assign users to the created ticket. -->
+									<filter xpath="get-property('supportbeeNoOfAgents') > 0">
+									   <then>
+										  <sequence key="assignUsersToTickets" />
+									   </then>
+									</filter>
+                                 </else>
+                              </filter>	<!--END of Filter: displaying the error message given by the API if there occurs an error while creating the ticket.-->
+                           </then>
+                           <else />
+                        </filter>
+                        
+						<!--Increment the submission index count -->
+                        <property name="formstack.submissionIndex" expression="get-property('operation', 'formstack.submissionIndex') + 1" scope="operation" />
+                        
+						<!--FOR EACH Case : END -->
+                        <filter xpath="get-property('formstack.submissionCount') = get-property('operation', 'formstack.submissionIndex')">
+                           <then>
+                              <filter source="get-property('operation','formstack.readSubmissions')" regex="0.0">
+                                 <then>
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="supportbee_createTicket" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Skipped" />
+                                       <with-param name="message" value="There are no any unread submissions for the form." />
+                                    </call-template>
+                                 </then>
+                              </filter>
+                              <loopback />
+                           </then>
+                        </filter>
+                     </sequence>
+                  </target>
+               </iterate>	<!--END of LOOP: Retrieve details of each submission array -->
+            </else>
+         </filter>	<!-- END of Filter : Proceeding to process the submissions if there are any. -->
+      </else>
+   </filter>	<!--END of Filter : handling failure case if listing the submissions caused an error.-->
+</sequence>

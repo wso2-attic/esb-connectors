@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This template retrieves the phases available in a project in AgileZen, and gets the ID of the phase identified by the provided name. -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="formstack_updateFieldContent">
+   <parameter name="apiUrl" description="Base endpoint URL of Formstack API." />
+   <parameter name="accessToken" description="API Key to access data of Formstack account." />
+   <parameter name="fieldId" description="ID of the field whose content needs to be updated." />
+   <parameter name="content" description="Content to add to the field." />
+   
+   <sequence name="agilezen_getPhaseIdFromName">
+      <property name="uri.var.apiUrl" expression="$func:apiUrl" />
+      <property name="uri.var.accessToken" expression="$func:accessToken" />
+      <property name="uri.var.fieldId" expression="$func:fieldId" />
+      <property name="uri.var.content" expression="$func:content" />
+	  
+      <header name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))" scope="transport" />
+	  
+	  <payloadFactory media-type="json">
+         <format>
+            {
+               "default_value": "$1"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.content')" />
+         </args>
+      </payloadFactory>
+	  
+      <call>
+         <endpoint>
+            <http method="put" uri-template="{uri.var.apiUrl}/api/v2/field/{uri.var.fieldId}.json" />
+         </endpoint>
+      </call>
+	  
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+      <header name="X-AspNet-Version" action="remove" scope="transport" />
+      <header name="X-AspNetMvc-Version" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+   </sequence>
+</template>

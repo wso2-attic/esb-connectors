@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="supportbee_initiateTickets" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence>
+         <!-- ZohoCrm Properties -->
+         <property name="zohocrm.apiUrl" value="https://crm.zoho.com" />
+         <property name="zohocrm.accessToken" expression="json-eval($.zohocrm.accessToken)" />
+		 
+         <!-- SupportBee Properties -->
+         <property name="supportbee.apiUrl" expression="json-eval($.supportbee.apiUrl)" />
+         <property name="supportbee.authToken" expression="json-eval($.supportbee.authToken)" />
+         <property name="supportbee.agentIds" expression="json-eval($.supportbee.agentIds)" />
+		 
+         <!-- FormStack Properties -->
+         <property name="formstack.apiUrl" value="https://www.formstack.com" />
+         <property name="formstack.authToken" expression="json-eval($.formstack.authToken)" />
+         <property name="formstack.bugReportFormId" expression="json-eval($.formstack.bugReportFormId)" />
+		 
+         <!-- Operation scoped properties -->
+         <property name="id.empty" value="{}" />
+         <property name="responseString" value="" scope="operation" />
+         <property name="activityName" value="supportbee_InitiateTickets" scope="operation" />
+		 
+         <!--Checking whether user has sent at least one agentId -->
+         <script language="js"><![CDATA[
+				//splitting the agentIds string by comma to access each agentId
+				var agentsArray=mc.getProperty('supportbee.agentIds').split(',');
+				var noOfAgents=agentsArray.length;		
+				
+				mc.setProperty('supportbeeAgents',agentsArray);
+				mc.setProperty('supportbeeNoOfAgents',noOfAgents);
+		]]></script>
+		
+         <property name="supportbeeAgentIndex" expression="0" scope="operation" />
+         
+		 <!-- Get the current date as the 'lastModifiedTime'-->
+         <script language="js"><![CDATA[mc.setProperty('zohocrm.lastModifiedTime', new java.text.SimpleDateFormat("yyyy-MM-dd '00:00:00'").format(new java.util.Date()));]]></script>
+         
+		 <!--Retrieve cases based on the case type from the ZohoCRM API.-->
+         <zohocrm.init>
+            <scope>crmapi</scope>
+            <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+            <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+         </zohocrm.init>
+         <zohocrm.getRecords>
+            <moduleType>Cases</moduleType>
+            <selectColumns>All</selectColumns>
+            <lastModifiedTime>{$ctx:zohocrm.lastModifiedTime}</lastModifiedTime>
+         </zohocrm.getRecords>
+         
+		 <!--Removing unused headers -->
+         <sequence key="removeResponseHeaders" />
+         
+		 <!--Retrieving the response from the result -->
+         <property name="zohocrm.response" expression="json-eval($.response.result)" />
+         
+		 <!--Failure case: If the response is having errors then display the error message given by the API-->
+         <filter source="boolean(get-property('zohocrm.response'))" regex="false">
+            <then>
+               <property name="errorResponse" expression="json-eval($)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="zohocrm_getRecords" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="Failure" />
+                  <with-param name="message" value="{$ctx:errorResponse}" />
+               </call-template>
+               
+			   <!-- Call the sequence to create tickets from Submissions of the form(Bug Report) of FormStack. -->
+               <sequence key="createTicketsFromSubmissions" />
+            </then>
+            <else>
+               <property name="zohoCrm.caseCount" expression="count(//row)" scope="operation" />
+               <property name="zohoCrm.caseIndex" expression="0" scope="operation" />
+              
+			  <!--Case Skipped: If there are no any cases to handle then display a custom generated error message.-->	
+			  <filter source="get-property('operation', 'zohoCrm.caseCount')" regex="0.0">
+                  <then>
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="zohocrm_getRecords" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="Failure" />
+                        <with-param name="message" value="There are no cases for the day to create tickets." />
+                     </call-template>
+                     
+					 <!-- Call the sequence to create tickets from Submissions of the form(Bug Report) of FormStack. -->
+                     <sequence key="createTicketsFromSubmissions" />
+                  </then>
+                  <else>
+                     <!--START LOOP: Retrieve details of each case array -->
+                     <iterate continueParent="false" id="caseIterator" expression="//row" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="messageType" value="application/json" scope="axis2" />
+                              <property name="caseAttributes" expression="json-eval($.row.FL)" />
+                              <property name="caseIDVal" expression="//row/FL[1]/content/text()" />
+                              
+							  <!-- Script Mediator is used to extract necessary properties from the JSON response because attributes
+								   of the case are returned as a map (key-value pairs) rather than as an object -->
+                              <script language="js">
+										 var jsn = eval("(" + mc.getProperty("caseAttributes") + ")");
+										 for (var i = 0; i &lt; jsn.length ; i++) {
+											if(jsn[i].val == "Subject"){
+											   mc.setProperty('subject', jsn[i].content);
+											} else if(jsn[i].val == "Reported By"){
+											   mc.setProperty('requesterName', jsn[i].content);
+											}else if(jsn[i].val == "Email"){
+											   mc.setProperty('requesterEmail', jsn[i].content);
+											}else if(jsn[i].val == "Description"){
+											   mc.setProperty('text', jsn[i].content);
+											}else if(jsn[i].val == "CASEID"){
+											   mc.setProperty('caseId', jsn[i].content);
+											}else if(jsn[i].val == "Type"){
+											   mc.setProperty('caseType', jsn[i].content);
+											}else if(jsn[i].val == "SupportBee Ticket ID"){
+											   mc.setProperty('zohoCrmSupportBeeTicketId', jsn[i].content);
+											}
+										}
+								</script>
+                              <!--If the case type is 'Problem' or 'Feature Request' then create the ticket in SupportBee; if not skip.-->
+                              <filter xpath="get-property('caseType') = 'Problem' or get-property('caseType') ='Feature Request'">
+                                 <then>
+                                    <!--Case Skipped: If the case is already created as a ticket in SupportBee then display a message and skip creating it.-->
+                                    <filter source="boolean(get-property('zohoCrmSupportBeeTicketId'))" regex="true">
+                                       <then>
+                                          <property name="id" expression="fn:concat('zohocrm_caseId:', get-property('caseId'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="supportbee_createTicket" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Skipped" />
+                                             <with-param name="message" value="A ticket already exists for the case." />
+                                          </call-template>
+                                       </then>
+                                       <!--If not then create the ticket in SupportBee-->
+                                       <else>
+                                          <!--Constructing the html with the value retrieved from Description. -->
+                                          <property name="html" expression="fn:concat('&lt;p&gt;',get-property('text'),'&lt;/p&gt;')" />
+                                          
+										  <!--Create the Ticket in SupportBee -->
+                                          <supportbee.init>
+                                             <apiUrl>{$ctx:supportbee.apiUrl}</apiUrl>
+                                             <authToken>{$ctx:supportbee.authToken}</authToken>
+                                          </supportbee.init>
+                                          <supportbee.createTicket>
+                                             <subject>{$ctx:subject}</subject>
+                                             <requesterName>{$ctx:requesterName}</requesterName>
+                                             <requesterEmail>{$ctx:requesterEmail}</requesterEmail>
+                                             <notifyRequester>true</notifyRequester>
+                                             <text>{$ctx:text}</text>
+                                             <html>{$ctx:html}</html>
+                                          </supportbee.createTicket>
+										  
+										  <!--Removing unused headers -->
+										  <sequence key="removeResponseHeaders" />										  
+                                          
+										  <property name="supportBee.ticketId" expression="json-eval($.ticket.id)" />
+                                          
+										  <!--Failure case: Display the error message given by the API if the ticket is created successfully.-->
+                                          <filter source="boolean(get-property('supportBee.ticketId'))" regex="false">
+                                             <then>
+                                                <property name="errorResponse" expression="json-eval($)" />
+                                                <property name="id" expression="fn:concat('zohocrm_caseId:', get-property('caseId'))" />
+                                                
+												<call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="supportbee_createTicket" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Failure" />
+                                                   <with-param name="message" value="{$ctx:errorResponse}" />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <!-- Success case: Append a message to be sent to the user saying that the ticket is successfully created in SupportBee. -->
+                                                <property name="id" expression="fn:concat('zohocrm_caseId:', get-property('caseId'),',supportbee_ticketId:',get-property('supportBee.ticketId'))" />
+                                                
+												<call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="supportbee_createTicket" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Success" />
+                                                   <with-param name="message" value="Ticket is successfully created for the case." />
+                                                </call-template>
+                                                
+												<!-- Call the sequence to assign users to the created ticket if there are agentIds given in the request. -->
+                                                <filter xpath="get-property('supportbeeNoOfAgents') &gt; 0">
+                                                   <then>
+                                                      <sequence key="assignUsersToTickets" />
+                                                   </then>
+                                                </filter>
+                                               
+											    <!--Update the supportBee ticketId in the zohoCrm account in the custom field 'SupportBee Ticket ID' -->
+                                                <script language="js"><![CDATA[
+													//constructing the xml data in order to update the case in ZohoCrm								
+													var supportBeeTicketId=mc.getProperty('supportBee.ticketId');								
+													var xmlData="<Cases> <row no=\"1\"> <FL val=\"SupportBee Ticket ID\">"+supportBeeTicketId+"</FL> </row> </Cases>";															
+													mc.setProperty('zohocrm.xmlData', xmlData);
+												]]></script>
+												
+                                                <zohocrm.init>
+                                                   <scope>crmapi</scope>
+                                                   <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+                                                   <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+                                                </zohocrm.init>
+                                                <zohocrm.updateRecords>
+                                                   <moduleType>Cases</moduleType>
+                                                   <id>{$ctx:caseIDVal}</id>
+                                                   <xmlData>{$ctx:zohocrm.xmlData}</xmlData>
+                                                </zohocrm.updateRecords>
+                                                
+												<!--Removing unused headers -->
+                                                <sequence key="removeResponseHeaders" />
+                                               
+											    <property name="zohocrm.responseId" expression="json-eval($.response.result.recorddetail.FL[0].content)" />
+                                                
+												<!--Failure case: Display a custom generated error message if the update of record was unsuccessful.-->
+                                                <filter source="boolean(get-property('zohocrm.responseId'))" regex="false">
+                                                   <then>
+                                                      <property name="id" expression="fn:concat('zohocrm_caseId:', get-property('caseIDVal'))" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="zohocrm_updateRecords" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="Failure" />
+                                                         <with-param name="message" value="The Ticket is created, however the ticketID of SupportBee is failed to be updated in ZohoCRM." />
+                                                      </call-template>
+                                                   </then>
+                                                   <else>
+                                                      <!--Add a comment for the ticket in SupportBee indicating the ZohoCrm ticket ID of it.-->
+                                                      <!--Constructing the text and the html for the comment. -->
+                                                      <property name="supportBee.commentText" expression="fn:concat('ZohoCRM-CaseID:',get-property('caseIDVal'))" />
+                                                      <property name="supportBee.commentHtml" expression="fn:concat('&lt;p&gt;',get-property('supportBee.commentText'),'&lt;/p&gt;')" />
+                                                      
+													  <supportbee.init>
+                                                         <apiUrl>{$ctx:supportbee.apiUrl}</apiUrl>
+                                                         <authToken>{$ctx:supportbee.authToken}</authToken>
+                                                      </supportbee.init>
+                                                      <supportbee.createComment>
+                                                         <ticketId>{$ctx:supportBee.ticketId}</ticketId>
+                                                         <html>{$ctx:supportBee.commentHtml}</html>
+                                                         <text>{$ctx:supportBee.commentText}</text>
+                                                      </supportbee.createComment>
+                                                      
+													  <!--Removing unused headers -->
+                                                      <sequence key="removeResponseHeaders" />
+                                                      
+													  <property name="supportBee.commentId" expression="json-eval($.comment.id)" />
+                                                      <!--Failure case: Display the error message given by the API if in case the creation of the comment was unsuccessful.-->
+                                                      <filter source="boolean(get-property('supportBee.commentId'))" regex="false">
+                                                         <then>
+                                                            <property name="id" expression="fn:concat('supportBee_ticketId:', get-property('supportBee.ticketId'))" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="supportbee_createComment" />
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="status" value="Failure" />
+                                                               <with-param name="message" value="The Ticket is created, however a comment containing the ZohoCrmCaseId cannot be added to the ticket due to an error." />
+                                                            </call-template>
+                                                         </then>
+                                                      </filter>	<!--END of Filter: Displaying the error message given by the API if in case the creation of the comment was unsuccessful.-->
+                                                   </else>
+                                                </filter>	<!--END of Filter: Displaying a custom generated error message if the update of record was unsuccessful.-->
+                                             </else>
+                                          </filter>	<!--END of Filter: Displaying the error message given by the API if the ticket is created successfully.-->
+                                       </else>
+                                    </filter>	<!--END of Filter: Checking the existence of the ticket in SpportBee.-->
+                                 </then>
+                              </filter>	<!--END of Filter: Checking the case type and creating the ticket in SupportBee-->
+                              <!--Increment the caseIndex count -->
+                              <property name="zohoCrm.caseIndex" expression="get-property('operation', 'zohoCrm.caseIndex') + 1" scope="operation" />
+                              
+							  <!--FOR EACH Case : END -->
+                              <filter xpath="get-property('operation', 'zohoCrm.caseCount') = get-property('operation', 'zohoCrm.caseIndex')">
+                                 <then>
+                                    <!-- Call the sequence to create tickets from Submissions of the form(Bug Report) of FormStack. -->
+                                    <sequence key="createTicketsFromSubmissions" />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>	<!--END LOOP: Retrieve details of each case array -->
+                  </else>
+               </filter>	<!--END of Filter:If there are no any cases to handle then display a custom generated error message.-->	
+            </else>
+         </filter>	<!--END of Filter: Handling failure case when the response threw errors while retrieving cases from zohoCrm-->
+      </inSequence>
+      <outSequence>
+         <!-- Send the constructed response to the user. -->
+         <payloadFactory media-type="json">
+            <format>{
+				   "Response":{
+					   "process":"supportbee_InitiateTickets",
+					   "activityResponse": [$1]
+				   }
+               }</format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+</proxy>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This template retrieves the phases available in a project in AgileZen, and gets the ID of the phase identified by the provided name. -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="agilezen_getPhaseIdFromName">
+   <parameter name="apiUrl" description="Base endpoint URL of AgileZen API." />
+   <parameter name="apiKey" description="API Key to access data of AgileZen account." />
+   <parameter name="projectId" description="Name of the project to which the phases belong." />
+   <parameter name="phaseName" description="Name of the phase whose ID should be retrieved." />
+   <sequence>
+      <property name="uri.var.apiUrl" expression="$func:apiUrl" />
+      <property name="uri.var.apiKey" expression="$func:apiKey" />
+      <property name="uri.var.projectId" expression="$func:projectId" />
+      <property name="uri.var.phaseName" expression="$func:phaseName" />
+	  
+      <header name="X-Zen-ApiKey" expression="get-property('uri.var.apiKey')" scope="transport" />
+	  
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/api/v1/projects/{uri.var.projectId}/phases" />
+         </endpoint>
+      </call>
+	  
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+      <header name="X-AspNet-Version" action="remove" scope="transport" />
+      <header name="X-AspNetMvc-Version" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+	  
+      <!--Removing the remaining standard headers to prevent ambiguity when chaining services. -->
+      <sequence key="removeResponseHeaders" />
+	  
+      <property name="uri.var.agilezen.phaseArray" expression="json-eval($.items)" />
+      <!-- Script Mediator to iterate through the phases and extract the required phase ID. -->
+      <script language="js">
+		<![CDATA[
+			var phaseArray = eval("(" + mc.getProperty('uri.var.agilezen.phaseArray') + ")");
+			var phaseName = mc.getProperty('uri.var.phaseName');
+			for(var i=0; i<phaseArray.length; i++){
+				if(phaseArray[i].name.toLowerCase() == phaseName.toLowerCase()){
+					var phaseId = '' + phaseArray[i].id;
+					mc.setProperty('agilzen.phaseId', phaseId.split('.')[0]);
+					break;
+				}
+			}
+		]]>
+	  </script>
+   </sequence>
+</template>

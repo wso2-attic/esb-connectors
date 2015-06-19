@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="supportbee_sendFeedbackToAgents" startOnLoad="true" statistics="disable" trace="disable" transports="https,http"
+   xmlns="http://ws.apache.org/ns/synapse">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+		 <!-- SupportBee Properties -->
+         <property name="supportbee.apiUrl" expression="json-eval($.supportbee.apiUrl)" />
+         <property name="supportbee.authToken" expression="json-eval($.supportbee.authToken)" />
+         
+		 <!-- Formstack Properties -->
+         <property name="formstack.apiUrl" value="https://www.formstack.com" />
+         <property name="formstack.format" value="json" />
+         <property name="formstack.accessToken" expression="json-eval($.formstack.accessToken)" />
+         <property name="formstack.questions" expression="json-eval($.formstack.questions)" />
+		 
+		 <!-- Madnrill Properties -->
+         <property name="mandrill.apiUrl" value="https://mandrillapp.com" />
+         <property name="mandrill.apiKey" expression="json-eval($.mandrill.apiKey)" />
+         <property name="mandrill.fromName" expression="json-eval($.mandrill.fromName)" />
+         <property name="mandrill.fromEmail" expression="json-eval($.mandrill.fromEmail)" />
+
+		 <!-- Constructing the 'until' date to 30 days (1 month) from current date. -->
+         <script language="js">
+			<![CDATA[
+				mc.setProperty('supportbee.minTime', new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date(new java.util.Date().getTime()-2592000000)));
+			]]>
+         </script>
+
+         <property name="responseString" value="" scope="operation" />
+		 
+		 <!-- Retrieve all the archived tickets which were created within a month from the current date and have at least one reply. -->
+         <supportbee.init>
+            <apiUrl>{$ctx:supportbee.apiUrl}</apiUrl>
+            <authToken>{$ctx:supportbee.authToken}</authToken>
+         </supportbee.init>
+         <supportbee.listTickets>
+            <perPage>100</perPage>
+            <archived>true</archived>
+            <replies>true</replies>
+            <since>{$ctx:supportbee.minTime}</since>
+         </supportbee.listTickets>
+
+         <property name="listTickets.statusCode" expression="$axis2:HTTP_SC" />
+
+		 <!-- START: Proceed with the scenario only if the status code of the listTickets call is 200 OK. -->
+         <filter source="get-property('listTickets.statusCode')" regex="200">
+            <then>
+               <property name="noOfTickets" expression="count(//tickets)" scope="operation" />
+               <property name="ticketIndex" expression="0" scope="operation" />
+		 
+		       <!-- START: Proceed only if there are archived tickets which were created within a month from the current date and have at least one reply. -->
+               <filter source="get-property('operation', 'noOfTickets')" regex="0.0">
+                  <then>
+					   <!-- Skip case: Append a message to be sent to the user. -->
+                     <property name="id" value="{}" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="supportbee_retrieveArchivedTickets" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="There are no archived tickets (with replies) found in the account." />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+					 <!--FOR EACH Ticket: BEGIN -->
+                     <iterate continueParent="false" id="stories" expression="//tickets" sequential="false">
+                        <target>
+                           <sequence>
+                              <property name="supportbee.ticketId" expression="//tickets/id/text()" />
+                              <property name="supportbee.ticketSubject" expression="//tickets/subject/text()" />
+                              <property name="supportbee.ticketContent" expression="//tickets/content/text/text()" />
+                              <property name="supportbee.requesterName" expression="//tickets/requester/name/text()" />
+                              <property name="supportbee.requesterEmail" expression="//tickets/requester/email/text()" />
+                              <property name="supportbee.assigneeId" expression="//tickets/current_assignee/user/id/text()" />
+                              <property name="supportbee.assigneeEmail" expression="//tickets/current_assignee/user/email/text()" />
+                              <property name="supportbee.assigneeName" expression="//tickets/current_assignee/user/name/text()" />
+								
+							  <!-- List all the replies of the ticket. -->
+                              <supportbee.init>
+                                 <apiUrl>{$ctx:supportbee.apiUrl}</apiUrl>
+                                 <authToken>{$ctx:supportbee.authToken}</authToken>
+                              </supportbee.init>
+                              <supportbee.listReplies>
+                                 <ticketId>{$ctx:supportbee.ticketId}</ticketId>
+                              </supportbee.listReplies>
+
+                              <property name="listReplies.statusCode" expression="$axis2:HTTP_SC" />
+
+							  <!-- START: Proceed with the scenario only if the status code of the listReplies call is 200 OK. -->
+                              <filter source="get-property('listReplies.statusCode')" regex="200">
+                                 <then>
+                                    <property name="noOfReplies" expression="count(//replies)" />
+								 
+									<!-- START: Proceed only if there are any replies added to the ticket. -->
+                                    <filter source="get-property('noOfReplies')" regex="0.0">
+                                       <then>
+										  <!-- Skip case: Append a message to be sent to the user. -->
+                                          <property name="id" expression="fn:concat('supportbee_ticketId: ', get-property('supportbee.ticketId'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="supportbee_retrieveReplies" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Skipped" />
+                                             <with-param name="message" value="There are no replies for the ticket." />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <property name="repliesArray" expression="json-eval($.replies)" />
+										  <!-- Verify whether a survey is associated with the ticket. -->
+                                          <script language="js">
+												<![CDATA[
+													var repliesArray = mc.getProperty('repliesArray');
+													var surveyId = '';
+													
+													if(repliesArray != null && repliesArray != ''){
+														repliesArray = eval("(" + repliesArray + ")");
+														if(repliesArray.length > 0){
+															for(var i=0; i<repliesArray.length; i++){
+																if(repliesArray[i].hasOwnProperty('content')){
+																	var text = repliesArray[i].content.text;
+																	if(new java.lang.String(text).toLowerCase().startsWith('formstack-survey-id')){
+																		surveyId = text.split(':')[1];
+																		break;
+																	}
+																}
+															}
+														}
+													}
+													
+													mc.setProperty('formstack.surveyId', surveyId);
+												]]>
+                                          </script>
+											  
+										  <!-- START: Proceed to get the submissions of the survey if, there is one associated with the ticket. -->
+                                          <filter source="boolean(get-property('formstack.surveyId'))" regex="true">
+                                             <then>
+												<!-- Get a list of submissions. -->
+                                                <formstack.init>
+                                                   <accessToken>{$ctx:formstack.accessToken}</accessToken>
+                                                   <format>{$ctx:formstack.format}</format>
+                                                   <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+                                                </formstack.init>
+                                                <formstack.listSubmissions>
+                                                   <formId>{$ctx:formstack.surveyId}</formId>
+                                                   <sort>DESC</sort>
+                                                   <data>true</data>
+                                                </formstack.listSubmissions>
+
+                                                <property name="listSubmissions.statusCode" expression="$axis2:HTTP_SC" />
+
+												<!-- START: Proceed with the scenario only if the status code of the listSubmissions call is 200 OK. -->
+                                                <filter source="get-property('listSubmissions.statusCode')" regex="200">
+                                                   <then>
+                                                      <property name="noOfSubmissions" expression="count(//submissions)" />
+														 
+													  <!-- START: Proceed only if there are any submissions for the survey. -->
+                                                      <filter source="get-property('noOfSubmissions')" regex="0.0">
+                                                         <then>
+															<!-- Skip case: Append a message to be sent to the user. -->
+                                                            <property name="id" expression="fn:concat('supportbee_ticketId: ', get-property('supportbee.ticketId'), ',formstack_surveyId: ', get-property('formstack.surveyId'))" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="formstack_getSubmissions" />
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="status" value="Skipped" />
+                                                               <with-param name="message" value="The requester has not taken the survey yet." />
+                                                            </call-template>
+                                                         </then>
+                                                         <else>
+                                                            <property name="formstack.submissionId" expression="json-eval($.submissions[0].id)" />
+
+															<!-- Get the details of the submission with all the field values. -->
+                                                            <formstack.init>
+                                                               <accessToken>{$ctx:formstack.accessToken}</accessToken>
+                                                               <format>{$ctx:formstack.format}</format>
+                                                               <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+                                                            </formstack.init>
+                                                            <formstack.getSubmission>
+                                                               <submissionId>{$ctx:formstack.submissionId}</submissionId>
+                                                            </formstack.getSubmission>
+                                                            <property name="submissionData" expression="json-eval($.data)" />
+															
+															<!-- Construct the mail body, subject and 'to' object to send the survey in email. -->
+															<script language="js">
+																<![CDATA[
+																	var ticketSubject = mc.getProperty('supportbee.ticketSubject');
+																	var assigneeEmail = mc.getProperty('supportbee.assigneeEmail');
+																	var assigneeName = mc.getProperty('supportbee.assigneeName');																				
+																	var submissionData = mc.getProperty('submissionData');
+																	var userQuestions = mc.getProperty('formstack.questions');
+																	var answerString = '';
+																				
+																	if(submissionData != null && submissionData != ''){
+																		submissionData = eval("(" + submissionData + ")");
+																		userQuestions = eval("(" + userQuestions + ")");
+																		if(submissionData.length > 0 && userQuestions.length > 0){
+																			for(var i=0; i<userQuestions.length; i++){
+																				var index = userQuestions[i].index - 1;
+																				answerString += '<div><p>' +  (i+1) + '. ' + userQuestions[i].question + ' <b><u>' + submissionData[index].value + '</u></b></p></div>';
+																			}
+																		}
+																	}
+																	mc.setProperty('answerString', answerString);
+																	mc.setProperty('mandrill.subject', 'Requester Feedback [' + ticketSubject + ']');
+																	var mailTo = '[{"email": "' + assigneeEmail + '", "name": "' + assigneeName + '", "type": "to"}]';
+																	mc.setProperty('mandrill.to', mailTo);
+																]]>
+															</script>	
+
+                                                            <property name="mandrill.html" expression="fn:concat('&lt;p&gt;&lt;h3&gt;Dear ', get-property('supportbee.assigneeName'), ',&lt;/h3&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Your have been given the following feedback by the requester of the ticket.&lt;/p&gt;&lt;/br&gt;&lt;/br&gt;&lt;p&gt;Ticket ID: &lt;b&gt;', get-property('supportbee.ticketId'), '&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Ticket Subject: &lt;b&gt;', get-property('supportbee.ticketSubject'), '&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Ticket Content: &lt;b&gt;', get-property('supportbee.ticketContent'), '&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;/br&gt;&lt;p&gt;Feedback is as follows:&lt;/p&gt;&lt;/br&gt;&lt;/br&gt;', get-property('answerString'), '&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;This is an auto-generated email. Please do not reply.&lt;/p&gt;')" />
+                                                            																  
+															<!-- Send the requester feedback to assignee via email. -->
+                                                            <mandrill.init>
+                                                               <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                                               <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                                               <format>json</format>
+                                                            </mandrill.init>
+                                                            <mandrill.sendMessage>
+                                                               <html>{$ctx:mandrill.html}</html>
+                                                               <subject>{$ctx:mandrill.subject}</subject>
+                                                               <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+                                                               <fromName>{$ctx:mandrill.fromName}</fromName>
+                                                               <important>false</important>
+                                                               <autoHtml>true</autoHtml>
+                                                               <urlStripQs>false</urlStripQs>
+                                                               <preserveRecipients>true</preserveRecipients>
+                                                               <viewContentLink>true</viewContentLink>
+                                                               <to>{$ctx:mandrill.to}</to>
+                                                            </mandrill.sendMessage>
+                                                            <property name="mandrill.mailId" expression="json-eval($[0]._id)" />
+																		
+															<!-- START: Proceed to trash the ticket only if the feedback was successfully mailed to the agent. -->
+                                                            <filter source="boolean(get-property('mandrill.mailId'))" regex="true">
+                                                               <then>
+                                                                  <property name="id" expression="fn:concat('supportbee_assigneeId:', get-property('supportbee.assigneeId'), ',mandrill_mailId:', get-property('mandrill.mailId'))" />
+                                                                  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="activity" value="mandrill_sendFeedbackToAgent" />
+                                                                     <with-param name="id" value="{$ctx:id}" />
+                                                                     <with-param name="status" value="Success" />
+                                                                     <with-param name="message" value="Requester feedback has been successfully emailed to the assignee." />
+                                                                  </call-template>
+
+																  <!-- Trash the ticket. -->
+                                                                  <supportbee.init>
+                                                                     <apiUrl>{$ctx:supportbee.apiUrl}</apiUrl>
+                                                                     <authToken>{$ctx:supportbee.authToken}</authToken>
+                                                                  </supportbee.init>
+                                                                  <supportbee.trashTicket>
+                                                                     <ticketId>{$ctx:supportbee.ticketId}</ticketId>
+                                                                  </supportbee.trashTicket>
+                                                                  <property name="statusCode" expression="$axis2:HTTP_SC" />
+                                                                  <property name="id" expression="fn:concat('supportbee_ticketId:', get-property('supportbee.ticketId'))" />
+																				
+																  <!-- START: Proceed to delete the survey in Formstack only if the ticket was successfully trashed. -->
+                                                                  <filter source="get-property('statusCode')" regex="204">
+                                                                     <then>		
+																		<call-template target="responseHandlerTemplate">
+																			<with-param name="activity" value="supportbee_trashTicket" />
+																			<with-param name="id" value="{$ctx:id}" />
+																			<with-param name="status" value="Success" />
+																			<with-param name="message" value="Ticket was successfully trashed." />
+																		</call-template>
+																		
+																		<property name="uri.var.apiUrl" expression="get-property('formstack.apiUrl')" />
+                                                                        <property name="uri.var.formId" expression="get-property('formstack.surveyId')" />
+																		
+																		<header name="Authorization" expression="fn:concat('Bearer ', get-property('formstack.accessToken'))" scope="transport" />
+																		
+																		<!-- Delete the survey/form created to capture feedback from the requester of the ticket. -->
+																		<call>
+																			<endpoint>
+																				<http method="delete" uri-template="{uri.var.apiUrl}/api/v2/form/{uri.var.formId}.json" />
+																			</endpoint>
+																		</call>
+																		
+																		<!-- Remove custom Headers from the API Response -->
+																	    <header name="X-Robots-Tag" action="remove" scope="transport" />
+																	    <header name="P3P" action="remove" scope="transport" />
+																		
+																		
+																		<property name="formstack.deleted" expression="json-eval($.success)" />
+																		
+																		<!-- START: Append a message to be sent to the user regarding the status of the delete operation. -->
+																		<filter source="get-property('formstack.deleted')" regex="0">
+																		   <then>
+																				<property name="id" expression="fn:concat('formstack_surveyId:', get-property('formstack.surveyId'))" />
+																				<property name="message" expression="json-eval($)" />
+																				<call-template target="responseHandlerTemplate">
+																					<with-param name="activity" value="formstack_deleteCompletedSurvey" />
+																					<with-param name="id" value="{$ctx:id}" />
+																					<with-param name="status" value="Failure" />
+																					<with-param name="message" value="{$ctx:message}" />
+																				</call-template>
+																		   </then>
+																		</filter>
+																		
+                                                                     </then>
+                                                                     <else>
+																		<!-- Failure case: Append an error message to be sent to the user. -->
+																		<property name="message" expression="json-eval($)" />
+                                                                        <call-template target="responseHandlerTemplate">
+																			<with-param name="activity" value="supportbee_trashTicket" />
+																			<with-param name="id" value="{$ctx:id}" />
+																			<with-param name="status" value="Failure" />
+																			<with-param name="message" value="{$ctx:message}" />
+																		</call-template>
+                                                                     </else>
+                                                                  </filter>
+                                                                  <!-- END: Proceed to delete the survey from Formstack only if the ticket was successfully trashed. -->
+                                                               </then>
+                                                               <else>
+                                                                  <property name="id" expression="fn:concat('supportbee_assigneeId:', get-property('supportbee.assigneeId'))" />
+                                                                  <property name="message" expression="json-eval($)" />
+                                                                  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="activity" value="mandrill_sendFeedbackToAgent" />
+                                                                     <with-param name="id" value="{$ctx:id}" />
+                                                                     <with-param name="status" value="Failure" />
+                                                                     <with-param name="message" value="{$ctx:message}" />
+                                                                  </call-template>
+                                                               </else>
+                                                            </filter>
+															<!-- END: Proceed to trash the ticket only if the feedback was successfully mailed to the agent. -->
+                                                         </else>
+                                                      </filter>
+													  <!-- END: Proceed only if there are any submissions for the survey. -->
+                                                   </then>
+                                                   <else>
+													  <!-- Failure case: Append an error message to be sent to the user. -->
+                                                      <property name="id" expression="fn:concat('supportbee_ticketId: ', get-property('supportbee.ticketId'), ',formstack_surveyId: ', get-property('formstack.surveyId'))" />
+												      <property name="message" expression="json-eval($)" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="formstack_getSubmissions" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="Failure" />
+                                                         <with-param name="message" value="{$ctx:message}" />
+                                                      </call-template>
+                                                   </else>
+                                                </filter>
+												<!-- END: Proceed with the scenario only if the status code of the listSubmissions call is 200 OK. -->
+                                             </then>
+                                             <else>
+												<!-- Failure case: Append an error message to be sent to the user. -->
+                                                <property name="id" expression="fn:concat('supportbee_ticketId: ', get-property('supportbee.ticketId'))" />
+												<call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="supportbee_getSurveyForTicket" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Failure" />
+                                                   <with-param name="message" value="The ticket is not associated with a Survey." />
+                                                </call-template>
+                                             </else>
+                                          </filter>
+										  <!-- END: Proceed to get the submissions of the survey if, there is one associated with the ticket. -->
+                                       </else>
+                                    </filter>
+									<!-- END: Proceed only if there are any replies added to the ticket. -->
+                                 </then>
+                                 <else>
+									<!-- Failure case: Append an error message to be sent to the user. -->
+                                    <property name="id" expression="fn:concat('supportbee_ticketId: ', get-property('supportbee.ticketId'))" />
+                                    <property name="message" expression="json-eval($)" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="supportbee_retrieveReplies" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Failure" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </else>
+                              </filter>
+							  <!-- END: Proceed with the scenario only if the status code of the listReplies call is 200 OK. -->
+							  
+							   <!--Increment the ticketIndex count by 1 -->
+                              <property name="ticketIndex" expression="get-property('operation', 'ticketIndex') + 1" scope="operation" />
+                           </sequence>
+                        </target>
+                     </iterate>
+					  <!--FOR EACH Ticket: END -->
+					  
+					  <!-- Move to outSequence when all the iterations are done. -->
+                     <filter xpath="get-property('operation', 'ticketIndex') = get-property('operation', 'noOfTickets')">
+                        <then>
+                           <loopback />
+                        </then>
+                     </filter>
+
+                  </else>
+               </filter>
+			   <!-- END: Proceed only if there are archived tickets which were created within a month from the current date and have at least one reply. -->
+            </then>
+            <else>
+				<!-- Failure case: Append an error message to be sent to the user. -->
+               <property name="id" value="{}" />
+               <property name="message" expression="json-eval($)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="supportbee_retrieveArchivedTickets" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Failure" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+		 <!-- END: Proceed with the scenario only if the status code of the listTickets call is 200 OK. -->
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+				   "Response": {
+					   "process": "supportbee_sendFeedbackToAgents",
+					   "activityResponse": [$1]
+				   }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <respond />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
