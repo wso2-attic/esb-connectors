@@ -10,7 +10,7 @@ Tested Platform:
 
  - UBUNTU 14.04
  - WSO2 ESB 4.9.0-ALPHA
- - Java 1.6
+ - Java 1.7
 
 
 STEPS:
