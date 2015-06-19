@@ -77,7 +77,7 @@ STEPS:
 	x)    campaignName2				- Use a valid string for the campaign name. 
 	xi)	  sleepTime					- Provide an integer value to denote the number of milliseconds to sleep between test cases. If test cases fail, try increasing the number. (e.g. 10000)
 		
- 8. Make sure that the billiving connector is set as a module in esb-connectors parent pom.
+ 8. Make sure that the zohocrm connector is set as a module in esb-connectors parent pom.
         <module>zohocrm/zohocrm-connector/zohocrm-connector-1.0.0/org.wso2.carbon.connector</module>
 
  9. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
