@@ -11,11 +11,11 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - WSO2 ESB 4.9.0-ALPHA
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.8.1 from official website.
+ 1. Download WSO2 ESB 4.9.0-ALPHA from official website.
 
  2. The ESB should be configured as below;
 	i)  Please make sure that the below mentioned Axis configurations are enabled (/repository/conf/axis2/axis2.xml).
@@ -32,16 +32,14 @@ Steps to follow in setting integration test.
 
 		<messageBuilder contentType="application/xml" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
- 	ii) Deploy relevant patches, if applicable.
-
- 3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Yammer_Connector_Home}/yammer-connector/yammer-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 3. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
 
  4. Create a Office 365 E3 trial account and derive the API Key.
 	i) 		Using the URL "http://www.yammer.com" create a Yammer trial account.(This user should not be the person who owned the company)
 	ii)		Create an app and get an api token by following the instruction given on this URL "https://developer.yammer.com/introduction/#gs-registerapp"
 	iii)	A message should be sent to a group by another user notifying the user created in step 4 - i).
 
- 5. Update the Yammer properties file at location "{Yammer_Connector_Home}/yammer-connector/yammer-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 5. Update the Yammer properties file at location "{ESB_Connector_Home}/yammer/yammer-connector/yammer-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i)		apiUrl 						- 	Use "https://www.yammer.com".
 	ii) 	apiToken					-   Use the api token generated in step 4 - ii).
@@ -67,6 +65,9 @@ Steps to follow in setting integration test.
 		  After each run remove the relationships of users which belongs the following email addresses 
 		  relationshipEmail and relationshipEmailOpt 
 
- 6. Navigate to "{Yammer_Connector_Home}/yammer-connector/yammer-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 6.  Make sure that the Yammer connector is set as a module in esb-connectors parent pom.
+        <module>yammer/yammer-connector/yammer-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 7. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
 	  
