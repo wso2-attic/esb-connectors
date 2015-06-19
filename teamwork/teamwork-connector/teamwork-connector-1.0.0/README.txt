@@ -65,5 +65,8 @@ STEPS:
 	deleteEventId
 	deleteMilestoneId
 
+7. Make sure that the teamwork connector is set as a module in esb-connectors parent pom.
+           <module>teamwork/teamwork-connector/teamwork-connector-1.0.0/org.wso2.carbon.connector</module>
+
 8. Navigate to "org.wso2.carbon.connector/" and run the following command.
      $ mvn clean install
