@@ -12,6 +12,7 @@ Tested Platform:
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
  - WSO2 ESB 4.9.0-SNAPSHOT
+ - Bugzilla 5.0rc3
 
 Steps to follow in setting integration test.
 
