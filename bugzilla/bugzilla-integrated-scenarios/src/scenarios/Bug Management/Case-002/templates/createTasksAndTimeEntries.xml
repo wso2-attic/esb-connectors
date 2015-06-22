@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This template responsible for creating a tasks and time entries in zohobooks
+   according to given access credentials with other parameters -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="createTasksAndTimeEntries">
+
+   <!-- ZohoBooks related template parameters -->
+   <parameter name="zohobooks.apiUrl" description="Base endpoint URL of ZohoBooks API." />
+   <parameter name="zohobooks.authToken" description="Auth token to access the ZohoBooks API." />
+   <parameter name="zohobooks.organizationId" description="ID of the organization." />
+   <parameter name="zohobooks.projectId" description="Project ID of the zohobooks." />
+   <parameter name="zohobooks.taskName" description="Task name of the task associated with zohobook project." />
+   <parameter name="zohobooks.timeEntryDate" description="Date which time entry should be created." />
+   <parameter name="zohobooks.userId" description="User ID of the zohobook user." />
+   <parameter name="zohobooks.logTime" description="log time for the time entry." />
+   <parameter name="zohobooks.invoiceHours" description="quantity for the line item of the invoice." />
+   <parameter name="zohobooks.taskRate" description="Rate of the task." />
+
+   <!--Common parameter-->
+   <parameter name="bugzilla.id" description="ID of the bug in bugzilla." />
+   <parameter name="bugzilla.description" description="Description of the invoice to create." />
+
+   <sequence>
+      <!-- ZohoBooks related template properties -->
+      <property name="zohobooks.apiUrl" expression="$func:zohobooks.apiUrl" />
+      <property name="zohobooks.authToken" expression="$func:zohobooks.authToken" />
+      <property name="zohobooks.organizationId" expression="$func:zohobooks.organizationId" />
+      <property name="zohobooks.projectId" expression="$func:zohobooks.projectId" />
+      <property name="zohobooks.timeEntryDate" expression="$func:zohobooks.timeEntryDate" />
+      <property name="zohobooks.userId" expression="$func:zohobooks.userId" />
+      <property name="zohobooks.taskName" expression="$func:zohobooks.taskName" />
+      <property name="zohobooks.logTime" expression="$func:zohobooks.logTime" />
+      <property name="zohobooks.invoiceHours" expression="$func:zohobooks.invoiceHours" />
+      <property name="zohobooks.taskRate" expression="$func:zohobooks.taskRate" />
+     
+      
+     <!-- Common template properties -->
+      <property name="bugzilla.id" expression="$func:bugzilla.id" />
+      <property name="bugzilla.description" expression="$func:bugzilla.description" />
+
+      <property name="invoiceObjects" value="" scope="operation" />
+
+
+      <filter source="boolean(get-property('zohobooks.authToken'))" regex="true">
+         <then>
+            <!-- Call zohobooks connector listTasks method to list tasks for the given project -->
+            <zohobooks.init>
+               <authToken>{$ctx:zohobooks.authToken}</authToken>
+               <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+               <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+            </zohobooks.init>
+            <zohobooks.listTasks>
+               <projectId>{$ctx:zohobooks.projectId}</projectId>
+            </zohobooks.listTasks>
+            <property name="tasks" expression="json-eval($.task)" />
+
+            <filter source="$axis2:HTTP_SC" regex="200">
+               <then>
+                  <script language="js">
+				  <![CDATA[payload = mc.getPayloadJSON();
+					var taskName = mc.getProperty('zohobooks.taskName');
+
+					var taskArray = payload.task;
+					var taskId = "";
+					var taskFlag ="false";
+         
+					for(var i=0;i<taskArray.length;i++) {
+						var taskObject = taskArray[i];
+						for(var key in taskObject) {
+							var name = taskObject['task_name'];
+							if(name == taskName) {
+								taskFlag="true";
+								taskId = taskObject['task_id'];
+								break;
+							}
+						}  
+					} 
+					mc.setProperty("zohobooks.taskId",taskId);
+					mc.setProperty("taskFlag",taskFlag);
+				  ]]></script>
+
+                  <filter xpath="get-property('taskFlag') = 'false'">
+                     <then>
+						<!-- Call zohobooks connector createTask method to create a task if the relevant task is not exsisting -->
+                        <zohobooks.init>
+                           <authToken>{$ctx:zohobooks.authToken}</authToken>
+                           <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                           <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                        </zohobooks.init>
+                        <zohobooks.createTask>
+                           <projectId>{$ctx:zohobooks.projectId}</projectId>
+                           <taskName>{$ctx:zohobooks.taskName}</taskName>
+                        </zohobooks.createTask>
+                        <property name="zohobooks.taskId" expression="json-eval($.task.task_id)" />
+                     </then>
+                  </filter>
+         
+				  <!-- Call zohobooks connector createTimeEntry method create a time entry -->
+                  <zohobooks.init>
+                     <authToken>{$ctx:zohobooks.authToken}</authToken>
+                     <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                     <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                  </zohobooks.init>
+                  <zohobooks.createTimeEntry>
+                     <taskId>{$ctx:zohobooks.taskId}</taskId>
+                     <userId>{$ctx:zohobooks.userId}</userId>
+                     <logDate>{$ctx:zohobooks.timeEntryDate}</logDate>
+                     <projectId>{$ctx:zohobooks.projectId}</projectId>
+                     <logTime>{$ctx:zohobooks.logTime}</logTime>
+                  </zohobooks.createTimeEntry>
+                  <property name="zohobooks.timeEntryId" expression="json-eval($.time_entry.time_entry_id)" />
+
+                  <filter source="boolean(get-property('zohobooks.timeEntryId'))" regex="false">
+                     <then>
+                        <property name="id" expression="fn:concat('bugzillaId:',get-property('bugzilla.id'))" />
+                        <property name="status" value="error" />
+                        <property name="message" expression="json-eval($)" />
+                     </then>
+                     <else>
+                        <property name="id" expression="fn:concat('bugzillaId:',get-property('bugzilla.id'))" />
+                        <property name="status" value="success" />
+                        <property name="message" value="Time entry has been created for the bug." />
+                     </else>
+                  </filter>
+				  <!--Call the responseHandler template-->
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="activity" value="zohobooks_logTimeEntries" />
+                     <with-param name="id" value="{$ctx:id}" />
+                     <with-param name="status" value="{$ctx:status}" />
+                     <with-param name="message" value="{$ctx:message}" />
+                  </call-template>
+
+                  <filter source="boolean(get-property('zohobooks.timeEntryId'))" regex="true">
+                     <then>
+						<!-- Call zohobooks connector getProject method to retrieve project related details -->
+                        <zohobooks.init>
+                           <authToken>{$ctx:zohobooks.authToken}</authToken>
+                           <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                           <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                        </zohobooks.init>
+                        <zohobooks.getProject>
+                           <projectId>{$ctx:zohobooks.projectId}</projectId>
+                        </zohobooks.getProject>
+                        <property name="zohobooks.customerId" expression="json-eval($.project.customer_id)" />
+             
+						<!-- Call zohobooks connector getContact method to retrieve contact related details -->
+                        <zohobooks.init>
+                           <authToken>{$ctx:zohobooks.authToken}</authToken>
+                           <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                           <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                        </zohobooks.init>
+                        <zohobooks.getContact>
+                           <contactId>{$ctx:zohobooks.customerId}</contactId>
+                        </zohobooks.getContact>
+                        <property name="zohobooks.contactPersonId" expression="json-eval($.contact.contact_persons[0].contact_person_id)" />
+
+                        <payloadFactory media-type="json">
+                           <format>
+                              {
+								"project_id": "$1",
+								"time_entry_ids":["$2"],
+								"name": "$3",
+								"quantity":"$4",
+								"rate":"$5",
+								"description":"$6"
+                              }
+
+                           </format>
+                           <args>
+                              <arg expression="get-property('zohobooks.projectId')" />
+                              <arg expression="get-property('zohobooks.timeEntryId')" />
+                              <arg expression="get-property('zohobooks.taskName')" />
+                              <arg expression="get-property('zohobooks.invoiceHours')" />
+                              <arg expression="get-property('zohobooks.taskRate')" />
+                              <arg expression="get-property('bugzilla.description')" />
+                           </args>
+                        </payloadFactory>
+                        <property name="zohobooks.invoiceItems" expression="json-eval($.)" />
+
+                        <property name="bugIdString" expression="fn:concat(get-property('operation','bugIdString'),get-property('bugzilla.id'),',')"
+                           scope="operation" />
+
+                        <property name="invoiceObjects" expression="fn:concat(get-property('operation','invoiceObjects'),get-property('zohobooks.invoiceItems'),',')"
+                           scope="operation" />
+
+                        <property name="zohobooks.contactPerson" expression="fn:concat('[&quot;',get-property('zohobooks.contactPersonId'),'&quot;]')" />
+
+                     </then>
+                  </filter>
+               </then>
+               <else>
+                  <property name="id" value="{}" />
+                  <property name="status" value="Skipped" />
+                  <property name="message" value="ZohoBooks project ID is not valid." />
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="id" value="{$ctx:id}" />
+                     <with-param name="activity" value="zohobooks_retrieveTasks" />
+                     <with-param name="status" value="{$ctx:status}" />
+                     <with-param name="message" value="{$ctx:message}" />
+                  </call-template>
+                  <loopback />
+               </else>
+            </filter>
+         </then>
+      </filter>
+   </sequence>
+</template>

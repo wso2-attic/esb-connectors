@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="bugzilla_createUsersForProjects" transports="https http"
+   startOnLoad="true" trace="disable">
+   <description />
+   <target>
+      <inSequence>
+
+         <!--Tsheets Properties -->
+         <property name="tsheets.apiUrl" expression="json-eval($.tsheetsApiUrl)" />
+         <property name="tsheets.accessToken" expression="json-eval($.tsheetsAccessToken)" />
+         <property name="tsheets.jobCode" expression="json-eval($.jobCodeId)" />
+
+         <!--Bugzilla Properties -->
+         <property name="bugzilla.apiUrl" expression="json-eval($.bugzillaApiUrl)" />
+         <property name="bugzilla.apiKey" expression="json-eval($.bugzillaApiKey)" />
+         <property name="bugzilla.defaultPassword" expression="json-eval($.defaultPassword)" />
+         <property name="bugzilla.bugzillaLoginURL" expression="json-eval($.bugzillaLoginURL)" />
+
+         <!--Mandrill Properties -->
+         <property name="mandrill.apiUrl" value="https://mandrillapp.com" />
+         <property name="mandrill.apiKey" expression="json-eval($.mandrillApiKey)" />
+         <property name="mandrill.fromEmail" expression="json-eval($.fromEmail)" />
+         <property name="mandrill.fromName" expression="json-eval($.fromName)" />
+
+         <!--Common Properties -->
+         <property name="responseString" value="" scope="operation" />
+
+
+         <!-- Retrieve jobcode assignments by parent jobcodeId -->
+         <tsheets.init>
+            <accessToken>{$ctx:tsheets.accessToken}</accessToken>
+            <apiUrl>{$ctx:tsheets.apiUrl}</apiUrl>
+         </tsheets.init>
+         <tsheets.listJobCodeAssignments>
+            <jobcodeParentId>{$ctx:tsheets.jobCode}</jobcodeParentId>
+         </tsheets.listJobCodeAssignments>
+
+         <property name="tsheets.jobCodeAssignments" expression="json-eval($.supplemental_data)" />
+
+         <!-- Filter to check available jobcode assignments -->
+         <filter source="boolean(get-property('tsheets.jobCodeAssignments'))" regex="false">
+            <then>
+               <property name="id" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="message" value="There are no Job Assignments to process." />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+
+               <!-- Create array of user details object to process -->
+               <script language="js">
+                  <![CDATA[
+                        
+                  	payload = mc.getPayloadJSON();
+                  	var assignedUsers = payload.supplemental_data.users;
+                  	var users = [];
+                      for(var key in assignedUsers){
+                          userObj = assignedUsers[key];
+                          var user = {};
+                          user.firstName = userObj.first_name;
+                          user.lastName = userObj.last_name;
+                          user.email = userObj.email;
+                          user.userName = userObj.username;
+                          users.push(user);
+                      }
+                      payload = {};
+                      payload.users = users ;
+                      mc.setPayloadJSON(payload);
+                        
+                  ]]>
+               </script>
+
+               <property name="userCount" expression="count(//users)" scope="operation" />
+               <property name="userIndex" value="0" scope="operation" />
+
+               <!--FOR EACH User Details : BEGIN -->
+               <iterate continueParent="true" id="users" expression="//users" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="messageType" value="application/json" scope="axis2" />
+                        <property name="tsheets.firstName" expression="json-eval($.users.firstName)" />
+                        <property name="tsheets.lastName" expression="json-eval($.users.lastName)" />
+                        <property name="tsheets.email" expression="json-eval($.users.email)" />
+                        <property name="tsheets.userName" expression="json-eval($.users.userName)" />
+                        <property name="bugzilla.fullName"
+                           expression="fn:concat(get-property('tsheets.firstName'),' ',get-property('tsheets.lastName'))" />
+
+                        <!-- Search Bugzilla users from email -->
+                        <bugzilla.init>
+                           <apiUrl>{$ctx:bugzilla.apiUrl}</apiUrl>
+                           <apiKey>{$ctx:bugzilla.apiKey}</apiKey>
+                        </bugzilla.init>
+                        <bugzilla.searchUsers>
+                           <names>{$ctx:tsheets.email}</names>
+                        </bugzilla.searchUsers>
+                        <!-- check user in Bugzilla and create if not exsist -->
+                        <property name="bugzilla.users" expression="json-eval($.users)" />
+                        <filter source="boolean(get-property('bugzilla.users'))" regex="false">
+                           <then>
+                              <!-- Create Bugzilla user -->
+                              <bugzilla.init>
+                                 <apiUrl>{$ctx:bugzilla.apiUrl}</apiUrl>
+                                 <apiKey>{$ctx:bugzilla.apiKey}</apiKey>
+                              </bugzilla.init>
+                              <bugzilla.createUser>
+                                 <email>{$ctx:tsheets.email}</email>
+                                 <fullName>{$ctx:bugzilla.fullName}</fullName>
+                                 <password>{$ctx:bugzilla.defaultPassword}</password>
+                              </bugzilla.createUser>
+                              <filter source="$axis2:HTTP_SC" regex="201">
+                                 <then>
+                                    <property name="bugzilla.userId" expression="json-eval($.id)" />
+                                    <property name="userIdObject" expression="fn:concat('userId:',get-property('bugzilla.userId'))" />
+                                    <property name="message"
+                                       expression="fn:concat('User ',get-property('bugzilla.fullName'), ' has been created successfully.')" />
+                                    <property name="status" value="success" />
+                                 </then>
+                                 <else>
+                                    <property name="userIdObject" expression="fn:concat('email:',get-property('tsheets.email'))" />
+                                    <property name="status" value="error" />
+                                    <property name="message" expression="json-eval($.)" />
+                                 </else>
+                              </filter>
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="id" value="{$ctx:userIdObject}" />
+                                 <with-param name="activity" value="bugzilla_createUsers" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </then>
+                        </filter>
+
+                        <!-- Send notification to user if Bugzilla account is being created -->
+                        <filter source="boolean(get-property('bugzilla.userId'))" regex="true">
+                           <then>
+                              <script language="js">
+                                 <![CDATA[
+                                    //Create Email in HTML format      
+                                    var greetingLine= 'Dear ' + mc.getProperty('tsheets.firstName') + ' , <br/><br/>';
+                                    var message = 'Bugzilla account has been created for you successfully. Following are the details of your account.<br/><br/>';
+                                    var url = '<li>Bugzilla account URL: '+mc.getProperty('bugzilla.bugzillaLoginURL')+'</li>';
+                                    var userName = '<li>Username: '+mc.getProperty('tsheets.email')+'</li>';
+                                    var password = '<li>Password: '+mc.getProperty('bugzilla.defaultPassword')+'</li>';
+                                    var signature = '</br>Regards, </br> Bugzilla Admin';
+                                    message =greetingLine +  message + '<ul>'+ url + userName + password + '</ul>'+ signature;
+                                    
+                                    mc.setProperty('mandril.htmlText',message);
+                                    var toArray = [];
+                                    var toObject = {};
+                                    toObject.email = mc.getProperty('tsheets.email');
+                                    toObject.name = mc.getProperty('bugzilla.fullName');
+                                    toObject.type = 'to';
+                                    toArray.push(toObject);
+                                    
+                                    mc.setPayloadJSON(toArray);
+                                 ]]>
+                              </script>
+
+                              <property name="mandrill.toArray" expression="json-eval($.)" />
+
+                              <!-- Send notification using Mandrill -->
+                              <mandrill.init>
+                                 <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                 <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                 <format>json</format>
+                              </mandrill.init>
+                              <mandrill.sendMessage>
+                                 <html>{$ctx:mandril.htmlText}</html>
+                                 <subject>Bugzilla account has been created</subject>
+                                 <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+                                 <fromName>{$ctx:mandrill.fromName}</fromName>
+                                 <to>{$ctx:mandrill.toArray}</to>
+                              </mandrill.sendMessage>
+
+                              <property name="mandrill.status" expression="json-eval($..status[0])" />
+                              <filter xpath="get-property('mandrill.status') = 'sent'">
+                                 <then>
+                                    <property name="mandrill.notificationId" expression="json-eval($.._id[0])" />
+                                    <property name="notificationIdObject"
+                                       expression="fn:concat('email:',get-property('tsheets.email'),',notificationId:',get-property('mandrill.notificationId'))" />
+                                    <property name="status" value="success" />
+                                    <property name="message" value="Notification e-mail has been sent successfully." />
+                                 </then>
+                                 <else>
+                                    <property name="notificationIdObject" expression="fn:concat('email:',get-property('tsheets.email'))" />
+                                    <property name="status" value="error" />
+                                    <property name="message" expression="json-eval($.)" />
+                                 </else>
+                              </filter>
+
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="id" value="{$ctx:notificationIdObject}" />
+                                 <with-param name="activity" value="mandrill_sendNotifications" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </then>
+                        </filter>
+
+                        <property name="userIndex" expression="get-property('operation','userIndex') + 1"
+                           scope="operation" />
+                        <filter xpath="get-property('operation','userCount') = get-property('operation','userIndex') ">
+                           <then>
+                              <loopback />
+                           </then>
+                        </filter>
+                     </sequence>
+                  </target>
+               </iterate>
+
+            </else>
+         </filter>
+
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>
+                     {
+                     "Response":{
+                     "process":"bugzilla_manageUsers",
+                     "activityResponse":"All users are synchronized."
+                     }
+                     }
+                  </format>
+               </payloadFactory>
+            </then>
+            <else>
+               <payloadFactory media-type="json">
+                  <format>
+                     {
+                     "Response":{
+                     "process":"bugzilla_manageUsers",
+                     "activityResponse":[$1]
+                     }
+                     }
+                  </format>
+                  <args>
+                     <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+                  </args>
+               </payloadFactory>
+            </else>
+         </filter>
+
+         <send />
+      </outSequence>
+   </target>
+</proxy>
