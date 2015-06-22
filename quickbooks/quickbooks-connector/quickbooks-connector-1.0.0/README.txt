@@ -31,14 +31,16 @@ STEPS:
 			<messageBuilder contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
 			<messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
- 3. Create a Quickbooks account and obtain a accesstoken
+ 3. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
+
+ 4. Create a Quickbooks account and obtain a accesstoken
 
 	  i) Using the URL "http://global.intuit.com/row/small-business/financial-accounting-software.jsp" create a Quickbooks free trial account. Verify Your email address and access the created Quickbooks account.
 	 ii) Login to the created account and using the URL "https://developer.intuit.com/Application/List" in "My Apps" create a Quickbooks Application in "Quickbooks API" section and Configure your Application under "DATA ACCESS PERMISSIONS" as "All Accounting" where you will be directed to a page to generate your access token.
     iii) Go to following URL "https://appcenter.intuit.com/Playground/OAuth" and give "App Token" which was received in step 3 - (ii) as the App Token value in "Step 1 - Dynamic Consumer Creation".
      iv) Get "Consumer Key","Consumer Secret","Access Token" and "Access Token Secret". 		
 	 
- 4. Update the quickbooks properties file at location "{QUICKBOOKS_CONNECTOR_HOME}/quickbooks-connector/quickbooks-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config/" as below.
+ 5. Update the quickbooks properties file at location "{QUICKBOOKS_CONNECTOR_HOME}/quickbooks-connector/quickbooks-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config/" as below.
  
       i) consumerKey - Use the consumerKey you got from step 3 iv).
 	
@@ -123,10 +125,10 @@ xxxviii) updatedVendorGivenName - A String value to update vendor given name.
    Repeat viii) to xxi) before each run. Make sure that the names given for each of those parameters are different from each other. 
     
 
-5. Make sure that the quickbooks connector is set as a module in esb-connectors parent pom.
+6. Make sure that the quickbooks connector is set as a module in esb-connectors parent pom.
       <module>quickbooks/quickbooks-connector/quickbooks-connector-1.0.0/org.wso2.carbon.connector.quickbooks</module>
 
-6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+7. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
       $ mvn clean install
 
  NOTE : Following Quickbooks account, can be used to run the integration tests.
