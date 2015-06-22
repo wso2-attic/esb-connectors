@@ -633,178 +633,178 @@ public class ConstantcontactConnectorIntegrationTest extends ConnectorIntegratio
                 .getJSONObject(0).getString("error_message"));
 
     }
-//
-//    /**
-//     * Positive test case for listCampaignClicks method with mandatory parameters.
-//     */
-//    @Test(groups = { "wso2.esb" }, description = "ConstantContact {listCampaignClicks} integration test with mandatory parameters.")
-//    public void testListCampaignClicksWithMandatoryParameters() throws IOException, JSONException {
-//
-//        esbRequestHeadersMap.put("Action", "urn:listCampaignClicks");
-//
-//        RestResponse<JSONObject> esbRestResponse =
-//                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaignClicks_mandatory.json");
-//
-//        String campaignId = connectorProperties.getProperty("trackCampaignId");
-//
-//        String apiEndPoint = apiRequestUrl + "/emailmarketing/campaigns/" + campaignId + "/tracking/clicks" + apiKey;
-//
-//        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-//
-//        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-//        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
-//
-//        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("link_id"),
-//                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("link_id"));
-//        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("click_date"),
-//                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("click_date"));
-//    }
-//
-//    /**
-//     * Positive test case for listCampaignClicks method with optional parameters.
-//     */
-//    @Test(groups = { "wso2.esb" }, description = "ConstantContact {listCampaignClicks} integration test with optional parameters.")
-//    public void testListCampaignClicksWithOptionalParameters() throws IOException, JSONException {
-//
-//        esbRequestHeadersMap.put("Action", "urn:listCampaignClicks");
-//
-//        RestResponse<JSONObject> esbRestResponse =
-//                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaignClicks_optional.json");
-//
-//        String campaignId = connectorProperties.getProperty("trackCampaignId");
-//        String limit = connectorProperties.getProperty("limit");
-//        String createdSince = connectorProperties.getProperty("createdSince");
-//
-//        String apiEndPoint =
-//                apiRequestUrl + "/emailmarketing/campaigns/" + campaignId + "/tracking/clicks" + apiKey + "&limit="
-//                        + limit + "&created_since=" + createdSince;
-//
-//        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-//
-//        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-//        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
-//
-//        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("link_id"),
-//                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("link_id"));
-//        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("click_date"),
-//                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("click_date"));
-//    }
-//
-//    /**
-//     * Negative test case for listCampaignClicks method.
-//     */
-//    @Test(groups = { "wso2.esb" }, description = "ConstantContact {listCampaignClicks} integration test with negative case.")
-//    public void testListCampaignClicksWithNegativeCase() throws IOException, JSONException {
-//
-//        esbRequestHeadersMap.put("Action", "urn:listCampaignClicks");
-//
-//        RestResponse<JSONObject> esbRestResponse =
-//                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaignClicks_negative.json");
-//
-//        String campaignId = connectorProperties.getProperty("trackCampaignId");
-//        String createdSince = connectorProperties.getProperty("createdSince");
-//
-//        String apiEndPoint =
-//                apiRequestUrl + "/emailmarketing/campaigns/" + campaignId + "/tracking/clicks" + apiKey
-//                        + "&limit=0&created_since=" + createdSince;
-//
-//        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-//
-//        JSONArray esbJsonArrayResponse = new JSONArray(esbRestResponse.getBody().getString("output"));
-//        JSONArray apiJsonArrayResponse = new JSONArray(apiRestResponse.getBody().getString("output"));
-//
-//        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
-//        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 400);
-//
-//        Assert.assertEquals(esbJsonArrayResponse.getJSONObject(0).getString("error_message"), apiJsonArrayResponse
-//                .getJSONObject(0).getString("error_message"));
-//    }
-//
-//    /**
-//     * Positive test case for listCampaignOpeners method with mandatory parameters.
-//     */
-//    @Test(groups = { "wso2.esb" }, description = "ConstantContact {listCampaignOpeners} integration test with mandatory parameters.")
-//    public void testListCampaignOpenersWithMandatoryParameters() throws IOException, JSONException {
-//
-//        esbRequestHeadersMap.put("Action", "urn:listCampaignOpeners");
-//
-//        RestResponse<JSONObject> esbRestResponse =
-//                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaignOpeners_mandatory.json");
-//
-//        String campaignId = connectorProperties.getProperty("trackCampaignId");
-//
-//        String apiEndPoint = apiRequestUrl + "/emailmarketing/campaigns/" + campaignId + "/tracking/opens" + apiKey;
-//
-//        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-//
-//        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-//        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
-//
-//        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("contact_id"),
-//                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("contact_id"));
-//        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("open_date"),
-//                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("open_date"));
-//    }
-//
-//    /**
-//     * Positive test case for listCampaignOpeners method with optional parameters.
-//     */
-//    @Test(groups = { "wso2.esb" }, description = "ConstantContact {listCampaignOpeners} integration test with optional parameters.")
-//    public void testListCampaignOpenersWithOptionalParameters() throws IOException, JSONException {
-//
-//        esbRequestHeadersMap.put("Action", "urn:listCampaignOpeners");
-//
-//        RestResponse<JSONObject> esbRestResponse =
-//                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaignOpeners_optional.json");
-//
-//        String campaignId = connectorProperties.getProperty("trackCampaignId");
-//        String limit = connectorProperties.getProperty("limit");
-//        String createdSince = connectorProperties.getProperty("createdSince");
-//
-//        String apiEndPoint =
-//                apiRequestUrl + "/emailmarketing/campaigns/" + campaignId + "/tracking/opens" + apiKey + "&limit="
-//                        + limit + "&created_since=" + createdSince;
-//
-//        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-//
-//        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-//        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
-//
-//        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("contact_id"),
-//                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("contact_id"));
-//        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("open_date"),
-//                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("open_date"));
-//    }
-//
-//    /**
-//     * Negative test case for listCampaignOpeners method.
-//     */
-//    @Test(groups = { "wso2.esb" }, description = "ConstantContact {listCampaignOpeners} integration test with negative case.")
-//    public void testListCampaignOpenersWithNegativeCase() throws IOException, JSONException {
-//
-//        esbRequestHeadersMap.put("Action", "urn:listCampaignOpeners");
-//
-//        RestResponse<JSONObject> esbRestResponse =
-//                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaignOpeners_negative.json");
-//
-//        String campaignId = connectorProperties.getProperty("trackCampaignId");
-//        String createdSince = connectorProperties.getProperty("createdSince");
-//
-//        String apiEndPoint =
-//                apiRequestUrl + "/emailmarketing/campaigns/" + campaignId + "/tracking/opens" + apiKey
-//                        + "&limit=0&created_since=" + createdSince;
-//
-//        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-//
-//        JSONArray esbJsonArrayResponse = new JSONArray(esbRestResponse.getBody().getString("output"));
-//        JSONArray apiJsonArrayResponse = new JSONArray(apiRestResponse.getBody().getString("output"));
-//
-//        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
-//        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 400);
-//
-//        Assert.assertEquals(esbJsonArrayResponse.getJSONObject(0).getString("error_message"), apiJsonArrayResponse
-//                .getJSONObject(0).getString("error_message"));
-//    }
+
+    /**
+     * Positive test case for listCampaignClicks method with mandatory parameters.
+     */
+    @Test(groups = {"wso2.esb"}, description = "ConstantContact {listCampaignClicks} integration test with mandatory parameters.")
+    public void testListCampaignClicksWithMandatoryParameters() throws IOException, JSONException {
+
+        esbRequestHeadersMap.put("Action", "urn:listCampaignClicks");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaignClicks_mandatory.json");
+
+        String campaignId = connectorProperties.getProperty("trackCampaignId");
+
+        String apiEndPoint = apiRequestUrl + "/emailmarketing/campaigns/" + campaignId + "/tracking/clicks" + apiKey;
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("link_id"),
+                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("link_id"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("click_date"),
+                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("click_date"));
+    }
+
+    /**
+     * Positive test case for listCampaignClicks method with optional parameters.
+     */
+    @Test(groups = {"wso2.esb"}, description = "ConstantContact {listCampaignClicks} integration test with optional parameters.")
+    public void testListCampaignClicksWithOptionalParameters() throws IOException, JSONException {
+
+        esbRequestHeadersMap.put("Action", "urn:listCampaignClicks");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaignClicks_optional.json");
+
+        String campaignId = connectorProperties.getProperty("trackCampaignId");
+        String limit = connectorProperties.getProperty("limit");
+        String createdSince = connectorProperties.getProperty("createdSince");
+
+        String apiEndPoint =
+                apiRequestUrl + "/emailmarketing/campaigns/" + campaignId + "/tracking/clicks" + apiKey + "&limit="
+                        + limit + "&created_since=" + createdSince;
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("link_id"),
+                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("link_id"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("click_date"),
+                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("click_date"));
+    }
+
+    /**
+     * Negative test case for listCampaignClicks method.
+     */
+    @Test(groups = {"wso2.esb"}, description = "ConstantContact {listCampaignClicks} integration test with negative case.")
+    public void testListCampaignClicksWithNegativeCase() throws IOException, JSONException {
+
+        esbRequestHeadersMap.put("Action", "urn:listCampaignClicks");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaignClicks_negative.json");
+
+        String campaignId = connectorProperties.getProperty("trackCampaignId");
+        String createdSince = connectorProperties.getProperty("createdSince");
+
+        String apiEndPoint =
+                apiRequestUrl + "/emailmarketing/campaigns/" + campaignId + "/tracking/clicks" + apiKey
+                        + "&limit=0&created_since=" + createdSince;
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+
+        JSONArray esbJsonArrayResponse = new JSONArray(esbRestResponse.getBody().getString("output"));
+        JSONArray apiJsonArrayResponse = new JSONArray(apiRestResponse.getBody().getString("output"));
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 400);
+
+        Assert.assertEquals(esbJsonArrayResponse.getJSONObject(0).getString("error_message"), apiJsonArrayResponse
+                .getJSONObject(0).getString("error_message"));
+    }
+
+    /**
+     * Positive test case for listCampaignOpeners method with mandatory parameters.
+     */
+    @Test(groups = {"wso2.esb"}, description = "ConstantContact {listCampaignOpeners} integration test with mandatory parameters.")
+    public void testListCampaignOpenersWithMandatoryParameters() throws IOException, JSONException {
+
+        esbRequestHeadersMap.put("Action", "urn:listCampaignOpeners");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaignOpeners_mandatory.json");
+
+        String campaignId = connectorProperties.getProperty("trackCampaignId");
+
+        String apiEndPoint = apiRequestUrl + "/emailmarketing/campaigns/" + campaignId + "/tracking/opens" + apiKey;
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("contact_id"),
+                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("contact_id"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("open_date"),
+                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("open_date"));
+    }
+
+    /**
+     * Positive test case for listCampaignOpeners method with optional parameters.
+     */
+    @Test(groups = {"wso2.esb"}, description = "ConstantContact {listCampaignOpeners} integration test with optional parameters.")
+    public void testListCampaignOpenersWithOptionalParameters() throws IOException, JSONException {
+
+        esbRequestHeadersMap.put("Action", "urn:listCampaignOpeners");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaignOpeners_optional.json");
+
+        String campaignId = connectorProperties.getProperty("trackCampaignId");
+        String limit = connectorProperties.getProperty("limit");
+        String createdSince = connectorProperties.getProperty("createdSince");
+
+        String apiEndPoint =
+                apiRequestUrl + "/emailmarketing/campaigns/" + campaignId + "/tracking/opens" + apiKey + "&limit="
+                        + limit + "&created_since=" + createdSince;
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("contact_id"),
+                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("contact_id"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("open_date"),
+                apiRestResponse.getBody().getJSONArray("results").getJSONObject(0).getString("open_date"));
+    }
+
+    /**
+     * Negative test case for listCampaignOpeners method.
+     */
+    @Test(groups = {"wso2.esb"}, description = "ConstantContact {listCampaignOpeners} integration test with negative case.")
+    public void testListCampaignOpenersWithNegativeCase() throws IOException, JSONException {
+
+        esbRequestHeadersMap.put("Action", "urn:listCampaignOpeners");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaignOpeners_negative.json");
+
+        String campaignId = connectorProperties.getProperty("trackCampaignId");
+        String createdSince = connectorProperties.getProperty("createdSince");
+
+        String apiEndPoint =
+                apiRequestUrl + "/emailmarketing/campaigns/" + campaignId + "/tracking/opens" + apiKey
+                        + "&limit=0&created_since=" + createdSince;
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+
+        JSONArray esbJsonArrayResponse = new JSONArray(esbRestResponse.getBody().getString("output"));
+        JSONArray apiJsonArrayResponse = new JSONArray(apiRestResponse.getBody().getString("output"));
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 400);
+
+        Assert.assertEquals(esbJsonArrayResponse.getJSONObject(0).getString("error_message"), apiJsonArrayResponse
+                .getJSONObject(0).getString("error_message"));
+    }
 
     /**
      * Positive test case for updateContact method with mandatory parameters.
