@@ -1,0 +1,75 @@
+<template name="grantTokenFromRefreshToken" xmlns="http://ws.apache.org/ns/synapse">
+	<!-- Required parameters -->
+	<parameter name="clientId" description="Unique client identifier obtained through the application registration process." />
+	<parameter name="clientSecret" description="Unique client secret key obtained through the application registration process." />
+	<parameter name="grantType" description="Token grant type. Value must be set to refresh_token." />
+	<parameter name="refreshToken"
+		description="Refresh token previously received along with the access token that is to be refreshed" />
+
+	<!-- Optional parameters -->
+	<parameter name="scope"
+		description="The scope values must be a subset of the scopes originally granted by the resource owner and should be URL encoded, space-separated, case-sensitive list." />
+
+	<sequence>
+	    <property name="uri.var.clientId" expression="$func:clientId" />
+		<property name="uri.var.clientSecret" expression="$func:clientSecret" />
+		<property name="uri.var.grantType" expression="$func:grantType" />
+		<property name="uri.var.refreshToken" expression="$func:refreshToken" />
+		<property name="uri.var.scope" expression="$func:scope" />
+		
+		<!-- Setting up a new  Authorization header-->
+		<property xmlns:ns2="http://org.apache.synapse/xsd" xmlns:ns="http://org.apache.synapse/xsd" name="Authorization"
+			expression="fn:concat('Basic ', base64Encode(fn:concat(get-property('uri.var.clientId'),':',get-property('uri.var.clientSecret'))))"
+			scope="transport" type="STRING" />
+
+		<!-- Removing scope property when null-->
+		<filter
+			xpath="get-property('uri.var.scope') = '' or (not(string(get-property('uri.var.scope'))))">
+			<then>
+				<payloadFactory media-type="json">
+			<format>
+				{
+				  	"grant_type":"$1",
+  					"refresh_token":"$2"
+				  }
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.grantType')" />
+				<arg expression="get-property('uri.var.refreshToken')" />
+			</args>
+		</payloadFactory>
+			</then>
+			<else>
+				<payloadFactory media-type="json">
+			<format>
+				{
+				  	"grant_type":"$1",
+  					"refresh_token":"$2",
+  					"scope":"$3"
+				  }
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.grantType')" />
+				<arg expression="get-property('uri.var.refreshToken')" />
+				<arg expression="get-property('uri.var.scope')" />
+			</args>
+		</payloadFactory>
+			</else>
+		</filter>
+
+		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/v1/identity/openidconnect/tokenservice" />
+			</endpoint>
+		</call>
+		
+		<!-- Remove response custom header information -->
+		<header name="Paypal-Debug-Id" scope="transport" action="remove"/>
+		<header name="DC" scope="transport" action="remove"/>
+		<header name="PROXY_SERVER_INFO" scope="transport" action="remove"/>
+		
+	</sequence>
+</template>

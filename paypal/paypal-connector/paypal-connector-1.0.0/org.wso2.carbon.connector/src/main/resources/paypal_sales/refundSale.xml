@@ -1,0 +1,45 @@
+<template name="refundSale" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Required parameters -->
+	<parameter name="saleId" description="Sales id." />
+	<parameter name="total" description="Amount to refund." />
+	<parameter name="currency" description="Refund currency code." />
+
+	<sequence>
+
+		<property name="uri.var.saleId" expression="$func:saleId" />
+		<property name="uri.var.total" expression="$func:total" />
+		<property name="uri.var.currency" expression="$func:currency" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"amount":{
+				"total":"$1",
+				"currency":"$2"
+				}
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.total')" />
+				<arg expression="get-property('uri.var.currency')" />
+			</args>
+		</payloadFactory>
+
+		<property name="messageType" value="application/json" scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="post"
+					uri-template="{uri.var.apiUrl}/v1/payments/sale/{uri.var.saleId}/refund" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="Paypal-Debug-Id" scope="transport" action="remove" />
+		<header name="DC" scope="transport" action="remove" />
+		<header name="PROXY_SERVER_INFO" scope="transport" action="remove" />
+
+	</sequence>
+
+</template>
