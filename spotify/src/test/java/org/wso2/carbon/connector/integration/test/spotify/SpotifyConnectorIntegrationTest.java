@@ -17,6 +17,12 @@
 */
 package org.wso2.carbon.connector.integration.test.spotify;
 
+import java.lang.System;
+import java.net.URL;
+import java.util.Properties;
+import javax.activation.DataHandler;
+
+import netscape.javascript.JSObject;
 import org.apache.axis2.context.ConfigurationContext;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -31,10 +37,6 @@ import org.wso2.carbon.esb.ESBIntegrationTest;
 import org.wso2.carbon.mediation.library.stub.MediationLibraryAdminServiceStub;
 import org.wso2.carbon.mediation.library.stub.upload.MediationLibraryUploaderStub;
 
-import javax.activation.DataHandler;
-import java.net.URL;
-import java.util.Properties;
-
 public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
     private static final String CONNECTOR_NAME = "spotify";
 
@@ -46,7 +48,7 @@ public class SpotifyConnectorIntegrationTest extends ESBIntegrationTest {
 
     private String repoLocation = null;
 
-    private String spotifyConnectorFileName = CONNECTOR_NAME + "-connector-1.0.0.zip";
+    private String spotifyConnectorFileName = CONNECTOR_NAME + ".zip";
 
     private Properties spotifyConnectorProperties = null;
 
