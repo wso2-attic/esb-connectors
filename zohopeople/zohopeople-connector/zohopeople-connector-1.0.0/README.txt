@@ -10,11 +10,13 @@ Pre-requisites:
 Tested Platform:
 
  - Microsoft WINDOWS V-7
- - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - UBUNTU 13.04, Maven 3.x
+ - WSO2 ESB 4.9.0-ALPHA
+ - Java 1.7
 
 STEPS:
- 
+ 1.  Download ESB 4.9.0-ALPHA from official site.
+
  1. Extract the certificate from browser by navigating to "https://people.zoho.com/people/" and place the certificate file in following locations. 
 
 	i)  "<ZOHO_PEOPLE_CONNECTOR_HOME>/zohopeople-connector/zohopeople-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products"
@@ -22,7 +24,7 @@ STEPS:
 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "zohopeople"' in command line to import ZohoPeople certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from ZohoPeople with  the extension, change it accordingly. Remove the copied certificate.
 	
-	ii) "wso2esb-4.8.1/repository/resources/security"
+	ii) "{ESB_HOME}/repository/resources/security"
 	
 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "zohopeople"' in command line to import ZohoPeople certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from ZohoPeople with  the extension, change it accordingly. Remove the copied certificate.
@@ -46,7 +48,7 @@ STEPS:
 	
 	Note: Add the aforementioned message formatters and the message builders to the axis file, if they are not available by default.
  
- 3. Download ESB 4.9.0-ALPHA by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/ and copy the wso2esb-4.9.0-ALPHA.zip file in to location "{ESB_Connector_Home}/repository/".
+ 3.Compress the ESB and copy the wso2esb-4.9.0-ALPHA.zip file in to location "{ESB_Connector_Home}/repository/".
  
  4. Complete features of ZohoPeople API can be accessed via Zoho People Premium Edition account. Follow the below steps to create an account.
 
