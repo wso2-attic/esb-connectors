@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://sirportly.com/docs/api-specification/contacts/searching-contacts-2 -->
+<template name="searchContacts" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="query" description="The query string to search tickets." />
+   <parameter name="limit" description="The number of results to return." />
+   <parameter name="types" description="A comma separated list of contact method types." />
+   <sequence>
+      <property expression="$func:query" name="uri.var.query" />
+      <property expression="$func:limit" name="uri.var.limit" />
+      <property expression="$func:types" name="uri.var.types" />
+      <script language="js">
+      <![CDATA[
+         var query = mc.getProperty('uri.var.query');
+         var limit = mc.getProperty('uri.var.limit');
+         var types = mc.getProperty('uri.var.types');
+         var apiParameters = "";
+         if (query != null && query != "") {
+            query = encodeURIComponent(query);
+            apiParameters += "query=" + query + '&';
+         }
+         if (limit != null && limit != "") {
+            apiParameters += "limit=" + limit + '&';
+         }
+         if (types != null && types != "") {
+            apiParameters += "types=" + types + '&';
+         }
+         if (apiParameters != "") {
+            apiParameters = '?' + apiParameters.substring(0, apiParameters.length - 1);
+            mc.setProperty('uri.var.apiParameters', apiParameters);
+         } 
+         ]]>
+      </script>
+      <!-- Content-Type header is not accepted by the API -->
+      <header name="Content-Type" scope="transport" action="remove" />
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/contacts/search{uri.var.apiParameters}" />
+         </endpoint>
+      </call>
+      <!-- Remove unwanted headers -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+   </sequence>
+</template>
