@@ -17,9 +17,9 @@ Steps to follow in setting integration test.
 
  1. Download ESB 4.8.1 from official website.
 
- 2. Deploy relevant patches, if applicable.
+ 2. Deploy relevant patches, if applicable. Place the patch files into location <ESB_HOME>/repository/components/patches.
  
- 3. Compress the modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "<Sirportly_Connector_Home>/sirportly-connector/sirportly-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 3. Compress the modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "<SIRPORTLY_CONNECTOR_HOME>/sirportly-connector/sirportly-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
  4. Create a Sirportly trial account and derive the API Token and Secret.
    i)    Using the URL "https://sirportly.com/start" create a Sirportly trial account and note the subdomain used in the registration.
@@ -35,13 +35,16 @@ Steps to follow in setting integration test.
 			- Ticket 'Status' is the ticketStatus value which you give under Step 7 (xi).
    v)   Navigate to the URL "https://{subdomain}.sirportly.com/admin/statuses", obtain an ID of default status(By hovering on top of the status name, the status id will be appear at the bottom of the page.).
    vi)  Navigate to the URL "https://{subdomain}.sirportly.com/admin/priorities", obtain the IDs of default priorities(By hovering on top of the priority name, the priority id will be appear at the bottom of the page.).
-   vii) Navigate to the URL "https://{subdomain}.sirportly.com/admin/users", create two new user and obtain the IDs of those users(By hovering on top of the user name, the user id will be appear at the bottom of the page.).
+   vii) Navigate to the URL "https://{subdomain}.sirportly.com/admin/users", create two new users and obtain the IDs of those users(By hovering on top of the user name, the user id will be appear at the bottom of the page.). Make sure that both of these users are members of the team which is created under 5 ii).
+   
+   Note: - It is essential that both the Departments (Step 5 i) should belong to the same Brand (Step 5 iii) that is considered for the integration test.
+		 - Both the Users that are created for the integration (Step 5 vii) must belong to the same Team (Step 5 ii) that is considered for the integration.	 
 
  6. Follow the below mentioned steps to add valid certificate to access Sirportly API over https.
 
     i)   Extract the certificate from browser(Mozilla Firefox) by navigating to 'https://{account-name}.sirportly.com' 
     ii)  Go to new ESB 4.8.1 folder and place the downloaded certificate into "<ESB_HOME>/repository/resources/security/" and 
-         "<Sirportly_Connector_Home>/sirportly-connector/sirportly-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products" folders.
+         "<SIRPORTLY_CONNECTOR_HOME>/sirportly-connector/sirportly-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products" folders.
     iii) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute the following command.
 
                 keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME"
@@ -52,7 +55,7 @@ Steps to follow in setting integration test.
          NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from Sirportly with the extension. (e.g. sirportly.crt)
                 CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. sirportly)
 
-    iv) Navigate to "<Sirportly_Connector_Home>/sirportly-connector/sirportly-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute the following command.
+    iv) Navigate to "<SIRPORTLY_CONNECTOR_HOME>/sirportly-connector/sirportly-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute the following command.
 
                 keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME" 
 
@@ -62,7 +65,7 @@ Steps to follow in setting integration test.
          NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from Sirportly with the extension. (e.g. sirportly.crt)
                 CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. sirportly).
 
- 7. Update the Sirportly properties file at location "<Sirportly_Connector_Home>/sirportly-connector/sirportly-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 7. Update the Sirportly properties file at location "<SIRPORTLY_CONNECTOR_HOME>/sirportly-connector/sirportly-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
    i)     apiUrl                 - Use https://{subdomain}.sirportly.com.
    ii)    apiToken               - Use the API Token obtained under Step 4 ii).
@@ -86,10 +89,10 @@ Steps to follow in setting integration test.
    xx)    updateTicketPriority   - Use "Low", "High", "Urgent" or "Normal" as the value (Should be differed with the value in vi.).
    xxi)   updateDepartment       - Use a department Id obtained under step 5 i) (Should be differed with the value in xii.).
    xxii)  updateStatus           - Use "New", "Resolved", "Waiting for Contact" or "Waiting for Staff" as the value (Should be differed with the value in xi).
-   xxiii) updateAssignedUser     - Use a user Id obtained under step 5 vii) (Should be differed with the value in xv.).
+   xxiii) updateAssignedUser     - Use a user Id obtained under step 5 vii) (Should be differed with the value in ix).
    xxiv)  contentMessage         - Use a valid String value.
         
    Note - The property values of contactReference and email should be changed to unique different values for each integration execution.  
 
- 8.Navigate to "<Sirportly_Connector_Home>/sirportly-connector/sirportly-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 8.Navigate to "<SIRPORTLY_CONNECTOR_HOME>/sirportly-connector/sirportly-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
