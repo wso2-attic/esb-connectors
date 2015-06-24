@@ -21,7 +21,7 @@ STEPS:
 2. Copy wso2esb-4.9.0-ALPHA.zip file in to location "{ESB_Connector_Home}/repository/".
 
 3. Make sure that codeplex is specified as a module in ESB_Connector_Parent pom.
-    <module>codeplex</module>
+    <module>codeplex/codeplex-connector/codeplex-connector-1.0.0/org.wso2.carbon.connector</module>
 
 4. This section describes how to obtain an access token from the codeplex.
 
