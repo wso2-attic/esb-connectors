@@ -60,7 +60,33 @@ public class ZohoBooksConnectorIntegrationTest extends ConnectorIntegrationTestB
         
         //set purchaseAccountId property to connector properties.
         setPurchaseAccountId();
-        
+
+        connectorProperties.setProperty("itemNameMandatory", System.currentTimeMillis() + connectorProperties
+                .getProperty("itemNameMandatory"));
+        connectorProperties.setProperty("itemNameOptional", System.currentTimeMillis() + connectorProperties
+                .getProperty("itemNameOptional"));
+        connectorProperties.setProperty("invoiceNumber", System.currentTimeMillis() + connectorProperties
+                .getProperty("invoiceNumber"));
+        connectorProperties.setProperty("contactPersonLastName", System.currentTimeMillis() + connectorProperties
+                .getProperty("contactPersonLastName"));
+        connectorProperties.setProperty("contactPersonFirstName", System.currentTimeMillis() + connectorProperties
+                .getProperty("contactPersonFirstName"));
+        connectorProperties.setProperty("contactNameOptional", System.currentTimeMillis() + connectorProperties
+                .getProperty("contactNameOptional"));
+        connectorProperties.setProperty("contactNameMandatory", System.currentTimeMillis() + connectorProperties
+                .getProperty("contactNameMandatory"));
+        connectorProperties.setProperty("projectName", System.currentTimeMillis() + connectorProperties
+                .getProperty("projectName"));
+        connectorProperties.setProperty("projectNameOptional", System.currentTimeMillis() + connectorProperties
+                .getProperty("projectNameOptional"));
+        connectorProperties.setProperty("userName", System.currentTimeMillis() + connectorProperties
+                .getProperty("userName"));
+        connectorProperties.setProperty("email", System.currentTimeMillis() + connectorProperties
+                .getProperty("email"));
+        connectorProperties.setProperty("taskName", System.currentTimeMillis() + connectorProperties
+                .getProperty("taskName"));
+        connectorProperties.setProperty("taskNameOpt", System.currentTimeMillis() + connectorProperties
+                .getProperty("taskNameOpt"));
     }
     
     /**
