@@ -11,14 +11,14 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.9.0-SNAPSHOT
+ - WSO2 ESB 4.9.0-Alpha
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.9.0 by following the URL: https://svn.wso2.org/repos/wso2/people/jeewantha/4.9.0_release/released/M4/wso2esb-4.9.0-SNAPSHOT.zip.
+ 1. Download ESB 4.9.0-Alpha by following the URL: https://svn.wso2.org/repos/wso2/people/jeewantha/4.9.0_release/released/M4/wso2esb-4.9.0-Alpha.zip.
 	Apply the patches found in https://www.dropbox.com/s/bs83ll1m8kwgylq/patch0009.zip?dl=0 by copying the extracted files into <ESB_HOME>/repository/components/patches.
 
- 2. Compress the modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<SUPPORTBEE_CONNECTOR_HOME>/supportbee-connector/supportbee-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 2. Compress the modified ESB as wso2esb-4.9.0-Alpha.zip and copy that zip file in to location "<SUPPORTBEE_CONNECTOR_HOME>/supportbee-connector/supportbee-connector-1.0.0/org.wso2.carbon.connector/repository/".
 	If required install the supportbee security certificate (extracted from https://<account-name>.supportbee.com -  refer section 3 for informaion on how to get an account-name) to the following keystores:
 		i) 	client-truststore.jks located in the <ESB_HOME>/repository/resources/security directory.
 		ii) wso2carbon.jks located in the <SUPPORTBEE_CONNECTOR_HOME>/supportbee-connector/supportbee-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products directory.
@@ -46,7 +46,9 @@ Steps to follow in setting integration test.
 	
 	Note: Test suite can be run without making any changes to the provided property file.
 	
- 5. Navigate to "<SUPPORTBEE_CONNECTOR_HOME>/supportbee-connector/supportbee-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+ 5.Make sure that the Supportbee connector is set as a module in esb-connectors parent pom.
+                  <module>supportbee/supportbee-connector/supportbee-connector-1.0.0/org.wso2.carbon.connector</module>
+          Navigate to "esb-connectors" and run the following command.
+          $ mvn clean install
 
 		
