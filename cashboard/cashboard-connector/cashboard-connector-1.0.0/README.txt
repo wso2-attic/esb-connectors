@@ -17,7 +17,7 @@ Steps to follow in setting integration test.
 
  1. Download ESB 4.8.1 from official website.
  
- 2.	Deploy relevant patches, if applicable.
+ 2.	Deploy relevant patches, if applicable. Place the patch files into location <ESB_HOME>/repository/components/patches.
  
  3. Navigate to location "/wso2esb-4.8.1/repository/conf/axis2" and add/uncomment following lines in "axis2.xml". 
  
@@ -27,9 +27,7 @@ Steps to follow in setting integration test.
         <messageFormatter contentType="application/pdf" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
         <messageBuilder contentType="application/pdf" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
- 4. Create a Cashboard trial account and derive the API Key.
-   i)    Using the URL "https://register.cashboardapp.com/" create a Cashboard trial account and note the subdomain used in the registration.
-   ii)   Login to the created Cashboard account and go to https://{subdomain}.cashboardapp.com/provider/settings and get the Api Key.
+ 4. Using the URL "https://register.cashboardapp.com/" create a Cashboard trial account and note the subdomain used in the registration.
 
  5. Prerequisites for Cashboard Connector Integration Testing.
 	i)Create a Project by navigating to 'https://{subdomain}.cashboardapp.com/provider/projects/new' in the created Cashboard account and keep the projectId (id displays in the url when the project is selected) for further reference.
@@ -64,9 +62,9 @@ Steps to follow in setting integration test.
  8. Update the Cashboard properties file at location "<CASHBOARD_CONNECTOR_HOME>/cashboard-connector/cashboard-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
    i)    	apiUrl                 		- The API URL specific to the domain of the created account. e.g. https://api.barnselectronics.cashboardapp.com
-   ii)	 	emailAddress				- Email address that is used to create the Cashboard trial account under Step 4 (i).
-   iii)  	password			 		- Password that is used to create the Cashboard trial account under Step 4 (i).
-   iv)	 	subdomain			 		- Subdomain of the Cashboard trial account that is created under Step 4 (i).
+   ii)	 	emailAddress				- Email address that is used to create the Cashboard trial account under Step 4.
+   iii)  	password			 		- Password that is used to create the Cashboard trial account under Step 4.
+   iv)	 	subdomain			 		- Subdomain of the Cashboard trial account that is created under Step 4.
    v)	 	clientCompanyName			- Use a valid string value as company name.
    vi)   	address						- Use a valid string value as address.
    vii)  	city						- Use a valid string value as city.
