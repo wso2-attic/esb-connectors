@@ -14,22 +14,9 @@ Tested Platform:
 		  
 STEPS:
 
-1. Make sure the ESB 4.8.1 zip file with latest patches available at {basedir}/repository folder. If you want to use another location edit the pom.xml as follows.
+1. Download ESB 4.9.0-ALPHA from official site and copy that wso2esb-4.9.0-ALPHA.zip file in to location "{ESB_Connector_Home}/repository/".
 
-          <carbon.zip>
-            ${basedir}/../test/wso2esb-${esb.version}.zip
-          </carbon.zip>
-
-2. Copy googletasks connector zip file (googletasks.zip) to the location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/repository/"
-
-3. Make sure the google tasks test suite is enabled (as given below) and all other test suites are commented in the following file - "{basedir}/src/test/resources/testng.xml"  
-    <test name="GoogleTasks-Connector-Test" preserve-order="true" verbose="2">
-        <packages>
-            <package name="org.wso2.carbon.connector.integration.test.googletasks"/>
-        </packages>
-    </test>
-
-4. This section describes how to obtain an access token from the google oauth.
+2. This section describes how to obtain an access token from the google oauth.
 	i) 	Login to your google developer account, then navigate to url: https://console.developers.google.com/project and create new project. 
 	ii) Select select the new project and navigate to "APIs and auth" from the left panel. In the APIs page enable Google Tasks API from the Google API list. 
 	iii)Select "credentials" from the left panel and in that page click "create a new client ID". From the dialog box select "Web Application" and click "create client ID".
@@ -41,8 +28,11 @@ STEPS:
 			refreshToken - refresh token obtained from google oauth 2.0
 	vi)getAccessToken.xml configuration will obtain the temporary access token using these property values.
 
-5. From the base directory run the following command.
-     $ mvn clean install
+3. Make sure that googletasks is specified as a module in ESB_Connector_Parent pom.
+      <module>googletasks/googletaska-connector/googletaska-connector-1.0.0/org.wso2.carbon.connector</module>
+
+4. From the base directory run the following command.
+      $ mvn clean install
 
 Notes: 
 More on google oauth: https://developers.google.com/accounts/docs/OAuth2
