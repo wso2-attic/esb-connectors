@@ -1,0 +1,108 @@
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="createCallersAsContacts">
+   <!-- Get a list of callers from CallRail. -->
+   <callrail.init>
+      <apiUrl>{$ctx:callrail.apiUrl}</apiUrl>
+      <apiKey>{$ctx:callrail.apiKey}</apiKey>
+   </callrail.init>
+   <callrail.listCalls>
+      <startDate>{$ctx:callrail.startDate}</startDate>
+      <endDate>{$ctx:callrail.endDate}</endDate>
+      <companyId>{$ctx:callrail.companyId}</companyId>
+      <perPage>1000</perPage>
+   </callrail.listCalls>
+
+   <property name="noOfCallers" expression="count(//*[local-name()='calls'])" scope="operation" />
+   <property name="callerIndex" expression="0" scope="operation" />
+
+   <!-- START: Proceed to process the callers if there are any. -->
+   <filter source="get-property('operation', 'noOfCallers')" regex="0.0">
+      <then>
+		 <property name="id" expression="fn:concat('callrail_companyId:', get-property('callrail.companyId'))" />
+         <property name="statusCode" expression="$axis2:HTTP_SC" />
+		 <filter source="get-property('statusCode')" regex="2[0-9][0-9]">
+			<then>
+				<property name="status" value="Skipped" />
+                <property name="message" value="There are no callers for the in CallRail within the given date range." />
+			</then>
+			<else>
+				<property name="status" value="Failure" />
+                <property name="message" expression="json-eval($)" />
+			</else>
+		 </filter>
+         <!-- Failure case: Append an error message to be sent to the user. -->
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="callrail_getCallers" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="{$ctx:status}" />
+            <with-param name="message" value="{$ctx:message}" />
+         </call-template>
+         <loopback />
+      </then>
+      <else>
+         <!--FOR EACH Clicker: BEGIN -->
+         <iterate continueParent="false" id="callers" expression="//*[local-name() = 'calls']" sequential="true">
+            <target>
+               <sequence>
+                  <!-- Extract required properties of Callers. -->
+                  <property name="callRail.callerNumber" expression="//calls/destination_number/text()" />
+                  <property name="callRail.callerId" expression="//calls/id/text()" />
+				  <!-- Constructing the contactInfos array to create the contact. -->
+                  <property name="insightly.contactInfos"
+                     expression="fn:concat('[{&quot;TYPE&quot;:&quot;Phone&quot;,&quot;SUBTYPE&quot;:&quot;CallRail Destination Number&quot;,&quot;LABEL&quot;:&quot;Work&quot;,&quot;DETAIL&quot;:&quot;', get-property('callRail.callerNumber'), '&quot;}]')" />
+                  <property name="insightly.customFields" expression="get-property('operation','insightly.customFields')" />
+
+                  <!-- Create the Caller as Lead in Insightly. -->
+                  <insightly.init>
+                     <apiUrl>{$ctx:insightly.apiUrl}</apiUrl>
+                     <apiKey>{$ctx:insightly.apiKey}</apiKey>
+                  </insightly.init>
+                  <insightly.createContact>
+                     <firstName>CallRail Caller</firstName>
+                     <lastName>{$ctx:callRail.callerNumber}</lastName>
+                     <visibleTo>Everyone</visibleTo>
+                     <customFields>{$ctx:insightly.customFields}</customFields>
+                     <contactInfos>{$ctx:insightly.contactInfos}</contactInfos>
+                  </insightly.createContact>
+                  <sequence key="removeResponseHeaders" />
+
+                  <property name="insightly.contact.id" expression="json-eval($.CONTACT_ID)" />
+
+                  <filter source="boolean(get-property('insightly.contact.id'))" regex="true">
+                     <then>
+                        <property name="id"
+                           expression="fn:concat('callrail_callerNumber:', get-property('callRail.callerNumber'), ',insightly_contactId:', get-property('insightly.contact.id'))" />
+                        <property name="status" value="Success" />
+                        <property name="message" value="Contact has been successfully created for the Caller." />
+                     </then>
+                     <else>
+                        <property name="id"
+                           expression="fn:concat('callrail_callerNumber:', get-property('callRail.callerNumber'))" />
+                        <property name="status" value="Failure" />
+                        <property name="message" expression="json-eval($)" />
+                     </else>
+                  </filter>
+
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="activity" value="insightly_createContactForCaller" />
+                     <with-param name="id" value="{$ctx:id}" />
+                     <with-param name="status" value="{$ctx:status}" />
+                     <with-param name="message" value="{$ctx:message}" />
+                  </call-template>
+
+                  <property name="callerIndex" expression="get-property('operation', 'callerIndex') + 1" scope="operation" />
+
+               </sequence>
+            </target>
+         </iterate>
+         <!--FOR EACH Clicker: END -->
+
+         <filter xpath="get-property('operation', 'callerIndex') = get-property('operation', 'noOfCallers')">
+            <then>
+               <loopback />
+            </then>
+         </filter>
+
+      </else>
+   </filter>
+   <!-- END: Proceed to process the callers if there are any. -->
+</sequence>

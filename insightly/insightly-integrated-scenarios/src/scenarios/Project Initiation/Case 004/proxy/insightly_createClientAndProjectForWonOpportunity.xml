@@ -1,0 +1,562 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="insightly_createClientAndProjectForWonOpportunity" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+	  
+         <!-- Insightly Properties -->
+         <property name="insightly.apiUrl" value="https://api.insight.ly" />
+         <property name="insightly.apiKey" expression="json-eval($.insightlyApiKey)" />
+         <property name="insightly.opportunityId" expression="json-eval($.insightlyOpportunityId)" />
+         <property name="insightly.contactId" expression="json-eval($.insightlyContactId)" />
+		 
+         <!-- Freshbooks Properties -->
+         <property name="freshbooks.apiUrl" expression="json-eval($.freshbooksApiUrl)" />
+         <property name="freshbooks.authenticationToken" expression="json-eval($.freshbooksAuthenticationToken)" />
+
+         <!-- Operation scoped properties -->
+         <property name="responseString" value="" scope="operation" />
+		 
+         <!-- Get the opportunity details to check whether the opportunity is in 'Open' state -->
+         <insightly.init>
+            <apiUrl>{$ctx:insightly.apiUrl}</apiUrl>
+            <apiKey>{$ctx:insightly.apiKey}</apiKey>
+         </insightly.init>
+         <insightly.getOpportunity>
+            <opportunityId>{$ctx:insightly.opportunityId}</opportunityId>
+         </insightly.getOpportunity>
+		 <sequence key="removeResponseHeaders" />
+		 
+         <property name="insightly.opportunity.state" expression="json-eval($.OPPORTUNITY_STATE)" />
+		 
+         <!-- START: Proceed with the scenario only if the opportunity is in the 'Open' state. -->
+         <filter source="fn:lower-case(get-property('insightly.opportunity.state'))" regex="open">
+            <then>			   
+               <!-- Extract properties from Opportunity to create the Project. -->
+               <property name="insightly.opportunity.name" expression="json-eval($.OPPORTUNITY_NAME)" />
+               <property name="insightly.opportunity.bidAmount" expression="json-eval($.BID_AMOUNT)" />
+               <property name="insightly.opportunity.responsibleUserId" expression="json-eval($.RESPONSIBLE_USER_ID)" />
+               <property name="insightly.opportunity.bidCurrency" expression="json-eval($.BID_CURRENCY)" />
+               <property name="insightly.opportunity.probability" expression="json-eval($.PROBABILITY)" />
+               <property name="insightly.opportunity.bidType" expression="json-eval($.BID_TYPE)" />
+               <property name="insightly.opportunity.bidDuration" expression="json-eval($.BID_DURATION)" />
+               <property name="insightly.opportunity.ownerUserId" expression="json-eval($.OWNER_USER_ID)" />
+               <property name="insightly.opportunity.categoryId" expression="json-eval($.CATEGORY_ID)" />
+               <property name="insightly.opportunity.pipelineId" expression="json-eval($.PIPELINE_ID)" />
+               <property name="insightly.opportunity.stageId" expression="json-eval($.STAGE_ID)" />
+               <property name="insightly.opportunity.visibleTo" expression="json-eval($.VISIBLE_TO)" />
+               <property name="insightly.opportunity.visibleTeamId" expression="json-eval($.VISIBLE_TEAM_ID)" />
+               <property name="insightly.opportunity.visibleUserIds" expression="json-eval($.VISIBLE_USER_IDS)" />
+               <property name="insightly.opportunity.tags" expression="json-eval($.TAGS)" />
+               <property name="insightly.opportunity.links" expression="json-eval($.LINKS)" />
+               <property name="insightly.opportunity.emailLinks" expression="json-eval($.EMAILLINKS)" />
+               <property name="insightly.opportunity.customFields" expression="json-eval($.CUSTOMFIELDS)" />
+               <property name="insightly.opportunity.projectDetails" expression="json-eval($.OPPORTUNITY_DETAILS)" />
+               <property name="insightly.opportunity.imageUrl" expression="json-eval($.IMAGE_URL)" />
+			   
+               <!-- Get the ID of the custom field whose name is 'Project ID'. -->
+               <call-template target="insightly_getCustomFieldId">
+                  <with-param name="apiUrl" value="{$ctx:insightly.apiUrl}" />
+                  <with-param name="apiKey" value="{$ctx:insightly.apiKey}" />
+                  <with-param name="customFieldName" value="Project ID" />
+               </call-template>			   
+			   <property name="insightly.opportunity.customFieldId.projectId" expression="get-property('insightly.customFieldId')" />
+			   
+               <!-- Verify whether the custom field is present in the list of custom fields returned with the Opportunity. -->
+               <script language="js">
+					<![CDATA[
+						var customFields = eval("(" + mc.getProperty('insightly.opportunity.customFields') + ")");
+						var customFieldId = mc.getProperty('insightly.opportunity.customFieldId.projectId').toLowerCase();
+						var proceed = 'true';
+						
+						if(customFields.length > 0){
+							for(var i=0; i<customFields.length; i++){
+								// If the particular custom field has a non-empty value, it is assumed that the project was already created and the ID of the project was updated into the custom field.
+								if(customFields[i].CUSTOM_FIELD_ID.toLowerCase() == customFieldId){
+									mc.setProperty('insightly.opportunity.projectId', customFields[i].FIELD_VALUE);							
+									proceed = 'false';
+									break;
+								}								
+							}			
+						}
+						mc.setProperty('proceed', proceed);
+					]]>
+				</script>
+				
+               <!-- START: Proceed to create the Project only if it is not already created. -->
+               <filter source="get-property('proceed')" regex="true">
+                  <then>
+					 <property name="insightly.project.name" expression="fn:concat('Project for ', get-property('insightly.opportunity.name'))" />
+                     
+					 <!-- Create a Project for the Opportunity. -->
+                     <insightly.init>
+                        <apiUrl>{$ctx:insightly.apiUrl}</apiUrl>
+                        <apiKey>{$ctx:insightly.apiKey}</apiKey>
+                     </insightly.init>
+                     <insightly.createProject>
+                        <projectDetails>{$ctx:insightly.opportunity.projectDetails}</projectDetails>
+                        <opportunityId>{$ctx:insightly.opportunityId}</opportunityId>
+                        <imageUrl>{$ctx:insightly.opportunity.imageUrl}</imageUrl>
+                        <responsibleUserId>{$ctx:insightly.opportunity.responsibleUserId}</responsibleUserId>
+                        <ownerUserId>{$ctx:insightly.opportunity.ownerUserId}</ownerUserId>
+                        <projectName>{$ctx:insightly.project.name}</projectName>
+                        <status>In Progress</status>
+                        <tags>{$ctx:insightly.opportunity.tags}</tags>
+                        <links>{$ctx:insightly.opportunity.links}</links>
+                        <emailLinks>{$ctx:insightly.opportunity.emailLinks}</emailLinks>
+                     </insightly.createProject>
+					 <sequence key="removeResponseHeaders" />
+					 
+                     <property name="insightly.opportunity.projectId" expression="json-eval($.PROJECT_ID)" />
+					 
+                     <!-- START: Proceed only if the project was successfully created in Insightly. -->
+                     <filter xpath="get-property('insightly.opportunity.projectId') != 'null' and get-property('insightly.opportunity.projectId') != ''">
+                        <then>
+                           <!-- Send a success message to the user -->
+                           <property name="id" expression="fn:concat('insightly_opportunityId:', get-property('insightly.opportunityId'), ',insightly_projectId:', get-property('insightly.opportunity.projectId'))" />
+                           <property name="status" value="Success" />
+						   <property name="message" value="A project was successfully created for the opportunity." />
+                        </then>
+                        <else>
+                           <property name="id" expression="fn:concat('insightly_opportunityId:', get-property('insightly.opportunityId'))" />
+						   <property name="status" value="Success" />
+						   <property name="message" expression="json-eval($)" />
+                        </else>
+                     </filter>
+						   <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="insightly_createProject" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="{$ctx:status}" />
+                              <with-param name="message" value="{$ctx:message}" />
+                           </call-template>						   
+                     <!-- END: Proceed only if the project was successfully created in Insightly. -->
+                  </then>
+                  <else>
+                     <property name="id" expression="fn:concat('insightly_opportunityId:', get-property('insightly.opportunityId'))" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="insightly_verifyProjectCreation" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="A project has already been created for this Opportunity." />
+                     </call-template>
+                  </else>
+               </filter>
+               <!-- END: Proceed to create the Project only if it is not already created. -->
+			   
+               <!-- Get the ID of the custom field whose name is 'Freshbooks Project ID'. -->
+               <call-template target="insightly_getCustomFieldId">
+                  <with-param name="apiUrl" value="{$ctx:insightly.apiUrl}" />
+                  <with-param name="apiKey" value="{$ctx:insightly.apiKey}" />
+                  <with-param name="customFieldName" value="Freshbooks Project ID" />
+               </call-template>			   
+			   <property name="insightly.opportunity.customFieldId.freshbooksProjectId" expression="get-property('insightly.customFieldId')" />
+			   
+               <!-- Verify whether the custom field is present in the list of custom fields returned with the Opportunity. -->
+               <script language="js">
+					<![CDATA[
+						var customFields = eval("(" + mc.getProperty('insightly.opportunity.customFields') + ")");
+						var customFieldId = mc.getProperty('insightly.opportunity.customFieldId.freshbooksProjectId');
+						var proceed = 'true';
+						
+						if(customFields.length > 0){
+							for(var i=0; i<customFields.length; i++){
+								// If the particular custom field has a non-empty value, it is assumed that the project was already created and the ID of the project was updated into the custom field.
+								if(customFields[i].CUSTOM_FIELD_ID.toLowerCase() == customFieldId){
+									mc.setProperty('insightly.opportunity.freshbookProjectId', customFields[i].FIELD_VALUE);							
+									proceed = 'false';
+									break;
+								}								
+							}					
+						}
+						mc.setProperty('proceed', proceed);
+					]]>
+				</script>
+				
+               <!-- START: Proceed to create the Project in Freshbooks only if it is not already created. -->
+               <filter source="get-property('proceed')" regex="true">
+                  <then>
+                     <property name="freshbooks.project.name" expression="fn:concat(get-property('insightly.opportunity.name'), '-', get-property('insightly.opportunity.projectId'))" />
+                     
+					 <!-- Create the Project for the Opportunity. -->
+					 <property name="freshbooks.apiUrl" expression="get-property('freshbooks.apiUrl')" />
+                     <freshbooks.init>
+                        <apiUrl>{$ctx:freshbooks.apiUrl}</apiUrl>
+                        <authenticationToken>{$ctx:freshbooks.authenticationToken}</authenticationToken>
+                     </freshbooks.init>
+                     <freshbooks.createProject>
+                        <projectName>{$ctx:freshbooks.project.name}</projectName>
+                        <billMethod>project-rate</billMethod>
+                        <rate>{$ctx:insightly.opportunity.bidAmount}</rate>
+                        <description>{$ctx:insightly.opportunity.projectDetails}</description>
+                     </freshbooks.createProject>
+					 <sequence key="removeResponseHeaders" />
+					
+                     <property name="freshbooks.projectId" expression="//*[local-name()='project_id']/text()" />
+					 <!-- START: Proceed only if the project was successfully created in Freshbooks. -->
+                     <filter source="boolean(get-property('freshbooks.projectId'))" regex="true">
+                        <then>
+                           <!-- Send a success message to the user -->
+                           <property name="id" expression="fn:concat('insightly_opportunityId:', get-property('insightly.opportunityId'), ',freshbooks_projectId:', get-property('freshbooks.projectId'))" />
+                           <property name="status" value="Success" />
+						   <property name="message" value="A project was successfully created in Freshbooks for the opportunity." />
+                        </then>
+                        <else>
+                           <property name="id" expression="fn:concat('insightly_opportunityId:', get-property('insightly.opportunityId'))" />
+                           <property name="status" value="Failure" />
+						   <property name="message" expression="json-eval($)" />
+                        </else>
+                     </filter>
+						   <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="freshbooks_createProject" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="{$ctx:status}" />
+                              <with-param name="message" value="{$ctx:message}" />
+                           </call-template>		
+                     <!-- START: Proceed only if the project was successfully created in Freshbooks. -->
+                  </then>
+                  <else>
+                     <property name="id" expression="fn:concat('insightly_opportunityId:', get-property('insightly.opportunityId'))" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="insightly_verifyProjectCreation" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="A project has already been created for this Opportunity." />
+                     </call-template>
+                  </else>
+               </filter>
+               <!-- END: Proceed to create the Project only if it is not already created. -->
+			   
+			   <!-- START: Update the opportunity state to 'Won' only if a project is created for the opportunity -->
+			   <filter xpath="boolean(get-property('insightly.opportunity.projectId')) and boolean(get-property('freshbooks.projectId'))">
+				   <then>
+						<property name="opportunity.customFields" expression="fn:concat('[{&quot;CUSTOM_FIELD_ID&quot;:&quot;', get-property('insightly.opportunity.customFieldId.projectId'), '&quot;,&quot;FIELD_VALUE&quot;:&quot;', get-property('insightly.opportunity.projectId'), '&quot;},
+						{&quot;CUSTOM_FIELD_ID&quot;:&quot;', get-property('insightly.opportunity.customFieldId.freshbooksProjectId'), '&quot;,&quot;FIELD_VALUE&quot;:&quot;', get-property('freshbooks.projectId'), '&quot;}]')" />
+				   
+					  <insightly.init>
+						 <apiUrl>{$ctx:insightly.apiUrl}</apiUrl>
+						 <apiKey>{$ctx:insightly.apiKey}</apiKey>
+					  </insightly.init>
+					  <insightly.updateOpportunity>
+								<opportunityName>{$ctx:insightly.opportunity.name}</opportunityName>
+								<opportunityDetails>{$ctx:insightly.opportunity.opportunityDetails}</opportunityDetails>
+								<probability>{$ctx:insightly.opportunity.probability}</probability>
+								<bidCurrency>{$ctx:insightly.opportunity.bidCurrency}</bidCurrency>
+								<bidAmount>{$ctx:insightly.opportunity.bidAmount}</bidAmount>
+								<bidDuration>{$ctx:insightly.opportunity.bidDuration}</bidDuration>
+								<bidType>{$ctx:insightly.opportunity.bidType}</bidType>
+								<categoryId>{$ctx:insightly.opportunity.categoryId}</categoryId>
+								<pipelineId>{$ctx:insightly.opportunity.pipelineId}</pipelineId>
+								<stageId>{$ctx:insightly.opportunity.stageId}</stageId>
+								<imageUrl>{$ctx:insightly.opportunity.imageUrl}</imageUrl>
+								<responsibleUserId>{$ctx:insightly.opportunity.responsibleUserId}</responsibleUserId>
+								<ownerUserId>{$ctx:insightly.opportunity.ownerUserId}</ownerUserId>
+								<visibleTo>{$ctx:insightly.opportunity.visibleTo}</visibleTo>
+								<visibleTeamId>{$ctx:insightly.opportunity.visibleTeamId}</visibleTeamId>
+								<visibleUserIds>{$ctx:insightly.opportunity.visibleUserIds}</visibleUserIds>
+								<tags>{$ctx:insightly.opportunity.tags}</tags>
+								<links>{$ctx:insightly.opportunity.links}</links>
+								<opportunityState>Won</opportunityState>
+								<customFields>{$ctx:opportunity.customFields}</customFields>
+								<emailLinks>{$ctx:insightly.opportunity.emailLinks}</emailLinks>
+								<opportunityId>{$ctx:insightly.opportunityId}</opportunityId>
+					  </insightly.updateOpportunity>
+						<sequence key="removeResponseHeaders" />
+					  
+					  <property name="id" expression="fn:concat('insightly_opportunityId:', get-property('insightly.opportunityId'))" />
+					  <property name="insightly.opportunity.state" expression="json-eval($.OPPORTUNITY_STATE)" />
+					  
+					  <filter source="fn:lower-case(get-property('insightly.opportunity.state'))" regex="won">
+						 <then>
+							<property name="status" value="Success" />
+							<property name="message" value="Opportunity state has been successfully updated to 'Won'" />
+						 </then>
+						 <else>
+							<property name="status" value="Failure" />
+							<property name="message" expression="json-eval($)" />
+						 </else>
+					  </filter>
+					  
+					  <call-template target="responseHandlerTemplate">
+						 <with-param name="activity" value="insightly_updateOpportunityState" />
+						 <with-param name="id" value="{$ctx:id}" />
+						 <with-param name="status" value="{$ctx:status}" />
+						 <with-param name="message" value="{$ctx:message}" />
+					  </call-template>
+				   </then>
+				</filter>
+				
+            </then>
+            <else>
+               <property name="id" expression="fn:concat('insightly_opportunityId:', get-property('insightly.opportunityId'))" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="insightly_verifyOpportunityState" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="Opportunity is not found or not in the 'Open' state." />
+               </call-template>
+            </else>
+         </filter>
+         <!-- END: Proceed with the scenario only if the opportunity is in the open state. -->
+		 
+         <!-- Get the contact details to check whether the contact is in 'Contact' state -->
+         <insightly.init>
+            <apiUrl>{$ctx:insightly.apiUrl}</apiUrl>
+            <apiKey>{$ctx:insightly.apiKey}</apiKey>
+         </insightly.init>
+         <insightly.getContact>
+            <contactId>{$ctx:insightly.contactId}</contactId>
+         </insightly.getContact>
+		 <sequence key="removeResponseHeaders" />
+        <!-- Extract properties from Opportunity to create the Project. -->
+        <property name="insightly.contact.firstName" expression="json-eval($.FIRST_NAME)" />
+        <property name="insightly.contact.ownerUserId" expression="json-eval($.OWNER_USER_ID)" />
+        <property name="insightly.contact.lastName" expression="json-eval($.LAST_NAME)" />
+        <property name="insightly.contact.addresses" expression="json-eval($.ADDRESSES)" />
+        <property name="insightly.contact.contactInfos" expression="json-eval($.CONTACTINFOS)" />
+        <property name="insightly.contact.customFields" expression="json-eval($.CUSTOMFIELDS)" />
+		 
+         <!-- Get the ID of the custom field whose name is 'Contact Type'. -->
+         <call-template target="insightly_getCustomFieldId">
+            <with-param name="apiUrl" value="{$ctx:insightly.apiUrl}" />
+            <with-param name="apiKey" value="{$ctx:insightly.apiKey}" />
+            <with-param name="customFieldName" value="Contact Type" />
+         </call-template>		   
+		 <property name="insightly.contact.customFieldId.contactTypeId" expression="get-property('insightly.customFieldId')" />
+		 
+		 <!-- Verify whether the contact is of the type 'Contact'. Only then a corresponding client is created in Freshbooks. -->
+         <script language="js">
+			<![CDATA[
+				var customFields = eval("(" + mc.getProperty('insightly.contact.customFields') + ")");
+				var customFieldId = mc.getProperty('insightly.contact.customFieldId.contactTypeId').toLowerCase();
+											
+				if(customFields.length > 0){
+					for(var i=0; i<customFields.length; i++){
+						var tempCustomFieldId = customFields[i].CUSTOM_FIELD_ID.toLowerCase();
+						var customFieldValue = customFields[i].FIELD_VALUE.toLowerCase();
+						if(customFieldId == tempCustomFieldId){
+							mc.setProperty('insightly.contact.type', customFieldValue);
+							break;
+						}								
+					}
+				}]]>
+		 </script>
+		 
+         <!-- START: Proceed with the scenario only if the contact is found and of the type 'contact'. -->
+         <filter source="get-property('insightly.contact.type')" regex="contact">
+            <then>
+               <!-- Get the ID of the custom field whose name is 'Freshbooks Client ID'. -->
+               <call-template target="insightly_getCustomFieldId">
+                  <with-param name="apiUrl" value="{$ctx:insightly.apiUrl}" />
+                  <with-param name="apiKey" value="{$ctx:insightly.apiKey}" />
+                  <with-param name="customFieldName" value="Freshbooks Client ID" />
+               </call-template>		   
+			   <property name="insightly.contact.customFieldId.freshbooksClientId" expression="get-property('insightly.customFieldId')" />
+			   
+               <!-- Verify whether the custom field is present in the list of custom fields returned with the Opportunity. -->
+               <script language="js">
+					<![CDATA[
+						var customFields = eval("(" + mc.getProperty('insightly.contact.customFields') + ")");
+						var contactInfos = eval("(" + mc.getProperty('insightly.contact.contactInfos') + ")");
+						var customFieldId = mc.getProperty('insightly.contact.customFieldId.freshbooksClientId').toLowerCase();
+						var proceed = 'true';
+						
+						if(customFields.length > 0){
+							for(var i=0; i<customFields.length; i++){
+								// If the particular custom field has a non-empty value, it is assumed that the project was already created and the ID of the project was updated into the custom field.
+								if(customFields[i].CUSTOM_FIELD_ID.toLowerCase() == customFieldId){
+									mc.setProperty('insightly.contact.freshbooksClientId', customFields[i].FIELD_VALUE);							
+									proceed = 'false';
+									break;
+								}								
+							}			
+						}
+						mc.setProperty('proceed', proceed);
+						
+						if(contactInfos.length > 0){
+							for(var i=0; i<contactInfos.length; i++){
+								// If the particular custom field has a non-empty value, it is assumed that the project was already created and the ID of the project was updated into the custom field.
+								if(contactInfos[i].TYPE.toLowerCase() == 'phone'){
+									mc.setProperty('insightly.contact.phone', contactInfos[i].DETAIL);
+								} else if(contactInfos[i].TYPE.toLowerCase() == 'email'){
+									mc.setProperty('insightly.contact.email', contactInfos[i].DETAIL);
+								} 						
+							}			
+						}
+					]]>
+			   </script>
+			   
+               <!-- START: Proceed to create the Client only if it is not already created. -->
+               <filter source="get-property('proceed')" regex="true">
+                  <then>
+					 <property name="freshbooks.client.notes" expression="fn:concat('The client was created by extracting details of Insightly Contact (ID: ', get-property('insightly.contactId'), ')')" />
+                     <property name="freshbooks.client.username" expression="fn:concat(get-property('insightly.contactId'), '-', get-property('insightly.contact.firstName'))" />
+                     
+					 <!-- Create the Project for the Opportunity. -->
+                     <freshbooks.init>
+                        <apiUrl>{$ctx:freshbooks.apiUrl}</apiUrl>
+                        <authenticationToken>{$ctx:freshbooks.authenticationToken}</authenticationToken>
+                     </freshbooks.init>
+                     <freshbooks.createClient>
+                        <firstName>{$ctx:insightly.contact.firstName}</firstName>
+                        <lastName>{$ctx:insightly.contact.lastName}</lastName>
+                        <email>{$ctx:insightly.contact.email}</email>
+                        <username>{$ctx:freshbooks.client.username}</username>
+                        <password>1qaz2wsx@</password>
+                        <workPhone>{$ctx:insightly.contact.phone}</workPhone>
+                        <language>en</language>
+                        <currencyCode>USD</currencyCode>
+                        <notes>{$ctx:freshbooks.client.notes}</notes>
+                     </freshbooks.createClient>
+					<sequence key="removeResponseHeaders" />
+                    <property name="freshbooks.client.id" expression="//*[local-name()='client_id']/text()" />
+					 
+                     <!-- START: Proceed only if the client was successfully created in Freshbooks. -->
+                     <filter source="boolean(get-property('freshbooks.client.id'))" regex="true">
+                        <then>
+                           <!-- Send a success message to the user -->
+                           <property name="id" expression="fn:concat('insightly_contactId:', get-property('insightly.contactId'), ',freshbooks_clientId:', get-property('freshbooks.client.id'))" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="freshbooks_createClient" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="Success" />
+                              <with-param name="message" value="Client was successfully created in Freshbooks." />
+                           </call-template>
+						   
+                           <!-- Construct the custom field to update the opportunity. -->
+                           <property name="contact.customFields" expression="fn:concat('[{&quot;CUSTOM_FIELD_ID&quot;:&quot;', get-property('insightly.contact.customFieldId.freshbooksClientId'), '&quot;,&quot;FIELD_VALUE&quot;:&quot;', get-property('freshbooks.client.id'), '&quot;}
+						   ,{&quot;CUSTOM_FIELD_ID&quot;:&quot;', get-property('insightly.contact.customFieldId.contactTypeId'), '&quot;,&quot;FIELD_VALUE&quot;:&quot;Client&quot;}]')" />
+                           
+						   <!-- Update the Insightly contact with Freshbooks Client ID. -->
+                           <insightly.init>
+                              <apiUrl>{$ctx:insightly.apiUrl}</apiUrl>
+                              <apiKey>{$ctx:insightly.apiKey}</apiKey>
+                           </insightly.init>
+                           <insightly.updateContact>
+								<customFields>{$ctx:contact.customFields}</customFields>
+								<firstName>{$ctx:insightly.contact.firstName}</firstName>
+								<lastName>{$ctx:insightly.contact.lastName}</lastName>
+								<addresses>{$ctx:insightly.contact.addresses}</addresses>
+								<contactId>{$ctx:insightly.contactId}</contactId>
+								<contactInfos>{$ctx:insightly.contact.contactInfos}</contactInfos>
+								<ownerUserId>{$ctx:insightly.contact.ownerUserId}</ownerUserId>
+                           </insightly.updateContact>
+							<sequence key="removeResponseHeaders" />
+						   
+                           <!-- Verify whether the Project ID has been successfully set in the custom field. -->
+                           <property name="insightly.contact.customFields" expression="json-eval($.CUSTOMFIELDS)" />
+                           <script language="js">
+								<![CDATA[
+									var customFields = eval("(" + mc.getProperty('insightly.contact.customFields') + ")");
+									var customFieldContactType = mc.getProperty('insightly.contact.customFieldId.contactTypeId').toLowerCase();
+									var customFieldClientId = mc.getProperty('insightly.contact.customFieldId.freshbooksClientId').toLowerCase();
+									var freshbooksClientId = '' + mc.getProperty('freshbooks.client.id');
+									var clientIdSet = 'false';
+									var contactTypeUpdated = 'false';
+											
+									if(customFields.length > 0){
+										for(var i=0; i<customFields.length; i++){
+											var customFieldId = customFields[i].CUSTOM_FIELD_ID.toLowerCase();
+											var customFieldValue = customFields[i].FIELD_VALUE.toLowerCase();
+											if(customFieldId == customFieldContactType && customFieldValue == 'client'){
+												contactTypeUpdated = 'true';
+											} else if(customFieldId == customFieldClientId && customFieldValue == freshbooksClientId){
+												clientIdSet = 'true';
+											}
+										}
+									}
+									mc.setProperty('clientIdSet', clientIdSet);
+									mc.setProperty('contactTypeUpdated', contactTypeUpdated);
+									]]>
+								</script>
+								
+							<!-- Append the error message if Freshbooks Client ID is not updated. -->						   
+                           <filter source="get-property('clientIdSet')" regex="false">
+                              <then>
+                                 <property name="id" expression="fn:concat('insightly_contactId:', get-property('insightly.contactId'), ',freshbooks_clientId:', get-property('freshbooks.client.id'))" />
+                                 <property name="errorResponse" expression="json-eval($)" />
+                                 <call-template target="responseHandlerTemplate">
+                                    <with-param name="activity" value="insightly_updateContactWithClientID" />
+                                    <with-param name="id" value="{$ctx:id}" />
+                                    <with-param name="status" value="Failure" />
+                                    <with-param name="message" value="Unknown error occured while updating the 'Freshbooks Client ID' custom field of Opportunity. Please update the field manually with freshbooks_clientId." />
+                                 </call-template>
+                              </then>
+                           </filter>
+						   
+						   <property name="id" expression="fn:concat('insightly_contactId:', get-property('insightly.contactId'))" />
+                           <property name="activity" value="insightly_updateContactType" />
+                           <filter source="get-property('contactTypeUpdated')" regex="false">
+                              <then>
+								<property name="status" value="Failure" />
+								<property name="message" value="Unknown error occured while updating the 'Contact' custom field of Opportunity. Please update the field manually with 'Client'." />
+                              </then>
+							  <else>
+								<property name="status" value="Success" />
+								<property name="message" value="Type of the contact has been successfully updated to 'Client'." />                                 
+                              </else>
+                           </filter>
+						   
+						   <call-template target="responseHandlerTemplate">
+                                <with-param name="activity" value="{$ctx:activity}" />
+                                <with-param name="id" value="{$ctx:id}" />
+                                <with-param name="status" value="{$ctx:status}" />
+                                <with-param name="message" value="{$ctx:message}" />
+                           </call-template>
+						   
+                        </then>
+                        <else>
+                           <property name="id" expression="fn:concat('insightly_contactId:', get-property('insightly.contactId'))" />
+                           <property name="errorResponse" expression="json-eval($)" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="freshbooks_createClient" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="Failure" />
+                              <with-param name="message" value="{$ctx:errorResponse}" />
+                           </call-template>
+                        </else>
+                     </filter>
+                     <!-- END: Proceed only if the client was successfully created in Freshbooks. -->
+                  </then>
+                  <else>
+                     <property name="id" expression="fn:concat('insightly_contactId:', get-property('insightly.contactId'))" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="freshbooks_verifyClientExistence" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="A client has already been created in Freshbooks for this Contact in Insightly." />
+                     </call-template>
+                  </else>
+               </filter>
+               <!-- END: Proceed to create the Client only if it is not already created. -->
+            </then>
+            <else>
+               <property name="id" expression="fn:concat('insightly_contactId:', get-property('insightly.contactId'))" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="insightly_verifyContactType" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="Contact is not found or not of the type 'Contact'." />
+               </call-template>
+            </else>
+         </filter>
+         <!-- END: Proceed with the scenario only if the opportunity is in the open state. -->
+		 
+		 <!-- Send the constructed response to the user. -->
+         <payloadFactory media-type="json">
+            <format>
+			   {
+				   "Response":{
+					  "process":"insightly_createClientAndProjectForWonOpportunity",
+					  "activityResponse": [$1]
+				   }
+               }
+			</format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />		 
+      </inSequence>
+      <outSequence />
+   </target>
+   <description />
+</proxy>

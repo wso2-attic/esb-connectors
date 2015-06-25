@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--This template retrieves the ID of the custom field whose name is passed as value for 'customFieldName' and stores it in a property called 'clio.customFieldId'-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="getProjectName">
+   <parameter name="apiUrl" description="The URL of the freshbooks API." />
+   <parameter name="arbitraryPassword" description="The arbitrary value used as the password of basic authentication." />
+   <parameter name="authenticationToken" description="The authentication token for the freshbooks account." />
+   <parameter name="projectId" description="ID of the project of which the name should be retrieved." />
+   
+   <sequence>
+      <property name="uri.var.apiUrl" expression="$func:apiUrl" />
+      <property name="uri.var.arbitraryPassword" expression="$func:arbitraryPassword" />
+      <property name="uri.var.authenticationToken" expression="$func:authenticationToken" />
+      <property name="uri.var.projectId" expression="$func:projectId" />
+	  
+      <!-- Add the Authorization Header for OAuth 2.0 -->
+      <filter xpath="(string(get-property('uri.var.arbitraryPassword'))) or get-property('uri.var.arbitraryPassword') != ''">
+         <then>
+            <property name="Authorization" expression="fn:concat('Basic ', base64Encode(fn:concat(get-property('uri.var.authenticationToken'), ':', get-property('uri.var.arbitraryPassword'))))" scope="transport" />
+         </then>
+         <else>
+            <property name="Authorization" expression="fn:concat('Basic ', base64Encode(fn:concat(get-property('uri.var.authenticationToken'), ':')))" scope="transport" />
+         </else>
+      </filter>
+      <payloadFactory media-type="xml">
+         <format>
+            <request xmlns="" method="project.get">
+               <project_id>$1</project_id>
+            </request>
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.projectId')" />
+         </args>
+      </payloadFactory>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/api/2.1/xml-in" />
+         </endpoint>
+      </call>
+	  
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Frame-Options" scope="transport" action="remove" />
+      <header name="Strict-Transport-Security" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="P3P" scope="transport" action="remove" />
+	  
+      <!--Removing the remaining standard headers to prevent ambiguity when chaining services. -->
+      <sequence key="removeResponseHeaders" />
+	  
+   </sequence>
+</template>

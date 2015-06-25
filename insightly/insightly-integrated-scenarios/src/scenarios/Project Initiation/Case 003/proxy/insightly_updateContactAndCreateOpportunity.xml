@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="insightly_updateContactAndCreateOpportunity" startOnLoad="true" statistics="disable" trace="disable"
+   transports="https,http" xmlns="http://ws.apache.org/ns/synapse">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Insightly Properties -->
+         <property name="insightly.apiUrl" value="https://api.insight.ly" />
+         <property name="insightly.apiKey" expression="json-eval($.insightlyApiKey)" />
+         <property name="insightly.contactId" expression="json-eval($.insightlyContactId)" />
+         <property name="insightly.opportunityName" expression="json-eval($.insightlyOpportunityName)" />
+         <property name="insightly.opportunityDetails" expression="json-eval($.insightlyOpportunityDetails)" />
+         <property name="insightly.probability" expression="json-eval($.insightlyProbability)" />
+         <property name="insightly.bidCurrency" expression="json-eval($.insightlyBidCurrency)" />
+         <property name="insightly.bidAmount" expression="json-eval($.insightlyBidAmount)" />
+         <property name="insightly.bidType" expression="json-eval($.insightlyBidType)" />
+         <property name="insightly.bidDuration" expression="json-eval($.insightlyBidDuration)" />
+         <property name="insightly.forecastCloseDate" expression="json-eval($.insightlyForecastCloseDate)" />
+         <property name="insightly.categoryId" expression="json-eval($.insightlyCategoryId)" />
+         <property name="insightly.pipelineId" expression="json-eval($.insightlyPipelineId)" />
+         <property name="insightly.stageId" expression="json-eval($.insightlyStageId)" />
+         <property name="insightly.imageUrl" expression="json-eval($.insightlyImageUrl)" />
+         <property name="insightly.responsibleUserId" expression="json-eval($.insightlyResponsibleUserId)" />
+         <property name="insightly.ownerUserId" expression="json-eval($.insightlyOwnerUserId)" />
+         <property name="insightly.visibleTo" expression="json-eval($.insightlyVisibleTo)" />
+         <property name="insightly.visibleTeamId" expression="json-eval($.insightlyVisibleTeamId)" />
+         <property name="insightly.visibleUserIds" expression="json-eval($.insightlyVisibleUserIds)" />
+         <property name="insightly.tags" expression="json-eval($.insightlyTags)" />
+         <property name="insightly.links" expression="json-eval($.insightlyLinks)" />
+         <property name="insightly.opportunityState" expression="json-eval($.insightlyOpportunityState)" />
+         <property name="insightly.customFields" expression="json-eval($.insightlyCustomFields)" />
+         <property name="insightly.emailLinks" expression="json-eval($.insightlyEmailLinks)" />
+
+         <!-- Operation scoped properties -->
+         <property name="responseString" value="" scope="operation" />
+
+         <!-- Get the ID of the custom field whose name is 'Contact Type'. -->
+         <call-template target="insightly_getCustomFieldId">
+            <with-param name="apiUrl" value="{$ctx:insightly.apiUrl}" />
+            <with-param name="apiKey" value="{$ctx:insightly.apiKey}" />
+            <with-param name="customFieldName" value="Contact Type" />
+         </call-template>
+         <property name="insightly.customfieldId.contactType" expression="get-property('insightly.customFieldId')" />
+
+         <!-- Get the contact to verify whether the contact is already converted to a 'contact'. -->
+         <insightly.init>
+            <apiUrl>{$ctx:insightly.apiUrl}</apiUrl>
+            <apiKey>{$ctx:insightly.apiKey}</apiKey>
+         </insightly.init>
+         <insightly.getContact>
+            <contactId>{$ctx:insightly.contactId}</contactId>
+         </insightly.getContact>
+         <sequence key="removeResponseHeaders" />
+
+         <property name="insightly.contact.firstName" expression="json-eval($.FIRST_NAME)" />
+         <property name="insightly.contact.lastName" expression="json-eval($.LAST_NAME)" />
+         <property name="insightly.contact.contactInfos" expression="json-eval($.CONTACTINFOS)" />
+         <property name="insightly.contact.visibleTo" expression="json-eval($.VISIBLE_TO)" />
+         <property name="insightly.contact.ownerUserId" expression="json-eval($.OWNER_USER_ID)" />
+
+         <property name="insightly.customFields" expression="json-eval($.CUSTOMFIELDS)" />
+
+         <script language="js">
+			<![CDATA[
+				var customFieldId = mc.getProperty('insightly.customfieldId.contactType');
+				var customFields = mc.getProperty('insightly.customFields');
+				if(customFields != null && customFields != ''){
+					var customFields = eval("(" + mc.getProperty('insightly.customFields') + ")");
+					for(var i=0; i<customFields.length; i++){
+						if(customFields[i].CUSTOM_FIELD_ID == customFieldId){
+							mc.setProperty('insightly.contact.type', customFields[i].FIELD_VALUE);
+						}
+					}
+				}				
+			]]>
+         </script>
+
+         <!-- START: Proceed to update the type of the contact, only if the current type is 'Lead' -->
+         <filter source="fn:lower-case(get-property('insightly.contact.type'))" regex="lead">
+            <then>
+               <property name="contact.customFields"
+                  expression="fn:concat('[{&quot;CUSTOM_FIELD_ID&quot;:&quot;', get-property('insightly.customfieldId.contactType'), '&quot;,&quot;FIELD_VALUE&quot;:&quot;Contact&quot;}]')" />
+
+               <!-- Update the type of the contact to 'Contact'. For update methods of Insightly API, all of the parameters 
+                  need to be sent. If not, values of those parameters which are not provided are set to null. -->
+               <insightly.init>
+                  <apiUrl>{$ctx:insightly.apiUrl}</apiUrl>
+                  <apiKey>{$ctx:insightly.apiKey}</apiKey>
+               </insightly.init>
+               <insightly.updateContact>
+                  <contactId>{$ctx:insightly.contactId}</contactId>
+                  <customFields>{$ctx:contact.customFields}</customFields>
+                  <contactInfos>{$ctx:insightly.contact.contactInfos}</contactInfos>
+                  <firstName>{$ctx:insightly.contact.firstName}</firstName>
+                  <lastName>{$ctx:insightly.contact.lastName}</lastName>
+                  <visibleTo>{$ctx:insightly.contact.visibleTo}</visibleTo>
+                  <ownerUserId>{$ctx:insightly.contact.ownerUserId}</ownerUserId>
+               </insightly.updateContact>
+               <sequence key="removeResponseHeaders" />
+
+               <property name="insightly.customFields" expression="json-eval($.CUSTOMFIELDS)" />
+
+               <script language="js">
+					<![CDATA[
+						var customFieldId = mc.getProperty('insightly.customfieldId.contactType');
+						var customFields = eval("(" + mc.getProperty('insightly.customFields') + ")");
+						for(var i=0; i<customFields.length; i++){
+							if(customFields[i].CUSTOM_FIELD_ID == customFieldId){
+								mc.setProperty('insightly.contact.type',customFields[i].FIELD_VALUE);
+							}
+						}
+					]]>
+               </script>
+
+               <!-- START: Proceed to create the Opportunity only if the type of the contact has been successfully updated 
+                  to 'Contact'. -->
+               <filter source="fn:lower-case(get-property('insightly.contact.type'))" regex="contact">
+                  <then>
+                     <property name="id" expression="fn:concat('insightly_contactId:', get-property('insightly.contactId'))" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="insightly_updateContact" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Success" />
+                        <with-param name="message"
+                           value="The type of the contact has been successfully updated as 'Contact'." />
+                     </call-template>
+					 
+					 <property name="insightly.links"
+						expression="fn:concat('[{&quot;CONTACT_ID&quot;: ', get-property('insightly.contactId'), ',&quot;ROLE&quot;: &quot;Owner of the Opportunity&quot;,&quot;DETAILS&quot;: &quot;The opportunity is created for the contact.&quot;}]')" />
+
+                     <!-- Create the opportunity if the Contact has been successfully updated. -->
+                     <insightly.init>
+                        <apiUrl>{$ctx:insightly.apiUrl}</apiUrl>
+                        <apiKey>{$ctx:insightly.apiKey}</apiKey>
+                     </insightly.init>
+                     <insightly.createOpportunity>
+                        <opportunityName>{$ctx:insightly.opportunityName}</opportunityName>
+                        <opportunityDetails>{$ctx:insightly.opportunityDetails}</opportunityDetails>
+                        <probability>{$ctx:insightly.probability}</probability>
+                        <bidCurrency>{$ctx:insightly.bidCurrency}</bidCurrency>
+                        <bidAmount>{$ctx:insightly.bidAmount}</bidAmount>
+                        <bidType>{$ctx:insightly.bidType}</bidType>
+                        <bidDuration>{$ctx:insightly.bidDuration}</bidDuration>
+                        <forecastCloseDate>{$ctx:insightly.forecastCloseDate}</forecastCloseDate>
+                        <categoryId>{$ctx:insightly.categoryId}</categoryId>
+                        <pipelineId>{$ctx:insightly.pipelineId}</pipelineId>
+                        <stageId>{$ctx:insightly.stageId}</stageId>
+                        <imageUrl>{$ctx:insightly.imageUrl}</imageUrl>
+                        <responsibleUserId>{$ctx:insightly.responsibleUserId}</responsibleUserId>
+                        <ownerUserId>{$ctx:insightly.ownerUserId}</ownerUserId>
+                        <visibleTo>{$ctx:insightly.visibleTo}</visibleTo>
+                        <visibleTeamId>{$ctx:insightly.visibleTeamId}</visibleTeamId>
+                        <visibleUserIds>{$ctx:insightly.visibleUserIds}</visibleUserIds>
+                        <tags>{$ctx:insightly.tags}</tags>
+                        <links>{$ctx:insightly.links}</links>
+                        <opportunityState>{$ctx:insightly.opportunityState}</opportunityState>
+                        <customFields>{$ctx:insightly.customFields}</customFields>
+                        <emailLinks>{$ctx:insightly.emailLinks}</emailLinks>
+                     </insightly.createOpportunity>
+
+                     <property name="insightly.opportunityId" expression="json-eval($.OPPORTUNITY_ID)" />
+
+                     <!-- START: If the opportunity was not successfully created, the type of the contact is reverted to 
+                        'Lead'. -->
+                     <filter
+                        xpath="get-property('insightly.opportunityId') != 'null' and get-property('insightly.opportunityId') != ''">
+                        <then>
+                           <!-- Append a success message to be sent back to the user. -->
+                           <property name="id"
+                              expression="fn:concat('insightly_contactId:', get-property('insightly.contactId'), ',insightly_opportunityId:',  get-property('insightly.opportunityId'))" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="insightly_createOpportunity" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="Success" />
+                              <with-param name="message"
+                                 value="An opportunity has been successfully created for the contact." />
+                           </call-template>
+                        </then>
+                        <else>
+                           <!-- Append an error message to be sent back to the user. -->
+                           <property name="id"
+                              expression="fn:concat('insightly_contactId:', get-property('insightly.contactId'))" />
+                           <property name="errorResponse" expression="json-eval($)" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="insightly_createOpportunity" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="Failure" />
+                              <with-param name="message" value="{$ctx:errorResponse}" />
+                           </call-template>
+
+                           <property name="contact.customFields"
+                              expression="fn:concat('[{&quot;CUSTOM_FIELD_ID&quot;:&quot;', get-property('insightly.customfieldId.contactType'), '&quot;,&quot;FIELD_VALUE&quot;:&quot;Lead&quot;}]')" />
+
+                           <!-- Rollback the Contact Type to 'Lead' if creating the opportunity failed. -->
+                           <insightly.init>
+                              <apiUrl>{$ctx:insightly.apiUrl}</apiUrl>
+                              <apiKey>{$ctx:insightly.apiKey}</apiKey>
+                           </insightly.init>
+                           <insightly.updateContact>
+                              <contactId>{$ctx:insightly.contactId}</contactId>
+                              <customFields>{$ctx:contact.customFields}</customFields>
+                              <contactInfos>{$ctx:insightly.contact.contactInfos}</contactInfos>
+                              <firstName>{$ctx:insightly.contact.firstName}</firstName>
+                              <lastName>{$ctx:insightly.contact.lastName}</lastName>
+                              <visibleTo>{$ctx:insightly.contact.visibleTo}</visibleTo>
+                              <ownerUserId>{$ctx:insightly.contact.ownerUserId}</ownerUserId>
+                           </insightly.updateContact>
+                           <sequence key="removeResponseHeaders" />
+
+                           <property name="insightly.customFields" expression="json-eval($.CUSTOMFIELDS)" />
+
+                           <script language="js">
+								<![CDATA[
+									var customFieldId = mc.getProperty('insightly.customfieldId.contactType');
+									var customFields = eval("(" + mc.getProperty('insightly.customFields') + ")");
+									for(var i=0; i<customFields.length; i++){
+										if(customFields[i].CUSTOM_FIELD_ID == customFieldId){
+											mc.setProperty('insightly.contact.type',customFields[i].FIELD_VALUE);
+										}
+									}
+								]]>
+                           </script>
+
+                           <!-- Append a message to be sent to the user based on whether the rollback was successful or not. -->
+                           <filter xpath="fn:lower-case(get-property('insightly.contact.type')) != 'lead'">
+                              <then>
+                                 <property name="status" value="Failure" />
+                                 <property name="message"
+                                    value="Unknown error occured while rolling back Contact type to 'Lead'. Please upate the type manually." />
+                              </then>
+                              <else>
+                                 <property name="status" value="Success" />
+                                 <property name="message" value="Type of the contact has been rolled back to 'Lead'." />
+                              </else>
+                           </filter>
+
+                           <property name="id"
+                              expression="fn:concat('insightly_contactId:', get-property('insightly.contactId'))" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="insightly_rollbackContactUpdate" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="{$ctx:status}" />
+                              <with-param name="message" value="{$ctx:message}" />
+                           </call-template>
+                        </else>
+                     </filter>
+                     <!-- END: If the opportunity was not successfully created, the type of the contact is reverted to 'Lead'. -->
+                  </then>
+                  <else>
+                     <property name="id" expression="fn:concat('insightly_contactId:', get-property('insightly.contactId'))" />
+                     <property name="errorResponse" expression="json-eval($)" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="insightly_updateContact" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Failure" />
+                        <with-param name="message" value="{$ctx:errorResponse}" />
+                     </call-template>
+                  </else>
+               </filter>
+               <!-- END: Proceed to create the Opportunity only if the type of the contact has been successfully updated 
+                  to 'Contact'. -->
+            </then>
+            <else>
+               <!-- Failure case: Append an error message to be sent to the user. -->
+               <property name="id" expression="fn:concat('insightly_contactId:', get-property('insightly.contactId'))" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="insightly_verifyContactType" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="Contact is not found or not of the type 'Lead'." />
+               </call-template>
+            </else>
+         </filter>
+         <!-- END: Proceed to update the type of the contact, only if the current type is 'Lead' -->
+
+         <!-- Send the constructed response to the user. -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+				   "Response":{
+					   "process":"insightly_updateContactAndCreateOpportunity",
+					   "activityResponse": [$1]
+				   }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <respond />
+      </inSequence>
+      <outSequence />
+   </target>
+   <description />
+</proxy>
