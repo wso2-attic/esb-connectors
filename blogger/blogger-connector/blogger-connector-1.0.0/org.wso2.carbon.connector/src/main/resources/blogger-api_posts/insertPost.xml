@@ -22,7 +22,7 @@
 		<property expression="$func:blogID" name="uri.var.blog_id"
 			scope="default" type="STRING" />
 		<property expression="$func:isDraft" name="uri.var.is_draft"
-			scope="default" type="BOOLEAN" />
+			scope="default" type="STRING" />
 		<property expression="$func:fields" name="uri.var.fields"
 			scope="default" type="STRING" />
 		<property expression="$func:title" name="uri.var.title"
@@ -55,6 +55,13 @@
 			scope="default" type="STRING" />
 		<property expression="$func:updated" name="uri.var.updated"
 			scope="default" type="STRING" />
+        <filter
+                xpath="get-property('uri.var.is_draft') = 'true' or get-property('uri.var.is_draft') = 'false'">
+            <then>
+                <property name="uri.var.fields"
+                          expression="concat(get-property('uri.var.fields'),'&amp;isDraft&#61;',get-property('uri.var.is_draft')) " />
+            </then>
+        </filter>
 		<filter
 			xpath="not(get-property('uri.var.fields') = '' or  (not(string(get-property('uri.var.fields')))))">
 			<then>
@@ -62,13 +69,14 @@
 					expression="concat('&amp;fields&#61;',get-property('uri.var.fields')) " />
 			</then>
 		</filter>
-		<payloadFactory media-type="json">
-			<format>
-				{ }
-			</format>
-			<args></args>
-		</payloadFactory>
-		<script language="js"><![CDATA[
+        <payloadFactory media-type="json">
+            <format>
+                { }
+            </format>
+            <args />
+        </payloadFactory>
+		<script language="js">
+            <![CDATA[
                  var title       =mc.getProperty('uri.var.title');
                  var content     =mc.getProperty('uri.var.content');
                  var authorName  =mc.getProperty('uri.var.author_name');
@@ -155,7 +163,7 @@
 		<call>
 			<endpoint>
 				<http method="post"
-					uri-template="https://www.googleapis.com/blogger/v{uri.var.api_version}/blogs/{uri.var.blog_id}/posts?access_token&#61;{uri.var.access_token}&amp;isDraft&#61;{uri.var.is_draft}{uri.var.fields}"></http>
+					uri-template="https://www.googleapis.com/blogger/v{uri.var.api_version}/blogs/{uri.var.blog_id}/posts?access_token&#61;{uri.var.access_token}{+uri.var.fields}"></http>
 			</endpoint>
 		</call>
 		<header name="etag" scope="transport" action="remove" />
