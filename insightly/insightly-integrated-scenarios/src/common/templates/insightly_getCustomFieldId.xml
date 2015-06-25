@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--This template retrieves the ID of the custom field whose name is passed as value for 'customFieldName' and stores it in a property called 'insightly.customFieldId'-->
+<template name="insightly_getCustomFieldId" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="apiUrl" description="Base endpoint URL of Insightly API." />
+   <parameter name="apiKey" description="API Key to access data of Insightly account." />
+   <parameter name="customFieldName" description="Name of the custom field whose ID should be retrieved." />
+   <sequence>
+      <property name="uri.var.apiUrl" expression="$func:apiUrl" />
+      <property name="uri.var.apiKey" expression="$func:apiKey" />
+      <property name="uri.var.customFieldName" expression="$func:customFieldName" />
+	  
+      <header name="Authorization" expression="fn:concat('Basic ', base64Encode(fn:concat(get-property('uri.var.apiKey'), ':')))"
+               scope="transport" />
+
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/v2.1/CustomFields" />
+         </endpoint>
+      </call>
+
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="Expires" scope="transport" action="remove" />
+      <header name="Pragma" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+
+      <!--Removing the remaining standard headers to prevent ambiguity when chaining services. -->
+      <sequence key="removeResponseHeaders" />
+
+      <property name="uri.var.insightly.customFieldArray" expression="json-eval($)" />
+
+      <!-- Script Mediator to iterate through the custom fields and extract the required custom field ID. -->
+      <script language="js">
+		<![CDATA[														 
+			var customFieldArray = eval("(" + mc.getProperty('uri.var.insightly.customFieldArray') + ")");
+			var customFieldName = mc.getProperty('uri.var.customFieldName').toLowerCase();
+			for(var i=0; i<customFieldArray.length; i++){
+				if(customFieldArray[i].FIELD_NAME.toLowerCase() == customFieldName){
+					mc.setProperty('insightly.customFieldId', customFieldArray[i].CUSTOM_FIELD_ID);
+					break;
+				}
+			}												   
+		]]>
+      </script>
+
+   </sequence>
+</template>

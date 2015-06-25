@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="insightly_createCampaignClickersAndCallersAsLeads" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- MailChimp Properties -->
+         <property name="mailchimp.apiUrl" expression="json-eval($.mailchimpApiUrl)" />
+         <property name="mailchimp.apiKey" expression="json-eval($.mailchimpApiKey)" />
+         <property name="mailchimp.campaignId" expression="json-eval($.mailchimpCampaignId)" />
+         <property name="mailchimp.clickURL" expression="json-eval($.mailchimpClickURL)" />
+
+		 <!-- Insightly Properties -->
+         <property name="insightly.apiUrl" value="https://api.insight.ly" />
+         <property name="insightly.apiKey" expression="json-eval($.insightlyApiKey)" />
+
+		 <!-- CallRail Properties -->
+         <property name="callrail.apiUrl" value="https://api.callrail.com" />
+         <property name="callrail.apiKey" expression="json-eval($.callrailApiKey)" />
+         <property name="callrail.companyId" expression="json-eval($.callrailCompanyId)" />
+         <property name="callrail.startDate" expression="json-eval($.callrailStartDate)" />
+         <property name="callrail.endDate" expression="json-eval($.callrailEndDate)" />
+
+         <!-- Operation scoped properties -->
+         <property name="responseString" value="" scope="operation" />
+
+         <!-- Get the ID of the custom field whose name is 'Contact Type'. -->
+         <call-template target="insightly_getCustomFieldId">
+            <with-param name="apiUrl" value="{$ctx:insightly.apiUrl}" />
+            <with-param name="apiKey" value="{$ctx:insightly.apiKey}" />
+            <with-param name="customFieldName" value="Contact Type" />
+         </call-template>
+		 <!-- Construct the custom field to add to all the contacts being created. -->
+         <property name="insightly.customFields"
+            expression="fn:concat('[{&quot;CUSTOM_FIELD_ID&quot;:&quot;', get-property('insightly.customFieldId'), '&quot;,&quot;FIELD_VALUE&quot;:&quot;Lead&quot;}]')"
+            scope="operation" />
+
+         <!-- Get a list of clickable URLs for the campaign from MailChimp.
+            One campaign can have multiple URLs associated with it, each of which can be tracked based on clicks.
+            Therefore the user has to send the particular URL whose clicks needs to be processed.
+            It will be chosen from the list of URLs returned from the following call, if it exists. -->
+         <mailchimp.init>
+            <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+            <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+            <format>json</format>
+         </mailchimp.init>
+         <mailchimp.listCampaignClicks>
+            <campaignId>{$ctx:mailchimp.campaignId}</campaignId>
+         </mailchimp.listCampaignClicks>
+         <sequence key="removeResponseHeaders" />
+
+         <!-- Extract the tracker ID of the URL whose clicks need to be tracked. -->
+         <property name="mailchimp.clickURLs" expression="json-eval($.total)" />
+         <script language="js">
+			<![CDATA[
+				var clickURLs = mc.getProperty('mailchimp.clickURLs');
+				if(clickURLs != null && clickURLs != ''){
+					clickURLs = eval("(" + clickURLs + ")");
+					var url = mc.getProperty('mailchimp.clickURL');
+					// Iterate through the URLs and pick the required URL.
+					for(var i=0; i<clickURLs.length; i++){
+						if(clickURLs[i].url == url){
+							mc.setProperty('malchimp.campaignTrackerId', '' + clickURLs[i].tid);
+							break;
+						}
+					}
+				}				
+			]]>
+         </script>
+
+         <!-- START: If the URL sent by the user exists in the click URLs retrieved for the campaign, then proceed to get
+            the list of clickers for that particular URL. Send an error message to the user otherwise. -->
+         <filter source="boolean(get-property('malchimp.campaignTrackerId'))" regex="false">
+            <then>
+				 <property name="id" expression="fn:concat('mailchimp_campaignId:', get-property('mailchimp.campaignId'))" />
+				 <property name="statusCode" expression="$axis2:HTTP_SC" />
+				 <!-- If the status is in 200 series, then give a custom error message. Append the API error message otherwise. -->
+				 <filter source="get-property('statusCode')" regex="2[0-9][0-9]">
+					<then>
+						<property name="message" value="The provided URL is not set to receive clicks in the campaign." />
+					</then>
+					<else>
+						<property name="message" expression="json-eval($)" />
+					</else>
+				 </filter>
+				 <!-- Failure case: Append an error message to be sent to the user. -->
+				 <call-template target="responseHandlerTemplate">
+					<with-param name="activity" value="mailchimp_getTrackerURL" />
+					<with-param name="id" value="{$ctx:id}" />
+					<with-param name="status" value="Failure" />
+					<with-param name="message" value="{$ctx:message}" />
+				 </call-template>
+
+               <!-- Call the sequence to create Callers from CallRail as Contacts in Insightly. -->
+               <sequence key="createCallersAsContacts" />
+            </then>
+            <else>
+               <!-- Get a list of clickers for the campaign. -->
+               <mailchimp.init>
+                  <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                  <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                  <format>json</format>
+               </mailchimp.init>
+               <mailchimp.listCampaignClickers>
+                  <campaignId>{$ctx:mailchimp.campaignId}</campaignId>
+                  <trackingid>{$ctx:malchimp.campaignTrackerId}</trackingid>
+               </mailchimp.listCampaignClickers>
+               <sequence key="removeResponseHeaders" />
+
+               <property name="noOfClickers" expression="count(//data)" scope="operation" />
+               <property name="clickerIndex" expression="0" scope="operation" />
+
+               <!-- START: Proceed to process the clickers if there are any. -->
+               <filter source="get-property('operation', 'noOfClickers')" regex="0.0">
+                  <then>
+                     <!-- Skip case: Append an error message to be sent to the user. -->
+                     <property name="id"
+                        expression="fn:concat('mailchimp_campaignId:', get-property('mailchimp.campaignId'), ',mailchimp_trackerId:', get-property('malchimp.campaignTrackerId'))" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="mailchimp_getCampaignClickers" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="There are no clickers for the campaign (for the given URL)." />
+                     </call-template>
+
+                     <!-- Call the sequence to create Callers from CallRail as Contacts in Insightly. -->
+                     <sequence key="createCallersAsContacts" />
+                  </then>
+                  <else>
+                     <!--FOR EACH Clicker: BEGIN -->
+                     <iterate continueParent="false" id="clickers" expression="//data" sequential="true">
+                        <target>
+                           <sequence>
+                              <!-- Extract required properties of Clickers. -->
+                              <property name="mailchimp.clickerEmail" expression="//data/member/email/text()" />
+                              <property name="mailchimp.clickerId" expression="//data/member/id/text()" />
+                              <property name="mailchimp.clickerFirstName" expression="//data/member/merges/FNAME/text()" />
+                              <property name="mailchimp.clickerLastName" expression="//data/member/merges/LNAME/text()" />
+                              <property name="insightly.contactInfos"
+                                 expression="fn:concat('[{&quot;TYPE&quot;:&quot;Email&quot;,&quot;SUBTYPE&quot;:&quot;Mailchimp Email&quot;,&quot;LABEL&quot;:&quot;Work&quot;,&quot;DETAIL&quot;:&quot;', get-property('mailchimp.clickerEmail'), '&quot;}]')" />
+                              <property name="insightly.customFields" expression="get-property('operation','insightly.customFields')" />
+
+							  <!-- Create the Clicker as Lead in Insightly. -->
+                              <insightly.init>
+                                 <apiUrl>{$ctx:insightly.apiUrl}</apiUrl>
+                                 <apiKey>{$ctx:insightly.apiKey}</apiKey>
+                              </insightly.init>
+                              <insightly.createContact>
+                                 <customFields>{$ctx:insightly.customFields}</customFields>
+                                 <contactInfos>{$ctx:insightly.contactInfos}</contactInfos>
+                                 <firstName>{$ctx:mailchimp.clickerFirstName}</firstName>
+                                 <lastName>{$ctx:mailchimp.clickerLastName}</lastName>
+                                 <visibleTo>Everyone</visibleTo>
+								 <ownerUserId>{$ctx:ownerUserId}</ownerUserId>
+                              </insightly.createContact>
+                              <sequence key="removeResponseHeaders" />
+
+                              <property name="insightly.contact.id" expression="json-eval($.CONTACT_ID)" />
+							  
+							  <!-- Append a message to be sent to the user based on whether the contact was successfully created or not. -->
+                              <filter source="boolean(get-property('insightly.contact.id'))" regex="true">
+                                 <then>
+                                    <property name="id"
+                                       expression="fn:concat('mailchimp_clickerId:', get-property('mailchimp.clickerId'), ',insightly_contactId:', get-property('insightly.contact.id'))" />
+                                    <property name="status" value="Success" />
+                                    <property name="message" value="Contact has been successfully created for the Clicker." />
+                                 </then>
+                                 <else>
+                                    <property name="id"
+                                       expression="fn:concat('mailchimp_clickerId:', get-property('mailchimp.clickerId'))" />
+                                    <property name="status" value="Failure" />
+                                    <property name="message" expression="json-eval($)" />
+                                 </else>
+                              </filter>
+
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="insightly_createContactForClicker" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+
+                              <property name="clickerIndex" expression="get-property('operation', 'clickerIndex') + 1"
+                                 scope="operation" />
+
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!--FOR EACH Clicker: END -->
+
+                     <filter xpath="get-property('operation', 'clickerIndex') = get-property('operation', 'noOfClickers')">
+                        <then>
+                           <!-- Call the sequence to create Callers from CallRail as Contacts in Insightly. -->
+                           <sequence key="createCallersAsContacts" />
+                        </then>
+                     </filter>
+
+                  </else>
+               </filter>
+               <!-- END: Proceed to process the clickers if there are any. -->
+            </else>
+         </filter>
+         <!-- END: If the URL sent by the user exists in the click URLs retrieved for the campaign, then proceed to get
+            the list of clickers for that particular URL. Send an error message to the user otherwise. -->
+      </inSequence>
+      <outSequence>
+         <!-- Send the constructed response to the user. -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+				   "Response":{
+				   "process":"insightly_createCampaignClickersAndCallersAsLeads",
+				   "activityResponse":[$1]
+				   }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+</proxy>
