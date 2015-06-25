@@ -22,9 +22,9 @@
 		<property expression="$func:labels" name="uri.var.labels"
 			scope="default" type="STRING" />
 		<property expression="$func:fetchBodies" name="uri.var.fetch_bodies"
-			scope="default" type="BOOLEAN" />
+			scope="default" type="STRING" />
 		<property expression="$func:fetchImages" name="uri.var.fetch_images"
-			scope="default" type="BOOLEAN" />
+			scope="default" type="STRING" />
 		<property expression="$func:maxResults" name="uri.var.max_results"
 			scope="default" type="STRING" />
 		<property expression="$func:pageToken" name="uri.var.page_token"
@@ -39,7 +39,35 @@
 			scope="default" type="STRING" />
 		<property value="" name="uri.var.options" scope="default"
 			type="STRING" />
-		<filter
+        <script language="js"><![CDATA[
+            var start_date = mc.getProperty('uri.var.start_date');
+            var end_date = mc.getProperty('uri.var.end_date');
+            if(start_date != "")
+            {
+            var encodedStartDate = encodeURIComponent(start_date);
+            mc.setProperty('uri.var.start_date', encodedStartDate);
+            }if(end_date != "")
+            {
+            var encodedEndDate = encodeURIComponent(end_date);
+            mc.setProperty('uri.var.end_date', encodedEndDate);
+            }
+        ]]>
+        </script>
+        <filter
+                xpath="get-property('uri.var.fetch_bodies') = 'true' or get-property('uri.var.fetch_bodies') = 'false'">
+            <then>
+                <property name="uri.var.options"
+                          expression="concat(get-property('uri.var.options'),'&amp;fetchBodies&#61;',get-property('uri.var.fetch_bodies')) " />
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.fetch_images') = 'true' or get-property('uri.var.fetch_images') = 'false'">
+            <then>
+                <property name="uri.var.options"
+                          expression="concat(get-property('uri.var.options'),'&amp;fetchImages&#61;',get-property('uri.var.fetch_images')) " />
+            </then>
+        </filter>
+        <filter
 			xpath="not(get-property('uri.var.fields') = '') and  string(get-property('uri.var.fields'))">
 			<then>
 				<property name="uri.var.options"
@@ -114,17 +142,11 @@
 			</else>
 		</filter>
 		<property action="remove" name="Accept-Encoding" scope="transport" />
-		<payloadFactory media-type="json">
-			<format>
-				{ }
-			</format>
-			<args />
-		</payloadFactory>
 		<property name="messageType" scope="axis2" value="application/json" />
 		<call>
 			<endpoint>
 				<http method="get"
-					uri-template="https://www.googleapis.com/blogger/v{uri.var.api_version}/blogs/{uri.var.blog_id}/posts/{uri.var.post_id}/comments?{uri.var.access_s}&amp;fetchBodies&#61;{uri.var.fetch_bodies}&amp;fetchImages&#61;{uri.var.fetch_images}{uri.var.options}"></http>
+					uri-template="legacy-encoding:https://www.googleapis.com/blogger/v{uri.var.api_version}/blogs/{uri.var.blog_id}/posts/{uri.var.post_id}/comments?{uri.var.access_s}{uri.var.options}"></http>
 			</endpoint>
 		</call>
 		<header name="etag" scope="transport" action="remove" />

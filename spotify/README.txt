@@ -37,7 +37,7 @@ STEPS:
 4. Copy wso2esb-4.9.0-ALPHA.zip file in to location "{ESB_Connector_Home}/repository/".
 
 5. Make sure that spotify is specified as a module in ESB_Connector_Parent pom.
-    <module>spotify</module>
+      <module>spotify/spotify-connector/spotify-connector-1.0.0/org.wso2.carbon.connector</module>
 
 6. Copy proxy files to following location "spotify/src/test/resources/artifacts/ESB/config/proxies/spotify/"
 
