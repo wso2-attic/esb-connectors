@@ -889,7 +889,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
      * @throws JSONException
      * @throws IOException
      */
-    @Test(dependsOnMethods = { "testVoidTransactionWithMandatoryParameters" }, description = "Braintree {refundTransaction} integration test with Mandatory parameters.")
+    @Test(dependsOnMethods = { "testVoidTransactionWithMandatoryParameters" }, enabled=false, description = "Braintree {refundTransaction} integration test with Mandatory parameters.")
     public void testRefundTransactionWithMandatoryParameters() throws IOException, JSONException {
 
         esbRequestHeadersMap.put("Action", "urn:refundTransaction");
@@ -926,7 +926,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
      * @throws JSONException
      * @throws IOException
      */
-    @Test(dependsOnMethods = { "testVoidTransactionWithMandatoryParameters" }, description = "Braintree {refundTransaction} integration test with Optional parameters.")
+    @Test(dependsOnMethods = { "testVoidTransactionWithMandatoryParameters" }, enabled=false, description = "Braintree {refundTransaction} integration test with Optional parameters.")
     public void testRefundTransactionWithOptionalParameters() throws IOException, JSONException {
 
         esbRequestHeadersMap.put("Action", "urn:refundTransaction");
