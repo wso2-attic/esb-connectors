@@ -836,7 +836,7 @@ public class BitbucketConnectorIntegrationTest extends ConnectorIntegrationTestB
         Thread.sleep(timeOut);
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/api/2.0/repositories/"
-                        + connectorProperties.getProperty("owner") + "/xxxx";
+                        + connectorProperties.getProperty("owner") + "/xxx";
         
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_deleteRepository_negative.json");

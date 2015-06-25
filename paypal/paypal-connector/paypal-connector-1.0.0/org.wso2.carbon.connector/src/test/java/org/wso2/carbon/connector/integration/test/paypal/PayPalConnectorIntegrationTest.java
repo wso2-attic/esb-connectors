@@ -49,7 +49,7 @@ public class PayPalConnectorIntegrationTest extends ESBIntegrationTest {
     
     private String repoLocation = null;
     
-    private String paypalConnectorFileName = CONNECTOR_NAME + ".zip";
+    private String paypalConnectorFileName = CONNECTOR_NAME + "-connector-1.0.0.zip";
     
     private Properties paypalConnectorProperties = null;
     
