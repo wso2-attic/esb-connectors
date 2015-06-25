@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pipedrive_createDealRelatedActivity" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!--PipeDrive properties -->
+         <property name="pipedrive.apiUrl" value="https://api.pipedrive.com" />
+         <property name="pipedrive.apiToken" expression="json-eval($.pipedrive.apiToken)" />
+         <!-- GoogleCalendar properties -->
+         <property name="googleCalendar.apiUrl" value="https://www.googleapis.com" />
+         <property name="googleCalendar.apiToken" expression="json-eval($.googleCalendar.apiToken)" />
+         <property name="googleCalendar.guestsCanInviteOthers" value="true" />
+         <property name="googleCalendar.guestsCanSeeOtherGuests" value="true" />
+         <property name="googleCalendar.anyoneCanAddSelf" value="true" />
+         <property name="emptyID" value="{}" />
+         <!-- Common properties -->
+         <property name="pipedriveActivityIndex" expression="0" scope="operation" />
+         <!-- Checks whether the sharedDetails is empty. If so, returns an error response, otherwise proceed to create calendar 
+            event -->
+         <property name="sharedDetailsCount" expression="count(//sharedDetails[string-length(node()) > 0])"
+            scope="operation" />
+         <filter xpath="get-property('operation', 'sharedDetailsCount') = 0">
+            <then>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:emptyID}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="activity" value="pipedrive_createEvent" />
+                  <with-param name="message"
+                     value="Please provide valid values for sharedDetails parameter to create the event" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- Iterates over sharedDetails to extract information and proceed to create the activity in PipeDrive -->
+         <iterate id="activityIterator" expression="//sharedDetails[string-length(node()) > 0]" sequential="true">
+            <target>
+               <sequence>
+                  <!-- Getting shared details to create activity -->
+                  <property name="pipedriveActivityDuration" expression="//sharedDetails/duration/text()" />
+                  <property name="pipedriveActivityType" expression="//sharedDetails/pipedriveActivityType/text()" />
+                  <property name="pipedriveActivityDueDate" expression="//sharedDetails/dueDate/text()" />
+                  <property name="pipedriveActivityDueTime" expression="//sharedDetails/dueTime/text()" />
+                  <property name="pipedriveActivityNote" expression="//sharedDetails/note/text()" />
+                  <property name="googleCalendarId" expression="//sharedDetails/googleCalendarId/text()" />
+                  <property name="pipedriveDealId" expression="//sharedDetails/pipedriveDealId/text()" />
+                  <property name="calendarEventLocation" expression="//sharedDetails/eventLocation/text()" />
+                  <property name="pipedriveDealFields"
+                     value="[&quot;user_id&quot;,&quot;person_id&quot;,&quot;org_id&quot;,&quot;title&quot;]" />
+                  <!-- Checks whether the deal ID has been provided, if not returns an error response otherwise proceed to 
+                     create activity -->
+                  <filter source="boolean(get-property('pipedriveDealId'))" regex="true">
+                     <else>
+                        <property name="id"
+                           expression="fn:concat('{&quot;dealId&quot;:&quot;',get-property('pipedriveDealId'), '&quot;}')" />
+                        <property name="status" value="Error" />
+                        <property name="activity" value="pipedrive_createActivity" />
+                        <property name="message" value="Please provide valid deal ID to create activity" />
+                        <!-- Generate response for error in retrieving Deal ID -->
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="id" value="{$ctx:id}" />
+                           <with-param name="status" value="{$ctx:status}" />
+                           <with-param name="activity" value="{$ctx:activity}" />
+                           <with-param name="message" value="{$ctx:message}" />
+                        </call-template>
+                     </else>
+                     <then>
+                        <!-- Getting Deal related details to create activity -->
+                        <pipedrive.init>
+                           <apiToken>{$ctx:pipedrive.apiToken}</apiToken>
+                           <apiUrl>{$ctx:pipedrive.apiUrl}</apiUrl>
+                        </pipedrive.init>
+                        <pipedrive.getDeal>
+                           <id>{$ctx:pipedriveDealId}</id>
+                           <prettyOutput>{$ctx:prettyOutput}</prettyOutput>
+                           <fields>{$ctx:pipedriveDealFields}</fields>
+                        </pipedrive.getDeal>
+                        <!-- Checking whether the Deal related details have been retrieved successfully , if not returns 
+                           an error response, otherwise proceed to create activity -->
+                        <property name="getDealResponseCode" expression="json-eval($.success)" />
+                        <filter xpath="get-property('getDealResponseCode') = 'true'">
+                           <else>
+                              <property name="id" expression="fn:concat('{dealId:', get-property('pipedriveDealId'), '}')" />
+                              <property name="status" value="Error" />
+                              <property name="activity" value="pipedrive_getDeal" />
+                              <property name="getDealError" expression="json-eval($.error)" />
+                              <property name="message"
+                                 expression="fn:concat('Failed to retrieve Deal details. Error:', get-property('getDealError'))" />
+                              <!-- Generate response for error in retrieving Deal details -->
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="activity" value="{$ctx:activity}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </else>
+                           <then>
+                              <property name="pipedriveActivityUserId" expression="json-eval($.data.user_id.id)" />
+                              <property name="pipedrivePersonId" expression="json-eval($.data.person_id.value)" />
+                              <property name="pipedriveOrganizationId" expression="json-eval($.data.org_id.value)" />
+                              <property name="pipedriveFields"
+                                 value="[&quot;id&quot;,&quot;subject&quot;,&quot;type&quot;,&quot;due_date&quot;,&quot;due_time&quot;,&quot;duration&quot;,&quot;user_id&quot;,&quot;deal_id&quot;,&quot;person_id&quot;,&quot;org_id&quot;,&quot;note&quot;]" />
+                              <property name="pipedriveDealTitle" expression="json-eval($.data.title)" />
+                              <property name="pipedriveActivitySubject"
+                                 expression="fn:concat('Scheduled ',get-property('pipedriveActivityType'), ' to discuss about ', get-property('pipedriveDealTitle'),' deal')" />
+                              <!-- Removing unnecessary headers from the response -->
+                              <header name="Content-Encoding" scope="transport" action="remove" />
+                              <script language="js">
+                                 <![CDATA[
+                                    //Preparing the dates and email in valid format for the request to create event
+                                    var dueDate = mc.getProperty('pipedriveActivityDueDate');
+                                    var dueTime =  mc.getProperty('pipedriveActivityDueTime');
+                                    var duration = mc.getProperty('pipedriveActivityDuration');
+                                    var dateFormatter = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                                    var timeFormatter = new java.text.SimpleDateFormat("HH:mm");
+                                    var formatter = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm");                                    
+                                    var calenderFormatter = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'z'");
+                                    var startDate = dueDate + " " + dueTime;
+                                    var calStartDate = java.util.Calendar.getInstance();
+                                    var calEndDate = java.util.Calendar.getInstance(); 
+                                    try {
+                                       calStartDate.setTime(formatter.parse(startDate));
+                                       var startTime = '{"dateTime":"' + calenderFormatter.format(calStartDate.getTime()) + '" }';
+                                       calEndDate.setTime(formatter.parse(startDate));
+                                       var timeArr = duration.split(":");
+                                       calEndDate.add(java.util.Calendar.HOUR, timeArr[0]);
+                                       calEndDate.add(java.util.Calendar.MINUTE, timeArr[1]);
+                                       var endTime = '{"dateTime":"' + calenderFormatter.format(calEndDate.getTime()) + '" }';
+                                       mc.setProperty('calendarEventStart', startTime);
+                                       mc.setProperty('calendarEventEnd', endTime);
+                                       mc.setProperty('pipedriveActivityDueDate', dateFormatter.format(calStartDate.getTime()));
+                                       mc.setProperty('pipedriveActivityDueTime', timeFormatter.format(calStartDate.getTime()));
+                                    } catch (err) {
+                                       mc.setProperty("errorInTryBlock", "true");
+                                    }    
+                                    var userName = mc.getProperty("attendeesUserName");
+                                    var attendeesEmail = mc.getProperty("attendeesEmail");   
+                                    if (attendeesEmail != null && attendeesEmail != '') {
+                                       var emailArray = eval('(' + attendeesEmail + ')')[0].value.split(',');
+                                       var emailList = [];
+                                       for(var i=0; i < emailArray.length; i++){
+                                          var emailValue = emailArray[i];
+                                          if (emailValue != null && emailValue != '') {
+                                             var emailObj;
+                                             if (userName != null && userName != '') {
+                                                emailObj = '{"email":"' + emailValue + '","displayName":"' + userName + '"}';
+                                             } else {
+                                                emailObj = '{"email":"' + emailValue + '"}';
+                                             }                                                
+                                             emailList.push(emailObj);
+                                          }
+                                       }  
+                                       mc.setProperty('attendeeEmails', '[' + emailList + ']');
+                                    }
+                                 ]]>
+                              </script>
+                              <!-- Checks whether the date/time in valid format to create event -->
+                              <filter xpath="boolean(get-property('errorInTryBlock')) = 'true'">
+                                 <then>
+                                    <property name="id"
+                                       expression="fn:concat('{&quot;dealId&quot;:&quot;',get-property('pipedriveDealId'), '&quot;,&quot;calenderId&quot;:&quot;', get-property('googleCalendarId'), '&quot;}')" />
+                                    <property name="status" value="Error" />
+                                    <property name="activity" value="pipedrive_createEvent" />
+                                    <property name="message"
+                                       value="Please provide valid formats to dueTime and duration parameters (Format: HH:MM)" />
+                                    <!-- Generate response for invalid parameters input for create event -->
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="activity" value="{$ctx:activity}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                    <!-- Creating Deal related activity in PipeDrive -->
+                                    <pipedrive.init>
+                                       <apiToken>{$ctx:pipedrive.apiToken}</apiToken>
+                                       <apiUrl>{$ctx:pipedrive.apiUrl}</apiUrl>
+                                    </pipedrive.init>
+                                    <pipedrive.createActivity>
+                                       <personId>{$ctx:pipedrivePersonId}</personId>
+                                       <dueTime>{$ctx:pipedriveActivityDueTime}</dueTime>
+                                       <duration>{$ctx:pipedriveActivityDuration}</duration>
+                                       <prettyOutput>{$ctx:prettyOutput}</prettyOutput>
+                                       <subject>{$ctx:pipedriveActivitySubject}</subject>
+                                       <userId>{$ctx:pipedriveActivityUserId}</userId>
+                                       <isDone>{$ctx:isDone}</isDone>
+                                       <organizationId>{$ctx:pipedriveOrganizationId}</organizationId>
+                                       <dealId>{$ctx:pipedriveDealId}</dealId>
+                                       <type>{$ctx:pipedriveActivityType}</type>
+                                       <dueDate>{$ctx:pipedriveActivityDueDate}</dueDate>
+                                       <note>{$ctx:pipedriveActivityNote}</note>
+                                       <fields>{$ctx:pipedriveFields}</fields>
+                                    </pipedrive.createActivity>
+                                    <!-- Checks whether the activity has been successfully created, if not returns an error 
+                                       response, otherwise proceed to create event in google calendar -->
+                                    <property name="createActivityResponseStatus" expression="json-eval($.success)" />
+                                    <filter xpath="get-property('createActivityResponseStatus') = 'true'">
+                                       <else>
+                                          <property name="createActivityId"
+                                             expression="fn:concat('{&quot;dealId&quot;:&quot;',get-property('pipedriveDealId'), '&quot;}')" />
+                                          <property name="status" value="Error" />
+                                          <property name="activity" value="pipedrive_createActivity" />
+                                          <property name="errorMessage" expression="json-eval($.error)" />
+                                          <property name="message"
+                                             expression="fn:concat('Error creating activity for the deal, Error:',get-property('errorMessage'))" />
+                                          <!-- Generate response for error in create activity -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:createActivityId}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="activity" value="{$ctx:activity}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                       <then>
+                                          <property name="pipeDriveActivityId" expression="json-eval($.data.id)" />
+                                          <property name="activityId"
+                                             expression="fn:concat('{&quot;activityId&quot;:&quot;',get-property('pipeDriveActivityId'), '&quot;,&quot;dealId&quot;:&quot;', get-property('pipedriveDealId') , '&quot;}')" />
+                                          <property name="status" value="Success" />
+                                          <property name="activity" value="pipedrive_createActivity" />
+                                          <property name="message" value="Deal related activity has been created successfully" />
+                                          <!-- Generate success response for create activity -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:activityId}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="activity" value="{$ctx:activity}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                          <!-- Clears the payload to avoid getting the success details of the previous calls -->
+                                          <payloadFactory media-type="json">
+                                             <format>
+                                                {}
+                                             </format>
+                                          </payloadFactory>
+                                          <!-- Getting person details to create event in GoogleCalendar -->
+                                          <property name="pipedrivePersonId" expression="get-property('pipedrivePersonId')" />
+                                          <filter source="boolean(get-property('pipedrivePersonId'))" regex="true">
+                                             <!-- Checks whether the person id has been provided for the deal -->
+                                             <else>
+                                                <property name="id"
+                                                   expression="fn:concat('{&quot;dealId&quot;:&quot;',get-property('pipedriveDealId'), '&quot;,&quot;activityId&quot;:&quot;', get-property('pipeDriveActivityId') , '&quot;}')" />
+                                                <property name="status" value="Error" />
+                                                <property name="activity" value="pipedrive_getPersonDetails" />
+                                                <property name="message"
+                                                   value="Person details were not found for the deal, hence an Event will not be created." />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="activity" value="{$ctx:activity}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </else>
+                                             <then>
+                                                <!-- Get person details to add as attendees for the event -->
+                                                <property name="pipedrivePersonFields" value="[&quot;name&quot;,&quot;email&quot;]" />
+                                                <pipedrive.init>
+                                                   <apiToken>{$ctx:pipedrive.apiToken}</apiToken>
+                                                   <apiUrl>{$ctx:pipedrive.apiUrl}</apiUrl>
+                                                </pipedrive.init>
+                                                <pipedrive.getPerson>
+                                                   <id>{$ctx:pipedrivePersonId}</id>
+                                                   <prettyOutput>{$ctx:prettyOutput}</prettyOutput>
+                                                   <fields>{$ctx:pipedrivePersonFields}</fields>
+                                                </pipedrive.getPerson>
+                                                <!-- Checking whether the person details have been retrieved successfully, 
+                                                   if not returns an error response otherwise proceed to create event -->
+                                                <property name="getPersonResponseStatus" expression="json-eval($.success)" />
+                                                <filter xpath="get-property('getPersonResponseStatus') = 'true'">
+                                                   <else>
+                                                      <property name="errorMessage" expression="json-eval($.error)" />
+                                                      <property name="id"
+                                                         expression="fn:concat('{&quot;personId&quot;:&quot;',get-property('pipedrivePersonId'), '&quot;,&quot;dealId&quot;:&quot;',get-property('pipedriveDealId'), '&quot;,&quot;activityId&quot;:&quot;', get-property('pipeDriveActivityId') , '&quot;}')" />
+                                                      <property name="status" value="Error" />
+                                                      <property name="activity" value="pipedrive_getPerson" />
+                                                      <property name="message"
+                                                         expression="fn:concat('Error in retrieving person details for the activity , Error:',get-property('errorMessage'))" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="{$ctx:status}" />
+                                                         <with-param name="activity" value="{$ctx:activity}" />
+                                                         <with-param name="message" value="{$ctx:message}" />
+                                                      </call-template>
+                                                   </else>
+                                                   <then>
+                                                      <property name="attendeesUserName" expression="json-eval($.data.name)" />
+                                                      <property name="attendeesEmail" expression="json-eval($.data.email)" />
+                                                      <!-- Checks whether calendar Id is present to proceed with event creation -->
+                                                      <filter source="boolean(get-property('googleCalendarId'))"
+                                                         regex="false">
+                                                         <then>
+                                                            <property name="id"
+                                                               expression="fn:concat('{&quot;dealId&quot;:&quot;',get-property('pipedriveDealId'), '&quot;,&quot;activityId&quot;:&quot;', get-property('pipeDriveActivityId') , '&quot;}')" />
+                                                            <property name="status" value="Skipped" />
+                                                            <property name="activity" value="googleCalendar_createEvent" />
+                                                            <property name="message"
+                                                               value="Calendar Id is not present, hence an activity will not be created" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="status" value="{$ctx:status}" />
+                                                               <with-param name="activity" value="{$ctx:activity}" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                         </then>
+                                                         <else>
+                                                            <!-- Checks whether the email address is present for the person -->
+                                                            <filter source="boolean(get-property('attendeesEmail'))"
+                                                               regex="false">
+                                                               <then>
+                                                                  <property name="id"
+                                                                     expression="fn:concat('{&quot;personId&quot;:&quot;',get-property('pipedrivePersonId'), '&quot;,&quot;dealId&quot;:&quot;',get-property('pipedriveDealId'), '&quot;,&quot;activityId&quot;:&quot;', get-property('pipeDriveActivityId') , '&quot;}')" />
+                                                                  <property name="status" value="Skipped" />
+                                                                  <property name="activity" value="pipedrive_getPerson" />
+                                                                  <property name="message"
+                                                                     value="Emails are not present for the Person, hence an event will be not be created" />
+                                                                  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="id" value="{$ctx:id}" />
+                                                                     <with-param name="status" value="{$ctx:status}" />
+                                                                     <with-param name="activity" value="{$ctx:activity}" />
+                                                                     <with-param name="message" value="{$ctx:message}" />
+                                                                  </call-template>
+                                                               </then>
+                                                               <else>
+                                                                  <property name="calendarEventSummary"
+                                                                     expression="get-property('pipedriveActivitySubject')" />
+                                                                  <property name="calendarEventDescription"
+                                                                     expression="get-property('pipedriveActivityNote')" />
+                                                                  <property name="sendNotifications" value="true" />
+
+                                                                  <!-- Clears the parameter values to avoid getting the values 
+                                                                     of the previous calls -->
+                                                                  <property name="fields" value="" />
+                                                                  <property name="id" value="" />
+                                                                  <property name="status" value="" />
+                                                                  <!-- Creating the event in GoogleCalendar -->
+                                                                  <googlecalendar.init>
+                                                                     <apiUrl>{$ctx:googleCalendar.apiUrl}</apiUrl>
+                                                                     <accessToken>{$ctx:googleCalendar.apiToken}</accessToken>
+                                                                  </googlecalendar.init>
+                                                                  <googlecalendar.createEvent>
+                                                                     <start>{$ctx:calendarEventStart}</start>
+                                                                     <end>{$ctx:calendarEventEnd}</end>
+                                                                     <attendees>{$ctx:attendeeEmails}</attendees>
+                                                                     <id>{$ctx:id}</id>
+                                                                     <fields>{$ctx:fields}</fields>
+                                                                     <sendNotifications>{$ctx:sendNotifications}</sendNotifications>
+                                                                     <calendarId>{$ctx:googleCalendarId}</calendarId>
+                                                                     <description>{$ctx:calendarEventDescription}</description>
+                                                                     <summary>{$ctx:calendarEventSummary}</summary>
+                                                                     <maxAttendees>{$ctx:maxAttendees}</maxAttendees>
+                                                                     <anyoneCanAddSelf>{$ctx:anyoneCanAddSelf}</anyoneCanAddSelf>
+                                                                     <attendeesOmitted>{$ctx:attendeesOmitted}</attendeesOmitted>
+                                                                     <colorId>{$ctx:colorId}</colorId>
+                                                                     <endTimeUnspecified>{$ctx:endTimeUnspecified}</endTimeUnspecified>
+                                                                     <etag>{$ctx:etag}</etag>
+                                                                     <extendedProperties>{$ctx:extendedProperties}</extendedProperties>
+                                                                     <gadget>{$ctx:gadget}</gadget>
+                                                                     <guestsCanInviteOthers>{$ctx:guestsCanInviteOthers}</guestsCanInviteOthers>
+                                                                     <guestsCanSeeOtherGuests>{$ctx:guestsCanSeeOtherGuests}</guestsCanSeeOtherGuests>
+                                                                     <iCalUID>{$ctx:iCalUID}</iCalUID>
+                                                                     <kind>{$ctx:kind}</kind>
+                                                                     <location>{$ctx:calendarEventLocation}</location>
+                                                                     <originalStartTime>{$ctx:originalStartTime}</originalStartTime>
+                                                                     <privateCopy>{$ctx:privateCopy}</privateCopy>
+                                                                     <recurrence>{$ctx:recurrence}</recurrence>
+                                                                     <recurringEventId>{$ctx:recurringEventId}</recurringEventId>
+                                                                     <reminders>{$ctx:reminders}</reminders>
+                                                                     <sequence>{$ctx:sequence}</sequence>
+                                                                     <source>{$ctx:source}</source>
+                                                                     <status>{$ctx:status}</status>
+                                                                     <transparency>{$ctx:transparency}</transparency>
+                                                                     <visibility>{$ctx:visibility}</visibility>
+                                                                  </googlecalendar.createEvent>
+                                                                  <!-- Checking whether the event has been created in GoogleCalendar, 
+                                                                     if not returns an error response otherwise returns a success response -->
+                                                                  <property name="createEventErrorCode" expression="json-eval($.error.code)" />
+                                                                  <filter
+                                                                     xpath="boolean(get-property('createEventErrorCode')) = 'true'">
+                                                                     <then>
+                                                                        <property name="idCreateEvent"
+                                                                           expression="fn:concat('{&quot;calenderId&quot;:&quot;', get-property('googleCalendarId') , '&quot;,&quot;activityId&quot;:&quot;', get-property('pipeDriveActivityId'), '&quot;,&quot;dealId&quot;:&quot;', get-property('pipedriveDealId'), '&quot;}')" />
+                                                                        <property name="status" value="Error" />
+                                                                        <property name="activity" value="googleCalendar_createEvent" />
+                                                                        <property name="createEventResponseMessage" expression="json-eval($.error.message)" />
+                                                                        <script language="js">
+                                                                           <![CDATA[
+                                                                              // Replaces the Double quotes in the error message to maintain a valid JSON response
+                                                                              var errorDetails = mc.getProperty('createEventResponseMessage');
+                                                                              mc.setProperty('createEventResponseMessage', errorDetails.replace('"', '\\"'));
+                                                                           ]]>
+                                                                        </script>
+                                                                        <property name="message"
+                                                                           expression="fn:concat('Could not create the event for activity, Error: ', get-property('createEventResponseMessage'))" />
+                                                                     </then>
+                                                                     <else>
+                                                                        <property name="eventId" expression="json-eval($.id)" />
+                                                                        <property name="idCreateEvent"
+                                                                           expression="fn:concat('{&quot;eventId&quot;:&quot;',get-property('eventId'), '&quot;,&quot;calenderId&quot;:&quot;', get-property('googleCalendarId') , '&quot;,&quot;activityId&quot;:&quot;', get-property('pipeDriveActivityId'), '&quot;,&quot;dealId&quot;:&quot;',get-property('pipedriveDealId'), '&quot;}')" />
+                                                                        <property name="status" value="Success" />
+                                                                        <property name="activity"
+                                                                           value="googleCalendar_createEvent" />
+                                                                        <property name="message"
+                                                                           value="Event has been successfully created in GoogleCalendar" />
+                                                                     </else>
+                                                                  </filter>
+                                                                  <!-- END: Successful creation of the Event check -->
+                                                                  <!-- Generate response for Event creation -->
+                                                                  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="id" value="{$ctx:idCreateEvent}" />
+                                                                     <with-param name="status" value="{$ctx:status}" />
+                                                                     <with-param name="activity" value="{$ctx:activity}" />
+                                                                     <with-param name="message" value="{$ctx:message}" />
+                                                                  </call-template>
+                                                               </else>
+                                                            </filter>
+                                                            <!-- END: Email address of person availability check -->
+                                                         </else>
+                                                      </filter>
+                                                      <!-- END: Calendar Id availability check -->
+                                                   </then>
+                                                </filter>
+                                                <!-- END: Successfully retrieving of person details check -->
+                                             </then>
+                                          </filter>
+                                          <!-- END: Person ID availability check -->
+                                       </then>
+                                    </filter>
+                                    <!-- END: successful creation of activity check -->
+                                 </else>
+                              </filter>
+                              <!-- END: valid format of the date/time check -->
+                           </then>
+                        </filter>
+                        <!-- END: PipeDrive Deal ID availability check -->
+                     </then>
+                  </filter>
+                  <property name="pipedriveActivityIndex" expression="get-property('operation','pipedriveActivityIndex') + 1"
+                     scope="operation" />
+                  <filter
+                     xpath="get-property('operation', 'pipedriveActivityIndex') = get-property('operation', 'sharedDetailsCount')">
+                     <then>
+                        <loopback />
+                     </then>
+                  </filter>
+               </sequence>
+            </target>
+         </iterate>
+      </inSequence>
+      <outSequence>
+         <!-- Generate the chained response of all the API calls in createDealActivityAndEvent -->
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"pipedrive_createDealRelatedActivityAndEvent",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
+                                

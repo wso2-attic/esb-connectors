@@ -1,0 +1,588 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template retrieves Deal details from Pipedrive and creates an Invoice in FreshBooks and sends it. Client will be 
+   created in FreshBooks if not available. -->
+<template name="pipedrive-retrieveDealDetailsAndCreateInvoicesInFreshBooks" xmlns="http://ws.apache.org/ns/synapse">
+
+   <!-- Pipedrive parameters -->
+   <parameter name="pipedrive.apiKey" description="The apiKey of a valid pipedrive account" />
+   <parameter name="pipedrive.dealId" description="Pipedrive Deal identifier" />
+   <parameter name="pipedrive.invoiceIdCustomField" description="Pipedrive invoice Id custom field" />
+
+   <!-- FreshBooks parameters -->
+   <parameter name="freshbooks.apiUrl" description="The FreshBooks Api Url" />
+   <parameter name="freshbooks.apiKey" description="The Api Key of the FreshBooks" />
+
+   <sequence>
+      <!-- Pipedrive properties -->
+      <property name="uri.var.pipedrive.apiUrl" value="https://api.pipedrive.com" />
+      <property name="uri.var.pipedrive.includeProductData" value="1" />
+      <property name="uri.var.pipedrive.apiKey" expression="$func:pipedrive.apiKey" />
+      <property name="uri.var.pipedrive.dealId" expression="$func:pipedrive.dealId" />
+      <property name="uri.var.pipedrive.invoiceIdCustomField" expression="$func:pipedrive.invoiceIdCustomField" />
+
+      <!-- FreshBooks properties -->
+      <property name="uri.var.freshbooks.apiUrl" expression="$func:freshbooks.apiUrl" />
+      <property name="uri.var.freshbooks.apiKey" expression="$func:freshbooks.apiKey" />
+
+      <!-- Common properties -->
+      <property name="uri.var.emptyID" value="{}" />
+
+      <pipedrive.init>
+         <apiToken>{$ctx:pipedrive.apiKey}</apiToken>
+         <apiUrl>{$ctx:uri.var.pipedrive.apiUrl}</apiUrl>
+      </pipedrive.init>
+      <pipedrive.getDeal>
+         <id>{$ctx:uri.var.pipedrive.dealId}</id>
+      </pipedrive.getDeal>
+      <property name="uri.var.pipedrive.personId" expression="json-eval($.data.person_id.value)" />
+      <property name="uri.var.pipedrive.currency" expression="json-eval($.data.currency)" />
+      <property name="uri.var.pipedrive.dealTitle" expression="json-eval($.data.title)" />
+      <property name="uri.var.pipedrive.dealStatus" expression="json-eval($.data.status)" />
+      <property name="uri.var.pipedrive.dealAmount" expression="json-eval($.data.value)" />
+      <property name="uri.var.pipedrive.invoiceId" value="" />
+      <property name="uri.var.pipedrive.getDealSuccessResponse" expression="json-eval($.success)" />
+      <!--START: Check the successful response of getDeal to proceed with Invoice Creation -->
+      <filter xpath="get-property('uri.var.pipedrive.getDealSuccessResponse') = 'true'">
+         <else>
+            <property name="uri.var.id" expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+            <property name="uri.var.pipedrive.getDealResponseMessage" expression="json-eval($.error)" />
+            <property name="uri.var.pipedrive.getDealErrorMessage"
+               expression="fn:concat('Could not get Deal details. Error: ', get-property('uri.var.pipedrive.getDealResponseMessage'))" />
+            <call-template target="responseHandlerTemplate">
+               <with-param name="activity" value="pipedrive_getDeal" />
+               <with-param name="id" value="{$ctx:uri.var.id}" />
+               <with-param name="status" value="Error" />
+               <with-param name="message" value="{$ctx:uri.var.pipedrive.getDealErrorMessage}" />
+            </call-template>
+         </else>
+         <then>
+            <!--START: Check the deal status -->
+            <filter xpath="get-property('uri.var.pipedrive.dealStatus') = 'won'">
+               <else>
+                  <property name="uri.var.id" expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                  <property name="uri.var.status" value="Error" />
+                  <property name="uri.var.activity" value="pipedrive_getDeal" />
+                  <property name="uri.var.message" value="The Deal is not in 'won' state." />
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="activity" value="{$ctx:uri.var.activity}" />
+                     <with-param name="id" value="{$ctx:uri.var.id}" />
+                     <with-param name="status" value="{$ctx:uri.var.status}" />
+                     <with-param name="message" value="{$ctx:uri.var.message}" />
+                  </call-template>
+               </else>
+               <then>
+                  <script language="js"> 
+                     <![CDATA[ 
+                        var invoiceIdField = mc.getProperty('uri.var.pipedrive.invoiceIdCustomField');
+                        payload = mc.getPayloadJSON();
+                        var dataObj = payload.data;
+                        var invoiceId = '' + dataObj[invoiceIdField];
+                        if(invoiceId == 'undefined'){
+                           mc.setProperty('uri.var.isValidCustomField', 'false');
+                        } else if(invoiceId != 'null' && invoiceId != ''){
+                           mc.setProperty('uri.var.pipedrive.invoiceId', invoiceId);
+                        }
+                     ]]>
+                  </script>
+                  <!-- check if the invoice id custom field is present -->
+                  <filter xpath="'false' = get-property('uri.var.isValidCustomField')">
+                     <then>
+                        <property name="uri.var.id"
+                                 expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                        <property name="uri.var.message" value="Could not find the given custom field (invoiceIdCustomField) in the Deals in PipeDrive. Hence Invoices will not be created." />
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="activity" value="pipedrvive_getDeal" />
+                           <with-param name="id" value="{$ctx:uri.var.id}" />
+                           <with-param name="status" value="Error" />
+                           <with-param name="message" value="{$ctx:uri.var.message}" />
+                        </call-template>
+                     </then>
+                     <else>
+                        <!-- check invoice already created or not -->
+                        <filter xpath="boolean(get-property('uri.var.pipedrive.invoiceId'))">
+                           <then>
+                              <property name="uri.var.id"
+                                 expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                              <property name="uri.var.message" value="Invoice has been already created for the deal." />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="pipedrvive_getDeal" />
+                                 <with-param name="id" value="{$ctx:uri.var.id}" />
+                                 <with-param name="status" value="Error" />
+                                 <with-param name="message" value="{$ctx:uri.var.message}" />
+                              </call-template>
+                           </then>
+                           <else>
+                              <!-- Get deal products -->
+                              <pipedrive.init>
+                                 <apiToken>{$ctx:pipedrive.apiKey}</apiToken>
+                                 <apiUrl>{$ctx:uri.var.pipedrive.apiUrl}</apiUrl>
+                              </pipedrive.init>
+                              <pipedrive.listDealProducts>
+                                 <id>{$ctx:uri.var.pipedrive.dealId}</id>
+                                 <includeProductData>{$ctx:uri.var.pipedrive.includeProductData}</includeProductData>
+                              </pipedrive.listDealProducts>
+                              <property name="uri.var.pipedrive.listDealProductsSuccessResponse" expression="json-eval($.success)" />
+                              <!--START: Check the successful response of listDealProducts to proceed with Invoice Creation -->
+                              <filter xpath="get-property('uri.var.pipedrive.listDealProductsSuccessResponse') = 'true'">
+                                 <else>
+                                    <property name="uri.var.id"
+                                       expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                                    <property name="uri.var.pipedrive.listDealProductsResponseMessage"
+                                       expression="json-eval($.error)" />
+                                    <property name="uri.var.pipedrive.listDealProductsErrorMessage"
+                                       expression="fn:concat('Could not get products attached to the Deal. Error: ', get-property('uri.var.pipedrive.listDealProductsResponseMessage'))" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="pipedrive_listDealProducts" />
+                                       <with-param name="id" value="{$ctx:uri.var.id}" />
+                                       <with-param name="status" value="Error" />
+                                       <with-param name="message"
+                                          value="{$ctx:uri.var.pipedrive.listDealProductsErrorMessage}" />
+                                    </call-template>
+                                 </else>
+                                 <then>
+                                    <!-- Successfully retrieved the Invoice Items details -->
+                                    <property name="uri.var.pipedrive.listDealProductsResults" expression="json-eval($.data)" />
+                                    <property name="uri.var.lines" value="" />
+                                    <!-- Retrieves the returned product details and creates content for the invoice -->
+                                    <script language="js"> 
+                                       <![CDATA[ 
+                                          var pipedriveInvoiceProducts = mc.getProperty('uri.var.pipedrive.listDealProductsResults');
+                                          if (pipedriveInvoiceProducts != '' && pipedriveInvoiceProducts != null && pipedriveInvoiceProducts != 'null') {
+                                             var pipedriveInvoiceProductsArray = eval("(" + pipedriveInvoiceProducts + ")"); var lines = '';
+                                             // Check whether variants are available in each product. 
+                                             if (pipedriveInvoiceProductsArray.length > 0) {
+                                                for (var i = 0; i < pipedriveInvoiceProductsArray.length; i++) {
+                                                   lines += '<line><name>' + pipedriveInvoiceProductsArray[i].name + '</name><description> Product of Deal ' + mc.getProperty('uri.var.pipedrive.dealId') + '</description><unit_cost>' + pipedriveInvoiceProductsArray[i].item_price 
+                                                            + '</unit_cost><quantity>' + pipedriveInvoiceProductsArray[i].quantity + '</quantity></line>'; 
+                                                } 
+                                             }
+                                             mc.setProperty('uri.var.lines',lines); 
+                                          } 
+                                       ]]>
+                                    </script>
+                                    <!--START: Check products availability, if products are not available amount of the deal 
+                                       will be taken in -->
+                                    <filter
+                                       xpath="get-property('uri.var.lines') = 'null' or get-property('uri.var.lines') = ''">
+                                       <then>
+                                          <script language="js"> 
+                                             <![CDATA[ 
+                                                var amount = mc.getProperty('uri.var.pipedrive.dealAmount');
+                                                var dealName = mc.getProperty('uri.var.pipedrive.dealTitle');                      
+                                                lines = '<line><name>' + dealName + '</name><unit_cost>' + amount + '</unit_cost><quantity>1</quantity></line>';                     
+                                                mc.setProperty('uri.var.lines',lines); 
+                                             ]]>
+                                          </script>
+                                       </then>
+                                    </filter>
+                                    <!-- END: products availability check -->
+                                    <!--START: Check person availability for the deal -->
+                                    <filter source="boolean(get-property('uri.var.pipedrive.personId'))" regex="true">
+                                       <else>
+                                          <property name="uri.var.id"
+                                             expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                                          <property name="uri.var.status" value="Error" />
+                                          <property name="uri.var.activity" value="pipedrive_getDeal" />
+                                          <property name="uri.var.message" value="The Deal is not assigned to a person." />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="{$ctx:uri.var.activity}" />
+                                             <with-param name="id" value="{$ctx:uri.var.id}" />
+                                             <with-param name="status" value="{$ctx:uri.var.status}" />
+                                             <with-param name="message" value="{$ctx:uri.var.message}" />
+                                          </call-template>
+                                       </else>
+                                       <then>
+                                          <!-- Retrieve User details of the given Deal -->
+                                          <pipedrive.init>
+                                             <apiToken>{$ctx:pipedrive.apiKey}</apiToken>
+                                             <apiUrl>{$ctx:uri.var.pipedrive.apiUrl}</apiUrl>
+                                          </pipedrive.init>
+                                          <pipedrive.getPerson>
+                                             <id>{$ctx:uri.var.pipedrive.personId}</id>
+                                          </pipedrive.getPerson>
+                                          <property name="uri.var.pipedrive.getPersonSuccessResponse"
+                                             expression="json-eval($.success)" />
+                                          <!-- START: Check the successful response of getPerson to proceed with Invoice 
+                                             Creation -->
+                                          <filter xpath="get-property('uri.var.pipedrive.getPersonSuccessResponse') = 'true'">
+                                             <else>
+                                                <property name="uri.var.id"
+                                                   expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                                                <property name="uri.var.pipedrive.getPersonErrorMessage"
+                                                   expression="json-eval($.error)" />
+                                                <property name="uri.var.status" value="Error" />
+                                                <property name="uri.var.activity" value="pipedrive_getPerson" />
+                                                <property name="uri.var.message"
+                                                   expression="fn:concat('Could not retrieve Person details for the Deal, Error: ', get-property('uri.var.pipedrive.getPersonErrorMessage'))" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="{$ctx:uri.var.activity}" />
+                                                   <with-param name="id" value="{$ctx:uri.var.id}" />
+                                                   <with-param name="status" value="{$ctx:uri.var.status}" />
+                                                   <with-param name="message" value="{$ctx:uri.var.message}" />
+                                                </call-template>
+                                             </else>
+                                             <then>
+                                                <property name="uri.var.pipedrive.emailsListResult" expression="json-eval($.data.email)" />
+                                                <script language="js"> 
+                                                   <![CDATA[ 
+                                                      var emailAddresses = mc.getProperty('uri.var.pipedrive.emailsListResult');
+                                                      if (emailAddresses != '' && emailAddresses != null && emailAddresses != 'null') {
+                                                         var emailsArray = eval("(" + emailAddresses + ")"); 
+                                                         var emails = '';
+                                                         var email = '';                                   
+                                                         if (emailsArray.length > 1) {
+                                                            for (var i = 0; i < emailsArray.length; i++) {                    
+                                                               if(Boolean(emailsArray[i].primary)){
+                                                                  email = emailsArray[i].value;
+                                                                  break;
+                                                               }                          
+                                                            } 
+                                                         }
+                                                         else{
+                                                            email = emailsArray[0].value;
+                                                         }
+                                                         mc.setProperty('uri.var.clientEmail',email); 
+                                                      } 
+                                                   ]]>
+                                                </script>
+                                                <property name="uri.var.clientFirstName" expression="json-eval($.data.first_name)" />
+                                                <property name="uri.var.clientLastName" expression="json-eval($.data.last_name)" />
+                                                <property name="uri.var.organization" expression="json-eval($.data.org_id.name)" />
+                                                <!-- filter to remove the null value from the last name -->
+                                                <filter xpath="get-property('uri.var.clientLastName') = 'null'">
+                                                   <then>
+                                                      <property name="uri.var.clientLastName" value="" />
+                                                   </then>
+                                                </filter>
+                                                <!-- filter to remove the null value from the organization -->
+                                                <filter xpath="get-property('uri.var.organization') = 'null'">
+                                                   <then>
+                                                      <property name="uri.var.organization" value="" />
+                                                   </then>
+                                                </filter>
+                                                <!-- START: Check the availability of the User email to proceed with Invoice 
+                                                   Creation -->
+                                                <filter source="boolean(get-property('uri.var.clientEmail'))"
+                                                   regex="true">
+                                                   <else>
+                                                      <property name="uri.var.id"
+                                                         expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                                                      <property name="uri.var.status" value="Error" />
+                                                      <property name="uri.var.activity" value="pipedrive_getPersonDetails" />
+                                                      <property name="uri.var.message"
+                                                         value="Could not retrieve User email for the Deal. User email should be available to create the Invoice." />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="{$ctx:uri.var.activity}" />
+                                                         <with-param name="id" value="{$ctx:uri.var.id}" />
+                                                         <with-param name="status" value="{$ctx:uri.var.status}" />
+                                                         <with-param name="message" value="{$ctx:uri.var.message}" />
+                                                      </call-template>
+                                                   </else>
+                                                   <then>
+                                                      <property name="messageType" value="application/xml"
+                                                         scope="axis2" />
+                                                      <property name="uri.var.username" value="" />
+                                                      <!-- list FreshBooks clients for the given email -->
+                                                      <freshbooks.init>
+                                                         <apiUrl>{$ctx:uri.var.freshbooks.apiUrl}</apiUrl>
+                                                         <authenticationToken>{$ctx:uri.var.freshbooks.apiKey}</authenticationToken>
+                                                      </freshbooks.init>
+                                                      <freshbooks.listClients>
+                                                         <email>{$ctx:uri.var.clientEmail}</email>
+                                                      </freshbooks.listClients>
+                                                      <!-- retrieve the error message from the listClients method if there 
+                                                         is any -->
+                                                      <property name="uri.var.listClientsErrorMessage"
+                                                         expression="//*[local-name()='error']/text()" />
+                                                      <!--STRAT: Check the successful execution of the listClients method 
+                                                         to proceed with Invoice creation -->
+                                                      <filter source="boolean(get-property('uri.var.listClientsErrorMessage'))"
+                                                         regex="true">
+                                                         <then>
+                                                            <property name="uri.var.id" expression="get-property('uri.var.emptyID')" />
+                                                            <property name="uri.var.message"
+                                                               expression="fn:concat('Cannot check the existence of the client(', get-property('uri.var.clientEmail') ,') in Freshbooks. Error: ', get-property('uri.var.listClientsErrorMessage'))" />
+                                                            <property name="uri.var.status" value="Error" />
+                                                            <property name="uri.var.activity" value="freshbooks_listClients" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="{$ctx:uri.var.activity}" />
+                                                               <with-param name="id" value="{$ctx:uri.var.id}" />
+                                                               <with-param name="status" value="{$ctx:uri.var.status}" />
+                                                               <with-param name="message" value="{$ctx:uri.var.message}" />
+                                                            </call-template>
+                                                         </then>
+                                                         <else>
+                                                            <property name="uri.var.clientsCount" expression="//*[local-name()='clients']/@total" />
+                                                            <!-- START: Checks if there aren't any clients listed for the 
+                                                               provided email -->
+                                                            <filter xpath="0 = get-property('uri.var.clientsCount')">
+                                                               <then>
+                                                                  <property name="messageType" value="application/xml"
+                                                                     scope="axis2" />
+                                                                  <!-- Client does not exist in FreshBooks, proceed to create 
+                                                                     client in FreshBooks -->
+                                                                  <freshbooks.init>
+                                                                     <apiUrl>{$ctx:uri.var.freshbooks.apiUrl}</apiUrl>
+                                                                     <authenticationToken>{$ctx:uri.var.freshbooks.apiKey}</authenticationToken>
+                                                                  </freshbooks.init>
+                                                                  <freshbooks.createClient>
+                                                                     <email>{$ctx:uri.var.clientEmail}</email>
+                                                                     <firstName>{$ctx:uri.var.clientFirstName}</firstName>
+                                                                     <lastName>{$ctx:uri.var.clientLastName}</lastName>
+                                                                     <organization>{$ctx:uri.var.organization}</organization>
+                                                                  </freshbooks.createClient>
+                                                                  <!-- retrieve the error message from the createClient method 
+                                                                     if there is any -->
+                                                                  <property name="uri.var.createClientErrorMessage"
+                                                                     expression="//*[local-name()='error']/text()" />
+                                                                  <!-- STRAT: Check the successful execution of the createClient 
+                                                                     method -->
+                                                                  <filter
+                                                                     source="boolean(get-property('uri.var.createClientErrorMessage'))"
+                                                                     regex="true">
+                                                                     <then>
+                                                                        <property name="uri.var.createClientId"
+                                                                           expression="get-property('uri.var.emptyID')" />
+                                                                        <property name="uri.var.createClientMessage"
+                                                                           expression="fn:concat('Failed to create the non existing Client with Email: ', get-property('uri.var.clientEmail') ,'. Error: ', get-property('uri.var.createClientErrorMessage'))" />
+                                                                        <property name="uri.var.status" value="Error" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                           <with-param name="activity"
+                                                                              value="freshbooks_createClient" />
+                                                                           <with-param name="id"
+                                                                              value="{$ctx:uri.var.createClientId}" />
+                                                                           <with-param name="status"
+                                                                              value="{$ctx:uri.var.status}" />
+                                                                           <with-param name="message"
+                                                                              value="{$ctx:uri.var.createClientMessage}" />
+                                                                        </call-template>
+                                                                     </then>
+                                                                     <else>
+                                                                        <!-- Fetches the created Client ID -->
+                                                                        <property name="uri.var.freshbooks.clientId"
+                                                                           expression="//*[local-name()='client_id']/text()" />
+                                                                        <property name="uri.var.createClientId"
+                                                                           expression="fn:concat('clientId:',get-property('uri.var.freshbooks.clientId'))" />
+                                                                        <property name="uri.var.createClientMessage"
+                                                                           expression="fn:concat('Successfully created the Client with Email: ', get-property('uri.var.clientEmail'))" />
+                                                                        <property name="uri.var.status" value="Success" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                           <with-param name="activity"
+                                                                              value="freshbooks_createClient" />
+                                                                           <with-param name="id"
+                                                                              value="{$ctx:uri.var.createClientId}" />
+                                                                           <with-param name="status"
+                                                                              value="{$ctx:uri.var.status}" />
+                                                                           <with-param name="message"
+                                                                              value="{$ctx:uri.var.createClientMessage}" />
+                                                                        </call-template>
+                                                                     </else>
+                                                                  </filter>
+                                                                  <!-- END: Check Client creation -->
+                                                               </then>
+                                                               <else>
+                                                                  <!-- Fetches the existing client ID, Scenario assumption: 
+                                                                     email is unique for each client hence only one client should be present and retrieves the first email -->
+                                                                  <property name="uri.var.freshbooks.clientId"
+                                                                     expression="//*[local-name()='client'][1]/*[local-name()='client_id']/text()" />
+                                                               </else>
+                                                            </filter>
+                                                            <!-- END: Client availability check -->
+                                                            <!-- STRAT: Check the availability of the client ID to proceed 
+                                                               with Invoice creation -->
+                                                            <filter
+                                                               source="boolean(get-property('uri.var.freshbooks.clientId'))"
+                                                               regex="false">
+                                                               <then>
+                                                                  <property name="uri.var.id"
+                                                                     expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                                                                  <property name="uri.var.message"
+                                                                     expression="fn:concat('Client Id is not present for the client with Email: ', get-property('uri.var.clientEmail'), ', Hence could not create Invoice for the Deal')" />
+                                                                  <property name="uri.var.status" value="Error" />
+                                                                  <property name="uri.var.activity" value="freshbooks_createInvoice" />
+                                                                  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="activity"
+                                                                        value="{$ctx:uri.var.activity}" />
+                                                                     <with-param name="id" value="{$ctx:uri.var.id}" />
+                                                                     <with-param name="status" value="Error" />
+                                                                     <with-param name="message"
+                                                                        value="{$ctx:uri.var.message}" />
+                                                                  </call-template>
+                                                               </then>
+                                                               <else>
+                                                                  <property name="uri.var.freshBooks.invoiceName"
+                                                                     expression="fn:concat('Invoice for Deal ', get-property('uri.var.pipedrive.dealId'))" />
+                                                                  <property name="uri.var.status" value="" />
+                                                                  <!-- Create FreshBooks invoice for the client -->
+                                                                  <freshbooks.init>
+                                                                     <apiUrl>{$ctx:uri.var.freshbooks.apiUrl}</apiUrl>
+                                                                     <authenticationToken>{$ctx:uri.var.freshbooks.apiKey}</authenticationToken>
+                                                                  </freshbooks.init>
+                                                                  <freshbooks.createInvoice>
+                                                                     <clientId>{$ctx:uri.var.freshbooks.clientId}</clientId>
+                                                                     <lines>{$ctx:uri.var.lines}</lines>
+                                                                     <currencyCode>{$ctx:uri.var.pipedrive.currency}</currencyCode>
+                                                                  </freshbooks.createInvoice>
+                                                                  <property
+                                                                     name="uri.var.freshBooks.createInvoiceErrorMessage"
+                                                                     expression="//*[local-name()='error']/text()" />
+                                                                  <!-- START: Checks the successful completion of the FreshBooks 
+                                                                     Invoice -->
+                                                                  <filter
+                                                                     source="boolean(get-property('uri.var.freshBooks.createInvoiceErrorMessage'))"
+                                                                     regex="true">
+                                                                     <then>
+                                                                        <property name="uri.var.createInvoiceId"
+                                                                           expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                                                                        <property name="uri.var.message"
+                                                                           expression="fn:concat('Failed to create the Invoice for the Deal. Error: ', get-property('uri.var.freshBooks.createInvoiceErrorMessage'))" />
+                                                                        <property name="uri.var.activity"
+                                                                           value="freshbooks_createInvoice" />
+                                                                        <property name="uri.var.status" value="Error" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                           <with-param name="activity"
+                                                                              value="{$ctx:uri.var.activity}" />
+                                                                           <with-param name="id"
+                                                                              value="{$ctx:uri.var.createInvoiceId}" />
+                                                                           <with-param name="status" value="Error" />
+                                                                           <with-param name="message"
+                                                                              value="{$ctx:uri.var.message}" />
+                                                                        </call-template>
+                                                                     </then>
+                                                                     <else>
+                                                                        <property name="uri.var.freshBooks.invoiceId"
+                                                                           expression="//*[local-name()='invoice_id']/text()" />
+                                                                        <property name="uri.var.createInvoiceId"
+                                                                           expression="fn:concat('invoiceId:', get-property('uri.var.freshBooks.invoiceId'),',pipedriveDealId:', get-property('uri.var.pipedrive.dealId'), ',freshbooksClientId:', get-property('uri.var.freshbooks.clientId'))" />
+
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                           <with-param name="activity"
+                                                                              value="freshbooks_createInvoice" />
+                                                                           <with-param name="id"
+                                                                              value="{$ctx:uri.var.createInvoiceId}" />
+                                                                           <with-param name="status" value="Success" />
+                                                                           <with-param name="message"
+                                                                              value="Successfully created the Client Invoice for the Deal" />
+                                                                        </call-template>
+
+                                                                        <property
+                                                                           name="uri.var.pipedriveInvoiceIDCustomFieldObject"
+                                                                           expression="fn:concat('{&quot;', get-property('uri.var.pipedrive.invoiceIdCustomField'), '&quot;:&quot;', get-property('uri.var.freshBooks.invoiceId'), '&quot;}')" />
+                                                                        <pipedrive.init>
+                                                                           <apiToken>{$ctx:pipedrive.apiKey}</apiToken>
+                                                                           <apiUrl>{$ctx:uri.var.pipedrive.apiUrl}</apiUrl>
+                                                                        </pipedrive.init>
+                                                                        <pipedrive.updateDeal>
+                                                                           <id>{$ctx:uri.var.pipedrive.dealId}</id>
+                                                                           <customFields>{$ctx:uri.var.pipedriveInvoiceIDCustomFieldObject}</customFields>
+                                                                        </pipedrive.updateDeal>
+                                                                        <freshbooks.init>
+                                                                           <apiUrl>{$ctx:uri.var.freshbooks.apiUrl}</apiUrl>
+                                                                           <authenticationToken>{$ctx:uri.var.freshbooks.apiKey}</authenticationToken>
+                                                                        </freshbooks.init>
+                                                                        <freshbooks.sendInvoiceByEmail>
+                                                                           <invoiceId>{$ctx:uri.var.freshBooks.invoiceId}</invoiceId>
+                                                                        </freshbooks.sendInvoiceByEmail>
+                                                                        <property
+                                                                           name="uri.var.freshBooks.sendInvoiceByEmailErrorMessage"
+                                                                           expression="//*[local-name()='error']/text()" />
+                                                                        <filter
+                                                                           source="boolean(get-property('uri.var.freshBooks.sendInvoiceByEmailErrorMessage'))"
+                                                                           regex="true">
+                                                                           <then>
+                                                                              <property name="uri.var.createInvoiceId"
+                                                                                 expression="fn:concat('invoiceId:', get-property('uri.var.freshBooks.invoiceId'),',pipedriveDealId:', get-property('uri.var.pipedrive.dealId'), ',freshbooksClientId:', get-property('uri.var.freshbooks.clientId'))" />
+                                                                              <property name="uri.var.activity"
+                                                                                 value="freshbooks_sendInvoiceByEmail" />
+                                                                              <property name="uri.var.message"
+                                                                                 expression="fn:concat('Failed to send the email to the client. Error: ', get-property('uri.var.freshBooks.sendInvoiceByEmailErrorMessage'))" />
+                                                                              <property name="uri.var.status"
+                                                                                 value="Skipped" />
+                                                                              <call-template target="responseHandlerTemplate">
+                                                                                 <with-param name="activity"
+                                                                                    value="{$ctx:uri.var.activity}" />
+                                                                                 <with-param name="id"
+                                                                                    value="{$ctx:uri.var.createInvoiceId}" />
+                                                                                 <with-param name="status"
+                                                                                    value="{$ctx:uri.var.status}" />
+                                                                                 <with-param name="message"
+                                                                                    value="{$ctx:uri.var.message}" />
+                                                                              </call-template>
+                                                                           </then>
+                                                                           <else>
+                                                                              <property name="uri.var.createInvoiceId"
+                                                                                 expression="fn:concat('invoiceId:', get-property('uri.var.freshBooks.invoiceId'), ',pipedriveDealId:', get-property('uri.var.pipedrive.dealId'),',freshbooksClientId:', get-property('uri.var.freshbooks.clientId'))" />
+                                                                              <property name="uri.var.activity"
+                                                                                 value="freshbooks_sendInvoiceByEmail" />
+                                                                              <property name="uri.var.status"
+                                                                                 value="Success" />
+                                                                              <property name="uri.var.message"
+                                                                                 value="Invoice email sent to the client." />
+                                                                              <call-template target="responseHandlerTemplate">
+                                                                                 <with-param name="activity"
+                                                                                    value="{$ctx:uri.var.activity}" />
+                                                                                 <with-param name="id"
+                                                                                    value="{$ctx:uri.var.createInvoiceId}" />
+                                                                                 <with-param name="status"
+                                                                                    value="{$ctx:uri.var.status}" />
+                                                                                 <with-param name="message"
+                                                                                    value="{$ctx:uri.var.message}" />
+                                                                              </call-template>
+                                                                           </else>
+                                                                        </filter>
+                                                                        <!-- END: FreshBooks Invoice sent check -->
+                                                                     </else>
+                                                                  </filter>
+                                                                  <!-- END: Successful creation of the FreshBooks Invoice -->
+                                                               </else>
+                                                            </filter>
+                                                            <!-- END: client ID check -->
+                                                         </else>
+                                                      </filter>
+                                                      <!-- END: listClients execution check -->
+                                                   </then>
+                                                </filter>
+                                                <!-- END: User email availability check -->
+                                             </then>
+                                          </filter>
+                                          <!-- END: User details retrieval check -->
+                                       </then>
+                                    </filter>
+                                    <!-- END: person availability for the deal check -->
+                                 </then>
+                              </filter>
+                              <!-- END: Check the successful response of listDealProducts -->
+                           </else>
+                        </filter>
+                        <!-- END: invoice already created check -->
+                     </else>
+                  </filter>
+                  <!-- END: Check the availability of the given custom field -->
+               </then>
+            </filter>
+            <!-- END: deal status check -->
+         </then>
+      </filter>
+      <!-- END: deal status ckeck -->
+      <!-- Remove response custom header information -->
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="P3P" scope="transport" action="remove" />
+   </sequence>
+</template>

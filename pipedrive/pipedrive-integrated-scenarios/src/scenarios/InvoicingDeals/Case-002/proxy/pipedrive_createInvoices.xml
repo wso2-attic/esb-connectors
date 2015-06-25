@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pipedrive_createInvoices" transports="https,http" statistics="disable"
+   trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- pipedrive properties -->
+         <property name="pipedrive.apiUrl" value="https://api.pipedrive.com" />
+         <property name="pipedrive.apiKey" expression="json-eval($.pipedrive.apiToken)" />
+		 <property name="pipedrive.dealId" expression="json-eval($.pipedrive.dealId)" />
+		 <property name="pipedrive.invoiceIdCustomField" expression="json-eval($.pipedrive.invoiceIdCustomField)" />
+         <!-- FreshBooks properties -->
+         <property name="freshbooks.apiUrl" expression="json-eval($.freshbooks.apiUrl)" />
+         <property name="freshbooks.apiKey" expression="json-eval($.freshbooks.apiToken)" />
+		
+         <!-- START: Checks if pipedriveDealId is provided by the user -->
+         <filter source="boolean(get-property('pipedrive.dealId'))" regex="false">
+            <then>
+               <!-- Generate the response when pipedriveDealId is not provided -->
+               <property name="emptyID" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:emptyID}" />
+                  <with-param name="activity" value="pipedrive_createInvoice" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="Please provide pipedriveDealId to create Invoices" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- END: pipedriveDealId availability check -->
+
+         
+         <call-template target="pipedrive-retrieveDealDetailsAndCreateInvoicesInFreshBooks">
+            <!-- parameter values will be passed on to a sequence template -->
+            (
+            <with-param name="pipedrive.apiUrl" value="{$ctx:pipedrive.apiUrl}" />
+            |
+            <with-param name="pipedrive.apiKey" value="{$ctx:pipedrive.apiKey}" />
+			|
+            <with-param name="pipedrive.invoiceIdCustomField" value="{$ctx:pipedrive.invoiceIdCustomField}" />			
+            |
+            <with-param name="pipedrive.dealId" value="{$ctx:pipedrive.dealId}" />
+            |
+            <with-param name="freshbooks.apiUrl" value="{$ctx:freshbooks.apiUrl}" />
+            |
+            <with-param name="freshbooks.apiKey" value="{$ctx:freshbooks.apiKey}" />
+            |
+            ) *
+         </call-template>
+         <loopback />
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+
+         <!-- Generate the chained response of all the API calls in createLeads -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"pipedrive_createInvoices",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>       

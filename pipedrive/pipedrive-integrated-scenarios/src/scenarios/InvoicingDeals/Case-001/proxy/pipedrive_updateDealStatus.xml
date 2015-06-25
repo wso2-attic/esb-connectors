@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pipedrive_updateDealStatus" transports="https" statistics="disable"
+   trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- pipedrive properties -->
+         <property name="pipedrive.apiUrl" value="https://api.pipedrive.com" />
+         <property name="pipedrive.apiKey" expression="json-eval($.pipedrive.apiToken)" />
+         <property name="pipedrive.dealStatus" value="won" />
+         <property name="pipedrive.dealIds" expression="json-eval($.pipedrive.dealIds)" />
+         <property name="pipedrive.quoteIdCustomField" expression="json-eval($.pipedrive.quoteIdCustomField)" />
+         <property name="pipedrive.potentialCustomField" expression="json-eval($.pipedrive.potentialCustomField)" />
+         <!-- Zoho CRM properties -->
+         <property name="zohocrm.apiUrl" value="https://crm.zoho.com" />
+         <property name="zohocrm.apiKey" expression="json-eval($.zohocrm.apiToken)" />
+         <!-- proworkflow properties -->
+         <property name="proworkflow.apiUrl" value="https://api.proworkflow.net" />
+         <property name="proworkflow.apiKey" expression="json-eval($.proworkflow.apiToken)" />
+         <property name="proworkflow.username" expression="json-eval($.proworkflow.username)" />
+         <property name="proworkflow.password" expression="json-eval($.proworkflow.password)" />
+         <!-- Common properties -->
+         <property name="index" value="0" scope="operation" />
+         <property name="noOfDealIds" expression="count(//dealIds)" scope="operation" />
+
+         <!-- START: Checks if pipedriveDealIds provided by the user -->
+         <filter source="boolean(get-property('pipedrive.dealIds'))" regex="false">
+            <then>
+               <!-- Generate the response when pipedriveDealIds are not provided -->
+               <property name="emptyID" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:emptyID}" />
+                  <with-param name="activity" value="pipedrive_updateDealStatus" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="Please provide pipedriveDealIds." />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- END: pipedriveDealId availability check -->
+
+         <!-- START: Iterates over non-empty pipedrive ids array to extract information and proceed with Invoice creation -->
+         <iterate id="dealIdIterator" expression="//dealIds" continueParent="true" preservePayload="true"
+            sequential="true">
+            <target>
+               <sequence>
+                  <property name="dealId" expression="//dealIds/text()" />
+
+                  <call-template target="pipedrive-updateDealStatusAndQuoteOrPotential">
+                     <!-- parameter values will be passed on to a sequence template -->
+                     (
+                     <with-param name="pipedrive.apiUrl" value="{$ctx:pipedrive.apiUrl}" />
+                     |
+                     <with-param name="pipedrive.apiKey" value="{$ctx:pipedrive.apiKey}" />
+                     |
+                     <with-param name="pipedrive.quoteIdCustomField" value="{$ctx:pipedrive.quoteIdCustomField}" />
+                     |
+                     <with-param name="pipedrive.potentialCustomField" value="{$ctx:pipedrive.potentialCustomField}" />
+                     |
+                     <with-param name="pipedrive.dealId" value="{$ctx:dealId}" />
+                     |
+                     <with-param name="pipedrive.dealStatus" value="{$ctx:pipedrive.dealStatus}" />
+                     |
+                     <with-param name="zohocrm.apiUrl" value="{$ctx:zohocrm.apiUrl}" />
+                     |
+                     <with-param name="zohocrm.apiKey" value="{$ctx:zohocrm.apiKey}" />
+                     |
+                     <with-param name="proworkflow.apiUrl" value="{$ctx:proworkflow.apiUrl}" />
+                     |
+                     <with-param name="proworkflow.apiKey" value="{$ctx:proworkflow.apiKey}" />
+                     |
+                     <with-param name="proworkflow.username" value="{$ctx:proworkflow.username}" />
+                     |
+                     <with-param name="proworkflow.password" value="{$ctx:proworkflow.password}" />
+                     |
+                     ) *
+                  </call-template>
+                  <property name="index" expression="get-property('operation','index') + 1" scope="operation" />
+               </sequence>
+            </target>
+         </iterate>
+
+         <filter xpath="get-property('operation', 'index') = get-property('operation', 'noOfDealIds')">
+            <then>
+               <loopback />
+            </then>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+
+         <!-- Generate the chained response of all the API calls in createLeads -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"pipedrive_updateDealStatus",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>       

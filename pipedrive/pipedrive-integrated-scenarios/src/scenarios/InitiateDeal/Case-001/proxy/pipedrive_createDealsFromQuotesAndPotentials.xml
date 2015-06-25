@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pipedrive_createDealsFromQuotesAndPotentials" transports="https"
+   startOnLoad="true" trace="disable">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- ProWorkFlow Properties -->
+         <property name="proworkflow.apiUrl" value="https://api.proworkflow.net" />
+         <property name="proworkflow.apiKey" expression="json-eval($.proworkflow.apiKey)" />
+         <property name="proworkflow.username" expression="json-eval($.proworkflow.username)" />
+         <property name="proworkflow.password" expression="json-eval($.proworkflow.password)" />
+         <property name="proworkflow.quoteIds" expression="json-eval($.proworkflow.quoteIds)" />
+         <property name="noOfQuotes" expression="count(//proworkflow/quoteIds)" scope="operation" />
+         <!-- zohocrm Properties -->
+         <property name="zohocrm.apiUrl" value="https://crm.zoho.com" />
+         <property name="zohocrm.accessToken" expression="json-eval($.zohocrm.accessToken)" />
+         <property name="zohocrm.Potentials" expression="json-eval($.zohocrm.potentialIds)" scope="operation" />
+         <property name="noOfPotentials" expression="count(//zohocrm/potentialIds)" scope="operation" />
+         <!-- PipeDrive Properties -->
+         <property name="pipedrive.apiUrl" value="https://api.pipedrive.com" />
+         <property name="pipedrive.apiToken" expression="json-eval($.pipedrive.apiToken)" />
+         <property name="pipedrive.quoteIdCustomField" expression="json-eval($.pipedrive.quoteIdCustomField)" />
+         <property name="pipedrive.potentialCustomField" expression="json-eval($.pipedrive.potentialCustomField)" />
+         <!-- Common properties -->
+         <property name="quoteIndex" expression="0" scope="operation" />
+         <property name="potentialIndex" expression="0" scope="operation" />
+         <property name="emptyID" value="{}" />
+         <!-- START: Checks if quote IDs are provided by the user -->
+         <filter xpath="get-property('operation', 'noOfQuotes') = 0">
+            <then>
+               <!-- Generate the response when quote IDs are not provided -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:emptyID}" />
+                  <with-param name="activity" value="pipedrive_createDeals" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message"
+                     value="ProWorkFlow Quote Ids were not found, Hence Deals will not be created using Quote details." />
+               </call-template>
+            </then>
+            <else>
+               <!-- Iterates over Quote IDs to extract information and proceed with Deal creation -->
+               <iterate id="quoteIdIterator" expression="//proworkflow/quoteIds" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="proworkflowQuoteId" expression="//quoteIds/text()" />
+                        <property name="proworkflowContactEmail" value="" />
+                        <!-- Retrieve Quote details -->
+                        <proworkflow.init>
+                           <apiUrl>{$ctx:proworkflow.apiUrl}</apiUrl>
+                           <apiKey>{$ctx:proworkflow.apiKey}</apiKey>
+                           <username>{$ctx:proworkflow.username}</username>
+                           <password>{$ctx:proworkflow.password}</password>
+                           <eTag>{$ctx:eTag}</eTag>
+                        </proworkflow.init>
+                        <proworkflow.getQuote>
+                           <quoteId>{$ctx:proworkflowQuoteId}</quoteId>
+                        </proworkflow.getQuote>
+                        <property name="proworkflowGetQuoteResponseStatus" expression="json-eval($.status)" />
+                        <!-- START: Check the successful execution of the getQuote method -->
+                        <filter xpath="get-property('proworkflowGetQuoteResponseStatus') = 'Success'">
+                           <else>
+                              <property name="proworkflowQuoteId"
+                                 expression="fn:concat('proWorkFlowQuoteId:', get-property('proworkflowQuoteId'))" />
+                              <!-- START: Checks for unexpected errors like 401, where it returns an empty payload. If so 
+                                 generate a general error, else provide the specific error -->
+                              <property name="getQuoteResponsePayload" expression="json-eval($)" />
+                              <filter xpath="get-property('getQuoteResponsePayload') = ''">
+                                 <then>
+                                    <property name="proWorkFlowGetQuoteErrorMessage"
+                                       value="Failed to retrieve Quote details. This can be due to invalid authorization details." />
+                                 </then>
+                                 <else>
+                                    <property name="proworkflowGetQuoteErrorDetails" expression="json-eval($.details[0])" />
+                                    <property name="proWorkFlowGetQuoteErrorMessage"
+                                       expression="fn:concat('Failed to retrieve Quote details. ', get-property('proworkflowGetQuoteErrorDetails'))" />
+                                 </else>
+                              </filter>
+                              <!-- END: Check unexpected error situations of getQuote method -->
+                              <!-- Generate the response for getQuote failure -->
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="id" value="{$ctx:proworkflowQuoteId}" />
+                                 <with-param name="activity" value="proworkflow_getQuote" />
+                                 <with-param name="status" value="Error" />
+                                 <with-param name="message" value="{$ctx:proWorkFlowGetQuoteErrorMessage}" />
+                              </call-template>
+                           </else>
+                           <then>
+                              <property name="proworkflowQuoteStatus" expression="json-eval($.quote.status)" />
+                              <!-- START: Check if the Quote status is pending to proceed with Deal creation -->
+                              <filter xpath="get-property('proworkflowQuoteStatus') = 'pending'">
+                                 <else>
+                                    <property name="proworkflowQuoteId"
+                                       expression="fn:concat('proWorkFlowQuoteId:', get-property('proworkflowQuoteId'))" />
+                                    <property name="proWorkFlowGetQuoteSkippedMessage"
+                                       expression="fn:concat('Quote is in \&quot;', get-property('proworkflowQuoteStatus'), '\&quot; status. Hence a Deal will not be created for the Quote. Only the \&quot;Pending\&quot; Quotes are considered.')" />
+                                    <!-- Generate the response getQuote failure -->
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:proworkflowQuoteId}" />
+                                       <with-param name="activity" value="proworkflow_getQuote" />
+                                       <with-param name="status" value="Skipped" />
+                                       <with-param name="message" value="{$ctx:proWorkFlowGetQuoteSkippedMessage}" />
+                                    </call-template>
+                                 </else>
+                                 <then>
+                                    <!-- Successful execution of the getQuote method, proceed with detail extraction and 
+                                       Deal creation -->
+                                    <property name="proworkflowCompanyId" expression="json-eval($.quote.companyid)" />
+                                    <property name="proworkflowQuoteTitle" expression="json-eval($.quote.title)" />
+                                    <property name="proworkflowQuoteTotal" expression="json-eval($.quote.grandtotal)" />
+                                    <property name="proworkflowQuoteCloseDate" expression="json-eval($.quote.validtodate)" />
+
+                                    <!-- Retrieve Company details -->
+                                    <proworkflow.init>
+                                       <apiUrl>{$ctx:proworkflow.apiUrl}</apiUrl>
+                                       <apiKey>{$ctx:proworkflow.apiKey}</apiKey>
+                                       <username>{$ctx:proworkflow.username}</username>
+                                       <password>{$ctx:proworkflow.password}</password>
+                                       <eTag>{$ctx:eTag}</eTag>
+                                    </proworkflow.init>
+                                    <proworkflow.getCompany>
+                                       <companyId>{$ctx:proworkflowCompanyId}</companyId>
+                                    </proworkflow.getCompany>
+                                    <property name="proworkflowGetCompanyResponseStatus" expression="json-eval($.status)" />
+                                    <!-- START: Check the successful execution of the getCompany method -->
+                                    <filter xpath="get-property('proworkflowGetCompanyResponseStatus') = 'Success'">
+                                       <else>
+                                          <property name="proworkflowGetCompanyErrorDetails" expression="json-eval($.details[0])" />
+                                          <property name="proworkflowCompanyId"
+                                             expression="fn:concat('proworkflowCompanyId:', get-property('proworkflowCompanyId'))" />
+                                          <property name="proWorkFlowGetCompanyErrorMessage"
+                                             expression="fn:concat('Failed to retrieve Company details. ', get-property('proworkflowGetCompanyErrorDetails'))" />
+                                          <!-- Generate the response getCompany failure -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:proworkflowCompanyId}" />
+                                             <with-param name="activity" value="proworkflow_getCompany" />
+                                             <with-param name="status" value="Error" />
+                                             <with-param name="message" value="{$ctx:proWorkFlowGetCompanyErrorMessage}" />
+                                          </call-template>
+                                       </else>
+                                       <then>
+                                          <!-- Successful execution of the getCompany method, proceed with detail extraction 
+                                             and Deal creation -->
+                                          <property name="proworkflowCompanyName" expression="json-eval($.company.name)" />
+                                          <property name="proworkflowContactId" expression="json-eval($.company.contacts[0].id)" />
+                                          <!-- Check the availability of the ProWorkFlow Contact Id to proceed with Deal 
+                                             creation -->
+                                          <filter source="boolean(get-property('proworkflowContactId'))" regex="true">
+                                             <else>
+                                                <property name="proworkflowCompanyId"
+                                                   expression="fn:concat('proworkflowCompanyId:', get-property('proworkflowCompanyId'))" />
+                                                <!-- Generate the response getCompany failure -->
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="id" value="{$ctx:proworkflowCompanyId}" />
+                                                   <with-param name="activity" value="proworkflow_getContact" />
+                                                   <with-param name="status" value="Error" />
+                                                   <with-param name="message"
+                                                      value="Contacts were not found for the Company." />
+                                                </call-template>
+                                             </else>
+                                             <then>
+                                                <!-- Retrieve Contact details -->
+                                                <proworkflow.init>
+                                                   <apiUrl>{$ctx:proworkflow.apiUrl}</apiUrl>
+                                                   <apiKey>{$ctx:proworkflow.apiKey}</apiKey>
+                                                   <username>{$ctx:proworkflow.username}</username>
+                                                   <password>{$ctx:proworkflow.password}</password>
+                                                   <eTag>{$ctx:eTag}</eTag>
+                                                </proworkflow.init>
+                                                <proworkflow.getContact>
+                                                   <contactId>{$ctx:proworkflowContactId}</contactId>
+                                                </proworkflow.getContact>
+                                                <property name="proworkflowGetContactResponseStatus"
+                                                   expression="json-eval($.status)" />
+                                                <!-- START: Check the successful execution of the getContact method -->
+                                                <filter
+                                                   xpath="get-property('proworkflowGetContactResponseStatus') = 'Success'">
+                                                   <else>
+                                                      <property name="proworkflowGetContactErrorDetails"
+                                                         expression="json-eval($.details[0])" />
+                                                      <property name="proworkflowContactId"
+                                                         expression="fn:concat('proworkflowContactId:', get-property('proworkflowContactId'))" />
+                                                      <property name="proWorkFlowGetContactErrorMessage"
+                                                         expression="fn:concat('Failed to retrieve Contact details. ', get-property('proworkflowGetContactErrorDetails'))" />
+                                                      <!-- Generate the response getCompany failure -->
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="id" value="{$ctx:proworkflowContactId}" />
+                                                         <with-param name="activity" value="proworkflow_getContact" />
+                                                         <with-param name="status" value="Error" />
+                                                         <with-param name="message"
+                                                            value="{$ctx:proWorkFlowGetContactErrorMessage}" />
+                                                      </call-template>
+                                                   </else>
+                                                   <then>
+                                                      <property name="proworkflowContactEmail" expression="json-eval($.contact.email)" />
+                                                      <property name="proworkflowContactFirstName" expression="json-eval($.contact.firstname)" />
+                                                      <property name="proworkflowContactLastName" expression="json-eval($.contact.lastname)" />
+                                                      <property name="proworkflowContactPhoneNumber"
+                                                         expression="json-eval($.contact.workphone)" />
+                                                      <property name="pipedriveDealTitle"
+                                                         expression="fn:concat(get-property('proworkflowQuoteTitle'), '[Quote]')" />
+                                                      <!-- Call the template to create Deals using the extracted Quote details -->
+                                                      <call-template target="pipedrive-createDeals">
+                                                         <!-- parameter values will be passed on to a sequence template -->
+                                                         (
+                                                         <with-param name="pipedriveApiUrl" value="{$ctx:pipedrive.apiUrl}" />
+                                                         |
+                                                         <with-param name="pipedriveApiToken" value="{$ctx:pipedrive.apiToken}" />
+                                                         |
+                                                         <with-param name="pipedriveCustomFieldKey"
+                                                            value="{$ctx:pipedrive.quoteIdCustomField}" />
+                                                         |
+                                                         <with-param name="pipedriveCustomFieldValue" value="{$ctx:proworkflowQuoteId}" />
+                                                         |
+                                                         <with-param name="pipedriveDealTitle" value="{$ctx:pipedriveDealTitle}" />
+                                                         |
+                                                         <with-param name="pipedriveDealValue" value="{$ctx:proworkflowQuoteTotal}" />
+                                                         |
+                                                         <with-param name="expectedDealCloseDate" value="{$ctx:proworkflowQuoteCloseDate}" />
+                                                         |
+                                                         <with-param name="pipedriveOrganizationName" value="{$ctx:proworkflowCompanyName}" />
+                                                         |
+                                                         <with-param name="pipedrivePersonEmail" value="{$ctx:proworkflowContactEmail}" />
+                                                         |
+                                                         <with-param name="pipedrivePersonFirstName"
+                                                            value="{$ctx:proworkflowContactFirstName}" />
+                                                         |
+                                                         <with-param name="pipedrivePersonLastName" value="{$ctx:proworkflowContactLastName}" />
+                                                         |
+                                                         <with-param name="pipedrivePersonPhoneNumber"
+                                                            value="{$ctx:proworkflowContactPhoneNumber}" />
+                                                         |
+                                                         <with-param name="pipedriveDealOrigin" value="proworkflowQuote" />
+                                                         |
+                                                         <with-param name="pipedriveDealOriginId" value="{$ctx:proworkflowQuoteId}" />
+                                                         |
+                                                         <with-param name="pipedriveDealOriginName" value="ProWorkFlow Quote" />
+                                                         |
+                                                         )*
+                                                      </call-template>
+
+                                                   </then>
+                                                </filter>
+                                                <!-- END: Check successful execution of the getContact method -->
+                                             </then>
+                                          </filter>
+                                          <!-- END: Check the availability of the contact Id -->
+                                       </then>
+                                    </filter>
+                                    <!-- END: Check successful execution of the getCompany method -->
+                                 </then>
+                              </filter>
+                              <!-- END: Check the Quote status -->
+                           </then>
+                        </filter>
+                        <!-- END: Check successful execution of the getQuote method -->
+                        <property name="quoteIndex" expression="get-property('operation','quoteIndex') + 1"
+                           scope="operation" />
+                     </sequence>
+                  </target>
+               </iterate>
+            </else>
+         </filter>
+         <!-- END: Quote Id availability check -->
+         <!-- START: Checks the completion of Deal creation via Quotes to proceed to the Deal creation via Potentials -->
+         <filter xpath="get-property('operation', 'quoteIndex') = get-property('operation', 'noOfQuotes')">
+            <then>
+               <!-- START: Checks if Potential IDs are provided by the user -->
+               <filter xpath="get-property('operation', 'noOfPotentials') = 0">
+                  <then>
+                     <!-- Generate the response when quote IDs are not provided -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:emptyID}" />
+                        <with-param name="activity" value="pipedrive_createDeals" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message"
+                           value="ZohoCRM Potential Ids were not found, Hence Deals will not be created using Potential details." />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <!-- Retrieve Potential details and proced with Deal creation -->
+                     <property name="proworkflowPotentials" expression="get-property('operation', 'zohocrm.Potentials')" />
+                     <payloadFactory media-type="json">
+                        <format>
+                           {
+                           "potentialIds":$1
+                           }
+                        </format>
+                        <args>
+                           <arg expression="get-property('proworkflowPotentials')" />
+                        </args>
+                     </payloadFactory>
+                     <!-- Iterates over Potential IDs to extract information and proceed with Deal creation -->
+                     <iterate id="quoteIdIterator" expression="//potentialIds" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="zohocrmPotentialId" expression="//potentialIds/text()" />
+                              <property name="zohocrmModuleType" value="Potentials" />
+                              <property name="zohocrmContatEmail" value="" />
+                              <!-- Retrieve Potential details -->
+                              <zohocrm.init>
+                                 <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+                                 <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+                                 <scope>{$ctx:scope}</scope>
+                              </zohocrm.init>
+                              <zohocrm.getRecordsById>
+                                 <id>{$ctx:zohocrmPotentialId}</id>
+                                 <newFormat>{$ctx:newFormat}</newFormat>
+                                 <version>{$ctx:version}</version>
+                                 <moduleType>{$ctx:zohocrmModuleType}</moduleType>
+                              </zohocrm.getRecordsById>
+                              <property name="zohocrmResponseErrorCode" expression="json-eval($.response.error.code)" />
+                              <property name="zohocrmAccountName" expression="//FL[val='Account Name']/content/text()" />
+                              <property name="zohocrmPotentialAmount" expression="//FL[val='Amount']/content/text()" />
+                              <property name="zohocrmPotentialName" expression="//FL[val='Potential Name']/content/text()" />
+                              <property name="zohocrmPotentialCloseDate" expression="//FL[val='Closing Date']/content/text()" />
+
+                              <!-- START: Check the successful extraction of Account details -->
+                              <filter xpath="boolean(get-property('zohocrmAccountName'))">
+                                 <else>
+                                    <property name="zohocrmPotentialId"
+                                       expression="fn:concat('zohocrmPotentialId:', get-property('zohocrmPotentialId'))" />
+                                    <property name="zohocrmGetPotentialResponseError" expression="json-eval($.response.error.message)" />
+                                    <script language="js">
+                                       <![CDATA[
+                                          //Replaces the Double quotes in the error message to maintain a valid JSON responce
+                                          var errorDetails = mc.getProperty('zohocrmGetPotentialResponseError');
+                                          mc.setProperty('zohocrmGetPotentialResponseError', errorDetails.replace('"', '\\"'));
+                                       ]]>
+                                    </script>
+                                    <property name="zohocrmGetPotentialResponseErrorMessage"
+                                       expression="fn:concat('Failed to retrieve Account details from the Potential. Hence Deal will not be creted. Error: ', get-property('zohocrmGetPotentialResponseError'))" />
+                                    <!-- Generate the error response for getPotential failure -->
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:zohocrmPotentialId}" />
+                                       <with-param name="activity" value="zohocrm_getPotential" />
+                                       <with-param name="status" value="Error" />
+                                       <with-param name="message" value="{$ctx:zohocrmGetPotentialResponseErrorMessage}" />
+                                    </call-template>
+                                 </else>
+                                 <then>
+                                    <!-- Account detials are present -->
+                                    <property name="zohocrmContatcId" expression="//FL[val='CONTACTID']/content/text()" />
+                                    <!-- START: Check the availability of Contact details -->
+                                    <filter xpath="boolean(get-property('zohocrmContatcId'))">
+                                       <then>
+                                          <!-- Retrieve Contact details -->
+                                          <property name="zohocrmModuleType" value="Contacts" />
+                                          <zohocrm.init>
+                                             <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+                                             <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+                                             <scope>{$ctx:scope}</scope>
+                                          </zohocrm.init>
+                                          <zohocrm.getRecordsById>
+                                             <id>{$ctx:zohocrmContatcId}</id>
+                                             <newFormat>{$ctx:newFormat}</newFormat>
+                                             <version>{$ctx:version}</version>
+                                             <moduleType>{$ctx:zohocrmModuleType}</moduleType>
+                                          </zohocrm.getRecordsById>
+                                          <property name="zohocrmContatEmail" expression="//FL[val='Email']/content/text()" />
+                                          <property name="zohocrmContatFirstName" expression="//FL[val='First Name']/content/text()" />
+                                          <property name="zohocrmContatLastName" expression="//FL[val='Last Name']/content/text()" />
+                                       </then>
+                                    </filter>
+                                    <!-- END: Check the availability of the Contact details -->
+                                    <!-- Accounut details are present, Contact detials may be present, proceed with the Deal 
+                                       creation -->
+                                    <property name="pipedriveDealTitle"
+                                       expression="fn:concat(get-property('zohocrmPotentialName'), '[Potential]')" />
+
+                                    <!-- Call the template to create Deals using the extracted Potential details -->
+                                    <call-template target="pipedrive-createDeals">
+                                       <!-- parameter values will be passed on to a sequence template -->
+                                       (
+                                       <with-param name="pipedriveApiUrl" value="{$ctx:pipedrive.apiUrl}" />
+                                       |
+                                       <with-param name="pipedriveApiToken" value="{$ctx:pipedrive.apiToken}" />
+                                       |
+                                       <with-param name="pipedriveCustomFieldKey" value="{$ctx:pipedrive.potentialCustomField}" />
+                                       |
+                                       <with-param name="pipedriveCustomFieldValue" value="{$ctx:zohocrmPotentialId}" />
+                                       |
+                                       <with-param name="pipedriveDealTitle" value="{$ctx:pipedriveDealTitle}" />
+                                       |
+                                       <with-param name="pipedriveDealValue" value="{$ctx:zohocrmPotentialAmount}" />
+                                       |
+                                       <with-param name="expectedDealCloseDate" value="{$ctx:zohocrmPotentialCloseDate}" />
+                                       |
+                                       <with-param name="pipedriveOrganizationName" value="{$ctx:zohocrmAccountName}" />
+                                       |
+                                       <with-param name="pipedrivePersonEmail" value="{$ctx:zohocrmContatEmail}" />
+                                       |
+                                       <with-param name="pipedrivePersonFirstName" value="{$ctx:zohocrmContatFirstName}" />
+                                       |
+                                       <with-param name="pipedrivePersonLastName" value="{$ctx:zohocrmContatLastName}" />
+                                       |
+                                       <with-param name="pipedrivePersonPhoneNumber" value="{$ctx:zohocrmContatPhoneNumber}" />
+                                       |
+                                       <with-param name="pipedriveDealOrigin" value="zohocrmPotential" />
+                                       |
+                                       <with-param name="pipedriveDealOriginId" value="{$ctx:zohocrmPotentialId}" />
+                                       |
+                                       <with-param name="pipedriveDealOriginName" value="ZohoCRM Potential" />
+                                       |
+                                       )*
+                                    </call-template>
+                                 </then>
+                              </filter>
+                              <!-- END: Check successful extraction of Account details -->
+                              <property name="potentialIndex" expression="get-property('operation','potentialIndex') + 1"
+                                 scope="operation" />
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!-- Iterate over ZohoCRM Potential IDs -->
+                     <filter xpath="get-property('operation', 'potentialIndex') = get-property('operation', 'noOfPotentials')">
+                        <then>
+                           <loopback />
+                        </then>
+                     </filter>
+                  </else>
+               </filter>
+               <!-- END: Check the availability of Potential IDs -->
+            </then>
+         </filter>
+         <!-- END: Check the completion of Deal creation via ProWorkFlow Quote details -->
+      </inSequence>
+      <outSequence>
+         <!-- Generates the composite response -->
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"pipedrive_createDeals",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <!-- Remove response custom header information -->
+         <header name="ETag" scope="transport" action="remove" />
+         <header name="Expires" scope="transport" action="remove" />
+         <header name="Transfer-Encoding" scope="transport" action="remove" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
