@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template retrieves Deal details from Pipedrive and update deal status as 'won' and update the Zoho CRM potential
+   or Proworkflow quote accordingly. -->
+<template name="pipedrive-updateDealStatusAndQuoteOrPotential" xmlns="http://ws.apache.org/ns/synapse">
+
+   <!-- Pipedrive parameters -->
+   <parameter name="pipedrive.apiKey" description="The apiKey of a valid pipedrive account" />
+   <parameter name="pipedrive.dealId" description="Pipedrive Deal identifier" />
+   <parameter name="pipedrive.dealStatus" description="Pipedrive Deal status" />
+   <parameter name="pipedrive.quoteIdCustomField" description="Pipedrive quote id custom field API key" />
+   <parameter name="pipedrive.potentialCustomField" description="Pipedrive potential Id custom field API key" />
+
+   <!-- Zoho CRM parameters -->
+   <parameter name="zohocrm.apiUrl" description="The Zoho CRM Api Url" />
+   <parameter name="zohocrm.apiKey" description="The Api Key of the Zoho CRM" />
+
+   <!-- Proworkflow parameters -->
+   <parameter name="proworkflow.apiUrl" description="The Proworkflow Api Url" />
+   <parameter name="proworkflow.apiKey" description="The Api Key of the Proworkflow" />
+   <parameter name="proworkflow.username" description="The Proworkflow account username" />
+   <parameter name="proworkflow.password" description="The Proworkflow account password" />
+
+   <sequence>
+      <!-- Pipedrive properties -->
+      <property name="uri.var.pipedrive.apiUrl" value="https://api.pipedrive.com" />
+      <property name="uri.var.pipedrive.apiKey" expression="$func:pipedrive.apiKey" />
+      <property name="uri.var.pipedrive.dealId" expression="$func:pipedrive.dealId" />
+      <property name="uri.var.pipedrive.dealStatus" expression="$func:pipedrive.dealStatus" />
+      <property name="uri.var.pipedrive.quoteIdCustomField" expression="$func:pipedrive.quoteIdCustomField" />
+      <property name="uri.var.pipedrive.potentialCustomField" expression="$func:pipedrive.potentialCustomField" />
+
+      <!-- Zoho CRM properties -->
+      <property name="uri.var.zohocrm.apiUrl" expression="$func:zohocrm.apiUrl" />
+      <property name="uri.var.zohocrm.apiKey" expression="$func:zohocrm.apiKey" />
+      <property name="uri.var.zohocrm.scope" value="crmapi" />
+      <property name="uri.var.zohocrm.module" value="Potentials" />
+      <property name="uri.var.zohocrm.xmlData"
+         value="&lt;Potentials&gt;&lt;row no=&quot;1&quot;&gt;&lt;FL val=&quot;Stage&quot;&gt;Closed Won&lt;/FL&gt;&lt;/row&gt;&lt;/Potentials&gt;" />
+
+      <!-- Proworkflow properties -->
+      <property name="uri.var.proworkflow.apiUrl" expression="$func:proworkflow.apiUrl" />
+      <property name="uri.var.proworkflow.apiKey" expression="$func:proworkflow.apiKey" />
+      <property name="uri.var.proworkflow.username" expression="$func:proworkflow.username" />
+      <property name="uri.var.proworkflow.password" expression="$func:proworkflow.password" />
+      <property name="uri.var.proworkflow.quoteStatus" value="Approved" />
+
+      <pipedrive.init>
+         <apiToken>{$ctx:pipedrive.apiKey}</apiToken>
+         <apiUrl>{$ctx:uri.var.pipedrive.apiUrl}</apiUrl>
+      </pipedrive.init>
+      <pipedrive.getDeal>
+         <id>{$ctx:uri.var.pipedrive.dealId}</id>
+      </pipedrive.getDeal>
+      <property name="uri.var.pipedrive.personId" expression="json-eval($.data.person_id.value)" />
+      <property name="uri.var.pipedrive.dealExistStatus" expression="json-eval($.data.status)" />
+      <script language="js"> 
+         <![CDATA[ 
+            var quoteApiKey = mc.getProperty('uri.var.pipedrive.quoteIdCustomField');
+            var potentialApiKey = mc.getProperty('uri.var.pipedrive.potentialCustomField');
+            payload = mc.getPayloadJSON();
+            var dataObj = payload.data;
+            var quoteVal = dataObj[quoteApiKey];
+            var potentialVal = dataObj[potentialApiKey];
+            mc.setProperty('uri.var.pipedrive.quoteId',quoteVal);
+            mc.setProperty('uri.var.pipedrive.potentialId',potentialVal);                          
+         ]]>
+      </script>
+      <property name="uri.var.pipedrive.getPersonSuccessResponse" expression="json-eval($.success)" />
+      <filter xpath="get-property('uri.var.pipedrive.getPersonSuccessResponse') = 'true'">
+         <else>
+            <property name="uri.var.id" expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+            <property name="uri.var.status" value="Error" />
+            <property name="uri.var.activity" value="pipedrive_getDeal" />
+            <property name="uri.var.pipedrive.getDealErrorMessage" expression="json-eval($.error)" />
+            <property name="uri.var.message"
+               expression="fn:concat('Could not retrieve Deal details, Error: ', get-property('uri.var.pipedrive.getDealErrorMessage'))" />
+            <call-template target="responseHandlerTemplate">
+               <with-param name="activity" value="{$ctx:uri.var.activity}" />
+               <with-param name="id" value="{$ctx:uri.var.id}" />
+               <with-param name="status" value="{$ctx:uri.var.status}" />
+               <with-param name="message" value="{$ctx:uri.var.message}" />
+            </call-template>
+         </else>
+         <then>
+            <filter source="boolean(get-property('uri.var.pipedrive.personId'))" regex="true">
+               <else>
+                  <property name="uri.var.id" expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                  <property name="uri.var.status" value="Error" />
+                  <property name="uri.var.activity" value="pipedrive_getDeal" />
+                  <property name="uri.var.message" value="Person details not present for the deal." />
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="activity" value="{$ctx:uri.var.activity}" />
+                     <with-param name="id" value="{$ctx:uri.var.id}" />
+                     <with-param name="status" value="{$ctx:uri.var.status}" />
+                     <with-param name="message" value="{$ctx:uri.var.message}" />
+                  </call-template>
+               </else>
+               <then>
+                  <!-- Retrieve User details of the given Deal -->
+                  <pipedrive.init>
+                     <apiToken>{$ctx:pipedrive.apiKey}</apiToken>
+                     <apiUrl>{$ctx:uri.var.pipedrive.apiUrl}</apiUrl>
+                  </pipedrive.init>
+                  <pipedrive.getPerson>
+                     <id>{$ctx:uri.var.pipedrive.personId}</id>
+                  </pipedrive.getPerson>
+                  <property name="uri.var.pipedrive.getPersonSuccessResponse" expression="json-eval($.success)" />
+                  <property name="uri.var.pipedrive.firstEmail" expression="json-eval($.data.email[0].value)" />
+                  <filter xpath="get-property('uri.var.pipedrive.getPersonSuccessResponse') = 'true'">
+                     <else>
+                        <property name="uri.var.id"
+                           expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                        <property name="uri.var.pipedrive.getPersonErrorMessage" expression="json-eval($.error)" />
+                        <property name="uri.var.status" value="Error" />
+                        <property name="uri.var.activity" value="pipedrive_getPerson" />
+                        <property name="uri.var.message"
+                           expression="fn:concat('Could not retrieve Person details for the Deal, Error: ', get-property('uri.var.pipedrive.getPersonErrorMessage'))" />
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="activity" value="{$ctx:uri.var.activity}" />
+                           <with-param name="id" value="{$ctx:uri.var.id}" />
+                           <with-param name="status" value="{$ctx:uri.var.status}" />
+                           <with-param name="message" value="{$ctx:uri.var.message}" />
+                        </call-template>
+                     </else>
+                     <then>
+                        <filter source="boolean(get-property('uri.var.pipedrive.firstEmail'))" regex="true">
+                           <else>
+                              <property name="uri.var.id"
+                                 expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                              <property name="uri.var.status" value="Error" />
+                              <property name="uri.var.activity" value="pipedrive_updateDealStatus" />
+                              <property name="uri.var.message" value="Required person details(email) not presesnt." />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="{$ctx:uri.var.activity}" />
+                                 <with-param name="id" value="{$ctx:uri.var.id}" />
+                                 <with-param name="status" value="{$ctx:uri.var.status}" />
+                                 <with-param name="message" value="{$ctx:uri.var.message}" />
+                              </call-template>
+                           </else>
+                           <then>
+                              <filter xpath="get-property('uri.var.pipedrive.dealExistStatus') != 'won'">
+                                 <then>
+                                    <!-- Update given deal's status -->
+                                    <pipedrive.init>
+                                       <apiToken>{$ctx:pipedrive.apiKey}</apiToken>
+                                       <apiUrl>{$ctx:uri.var.pipedrive.apiUrl}</apiUrl>
+                                    </pipedrive.init>
+                                    <pipedrive.updateDeal>
+                                       <id>{$ctx:uri.var.pipedrive.dealId}</id>
+                                       <status>{$ctx:uri.var.pipedrive.dealStatus}</status>
+                                    </pipedrive.updateDeal>
+                                    <property name="uri.var.pipedrive.dealStatus" expression="json-eval($.data.status)" />
+                                    <!-- START: Check the successful response of updateDeal to proceed with Invoice Creation -->
+                                    <filter xpath="get-property('uri.var.pipedrive.dealStatus') = 'won'">
+                                       <else>
+                                          <property name="uri.var.id"
+                                             expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                                          <property name="uri.var.pipedrive.updateDealErrorResponse"
+                                             expression="json-eval($.error)" />
+                                          <property name="uri.var.pipedrive.updateDealErrorMessage"
+                                             expression="fn:concat('Could not update the Deal. Error: ', get-property('uri.var.pipedrive.updateDealErrorResponse'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="pipedrive_updateDeal" />
+                                             <with-param name="id" value="{$ctx:uri.var.id}" />
+                                             <with-param name="status" value="Error" />
+                                             <with-param name="message"
+                                                value="{$ctx:uri.var.pipedrive.updateDealErrorMessage}" />
+                                          </call-template>
+                                       </else>
+                                       <then>
+                                          <!-- Successfully updated the deal -->
+                                          <property name="uri.var.id"
+                                             expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                                          <property name="uri.var.pipedrive.updateDealErrorResponse"
+                                             expression="json-eval($.error)" />
+                                          <property name="uri.var.pipedrive.updateDealErrorMessage"
+                                             expression="fn:concat('Could not update the Deal. Error: ', get-property('uri.var.pipedrive.updateDealErrorResponse'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="pipedrive_updateDeal" />
+                                             <with-param name="id" value="{$ctx:uri.var.id}" />
+                                             <with-param name="status" value="Success" />
+                                             <with-param name="message" value="Successfully updated deal status as 'won'." />
+                                          </call-template>
+                                          <property name="uri.var.pipedrive.dealExistStatus" value="won" />
+                                       </then>
+                                    </filter>
+                                 
+
+                                    <!-- START: Check the availability of potential ID -->
+                                    <filter
+                                       xpath="get-property('uri.var.pipedrive.potentialId') != 'null' and get-property('uri.var.pipedrive.potentialId') != ''">
+                                       <else>
+                                          <filter
+                                             xpath="get-property('uri.var.pipedrive.quoteId') != 'null' and get-property('uri.var.pipedrive.quoteId') != ''">
+                                             <else>
+                                                <!-- Could not find a potential Id or a Quote Id in Deal's custom fields -->
+                                                <property name="uri.var.updateQuotePotentialId"
+                                                   expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                                                <property name="uri.var.updateQuotePotentialMessage" value="Could not find a potential Id or a quote Id associated to the Deal." />
+                                                <property name="uri.var.updateQuotePotentialStatus" value="Skipped" />
+                                                <property name="uri.var.updateQuotePotentialActivity" value="pipedrive_retrieveSourceId" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity"
+                                                      value="{$ctx:uri.var.updateQuotePotentialActivity}" />
+                                                   <with-param name="id" value="{$ctx:uri.var.updateQuotePotentialId}" />
+                                                   <with-param name="status"
+                                                      value="{$ctx:uri.var.updateQuotePotentialStatus}" />
+                                                   <with-param name="message"
+                                                      value="{$ctx:uri.var.updateQuotePotentialMessage}" />
+                                                </call-template>
+                                             </else>
+                                             <then>
+                                                <!-- Update Quote -->
+                                                <proworkflow.init>
+                                                   <apiUrl>{$ctx:uri.var.proworkflow.apiUrl}</apiUrl>
+                                                   <apiKey>{$ctx:uri.var.proworkflow.apiKey}</apiKey>
+                                                   <username>{$ctx:uri.var.proworkflow.username}</username>
+                                                   <password>{$ctx:uri.var.proworkflow.password}</password>
+                                                </proworkflow.init>
+                                                <proworkflow.updateQuote>
+                                                   <quoteId>{$ctx:uri.var.pipedrive.quoteId}</quoteId>
+                                                   <status>{$ctx:uri.var.proworkflow.quoteStatus}</status>
+                                                </proworkflow.updateQuote>
+                                                <property name="uri.var.proworkflow.updateQuoteResponse"
+                                                   expression="json-eval($.status)" />
+                                                <filter
+                                                   xpath="get-property('uri.var.proworkflow.updateQuoteResponse') = 'Success'">
+                                                   <else>
+                                                      <!-- START: Checks for unexpected errors like 401, where it returns an empty payload. If so 
+                                                      generate a general error, else provide the specific error -->
+                                                      <property name="uri.var.updateQuoteResponsePayload" expression="json-eval($)" />
+                                                      <filter xpath="get-property('uri.var.updateQuoteResponsePayload') = ''">
+                                                         <then>
+                                                            <property name="uri.var.updateQuotePotentialMessage"
+                                                               value="Failed to update the Quote details. This can be due to invalid authorization details." />
+                                                         </then>
+                                                         <else>
+                                                            <property name="uri.var.updateQuotePotentialMessage"
+                                                               expression="fn:concat('Could not update Quote Status. Error:', get-property('uri.var.proworkflow.updateQuoteErrorMessage'))" />
+                                                         </else>
+                                                      </filter>
+                                                      <property name="uri.var.proworkflow.updateQuoteErrorMessage"
+                                                         expression="json-eval($.details[0])" />
+                                                      <property name="uri.var.updateQuotePotentialId"
+                                                         expression="fn:concat('quoteId:', get-property('uri.var.pipedrive.quoteId'), ',pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                                                      <property name="uri.var.updateQuotePotentialStatus"
+                                                         value="Skipped" />
+                                                      <property name="uri.var.updateQuotePotentialActivity"
+                                                         value="proworkflow_updateQuote" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity"
+                                                            value="{$ctx:uri.var.updateQuotePotentialActivity}" />
+                                                         <with-param name="id"
+                                                            value="{$ctx:uri.var.updateQuotePotentialId}" />
+                                                         <with-param name="status"
+                                                            value="{$ctx:uri.var.updateQuotePotentialStatus}" />
+                                                         <with-param name="message"
+                                                            value="{$ctx:uri.var.updateQuotePotentialMessage}" />
+                                                      </call-template>
+                                                   </else>
+                                                   <then>
+                                                      <!-- Successfully updated quote -->
+                                                      <property name="uri.var.updateQuotePotentialId"
+                                                         expression="fn:concat('quoteId:', get-property('uri.var.pipedrive.quoteId'))" />
+                                                      <property name="uri.var.updateQuotePotentialMessage"
+                                                         value="Successfully updated the Quote Status as 'approved'." />
+                                                      <property name="uri.var.updateQuotePotentialStatus"
+                                                         value="Success" />
+                                                      <property name="uri.var.updateQuotePotentialActivity"
+                                                         value="proworkflow_updateQuote" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity"
+                                                            value="{$ctx:uri.var.updateQuotePotentialActivity}" />
+                                                         <with-param name="id"
+                                                            value="{$ctx:uri.var.updateQuotePotentialId}" />
+                                                         <with-param name="status"
+                                                            value="{$ctx:uri.var.updateQuotePotentialStatus}" />
+                                                         <with-param name="message"
+                                                            value="{$ctx:uri.var.updateQuotePotentialMessage}" />
+                                                      </call-template>
+                                                   </then>
+                                                </filter>
+                                             </then>
+                                          </filter>
+                                       </else>
+                                       <then>
+                                          <!-- Update Potentials -->
+                                          <zohocrm.init>
+                                             <scope>{$ctx:uri.var.zohocrm.scope}</scope>
+                                             <accessToken>{$ctx:uri.var.zohocrm.apiKey}</accessToken>
+                                             <apiUrl>{$ctx:uri.var.zohocrm.apiUrl}</apiUrl>
+                                          </zohocrm.init>
+
+                                          <zohocrm.updateRecords>
+                                             <moduleType>{$ctx:uri.var.zohocrm.module}</moduleType>
+                                             <id>{$ctx:uri.var.pipedrive.potentialId}</id>
+                                             <xmlData>{$ctx:uri.var.zohocrm.xmlData}</xmlData>
+                                          </zohocrm.updateRecords>
+                                          <property name="uri.var.zohocrm.updateRecordsErrorResponse"
+                                             expression="json-eval($.response.error)" />
+                                          <filter source="boolean(get-property('uri.var.zohocrm.updateRecordsErrorResponse'))"
+                                             regex="false">
+                                             <else>
+                                                <property name="uri.var.updatePotentialErrorMessage"
+                                                   expression="json-eval($.response.error.message)" />
+                                                <script language="js">
+                                                   <![CDATA[
+                                                      //Replaces the Double quotes in the error message to maintain a valid JSON responce
+                                                      var errorDetails = mc.getProperty('uri.var.updatePotentialErrorMessage');
+                                                      mc.setProperty('uri.var.updatePotentialErrorMessage', errorDetails.replace('"', '\\"'));
+                                                   ]]>
+                                                </script>
+                                                <property name="uri.var.updateQuotePotentialId"
+                                                   expression="fn:concat('potentialId:', get-property('uri.var.pipedrive.potentialId'), ',pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                                                <property name="uri.var.updateQuotePotentialMessage"
+                                                   expression="fn:concat('Could not update Potential Stage. Error:', get-property('uri.var.updatePotentialErrorMessage'))" />
+                                                <property name="uri.var.updateQuotePotentialStatus" value="Skipped" />
+                                                <property name="uri.var.updateQuotePotentialActivity" value="zohocrm_updatePotential" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity"
+                                                      value="{$ctx:uri.var.updateQuotePotentialActivity}" />
+                                                   <with-param name="id" value="{$ctx:uri.var.updateQuotePotentialId}" />
+                                                   <with-param name="status"
+                                                      value="{$ctx:uri.var.updateQuotePotentialStatus}" />
+                                                   <with-param name="message"
+                                                      value="{$ctx:uri.var.updateQuotePotentialMessage}" />
+                                                </call-template>
+                                             </else>
+                                             <then>
+                                                <!-- Successfully updated potential -->
+                                                <property name="uri.var.updateQuotePotentialId"
+                                                   expression="fn:concat('potentialId:', get-property('uri.var.pipedrive.potentialId'))" />
+                                                <property name="uri.var.updateQuotePotentialMessage"
+                                                   value="Successfully updated the Potential Stage as 'Closed Won'." />
+                                                <property name="uri.var.updateQuotePotentialStatus" value="Success" />
+                                                <property name="uri.var.updateQuotePotentialActivity" value="zohocrm_updatePotential" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity"
+                                                      value="{$ctx:uri.var.updateQuotePotentialActivity}" />
+                                                   <with-param name="id" value="{$ctx:uri.var.updateQuotePotentialId}" />
+                                                   <with-param name="status"
+                                                      value="{$ctx:uri.var.updateQuotePotentialStatus}" />
+                                                   <with-param name="message"
+                                                      value="{$ctx:uri.var.updateQuotePotentialMessage}" />
+                                                </call-template>
+                                             </then>
+                                          </filter>
+                                       </then>
+                                    </filter>
+                              
+                              </then>
+                                 <else>
+                                    <property name="uri.var.id"
+                                       expression="fn:concat('pipedriveDealId:', get-property('uri.var.pipedrive.dealId'))" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="pipedrive_updateDeal" />
+                                       <with-param name="id" value="{$ctx:uri.var.id}" />
+                                       <with-param name="status" value="Skipped" />
+                                       <with-param name="message" value="The deal is already in the 'won' state." />
+                                    </call-template>
+                                 </else>
+                              </filter>
+                              
+                              
+                           </then>
+
+                        </filter>
+                     </then>
+                  </filter>
+               </then>
+            </filter>
+         </then>
+      </filter>
+      <!-- Remove response custom header information -->
+      <header name="X-FRAME-OPTIONS" scope="transport" action="remove" />
+   </sequence>
+</template>

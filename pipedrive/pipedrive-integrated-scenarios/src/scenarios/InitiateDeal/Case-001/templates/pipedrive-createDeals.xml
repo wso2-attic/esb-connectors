@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template searches for a Person(by email) and an Organization(by name) in PipeDrive and creates if not available. 
+   Then creates a Deal by attaching the Organization and the Person -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="pipedrive-createDeals">
+   <!-- PipeDrive Parameters -->
+   <parameter name="pipedriveApiUrl" description="The url to access the PipeDrive API" />
+   <parameter name="pipedriveApiToken" description="The apiToken of a valid PipeDrive account" />
+   <parameter name="pipedriveCustomFieldKey" description="Hash key of the custom field created under the PipeDrive Deal." />
+   <parameter name="pipedriveCustomFieldValue"
+      description="Value to be included for the provided pipedriveCustomFieldKey. (Respective QuoteId or PotentialID)" />
+   <parameter name="pipedriveDealTitle" description="Deal title to be used" />
+   <parameter name="pipedriveDealValue" description="The value of the deal. If omitted, value will be set to 0" />
+   <parameter name="expectedDealCloseDate" description="Expected closure date of the Deal" />
+   <parameter name="pipedriveOrganizationName" description="The name of the Organization, which is being attached to the creating Deal" />
+   <parameter name="pipedrivePersonEmail" description="The email of the Person, who is being attached to the creating Deal" />
+   <parameter name="pipedrivePersonFirstName" description="The first name of the Person, who is being attached to the creating Deal" />
+   <parameter name="pipedrivePersonLastName" description="The last name of the Person, who is being attached to the creating Deal" />
+   <parameter name="pipedrivePersonPhoneNumber" description="The phone number of the Person, who is being attached to the creating Deal" />
+   <parameter name="pipedriveDealOrigin" description="Origin of the Deal, either proworkflowQuote or zohocrmPotential" />
+   <parameter name="pipedriveDealOriginId" description="Identifier of the origin (Quote identifier or the Potential identifier)" />
+   <parameter name="pipedriveDealOriginName" description="Name of the Deal origin,either ProWorkFlow Quote or ZohoCRM Potential" />
+   <sequence>
+      <property name="uri.var.pipedriveApiUrl" expression="$func:pipedriveApiUrl" />
+      <property name="uri.var.pipedriveApiToken" expression="$func:pipedriveApiToken" />
+      <property name="uri.var.pipedriveCustomFieldKey" expression="$func:pipedriveCustomFieldKey" />
+      <property name="uri.var.pipedriveCustomFieldValue" expression="$func:pipedriveCustomFieldValue" />
+      <property name="uri.var.pipedriveDealTitle" expression="$func:pipedriveDealTitle" />
+      <property name="uri.var.pipedriveDealValue" expression="$func:pipedriveDealValue" />
+      <property name="uri.var.expectedDealCloseDate" expression="$func:expectedDealCloseDate" />
+      <property name="uri.var.pipedriveOrganizationName" expression="$func:pipedriveOrganizationName" />
+      <property name="uri.var.pipedrivePersonEmail" expression="$func:pipedrivePersonEmail" />
+      <property name="uri.var.pipedrivePersonFirstName" expression="$func:pipedrivePersonFirstName" />
+      <property name="uri.var.pipedrivePersonLastName" expression="$func:pipedrivePersonLastName" />
+      <property name="uri.var.pipedrivePersonPhoneNumber" expression="$func:pipedrivePersonPhoneNumber" />
+      <property name="uri.var.pipedriveDealOrigin" expression="$func:pipedriveDealOrigin" />
+      <property name="uri.var.pipedriveDealOriginId" expression="$func:pipedriveDealOriginId" />
+      <property name="uri.var.pipedriveDealOriginName" expression="$func:pipedriveDealOriginName" />
+      <property name="uri.var.pipedrivePersonName"
+         expression="fn:concat(get-property('uri.var.pipedrivePersonFirstName'), ' ', get-property('uri.var.pipedrivePersonLastName'))" />
+      <property name="uri.var.pipedriveDealOriginId"
+         expression="fn:concat('&quot;', get-property('uri.var.pipedriveDealOrigin'), 'Id&quot;:&quot;', get-property('uri.var.pipedriveDealOriginId'), '&quot;')" />
+      <property name="uri.var.pipedriveDealCurrency" value="USD" />
+      <property name="uri.var.emptyID" value="{}" />
+      <!-- Clears the Context properties which may have being set by the previous Iterations of the previous Iterators -->
+      <property name="uri.var.customFields" value="" />
+      <property name="uri.var.pipedriveOrganizationId" value="" />
+      <property name="uri.var.pipedrivePersonId" value="" />
+      <property name="uri.var.searchOrganizationFields" value="[&quot;id&quot;,&quot;name&quot;]" />
+      <property name="uri.var.pipedriveCreatePersonFields" value="[&quot;id&quot;]" />
+      <property name="uri.var.pipedriveSearchPersonFields" value="[&quot;id&quot;,&quot;email&quot;]" />
+      <!-- Search Organizations using the name -->
+      <pipedrive.init>
+         <apiUrl>{$ctx:uri.var.pipedriveApiUrl}</apiUrl>
+         <apiToken>{$ctx:uri.var.pipedriveApiToken}</apiToken>
+      </pipedrive.init>
+      <pipedrive.searchOrganizations>
+         <term>{$ctx:uri.var.pipedriveOrganizationName}</term>
+         <prettyOutput>{$ctx:uri.var.prettyOutput}</prettyOutput>
+         <fields>{$ctx:uri.var.searchOrganizationFields}</fields>
+         <start>{$ctx:uri.var.start}</start>
+         <limit>{$ctx:uri.var.limit}</limit>
+      </pipedrive.searchOrganizations>
+      <property name="uri.var.pipedriveSearchOrgResponseStatus" expression="json-eval($.success)" />
+      <property name="uri.var.pipedriveSearchOrgResponseData" expression="json-eval($.data)" />
+      <!-- START: Check the successful execution of the searchOrganizations method -->
+      <filter xpath="'true' = get-property('uri.var.pipedriveSearchOrgResponseStatus')">
+         <else>
+            <!-- Something went wrong in searchOrganizations method execution, provides a valid error from the API -->
+            <property name="uri.var.pipedriveSearchOrganizationsError" expression="json-eval($.error)" />
+            <property name="uri.var.pipedriveSearchOrganizationErrorMessage"
+               expression="fn:concat('Failed to search for an Organization named \&quot;', get-property('uri.var.pipedriveOrganizationName'), '\&quot;. Hence, Deal will not be created. Error: ', get-property('uri.var.pipedriveSearchOrganizationsError'))" />
+            <!-- Generate the error response for searchOrganizations method execution -->
+            <call-template target="responseHandlerTemplate">
+               <with-param name="id" value="{$ctx:uri.var.emptyID}" />
+               <with-param name="activity" value="pipedrive_searchOrganizations" />
+               <with-param name="status" value="Error" />
+               <with-param name="message" value="{$ctx:uri.var.pipedriveSearchOrganizationErrorMessage}" />
+            </call-template>
+         </else>
+         <then>
+            <!-- START: Check if the searchOrganizations returns data to try and extract the specific Organization details -->
+            <filter xpath="'null' != get-property('uri.var.pipedriveSearchOrgResponseData')">
+               <else>
+                  <!-- Successful execution of the request, yet no data is present. Hence proceeds with Organization creation -->
+                  <pipedrive.init>
+                     <apiUrl>{$ctx:uri.var.pipedriveApiUrl}</apiUrl>
+                     <apiToken>{$ctx:uri.var.pipedriveApiToken}</apiToken>
+                  </pipedrive.init>
+                  <pipedrive.createOrganization>
+                     <addedTime>{$ctx:uri.var.addedTime}</addedTime>
+                     <visibility>{$ctx:uri.var.visibility}</visibility>
+                     <customFields>{$ctx:uri.var.customFields}</customFields>
+                     <prettyOutput>{$ctx:uri.var.prettyOutput}</prettyOutput>
+                     <ownerId>{$ctx:uri.var.ownerId}</ownerId>
+                     <name>{$ctx:uri.var.pipedriveOrganizationName}</name>
+                     <fields>{$ctx:uri.var.fields}</fields>
+                  </pipedrive.createOrganization>
+                  <property name="uri.var.pipedriveOrganizationId" expression="json-eval($.data.id)" />
+                  <!-- Check the availability of the PipeDrive Organization Id to proceed with Deal creation -->
+                  <filter source="boolean(get-property('uri.var.pipedriveOrganizationId'))" regex="true">
+                     <else>
+                        <!-- createOrganization method execution Failure -->
+                        <property name="uri.var.pipedriveCreateDealIds" expression="get-property('uri.var.emptyID')" />
+                        <property name="uri.var.pipedriveCreateOrganizationStatus" value="Error" />
+                        <property name="uri.var.pipedriveCreateOrganizationError" expression="json-eval($.error)" />
+                        <property name="uri.var.pipedriveCreateOrganizationMessage"
+                           expression="fn:concat('Could not find an existing Organization named \&quot;', get-property('uri.var.pipedriveOrganizationName'), '\&quot;. Also failed to create the Organization. Hence, Deal will not be created. Error: ', get-property('uri.var.pipedriveCreateOrganizationError'))" />
+                     </else>
+                     <then>
+                        <!-- Successfully created the Organization -->
+                        <property name="uri.var.pipedriveCreateDealIds"
+                           expression="fn:concat('{&quot;pipedriveOrganizationId&quot;:&quot;', get-property('uri.var.pipedriveOrganizationId'), '&quot;,', get-property('uri.var.pipedriveDealOriginId'), '}')" />
+                        <property name="uri.var.pipedriveCreateOrganizationStatus" value="Success" />
+                        <property name="uri.var.pipedriveCreateOrganizationMessage" value="Successfully created the Organization." />
+                     </then>
+                  </filter>
+                  <!-- Generate the response for createOrganization method execution -->
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="id" value="{$ctx:uri.var.pipedriveCreateDealIds}" />
+                     <with-param name="activity" value="pipedrive_createOrganization" />
+                     <with-param name="status" value="{$ctx:uri.var.pipedriveCreateOrganizationStatus}" />
+                     <with-param name="message" value="{$ctx:uri.var.pipedriveCreateOrganizationMessage}" />
+                  </call-template>
+               </else>
+               <then>
+                  <!-- Organization data is present, try to retrieve the specific organization Id -->
+                  <!-- Script mediator to iterate over results and to retrieve the exact the Organization having the exact 
+                     name -->
+                  <script language="js">
+                     <![CDATA[
+                        payload = mc.getPayloadJSON();
+                        var organizationName = mc.getProperty('uri.var.pipedriveOrganizationName');
+                        var dataArray = payload.data;
+                        for (var i = 0; i < dataArray.length; i++) {  
+                           if(organizationName == dataArray[i].name){
+                              mc.setProperty('uri.var.pipedriveOrganizationId', dataArray[i].id);
+                           }
+                        }
+                     ]]>
+                  </script>
+                  <!-- If the Organization is still not present, create the Organization -->
+                  <!-- START: Check the availability of the Specific PipeDrive Organization(checked against the name) to 
+                     proceed with Deal creation. if not present, creates an Organization -->
+                  <filter source="boolean(get-property('uri.var.pipedriveOrganizationId'))" regex="false">
+                     <then>
+                        <!-- Create Organization since there are no Organizations having the exact name in PipeDrive -->
+                        <pipedrive.init>
+                           <apiUrl>{$ctx:uri.var.pipedriveApiUrl}</apiUrl>
+                           <apiToken>{$ctx:uri.var.pipedriveApiToken}</apiToken>
+                        </pipedrive.init>
+                        <pipedrive.createOrganization>
+                           <addedTime>{$ctx:uri.var.addedTime}</addedTime>
+                           <visibility>{$ctx:uri.var.visibility}</visibility>
+                           <customFields>{$ctx:uri.var.customFields}</customFields>
+                           <prettyOutput>{$ctx:uri.var.prettyOutput}</prettyOutput>
+                           <ownerId>{$ctx:uri.var.ownerId}</ownerId>
+                           <name>{$ctx:uri.var.pipedriveOrganizationName}</name>
+                           <fields>{$ctx:uri.var.fields}</fields>
+                        </pipedrive.createOrganization>
+                        <property name="uri.var.pipedriveOrganizationId" expression="json-eval($.data.id)" />
+                        <!-- Check the availability of the PipeDrive Organization Id to proceed with Deal creation -->
+                        <filter source="boolean(get-property('uri.var.pipedriveOrganizationId'))" regex="true">
+                           <else>
+                              <!-- createOrganization method execution Failure, generate the error response -->
+                              <property name="uri.var.pipedriveCreateOrgIds" expression="get-property('uri.var.emptyID')" />
+                              <property name="uri.var.pipedriveCreateOrgStatus" value="Error" />
+                              <property name="uri.var.pipedriveCreateOrgError" expression="json-eval($.error)" />
+                              <property name="uri.var.pipedriveCreateOrgMessage"
+                                 expression="fn:concat('Could not find an existing Organization named \&quot;', get-property('uri.var.pipedriveOrganizationName'), '\&quot;. Also failed to create the Organization. Hence, Deal will not be created. Error: ', get-property('uri.var.pipedriveCreateOrgError'))" />
+                           </else>
+                           <then>
+                              <!-- Successfully created the Organization -->
+                              <property name="uri.var.pipedriveCreateOrgIds"
+                                 expression="fn:concat('{&quot;pipedriveOrganizationId&quot;:&quot;', get-property('uri.var.pipedriveOrganizationId'), '&quot;,', get-property('uri.var.pipedriveDealOriginId'), '}')" />
+                              <property name="uri.var.pipedriveCreateOrgStatus" value="Success" />
+                              <property name="uri.var.pipedriveCreateOrgMessage" value="Successfully created the Organization." />
+                           </then>
+                        </filter>
+                        <!-- Generate the response for createOrganization method execution -->
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="id" value="{$ctx:uri.var.pipedriveCreateOrgIds}" />
+                           <with-param name="activity" value="pipedrive_createOrganization" />
+                           <with-param name="status" value="{$ctx:uri.var.pipedriveCreateOrgStatus}" />
+                           <with-param name="message" value="{$ctx:uri.var.pipedriveCreateOrgMessage}" />
+                        </call-template>
+                     </then>
+                  </filter>
+                  <!-- END: Check the availability of the PipeDrive Organization ID -->
+               </then>
+            </filter>
+            <!-- END: Check the availability of organization data -->
+            <!-- START: Check the availability of PipeDrive Organization Id to proceed with Person creation -->
+            <filter source="boolean(get-property('uri.var.pipedriveOrganizationId'))" regex="true">
+               <else>
+                  <!-- Organization ID is not present, Generate the error response. Note that this will only run if both 
+                     searchOrganizations and createOrganization fails, Hence highly unlikely to be returned -->
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="id" value="{$ctx:uri.var.emptyID}" />
+                     <with-param name="activity" value="pipedrive_createDeal" />
+                     <with-param name="status" value="Error" />
+                     <with-param name="message" value="Could not find the Organization Id, Hence a Deal will not be created." />
+                  </call-template>
+               </else>
+               <then>
+                  <!-- PipeDrive Organization is present, proceed with Client and Deal creation -->
+                  <!-- START: Check the availability of the pipedrivePersonEmail to proceed with the Person creation. Unless, 
+                     directly proceed to Deal creation -->
+                  <filter source="boolean(get-property('uri.var.pipedrivePersonEmail'))" regex="true">
+                     <then>
+                        <!-- Check if the Person is present in PipeDrive -->
+                        <property name="uri.var.searchByEmail" value="1" />
+                        <property name="uri.var.term" value="" />
+                        <property name="uri.var.pipedrivePersonEmails"
+                           expression="fn:concat('[&quot;', get-property('uri.var.pipedrivePersonEmail'), '&quot;]')" />
+                        <property name="uri.var.pipedrivePersonPhoneNumbers"
+                           expression="fn:concat('[&quot;', get-property('uri.var.pipedrivePersonPhoneNumber'), '&quot;]')" />
+                        <!-- Search Persons using the email -->
+                        <pipedrive.init>
+                           <apiUrl>{$ctx:uri.var.pipedriveApiUrl}</apiUrl>
+                           <apiToken>{$ctx:uri.var.pipedriveApiToken}</apiToken>
+                        </pipedrive.init>
+                        <pipedrive.searchPersons>
+                           <term>{$ctx:uri.var.pipedrivePersonEmail}</term>
+                           <prettyOutput>{$ctx:uri.var.prettyOutput}</prettyOutput>
+                           <fields>{$ctx:uri.var.pipedriveSearchPersonFields}</fields>
+                           <organizationId>{$ctx:uri.var.pipedriveOrganizationId}</organizationId>
+                           <start>{$ctx:uri.var.start}</start>
+                           <limit>{$ctx:uri.var.limit}</limit>
+                           <searchByEmail>{$ctx:uri.var.searchByEmail}</searchByEmail>
+                        </pipedrive.searchPersons>
+                        <property name="uri.var.pipedriveSearchPersonsResponseStatus" expression="json-eval($.success)" />
+                        <property name="uri.var.pipedriveSearchPersonsResponseData" expression="json-eval($.data)" />
+                        <!-- START: Check the successful execution of the searchPersons method -->
+                        <filter xpath="'true' = get-property('uri.var.pipedriveSearchPersonsResponseStatus')">
+                           <else>
+                              <!-- Something went wrong in searchPersons method execution, provides a valid error from the 
+                                 API -->
+                              <property name="uri.var.pipedriveSearchPersonsError" expression="json-eval($.error)" />
+                              <property name="uri.var.pipedriveSearchPersonsErrorMessage"
+                                 expression="fn:concat('Failed to search for a Person having \&quot;', get-property('uri.var.pipedrivePersonEmail'), '\&quot; email. Hence, Deal will not be created. Error: ', get-property('uri.var.pipedriveSearchPersonsError'))" />
+                              <!-- Generate the error response for searchOrganizations method execution -->
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="id" value="{$ctx:uri.var.emptyID}" />
+                                 <with-param name="activity" value="pipedrive_searchPersons" />
+                                 <with-param name="status" value="Error" />
+                                 <with-param name="message" value="{$ctx:uri.var.pipedriveSearchPersonsErrorMessage}" />
+                              </call-template>
+                           </else>
+                           <then>
+                              <!-- START: Check if the searchPersons returns data to try and extract the specific Person 
+                                 details -->
+                              <filter xpath="'null' != get-property('uri.var.pipedriveSearchPersonsResponseData')">
+                                 <else>
+                                    <!-- Successful execution of the searchPersons request, yet no Persons were returned. 
+                                       Hence proceeds with Person creation -->
+                                    <!-- create Person in PipeDrive -->
+                                    <pipedrive.init>
+                                       <apiUrl>{$ctx:uri.var.pipedriveApiUrl}</apiUrl>
+                                       <apiToken>{$ctx:uri.var.pipedriveApiToken}</apiToken>
+                                    </pipedrive.init>
+                                    <pipedrive.createPerson>
+                                       <name>{$ctx:uri.var.pipedrivePersonName}</name>
+                                       <customFields>{$ctx:uri.var.customFields}</customFields>
+                                       <ownerId>{$ctx:uri.var.ownerId}</ownerId>
+                                       <organizationId>{$ctx:uri.var.pipedriveOrganizationId}</organizationId>
+                                       <emails>{$ctx:uri.var.pipedrivePersonEmails}</emails>
+                                       <phoneNumbers>{$ctx:uri.var.pipedrivePersonPhoneNumbers}</phoneNumbers>
+                                       <visibility>{$ctx:uri.var.visibility}</visibility>
+                                       <addedTime>{$ctx:uri.var.addedTime}</addedTime>
+                                       <prettyOutput>{$ctx:prettyOutput}</prettyOutput>
+                                       <fields>{$ctx:uri.var.pipedriveCreatePersonFields}</fields>
+                                    </pipedrive.createPerson>
+                                    <property name="uri.var.pipedrivePersonId" expression="json-eval($.data.id)" />
+                                    <!-- Check the availability of the PipeDrive Organization Id to proceed with Organization 
+                                       creation -->
+                                    <!-- Check the availability of the PipeDrive Person Id to proceed with Deal creation -->
+                                    <filter source="boolean(get-property('uri.var.pipedrivePersonId'))" regex="true">
+                                       <else>
+                                          <!-- createPerson method execution Failure -->
+                                          <property name="uri.var.pipedriveCreatePersonIds" expression="get-property('uri.var.emptyID')" />
+                                          <property name="uri.var.pipedriveCreatePersonStatus" value="Error" />
+                                          <property name="uri.var.pipedriveCreatePersonError" expression="json-eval($.error)" />
+                                          <property name="uri.var.pipedriveCreatePersonMessage"
+                                             expression="fn:concat('Failed to create the Person with \&quot;', get-property('uri.var.pipedrivePersonEmail'), '\&quot; email. Hence, Deal will be created without the Person attached. Error: ', get-property('uri.var.pipedriveCreatePersonError'))" />
+                                       </else>
+                                       <then>
+                                          <!-- Successfully created the Person -->
+                                          <property name="uri.var.pipedriveCreatePersonIds"
+                                             expression="fn:concat('{&quot;pipedrivePersonId&quot;:&quot;', get-property('uri.var.pipedrivePersonId'), '&quot;,&quot;pipedriveOrganizationId&quot;:&quot;', get-property('uri.var.pipedriveOrganizationId'), '&quot;,', get-property('uri.var.pipedriveDealOriginId'), '}')" />
+                                          <property name="uri.var.pipedriveCreatePersonStatus" value="Success" />
+                                          <property name="uri.var.pipedriveCreatePersonMessage" value="Successfully created the Person." />
+                                       </then>
+                                    </filter>
+                                    <!-- Generate the response for createOrganization method execution -->
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:uri.var.pipedriveCreatePersonIds}" />
+                                       <with-param name="activity" value="pipedrive_createPerson" />
+                                       <with-param name="status" value="{$ctx:uri.var.pipedriveCreatePersonStatus}" />
+                                       <with-param name="message" value="{$ctx:uri.var.pipedriveCreatePersonMessage}" />
+                                    </call-template>
+                                 </else>
+                                 <then>
+                                    <!-- Person data is present, try to retrieve the specific Person Id -->
+                                    <!-- Script mediator to iterate over results and to retrieve the exact the Person having 
+                                       the exact email -->
+                                    <script language="js">
+                                       <![CDATA[
+                                          payload = mc.getPayloadJSON();
+                                          var personEmail = mc.getProperty('uri.var.pipedrivePersonEmail');
+                                          var dataArray = payload.data;
+                                          for (var i = 0; i < dataArray.length; i++) {  
+                                             if(personEmail == dataArray[i].email){
+                                                mc.setProperty('uri.var.pipedrivePersonId', dataArray[i].id);
+                                             }
+                                          }
+                                       ]]>
+                                    </script>
+                                    <!-- If the Person is still not present, create the Person -->
+                                    <!-- START: Check the availability of the Specific PipeDrive Person(checked against the 
+                                       email) to proceed with Deal creation. if not present, creates an Organization -->
+                                    <filter source="boolean(get-property('uri.var.pipedrivePersonId'))" regex="false">
+                                       <then>
+                                          <!-- Could not find the Person having the exact email address, Hence creates a 
+                                             Person in PipeDrive using the email -->
+                                          <pipedrive.init>
+                                             <apiUrl>{$ctx:uri.var.pipedriveApiUrl}</apiUrl>
+                                             <apiToken>{$ctx:uri.var.pipedriveApiToken}</apiToken>
+                                          </pipedrive.init>
+                                          <pipedrive.createPerson>
+                                             <name>{$ctx:uri.var.pipedrivePersonName}</name>
+                                             <customFields>{$ctx:uri.var.customFields}</customFields>
+                                             <ownerId>{$ctx:uri.var.ownerId}</ownerId>
+                                             <organizationId>{$ctx:uri.var.pipedriveOrganizationId}</organizationId>
+                                             <emails>{$ctx:uri.var.pipedrivePersonEmails}</emails>
+                                             <phoneNumbers>{$ctx:uri.var.pipedrivePersonPhoneNumbers}</phoneNumbers>
+                                             <visibility>{$ctx:uri.var.visibility}</visibility>
+                                             <addedTime>{$ctx:uri.var.addedTime}</addedTime>
+                                             <prettyOutput>{$ctx:prettyOutput}</prettyOutput>
+                                             <fields>{$ctx:uri.var.pipedriveCreatePersonFields}</fields>
+                                          </pipedrive.createPerson>
+                                          <property name="uri.var.pipedrivePersonId" expression="json-eval($.data.id)" />
+                                          <!-- Check the availability of the PipeDrive Person Id to proceed with Deal creation -->
+                                          <filter source="boolean(get-property('uri.var.pipedrivePersonId'))"
+                                             regex="true">
+                                             <else>
+                                                <!-- createPerson method execution Failure -->
+                                                <property name="uri.var.pipedriveCreatePersonIds" expression="get-property('uri.var.emptyID')" />
+                                                <property name="uri.var.pipedriveCreatePersonStatus" value="Error" />
+                                                <property name="uri.var.pipedriveCreatePersonError" expression="json-eval($.error)" />
+                                                <property name="uri.var.pipedriveCreatePersonMessage"
+                                                   expression="fn:concat('Could not find an existing Person with \&quot;', get-property('uri.var.pipedrivePersonEmail'), '\&quot; email. Also failed to create the Person Hence, Deal will be created without a Person attached. Error: ', get-property('uri.var.pipedriveCreatePersonError'))" />
+                                             </else>
+                                             <then>
+                                                <!-- Successfully created the Person -->
+                                                <property name="uri.var.pipedriveCreatePersonIds"
+                                                   expression="fn:concat('{&quot;pipedriveOrganizationId&quot;:&quot;', get-property('uri.var.pipedriveOrganizationId'), '&quot;,', get-property('uri.var.pipedriveDealOriginId'), ',&quot;pipedrivePersonId&quot;:&quot;', get-property('uri.var.pipedrivePersonId'), '&quot;}')" />
+                                                <property name="uri.var.pipedriveCreatePersonStatus" value="Success" />
+                                                <property name="uri.var.pipedriveCreatePersonMessage" value="Successfully created the Organization." />
+                                             </then>
+                                          </filter>
+                                          <!-- Generate the response for createOrganization method execution -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:uri.var.pipedriveCreatePersonIds}" />
+                                             <with-param name="activity" value="pipedrive_createPerson" />
+                                             <with-param name="status" value="{$ctx:uri.var.pipedriveCreatePersonStatus}" />
+                                             <with-param name="message" value="{$ctx:uri.var.pipedriveCreatePersonMessage}" />
+                                          </call-template>
+                                       </then>
+                                    </filter>
+                                    <!-- END: Check the availability of the PipeDrive Person ID -->
+                                 </then>
+                              </filter>
+                              <!-- END: Check the availability of Person data and Person creation -->
+                           </then>
+                        </filter>
+                        <!-- END: Successful execution of the searchPersons method -->
+                     </then>
+                  </filter>
+                  <!-- END: Check the availability of the Person email -->
+                  <!-- Continue to create the Deal. Organization Id(mandatory) is present, Person Id(optional) may be present -->
+                  <property name="uri.var.pipedriveCustomFieldObject"
+                     expression="fn:concat('{&quot;', get-property('uri.var.pipedriveCustomFieldKey'), '&quot;:&quot;', get-property('uri.var.pipedriveCustomFieldValue'), '&quot;,&quot;expected_close_date&quot;:&quot;', get-property('uri.var.expectedDealCloseDate'),'&quot;}')" />
+                  <property name="uri.var.pipedriveCreateDealFields" value="[&quot;id&quot;]" />
+                  <!-- Create the Deal using the extracted ORganization and Person details -->
+                  <pipedrive.init>
+                     <apiUrl>{$ctx:uri.var.pipedriveApiUrl}</apiUrl>
+                     <apiToken>{$ctx:uri.var.pipedriveApiToken}</apiToken>
+                  </pipedrive.init>
+                  <pipedrive.createDeal>
+                     <title>{$ctx:uri.var.pipedriveDealTitle}</title>
+                     <customFields>{$ctx:uri.var.pipedriveCustomFieldObject}</customFields>
+                     <value>{$ctx:uri.var.pipedriveDealValue}</value>
+                     <currency>{$ctx:uri.var.pipedriveDealCurrency}</currency>
+                     <userId>{$ctx:uri.var.userId}</userId>
+                     <personId>{$ctx:uri.var.pipedrivePersonId}</personId>
+                     <organizationId>{$ctx:uri.var.pipedriveOrganizationId}</organizationId>
+                     <stageId>{$ctx:uri.var.stageId}</stageId>
+                     <status>{$ctx:uri.var.status}</status>
+                     <lostReason>{$ctx:uri.var.lostReason}</lostReason>
+                     <addedTime>{$ctx:uri.var.addedTime}</addedTime>
+                     <visibility>{$ctx:uri.var.visibility}</visibility>
+                     <prettyOutput>{$ctx:uri.var.prettyOutput}</prettyOutput>
+                     <fields>{$ctx:uri.var.pipedriveCreateDealFields}</fields>
+                  </pipedrive.createDeal>
+                  <property name="uri.var.pipedriveCreateDealResponseStatus" expression="json-eval($.success)" />
+                  <!-- START: Check if the searchPersons returns data to try and extract the specific Person details -->
+                  <filter xpath="'true' = get-property('uri.var.pipedriveCreateDealResponseStatus')">
+                     <else>
+                        <!-- Generate the error Response -->
+                        <property name="uri.var.pipedriveCreateDealIds"
+                           expression="fn:concat('{&quot;pipedriveOrganizationId&quot;:&quot;', get-property('uri.var.pipedriveOrganizationId'), '&quot;,&quot;pipedrivePersonId&quot;:&quot;', get-property('uri.var.pipedrivePersonId'), '&quot;}')" />
+                        <property name="uri.var.pipedriveCreateDealStatus" value="Error" />
+                        <property name="uri.var.pipedriveCreateDealError" expression="json-eval($.error)" />
+                        <property name="uri.var.pipedriveCreateDealMessage"
+                           expression="fn:concat('Failed to create the Deal. ', get-property('uri.var.pipedriveCreateDealError'))" />
+                     </else>
+                     <then>
+                        <!-- Generate the success Response -->
+                        <property name="uri.var.pipedriveDealId" expression="json-eval($.data.id)" />
+                        <property name="uri.var.pipedriveCreateDealStatus" value="Success" />
+                        <filter source="boolean(get-property('uri.var.pipedrivePersonId'))" regex="true">
+                           <then>
+                              <property name="uri.var.pipedriveCreateDealIds"
+                                 expression="fn:concat('{&quot;dealId&quot;:&quot;', get-property('uri.var.pipedriveDealId'), '&quot;,', get-property('uri.var.pipedriveDealOriginId'), ',&quot;pipedriveOrganizationId&quot;:&quot;', get-property('uri.var.pipedriveOrganizationId'), '&quot;,&quot;pipedrivePersonId&quot;:&quot;', get-property('uri.var.pipedrivePersonId'), '&quot;}')" />
+                              <property name="uri.var.pipedriveCreateDealMessage" value="Successfully created the Deal." />
+                           </then>
+                           <else>
+                              <property name="uri.var.pipedriveCreateDealIds"
+                                 expression="fn:concat('{&quot;dealId&quot;:&quot;', get-property('uri.var.pipedriveDealId'), '&quot;,', get-property('uri.var.pipedriveDealOriginId'), ',&quot;pipedriveOrganizationId&quot;:&quot;', get-property('uri.var.pipedriveOrganizationId'), '&quot;}')" />
+                              <property name="uri.var.pipedriveCreateDealMessage"
+                                 expression="fn:concat('Successfully created the Deal. However, Could not retrieve Contact details from ', get-property('uri.var.pipedriveDealOriginName'), '. Hence a Person will not be attached to the Deal.')" />
+                           </else>
+                        </filter>
+                     </then>
+                  </filter>
+                  <!-- END: Check the successful execution of the createDeal method -->
+                  <!-- Generate the response for createDeal response -->
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="id" value="{$ctx:uri.var.pipedriveCreateDealIds}" />
+                     <with-param name="activity" value="pipedrive_createDeal" />
+                     <with-param name="status" value="{$ctx:uri.var.pipedriveCreateDealStatus}" />
+                     <with-param name="message" value="{$ctx:uri.var.pipedriveCreateDealMessage}" />
+                  </call-template>
+               </then>
+            </filter>
+            <!-- END: Check the availability of the Organization Id -->
+         </then>
+      </filter>
+      <!-- END: Successful execution of the searchOrganizations method -->
+   </sequence>
+</template>
