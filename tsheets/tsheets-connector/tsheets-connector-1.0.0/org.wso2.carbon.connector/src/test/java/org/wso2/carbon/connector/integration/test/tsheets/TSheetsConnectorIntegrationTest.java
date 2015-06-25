@@ -56,13 +56,13 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
         Date date = new Date();
         date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse(sdf.format(date));
-        date.setMonth(date.getMonth() - 1);
-        String timeSheetTwoEnd=sdf.format(date)+"-07:00";
         date.setDate(date.getDate() - 1);
+        String timeSheetTwoEnd=sdf.format(date)+"-07:00";
+        date.setMinutes(date.getMinutes() - 1);
         String timeSheetTwoStart=sdf.format(date)+"-07:00";
-        date.setMonth(date.getMonth() - 1);
+        date.setDate(date.getDate() - 1);
         String timeSheetOneEnd=sdf.format(date)+"-07:00";
-        date.setDate(date.getDate()-1);
+        date.setMinutes(date.getMinutes()-1);
         String timeSheetOneStart=sdf.format(date)+"-07:00";
         connectorProperties.setProperty("timeSheetOneStart", timeSheetOneStart);
         connectorProperties.setProperty("timeSheetOneEnd", timeSheetOneEnd);
