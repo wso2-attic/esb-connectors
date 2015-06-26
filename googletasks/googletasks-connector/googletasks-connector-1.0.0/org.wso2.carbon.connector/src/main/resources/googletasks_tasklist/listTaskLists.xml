@@ -1,0 +1,41 @@
+<template xmlns="http://ws.apache.org/ns/synapse" name="listTaskLists">
+
+	<!-- Optional Parameters -->
+	<parameter name="maxResults"
+		description="Maximum number of task lists returned on one page. The default is 100." />
+	<parameter name="pageToken" description="Token specifying the result page to return." />
+
+	<sequence>
+		<property name="maxResults" expression="$func:maxResults"
+			type="STRING" />
+		<property name="pageToken" expression="$func:pageToken" type="STRING" />
+
+		<!-- Building the URL with the parameters for the API method -->
+		<filter
+			xpath="(not(get-property('maxResults') = '' or (not(string(get-property('maxResults'))))))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'maxResults=',get-property('maxResults'),'&amp;')" />
+			</then>
+		</filter>
+		<filter
+			xpath="(not(get-property('pageToken') = '' or (not(string(get-property('pageToken'))))))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'pageToken=',get-property('pageToken'),'&amp;')" />
+			</then>
+		</filter>
+
+		<property name="uri.var.apiUri"
+			value="https://www.googleapis.com/tasks/v1/users/@me/lists" />
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUri}?{+uri.var.apiParameters}" />
+			</endpoint>
+		</call>
+		<!-- Remove response custom header information -->
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+	</sequence>
+</template>

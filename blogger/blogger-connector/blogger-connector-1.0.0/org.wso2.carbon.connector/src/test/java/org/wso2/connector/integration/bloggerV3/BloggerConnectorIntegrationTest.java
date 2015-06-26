@@ -1,5 +1,5 @@
 /**
- *  Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *  Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
@@ -18,6 +18,7 @@
 
 package org.wso2.connector.integration.bloggerV3;
 
+import java.lang.System;
 import java.util.Properties;
 
 import org.apache.axis2.context.ConfigurationContext;
@@ -122,13 +123,34 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
 
         accessToken = bloggerConnectorProperties.getProperty("accessToken");
         apiKey = bloggerConnectorProperties.getProperty("apiKey");
-        userID = bloggerConnectorProperties.getProperty("userID");
         blogID = bloggerConnectorProperties.getProperty("blogID");
         postID = bloggerConnectorProperties.getProperty("postID");
-        commentID = bloggerConnectorProperties.getProperty("commentID");
         bURL = bloggerConnectorProperties.getProperty("blogURL");
         squery = bloggerConnectorProperties.getProperty("search_query");
         postpath = bloggerConnectorProperties.getProperty("post_path");
+
+
+        String jsonRequestFilePath = pathToRequestsDirectory + "listComments_mandatory.txt";
+        String methodName = "listComments";
+
+        final String jsonReqString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
+        final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
+        String modifiedJsonReqString = String.format(jsonReqString, apiKey, accessToken, blogID, postID);
+
+        proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
+        try {
+
+            JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonReqString);
+
+            JSONArray jArray = jsonObject.getJSONArray("items");
+            bloggerConnectorProperties.setProperty("commentID", jArray.getJSONObject(0).getString("id"));
+            String url = jArray.getJSONObject(0).getJSONObject("author").getString("url");
+            bloggerConnectorProperties.setProperty("userID", url.substring(url.lastIndexOf("/") + 1));
+        } finally {
+            proxyAdmin.deleteProxy(methodName);
+        }
+        userID = bloggerConnectorProperties.getProperty("userID");
+        commentID = bloggerConnectorProperties.getProperty("commentID");
 
         stime = 10000;
     }
@@ -150,7 +172,6 @@ public class BloggerConnectorIntegrationTest extends ESBIntegrationTest {
         final String jsonReqString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         String modifiedJsonReqString = String.format(jsonReqString, apiKey, accessToken, blogID);
-
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
