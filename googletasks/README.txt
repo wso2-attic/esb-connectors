@@ -28,6 +28,8 @@ STEPS:
 			clientId - client ID of the google tasks app	
 			clientSecret - client secret of the google tasks app
 			refreshToken - refresh token obtained from google oauth 2.0
+			previous - New parent task identifier for moveTask method.
+            parent - New previous sibling task identifier for moveTask method.
 	vi)getAccessToken.xml configuration will obtain the temporary access token using these property values.
 
 3. Make sure that googletasks is specified as a module in ESB_Connector_Parent pom.
