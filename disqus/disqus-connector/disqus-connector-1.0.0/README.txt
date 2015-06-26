@@ -10,8 +10,8 @@ Pre-requisites:
 Tested Platform: 
 
  - Microsoft WINDOWS V-7
- - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - UBUNTU 14.04
+ - WSO2 ESB 4.9.0-Alpha
 
 Note:
 	This test suite can be executed based on two scenarios.
@@ -27,13 +27,25 @@ Special Note :
  
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.8.1 from official website.
+ 1. Download ESB 4.9.0-Alpha from official website.
  
  2. Deploy relevant patches, if applicable.
- 
- 3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Disqus_Connector_Home}/disqus-connector/disqus-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
- 4. Prerequisites for Disqus Connector Integration Testing.
+ 3. Extract the certificate from browser by navigating to "https://www.disqus.com/" and place the certificate file in following locations.
+
+ 	i)  "<DISQUS_CONNECTOR_HOME>/disqus-connector/disqus-connector-1.0.0/org wso2.carbon.connector/src/test/resources/keystores/products"
+
+ 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "disqus"' in command line to import disqus  certificate in to keystore. Give "wso2carbon" as password.
+ 		NOTE : CERT_FILE_NAME is the file name which was extracted from disqus with  the extension, change it accordingly. Remove the copied certificate.
+
+ 	ii) "wso2esb-4.9.0-Alpha/repository/resources/security"
+
+ 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "disqus"' in command line to import disqus certificate in to keystore. Give "wso2carbon" as password.
+ 		NOTE : CERT_FILE_NAME is the file name which was extracted from disqus with  the extension, change it accordingly. Remove the copied certificate.
+ 
+ 4. Compress modified ESB as wso2esb-4.9.0-Alpha.zip and copy that zip file in to location "{Disqus_Connector_Home}/disqus-connector/disqus-connector-1.0.0/org.wso2.carbon.connector/repository/".
+
+ 5. Prerequisites for Disqus Connector Integration Testing.
 
 	i) 	 Create an Disqus account using the URL "https://disqus.com/profile/signup/".
 	ii)	 After creating and verifying account navigate to URL "https://disqus.com/api/applications/" to register application.
@@ -46,7 +58,7 @@ Steps to follow in setting integration test.
 	ix)  Enter an unique Disqus URL (e.g. testforum), select an appropriate category and click on the "Finish Registration" button.
 	x)   Then the page will be redirect to your new unique URL like "https://testforum.disqus.com/admin/settings/install/". Keep sub-domain name to use as a forumId (e.g. testforum). 
  
- 5. Update the Disqus properties file at location "{Disqus_Connector_Home}/disqus-connector/disqus-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 6. Update the Disqus properties file at location "{Disqus_Connector_Home}/disqus-connector/disqus-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i)		apiUrl				- API Url of Disqus
 	ii) 	apiKey				- Place API Key which you can find under step 4 [v]. 
@@ -60,8 +72,11 @@ Steps to follow in setting integration test.
 	x)		order				- Should be 'asc' or 'desc' to list forum categories according to given order.
 	
 
- 6. Navigate to "{Disqus_Connector_Home}/disqus-connector/disqus-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+ 7. Make sure that the disqus connector is set as a module in esb-connectors parent pom.
+              <module>disqus/disqus-connector/disqus-connector-1.0.0/org.wso2.carbon.connector</module>
+
+      Navigate to "{ESB_Connector_Home}/" and run the following command.
+            $ mvn clean install
 
 
  NOTE : Following are the credentials for the Disqus used for integration tests.
