@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-* Copyright (c) 2005-2013, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+* Copyright (c) 2014-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 *
 * WSO2 Inc. licenses this file to you under the Apache License,
 * Version 2.0 (the "License"); you may not use this file except
@@ -24,17 +24,25 @@
                description="Max Results in response if this value is null max of 20 results will in response"/>
     <parameter name="pageToken"
                description="The continuation token, which is used to page through large result sets"/>
-
     <sequence>
         <property name="uri.var.userId" expression="$func:userId"/>
         <property name="uri.var.fields" expression="$func:fields"/>
         <property name="uri.var.maxResults" expression="$func:maxResults"/>
         <property name="uri.var.pageToken" expression="$func:pageToken"/>
+        <script language="js"><![CDATA[
+            var pageToken = mc.getProperty('uri.var.pageToken');
+            var fields = mc.getProperty('uri.var.fields');
+            var encodedPageToken = encodeURIComponent(pageToken);
+            mc.setProperty('uri.var.encodedPageToken', encodedPageToken);
+            var encodedFields = encodeURIComponent(fields);
+            mc.setProperty('uri.var.encodedFields', encodedFields);
+        ]]>
+        </script>
         <!-- Building the URL with the parameters for the API method -->
-        <filter xpath="(not(get-property('uri.var.fields') = '' or (not(string(get-property('uri.var.fields'))))))">
+        <filter xpath="(not(get-property('uri.var.encodedFields') = '' or (not(string(get-property('uri.var.encodedFields'))))))">
             <then>
                 <property name="uri.var.apiParameters"
-                          expression="fn:concat(get-property('uri.var.apiParameters'),'fields=',get-property('uri.var.fields'),'&amp;')"/>
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'fields=',get-property('uri.var.encodedFields'),'&amp;')"/>
             </then>
         </filter>
         <filter xpath="(not(get-property('uri.var.maxResults') = '' or (not(string(get-property('uri.var.maxResults'))))))">
@@ -49,14 +57,12 @@
                           expression="fn:concat(get-property('uri.var.apiParameters'),'pageToken=',get-property('uri.var.pageToken'),'&amp;')"/>
             </then>
         </filter>
-
         <call>
             <endpoint>
                 <http method="GET"
-                      uri-template="https://www.googleapis.com/plus/v1/people/{uri.var.userId}/activities/public?{+uri.var.apiParameters}"/>
+                      uri-template="legacy-encoding:https://www.googleapis.com/plus/v1/people/{uri.var.userId}/activities/public?{uri.var.apiParameters}"/>
             </endpoint>
         </call>
-
         <!-- Remove response custom header information -->
         <header name="Cache-Control" scope="transport" action="remove"/>
         <header name="Expires" scope="transport" action="remove"/>

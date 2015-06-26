@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-* Copyright (c) 2005-2013, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+* Copyright (c) 2014-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 *
 * WSO2 Inc. licenses this file to you under the Apache License,
 * Version 2.0 (the "License"); you may not use this file except
@@ -28,8 +28,6 @@
                description="Specifies how to order search results."/>
     <parameter name="language"
                description="Specify the preferred language to search with."/>
-
-
     <sequence>
         <property name="uri.var.query" expression="$func:query"/>
         <property name="uri.var.fields" expression="$func:fields"/>
@@ -37,7 +35,15 @@
         <property name="uri.var.pageToken" expression="$func:pageToken"/>
         <property name="uri.var.orderBy" expression="$func:orderBy"/>
         <property name="uri.var.language" expression="$func:language"/>
-
+        <script language="js"><![CDATA[
+            var pageToken = mc.getProperty('uri.var.pageToken');
+            var fields = mc.getProperty('uri.var.fields');
+            var encodedPageToken = encodeURIComponent(pageToken);
+            mc.setProperty('uri.var.encodedPageToken', encodedPageToken);
+            var encodedFields = encodeURIComponent(fields);
+            mc.setProperty('uri.var.encodedFields', encodedFields);
+        ]]>
+        </script>
         <!-- Building the URL with the parameters for the API method -->
         <filter xpath="(not(get-property('uri.var.query') = '' or (not(string(get-property('uri.var.query'))))))">
             <then>
@@ -45,11 +51,10 @@
                           expression="fn:concat(get-property('uri.var.apiParameters'),'query=',get-property('uri.var.query'),'&amp;')"/>
             </then>
         </filter>
-
-        <filter xpath="(not(get-property('uri.var.fields') = '' or (not(string(get-property('uri.var.fields'))))))">
+        <filter xpath="(not(get-property('uri.var.encodedFields') = '' or (not(string(get-property('uri.var.encodedFields'))))))">
             <then>
                 <property name="uri.var.apiParameters"
-                          expression="fn:concat(get-property('uri.var.apiParameters'),'fields=',get-property('uri.var.fields'),'&amp;')"/>
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'fields=',get-property('uri.var.encodedFields'),'&amp;')"/>
             </then>
         </filter>
         <filter xpath="(not(get-property('uri.var.maxResults') = '' or (not(string(get-property('uri.var.maxResults'))))))">
@@ -58,10 +63,10 @@
                           expression="fn:concat(get-property('uri.var.apiParameters'),'maxResults=',get-property('uri.var.maxResults'),'&amp;')"/>
             </then>
         </filter>
-        <filter xpath="(not(get-property('uri.var.pageToken') = '' or (not(string(get-property('uri.var.pageToken'))))))">
+        <filter xpath="(not(get-property('uri.var.encodedPageToken') = '' or (not(string(get-property('uri.var.encodedPageToken'))))))">
             <then>
                 <property name="uri.var.apiParameters"
-                          expression="fn:concat(get-property('uri.var.apiParameters'),'pageToken=',get-property('uri.var.pageToken'),'&amp;')"/>
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'pageToken=',get-property('uri.var.encodedPageToken'),'&amp;')"/>
             </then>
         </filter>
         <filter xpath="(not(get-property('uri.var.orderBy') = '' or (not(string(get-property('uri.var.orderBy'))))))">
@@ -76,8 +81,6 @@
                           expression="fn:concat(get-property('uri.var.apiParameters'),'language=',get-property('uri.var.language'),'&amp;')"/>
             </then>
         </filter>
-
-
         <payloadFactory media-type="xml">
             <format>
                 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
@@ -87,13 +90,14 @@
             </format>
             <args/>
         </payloadFactory>
+
+        <property name="uri.var.apiUri" value="https://www.googleapis.com/plus/v1"/>
         <call>
             <endpoint>
                 <http method="GET"
-                      uri-template="https://www.googleapis.com/plus/v1/activities?{+uri.var.apiParameters}"/>
+                      uri-template="legacy-encoding:{uri.var.apiUri}/activities?{uri.var.apiParameters}"/>
             </endpoint>
         </call>
-
         <!-- Remove response custom header information -->
         <header name="Cache-Control" scope="transport" action="remove"/>
         <header name="Expires" scope="transport" action="remove"/>

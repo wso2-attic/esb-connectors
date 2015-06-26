@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-* Copyright (c) 2005-2013, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+* Copyright (c) 2014-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 *
 * WSO2 Inc. licenses this file to you under the Apache License,
 * Version 2.0 (the "License"); you may not use this file except
@@ -31,10 +31,19 @@
         <property name="uri.var.pageToken" expression="$func:pageToken"/>
         <property name="uri.var.sortOrder" expression="$func:sortOrder"/>
         <property name="uri.var.fields" expression="$func:fields"/>
-        <filter xpath="(not(get-property('uri.var.fields') = '' or (not(string(get-property('uri.var.fields'))))))">
+        <script language="js"><![CDATA[
+            var pageToken = mc.getProperty('uri.var.pageToken');
+            var fields = mc.getProperty('uri.var.fields');
+            var encodedPageToken = encodeURIComponent(pageToken);
+            mc.setProperty('uri.var.encodedPageToken', encodedPageToken);
+            var encodedFields = encodeURIComponent(fields);
+            mc.setProperty('uri.var.encodedFields', encodedFields);
+        ]]>
+        </script>
+        <filter xpath="(not(get-property('uri.var.encodedFields') = '' or (not(string(get-property('uri.var.encodedFields'))))))">
             <then>
                 <property name="uri.var.apiParameters"
-                          expression="fn:concat(get-property('uri.var.apiParameters'),'fields=',get-property('uri.var.fields'),'&amp;')"/>
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'fields=',get-property('uri.var.encodedFields'),'&amp;')"/>
             </then>
         </filter>
         <filter xpath="(not(get-property('uri.var.maxResults') = '' or (not(string(get-property('uri.var.maxResults'))))))">
@@ -43,10 +52,10 @@
                           expression="fn:concat(get-property('uri.var.apiParameters'),'maxResults=',get-property('uri.var.maxResults'),'&amp;')"/>
             </then>
         </filter>
-        <filter xpath="(not(get-property('uri.var.pageToken') = '' or (not(string(get-property('uri.var.pageToken'))))))">
+        <filter xpath="(not(get-property('uri.var.encodedPageToken') = '' or (not(string(get-property('uri.var.encodedPageToken'))))))">
             <then>
                 <property name="uri.var.apiParameters"
-                          expression="fn:concat(get-property('uri.var.apiParameters'),'pageToken=',get-property('uri.var.pageToken'),'&amp;')"/>
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'pageToken=',get-property('uri.var.encodedPageToken'),'&amp;')"/>
             </then>
         </filter>
         <filter xpath="(not(get-property('uri.var.sortOrder') = '' or (not(string(get-property('uri.var.sortOrder'))))))">
@@ -55,11 +64,10 @@
                           expression="fn:concat(get-property('uri.var.apiParameters'),'sortOrder=',get-property('uri.var.sortOrder'),'&amp;')"/>
             </then>
         </filter>
-
         <call>
             <endpoint>
                 <http method="GET"
-                      uri-template="https://www.googleapis.com/plus/v1/activities/{uri.var.activityId}/comments?{+uri.var.apiParameters}"/>
+                      uri-template="legacy-encoding:https://www.googleapis.com/plus/v1/activities/{uri.var.activityId}/comments?{uri.var.apiParameters}"/>
             </endpoint>
         </call>
         <!-- Remove response custom header information -->

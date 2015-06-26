@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-* Copyright (c) 2005-2013, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+* Copyright (c) 2014-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 *
 * WSO2 Inc. licenses this file to you under the Apache License,
 * Version 2.0 (the "License"); you may not use this file except
@@ -23,18 +23,23 @@
     <sequence>
         <property name="uri.var.commentId" expression="$func:commentId"/>
         <property name="uri.var.fields" expression="$func:fields"/>
+        <script language="js"><![CDATA[
+            var fields = mc.getProperty('uri.var.fields');
+            var encodedFields = encodeURIComponent(fields);
+            mc.setProperty('uri.var.encodedFields', encodedFields);
+        ]]>
+        </script>
         <!-- Building the URL with the parameters for the API method -->
-        <filter xpath="(not(get-property('uri.var.fields') = '' or (not(string(get-property('uri.var.fields'))))))">
+        <filter xpath="(not(get-property('uri.var.encodedFields') = '' or (not(string(get-property('uri.var.encodedFields'))))))">
             <then>
                 <property name="uri.var.apiParameters"
-                          expression="fn:concat(get-property('uri.var.apiParameters'),'fields=',get-property('uri.var.fields'),'&amp;')"/>
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'fields=',get-property('uri.var.encodedFields'))"/>
             </then>
         </filter>
-
         <call>
             <endpoint>
                 <http method="GET"
-                      uri-template="https://www.googleapis.com/plus/v1/comments/{uri.var.commentId}?{+uri.var.apiParameters}"/>
+                      uri-template="legacy-encoding:https://www.googleapis.com/plus/v1/comments/{uri.var.commentId}?{uri.var.apiParameters}"/>
             </endpoint>
         </call>
         <!-- Remove response custom header information -->
@@ -42,5 +47,4 @@
         <header name="Expires" scope="transport" action="remove"/>
         <header name="X-Content-Type-Options" scope="transport" action="remove"/>
     </sequence>
-
 </template>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2013, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2014-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -109,10 +109,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             JSONObject responseJson = ConnectorIntegrationUtil
@@ -137,10 +137,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
 
@@ -167,9 +167,9 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             int statusCode = ConnectorIntegrationUtil
@@ -195,15 +195,19 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             JSONObject responseJson = ConnectorIntegrationUtil
                     .sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            googlePlusConnectorProperties.setProperty("listActivitiesPageToken", responseJson.getString("nextPageToken"));
+            if(responseJson.has("nextPageToken")) {
+                googlePlusConnectorProperties.setProperty("listActivitiesPageToken", responseJson.getString("nextPageToken"));
+            }else {
+                googlePlusConnectorProperties.setProperty("listActivitiesPageToken", "");
+            }
             Assert.assertEquals("plus#activityFeed", responseJson.getString("kind"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
@@ -213,7 +217,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listActivity method with maxResults Optional Parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListActivityWithMandatoryParams"},
             description = "GooglePlus {listActivity} integration test with mandatory and maxResults optional parameter.")
     public void testListActivityWithOneOptionalParam1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listActivitiesOptionalParams.txt";
@@ -223,11 +227,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"pageToken", "fields"};
@@ -244,7 +248,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listActivity method with fields Optional Parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListActivityWithMandatoryParams"},
             description = "GooglePlus {listActivity} integration test with mandatory and fields optional parameter.")
     public void testListActivityWithOneOptionalParam3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listActivitiesOptionalParams.txt";
@@ -254,11 +258,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "pageToken"};
@@ -275,7 +279,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listActivity method with maxResults,fields Optional Parameters.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListActivityWithMandatoryParams"},
             description = "GooglePlus {listActivity} integration test with mandatory and maxResults,fields optional parameters.")
     public void testListActivityWithTwoOptionalParam3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listActivitiesOptionalParams.txt";
@@ -285,11 +289,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"pageToken"};
@@ -317,9 +321,9 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             int statusCode = ConnectorIntegrationUtil
@@ -344,9 +348,9 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             log.info("Sleep for 30 seconds");
@@ -354,7 +358,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
 
             JSONObject responseJson = ConnectorIntegrationUtil
                     .sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            googlePlusConnectorProperties.setProperty("searchActivitiesPageToken", responseJson.getString("nextPageToken"));
+            if(responseJson.has("nextPageToken")) {
+                googlePlusConnectorProperties.setProperty("searchActivitiesPageToken", responseJson.getString("nextPageToken"));
+            }else {
+                googlePlusConnectorProperties.setProperty("searchActivitiesPageToken", "");
+            }
             Assert.assertEquals("plus#activityFeed", responseJson.getString("kind"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
@@ -365,7 +373,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * Optional parameter test case for searchActivities method.
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and optional parameters.")
     public void testSearchActivityWithOptionalParams() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -375,10 +383,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             JSONObject responseJson = ConnectorIntegrationUtil
@@ -392,7 +400,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with maxResults optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and maxResults optional parameters.")
     public void testSearchActivityWithOneOptionalParams1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -402,10 +410,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "orderBy", "pageToken", "fields"};
@@ -422,7 +430,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with orderBy optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and orderBy optional parameters.")
     public void testSearchActivityWithOneOptionalParams2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -432,10 +440,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters =
@@ -453,7 +461,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with pageToken optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and pageToken optional parameters.")
     public void testSearchActivityWithOneOptionalParams3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -463,10 +471,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "maxResults", "orderBy", "fields"};
@@ -483,7 +491,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with fields.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and fields optional parameters.")
     public void testSearchActivityWithOneOptionalParams4() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -493,10 +501,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters =
@@ -514,7 +522,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language optional parameter
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language optional parameters.")
     public void testSearchActivityWithOneOptionalParams5() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -524,10 +532,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters =
@@ -545,7 +553,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language,maxResults,orderBy,pageToken .
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,maxResults,orderBy,pageToken optional parameters.")
     public void testSearchActivityWithFourOptionalParams1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -555,10 +563,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"fields"};
@@ -575,7 +583,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language,maxResults,orderBy,fields .
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,maxResults,orderBy,fields optional parameters.")
     public void testSearchActivityWithFourOptionalParams2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -585,10 +593,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"pageToken"};
@@ -605,7 +613,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language,maxResults,pageToken,fields .
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,maxResults,pageToken,fields optional parameters.")
     public void testSearchActivityWithFourOptionalParams3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -615,10 +623,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"orderBy"};
@@ -636,7 +644,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * Optional parameter test case for searchActivities method with language,orderBy,pageToken,fields .
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,orderBy,pageToken,fields optional parameters.")
     public void testSearchActivityWithFourOptionalParams4() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -646,10 +654,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults"};
@@ -666,7 +674,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with maxResults,orderBy,pageToken,fields.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and maxResults,orderBy,pageToken,fields optional parameters.")
     public void testSearchActivityWithFourOptionalParams5() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -676,10 +684,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language"};
@@ -696,7 +704,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language,maxResults,fields optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,maxResults,fields optional parameters.")
     public void testSearchActivityWithThreeOptionalParams1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -706,10 +714,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"orderBy", "pageToken"};
@@ -726,7 +734,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language,orderBy,pageToken optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,orderBy,pageToken optional parameters.")
     public void testSearchActivityWithThreeOptionalParams2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -736,10 +744,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "fields"};
@@ -756,7 +764,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language,orderBy,fields optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,orderBy,fields optional parameters.")
     public void testSearchActivityWithThreeOptionalParams3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -766,10 +774,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "pageToken"};
@@ -786,7 +794,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language,pageToken,fields.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,pageToken,fields optional parameters.")
     public void testSearchActivityWithThreeOptionalParams4() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -796,10 +804,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "orderBy"};
@@ -816,7 +824,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with maxResults,orderBy,pageToken optional parameter
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and maxResults,orderBy,pageToken optional parameters.")
     public void testSearchActivityWithThreeOptionalParams5() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -826,10 +834,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "fields"};
@@ -846,7 +854,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with maxResults,orderBy,fields optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and maxResults,orderBy,fields optional parameters.")
     public void testSearchActivityWithThreeOptionalParams6() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -856,10 +864,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "pageToken"};
@@ -876,7 +884,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with maxResults,pageToken,fields optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and maxResults,pageToken,fields optional parameters.")
     public void testSearchActivityWithThreeOptionalParams7() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -886,10 +894,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "orderBy"};
@@ -906,7 +914,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with orderBy,pageToken,fields optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and orderBy,pageToken,fields optional parameters.")
     public void testSearchActivityWithThreeOptionalParams8() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -916,10 +924,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "fields"};
@@ -936,7 +944,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language,maxResults,orderBy.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,maxResults,orderBy optional parameters.")
     public void testSearchActivityWithThreeOptionalParams9() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -946,10 +954,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"pageToken", "fields"};
@@ -966,7 +974,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language,maxResults,pageToken optional parameter
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,maxResults,pageToken optional parameters.")
     public void testSearchActivityWithThreeOptionalParams10() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -976,10 +984,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"orderBy", "fields"};
@@ -996,7 +1004,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with orderBy,pageToken  optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and orderBy,pageToken optional parameters.")
     public void testSearchActivityWithTwoOptionalParams1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -1006,10 +1014,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "maxResults", "fields"};
@@ -1026,7 +1034,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with maxResults,fields optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "googleplus {searchActivities} integration test with mandatory and maxResults,fields optional parameters.")
     public void testSearchActivityWithTwoOptionalParams2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -1036,10 +1044,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "orderBy", "pageToken"};
@@ -1056,7 +1064,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with maxResults,pageToken optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and maxResults,pageToken optional parameters.")
     public void testSearchActivityWithTwoOptionalParams3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -1066,10 +1074,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "orderBy", "fields"};
@@ -1086,7 +1094,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with maxResults,orderBy.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and maxResults,orderBy optional parameters.")
     public void testSearchActivityWithTwoOptionalParams4() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -1096,10 +1104,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "pageToken", "fields"};
@@ -1116,7 +1124,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language,fields optional parameter
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,fields optional parameters.")
     public void testSearchActivityWithTwoOptionalParams5() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -1126,10 +1134,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "orderBy", "pageToken"};
@@ -1146,7 +1154,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language,pageToken optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,pageToken optional parameters.")
     public void testSearchActivityWithTwoOptionalParams6() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -1156,10 +1164,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "orderBy", "fields"};
@@ -1176,7 +1184,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language,orderBy optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,orderBy optional parameters.")
     public void testSearchActivityWithTwoOptionalParams7() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -1186,10 +1194,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "pageToken", "fields"};
@@ -1206,7 +1214,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with language,maxResults optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and language,maxResults optional parameters.")
     public void testSearchActivityWithTwoOptionalParams8() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -1216,10 +1224,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"orderBy", "pageToken", "fields"};
@@ -1236,7 +1244,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with pageToken,fields.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and pageToken,fields optional parameters.")
     public void testSearchActivityWithTwoOptionalParams9() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -1246,10 +1254,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "maxResults", "orderBy"};
@@ -1266,7 +1274,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchActivities method with orderBy,fields optional parameter
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchActivityWithMandatoryParams"},
             description = "GooglePlus {searchActivities} integration test with mandatory and orderBy,fields optional parameters.")
     public void testSearchActivityWithTwoOptionalParams10() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchActivitiesOptionalParams.txt";
@@ -1276,10 +1284,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "maxResults", "pageToken"};
@@ -1308,9 +1316,9 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             int statusCode = ConnectorIntegrationUtil
@@ -1338,10 +1346,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("commentId", googlePlusConnectorProperties.getProperty("commentId").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("commentId", googlePlusConnectorProperties.getProperty("commentId"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
 
@@ -1366,10 +1374,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("commentId", googlePlusConnectorProperties.getProperty("commentId").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("commentId", googlePlusConnectorProperties.getProperty("commentId"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             JSONObject responseJson = ConnectorIntegrationUtil
@@ -1394,9 +1402,9 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             int statusCode = ConnectorIntegrationUtil
@@ -1421,16 +1429,20 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
 
             JSONObject responseJson = ConnectorIntegrationUtil
                     .sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            googlePlusConnectorProperties.setProperty("listCommentsPageToken", responseJson.getString("nextPageToken"));
+            if(responseJson.has("nextPageToken")) {
+                googlePlusConnectorProperties.setProperty("listCommentsPageToken", responseJson.getString("nextPageToken"));
+            }else {
+                googlePlusConnectorProperties.setProperty("listCommentsPageToken", "");
+            }
             Assert.assertEquals("plus#commentFeed", responseJson.getString("kind"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
@@ -1440,7 +1452,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listComments method.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {listComments} integration test with mandatory and optional parameters.")
     public void testListCommentsWithOptionalParams() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1450,11 +1462,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             JSONObject responseJson = ConnectorIntegrationUtil
@@ -1479,9 +1491,9 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
 
@@ -1499,7 +1511,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {listComments} integration test with optional parameter maxResults.")
     public void testListCommentsOneOptionalParam1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1509,11 +1521,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"pageToken", "sortOrder", "fields"};
@@ -1533,7 +1545,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {listComments} integration test with optional parameter pageToken.")
     public void testListCommentsOneOptionalParam2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1543,11 +1555,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "sortOrder", "fields"};
@@ -1567,7 +1579,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {listComments} integration test with optional parameter sortOrder.")
     public void testListCommentsOneOptionalParam3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1577,11 +1589,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "pageToken", "fields"};
@@ -1601,7 +1613,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {listComments} integration test with optional parameter fields.")
     public void testListCommentsOneOptionalParam4() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1611,11 +1623,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "pageToken", "sortOrder"};
@@ -1632,7 +1644,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for ListComments method with maxResults,pageToken  optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {ListComments} integration test with mandatory and maxResults,pageToken optional parameters.")
     public void testListCommentsWithTwoOptionalParams1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1642,11 +1654,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"sortOrder", "fields"};
@@ -1663,7 +1675,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for ListComments method with maxResults,sortOrder optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {ListComments} integration test with mandatory and maxResults,sortOrder optional parameters.")
     public void testListCommentsWithTwoOptionalParams2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1673,11 +1685,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"fields", "pageToken"};
@@ -1694,7 +1706,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for ListComments method with maxResults,fields optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {ListComments} integration test with mandatory and maxResults,fields optional parameters.")
     public void testListCommentsWithTwoOptionalParams3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1704,11 +1716,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"sortOrder", "pageToken"};
@@ -1725,7 +1737,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for ListComments method with pageToken,sortOrder.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {ListComments} integration test with mandatory and pageToken,sortOrder optional parameters.")
     public void testListCommentsWithTwoOptionalParams4() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1735,11 +1747,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "fields"};
@@ -1756,7 +1768,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for ListComments method with pageToken,fields optional parameter
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {ListComments} integration test with mandatory and language,fields optional parameters.")
     public void testListCommentsWithTwoOptionalParams5() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1766,11 +1778,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "sortOrder"};
@@ -1787,7 +1799,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for ListComments method with sortOrder,fields optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {ListComments} integration test with mandatory and sortOrder,fields optional parameters.")
     public void testListCommentsWithTwoOptionalParams6() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1797,11 +1809,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "pageToken"};
@@ -1821,7 +1833,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {listComments} integration test with optional parameter pageToken, sortOrder, fields.")
     public void testListCommentsThreeOptionalParam1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1831,11 +1843,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults"};
@@ -1855,7 +1867,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {listComments} integration test with optional parameter maxResults, sortOrder, fields.")
     public void testListCommentsThreeOptionalParam2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1865,11 +1877,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"pageToken"};
@@ -1889,7 +1901,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {listComments} integration test with optional parameter maxResults, pageToken, fields.")
     public void testListCommentsThreeOptionalParam3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1899,11 +1911,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"sortOrder"};
@@ -1923,7 +1935,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {listComments} integration test with optional parameter maxResults, pageToken, sortOrder.")
     public void testListCommentsThreeOptionalParam4() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listCommentsOptionalParams.txt";
@@ -1933,11 +1945,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"fields"};
@@ -1967,9 +1979,9 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
 
@@ -1994,9 +2006,9 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             JSONObject responseJson = ConnectorIntegrationUtil
@@ -2021,9 +2033,9 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             int statusCode = ConnectorIntegrationUtil
@@ -2051,10 +2063,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
 
@@ -2079,10 +2091,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             JSONObject responseJson = ConnectorIntegrationUtil
@@ -2107,9 +2119,9 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
 
@@ -2135,14 +2147,18 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             JSONObject responseJson = ConnectorIntegrationUtil
                     .sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            googlePlusConnectorProperties.setProperty("searchPeoplePageToken", responseJson.getString("nextPageToken"));
+            if(responseJson.has("nextPageToken")) {
+                googlePlusConnectorProperties.setProperty("searchPeoplePageToken", responseJson.getString("nextPageToken"));
+            }else {
+                googlePlusConnectorProperties.setProperty("searchPeoplePageToken", "");
+            }
             junit.framework.Assert.assertEquals("plus#peopleFeed", responseJson.getString("kind"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
@@ -2152,7 +2168,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for searchPeople method.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {searchPeople} integration test with mandatory and optional parameters.")
     public void testSearchPeopleWithOptionalParams() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2162,10 +2178,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             JSONObject responseJson = ConnectorIntegrationUtil
@@ -2190,9 +2206,9 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
 
@@ -2210,7 +2226,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"},  dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {searchPeople} integration test with optional parameter maxResults.")
     public void testSearchPeopleOneOptionalParam1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2220,10 +2236,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"pageToken", "language", "fields"};
@@ -2243,7 +2259,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {searchPeople} integration test with optional parameter pageToken.")
     public void testSearchPeopleOneOptionalParam2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2253,10 +2269,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "language", "fields"};
@@ -2276,7 +2292,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {searchPeople} integration test with optional parameter language.")
     public void testSearchPeopleOneOptionalParam3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2286,10 +2302,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "pageToken", "fields"};
@@ -2309,7 +2325,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {searchPeople} integration test with optional parameter fields.")
     public void testSearchPeopleOneOptionalParam4() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2319,10 +2335,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "pageToken", "language"};
@@ -2339,7 +2355,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for SearchPeople method with maxResults,pageToken  optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {SearchPeople} integration test with mandatory and maxResults,pageToken optional parameters.")
     public void testSearchPeopleWithTwoOptionalParams1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2349,10 +2365,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "fields"};
@@ -2369,7 +2385,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for SearchPeople method with maxResults,language optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {SearchPeople} integration test with mandatory and maxResults,language optional parameters.")
     public void testSearchPeopleWithTwoOptionalParams2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2379,10 +2395,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"fields", "pageToken"};
@@ -2399,7 +2415,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for SearchPeople method with maxResults,fields optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {SearchPeople} integration test with mandatory and maxResults,fields optional parameters.")
     public void testSearchPeopleWithTwoOptionalParams3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2409,10 +2425,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language", "pageToken"};
@@ -2429,7 +2445,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for SearchPeople method with pageToken,language.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {SearchPeople} integration test with mandatory and pageToken,language optional parameters.")
     public void testSearchPeopleWithTwoOptionalParams4() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2439,10 +2455,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "fields"};
@@ -2459,7 +2475,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for SearchPeople method with pageToken,fields optional parameter
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {SearchPeople} integration test with mandatory and language,fields optional parameters.")
     public void testSearchPeopleWithTwoOptionalParams5() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2469,10 +2485,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "language"};
@@ -2489,7 +2505,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for SearchPeople method with language,fields optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {SearchPeople} integration test with mandatory and language,fields optional parameters.")
     public void testSearchPeopleWithTwoOptionalParams6() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2499,10 +2515,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "pageToken"};
@@ -2522,7 +2538,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {searchPeople} integration test with optional parameter pageToken, language, fields.")
     public void testSearchPeopleThreeOptionalParam1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2532,10 +2548,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults"};
@@ -2555,7 +2571,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {searchPeople} integration test with optional parameter maxResults, language, fields.")
     public void testSearchPeopleThreeOptionalParam2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2565,10 +2581,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"pageToken"};
@@ -2588,7 +2604,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {searchPeople} integration test with optional parameter maxResults, pageToken, fields.")
     public void testSearchPeopleThreeOptionalParam3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2598,10 +2614,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"language"};
@@ -2621,7 +2637,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testSearchPeopleWithMandatoryParams"},
             description = "GooglePlus {searchPeople} integration test with optional parameter maxResults, pageToken, language.")
     public void testSearchPeopleThreeOptionalParam4() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "searchPeopleOptionalParams.txt";
@@ -2631,10 +2647,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"fields"};
@@ -2662,15 +2678,19 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
 
             JSONObject responseJson = ConnectorIntegrationUtil
                     .sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            googlePlusConnectorProperties.setProperty("listPeoplePageToken", responseJson.getString("nextPageToken"));
+            if(responseJson.has("nextPageToken")) {
+                googlePlusConnectorProperties.setProperty("listPeoplePageToken", responseJson.getString("nextPageToken"));
+            }else {
+                googlePlusConnectorProperties.setProperty("listPeoplePageToken", "");
+            }
             junit.framework.Assert.assertEquals("plus#peopleFeed", responseJson.getString("kind"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
@@ -2680,7 +2700,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listPeople method.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {listPeople} integration test with mandatory and optional parameters.")
     public void testListPeopleWithOptionalParams() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -2690,10 +2710,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             JSONObject responseJson = ConnectorIntegrationUtil
@@ -2718,9 +2738,9 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             int statusCode = ConnectorIntegrationUtil
@@ -2737,7 +2757,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {listPeople} integration test with optional parameter maxResults.")
     public void testListPeopleOneOptionalParam1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -2747,10 +2767,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"pageToken", "orderBy", "fields"};
@@ -2770,7 +2790,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {listPeople} integration test with optional parameter pageToken.")
     public void testListPeopleOneOptionalParam2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -2780,10 +2800,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "orderBy", "fields"};
@@ -2803,7 +2823,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {listPeople} integration test with optional parameter orderBy.")
     public void testListPeopleOneOptionalParam3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -2813,10 +2833,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "pageToken", "fields"};
@@ -2836,7 +2856,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {listPeople} integration test with optional parameter fields.")
     public void testListPeopleOneOptionalParam4() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -2846,10 +2866,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "pageToken", "orderBy"};
@@ -2866,7 +2886,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for ListPeople method with maxResults,pageToken  optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {ListPeople} integration test with mandatory and maxResults,pageToken optional parameters.")
     public void testListPeopleWithTwoOptionalParams1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -2876,10 +2896,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"orderBy", "fields"};
@@ -2896,7 +2916,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for ListPeople method with maxResults,orderBy optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {ListPeople} integration test with mandatory and maxResults,orderBy optional parameters.")
     public void testListPeopleWithTwoOptionalParams2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -2906,10 +2926,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"fields", "pageToken"};
@@ -2926,7 +2946,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for ListPeople method with maxResults,fields optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {ListPeople} integration test with mandatory and maxResults,fields optional parameters.")
     public void testListPeopleWithTwoOptionalParams3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -2936,10 +2956,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"orderBy", "pageToken"};
@@ -2956,7 +2976,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for ListPeople method with pageToken,orderBy.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {ListPeople} integration test with mandatory and pageToken,orderBy optional parameters.")
     public void testListPeopleWithTwoOptionalParams4() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -2966,10 +2986,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "fields"};
@@ -2986,7 +3006,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for ListPeople method with pageToken,fields optional parameter
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {ListPeople} integration test with mandatory and language,fields optional parameters.")
     public void testListPeopleWithTwoOptionalParams5() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -2996,10 +3016,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "orderBy"};
@@ -3016,7 +3036,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for ListPeople method with orderBy,fields optional parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {ListPeople} integration test with mandatory and orderBy,fields optional parameters.")
     public void testListPeopleWithTwoOptionalParams6() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -3026,10 +3046,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "pageToken"};
@@ -3049,7 +3069,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {listPeople} integration test with optional parameter pageToken, orderBy, fields.")
     public void testListPeopleThreeOptionalParam1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -3059,10 +3079,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults"};
@@ -3082,7 +3102,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {listPeople} integration test with optional parameter maxResults, orderBy, fields.")
     public void testListPeopleThreeOptionalParam2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -3092,10 +3112,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"pageToken"};
@@ -3115,7 +3135,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {listPeople} integration test with optional parameter maxResults, pageToken, fields.")
     public void testListPeopleThreeOptionalParam3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -3125,10 +3145,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"orderBy"};
@@ -3148,7 +3168,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
      * @throws Exception
      */
 
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListPeopleWithMandatoryParams"},
             description = "GooglePlus {listPeople} integration test with optional parameter maxResults, pageToken, orderBy.")
     public void testListPeopleThreeOptionalParam4() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listPeopleOptionalParams.txt";
@@ -3158,10 +3178,10 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"fields"};
@@ -3189,16 +3209,20 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
 
             JSONObject responseJson = ConnectorIntegrationUtil
                     .sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            googlePlusConnectorProperties.setProperty("listByActivityPageToken", responseJson.getString("nextPageToken"));
+            if(responseJson.has("nextPageToken")) {
+                googlePlusConnectorProperties.setProperty("listByActivityPageToken", responseJson.getString("nextPageToken"));
+            }else {
+                googlePlusConnectorProperties.setProperty("listByActivityPageToken", "");
+            }
             junit.framework.Assert.assertEquals("plus#peopleFeed", responseJson.getString("kind"));
         } finally {
             proxyAdmin.deleteProxy(methodName);
@@ -3208,7 +3232,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listPeople method.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListByActivityWithMandatoryParams"},
             description = "GooglePlus {listByActivity} integration test with mandatory and optional parameters.")
     public void testListByActivityWithOptionalParams() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listByActivityOptionalParams.txt";
@@ -3218,11 +3242,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             JSONObject responseJson = ConnectorIntegrationUtil
@@ -3236,7 +3260,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listByActivity method with maxResults Optional Parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListByActivityWithMandatoryParams"},
             description = "GooglePlus {listByActivity} integration test with mandatory and maxResults optional parameter.")
     public void testListByActivityWithOneOptionalParam1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listByActivityOptionalParams.txt";
@@ -3246,11 +3270,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"pageToken", "fields"};
@@ -3267,7 +3291,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listByActivity method with pageToken Optional Parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListByActivityWithMandatoryParams"},
             description = "GooglePlus {listByActivity} integration test with mandatory and pageToken optional parameter.")
     public void testListByActivityWithOneOptionalParam2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listByActivityOptionalParams.txt";
@@ -3277,11 +3301,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "fields"};
@@ -3298,7 +3322,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listByActivity method with fields Optional Parameter.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListByActivityWithMandatoryParams"},
             description = "GooglePlus {listByActivity} integration test with mandatory and fields optional parameter.")
     public void testListByActivityWithOneOptionalParam3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listByActivityOptionalParams.txt";
@@ -3308,11 +3332,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults", "pageToken"};
@@ -3329,7 +3353,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listByActivity method with maxResults,pageToken Optional Parameters.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListByActivityWithMandatoryParams"},
             description = "GooglePlus {listByActivity} integration test with mandatory and maxResults,pageToken optional parameters.")
     public void testListByActivityWithTwoOptionalParam1() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listByActivityOptionalParams.txt";
@@ -3339,11 +3363,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"fields"};
@@ -3360,7 +3384,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listByActivity method with pageToken,fields Optional Parameters.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListByActivityWithMandatoryParams"},
             description = "GooglePlus {listByActivity} integration test with mandatory and pageToken,,fields optional parameters.")
     public void testListByActivityWithTwoOptionalParam2() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listByActivityOptionalParams.txt";
@@ -3370,11 +3394,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"maxResults"};
@@ -3391,7 +3415,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listByActivity method with maxResults,fields Optional Parameters.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListByActivityWithMandatoryParams"},
             description = "GooglePlus {listByActivity} integration test with mandatory and maxResults,fields optional parameters.")
     public void testListByActivityWithTwoOptionalParam3() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "listByActivityOptionalParams.txt";
@@ -3401,11 +3425,11 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId").toString());
-        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken").toString());
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
             String[] unneededOptionalParameters = {"pageToken"};
@@ -3433,9 +3457,9 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
-        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId").toString());
-        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret").toString());
-        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken").toString());
+        jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
+        jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
+        jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
         String modifiedJsonString = jsonObject.toString().replace("[","").replace("]","");
         try {
 
