@@ -10,26 +10,18 @@ Pre-requisites:
 Tested Platform: 
 
  - Mac OSX 10.9.4 and Ubuntu 14.04 64bit 
- - WSO2 ESB 4.8.1
-		  
+ - WSO2 ESB 4.9.0-ALPHA
+ - Java 1.7
+
 STEPS:
 
-1. Make sure the ESB 4.8.1 zip file with latest patches available at {basedir}/repository folder. If you want to use another location edit the pom.xml as follows.
+1. Make sure the ESB 4.9.0-ALPHA zip file with latest patches available at {basedir}/repository folder. If you want to use another location edit the pom.xml as follows.
 
           <carbon.zip>
             ${basedir}/../test/wso2esb-${esb.version}.zip
           </carbon.zip>
 
-2. Copy GooglePlus connector zip file (GooglePlusConnector.zip) to the location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/repository/"
-
-3. Make sure the google plus test suite is enabled (as given below) and all other test suites are commented in the following file - "{basedir}/src/test/resources/testng.xml"
-    <test name="GooglePlus-Connector-Test" preserve-order="true" verbose="2">
-        <packages>
-            <package name="org.wso2.carbon.connector"/>
-        </packages>
-    </test>
-
-4. This section describes how to obtain an access token from the google oauth.
+2. This section describes how to obtain an access token from the google oauth.
 	
 	i) 	Login to your google developer account, then navigate to url: https://console.developers.google.com/project and create new project.
 	 
@@ -41,14 +33,21 @@ STEPS:
 	
 	v)	Use the guide at the url: https://developers.google.com/accounts/docs/OAuth2WebServer and follow the instructions in "offline access" and "using a refresh token" in order to get a refresh token.
 	
-	vi)	Go to {basedir}/src/test/resources/artifacts/ESB/connector.config/GooglePlus.properties and add following lines :
+	vi)	Login and create an activity(Post anything) and comment on the activity.
+	
+	vii)	Go to {basedir}/src/test/resources/artifacts/ESB/connector.config/GooglePlus.properties and add following lines :
 			clientId - client ID of the google tasks app	
 			clientSecret - client secret of the google tasks app
 			refreshToken - refresh token obtained from google oauth 2.0
-	
+        	apiUrl - API url of google plus (E.g: https://www.googleapis.com/plus/v1).
+            userId - user Identifier of google plus account
+
 	vii)getAccessToken.xml configuration will obtain the temporary access token using these property values.
 
-5. From the base directory run the following command.
+3. Make sure that googleplus is specified as a module in ESB_Connector_Parent pom.
+     <module>googleplus/googleplus-connector/googleplus-connector-connector-1.0.0/org.wso2.carbon.connector</module>
+
+4. Navigate to "{ESB_Connector_Home}/" and run the following command.
      $ mvn clean install
 
 Notes: 

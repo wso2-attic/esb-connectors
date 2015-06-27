@@ -18,7 +18,7 @@ STEPS:
 1. Download ESB 4.9.0-ALPHA by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/ and copy that wso2esb-4.9.0-ALPHA.zip file in to location "{ESB_Connector_Home}/repository/".
 
 2. Make sure that googlecustomsearch is specified as a module in ESB_Connector_Parent pom.
-       <module>googlecustomsearch/googlecustomsearch-connector/googlecustomsearch-connector-connector-1.0.0</module>
+      <module>googlecustomsearch/googlecustomsearch-connector/googlecustomsearch-connector-connector-1.0.0/org.wso2.carbon.connector</module>
 
 3. Creating a Google Cloud Console account:
 	- Go to https://console.developers.google.com/
