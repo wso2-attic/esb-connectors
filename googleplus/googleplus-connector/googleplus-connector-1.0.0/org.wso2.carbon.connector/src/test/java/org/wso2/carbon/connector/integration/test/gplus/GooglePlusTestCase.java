@@ -19,6 +19,7 @@ package org.wso2.carbon.connector.integration.test.gplus;
 
 import org.apache.axis2.context.ConfigurationContext;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -99,7 +100,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for getActivity method.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListActivityWithMandatoryParams"},
             description = "GooglePlus {getActivity} integration test with mandatory parameters.")
     public void testGetActivityWithMandatoryParams() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "getActivities.txt";
@@ -110,6 +111,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -127,7 +129,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for getActivity method.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListActivityWithMandatoryParams"},
             description = "GooglePlus {getActivity} integration test with mandatory and optional parameters.")
     public void testGetActivityWithOptionalParams() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "getActivitiesOptionalParams.txt";
@@ -137,6 +139,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
@@ -167,6 +170,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -196,6 +200,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -203,6 +208,14 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         try {
             JSONObject responseJson = ConnectorIntegrationUtil
                     .sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            JSONArray jArray = responseJson.getJSONArray("items");
+            for(int i =0; i<jArray.length(); i++) {
+                int comments = jArray.getJSONObject(i).getJSONObject("object").getJSONObject("replies").getInt("totalItems");
+                if (comments >= 1) {
+                    googlePlusConnectorProperties.setProperty("activityId", jArray.getJSONObject(i).getString("id"));
+                    break;
+                }
+            }
             if(responseJson.has("nextPageToken")) {
                 googlePlusConnectorProperties.setProperty("listActivitiesPageToken", responseJson.getString("nextPageToken"));
             }else {
@@ -229,6 +242,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -260,6 +274,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -291,6 +306,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -321,6 +337,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -348,6 +365,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -384,6 +402,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -411,6 +430,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -441,6 +461,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -472,6 +493,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -502,6 +524,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -533,6 +556,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -564,6 +588,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -594,6 +619,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -624,6 +650,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -655,6 +682,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -685,6 +713,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -715,6 +744,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -745,6 +775,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -775,6 +806,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -805,6 +837,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -835,6 +868,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -865,6 +899,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -895,6 +930,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -925,6 +961,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -955,6 +992,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -985,6 +1023,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1015,6 +1054,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1045,6 +1085,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1075,6 +1116,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1105,6 +1147,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1135,6 +1178,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1165,6 +1209,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1195,6 +1240,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1225,6 +1271,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1255,6 +1302,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1285,6 +1333,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchActivitiesPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1316,6 +1365,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1335,7 +1385,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for getComments method.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {getComments} integration test with mandatory parameters.")
     public void testGetCommentsWithMandatoryParams() throws Exception {
 
@@ -1347,6 +1397,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("commentId", googlePlusConnectorProperties.getProperty("commentId"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1364,7 +1415,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Optional parameter test case for getComments method.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListCommentsWithMandatoryParams"},
             description = "GooglePlus {getComments} integration test with mandatory and optional parameters.")
     public void testGetCommentsWithOptionalParams() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "getCommentsOptionalParams.txt";
@@ -1375,6 +1426,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("commentId", googlePlusConnectorProperties.getProperty("commentId"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1402,6 +1454,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1418,7 +1471,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for listComments method.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListActivityWithMandatoryParams"},
             description = "GooglePlus {listComments} integration test with mandatory parameters.")
     public void testListCommentsWithMandatoryParams() throws Exception {
 
@@ -1430,6 +1483,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1438,6 +1492,8 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
 
             JSONObject responseJson = ConnectorIntegrationUtil
                     .sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            JSONArray jArray = responseJson.getJSONArray("items");
+            googlePlusConnectorProperties.setProperty("commentId", jArray.getJSONObject(0).getString("id"));
             if(responseJson.has("nextPageToken")) {
                 googlePlusConnectorProperties.setProperty("listCommentsPageToken", responseJson.getString("nextPageToken"));
             }else {
@@ -1464,6 +1520,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1491,6 +1548,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1523,6 +1581,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1557,6 +1616,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1591,6 +1651,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1625,6 +1686,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1656,6 +1718,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1687,6 +1750,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1718,6 +1782,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1749,6 +1814,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1780,6 +1846,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1811,6 +1878,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1845,6 +1913,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1879,6 +1948,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1913,6 +1983,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1947,6 +2018,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listCommentsPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -1979,6 +2051,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2006,6 +2079,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2033,6 +2107,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2064,6 +2139,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2092,6 +2168,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("userId", googlePlusConnectorProperties.getProperty("userId"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2119,6 +2196,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2147,6 +2225,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2179,6 +2258,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2206,6 +2286,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2237,6 +2318,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2270,6 +2352,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2303,6 +2386,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2336,6 +2420,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2366,6 +2451,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2396,6 +2482,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2426,6 +2513,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2456,6 +2544,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2486,6 +2575,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2516,6 +2606,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2549,6 +2640,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2582,6 +2674,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2615,6 +2708,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2648,6 +2742,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("searchPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2678,6 +2773,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2711,6 +2807,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2738,6 +2835,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2768,6 +2866,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2801,6 +2900,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2834,6 +2934,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2867,6 +2968,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2897,6 +2999,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2927,6 +3030,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2957,6 +3061,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -2987,6 +3092,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3017,6 +3123,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3047,6 +3154,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3080,6 +3188,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3113,6 +3222,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3146,6 +3256,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3179,6 +3290,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listPeoplePageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3198,7 +3310,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for listPeople method.
      */
-    @Test(groups = {"wso2.esb"},
+    @Test(groups = {"wso2.esb"}, dependsOnMethods = {"testListActivityWithMandatoryParams"},
             description = "GooglePlus {listByActivity} integration test with mandatory parameters.")
     public void testListByActivityWithMandatoryParams() throws Exception {
 
@@ -3210,6 +3322,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3244,6 +3357,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3272,6 +3386,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3303,6 +3418,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3334,6 +3450,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3365,6 +3482,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3396,6 +3514,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3427,6 +3546,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         JSONObject jsonObject = new JSONObject(requestJsonString);
         jsonObject.append("activityId", googlePlusConnectorProperties.getProperty("activityId"));
         jsonObject.append("pageToken", googlePlusConnectorProperties.getProperty("listByActivityPageToken"));
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
@@ -3457,6 +3577,7 @@ public class GooglePlusTestCase extends ESBIntegrationTest {
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonObject = new JSONObject(requestJsonString);
+        jsonObject.append("apiUrl", googlePlusConnectorProperties.getProperty("apiUrl"));
         jsonObject.append("clientId", googlePlusConnectorProperties.getProperty("clientId"));
         jsonObject.append("clientSecret", googlePlusConnectorProperties.getProperty("clientSecret"));
         jsonObject.append("refreshToken", googlePlusConnectorProperties.getProperty("refreshToken"));
