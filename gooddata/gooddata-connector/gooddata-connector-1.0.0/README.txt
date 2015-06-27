@@ -17,7 +17,7 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.9.0-Alpha
+ - WSO2 ESB 4.8.1
 
 STEPS:
 
@@ -28,7 +28,7 @@ STEPS:
 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "GoodData"' in command line to import gooddata certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from gooddata with  the extension, change it accordingly. Remove the copied certificate.
 	
-	ii) "wso2esb-4.9.0-Alpha/repository/resources/security"
+	ii) "wso2esb-4.8.1/repository/resources/security"
 	
 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "GoodData"' in command line to import gooddata certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from gooddata with  the extension, change it accordingly. Remove the copied certificate. 
@@ -40,7 +40,7 @@ STEPS:
    
 	<messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
- 3. Place the ESB 4.9.0-Alpha.zip file under "<GOODDATA_CONNECTOR_HOME>/gooddata-connector/gooddata-connector-1.0.0/org.wso2.carbon.connector/repository/"
+ 3. Place the ESB 4.8.1.zip file under "<GOODDATA_CONNECTOR_HOME>/gooddata-connector/gooddata-connector-1.0.0/org.wso2.carbon.connector/repository/"
 	
  4. Create a GoodData account using the URL "https://www.gooddata.com/".	
 
@@ -64,11 +64,8 @@ STEPS:
 		viii) maql                - A valid maql script. Below mentioned link can be used to obtain maql scripts which are relevant to GoodData.
 									https://developer.gooddata.com/article/creating-analytical-project-with-maql-ddl
 		
- 6. Make sure that the gooddata connector is set as a module in esb-connectors parent pom.
-       <module>gooddata/gooddata-connector/gooddata-connector-1.0.0/org.wso2.carbon.connector</module>
-
- 7. Navigate to "{ESB_Connector_Home}/" and run the following command.
-    $ mvn clean install
+ 6. Navigate to "<GOODDATA_CONNECTOR_HOME>/gooddata-connector/gooddata-connector-1.0.0/org wso2.carbon.connector/" and run the following command.
+      $ mvn clean install
 
  NOTE : Following GoodData account, can be used to run the integration tests.
     Username : gooddatacondev@gmail.com
