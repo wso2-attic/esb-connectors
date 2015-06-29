@@ -65,18 +65,18 @@ Steps to follow in setting integration test.
 
  8. Update the GoToWebinar properties file at location "{gotowebinar_connector_Home}/gotowebinar-connector/gotowebinar-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
-	i)		apiUrl						-	Use the API URL as "https://api.citrixonline.com".
-	ii)		accessToken					-	Place the access token from the generated in step 6 [iii].
-	iii)	organizerKey				-	Place the ornanizer_key from the generated in in step 6 [iii].
-	iv)		firstName					-	First name of the registrant.
-	v)		lastName					-	Last name of the registrant.
-	vi)		email						-	Email of the registrant(Should change before each run).
-	vii)	firstNameOpt				-	First name of the registrant.
-	viii)	lastNameOpt					-	Last name of the registrant.
-	ix)		emailOpt					-	Email of the different registrant(Should change before each run).
-	x)		organization				-	organization which registrant belongs.
-	xi)		industry					-	Industry of the registrant.
-	xii)	jobTitle					-	Job title of the registrant.
+	i)	apiUrl			    -	Use the API URL as "https://api.citrixonline.com".
+	ii)	accessToken		    -	Place the access token from the generated in step 6 [iii].
+	iii)	organizerKey		    -	Place the ornanizer_key from the generated in in step 6 [iii].
+	iv)	firstName		    -	First name of the registrant.
+	v)	lastName		    -	Last name of the registrant.
+	vi)	email			    -	Email of the registrant(Should change before each run).
+	vii)	firstNameOpt		    -	First name of the registrant.
+	viii)	lastNameOpt		    -	Last name of the registrant.
+	ix)	emailOpt		    -	Email of the different registrant(Should change before each run).
+	x)	organization		    -	organization which registrant belongs.
+	xi)	industry		    -	Industry of the registrant.
+	xii)	jobTitle		    -	Job title of the registrant.
 	xiii)   invalidUpcommingWebinarKey  -   Non existing webinar key.
 
  9. Make sure that the gotowebinar connector is set as a module in esb-connectors parent pom.
