@@ -1,0 +1,59 @@
+<template name="deletePhoto" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="photoId" description="id of the photo  to remove"/>
+    <parameter name="format" description="response format expected"/>
+    <sequence>
+        <property name="NO_ENTITY_BODY" scope="axis2" action="remove"/>
+        <property name="POST_TO_URI" value="true" scope="axis2"/>
+        <property name="flickr.method" value="flickr.photos.delete"/>
+        <property name="flickr.photoId" expression="$func:photoId"/>
+        <property name="flickr.httpMethod" value="POST"/>
+        <property name="flickr.format" expression="$func:format"/>
+        <property name="flickr.parameters" expression="fn:concat(
+        'method=', get-property('flickr.method'),
+        '&amp;oauth_consumer_key=', get-property('flickr.oauth.consumerKey'),
+        '&amp;oauth_nonce=', get-property('flickr.oauth.nonce'),
+        '&amp;oauth_signature_method=HMAC-SHA1',
+        '&amp;oauth_timestamp=', get-property('flickr.oauth.timestamp'),
+        '&amp;oauth_token=', get-property('flickr.oauth.accessToken'),
+        '&amp;oauth_version=1.0',
+        '&amp;photo_id=', get-property('flickr.photoId')
+        )"/>
+        <!--Adding optional parameters.-->
+        <filter
+                xpath="(not(get-property('flickr.format') = '' or  (not(string(get-property('flickr.format'))))))">
+            <then>
+                <!--
+                default flickr response for json format is a json callback function.
+                But the ESB expect raw json. To get that we additionally set the
+                nojsoncallback=1 parameter.
+                -->
+                <filter xpath="(get-property('flickr.format') = 'json')">
+                    <then>
+                        <script language="js"><![CDATA[
+                        var query = mc.getProperty("flickr.parameters");
+                        query = query.replace("oauth_consumer_key", "nojsoncallback=1&oauth_consumer_key");
+                        mc.setProperty("flickr.parameters",query);
+                        ]]></script>
+                    </then>
+                </filter>
+                <script language="js"><![CDATA[
+                var query = mc.getProperty("flickr.parameters");
+                query = query.replace("method="+mc.getProperty("flickr.method"),
+                "format=" + mc.getProperty("flickr.format") + "&method="+mc.getProperty("flickr.method"));
+                mc.setProperty("flickr.parameters",query);
+                ]]></script>
+            </then>
+        </filter>
+        <class name="org.wso2.carbon.connector.flickr.GenerateSignature"/>
+        <property name="uri.var.signature" expression="get-property('flickr.oauth.signature')"/>
+        <property name="uri.var.parameters" expression="get-property('flickr.parameters')"/>
+        <property name="uri.var.apiUri" expression="get-property('flickr.apiUri')"/>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="legacy-encoding:{uri.var.apiUri}?{uri.var.parameters}&amp;oauth_signature={uri.var.signature}"/>
+            </endpoint>
+        </call>
+        <header name="P3P" action="remove" scope="transport"/>
+    </sequence>
+</template>
