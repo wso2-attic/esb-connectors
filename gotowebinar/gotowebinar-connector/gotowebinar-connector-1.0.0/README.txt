@@ -10,8 +10,9 @@ Pre-requisites:
 Tested Platform: 
 
  - Microsoft WINDOWS V-7
- - UBUNTU 14.04
+ - UBUNTU 14.04, Mac OSx 10.9
  - WSO2 ESB 4.9.0-ALPHA
+ - Java 1.7
 
 Note:
 	This test suite can be executed based on two scenarios.
@@ -21,23 +22,23 @@ Note:
 Steps to follow in setting integration test.
 
  1. Download ESB 4.9.0-ALPHA by following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/
- 
+
  2. Deploy relevant patches, if applicable.
- 
+
  3. The ESB should be configured as below.
 	i) Please make sure that the below mentioned Axis configurations are enabled (/repository/conf/axis2/axis2.xml).
-		
+
 		Message Formatters :
 		<messageFormatter contentType="application/vnd.citrix.g2wapi-v1.1+json"
                           class="org.apache.synapse.commons.json.JsonStreamFormatter"/>
-		<messageFormatter contentType="text/html" 
+		<messageFormatter contentType="text/html"
                           class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
 
 		Message Builders :
 		<messageBuilder contentType="application/vnd.citrix.g2wapi-v1.1+json"
                           class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
-		<messageBuilder contentType="text/html" 
-						class="org.wso2.carbon.relay.BinaryRelayBuilder"/>				  
+		<messageBuilder contentType="text/html"
+						class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
  4. Compress modified ESB as wso2esb- 4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
 
@@ -45,7 +46,7 @@ Steps to follow in setting integration test.
 	i) 		Using the URL "https://developer.citrixonline.com/user/register" create a Citrix online account.
 	ii)		Login to the Citrix account and go to 'My Apps' and add a new app.
 	iii)	Select the above created app and obtain the Consumer Key.
- 
+
  6. Create a GoToWebinar trial account and obtain the access token and the organizer_key.
 	i)		Using the URL "https://secure.citrixonline.com/secure/gotowebinar/commerce/try/register" create a GoToWebinar free trial account using following details.
 			a)Select number of organizer seats as 9.
@@ -56,27 +57,28 @@ Steps to follow in setting integration test.
 			c)password 	 -   Password of your GoToWebinar account.
 			d)client_id  -	 Use the Consumer Key you obtained under Step 4 iii).
 	iii)	Get the ornanizer_key and the access token from the response.
-	
+
  7. Pre-requisites for Integration tests
 
-	i) 	Create and complete a webinar with more than one registrants and sessions.
+	i) 	Create and complete a webinar with more than one registrants (by clicking 'Registration URL') and sessions (Click on the scheduled webinar and add another session).
 	ii) Create more than one upcoming webinars.
 
  8. Update the GoToWebinar properties file at location "{gotowebinar_connector_Home}/gotowebinar-connector/gotowebinar-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
-	
-	i)		apiUrl						-	Use the API URL as "https://api.citrixonline.com".
-	ii)		accessToken					-	Place the access token from the generated in step 6 [iii].
-	iii)	organizerKey				-	Place the ornanizer_key from the generated in in step 6 [iii].
-	iv)		firstName					-	First name of the registrant.
-	v)		lastName					-	Last name of the registrant.
-	vi)		email						-	Email of the registrant(Should change before each run).
-	vii)	firstNameOpt				-	First name of the registrant.
-	viii)	lastNameOpt					-	Last name of the registrant.
-	ix)		emailOpt					-	Email of the different registrant(Should change before each run).
-	x)		organization				-	organization which registrant belongs.
-	xi)		industry					-	Industry of the registrant.
-	xii)	jobTitle					-	Job title of the registrant.
-		
+
+	i)	apiUrl			    -	Use the API URL as "https://api.citrixonline.com".
+	ii)	accessToken		    -	Place the access token from the generated in step 6 [iii].
+	iii)	organizerKey		    -	Place the ornanizer_key from the generated in in step 6 [iii].
+	iv)	firstName		    -	First name of the registrant.
+	v)	lastName		    -	Last name of the registrant.
+	vi)	email			    -	Email of the registrant(Should change before each run).
+	vii)	firstNameOpt		    -	First name of the registrant.
+	viii)	lastNameOpt		    -	Last name of the registrant.
+	ix)	emailOpt		    -	Email of the different registrant(Should change before each run).
+	x)	organization		    -	organization which registrant belongs.
+	xi)	industry		    -	Industry of the registrant.
+	xii)	jobTitle		    -	Job title of the registrant.
+	xiii)   invalidUpcommingWebinarKey  -   Non existing webinar key.
+
  9. Make sure that the gotowebinar connector is set as a module in esb-connectors parent pom.
           <module>gotowebinar/gotowebinar-connector/gotowebinar-connector-1.0.0/org.wso2.carbon.connector</module>
 
@@ -84,7 +86,7 @@ Steps to follow in setting integration test.
           $ mvn clean install
 
  NOTE : Following are the credentials for the GoToWebinar account used for integration tests.
- 
+
 	    email=sampathliynage@hotmail.com
 	    password=1qaz2wsx@
-		
+

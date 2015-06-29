@@ -1,60 +1,57 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <template name="init" xmlns="http://ws.apache.org/ns/synapse">
-	<parameter name="apiUrl" description="The apiUrl of GoToWebinar." />
-	<parameter name="accessToken" description="Encrypted alphanumeric string to authenticate the GoToWebinar credentials." />
-	<parameter name="organizerKey" description="Unique numeric key returned with access token to identify the individual organizer." />
-	<parameter name="grantType" description="Type of grant used to get the Access Token. Defaults to 'password'"/>
+    <parameter name="apiUrl" description="The apiUrl of GoToWebinar."/>
+    <parameter name="accessToken"
+               description="Encrypted alphanumeric string to authenticate the GoToWebinar credentials."/>
+    <parameter name="organizerKey"
+               description="Unique numeric key returned with access token to identify the individual organizer."/>
+    <parameter name="grantType" description="Type of grant used to get the Access Token. Defaults to 'password'"/>
     <parameter name="userId" description="Email address used to sign up to the GoTo Training account."/>
     <parameter name="password" description="Password used to sign in to the GoTo Training account."/>
     <parameter name="clientId" description="Application client_id (i.e. API key)"/>
-	<sequence>
-		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
-		<property name="uri.var.accessToken" expression="$func:accessToken" />
-		<property name="uri.var.organizerKey" expression="$func:organizerKey" />
-		<property name="uri.var.grantType" expression="$func:grantType"/>
+    <sequence>
+        <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
+        <property name="uri.var.accessToken" expression="$func:accessToken"/>
+        <property name="uri.var.organizerKey" expression="$func:organizerKey"/>
+        <property name="uri.var.grantType" expression="$func:grantType"/>
         <property name="uri.var.userId" expression="$func:userId"/>
         <property name="uri.var.password" expression="$func:password"/>
         <property name="uri.var.clientId" expression="$func:clientId"/>
-
-		<!-- If the apiUrl is not provided, use https://api.citrixonline.com as default url -->
-		<filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
-			<then>
-				<property name="uri.var.apiUrl" value="https://api.citrixonline.com" />
-			</then>
-		</filter>
-		
-		<!--If the user provides the userId, clientId and password in the request then the accessToken and the organizerKey should be retrieved from the API using them.-->
-		<filter source="boolean(get-property('uri.var.userId')) and boolean(get-property('uri.var.clientId')) and boolean(get-property('uri.var.password'))" regex="true">
-            <then>			
-                <filter source="boolean(get-property('uri.var.grantType'))" regex="false">
-					<then>
-						<property name="uri.var.grantType" value="password"/>
-					</then>
-				</filter>
-				
-				<call>
-					<endpoint>
-						<http method="get" uri-template="{uri.var.apiUrl}/oauth/access_token?grant_type={uri.var.grantType}&amp;client_id={uri.var.clientId}&amp;user_id={uri.var.userId}&amp;password={uri.var.password}"/>
-					</endpoint>
-				</call>
-		
-				<!--Assign values from the Call Response-->
-				<property name="uri.var.organizerKey" expression="json-eval($.organizer_key)"/>
-				<property name="uri.var.accessToken" expression="json-eval($.access_token)"/>				
-				
-				<!-- Remove custom Headers from the API Response -->
-				<header name="Access-Control-Allow-Headers" action="remove" scope="transport"/>
-				<header name="Access-Control-Allow-Methods" action="remove" scope="transport"/>
-				<header name="Access-Control-Allow-Origin" action="remove" scope="transport"/>
-				<header name="Access-Control-Max-Age" action="remove" scope="transport"/>
+        <!-- If the apiUrl is not provided, use https://api.citrixonline.com as default url -->
+        <filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+            <then>
+                <property name="uri.var.apiUrl" value="https://api.citrixonline.com"/>
             </then>
         </filter>
-
-		<property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/G2W/rest')"/>
-		<!-- Header information in request -->
-		<header name="Authorization" expression="fn:concat('OAuth oauth_token=', get-property('uri.var.accessToken'))"
-			scope="transport" action="set" />
-		<header name="Content-Type" value="application/json" scope="transport" action="set" />
-
-	</sequence>
+        <!--If the user provides the userId, clientId and password in the request then the accessToken and the organizerKey should be retrieved from the API using them.-->
+        <filter source="boolean(get-property('uri.var.userId')) and boolean(get-property('uri.var.clientId')) and boolean(get-property('uri.var.password'))"
+                regex="true">
+            <then>
+                <filter source="boolean(get-property('uri.var.grantType'))" regex="false">
+                    <then>
+                        <property name="uri.var.grantType" value="password"/>
+                    </then>
+                </filter>
+                <call>
+                    <endpoint>
+                        <http method="get"
+                              uri-template="{uri.var.apiUrl}/oauth/access_token?grant_type={uri.var.grantType}&amp;client_id={uri.var.clientId}&amp;user_id={uri.var.userId}&amp;password={uri.var.password}"/>
+                    </endpoint>
+                </call>
+                <!--Assign values from the Call Response-->
+                <property name="uri.var.organizerKey" expression="json-eval($.organizer_key)"/>
+                <property name="uri.var.accessToken" expression="json-eval($.access_token)"/>
+                <!-- Remove custom Headers from the API Response -->
+                <header name="Access-Control-Allow-Headers" action="remove" scope="transport"/>
+                <header name="Access-Control-Allow-Methods" action="remove" scope="transport"/>
+                <header name="Access-Control-Allow-Origin" action="remove" scope="transport"/>
+                <header name="Access-Control-Max-Age" action="remove" scope="transport"/>
+            </then>
+        </filter>
+        <property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/G2W/rest')"/>
+        <!-- Header information in request -->
+        <header name="Authorization" expression="fn:concat('OAuth oauth_token=', get-property('uri.var.accessToken'))"
+                scope="transport" action="set"/>
+        <header name="Content-Type" value="application/json" scope="transport" action="set"/>
+    </sequence>
 </template>
