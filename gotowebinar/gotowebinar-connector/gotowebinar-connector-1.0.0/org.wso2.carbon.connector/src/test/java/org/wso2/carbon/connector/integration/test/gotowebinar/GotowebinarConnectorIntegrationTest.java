@@ -65,6 +65,10 @@ public class GotowebinarConnectorIntegrationTest extends ConnectorIntegrationTes
         if (!validate()) {
             Assert.fail("Pre-requisites mentioned in the Readme file are not accomplished in order to run this Test Suite.");
         }
+        connectorProperties.setProperty("emailOpt", System.currentTimeMillis() + connectorProperties
+                .getProperty("emailOpt"));
+        connectorProperties.setProperty("email", System.currentTimeMillis() + connectorProperties
+                .getProperty("email"));
     }
     
     /**
@@ -314,21 +318,18 @@ public class GotowebinarConnectorIntegrationTest extends ConnectorIntegrationTes
         esbRequestHeadersMap.put("Action", "urn:createRegistrant");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createRegistrant_negative.json");
-        String esbInvalidField = esbRestResponse.getBody().getJSONArray("invalidFields").get(0).toString();
-        
+
         String apiEndPoint =
                 apiRequestUrl + "/organizers/" + connectorProperties.getProperty("organizerKey") + "/webinars/"
-                        + connectorProperties.getProperty("upcommingWebinarKey") + "/registrants";
+                        + connectorProperties.getProperty("invalidUpcommingWebinarKey") + "/registrants";
         RestResponse<JSONObject> apiRestResponse =
                 sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_createRegistrant_negative.json");
-        String apiInvalidField = apiRestResponse.getBody().getJSONArray("invalidFields").get(0).toString();
-        
+
         Assert.assertEquals(apiRestResponse.getBody().getString("errorCode"),
                 esbRestResponse.getBody().getString("errorCode"));
         Assert.assertEquals(apiRestResponse.getBody().getString("description"),
                 esbRestResponse.getBody().getString("description"));
-        Assert.assertEquals(apiInvalidField, esbInvalidField);
-        
+
     }
     
     /**

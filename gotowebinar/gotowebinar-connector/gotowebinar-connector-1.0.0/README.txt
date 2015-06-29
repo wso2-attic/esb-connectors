@@ -10,8 +10,9 @@ Pre-requisites:
 Tested Platform: 
 
  - Microsoft WINDOWS V-7
- - UBUNTU 14.04
+ - UBUNTU 13.04, Mac OSx 10.9
  - WSO2 ESB 4.9.0-ALPHA
+ - Java 1.7
 
 Note:
 	This test suite can be executed based on two scenarios.
@@ -20,7 +21,7 @@ Note:
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.9.0-ALPHA by following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/
+ 1. Download ESB 4.9.0-ALPHA from official website.
  
  2. Deploy relevant patches, if applicable.
  
@@ -39,7 +40,7 @@ Steps to follow in setting integration test.
 		<messageBuilder contentType="text/html" 
 						class="org.wso2.carbon.relay.BinaryRelayBuilder"/>				  
 
- 4. Compress modified ESB as wso2esb- 4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
+ 4. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "{gotowebinar_connector_Home}/gotowebinar-connector/gotowebinar-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
  5. Create a Citrix account and obtain a client ID.
 	i) 		Using the URL "https://developer.citrixonline.com/user/register" create a Citrix online account.
@@ -59,7 +60,7 @@ Steps to follow in setting integration test.
 	
  7. Pre-requisites for Integration tests
 
-	i) 	Create and complete a webinar with more than one registrants and sessions.
+	i) 	Create and complete a webinar with more than one registrants (by clicking 'Registration URL') and sessions (Click on the scheduled webinar and add another session).
 	ii) Create more than one upcoming webinars.
 
  8. Update the GoToWebinar properties file at location "{gotowebinar_connector_Home}/gotowebinar-connector/gotowebinar-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
@@ -76,15 +77,13 @@ Steps to follow in setting integration test.
 	x)		organization				-	organization which registrant belongs.
 	xi)		industry					-	Industry of the registrant.
 	xii)	jobTitle					-	Job title of the registrant.
-		
- 9. Make sure that the gotowebinar connector is set as a module in esb-connectors parent pom.
-          <module>gotowebinar/gotowebinar-connector/gotowebinar-connector-1.0.0/org.wso2.carbon.connector</module>
+	xiii)   invalidUpcommingWebinarKey  -   Non existing webinar key.
 
- 10. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
-          $ mvn clean install
+ 9. Navigate to "{gotowebinar_connector_Home}/gotowebinar-connector/gotowebinar-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+      $ mvn clean install
+
 
  NOTE : Following are the credentials for the GoToWebinar account used for integration tests.
  
 	    email=sampathliynage@hotmail.com
 	    password=1qaz2wsx@
-		
