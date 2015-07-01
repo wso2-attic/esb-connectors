@@ -28,6 +28,7 @@ STEPS:
    i)   Navigate to the following URL and create an account in ActiveCampaign: https://www.activecampaign.com/signup
    ii)  Log In to the account, navigate to My Settings > API page and obtain the API URL and the API Key for further use.
    iii) Create a campaign which contains a URL to be clicked by the receivers and send it to a contact list which contain at least two contacts. Retrieve the ID of the campaign and the ID of the message related to the campaign for further use.
+           Tip to find the message Id: Click the specific campaign --> Click Message from the menus in left --> You can find the message Id from the un-subscribe link.
    iv)  Make sure the the URL of the campaign has been clicked by at least one of the receivers.
 
 4. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
