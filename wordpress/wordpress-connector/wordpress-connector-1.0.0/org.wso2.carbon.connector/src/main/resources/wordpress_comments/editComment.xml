@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template xmlns="http://ws.apache.org/ns/synapse" name="editComment">
+    <!--Mandatory Parameter-->
+    <parameter name="comment_id" description="The comment ID"/>
+    <parameter name="content" description="The post content (html)"/>
+    <!--Optional Parameters-->
+    <parameter name="date" description="The comment's creation time"/>
+    <parameter name="status" description="(approved | unapproved | spam | unspam | trash | untrash)"/>
+    <!--Optional Query Parameters-->
+    <parameter name="http_envelope"
+               description="Set HTTP status code to always be 200. The JSON response is wrapped in an 'envelope' containing the 'real' HTTP status code and headers.default(false)"/>
+    <parameter name="pretty" description="if true Output pretty JSON.default(false)"/>
+    <parameter name="meta" description="Loads data from the endpoints found in the 'meta' part of the response"/>
+    <parameter name="fields" description="Return only the specified fields"/>
+    <sequence>
+        <!--Mandatory Parameter-->
+        <property name="uri.var.comment_id" expression="$func:comment_id"/>
+        <property name="uri.var.content" expression="$func:content"/>
+        <!--Optional Parameter-->
+        <property name="uri.var.date" expression="$func:date"/>
+        <property name="uri.var.status" expression="$func:status"/>
+        <!--Optional Query Parameters-->
+        <property name="uri.var.http_envelope" expression="$func:http_envelope"/>
+        <property name="uri.var.pretty" expression="$func:pretty"/>
+        <property name="uri.var.meta" expression="$func:meta"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <filter
+                xpath="(not(get-property('uri.var.http_envelope') = '' or (not(boolean(get-property('uri.var.http_envelope'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'http_envelope=',get-property('uri.var.http_envelope'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.pretty') = '' or (not(boolean(get-property('uri.var.pretty'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'pretty=',get-property('uri.var.pretty'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.meta') = '' or (not(string(get-property('uri.var.meta'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'meta=',get-property('uri.var.meta'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.fields') = '' or (not(string(get-property('uri.var.fields'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'fields=',get-property('uri.var.fields'),'&amp;')"/>
+            </then>
+        </filter>
+        <!-- Building request with mandatory params -->
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "content": "$1"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.content')"/>
+            </args>
+        </payloadFactory>
+        <script language="js"><![CDATA[
+			var date=mc.getProperty('uri.var.date');
+			var status=mc.getProperty('uri.var.status');
+			payload = mc.getPayloadJSON();
+			if(date != null && date != ""){
+				payload.date = date;
+			}
+            if(status != null && status != ""){
+				payload.status = status;
+			}
+           mc.setPayloadJSON(payload);
+         ]]></script>
+        <property name="messageType" scope="axis2" value="application/x-www-form-urlencoded"/>
+        <property name="uri.var.wp_resource_uri"
+                  expression="fn:concat('https://public-api.wordpress.com/rest/v1/sites/',get-property('uri.var.wp_site_domain'),'/comments/', get-property('comment_id') )"/>
+        <call>
+            <endpoint>
+                <http method="POST" uri-template="{uri.var.wp_resource_uri}?{+uri.var.queryParameters}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response's custom header information -->
+        <header name="X-Prefork" scope="transport" action="remove"/>
+        <header name="X-hacker" scope="transport" action="remove"/>
+    </sequence>
+</template>
