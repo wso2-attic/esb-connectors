@@ -18,10 +18,6 @@
 
 package org.wso2.carbon.connector.integration.test.github;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -30,6 +26,10 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.wso2.connector.integration.test.base.ConnectorIntegrationTestBase;
 import org.wso2.connector.integration.test.base.RestResponse;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class GithubConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     
@@ -300,34 +300,10 @@ public class GithubConnectorIntegrationTest extends ConnectorIntegrationTestBase
                 connectorProperties.getProperty("owner"));
         
     }
-    
-    /**
-     * Negative test case for createIssue method.
-     */
-    @Test(priority = 1, dependsOnMethods = { "testCreateIssueWithOptionalParameters" }, description = "github {createIssue} integration test with negative case.")
-    public void testCreateIssueWithNegativeCase() throws IOException, JSONException {
-    
-        esbRequestHeadersMap.put("Action", "urn:createIssue");
-        
-        RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createIssue_neagative.json");
-        
-        String apiEndPoint =
-                connectorProperties.getProperty("githubApiUrl") + "/repos/" + connectorProperties.getProperty("owner")
-                        + "/" + connectorProperties.getProperty("repo") + "/issues";
-        
-        RestResponse<JSONObject> apiRestResponse =
-                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_createIssue_neagative.json");
-        
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
-        Assert.assertEquals(esbRestResponse.getBody().get("message"), apiRestResponse.getBody().get("message"));
-        
-    }
-    
     /**
      * Positive test case for editIssue method with mandatory parameters.
      */
-    @Test(priority = 1, dependsOnMethods = { "testCreateIssueWithNegativeCase" }, description = "github {editIssue} integration test with mandatory parameters.")
+    @Test(priority = 1, dependsOnMethods = { "testCreateIssueWithOptionalParameters" }, description = "github {editIssue} integration test with mandatory parameters.")
     public void testEditIssueWithMandatoryParameters() throws IOException, JSONException, InterruptedException {
     
         esbRequestHeadersMap.put("Action", "urn:editIssue");
