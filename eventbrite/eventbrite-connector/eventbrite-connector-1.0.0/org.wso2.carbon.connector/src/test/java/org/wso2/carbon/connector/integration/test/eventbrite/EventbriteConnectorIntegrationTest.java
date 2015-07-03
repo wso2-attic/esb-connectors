@@ -626,10 +626,10 @@ public class EventbriteConnectorIntegrationTest extends ESBIntegrationTest {
     }
 
     /**
-     * aid
+     *
      * Positive test case for testEventAttendeesDetails method with mandatory parameters.
      */
-    @Test(enabled = true, groups = {"wso2.esb"}, dependsOnMethods = {"testcreateEventParameters", ""}, description = "eventbrite{eventAttendeesDetails} integration test.")
+    @Test(enabled = true, groups = {"wso2.esb"}, dependsOnMethods = {"testcreateEventParameters"}, description = "eventbrite{eventAttendeesDetails} integration test.")
     public void testEventAttendeesDetailsWithMandatoryParameters() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "eventAttendeesDetails_Mandatory.txt";
         String methodName = "getEventAttendeesDetails";
@@ -658,7 +658,7 @@ public class EventbriteConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         try {
             JSONObject jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
-            String categoryId = (JSONObject) jsonResponse.getJSONArray("categories").get(0).getString("id");
+            String categoryId = ((JSONObject) jsonResponse.getJSONArray("categories").get(0)).getString("id");
             eventbriteConnectorProperties.setProperty("categoryId", categoryId);
             Assert.assertTrue(jsonResponse.has("categories"));
         } finally {
@@ -686,10 +686,10 @@ public class EventbriteConnectorIntegrationTest extends ESBIntegrationTest {
     }
 
     /**
-     * tid
+     *
      * Positive test case for testEventTeamsAttendees method with mandatory parameters.
      */
-    @Test(enabled = true, groups = {"wso2.esb"}, dependsOnMethods = {"testcreateEventParameters", ""}, description = "eventbrite{eventTeamsAttendees} integration test.")
+    @Test(enabled = true, groups = {"wso2.esb"}, dependsOnMethods = {"testcreateEventParameters"}, description = "eventbrite{eventTeamsAttendees} integration test.")
     public void testEventTeamsAttendeesWithMandatoryParameters() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "eventTeamsAttendees_Mandatory.txt";
         String methodName = "getEventTeamsAttendees";
@@ -706,10 +706,10 @@ public class EventbriteConnectorIntegrationTest extends ESBIntegrationTest {
     }
 
     /**
-     * tid
+     *
      * Positive test case for testEventTeams method with mandatory parameters.
      */
-    @Test(enabled = true, groups = {"wso2.esb"}, dependsOnMethods = {"testcreateEventParameters", ""}, description = "eventbrite{eventTeamsDetails} integration test.")
+    @Test(enabled = true, groups = {"wso2.esb"}, dependsOnMethods = {"testcreateEventParameters"}, description = "eventbrite{eventTeamsDetails} integration test.")
     public void testEventTeamsDetailsWithMandatoryParameters() throws Exception {
         String jsonRequestFilePath = pathToRequestsDirectory + "eventTeamsDetails_Mandatory.txt";
         String methodName = "getEventTeamsDetails";
@@ -1062,7 +1062,7 @@ public class EventbriteConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonResponse = null;
         try {
-            JSONObject jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
             String contactListId = jsonResponse.getString("id");
             eventbriteConnectorProperties.setProperty("contactListId", contactListId);
             int responseHeader = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
@@ -1226,7 +1226,7 @@ public class EventbriteConnectorIntegrationTest extends ESBIntegrationTest {
         JSONObject jsonResponse = null;
         try {
             int responseHeader = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
-            JSONObject jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
             String organizerId = jsonResponse.getString("id");
             eventbriteConnectorProperties.setProperty("organizerId", organizerId);
             Assert.assertTrue(responseHeader == 200);
@@ -1248,7 +1248,7 @@ public class EventbriteConnectorIntegrationTest extends ESBIntegrationTest {
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         JSONObject jsonResponse = null;
         try {
-            JSONObject jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
+            jsonResponse = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
             String venueId = jsonResponse.getString("id");
             eventbriteConnectorProperties.setProperty("venueId", venueId);
             int responseHeader = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
