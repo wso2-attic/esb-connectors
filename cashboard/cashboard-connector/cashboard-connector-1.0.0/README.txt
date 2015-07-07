@@ -11,15 +11,16 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.8.1/4.9.0-SNAPSHOT
+ - WSO2 ESB 4.9.0-BETA-SNAPSHOT
+ - Java 1.7
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.8.1 from official website.
+ 1. Download ESB 4.9.0-BETA-SNAPSHOT by navigating to the following URL: http://svn.wso2.org/repos/wso2/people/malaka/ESB/beta/
  
  2.	Deploy relevant patches, if applicable. Place the patch files into location <ESB_HOME>/repository/components/patches.
  
- 3. Navigate to location "/wso2esb-4.8.1/repository/conf/axis2" and add/uncomment following lines in "axis2.xml". 
+ 3. Navigate to location "<ESB_HOME>/repository/conf/axis2" and add/uncomment following lines in "axis2.xml". 
  
 		<messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
 		<messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
@@ -35,7 +36,7 @@ Steps to follow in setting integration test.
  6. Follow the below mentioned steps to add valid certificate to access Cashboard API over https.
 
     i)   Extract the certificate from browser(Mozilla Firefox) by navigating to 'https://{subdomain}.cashboardapp.com'.
-    ii)  Go to new ESB 4.8.1 folder and place the downloaded certificate into "<ESB_HOME>/repository/resources/security/" and 
+    ii)  Go to new ESB 4.9.0 folder and place the downloaded certificate into "<ESB_HOME>/repository/resources/security/" and 
          "<CASHBOARD_CONNECTOR_HOME>/cashboard-connector/cashboard-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products" folders.
     iii) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute the following command.
 
@@ -57,9 +58,12 @@ Steps to follow in setting integration test.
          NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from Cashboard with the extension. (e.g. cashboard.crt)
                 CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. cashboard).
  
- 7. Compress the modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "<CASHBOARD_CONNECTOR_HOME>/cashboard-connector/cashboard-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 7. Compress modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file in to location "{ESB_CONNECTOR_HOME}/repository/".
  
- 8. Update the Cashboard properties file at location "<CASHBOARD_CONNECTOR_HOME>/cashboard-connector/cashboard-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 8. Make sure that Cashboard is specified as a module in ESB Connector Parent pom.
+        <module>cashboard/cashboard-connector/cashboard-connector-1.0.0/org.wso2.carbon.connector</module>
+ 
+ 9. Update the Cashboard properties file at location "<CASHBOARD_CONNECTOR_HOME>/cashboard-connector/cashboard-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
    i)    	apiUrl                 		- The API URL specific to the domain of the created account. e.g. https://api.barnselectronics.cashboardapp.com
    ii)	 	emailAddress				- Email address that is used to create the Cashboard trial account under Step 4.
@@ -98,5 +102,5 @@ Steps to follow in setting integration test.
  
    Note - The property values of clientCompanyName,clientEmailAddress,employeeEmail,emailAddressOptional and the title should be changed to unique different values for each integration execution.  
 
- 9. Navigate to "<CASHBOARD_CONNECTOR_HOME>/cashboard-connector/cashboard-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 10. Navigate to "<CASHBOARD_CONNECTOR_HOME>/cashboard-connector/cashboard-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
