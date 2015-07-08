@@ -12,7 +12,7 @@ Tested Platform:
 
 STEPS:
 
-1. Copy the ESB 4.8.1 zip to the location "Gmail_Connector_Home/repository/"
+1. Copy the ESB 4.9.0-ALPHA zip to the location "Connector_Home/repository/"
 
 2. Obtain an access token for your Gmail account by following below steps;
 	- Access Google OAuth playground using “https://developers.google.com/oauthplayground/”
