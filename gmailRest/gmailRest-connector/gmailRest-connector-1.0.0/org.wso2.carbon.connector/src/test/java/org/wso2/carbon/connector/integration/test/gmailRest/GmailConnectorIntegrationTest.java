@@ -32,7 +32,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for listAllMails method with mandatory parameters.
      */
-    @Test(enabled = false, description = "gmailRest {listAllMails} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "gmailRest {listAllMails} integration test with mandatory parameter.")
     public void testGetAListOfContactsWithMandatoryParameters() throws IOException, JSONException {
         String methodName = "gmailRest_listAllMails";
         String apiEndPoint =
@@ -48,7 +48,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for listAllMails method with optional parameters.
      */
-    @Test(enabled = false, description = "gmailRest {listAllMails} integration test with optional parameter.")
+    @Test(enabled = true, description = "gmailRest {listAllMails} integration test with optional parameter.")
     public void testGetAListOfContactsWithOptionalParameters() throws IOException, JSONException {
         String methodName = "gmailRest_listAllMails";
         String apiEndPoint =
@@ -69,7 +69,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for getAMail method with mandatory parameters.
      */
-    @Test(enabled = false, description = "gmailRest {getAMail} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "gmailRest {getAMail} integration test with mandatory parameter.")
     public void testGetAMailWithMandatoryParameters() throws IOException, JSONException {
         String methodName = "gmailRest_getAMail";
         String apiEndPoint =
@@ -86,7 +86,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for getAMail method with optional parameters.
      */
-    @Test(enabled = false, description = "gmailRest {getAMail} integration test with optional parameter.")
+    @Test(enabled = true, description = "gmailRest {getAMail} integration test with optional parameter.")
     public void testGetAMailWithOptionalParameters() throws IOException, JSONException {
         String methodName = "gmailRest_getAMail";
         String apiEndPoint =
@@ -104,7 +104,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for listLabels method with mandatory parameters.
      */
-    @Test(enabled = false, description = "gmailRest {listLabels} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "gmailRest {listLabels} integration test with mandatory parameter.")
     public void testListLabelsWithMandatoryParameters() throws IOException, JSONException {
         String methodName = "gmailRest_listLabels";
         String apiEndPoint =
@@ -121,7 +121,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for getALabel method with mandatory parameters.
      */
-    @Test(enabled = false, description = "gmailRest {getALabel} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "gmailRest {getALabel} integration test with mandatory parameter.")
     public void testGetALabelWithMandatoryParameters() throws IOException, JSONException {
         String methodName = "gmailRest_getALabel";
         String apiEndPoint =
@@ -138,7 +138,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for listAllThreads method with mandatory parameters.
      */
-    @Test(enabled = false, description = "gmailRest {listAllThreads} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "gmailRest {listAllThreads} integration test with mandatory parameter.")
     public void testListAllThreadsWithMandatoryParameters() throws IOException, JSONException {
         String methodName = "gmailRest_listAllThreads";
         String apiEndPoint =
@@ -154,7 +154,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for listAllThreads method with optional parameters.
      */
-    @Test(enabled = false, description = "gmailRest {listAllThreads} integration test with optional parameter.")
+    @Test(enabled = true, description = "gmailRest {listAllThreads} integration test with optional parameter.")
     public void testListAllThreadsWithOptionalParameters() throws IOException, JSONException {
         String methodName = "gmailRest_listAllThreads";
         String apiEndPoint =
@@ -175,7 +175,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for getAThread method with mandatory parameters.
      */
-    @Test(enabled = false, description = "gmailRest {getAThread} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "gmailRest {getAThread} integration test with mandatory parameter.")
     public void testGetAThreadWithMandatoryParameters() throws IOException, JSONException {
         String methodName = "gmailRest_getAThread";
         String apiEndPoint =
@@ -192,7 +192,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for getAThread method with optional parameters.
      */
-    @Test(enabled = false, description = "gmailRest {getAThread} integration test with optional parameter.")
+    @Test(enabled = true, description = "gmailRest {getAThread} integration test with optional parameter.")
     public void testGetAThreadWithOptionalParameters() throws IOException, JSONException {
         String methodName = "gmailRest_getAThread";
         String apiEndPoint =
@@ -210,7 +210,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for listDrafts method with mandatory parameters.
      */
-    @Test(enabled = false, description = "gmailRest {listDrafts} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "gmailRest {listDrafts} integration test with mandatory parameter.")
     public void testListDraftsWithMandatoryParameters() throws IOException, JSONException {
         String methodName = "gmailRest_listDrafts";
         String apiEndPoint =
@@ -226,7 +226,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for listDrafts method with optional parameters.
      */
-    @Test(enabled = false, description = "gmailRest {listDrafts} integration test with optional parameter.")
+    @Test(enabled = true, description = "gmailRest {listDrafts} integration test with optional parameter.")
     public void testListDraftsWithOptionalParameters() throws IOException, JSONException {
         String methodName = "gmailRest_listDrafts";
         String apiEndPoint =
@@ -247,7 +247,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for getADraft method with mandatory parameters.
      */
-    @Test(enabled = false, description = "gmailRest {getADraft} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "gmailRest {getADraft} integration test with mandatory parameter.")
     public void testGetADraftWithMandatoryParameters() throws IOException, JSONException {
         String methodName = "gmailRest_getADraft";
         String apiEndPoint =
@@ -265,7 +265,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for getADraft method with optional parameters.
      */
-    @Test(enabled = false, description = "gmailRest {getADraft} integration test with optional parameter.")
+    @Test(enabled = true, description = "gmailRest {getADraft} integration test with optional parameter.")
     public void testGetADraftWithOptionalParameters() throws IOException, JSONException {
         String methodName = "gmailRest_getADraft";
         String apiEndPoint =
@@ -284,7 +284,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for getUserProfile method with mandatory parameters.
      */
-    @Test(enabled = false, description = "gmailRest {getUserProfile} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "gmailRest {getUserProfile} integration test with mandatory parameter.")
     public void testGetUserProfileWithMandatoryParameters() throws IOException, JSONException {
         String methodName = "gmailRest_getUserProfile";
         String apiEndPoint =
@@ -301,7 +301,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for listTheHistory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "gmailRest {listTheHistory} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "gmailRest {listTheHistory} integration test with mandatory parameter.")
     public void testListTheHistoryWithMandatoryParameters() throws IOException, JSONException {
         String methodName = "gmailRest_listTheHistory";
         String apiEndPoint =
@@ -319,7 +319,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for listTheHistory method with optional parameters.
      */
-    @Test(enabled = false, description = "gmailRest {listTheHistory} integration test with optional parameter.")
+    @Test(enabled = true, description = "gmailRest {listTheHistory} integration test with optional parameter.")
     public void testListTheHistoryWithOptionalParameters() throws IOException, JSONException {
         String methodName = "gmailRest_listTheHistory";
         String apiEndPoint =
@@ -340,7 +340,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for createLabels method with mandatory parameters.
      */
-    @Test(enabled = false, description = "gmailRest {createLabels} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "gmailRest {createLabels} integration test with mandatory parameter.")
     public void testCreateLabelsWithMandatoryParameters() throws IOException, JSONException {
         String methodName = "gmailRest_createLabels";
         RestResponse<JSONObject> esbRestResponse =
@@ -361,7 +361,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for createLabels method with optional parameters.
      */
-    @Test(enabled = false, description = "gmailRest {createLabels} integration test with optional parameter.")
+    @Test(enabled = true, description = "gmailRest {createLabels} integration test with optional parameter.")
     public void testCreateLabelsWithOptionalParameters() throws IOException, JSONException {
         String methodName = "gmailRest_createLabels";
         RestResponse<JSONObject> esbRestResponse =
@@ -380,7 +380,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for createAMail method with mandatory parameters.
      */
-    @Test(enabled = false, description = "gmailRest {createAMail} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "gmailRest {createAMail} integration test with mandatory parameter.")
     public void testCreateAMailWithMandatoryParameters() throws IOException, JSONException {
         String methodName = "gmailRest_createAMail";
         RestResponse<JSONObject> esbRestResponse =

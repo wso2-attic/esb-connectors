@@ -12,7 +12,7 @@ Tested Platform:
 
 STEPS:
 
-1. Copy the ESB 4.8.1 zip to the location "Gmail_Connector_Home/repository/"
+1. Copy the ESB 4.8.1 zip to the location "Connector_Home/repository/"
 
 2. Obtain the authorization credentials following below steps;
 	- Access https://developers.google.com/gmail/api/auth/web-server
@@ -30,7 +30,7 @@ with following information
 	- Scroll down and click on the link "Details" which is near the label "Last account activity: xx minutes ago"
 	- Click on "Sign out all other sessions"
 
-5.  Navigate to "Gmail_Connector_Home" and run the following command.
+5. Make sure that the gmailRest connector is set as a module in esb-connectors parent pom.
+        	<module>gmailRest/gmailRest-connector/gmailRest-connector-1.0.0/org.wso2.carbon.connector</module>
+6. Navigate to "{GMAILREST_HOME}/gmailRest-connector/gmailRest-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
-
-	
