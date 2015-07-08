@@ -21,7 +21,7 @@ STEPS:
 	ii) Get the api access keys from this url "http://www.yelp.com/developers/manage_api_keys".
 
 
-3. Update the Yelp properties file at location "{PATH_TO_SOURCE_BUNDLE}/yelp-connector/yelp-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+3. Update the Yelp properties file at location "{ESB_Connector_Home}/yelp-connector/yelp-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
    
 		i)   consumerKey - Use the consumerKey you got from step 8.
         ii)  consumerKeySecret - Use the consumerKeySecret you got from step 8.
@@ -32,7 +32,7 @@ STEPS:
 4. Make sure that the yelp connector is set as a module in esb-connectors parent pom.
         <module>yelp/yelp-connector/yelp-connector-1.0.0</module>
 
-5. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+5. Navigate to "<ESB_Connector_Home>" and run the following command.
          $ mvn clean install
 
 
@@ -43,6 +43,3 @@ NOTE : Following Yelp account, can be used for run the integration tests.
     consumerKeySecret : EvogOq_n0wR3QD7P8XxLJbSyA60
     accessToken : 6ZejUmp_x306jkcvqujEDE4xGnBLl7Z9
     accessTokenSecret : SjebK4fuY6TAhF2Y1WngQnDcoEM
-
-Yelp Connector Documentation link
-    https://docs.google.com/document/d/15Se5Rr2E8f5AC_ko_Y5o4D0gYOBqu_dmUtZHpNBEwDU/edit
