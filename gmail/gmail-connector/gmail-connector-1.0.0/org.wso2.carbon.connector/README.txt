@@ -39,5 +39,5 @@ with following information
 6.Make sure that the gmail connector is set as a module in esb-connectors parent pom.
           <module>gmail/gmail-connector/gmail-connector-1.0.0/org.wso2.carbon.connector</module>
 
-6.  Navigate to "Gmail_Connector_Home" and run the following command.
+7.  Navigate to "Gmail_Connector_Home" and run the following command.
       $ mvn clean install
