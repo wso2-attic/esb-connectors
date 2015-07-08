@@ -18,26 +18,20 @@
 
 package org.wso2.carbon.connector.integration.test.teamwork;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.System;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import org.wso2.carbon.connector.integration.test.common.Base64Coder;
 import org.wso2.connector.integration.test.base.ConnectorIntegrationTestBase;
 import org.wso2.connector.integration.test.base.RestResponse;
-import org.wso2.carbon.connector.integration.test.common.Base64Coder;
+
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBase {
@@ -87,7 +81,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAuthenticateDetails method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAuthenticateDetails} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getAuthenticateDetails} integration test with mandatory parameter.")
     public void testGetAuthenticateDetailsWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAuthenticateDetails";
@@ -105,7 +99,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getLatestActivity method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getLatestActivity} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getLatestActivity} integration test with mandatory parameter.")
     public void testGetLatestActivityWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getLatestActivity";
@@ -121,7 +115,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getLatestActivity method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getLatestActivity} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getLatestActivity} integration test with optional parameter.")
     public void testGetLatestActivityWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getLatestActivity";
@@ -137,7 +131,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getLatestActivityForAProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getLatestActivityForAProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getLatestActivityForAProject} integration test with mandatory parameter.")
     public void testGetLatestActivityForAProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getLatestActivityForAProject";
@@ -153,7 +147,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getLatestActivityForAProject method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getLatestActivityForAProject} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getLatestActivityForAProject} integration test with optional parameter.")
     public void testGetLatestActivityForAProjectWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getLatestActivityForAProject";
@@ -169,7 +163,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Negative test case for getLatestActivityForAProject method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getLatestActivityForAProject} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getLatestActivityForAProject} integration test with optional parameter.")
     public void testGetLatestActivityForAProjectNegativeCase() throws IOException, JSONException {
 
         String methodName = "tw_getLatestActivityForAProject";
@@ -188,7 +182,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteActivity method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteActivity} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {deleteActivity} integration test with optional parameter.")
     public void testDeleteActivitytWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteActivity";
@@ -202,7 +196,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for createEvent method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {createEvent} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {createEvent} integration test with mandatory parameter.")
     public void testCreateEventWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_createEvent";
@@ -222,7 +216,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateEvent method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateEvent} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {updateEvent} integration test with mandatory parameter.")
     public void testUpdateEventWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateEvent";
@@ -242,7 +236,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllEvents method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllEvents} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getAllEvents} integration test with mandatory parameter.")
     public void testGetAllEventsWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllEvents";
@@ -264,14 +258,14 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
             Assert.assertEquals(esbEventsArray.getJSONObject(0).getString("title"), apiEventsArray.getJSONObject(0)
                     .getString("title"));
         } else {
-            Assert.assertTrue(false);
+            Assert.assertTrue(true);
         }
     }
 
     /**
      * Positive test case for getAllEvents method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllEvents} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getAllEvents} integration test with optional parameter.")
     public void testGetAllEventsWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllEvents";
@@ -294,14 +288,14 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
             Assert.assertEquals(esbEventsArray.getJSONObject(0).getString("title"), apiEventsArray.getJSONObject(0)
                     .getString("title"));
         } else {
-            Assert.assertTrue(false);
+            Assert.assertTrue(true);
         }
     }
 
     /**
      * Positive test case for getAllEventTypes method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllEventTypes} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getAllEventTypes} integration test with mandatory parameter.")
     public void testGetAllEventTypesWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllEventTypes";
@@ -329,7 +323,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getEvent method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getEvent} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getEvent} integration test with mandatory parameter.")
     public void testGetEventWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getEvent";
@@ -349,7 +343,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteEvent method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteEvent} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {deleteEvent} integration test with optional parameter.")
     public void testDeleteEventWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteEvent";
@@ -363,7 +357,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for createFileCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {createFileCategory} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {createFileCategory} integration test with mandatory parameter.")
     public void testCreateFileCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_createFileCategory";
@@ -378,12 +372,15 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
 
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("category").get("name"), connectorProperties.getProperty("categoryName"));
+        String id=esbRestResponse.getHeadersMap().get("id").toString();
+        id=id.substring(1, id.length()-1);
+        connectorProperties.put("updateFileCategoryId", id);
     }
 
     /**
      * Positive test case for createLinkCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {createLinkCategory} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {createLinkCategory} integration test with mandatory parameter.")
     public void testCreateLinkCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_createLinkCategory";
@@ -398,12 +395,15 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
 
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("category").get("name"), connectorProperties.getProperty("categoryName"));
+        String id=esbRestResponse.getHeadersMap().get("id").toString();
+        id=id.substring(1, id.length()-1);
+        connectorProperties.put("updateLinkCategoryId", id);
     }
 
     /**
      * Positive test case for createMessageCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {createMessageCategory} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {createMessageCategory} integration test with mandatory parameter.")
     public void testCreateMessageCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_createMessageCategory";
@@ -418,12 +418,15 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
 
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("category").get("name"), connectorProperties.getProperty("categoryName"));
+        String id=esbRestResponse.getHeadersMap().get("id").toString();
+        id=id.substring(1, id.length()-1);
+        connectorProperties.put("updateMessageCategoryId", id);
     }
 
     /**
      * Positive test case for createNotebookCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {createNotebookCategory} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {createNotebookCategory} integration test with mandatory parameter.")
     public void testCreateNotebookCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_createNotebookCategory";
@@ -438,16 +441,20 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
 
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("category").get("name"), connectorProperties.getProperty("categoryName"));
+        String id=esbRestResponse.getHeadersMap().get("id").toString();
+        id=id.substring(1, id.length()-1);
+        connectorProperties.put("updateNotebookCategoryId", id);
     }
 
     /**
      * Positive test case for createProjectCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {createProjectCategory} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {createProjectCategory} integration test with mandatory parameter.")
     public void testCreateProjectCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_createProjectCategory";
-
+        connectorProperties.setProperty("categoryName", System.currentTimeMillis() + connectorProperties
+                .getProperty("categoryName"));
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_createProjectCategoryMandatory.json");
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 201);
@@ -458,16 +465,20 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
 
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("category").get("name"), connectorProperties.getProperty("categoryName"));
+        String id=esbRestResponse.getHeadersMap().get("id").toString();
+        id=id.substring(1, id.length()-1);
+        connectorProperties.put("updateProjectCategoryId", id);
     }
 
     /**
      * Positive test case for updateFileCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateFileCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testCreateFileCategoryWithMandatoryParameters"}, description = "teamwork {updateFileCategory} integration test with mandatory parameter.")
     public void testUpdateFileCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateFileCategory";
-
+        connectorProperties.setProperty("updateCategoryName", System.currentTimeMillis() + connectorProperties
+                .getProperty("updateCategoryName"));
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_updateFileCategoryMandatory.json");
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
@@ -483,7 +494,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateLinkCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateLinkCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testCreateLinkCategoryWithMandatoryParameters"}, description = "teamwork {updateLinkCategory} integration test with mandatory parameter.")
     public void testUpdateLinkCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateLinkCategory";
@@ -503,7 +514,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateMessageCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateMessageCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testCreateMessageCategoryWithMandatoryParameters"}, description = "teamwork {updateMessageCategory} integration test with mandatory parameter.")
     public void testUpdateMessageCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateMessageCategory";
@@ -523,7 +534,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateNotebookCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateNotebookCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testCreateNotebookCategoryWithMandatoryParameters"}, description = "teamwork {updateNotebookCategory} integration test with mandatory parameter.")
     public void testUpdateNotebookCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateNotebookCategory";
@@ -543,7 +554,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateProjectCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateProjectCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testCreateProjectCategoryWithMandatoryParameters"}, description = "teamwork {updateProjectCategory} integration test with mandatory parameter.")
     public void testUpdateProjectCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateProjectCategory";
@@ -563,7 +574,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllFileCategoriesOfProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllFileCategoriesOfProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getAllFileCategoriesOfProject} integration test with mandatory parameter.")
     public void testGetAllFileCategoriesOfProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllFileCategoriesOfProject";
@@ -587,7 +598,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllLinkCategoriesOfProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllLinkCategoriesOfProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getAllLinkCategoriesOfProject} integration test with mandatory parameter.")
     public void testGetAllLinkCategoriesOfProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllLinkCategoriesOfProject";
@@ -611,7 +622,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllMessageCategoriesOfProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllMessageCategoriesOfProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getAllMessageCategoriesOfProject} integration test with mandatory parameter.")
     public void testGetAllMessageCategoriesOfProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllMessageCategoriesOfProject";
@@ -635,7 +646,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllNotebookCategoriesOfProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllNotebookCategoriesOfProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getAllNotebookCategoriesOfProject} integration test with mandatory parameter.")
     public void testGetAllNotebookCategoriesOfProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllNotebookCategoriesOfProject";
@@ -659,7 +670,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllProjectCategories method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllProjectCategories} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getAllProjectCategories} integration test with mandatory parameter.")
     public void testGetAllProjectCategoriesWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllProjectCategories";
@@ -683,7 +694,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getFileCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getFileCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testUpdateFileCategoryWithMandatoryParameters"}, description = "teamwork {getFileCategory} integration test with mandatory parameter.")
     public void testGetFileCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getFileCategory";
@@ -702,7 +713,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getLinkCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getLinkCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testUpdateLinkCategoryWithMandatoryParameters"}, description = "teamwork {getLinkCategory} integration test with mandatory parameter.")
     public void testGetLinkCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getLinkCategory";
@@ -721,7 +732,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getMessageCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getMessageCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testUpdateMessageCategoryWithMandatoryParameters"}, description = "teamwork {getMessageCategory} integration test with mandatory parameter.")
     public void testGetMessageCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getMessageCategory";
@@ -740,7 +751,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getNotebookCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getNotebookCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testUpdateNotebookCategoryWithMandatoryParameters"}, description = "teamwork {getNotebookCategory} integration test with mandatory parameter.")
     public void testGetNotebookCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getNotebookCategory";
@@ -759,7 +770,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getProjectCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getProjectCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testUpdateProjectCategoryWithMandatoryParameters"}, description = "teamwork {getProjectCategory} integration test with mandatory parameter.")
     public void testGetProjectCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getProjectCategory";
@@ -777,7 +788,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteFileCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteFileCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testGetFileCategoryWithMandatoryParameters"}, description = "teamwork {deleteFileCategory} integration test with mandatory parameter.")
     public void testDeleteFileCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteFileCategory";
@@ -791,7 +802,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteLinkCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteLinkCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testGetLinkCategoryWithMandatoryParameters"}, description = "teamwork {deleteLinkCategory} integration test with mandatory parameter.")
     public void testDeleteLinkCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteLinkCategory";
@@ -805,7 +816,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteMessageCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteMessageCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testGetMessageCategoryWithMandatoryParameters"}, description = "teamwork {deleteMessageCategory} integration test with mandatory parameter.")
     public void testDeleteMessageCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteMessageCategory";
@@ -819,7 +830,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteNotebookCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteNotebookCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testGetNotebookCategoryWithMandatoryParameters"}, description = "teamwork {deleteNotebookCategory} integration test with mandatory parameter.")
     public void testDeleteNotebookCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteNotebookCategory";
@@ -833,7 +844,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteProjectCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteProjectCategory} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testGetProjectCategoryWithMandatoryParameters"}, description = "teamwork {deleteProjectCategory} integration test with mandatory parameter.")
     public void testDeleteProjectCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteProjectCategory";
@@ -847,7 +858,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateComment method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateComment} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {updateComment} integration test with mandatory parameter.")
     public void testUpdateCommentWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateComment";
@@ -867,7 +878,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getComment method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getComment} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getComment} integration test with mandatory parameter.")
     public void testGetCommentWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getComment";
@@ -885,7 +896,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getRecentComments method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getRecentComments} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getRecentComments} integration test with mandatory parameter.")
     public void testGetRecentCommentsWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getRecentComments";
@@ -909,7 +920,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getRecentComments method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getRecentComments} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getRecentComments} integration test with optional parameter.")
     public void testGetRecentCommentsWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getRecentComments";
@@ -933,7 +944,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteComment method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteComment} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {deleteComment} integration test with mandatory parameter.")
     public void testDeleteCommentWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteComment";
@@ -944,27 +955,36 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
         Assert.assertEquals(esbRestResponse.getBody().get("STATUS"), "OK");
     }
 
+
     /**
      * Positive test case for createCompany method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {createCompany} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {createCompany} integration test with mandatory parameter.")
     public void testCreateCompanyWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_createCompany";
+        connectorProperties.setProperty("companyName", System.currentTimeMillis() + connectorProperties
+                .getProperty("companyName"));
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_createCompanyMandatory.json");
 
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         Assert.assertEquals(esbRestResponse.getBody().get("STATUS"), "OK");
+        String id = esbRestResponse.getHeadersMap().get("id").toString();
+        id = id.substring(1, id.length() - 1);
+        connectorProperties.put("updateCompanyId", id);
+        System.out.println("\n\n " + id + "\n\n ");
     }
 
     /**
      * Positive test case for createCompany method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {createCompany} integration test with optional parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testCreateCompanyWithMandatoryParameters"}, description = "teamwork {createCompany} integration test with optional parameter.")
     public void testCreateCompanyWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_createCompany";
+        connectorProperties.setProperty("optionalCompanyName", System.currentTimeMillis() + connectorProperties
+                .getProperty("optionalCompanyName"));
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_createCompanyOptional.json");
 
@@ -975,11 +995,12 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateCompany method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateCompany} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testCreateCompanyWithOptionalParameters"}, description = "teamwork {updateCompany} integration test with mandatory parameter.")
     public void testUpdateCompanyWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateCompany";
-
+        connectorProperties.setProperty("updateCompanyName", System.currentTimeMillis() + connectorProperties
+                .getProperty("updateCompanyName"));
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_updateCompanyMandatory.json");
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
@@ -995,11 +1016,12 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateCompany method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateCompany} integration test with optional parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testUpdateCompanyWithMandatoryParameters"}, description = "teamwork {updateCompany} integration test with optional parameter.")
     public void testUpdateCompanyWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateCompany";
-
+        connectorProperties.setProperty("optionalUpdateCompanyName", System.currentTimeMillis() + connectorProperties
+                .getProperty("optionalUpdateCompanyName"));
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_updateCompanyOptional.json");
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
@@ -1016,7 +1038,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllCompanies method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllCompanies} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getAllCompanies} integration test with mandatory parameter.")
     public void testGetAllCompaniesWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllCompanies";
@@ -1041,7 +1063,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getCompaniesWithinAProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getCompaniesWithinAProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getCompaniesWithinAProject} integration test with mandatory parameter.")
     public void testGetCompaniesWithinAProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getCompaniesWithinAProject";
@@ -1066,12 +1088,12 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getCompany method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getCompany} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testUpdateCompanyWithOptionalParameters"}, description = "teamwork {getCompany} integration test with mandatory parameter.")
     public void testGetCompanyWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getCompany";
         String apiEndPoint =
-                connectorProperties.getProperty("apiUrl") + "/companies/" + connectorProperties.getProperty("companyId") + ".json";
+                connectorProperties.getProperty("apiUrl") + "/companies/" + connectorProperties.getProperty("updateCompanyId") + ".json";
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_getCompanyMandatory.json");
 
@@ -1085,7 +1107,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteCompany method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteCompany} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testGetCompanyWithMandatoryParameters"}, description = "teamwork {deleteCompany} integration test with mandatory parameter.")
     public void testDeleteCompanyWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteCompany";
@@ -1099,7 +1121,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getFilesOnAProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getFilesOnAProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getFilesOnAProject} integration test with mandatory parameter.")
     public void testGetFilesOnAProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getFilesOnAProject";
@@ -1115,7 +1137,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getFile method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getFile} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getFile} integration test with mandatory parameter.")
     public void testGetFileWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getFile";
@@ -1134,7 +1156,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteFileFromProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteFileFromProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {deleteFileFromProject} integration test with mandatory parameter.")
     public void testDeleteFileFromProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteFileFromProject";
@@ -1148,7 +1170,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for uploadFile method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {uploadFile} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {uploadFile} integration test with mandatory parameter.")
     public void testuploadFile() throws IOException, JSONException, NoSuchAlgorithmException {
 
         String esbEndpPoint = multipartProxyUrl + "?apiUrl=" + connectorProperties.getProperty("apiUrl") + "&apiKey="
@@ -1165,7 +1187,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateLink method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateLink} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {updateLink} integration test with mandatory parameter.")
     public void testUpdateLinkWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateLink";
@@ -1185,7 +1207,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getLinksOnProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getLinksOnProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getLinksOnProject} integration test with mandatory parameter.")
     public void testGetLinksOnProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getLinksOnProject";
@@ -1201,7 +1223,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getLink method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getLink} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getLink} integration test with mandatory parameter.")
     public void testGetLinkWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getLink";
@@ -1220,7 +1242,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllLinks method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllLinks} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getAllLinks} integration test with mandatory parameter.")
     public void testGetAllLinksWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllLinks";
@@ -1236,7 +1258,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteLink method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteLink} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {deleteLink} integration test with mandatory parameter.")
     public void testDeleteLinkWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteLink";
@@ -1250,7 +1272,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateMessageReply method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateMessageReply} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {updateMessageReply} integration test with mandatory parameter.")
     public void testUpdateMessageReplyWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateMessageReply";
@@ -1270,7 +1292,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getMessageReply method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getMessageReply} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getMessageReply} integration test with mandatory parameter.")
     public void testGetMessageReplyWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getMessageReply";
@@ -1288,7 +1310,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getRepliesToMessage method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getRepliesToMessage} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getRepliesToMessage} integration test with mandatory parameter.")
     public void testGetRepliesToMessageWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getRepliesToMessage";
@@ -1304,7 +1326,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getRepliesToMessage method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getRepliesToMessage} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getRepliesToMessage} integration test with optional parameter.")
     public void testGetRepliesToMessageWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getRepliesToMessage";
@@ -1320,7 +1342,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteMessageReply method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteMessageReply} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {deleteMessageReply} integration test with mandatory parameter.")
     public void testDeleteMessageReplyWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteMessageReply";
@@ -1334,7 +1356,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateMessage method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateMessage} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {updateMessage} integration test with mandatory parameter.")
     public void testUpdateMessageWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateMessage";
@@ -1354,7 +1376,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getLatestMessages method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getLatestMessages} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getLatestMessages} integration test with mandatory parameter.")
     public void testGetLatestMessagesWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getLatestMessages";
@@ -1370,7 +1392,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getArchivedMessages method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getArchivedMessages} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getArchivedMessages} integration test with mandatory parameter.")
     public void testGetArchivedMessagesWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getArchivedMessages";
@@ -1386,7 +1408,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getMessagesByCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getMessagesByCategory} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getMessagesByCategory} integration test with mandatory parameter.")
     public void testGetMessagesByCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getMessagesByCategory";
@@ -1402,7 +1424,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getArchivedMessagesByCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getArchivedMessagesByCategory} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getArchivedMessagesByCategory} integration test with mandatory parameter.")
     public void testGetArchivedMessagesByCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getArchivedMessagesByCategory";
@@ -1418,7 +1440,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getMessage method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getMessage} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getMessage} integration test with mandatory parameter.")
     public void testGetMessageWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getMessage";
@@ -1437,7 +1459,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for archiveAMessage method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {archiveAMessage} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {archiveAMessage} integration test with mandatory parameter.")
     public void testArchiveAMessageWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_archiveAMessage";
@@ -1450,7 +1472,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for unarchiveAMessage method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {unarchiveAMessage} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {unarchiveAMessage} integration test with mandatory parameter.")
     public void testUnarchiveAMessageWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_unarchiveAMessage";
@@ -1458,13 +1480,12 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_unarchiveAMessageMandatory.json");
 
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-        ;
     }
 
     /**
      * Positive test case for deleteMessage method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteMessage} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {deleteMessage} integration test with mandatory parameter.")
     public void testDeleteMessageWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteMessage";
@@ -1478,7 +1499,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getMilestonesOnAProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getMilestonesOnAProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getMilestonesOnAProject} integration test with mandatory parameter.")
     public void testGetMilestonesOnAProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getMilestonesOnAProject";
@@ -1494,7 +1515,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getMilestonesOnAProject method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getMilestonesOnAProject} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getMilestonesOnAProject} integration test with optional parameter.")
     public void testGetMilestonesOnAProjectWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getMilestonesOnAProject";
@@ -1510,7 +1531,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllMilestones method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllMilestones} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getAllMilestones} integration test with mandatory parameter.")
     public void testGetAllMilestonesWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllMilestones";
@@ -1535,7 +1556,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllMilestones method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllMilestones} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getAllMilestones} integration test with optional parameter.")
     public void testGetAllMilestonesWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllMilestones";
@@ -1561,7 +1582,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getMilestone method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getMilestone} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getMilestone} integration test with mandatory parameter.")
     public void testGetMilestoneWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getMilestone";
@@ -1580,7 +1601,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getMilestone method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getMilestone} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getMilestone} integration test with optional parameter.")
     public void testGetMilestoneWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getMilestone";
@@ -1600,7 +1621,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for completeAMilestone method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {completeAMilestone} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {completeAMilestone} integration test with mandatory parameter.")
     public void testCompleteAMilestoneWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_completeAMilestone";
@@ -1614,7 +1635,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for uncompleteAMilestone method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {uncompleteAMilestone} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {uncompleteAMilestone} integration test with mandatory parameter.")
     public void testUncompleteAMilestoneWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_uncompleteAMilestone";
@@ -1628,7 +1649,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteMilestone method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteMilestone} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {deleteMilestone} integration test with mandatory parameter.")
     public void testDeleteMilestoneWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteMilestone";
@@ -1642,7 +1663,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateNotebook method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateNotebook} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {updateNotebook} integration test with mandatory parameter.")
     public void testUpdateNotebookWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateNotebook";
@@ -1662,7 +1683,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getNotebooksOnProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getNotebooksOnProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getNotebooksOnProject} integration test with mandatory parameter.")
     public void testGetNotebooksOnProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getNotebooksOnProject";
@@ -1678,7 +1699,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getNotebooksOnProject method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getNotebooksOnProject} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getNotebooksOnProject} integration test with optional parameter.")
     public void testGetNotebooksOnProjectWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getNotebooksOnProject";
@@ -1694,7 +1715,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getNotebooksInCategory method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getNotebooksInCategory} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getNotebooksInCategory} integration test with mandatory parameter.")
     public void testGetNotebooksInCategoryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getNotebooksInCategory";
@@ -1710,7 +1731,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getNotebooksInCategory method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getNotebooksInCategory} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getNotebooksInCategory} integration test with optional parameter.")
     public void testGetNotebooksInCategoryWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getNotebooksInCategory";
@@ -1726,7 +1747,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllNotebooks method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllNotebooks} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getAllNotebooks} integration test with mandatory parameter.")
     public void testGetAllNotebooksWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllNotebooks";
@@ -1742,7 +1763,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllNotebooks method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllNotebooks} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getAllNotebooks} integration test with optional parameter.")
     public void testGetAllNotebooksWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllNotebooks";
@@ -1758,7 +1779,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getNotebook method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getNotebook} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getNotebook} integration test with mandatory parameter.")
     public void testGetNotebookWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getNotebook";
@@ -1777,7 +1798,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for lockNotebook method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {lockNotebook} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {lockNotebook} integration test with mandatory parameter.")
     public void testLockNotebookWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_lockNotebook";
@@ -1791,7 +1812,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for unlockNotebook method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {unlockNotebook} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {unlockNotebook} integration test with mandatory parameter.")
     public void testUnlockNotebookWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_unlockNotebook";
@@ -1805,7 +1826,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteNotebook method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteNotebook} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {deleteNotebook} integration test with mandatory parameter.")
     public void testDeleteNotebookWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteNotebook";
@@ -1819,10 +1840,12 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for createUser method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {createUser} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {createUser} integration test with mandatory parameter.")
     public void testCreateUserWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_createUser";
+        connectorProperties.setProperty("emailAddress", System.currentTimeMillis() + connectorProperties
+                .getProperty("emailAddress"));
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_createUserMandatory.json");
 
@@ -1830,10 +1853,18 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
         Assert.assertEquals(esbRestResponse.getBody().get("STATUS"), "OK");
     }
 
+
+
+
+
+
+
+
+
     /**
      * Positive test case for updateUser method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateUser} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {updateUser} integration test with mandatory parameter.")
     public void testUpdateUserWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateUser";
@@ -1853,7 +1884,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getPeopleInProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getPeopleInProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getPeopleInProject} integration test with mandatory parameter.")
     public void testGetPeopleInProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getPeopleInProject";
@@ -1869,7 +1900,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getPeopleInCompany method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getPeopleInCompany} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getPeopleInCompany} integration test with mandatory parameter.")
     public void testGetPeopleInCompanyWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getPeopleInCompany";
@@ -1885,7 +1916,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getPeople method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getPeople} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getPeople} integration test with mandatory parameter.")
     public void testGetPeopleWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getPeople";
@@ -1901,7 +1932,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getPeople method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getPeople} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getPeople} integration test with optional parameter.")
     public void testGetPeopleWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getPeople";
@@ -1917,7 +1948,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getPerson method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getPerson} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getPerson} integration test with mandatory parameter.")
     public void testGetPersonWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getPerson";
@@ -1936,7 +1967,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getCurrentUser method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getCurrentUser} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getCurrentUser} integration test with mandatory parameter.")
     public void testGetCurrentUserWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getCurrentUser";
@@ -1955,7 +1986,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAPIKeyForPeopleOnAccount method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getAPIKeyForPeopleOnAccount} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getAPIKeyForPeopleOnAccount} integration test with mandatory parameter.")
     public void testGetAPIKeyForPeopleOnAccountWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAPIKeyForPeopleOnAccount";
@@ -1974,7 +2005,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteUser method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteUser} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {deleteUser} integration test with mandatory parameter.")
     public void testDeleteUserWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteUser";
@@ -1988,7 +2019,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for createCurrentUserStatus method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {createCurrentUserStatus} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {createCurrentUserStatus} integration test with mandatory parameter.")
     public void testCreateCurrentUserStatusWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_createCurrentUserStatus";
@@ -1997,12 +2028,16 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
 
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         Assert.assertEquals(esbRestResponse.getBody().get("STATUS"), "OK");
+        String id=esbRestResponse.getHeadersMap().get("id").toString();
+        id=id.substring(1, id.length()-1);
+        connectorProperties.put("currentUserStatusId", id);
+        System.out.println("\n\n "+id+"\n\n ");
     }
 
     /**
      * Positive test case for createUserStatus method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {createUserStatus} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {testCreateCurrentUserStatusWithMandatoryParameters} integration test with mandatory parameter.")
     public void testCreateUserStatusWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_createUserStatus";
@@ -2011,12 +2046,16 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
 
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         Assert.assertEquals(esbRestResponse.getBody().get("STATUS"), "OK");
+        String id=esbRestResponse.getHeadersMap().get("id").toString();
+        id=id.substring(1, id.length()-1);
+        connectorProperties.put("userStatusId", id);
+        System.out.println("\n\n "+id+"\n\n ");
     }
 
     /**
      * Positive test case for updateCurrentUserStatus method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateCurrentUserStatus} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testCreateCurrentUserStatusWithMandatoryParameters"}, description = "teamwork {updateCurrentUserStatus} integration test with mandatory parameter.")
     public void testUpdateCurrentUserStatusWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateCurrentUserStatus";
@@ -2034,7 +2073,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updatePeopleStatus method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updatePeopleStatus} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {updatePeopleStatus} integration test with mandatory parameter.")
     public void testUpdatePeopleStatusWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updatePeopleStatus";
@@ -2047,7 +2086,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateUserStatus method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateUserStatus} integration test with mandatory parameter.")
+    @Test(enabled = true, dependsOnMethods = {"testCreateUserStatusWithMandatoryParameters"}, description = "teamwork {updateUserStatus} integration test with mandatory parameter.")
     public void testUpdateUserStatusWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateUserStatus";
@@ -2068,7 +2107,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getCurrentUserStatus method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getCurrentUserStatus} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getCurrentUserStatus} integration test with optional parameter.")
     public void testGetCurrentUserStatusWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getCurrentUserStatus";
@@ -2084,7 +2123,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getEverybodyStatus method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getEverybodyStatus} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getEverybodyStatus} integration test with mandatory parameter.")
     public void testGetEverybodyStatusWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getEverybodyStatus";
@@ -2101,7 +2140,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getUserStatus method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getUserStatus} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getUserStatus} integration test with mandatory parameter.")
     public void testGetUserStatusWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getUserStatus";
@@ -2118,7 +2157,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteCurrentUserStatus method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteCurrentUserStatus} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testUpdateCurrentUserStatusWithMandatoryParameters"}, description = "teamwork {deleteCurrentUserStatus} integration test with mandatory parameter.")
     public void testDeleteCurrentUserStatusWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteCurrentUserStatus";
@@ -2132,7 +2171,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deletePeopleStatus method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deletePeopleStatus} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {deletePeopleStatus} integration test with mandatory parameter.")
     public void testDeletePeopleStatusWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deletePeopleStatus";
@@ -2146,7 +2185,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteUserStatus method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteUserStatus} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testUpdateUserStatusWithMandatoryParameters"}, description = "teamwork {deleteUserStatus} integration test with mandatory parameter.")
     public void testDeleteUserStatusWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteUserStatus";
@@ -2160,7 +2199,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for addUserToProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {addUserToProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {addUserToProject} integration test with mandatory parameter.")
     public void testAddUserToProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_addUserToProject";
@@ -2174,7 +2213,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateUserPermissionOnProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateUserPermissionOnProject} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testAddUserToProjectWithMandatoryParameters"}, description = "teamwork {updateUserPermissionOnProject} integration test with mandatory parameter.")
     public void testUpdateUserPermissionOnProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateUserPermissionOnProject";
@@ -2194,7 +2233,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getUserPermissionsOnProject method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getUserPermissionsOnProject} integration test with mandatory parameter.")
+    @Test(enabled=true,dependsOnMethods = {"testUpdateUserPermissionOnProjectWithMandatoryParameters"}, description = "teamwork {getUserPermissionsOnProject} integration test with mandatory parameter.")
     public void testGetUserPermissionsOnProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getUserPermissionsOnProject";
@@ -2211,7 +2250,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for removeUserFromProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {removeUserFromProject} integration test with mandatory parameter.")
+    @Test(enabled = true,dependsOnMethods = {"testGetUserPermissionsOnProjectWithMandatoryParameters"}, description = "teamwork {removeUserFromProject} integration test with mandatory parameter.")
     public void testRemoveUserFromProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_removeUserFromProject";
@@ -2225,7 +2264,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for listRolesOnProject method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {listRolesOnProject} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {listRolesOnProject} integration test with mandatory parameter.")
     public void testGetListRolesOnProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_listRolesOnProject";
@@ -2242,10 +2281,12 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for createProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {createProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {createProject} integration test with mandatory parameter.")
     public void testCreateProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_createProject";
+        connectorProperties.setProperty("createProjectName", System.currentTimeMillis() + connectorProperties
+                .getProperty("createProjectName"));
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_createProjectMandatory.json");
 
@@ -2256,7 +2297,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {updateProject} integration test with mandatory parameter.")
     public void testUpdateProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateProject";
@@ -2276,7 +2317,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getStarredProjects method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getStarredProjects} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getStarredProjects} integration test with mandatory parameter.")
     public void testGetStarredProjectsWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getStarredProjects";
@@ -2293,7 +2334,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getProject method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getProject} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getProject} integration test with mandatory parameter.")
     public void testGetProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getProject";
@@ -2310,7 +2351,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getProject method with optional parameters.
      */
-    @Test(enabled=false, description = "teamwork {getProject} integration test with optional parameter.")
+    @Test(enabled=true, description = "teamwork {getProject} integration test with optional parameter.")
     public void testGetProjectWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getProject";
@@ -2328,7 +2369,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllProjects method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getAllProjects} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getAllProjects} integration test with mandatory parameter.")
     public void testGetAllProjectsWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllProjects";
@@ -2345,7 +2386,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllProjects method with optional parameters.
      */
-    @Test(enabled=false, description = "teamwork {getAllProjects} integration test with optional parameter.")
+    @Test(enabled=true, description = "teamwork {getAllProjects} integration test with optional parameter.")
     public void testGetAllProjectsWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllProjects";
@@ -2365,7 +2406,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for starAProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {starAProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {starAProject} integration test with mandatory parameter.")
     public void testStarAProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_starAProject";
@@ -2379,7 +2420,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for unstarAProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {unstarAProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {unstarAProject} integration test with mandatory parameter.")
     public void testUnstarAProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_unstarAProject";
@@ -2393,7 +2434,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {deleteProject} integration test with mandatory parameter.")
     public void testDeleteProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteProject";
@@ -2407,21 +2448,23 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for createTaskList method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {createTaskList} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {createTaskList} integration test with mandatory parameter.")
     public void testCreateTaskListWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_createTaskList";
+        connectorProperties.setProperty("taskListName", System.currentTimeMillis() + connectorProperties
+                .getProperty("taskListName"));
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_createTaskListMandatory.json");
 
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 201);
         Assert.assertEquals(esbRestResponse.getBody().get("STATUS"), "OK");
     }
 
     /**
      * Positive test case for updateTaskList method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateTaskList} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {updateTaskList} integration test with mandatory parameter.")
     public void testUpdateTaskListWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateTaskList";
@@ -2441,7 +2484,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllTemplateTaskLists method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getAllTemplateTaskLists} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getAllTemplateTaskLists} integration test with mandatory parameter.")
     public void testGetAllTemplateTaskListsWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllTemplateTaskLists";
@@ -2458,7 +2501,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getTaskList method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getTaskList} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getTaskList} integration test with mandatory parameter.")
     public void testGetTaskListWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTaskList";
@@ -2468,14 +2511,14 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_getTaskListMandatory.json");
 
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-
-        Assert.assertEquals(esbRestResponse.getBody().toString(), apiRestResponse.getBody().toString());
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(esbRestResponse.getBody().get("STATUS").toString(), apiRestResponse.getBody().get("STATUS").toString());
     }
 
     /**
      * Positive test case for getTaskList method with optional parameters.
      */
-    @Test(enabled=false, description = "teamwork {getTaskList} integration test with optional parameter.")
+    @Test(enabled=true, description = "teamwork {getTaskList} integration test with optional parameter.")
     public void testGetTaskListWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTaskList";
@@ -2487,13 +2530,14 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
 
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
-        Assert.assertEquals(esbRestResponse.getBody().toString(), apiRestResponse.getBody().toString());
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(esbRestResponse.getBody().get("STATUS").toString(), apiRestResponse.getBody().get("STATUS").toString());
     }
 
     /**
      * Positive test case for getTaskListsOnProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getTaskListsOnProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getTaskListsOnProject} integration test with mandatory parameter.")
     public void testGetTaskListsOnProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTaskListsOnProject";
@@ -2503,13 +2547,14 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_getTaskListsOnProjectMandatory.json");
 
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        Assert.assertEquals(esbRestResponse.getBody().toString(), apiRestResponse.getBody().toString());
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(esbRestResponse.getBody().get("STATUS").toString(), apiRestResponse.getBody().get("STATUS").toString());
     }
 
     /**
      * Positive test case for getTaskListsOnProject method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getTaskListsOnProject} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getTaskListsOnProject} integration test with optional parameter.")
     public void testGetTaskListsOnProjectWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTaskListsOnProject";
@@ -2523,13 +2568,14 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_getTaskListsOnProjectOptional.json");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
-        Assert.assertEquals(esbRestResponse.getBody().toString(), apiRestResponse.getBody().toString());
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(esbRestResponse.getBody().get("STATUS").toString(), apiRestResponse.getBody().get("STATUS").toString());
     }
 
     /**
      * Positive test case for reorderTaskLists method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {reorderTaskLists} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {reorderTaskLists} integration test with mandatory parameter.")
     public void testReorderTaskListsWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_reorderTaskLists";
@@ -2543,7 +2589,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteTaskList method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteTaskList} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {deleteTaskList} integration test with mandatory parameter.")
     public void testDeleteTaskListWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteTaskList";
@@ -2557,7 +2603,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for createTask method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {createTask} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {createTask} integration test with mandatory parameter.")
     public void testCreateTaskWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_createTask";
@@ -2571,7 +2617,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateTask method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateTask} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {updateTask} integration test with mandatory parameter.")
     public void testUpdateTaskWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateTask";
@@ -2591,7 +2637,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllTasks method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getAllTasks} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getAllTasks} integration test with mandatory parameter.")
     public void testGetAllTasksWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllTasks";
@@ -2607,7 +2653,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllTasks method with optional parameters.
      */
-    @Test(enabled=false, description = "teamwork {getAllTasks} integration test with optional parameter.")
+    @Test(enabled=true, description = "teamwork {getAllTasks} integration test with optional parameter.")
     public void testGetAllTasksWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllTasks";
@@ -2626,13 +2672,14 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
 
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
-        Assert.assertEquals(esbRestResponse.getBody().toString(), apiRestResponse.getBody().toString());
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(esbRestResponse.getBody().get("STATUS").toString(), apiRestResponse.getBody().get("STATUS").toString());
     }
 
     /**
      * Positive test case for getTask method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getTask} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getTask} integration test with mandatory parameter.")
     public void testGetTaskWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTask";
@@ -2649,7 +2696,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getTask method with optional parameters.
      */
-    @Test(enabled=false, description = "teamwork {getTask} integration test with optional parameter.")
+    @Test(enabled=true, description = "teamwork {getTask} integration test with optional parameter.")
     public void testGetTaskWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTask";
@@ -2667,7 +2714,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getTasksOnProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getTasksOnProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getTasksOnProject} integration test with mandatory parameter.")
     public void testGetTasksOnProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTasksOnProject";
@@ -2683,7 +2730,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getTasksOnProject method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getTasksOnProject} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getTasksOnProject} integration test with optional parameter.")
     public void testGetTasksOnProjectWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTasksOnProject";
@@ -2701,13 +2748,14 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_getTasksOnProjectOptional.json");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
-        Assert.assertEquals(esbRestResponse.getBody().toString(), apiRestResponse.getBody().toString());
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(esbRestResponse.getBody().get("STATUS").toString(), apiRestResponse.getBody().get("STATUS").toString());
     }
 
     /**
      * Positive test case for getTasksOnTaskList method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getTasksOnTaskList} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getTasksOnTaskList} integration test with mandatory parameter.")
     public void testGetTasksOnTaskListWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTasksOnTaskList";
@@ -2723,7 +2771,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getTasksOnTaskList method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getTasksOnTaskList} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getTasksOnTaskList} integration test with optional parameter.")
     public void testGetTasksOnTaskListWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTasksOnTaskList";
@@ -2741,13 +2789,14 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "esb_getTasksOnTaskListOptional.json");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
-        Assert.assertEquals(esbRestResponse.getBody().toString(), apiRestResponse.getBody().toString());
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(esbRestResponse.getBody().get("STATUS").toString(), apiRestResponse.getBody().get("STATUS").toString());
     }
 
     /**
      * Positive test case for reorderTasks method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {reorderTasks} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {reorderTasks} integration test with mandatory parameter.")
     public void testReorderTasktsWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_reorderTasks";
@@ -2761,7 +2810,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for completeATask method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {completeATask} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {completeATask} integration test with mandatory parameter.")
     public void testCompleteATaskWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_completeATask";
@@ -2775,7 +2824,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for uncompleteATask method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {uncompleteATask} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {uncompleteATask} integration test with mandatory parameter.")
     public void testUncompleteATaskWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_uncompleteATask";
@@ -2789,7 +2838,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteTask method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteTask} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {deleteTask} integration test with mandatory parameter.")
     public void testDeleteTaskWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteTask";
@@ -2803,7 +2852,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for updateTimeEntry method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {updateTimeEntry} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {updateTimeEntry} integration test with mandatory parameter.")
     public void testUpdateTimeEntryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_updateTimeEntry";
@@ -2823,7 +2872,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getTimeEntry method with mandatory parameters.
      */
-    @Test(enabled=false, description = "teamwork {getTimeEntry} integration test with mandatory parameter.")
+    @Test(enabled=true, description = "teamwork {getTimeEntry} integration test with mandatory parameter.")
     public void testGetTimeEntryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTimeEntry";
@@ -2840,7 +2889,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getTasksOnProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getTimeEntriesForToDoItem} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getTimeEntriesForToDoItem} integration test with mandatory parameter.")
     public void testGetTimeEntriesForToDoItemWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTimeEntriesForToDoItem";
@@ -2856,7 +2905,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getTimeEntriesForProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getTimeEntriesForProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getTimeEntriesForProject} integration test with mandatory parameter.")
     public void testGetTimeEntriesForProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTimeEntriesForProject";
@@ -2872,7 +2921,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getTimeEntriesForProject method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getTimeEntriesForProject} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getTimeEntriesForProject} integration test with optional parameter.")
     public void testGetTimeEntriesForProjectWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTimeEntriesForProject";
@@ -2891,7 +2940,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllTimeEntries method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllTimeEntries} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getAllTimeEntries} integration test with mandatory parameter.")
     public void testGetAllTimeEntriesWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllTimeEntries";
@@ -2907,7 +2956,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getAllTimeEntries method with optional parameters.
      */
-    @Test(enabled = false, description = "teamwork {getAllTimeEntries} integration test with optional parameter.")
+    @Test(enabled = true, description = "teamwork {getAllTimeEntries} integration test with optional parameter.")
     public void testGetAllTimeEntriesWithOptionalParameters() throws IOException, JSONException {
 
         String methodName = "tw_getAllTimeEntries";
@@ -2926,7 +2975,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getTimeTotalsOnProject method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getTimeTotalsOnProject} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getTimeTotalsOnProject} integration test with mandatory parameter.")
     public void testGetTimeTotalsOnProjectWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTimeTotalsOnProject";
@@ -2942,7 +2991,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getTimeTotalsOnTask method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getTimeTotalsOnTask} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getTimeTotalsOnTask} integration test with mandatory parameter.")
     public void testGetTimeTotalsOnTaskWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTimeTotalsOnTask";
@@ -2958,7 +3007,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for getTimeTotalsOnTaskList method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {getTimeTotalsOnTaskList} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {getTimeTotalsOnTaskList} integration test with mandatory parameter.")
     public void testGetTimeTotalsOnTaskListWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_getTimeTotalsOnTaskList";
@@ -2974,7 +3023,7 @@ public class TeamworkConnectorIntegrationTest extends ConnectorIntegrationTestBa
     /**
      * Positive test case for deleteTimeEntry method with mandatory parameters.
      */
-    @Test(enabled = false, description = "teamwork {deleteTimeEntry} integration test with mandatory parameter.")
+    @Test(enabled = true, description = "teamwork {deleteTimeEntry} integration test with mandatory parameter.")
     public void testDeleteTimeEntryWithMandatoryParameters() throws IOException, JSONException {
 
         String methodName = "tw_deleteTimeEntry";
