@@ -20,12 +20,11 @@ Note:
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.8.1 from official website.
+ 1. Download ESB 4.9.0-ALPHA from official website.
  
  2. Deploy relevant patches, if applicable.
  
- 3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{surveygizmo_connector_Home}/surveygizmo-connector/surveygizmo-connector-1.0.0/org.wso2.carbon.connector/repository/".
-
+ 3. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "{connector_Home}/repository
  4. Prerequisites for SurveyGizmo Connector Integration Testing
 
 		i) 	Create a SurveyGizmo account using the URL "https://app.surveygizmo.com/login/v1".
@@ -56,10 +55,12 @@ Steps to follow in setting integration test.
 	xvi)	campaignStatus				-	Status of the campaign.
 	xvii)	updatedCampaignLanguage		-	Status to set when updating the campaign.Use different value from xv)
 	xviii)	surveyIdToListResponse		-	Place the survey Id from the created survey account in step 4[ii]. 
-	
-		
- 6. Navigate to "{surveygizmo_connector_Home}/surveygizmo-connector/surveygizmo-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+
+ 6.Make sure that the SurveyGizmo connector is set as a module in esb-connectors parent pom.
+               <module>SurveyGizmo/SurveyGizmo-connector/SurveyGizmo-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 7. Navigate to "{ESB_CONNECTORS_HOME}/" and run the following command.
+              $ mvn clean install
 
 
  NOTE : Following are the credentials for the SurveyGizmo account used for integration tests.
