@@ -12,7 +12,7 @@ Tested Platform:
 
 STEPS:
 
-1. Copy the ESB 4.8.1 zip to the location "Gmail_Connector_Home/repository/"
+1. Copy the ESB 4.9.0-ALPHA zip to the location "Connector_Home/repository/"
 
 2. Obtain an access token for your Gmail account by following below steps;
 	- Access Google OAuth playground using “https://developers.google.com/oauthplayground/”
@@ -39,5 +39,5 @@ with following information
 6.Make sure that the gmail connector is set as a module in esb-connectors parent pom.
           <module>gmail/gmail-connector/gmail-connector-1.0.0/org.wso2.carbon.connector</module>
 
-6.  Navigate to "Gmail_Connector_Home" and run the following command.
+7.  Navigate to "Gmail_Connector_Home" and run the following command.
       $ mvn clean install

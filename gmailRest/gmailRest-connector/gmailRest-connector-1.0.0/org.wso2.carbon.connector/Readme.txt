@@ -12,7 +12,7 @@ Tested Platform:
 
 STEPS:
 
-1. Copy the ESB 4.8.1 zip to the location "Connector_Home/repository/"
+1. Copy the ESB 4.9.0-ALPHA zip to the location "Connector_Home/repository/"
 
 2. Obtain the authorization credentials following below steps;
 	- Access https://developers.google.com/gmail/api/auth/web-server
