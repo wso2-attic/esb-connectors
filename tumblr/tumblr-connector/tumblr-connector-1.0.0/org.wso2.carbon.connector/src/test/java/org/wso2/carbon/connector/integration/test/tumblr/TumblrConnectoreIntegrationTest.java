@@ -2123,7 +2123,7 @@ public class TumblrConnectoreIntegrationTest extends ConnectorIntegrationTestBas
      *
      * @throws JSONException
      */
-    @Test(priority = 4, groups = {"wso2.esb"}, description = "tumblr {getAvatar} integration optional positive test")
+    @Test(priority = 4, enabled = false,groups = {"wso2.esb"}, description = "tumblr {getAvatar} integration optional positive test")
     public void optionalTestTumblrGetAvatar() throws JSONException {
 
         //Get Direct response from tumblr

@@ -4,18 +4,17 @@ Pre-requisites:
 
  - Maven 3.x
  - Java 1.6 or above
- - org.wso2.esb.integration.integration-base is rquired. this test suite has been configred to download this automatically. however if its fail download following project and compile using mvn clean install command to update your local repository.
+ - org.wso2.esb.integration.integration-base is required. this test suite has been configured to download this automatically. however if its fail download following project and compile using mvn clean install command to update your local repository.
    https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
 
 Tested Platform:
 
  - UBUNTU 13.10
- - WSO2 ESB 4.8.1
+ - WSO2 ESB 4.9.0-ALPHA
 
 STEPS:
 	  
-1. 	Make sure the ESB 4.8.1 zip file with latest patches available at 
-	"{TUMBLR_CONNECTOR_HOME}/tumblr-connector/tumblr-connector-1.0.0/repository/"
+1. 	Make sure the ESB 4.9.0-ALPHA zip file available at "{ESB_CONNECTORS_HOME}/repository/"
 	  
 2.	Create Tumblr account and apply for application and derive consumer/api key
 		2.1 Using URL https://www.tumblr.com/register create tumblr account.
@@ -28,7 +27,7 @@ STEPS:
 			access token and access token secret [NOTE : PLEASE USE ACCESS TOKENS DERIVED FROM THIS 
 			APPROACH ONLY FOR TESTING]
 
-3.	Update the Tumblr properties file at location "{TUMBLR_CONNECTOR_HOME}/tumblr-connector/tumblr-connector-1.0.0
+3.	Update the Tumblr properties file at location "{ESB_CONNECTORS_HOME}/tumblr/tumblr-connector/tumblr-connector-1.0.0/org.wso2.carbon.connector
 	/src/test/resources/artifacts/ESB/connector/config"
 	
 	i	blogHostUrl - Name of the blog created in step 2.1
@@ -63,11 +62,14 @@ STEPS:
   	xi   esbLikePostId - post id of the post selected above in (x)
   	xii  followBlogUrl - url of your favourite blog
   	xiii postTag - a post tag to search
-  		
-4.	Navigate to "{TUMBLR_CONNECTOR_HOME}/tumblr-connector/tumblr-connector-1.0.0/" and run the following command.
-      				$ mvn clean install -Dmaven.test.skip=true
-      				$ mvn install 
-	  					
+
+  	Note: Download and add the scribe-1.3.6.jar into {ESB_CONNECTORS_HOME}/tumblr-connector/tumblr-connector-1.0.0/org.wso2.carbon.connector/src/main/resources/lib/
+
+4.  Make sure that the tumblr connector is set as a module in esb-connectors parent pom.
+        <module>tumblr/tumblr-connector/tumblr-connector-1.0.0/org.wso2.carbon.connector</module>
+
+5.	Navigate to "{ESB_CONNECTORS_HOME}/" and run the following command.
+      				$ mvn install
   					
 NOTE: Following Tumblr account can be used for integration test
 	Email: tumblresbconnector@gmail.com
