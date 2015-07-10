@@ -9,8 +9,8 @@ Product: Integration tests for WSO2 ESB AmazonS3 connector
     Tested Platforms: 
 
     - Microsoft WINDOWS V-7
-    - Ubuntu 13.04
-    - WSO2 ESB 4.8.1
+    - Ubuntu 14.04
+    - WSO2 ESB 4.9.0
 
 Note:
 	This test suite can execute based on two scenarios.
@@ -19,7 +19,7 @@ Note:
 	
 Steps to follow in setting integration test.
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{AmazonS3_Connector_Home}/amazons3-connector/amazons3-connector-1.0.0/org.wso2.carbon.connector/repository/"
+ 1. Make sure the ESB 4.9.0 zip file with latest patches available at "{AmazonS3_Connector_Home}/amazons3-connector/amazons3-connector-1.0.0/org.wso2.carbon.connector/repository/"
 
  2. This ESB should be configured as below;
 	Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
@@ -112,7 +112,11 @@ Steps to follow in setting integration test.
 		
 		25)   timeOut is the amount of time to wait for manipulate the responses.
         
- 7. Navigate to "{AmazonS3_Connector_Home}/amazons3-connector/amazons3-connector-1.0.0/org.wso2.carbon.connector/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+
+ 7. Make sure that the amazons3 connector is set as a module in esb-connectors parent pom.
+                <module>amazons3/amazons3-connector/amazons3-connector-1.0.0/org.wso2.carbon.connector/org.wso2.carbon.connector/</module>
+
+ 8. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+                $ mvn clean install
      
      

@@ -10,11 +10,11 @@ Product: Integration tests for WSO2 ESB CallRail connector
     Tested Platforms: 
 
     - Microsoft WINDOWS V-7
-    - Ubuntu 13.04
-    - WSO2 ESB 4.8.1
+    - Ubuntu 14.04
+    - WSO2 ESB 4.9.0
  
 Steps to follow in setting integration test.
- 1.  Download ESB 4.8.1 from official website.
+ 1.  Download ESB 4.9.0 from official website.
  2.  Deploy relevant patches, if applicable.
 
 STEPS:
@@ -28,7 +28,7 @@ STEPS:
 		NOTE : CERT_FILE_NAME is the file name which was extracted from callrail, change it accordingly. (e.g. -.callrail.com)
 			   CERT_NAME is name of the certificate. (e.g. callrail)
 	   
-	iii)Go to new ESB 4.8.1 folder and place the downloaded certificate in "<ESB_HOME>/repository/resources/security/"
+	iii)Go to new ESB 4.9.0 folder and place the downloaded certificate in "<ESB_HOME>/repository/resources/security/"
 
 	iv) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" in command line to import Callrail certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from callrail, change it accordingly. (e.g. -.callrail.com)
@@ -50,7 +50,7 @@ STEPS:
 	<messageBuilder contentType="text/html"                                
 					  class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 	
- 3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{CALLRAIL_CONNECTOR_HOME}/callrail-connector/callrail-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 3. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{CALLRAIL_CONNECTOR_HOME}/callrail-connector/callrail-connector-1.0.0/org.wso2.carbon.connector/repository/".
 	
  4. Create a CallRail account and derive the API key:
 	i) 	 Using the URL "https://app.callrail.com" create a CallRail Free Trial account.
@@ -76,8 +76,12 @@ STEPS:
 	xi)		startDate - Preferred start date in the format of yyyy-mm-dd
 	xii)	timeOut - 10000
 		
- 6. Navigate to "{CALLRAIL_CONNECTOR_HOME}/callrail-connector/callrail-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+
+ 6. Make sure that the callrail connector is set as a module in esb-connectors parent pom.
+                                <module>callrail/callrail-connector/callrail-connector-1.0.0/org.wso2.carbon.connector/</module>
+
+ 7. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+                                $ mvn clean install
 
  NOTE : 
 	  -CallRail Free trial account is only valid for 14 days.
