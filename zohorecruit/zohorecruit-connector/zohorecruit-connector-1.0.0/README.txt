@@ -11,7 +11,7 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - WSO2 ESB 4.9.0-ALPHA
 
 Note:
 	This test suite can be executed based on two scenarios.
@@ -20,7 +20,7 @@ Note:
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.8.1 from official website.
+ 1. Download ESB 4.9.0-ALPHA from official website.
 
  2. The ESB should be configured as below;
 	i)  Please make sure that the below mentioned Axis configurations are enabled (/repository/conf/axis2/axis2.xml).
@@ -29,7 +29,7 @@ Steps to follow in setting integration test.
 
  	ii) Deploy relevant patches, if applicable.
 
- 3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{ZohoRecruit_Connector_Home}/zohorecruit-connector/zohorecruit-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 3. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
 
  4. Create a ZohoRecruit trial account and derive the API Key.
 	i) 		Using the URL "https://www.zoho.com/recruit/sign-up.html" create a ZohoRecruit trial account.
@@ -38,7 +38,7 @@ Steps to follow in setting integration test.
 	iii)	Create two Candidates by following the path {Candidates > Add candidate} and fetch the record Ids of those candidates.
 	iv)		Create four Job Openings by following the path {Job Openings > Add job opening} and fetch the record Ids of those job openings.
 
- 5. Update the ZohoRecruit properties file at location "{ZohoRecruit_Connector_Home}/zohorecruit-connector/zohorecruit-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 5. Update the ZohoRecruit properties file at location "{ESB_Connector_Home}/zohorecruit/zohorecruit-connector/zohorecruit-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i)		apiUrl 							- 	The API URL specific to the created account.
 	ii) 	authToken						-   Use the API Key obtained under Step 4 ii).
@@ -55,8 +55,11 @@ Steps to follow in setting integration test.
 	xiii)	candidateRecordIdOptional 		-	Use the other record Id of a created candidate under Step 4 iii.
 	xiv)	changeStatus					-	Use a valid candidate status value.
 	xv)		jobRecordIdAssociate			-	Use a valid record Id of a created job under Step 4 iv.
-	
- 6. Navigate to "{ZohoRecruit_Connector_Home}/zohorecruit-connector/zohorecruit-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+
+ 6. Make sure that zohorecruit is specified as a module in ESB_Connector_Parent pom.
+         <module>/zohorecruit/zohorecruit-connector/zohorecruit-connector-1.0.0/org.wso2.carbon.connector/</module>
+
+ 7. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
 	  
 	  Note:- ZohoRecruit trial account expires within 15 days.
