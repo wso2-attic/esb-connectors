@@ -1012,7 +1012,7 @@ public class CashboardConnectorIntegrationTest extends ConnectorIntegrationTestB
         String typeCode = connectorProperties.getProperty("typeCode");
         
         final String apiEndPoint =
-                apiUrl + "/estimates.xml?estimate_id=" + estimateId + "&type_code=" + typeCode + "&project_id="
+                apiUrl + "/line_items.xml?estimate_id=" + estimateId + "&type_code=" + typeCode + "&project_id="
                         + projectId + "&project_list_id=" + projectListId + "&updated_since=" + updatedSince;
         final RestResponse<OMElement> apiRestResponse =
                 sendXmlRestRequestHTTPS(apiEndPoint, "GET", apiRequestHeadersMap, null, null, true);
