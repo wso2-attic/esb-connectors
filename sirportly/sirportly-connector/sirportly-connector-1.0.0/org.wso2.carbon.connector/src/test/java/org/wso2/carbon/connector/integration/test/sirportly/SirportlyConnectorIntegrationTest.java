@@ -651,14 +651,17 @@ public class SirportlyConnectorIntegrationTest extends ConnectorIntegrationTestB
         JSONArray esbResponseArray =
                 esbRestResponse.getBody().getJSONObject("filter").getJSONObject("conditions").getJSONArray("all");
         
+        JSONArray apiResponseArray =
+                apiRestResponse.getBody().getJSONObject("filter").getJSONObject("conditions").getJSONArray("all");
+        
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("filter").getString("name"), apiRestResponse
                 .getBody().getJSONObject("filter").getString("name"));
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("filter").getString("description"), apiRestResponse
                 .getBody().getJSONObject("filter").getString("description"));
         Assert.assertEquals(esbResponseArray.getJSONObject(1).getString("data"),
-                connectorProperties.getProperty("ticketStatusId"));
+                apiResponseArray.getJSONObject(1).getString("data"));
         Assert.assertEquals(esbResponseArray.getJSONObject(2).getString("data"),
-                connectorProperties.getProperty("ticketPriorityId"));
+                apiResponseArray.getJSONObject(2).getString("data"));
     }
     
     /**
