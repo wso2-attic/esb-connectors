@@ -11,12 +11,12 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04, Mac OSx 10.9
- - WSO2 ESB 4.9.0-ALPHA
+ - WSO2 ESB 4.9.0-BETA-SNAPSHOT
  - Java 1.7
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.9.0-ALPHA by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/.
+ 1. Download ESB WSO2 ESB 4.9.0-BETA-SNAPSHOT by navigating the following the URL: http://svn.wso2.org/repos/wso2/people/malaka/ESB/beta/.
 
  2. Extract the certificate from browser by navigating to "https://books.zoho.com" and place the certificate file in following locations. 
 
@@ -46,7 +46,7 @@ Steps to follow in setting integration test.
 							  class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
 
- 4. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
+ 4. Compress modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
 
  5. Make sure that zohobooks is specified as a module in ESB_Connector_Parent pom.
         <module>zohobooks/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector</module>
@@ -56,10 +56,10 @@ Steps to follow in setting integration test.
 	ii)	Obtain the auth token and organization ID as instructed in "https://www.zoho.com/books/api/v3/".
 	
  7. Prerequisites for ZohoBooks Connector Integration Testing
-
-	i) 	Navigate to the URL "https://books.zoho.com/app#/accountant/chartofaccounts" and create at least one accountant with the Account type 'Expense'.
-	ii) Navigate to "Users" under the settings, and invite to new user as a timesheet staff by clicking "Invite User" button.
-	iii)Log in to newly created user's email (created in step 7 ii) ) and click "Join Account" URL to join with zohobooks account.
+	i)	Navigate to https://books.zoho.com/app#/settings/preferences , make sure to enable all the modules and to uncheck 'Set max hours/day' under 'General' tab.
+	ii) Navigate to the URL "https://books.zoho.com/app#/accountant/chartofaccounts" and create at least one accountant with the Account type 'Expense'.
+	iii) Navigate to "Users" under the settings, and invite to new user as a timesheet staff by clicking "Invite User" button.
+	iv)Log in to newly created user's email (created in step 7 iii) ) and click "Join Account" URL to join with zohobooks account.
 
  8. Update the Zohobooks properties file at location "<ZOHOBOOKS_CONNECTOR_HOME>/zohobooks-connector/zohobooks-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
