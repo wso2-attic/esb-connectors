@@ -1,0 +1,128 @@
+<template xmlns="http://ws.apache.org/ns/synapse" name="listTasks">
+	<parameter name="tasklist_id"
+		description="ID of the task list in which the tasks to be retrieved is stored" />
+
+	<!-- Optional Parameters -->
+	<parameter name="completedMax"
+		description="Upper bound for a task's completion date (as a RFC 3339 timestamp) to filter by. The default is not to filter by completion date. (string)" />
+	<parameter name="completedMin"
+		description="Lower bound for a task's completion date (as a RFC 3339 timestamp) to filter by. The default is not to filter by completion date. (string)" />
+	<parameter name="dueMax"
+		description="Upper bound for a task's due date (as a RFC 3339 timestamp) to filter by. The default is not to filter by due date. (string)" />
+	<parameter name="dueMin"
+		description="Lower bound for a task's due date (as a RFC 3339 timestamp) to filter by. The default is not to filter by due date. (string)" />
+	<parameter name="maxResults"
+		description="Maximum number of task lists returned on one page. The default is 100. (string)" />
+	<parameter name="pageToken"
+		description="Token specifying the result page to return. (string)" />
+	<parameter name="showCompleted"
+		description="Flag indicating whether completed tasks are returned in the result. The default is True. (boolean)" />
+	<parameter name="showDeleted"
+		description="Flag indicating whether deleted tasks are returned in the result. The default is False. (boolean)" />
+	<parameter name="showHidden"
+		description="Flag indicating whether hidden tasks are returned in the result. The default is False. (boolean)" />
+	<parameter name="updatedMin"
+		description="Lower bound for a task's last modification time (as a RFC 3339 timestamp) to filter by. The default is not to filter by last modification time. (string)" />
+
+	<sequence>
+		<property name="completedMax" expression="$func:completedMax"
+			type="STRING" />
+		<property name="completedMin" expression="$func:completedMin"
+			type="STRING" />
+		<property name="dueMax" expression="$func:dueMax" type="STRING" />
+		<property name="dueMin" expression="$func:dueMin" type="STRING" />
+		<property name="maxResults" expression="$func:maxResults"
+			type="STRING" />
+		<property name="pageToken" expression="$func:pageToken" type="STRING" />
+		<property name="showCompleted" expression="$func:showCompleted"
+			type="STRING" />
+		<property name="showDeleted" expression="$func:showDeleted"
+			type="STRING" />
+		<property name="showHidden" expression="$func:showHidden"
+			type="STRING" />
+		<property name="updatedMin" expression="$func:updatedMin"
+			type="STRING" />
+
+
+		<!-- Building the URL with the parameters for the API method -->
+		<filter
+			xpath="(not(get-property('completedMax') = '' or (not(string(get-property('completedMax'))))))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'completedMax=',get-property('completedMax'),'&amp;')" />
+			</then>
+		</filter>
+		<filter
+			xpath="(not(get-property('completedMin') = '' or (not(string(get-property('completedMin'))))))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'completedMin=',get-property('completedMin'),'&amp;')" />
+			</then>
+		</filter>
+		<filter
+			xpath="(not(get-property('dueMax') = '' or (not(string(get-property('dueMax'))))))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'dueMax=',get-property('dueMax'),'&amp;')" />
+			</then>
+		</filter>
+		<filter
+			xpath="(not(get-property('maxResults') = '' or (not(string(get-property('maxResults'))))))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'maxResults=',get-property('maxResults'),'&amp;')" />
+			</then>
+		</filter>
+		<filter
+			xpath="(not(get-property('pageToken') = '' or (not(string(get-property('pageToken'))))))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'pageToken=',get-property('pageToken'),'&amp;')" />
+			</then>
+		</filter>
+		<filter
+			xpath="(not(get-property('showCompleted') = '' or (not(string(get-property('showCompleted'))))))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'showCompleted=',get-property('showCompleted'),'&amp;')" />
+			</then>
+		</filter>
+		<filter
+			xpath="(not(get-property('showDeleted') = '' or (not(string(get-property('showDeleted'))))))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'showDeleted=',get-property('showDeleted'),'&amp;')" />
+			</then>
+		</filter>
+		<filter
+			xpath="(not(get-property('updatedMin') = '' or (not(string(get-property('updatedMin'))))))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'updatedMin=',get-property('updatedMin'),'&amp;')" />
+			</then>
+		</filter>
+		<filter
+			xpath="(not(get-property('showHidden') = '' or (not(string(get-property('showHidden'))))))">
+			<then>
+				<property name="uri.var.apiParameters"
+					expression="fn:concat(get-property('uri.var.apiParameters'),'showHidden=',get-property('showHidden'),'&amp;')" />
+			</then>
+		</filter>
+
+		<property name="tasklist_id" expression="$func:tasklist_id"
+			type="STRING" />
+
+		<property name="uri.var.apiUri"
+			expression="fn:concat('https://www.googleapis.com/tasks/v1/lists/',get-property('tasklist_id'),'/tasks')" />
+		<call>
+			<endpoint>
+				<http method="get" uri-template="{uri.var.apiUri}?{+uri.var.apiParameters}" />
+			</endpoint>
+		</call>
+		<!-- Remove response custom header information -->
+		<header name="Cache-Control" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="X-Content-Type-Options" scope="transport" action="remove" />
+	</sequence>
+
+</template>

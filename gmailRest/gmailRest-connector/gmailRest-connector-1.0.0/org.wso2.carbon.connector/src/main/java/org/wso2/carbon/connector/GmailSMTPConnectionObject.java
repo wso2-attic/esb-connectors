@@ -15,6 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
+
 package org.wso2.carbon.connector;
 
 import com.google.code.com.sun.mail.smtp.SMTPTransport;
@@ -37,7 +38,7 @@ public class GmailSMTPConnectionObject {
     private SMTPTransport transport;
 
     /**
-     * Constructor of the {@link GmailSMTPConnectionObject} class
+     * Constructor of the {@link org.wso2.carbon.connector.GmailSMTPConnectionObject} class
      *
      * @param session
      *            Authenticated {@link com.google.code.javax.mail.Session} instance

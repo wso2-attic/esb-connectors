@@ -10,12 +10,12 @@ Pre-requisites:
 Tested Platform: 
 
  - Microsoft WINDOWS V-7
- - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - UBUNTU 14.04
+ - WSO2 ESB 4.9.0-ALPHA
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{PATH_TO_SOURCE_BUNDLE}/box-connector/box-connector-1.0.0/org.wso2.carbon.connector/repository/"
+ 1. Download ESB 4.9.0-ALPHA by following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/
 
  2. Create a Box account and obtain a accesstoken
 	Note: A user can create up to four types of Box accounts as Personal,Starter,Business and Enterprise. The below steps can be followed to create a Personal account which can be created free of charge.
@@ -84,8 +84,11 @@ STEPS:
 	
 	xx) recursive - Boolean value which will be set to true if the files inside a folder needs to be deleted during a folder delete.
     
- 5. Navigate to "{PATH_TO_SOURCE_BUNDLE}/box-connector/box-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+ 5. 5. Make sure that the box connector is set as a module in esb-connectors parent pom.
+          <module>box/box-connector/box-connector-1.0.0/org.wso2.carbon.connector</module>
+
+    6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+          $ mvn clean install
 
  NOTE : Following Box account, can be used for run the integration tests.
     Username : wso2connector.abdera@gmail.com

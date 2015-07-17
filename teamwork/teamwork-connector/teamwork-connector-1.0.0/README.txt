@@ -17,9 +17,9 @@ STEPS:
 2.Deploy relevant patches, if applicable and the ESB should be configured as below.
 	Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
  
-	<messageFormatter contentType="text/html" 
+	<messageFormatter contentType="multipart/form-data"
 				class="org.wso2.carbon.relay.ExpandingMessageFormatter"/> 
-	<messageBuilder contentType="text/html" 
+	<messageBuilder contentType="multipart/form-data"
 				class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
 3. Add following code block, just after the listeners block (Remove or comment all the other test blocks) in following file - "src/test/resources/testng.xml"
@@ -53,8 +53,6 @@ STEPS:
  	
  	Required to change on every test run :
  	deleteActivityId
-	companyName
-	deleteCompanyId
 	deleteFileId
 	addFilePendingFileRef
 	newVersionPendingFileRef
@@ -64,6 +62,9 @@ STEPS:
 	deleteProjectId
 	deleteEventId
 	deleteMilestoneId
+	deleteCommentId
+	deleteNotebookId
+	deletePeopleStatusId
 
 7. Make sure that the teamwork connector is set as a module in esb-connectors parent pom.
            <module>teamwork/teamwork-connector/teamwork-connector-1.0.0/org.wso2.carbon.connector</module>

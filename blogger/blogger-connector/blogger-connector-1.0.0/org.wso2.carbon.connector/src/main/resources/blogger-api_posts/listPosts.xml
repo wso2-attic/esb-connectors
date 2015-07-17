@@ -20,9 +20,9 @@
 		<property expression="$func:labels" name="uri.var.labels"
 			scope="default" type="STRING" />
 		<property expression="$func:fetchBodies" name="uri.var.fetch_bodies"
-			scope="default" type="BOOLEAN" />
+			scope="default" type="STRING" />
 		<property expression="$func:fetchImages" name="uri.var.fetch_images"
-			scope="default" type="BOOLEAN" />
+			scope="default" type="STRING" />
 		<property expression="$func:maxResults" name="uri.var.max_results"
 			scope="default" type="STRING" />
 		<property expression="$func:orderBy" name="uri.var.order_by"
@@ -39,6 +39,20 @@
 			scope="default" type="STRING" />
 		<property value="" name="uri.var.options" scope="default"
 			type="STRING" />
+        <filter
+                xpath="get-property('uri.var.fetch_bodies') = 'true' or get-property('uri.var.fetch_bodies') = 'false'">
+            <then>
+                <property name="uri.var.options"
+                          expression="concat(get-property('uri.var.options'),'&amp;fetchBodies&#61;',get-property('uri.var.fetch_bodies')) " />
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.fetch_images') = 'true' or get-property('uri.var.fetch_images') = 'false'">
+            <then>
+                <property name="uri.var.options"
+                          expression="concat(get-property('uri.var.options'),'&amp;fetchImages&#61;',get-property('uri.var.fetch_images')) " />
+            </then>
+        </filter>
 		<filter
 			xpath="not(get-property('uri.var.fields') = '') and string(get-property('uri.var.fields'))">
 			<then>
@@ -114,17 +128,11 @@
 			</else>
 		</filter>
 		<property action="remove" name="Accept-Encoding" scope="transport" />
-		<payloadFactory media-type="json">
-			<format>
-				{ }
-			</format>
-			<args />
-		</payloadFactory>
 		<property name="messageType" scope="axis2" value="application/json" />
 		<call>
 			<endpoint>
 				<http method="get"
-					uri-template="https://www.googleapis.com/blogger/v{uri.var.api_version}/blogs/{uri.var.blog_id}/posts?{uri.var.access_s}&amp;fetchBodies&#61;{uri.var.fetch_bodies}&amp;fetchImages&#61;{uri.var.fetch_images}{uri.var.options}" />
+					uri-template="https://www.googleapis.com/blogger/v{uri.var.api_version}/blogs/{uri.var.blog_id}/posts?{+uri.var.access_s}{+uri.var.options}" />
 			</endpoint>
 		</call>
 		<header name="etag" scope="transport" action="remove" />

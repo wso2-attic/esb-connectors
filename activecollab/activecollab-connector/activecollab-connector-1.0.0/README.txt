@@ -10,11 +10,11 @@ Product: Integration tests for WSO2 ESB ActiveCollab connector
     Tested Platforms: 
 
     - Microsoft WINDOWS V-7
-    - Ubuntu 13.04
-    - WSO2 ESB 4.8.1
+    - Ubuntu 14.04
+    - WSO2 ESB 4.9.0
  
 Steps to follow in setting integration test.
- 1.  Download ESB 4.8.1 from official website.
+ 1.  Download ESB 4.9.0 from official website.
  2.  Deploy relevant patches, if applicable.
 
 STEPS:
@@ -35,7 +35,7 @@ STEPS:
 	<messageBuilder contentType="text/html"                                
 					  class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 	
- 2. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{activecollab_CONNECTOR_HOME}/activecollab-connector/activecollab-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 2. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{activecollab_CONNECTOR_HOME}/activecollab-connector/activecollab-connector-1.0.0/org.wso2.carbon.connector/repository/".
 	
  3. Create an activecollab trial account and derive the API key:
 	i) 	 Using the URL "https://www.activecollab.com/" create an activecollab Free Trial account.
@@ -77,8 +77,11 @@ STEPS:
 
 	Properties vi) and vii) needs to be changed before running the integration test each time.
 		
- 5. Navigate to "{activecollab_CONNECTOR_HOME}/activecollab-connector/activecollab-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+ 5. Make sure that the activecollab connector is set as a module in esb-connectors parent pom.
+               <module>activecollab/activecollab-connector/activecollab-connector-1.0.0</module>
+
+ 6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+               $ mvn clean install
 
  NOTE : 
 	  -activecollab Free trial account is only valid for 30 days.

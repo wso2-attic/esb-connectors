@@ -9,13 +9,11 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - WSO2 ESB 4.9.0
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches available at "Integration_Test/products/esb/4.8.1/modules/distribution/target/"
-
- 2. This ESB should be configured as below;
+ 1. This ESB should be configured as below;
 	In Axis configurations (\repository\conf\axis2\axis2.xml).
 
    i) Enable message formatter for "text/html" in messageFormatters tag
@@ -34,55 +32,19 @@ STEPS:
 		patch0804 - http PATCH request patch
 		patch0800 - Json string escape ("\") character patch
 
-
- 3. Make sure "integration-base" project is placed at "Integration_Test/products/esb/4.8.1/modules/integration/"
-
- 4. Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/integration-base" and run the following command.
-      $ mvn clean install
-
- 5. Add following dependancy to the file "Integration_Test/products/esb/4.8.1/modules/integration/connectors/pom.xml"
-	<dependency>
-
-		<groupId>org.wso2.esb</groupId>
-
-		<artifactId>org.wso2.connector.integration.test.base</artifactId>
-
-		<version>4.8.1</version>
-
-		<scope>system</scope>
-
-		<systemPath>${basedir}/../integration-base/target/org.wso2.connector.integration.test.base-4.8.1.jar</systemPath>
-
-	</dependency>
-
- 6. Copy GoogleCalendar connector zip file (googlecalendar.zip) to the location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/repository/"
-
- 7. Make sure the googlecalendar test suite is enabled (as given below) and all other test suites are commented in the following file - "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/testng.xml"  
-     <test name="GoogleCalendar-Connector-Test" preserve-order="true" verbose="2">
-        <packages>
-            <package name="org.wso2.carbon.connector.integration.test.googlecalendar"/>
-        </packages>
-    </test>
-
- 8. Create a Google account and enable Google Calendar API:
+ 2. Create a Google account and enable Google Calendar API:
 	i) 	Using the URL "https://accounts.google.com/SignUp" create a Google account.
 	ii) 	Go to "https://developers.google.com/oauthplayground/".
 	iii) 	Authorize Google-Calendar API from "Select & authorize APIs" by selecting "https://www.googleapis.com/auth/calendar".
 	iv) 	Then go to "Exchange authorization code for tokens" and click on "get authorization code for token" button and get the access token from "Access token" box.
 
- 9. Copy the connector properties file at "googlecalendar-connector-test/src/test/resources/artifacts/ESB/connector/config/googlecalendar.properties" to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/connector/config/" and update the copied file as below.
+ 3. Update the googlecalendar properties file at location "{GOOGLECALENDAR_CONNECTOR_HOME}/googlecalendar-connector/googlecalendar-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
-    i) accessToken - Use the access token you got from step 8.
+    i) accessToken - Use the access token you got from step 2.
 
-    ii) emailAddress - Email address of the created Google account in step 8.
+    ii) emailAddress - Email address of the created Google account in step 2.
 
- 10. Copy the java file "googlecalendar-connector-test/src/test/java/org/wso2/carbon/connector/integration/test/googlecalendar/GoogleCalendarConnectorIntegrationTest.java" to location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/java/org/wso2/carbon/connector/integration/test/googlecalendar/"
-
- 11. Copy proxy file "googlecalendar-connector-test/src/test/resources/artifacts/ESB/config/proxies/googlecalendar/googlecalendar.xml" to location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/config/proxies/googlecalendar/"
-
- 12. Copy rest request folder "googlecalendar-connector-test/src/test/resources/artifacts/ESB/config/restRequests/googlecalendar" to location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/config/restRequests/"
-
- 13. Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/" and run the following command.
+ 4. Navigate to "{GOOGLECALENDAR_CONNECTOR_HOME}/googlecalendar-connector/googlecalendar-connector-1.0.0/org.wso2.carbon.connector/src/" and run the following command.
       $ mvn clean install
 
  NOTE : Following Google account, can be used for run the integration tests.

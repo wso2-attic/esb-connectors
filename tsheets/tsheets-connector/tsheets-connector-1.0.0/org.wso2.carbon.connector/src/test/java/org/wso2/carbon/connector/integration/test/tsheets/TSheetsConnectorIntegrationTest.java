@@ -19,6 +19,8 @@
 package org.wso2.carbon.connector.integration.test.tsheets;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -50,7 +52,22 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
         
         apiRequestHeadersMap.putAll(esbRequestHeadersMap);
         apiRequestHeadersMap.put("Authorization", "Bearer " + connectorProperties.getProperty("accessToken"));
-        
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        Date date = new Date();
+        date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse(sdf.format(date));
+        date.setDate(date.getDate() - 1);
+        String timeSheetTwoEnd=sdf.format(date)+"-07:00";
+        date.setMinutes(date.getMinutes() - 1);
+        String timeSheetTwoStart=sdf.format(date)+"-07:00";
+        date.setDate(date.getDate() - 1);
+        String timeSheetOneEnd=sdf.format(date)+"-07:00";
+        date.setMinutes(date.getMinutes()-1);
+        String timeSheetOneStart=sdf.format(date)+"-07:00";
+        connectorProperties.setProperty("timeSheetOneStart", timeSheetOneStart);
+        connectorProperties.setProperty("timeSheetOneEnd", timeSheetOneEnd);
+        connectorProperties.setProperty("timeSheetTwoStart", timeSheetTwoStart);
+        connectorProperties.setProperty("timeSheetTwoEnd", timeSheetTwoEnd);
     }
     
     /**
@@ -363,23 +380,22 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
      */
     @Test(groups = { "wso2.esb" }, description = "tsheets {addTimeSheets} integration test with negative case.")
     public void testAddTimeSheetsWithNegativeCase() throws IOException, JSONException {
-    
+
         esbRequestHeadersMap.put("Action", "urn:addTimeSheets");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_addTimeSheets_negative.json");
-        
-        JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("error");
-        
+
+        JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("results").getJSONObject("timesheets").getJSONObject("1");
+
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/api/v1/timesheets";
         RestResponse<JSONObject> apiRestResponse =
                 sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_addTimeSheets_negative.json");
-        
-        JSONObject apiResponseObject = apiRestResponse.getBody().getJSONObject("error");
-        
+
+        JSONObject apiResponseObject = apiRestResponse.getBody().getJSONObject("results").getJSONObject("timesheets").getJSONObject("1");
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(), esbRestResponse.getHttpStatusCode());
-        Assert.assertEquals(apiResponseObject.getString("code"), esbResponseObject.getString("code"));
-        Assert.assertEquals(apiResponseObject.getString("message"), esbResponseObject.getString("message"));
-        
+        Assert.assertEquals(apiResponseObject.getString("_status_code"), esbResponseObject.getString("_status_code"));
+        Assert.assertEquals(apiResponseObject.getString("_status_message"), esbResponseObject.getString("_status_message"));
+
     }
     
     /**

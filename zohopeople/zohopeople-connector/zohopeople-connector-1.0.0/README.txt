@@ -19,12 +19,16 @@ STEPS:
 
  1. Extract the certificate from browser by navigating to "https://people.zoho.com/people/" and place the certificate file in following locations. 
 
-	i)  "<ZOHO_PEOPLE_CONNECTOR_HOME>/zohopeople-connector/zohopeople-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products"
+	i)  "<ESB_Connector_Home>/zohopeople/zohopeople-connector/zohopeople-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products"
 
 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "zohopeople"' in command line to import ZohoPeople certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from ZohoPeople with  the extension, change it accordingly. Remove the copied certificate.
 	
+<<<<<<< HEAD
 	ii) "{ESB_HOME}/repository/resources/security"
+=======
+	ii) "{ESB_Connector_Home}/repository/resources/security"
+>>>>>>> upstream/master
 	
 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "zohopeople"' in command line to import ZohoPeople certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from ZohoPeople with  the extension, change it accordingly. Remove the copied certificate.

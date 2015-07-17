@@ -45,12 +45,15 @@ Steps to follow in setting integration test.
 	iii)	jobCodeOneName 				-	Name of a job code.
 	iv)		jobCodeTwoName				-	Name of a job code.
 	v)		timeSheetType				-	Type of the Timesheet.
+<<<<<<< HEAD
 	vi)		timeSheetOneStart			-	Starting time of a time sheet to be created (Unique).
 	vii)	timeSheetOneEnd			 	-	Ending time of a time sheet to be created (Unique).
 	viii)	timeSheetTwoStart			-	Starting time of a time sheet to be created (Unique).
 	ix)		timeSheetTwoEnd				-	Ending time of a time sheet to be created (Unique).
 
 	NOTE : Properties numbered as (vi),(vii),(viii),(ix) should change the values after every test run and those dates should be past dates in order to create timeslips successfully.
+=======
+>>>>>>> upstream/master
 
  6. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install

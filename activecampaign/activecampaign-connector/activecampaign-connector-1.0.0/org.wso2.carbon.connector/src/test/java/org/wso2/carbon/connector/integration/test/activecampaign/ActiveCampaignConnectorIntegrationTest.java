@@ -19,6 +19,7 @@
 package org.wso2.carbon.connector.integration.test.activecampaign;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -59,6 +60,11 @@ public class ActiveCampaignConnectorIntegrationTest extends ConnectorIntegration
       apiUrl =
             connectorProperties.getProperty("apiUrl") + "/admin/api.php?api_key="
                   + connectorProperties.getProperty("apiKey") + "&api_output=json" + "&api_action=";
+
+       connectorProperties.setProperty("emailMandatory", System.currentTimeMillis() + connectorProperties
+               .getProperty("emailMandatory"));
+       connectorProperties.setProperty("emailOptional", System.currentTimeMillis() + connectorProperties
+               .getProperty("emailOptional"));
    }
    
    /**
@@ -162,7 +168,7 @@ public class ActiveCampaignConnectorIntegrationTest extends ConnectorIntegration
       RestResponse<JSONObject> esbRestResponse =
             sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listMailingLists_optional.json");
       
-      String apiEndPoint = apiUrl + "list_list&ids=all&global_fields=true&filters[name]=list";
+      String apiEndPoint = apiUrl + "list_list&ids=all&global_fields=true&filters[name]="+ URLEncoder.encode(connectorProperties.getProperty("subject"), "UTF-8");
       RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
       
       Assert.assertEquals(esbRestResponse.getBody().getJSONObject("0").getString("id"), apiRestResponse.getBody()

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template xmlns="http://ws.apache.org/ns/synapse" name="getFollowingBlogPosts">
+    <!-- Optional Query Parameters -->
+    <parameter name="http_envelope"
+               description="Set HTTP status code to always be 200. The JSON response is wrapped in an 'envelope' containing the 'real' HTTP status code and headers.default(false)"/>
+    <parameter name="pretty" description="if true Output pretty JSON.default(false)"/>
+    <parameter name="meta" description="Loads data from the endpoints found in the 'meta' part of the response"/>
+    <parameter name="fields" description="Return only the specified fields"/>
+    <parameter name="number" description="Limit the total number of authors returned"/>
+    <parameter name="page"
+               description="Return the Nth 1-indexed page of posts. Takes precedence over the offset parameter"/>
+    <parameter name="order" description="DESC or ASC"/>
+    <parameter name="after" description="Return posts dated on or after the specified datetime(iso 8601 datetime)"/>
+    <parameter name="before" description="Return posts dated on or before the specified datetime(iso 8601 datetime)"/>
+    <sequence>
+        <!-- Building the URL with the parameters for the API method -->
+        <property name="uri.var.http_envelope" expression="$func:http_envelope"/>
+        <property name="uri.var.pretty" expression="$func:pretty"/>
+        <property name="uri.var.meta" expression="$func:meta"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <property name="uri.var.number" expression="$func:number"/>
+        <property name="uri.var.page" expression="$func:page"/>
+        <property name="uri.var.order" expression="$func:order"/>
+        <property name="uri.var.after" expression="$func:after"/>
+        <property name="uri.var.before" expression="$func:before"/>
+        <filter
+                xpath="(not(get-property('uri.var.http_envelope') = '' or (not(boolean(get-property('uri.var.http_envelope'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'http_envelope=',get-property('uri.var.http_envelope'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.pretty') = '' or (not(boolean(get-property('uri.var.pretty'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'pretty=',get-property('uri.var.pretty'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.meta') = '' or (not(string(get-property('uri.var.meta'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'meta=',get-property('uri.var.meta'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.fields') = '' or (not(string(get-property('uri.var.fields'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'fields=',get-property('uri.var.fields'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.number') = '' or (not(number(get-property('uri.var.number'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'number=',get-property('uri.var.number'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.page') = '' or (not(number(get-property('uri.var.page'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'page=',get-property('uri.var.page'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.order') = '' or (not(string(get-property('uri.var.order'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'order=',get-property('uri.var.order'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.after') = '' or (not(string(get-property('uri.var.after'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'after=',get-property('uri.var.after'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.before') = '' or (not(string(get-property('uri.var.before'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'before=',get-property('uri.var.before'),'&amp;')"/>
+            </then>
+        </filter>
+        <property name="uri.var.wp_resource_uri" value="https://public-api.wordpress.com/rest/v1/read/following/"/>
+        <call>
+            <endpoint>
+                <http method="GET" uri-template="{uri.var.wp_resource_uri}?{+uri.var.queryParameters}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response's custom header information -->
+        <header name="X-Prefork" scope="transport" action="remove"/>
+        <header name="X-hacker" scope="transport" action="remove"/>
+    </sequence>
+</template>
