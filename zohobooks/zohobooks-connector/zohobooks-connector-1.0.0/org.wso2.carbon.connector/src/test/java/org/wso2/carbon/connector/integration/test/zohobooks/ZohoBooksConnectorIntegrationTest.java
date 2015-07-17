@@ -936,6 +936,9 @@ public class ZohoBooksConnectorIntegrationTest extends ConnectorIntegrationTestB
         
         final String apiEndpoint = apiEndpointUrl + "/customerpayments/" + estimateId + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+
+        final String payementMode = apiRestResponse.getBody().getJSONObject("payment").getString("payment_mode");
+        connectorProperties.put("paymentMode", payementMode);
  
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("payment").getString("customer_id"), connectorProperties.getProperty("contactIdMandatory"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("payment").getString("date"), connectorProperties.getProperty("paymentDate"));
@@ -984,6 +987,97 @@ public class ZohoBooksConnectorIntegrationTest extends ConnectorIntegrationTestB
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
         Assert.assertEquals(esbRestResponse.getBody().getString("message"),
                 esbRestResponse.getBody().getString("message"));
+        
+    }
+
+    /**
+     * Positive test case for listCustomerPayments method with mandatory parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "zohobooks {listCustomerPayments} integration test with mandatory parameters.", dependsOnMethods = { "testCreateCustomerPaymentWithMandatoryParameters" })
+    public void testListCustomerPaymentsWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:listCustomerPayments");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCustomerPayments_mandatory.json");
+        
+        final String apiEndpoint = apiEndpointUrl + "/customerpayments" + authString;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("customerpayments").length(), apiRestResponse
+                .getBody().getJSONArray("customerpayments").length());
+        
+        Assert.assertEquals(
+                esbRestResponse.getBody().getJSONArray("customerpayments").getJSONObject(0).getString("payment_id"),
+                apiRestResponse.getBody().getJSONArray("customerpayments").getJSONObject(0).getString("payment_id"));
+        Assert.assertEquals(
+                esbRestResponse.getBody().getJSONArray("customerpayments").getJSONObject(0).getString("payment_number"),
+                apiRestResponse.getBody().getJSONArray("customerpayments").getJSONObject(0).getString("payment_number"));
+        Assert.assertEquals(
+                esbRestResponse.getBody().getJSONArray("customerpayments").getJSONObject(0).getString("customer_name"),
+                apiRestResponse.getBody().getJSONArray("customerpayments").getJSONObject(0).getString("customer_name"));
+    }
+    
+    /**
+     * Positive test case for listCustomerPayments method with optional parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "zohobooks {listCustomerPayments} integration test with optional parameters.", dependsOnMethods = { "testCreateCustomerPaymentWithMandatoryParameters" })
+    public void testListCustomerPaymentsWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:listCustomerPayments");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCustomerPayments_optional.json");
+
+        final String apiEndpoint =
+                apiEndpointUrl + "/customerpayments" + authString + "&customer_name="
+                        + URLEncoder.encode(connectorProperties.getProperty("contactNameMandatory"), "UTF-8")
+                        + "&payment_mode=" + URLEncoder.encode(connectorProperties.getProperty("paymentMode"), "UTF-8")
+                        + "&reference_number=" + connectorProperties.getProperty("paymentReferenceNumber");
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONArray("customerpayments").length(), apiRestResponse
+                .getBody().getJSONArray("customerpayments").length());
+        
+        Assert.assertEquals(
+                esbRestResponse.getBody().getJSONArray("customerpayments").getJSONObject(0).getString("payment_id"),
+                apiRestResponse.getBody().getJSONArray("customerpayments").getJSONObject(0).getString("payment_id"));
+        Assert.assertEquals(
+                apiRestResponse.getBody().getJSONArray("customerpayments").getJSONObject(0).getString("customer_name"),
+                connectorProperties.getProperty("contactNameMandatory"));
+        Assert.assertEquals(
+                apiRestResponse.getBody().getJSONArray("customerpayments").getJSONObject(0).getString("payment_mode"),
+                connectorProperties.getProperty("paymentMode"));
+        Assert.assertEquals(
+                apiRestResponse.getBody().getJSONArray("customerpayments").getJSONObject(0)
+                        .getString("reference_number"), connectorProperties.getProperty("paymentReferenceNumber"));
+    }
+    
+    /**
+     * Negative test case for listCustomerPayments method.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "zohobooks {listCustomerPayments} integration test with negative case.")
+    public void testListCustomerPaymentsWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:listCustomerPayments");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCustomerPayments_negative.json");
+        
+        final String apiEndpoint = apiEndpointUrl + "/customerpayments" + authString + "&customer_id=INVALID";
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
+        Assert.assertEquals(esbRestResponse.getBody().getString("code"), apiRestResponse.getBody().getString("code"));
+        Assert.assertEquals(esbRestResponse.getBody().getString("message"),
+                apiRestResponse.getBody().getString("message"));
         
     }
     
