@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template xmlns="http://ws.apache.org/ns/synapse" name="getFriendshipsShow">
+    <parameter name="userID" />
+    <parameter name="screenName" />
+    <parameter name="cursor" />
+    <parameter name="stringifyIds " />
+    <parameter name="count" />
+    <sequence>
+        <!--<class name="org.wso2.carbon.connector.twitter.TwitterGetFriends" />-->
+        <property name="uri.var.screenName" expression="$func:screenName" />
+        <property name="uri.var.userID" expression="$func:userID" />
+        <property name="uri.var.cursor" expression="$func:cursor" />
+        <property name="uri.var.stringifyIds" expression="$func:stringifyIds" />
+        <property name="uni.var.count" expression="$func:count" />
+
+        <script language="js">
+            <![CDATA[
+				// optional url param variables
+				var screenName = mc.getProperty('uri.var.screenName');
+				var userID = mc.getProperty('uri.var.userID');
+				var cursor  = mc.getProperty('uri.var.cursor');
+			    var stringifyIds  = mc.getProperty('uri.var.stringifyIds');
+			    var count  = mc.getProperty('uni.var.count');
+
+				var uriParams = '';
+
+				if (screenName != null && screenName != "") {
+					uriParams = 'screen_name=' + screenName + '&';
+				}
+				if (userID != null && userID != "") {
+					uriParams += 'user_id=' + userID + '&';
+				}
+				if (cursor != null && cursor != "") {
+					uriParams += 'cursor=' + cursor + '&';
+				}
+				if (stringifyIds != null && stringifyIds != "") {
+					uriParams += 'stringify_ids =' + stringifyIds + '&';
+				}
+				if (count != null && count != "") {
+					uriParams += 'count=' + count + '&';
+				}
+
+				if(uriParams != ''){
+					mc.setProperty('uri.var.uriParams' , uriParams.substring(0, uriParams.length-1));
+				}
+			]]>
+        </script>
+
+        <call>
+            <endpoint>
+                <http method="get" uri-template="{+uri.var.apiUrl}/friends/ids.json?{+uri.var.uriParams}" />
+            </endpoint>
+        </call>
+
+        <!-- Remove custom header information in response -->
+        <header name="X-Runtime" scope="transport" action="remove" />
+        <header name="X-Rate-Limit-Limit" scope="transport" action="remove" />
+        <header name="X-Rate-Limit-Remaining" scope="transport" action="remove" />
+        <header name="X-Request-Id" scope="transport" action="remove" />
+        <header name="X-Content-Type-Options" scope="transport" action="remove" />
+        <header name="X-Xss-Protection" scope="transport" action="remove" />
+        <header name="X-Frame-Options" scope="transport" action="remove" />
+        <header name="X-Rate-Limit-Reset" scope="transport" action="remove" />
+        <header name="X-Pagination" scope="transport" action="remove" />
+        <header name="Link" scope="transport" action="remove" />
+        <header name="Cache-Control" scope="transport" action="remove" />
+        <header name="Pragma" scope="transport" action="remove" />
+        <header name="Www-Authenticate" scope="transport" action="remove" />
+        <header name="Proxy-Support" scope="transport" action="remove" />
+
+
+    </sequence>
+</template>
