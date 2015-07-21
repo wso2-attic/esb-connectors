@@ -36,19 +36,15 @@ STEPS:
    <messageBuilder contentType="application/octet-stream" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
    
 
-  4. Update the Delicious properties file at location "{ESB_Connector_Home}/delicious-connector/delicious-connector-1.0.0/src/test/resources/artifacts/ESB/connector/config" as below.
+  4. Update the Delicious properties file at location "{ESB_Connector_Home}/delicious-connector/delicious-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
     i) Basic
 	Use your delicious userneme and password olny.
 
-    
- 5. Navigate to "{ESB_Connector_Home}/delicious-connector/delicious-connector-1.0.0/" and run the following command.
-      $ mvn clean install
-
-     5. Make sure that the delicious connector is set as a module in esb-connectors parent pom.
+  5. Make sure that the delicious connector is set as a module in esb-connectors parent pom.
            <module>delicious/delicious-connector/delicious-connector-1.0.0/org.wso2.carbon.connector</module>
 
-     6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+  6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
            $ mvn clean install
 
 
