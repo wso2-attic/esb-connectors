@@ -86,17 +86,12 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
                 connectorProperties.getProperty("publicKey"), connectorProperties.getProperty("privateKey"));
 
         resourceNotFoundExceptionMessage = connectorProperties.getProperty("resourceNotFoundException");
-        connectorProperties.setProperty("opionalSubscriptionId", System.currentTimeMillis() + connectorProperties
-                .getProperty("opionalSubscriptionId"));
-        connectorProperties.setProperty("updateSubscriptionId", System.currentTimeMillis() + connectorProperties
-                .getProperty("updateSubscriptionId"));
-
 
     }
 
     /**
      * Positive test case for createCreditCard with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -122,7 +117,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for createCreditCard with optional parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -152,7 +147,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for createCreditCard.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -176,7 +171,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for updateCreditCard with optional parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -205,7 +200,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for updateCreditCard.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -223,7 +218,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for getCreditCard with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -242,7 +237,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for getCreditCard method.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -258,7 +253,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for createSubscription with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -286,7 +281,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for createSubscription with optional parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -311,7 +306,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for createSubscription.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -333,7 +328,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for updateSubscription with optional parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -361,7 +356,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for updateSubscription.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -382,7 +377,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for searchSubscriptions with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -408,7 +403,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for searchSubscriptions with optional parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -441,7 +436,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for getSubscription with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -465,7 +460,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for getSubscription method.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -484,7 +479,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for cancelSubscription with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -502,7 +497,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for cancelSubscription.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -518,7 +513,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for deleteCreditCard with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -534,7 +529,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for deleteCreditCard.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -551,7 +546,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for createTransaction with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -577,7 +572,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for createTransaction with optional parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      * @throws InterruptedException
@@ -607,7 +602,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for createTransaction.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -634,7 +629,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
     /**
      * Positive test case for submitTransactionForSettlement with mandatory
      * parameters.
-     *
+     * 
      * @throws IOException
      *             Signals that an I/O exception has occurred.
      * @throws JSONException
@@ -658,7 +653,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
     /**
      * Positive test case for submitTransactionForSettlement with optional
      * parameters.
-     *
+     * 
      * @throws IOException
      *             Signals that an I/O exception has occurred.
      * @throws JSONException
@@ -683,7 +678,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for submitTransactionForSettlement method.
-     *
+     * 
      * @throws IOException
      *             Signals that an I/O exception has occurred.
      * @throws JSONException
@@ -712,7 +707,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
     /**
      * Positive test case for getSettlementBatchSummary with mandatory
      * parameters.
-     *
+     * 
      * @throws IOException
      *             Signals that an I/O exception has occurred.
      * @throws JSONException
@@ -741,7 +736,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for getSettlementBatchSummary method.
-     *
+     * 
      * @throws IOException
      *             Signals that an I/O exception has occurred.
      * @throws JSONException
@@ -771,7 +766,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for getTransaction with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -792,7 +787,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for getTransaction.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -811,7 +806,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
      * Positive test case for searchTransactions with mandatory parameters. This
      * method indirectly depends on the createTransaction methods for it to
      * return a non-empty array of searched values.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -834,7 +829,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
      * Positive test case for searchTransactions with optional parameters. This
      * method has indirect dependency on the createTransaction methods for it to
      * return a non-empty array of searched values.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -856,7 +851,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for voidTransaction with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -874,7 +869,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for voidTransaction method.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -890,7 +885,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for refundTransaction with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -927,7 +922,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for refundTransaction with optional parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -964,7 +959,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for refundTransaction.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -980,7 +975,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for createMerchantAccount with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -1007,7 +1002,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for createMerchantAccount with optional parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -1036,7 +1031,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for createMerchantAccount.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -1063,7 +1058,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for getMerchantAccount with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -1087,7 +1082,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for getMerchantAccount.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -1103,7 +1098,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for updateMerchantAccount with mandatory parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -1127,7 +1122,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Positive test case for updateMerchantAccount with optional parameters.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
@@ -1151,7 +1146,7 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
 
     /**
      * Negative test case for updateMerchantAccount.
-     *
+     * 
      * @throws JSONException
      * @throws IOException
      */
