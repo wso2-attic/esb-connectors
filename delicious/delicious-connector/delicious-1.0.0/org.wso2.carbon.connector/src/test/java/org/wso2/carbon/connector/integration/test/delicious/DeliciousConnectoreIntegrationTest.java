@@ -62,7 +62,7 @@ public class DeliciousConnectoreIntegrationTest extends ConnectorIntegrationTest
     /**
      * Oauth Positive test case for postGetAll method with mandatory parameters.
      */
-    @Test(priority = 1, groups = {"wso2.esb"}, description = "delicious {postGetAll} integration test with mandatory parameters")
+    @Test(priority = 1,enabled=false, groups = {"wso2.esb"}, description = "delicious {postGetAll} integration test with mandatory parameters")
     public void testOauthDeliciouspostGetAllWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToResourcesDirectory + "postGetAllwithOauth.txt";
