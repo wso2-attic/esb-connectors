@@ -86,7 +86,10 @@ public class BraintreeConnectorIntegrationTest extends ConnectorIntegrationTestB
                 connectorProperties.getProperty("publicKey"), connectorProperties.getProperty("privateKey"));
 
         resourceNotFoundExceptionMessage = connectorProperties.getProperty("resourceNotFoundException");
-
+        connectorProperties.setProperty("opionalSubscriptionId", System.currentTimeMillis() + connectorProperties
+                .getProperty("opionalSubscriptionId"));
+        connectorProperties.setProperty("updateSubscriptionId", System.currentTimeMillis() + connectorProperties
+                .getProperty("updateSubscriptionId"));
     }
 
     /**
