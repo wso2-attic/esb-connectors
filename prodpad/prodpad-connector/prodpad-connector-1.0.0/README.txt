@@ -44,7 +44,7 @@ Steps to follow in setting integration test.
  6. Make sure that prodpad is specified as a module in ESB_Connector_Parent pom.
  	<module>prodpad/prodpad-connector/prodpad-connector-1.0.0/org.wso2.carbon.connector</module>
 
- 7. Create a Prodpad trial account and login.
+ 7. Create a Prodpad trial account and login using "https://app.prodpad.com/signin".
 	i) 	Go to your user profile setting page. You can find this on the upper right corner after logging in.
 	ii)	Then navigate to API Key tab and generate a API key.
 	
