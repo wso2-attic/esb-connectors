@@ -134,12 +134,10 @@ public class KafkaUtils {
             }
         } catch (IOException e) {
             throw new AxisFault("The Error occurs while formatting the message",e);
-        }
-        finally {
+        } finally {
             try {
                 out.close();
-            }catch (Exception e)
-            {
+            }catch (Exception e) {
                 throw new AxisFault("The Error occurs while closing the output stream",e);
             }
         }
