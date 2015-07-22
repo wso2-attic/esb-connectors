@@ -33,6 +33,7 @@ import org.wso2.carbon.connector.core.util.ConnectorUtils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
+import java.lang.Exception;
 import java.util.Properties;
 
 public class KafkaUtils {
@@ -52,7 +53,6 @@ public class KafkaUtils {
     public static Producer<String, String> getProducer(MessageContext messageContext) {
 
         Axis2MessageContext axis2mc = (Axis2MessageContext) messageContext;
-        axis2mc.getAxis2MessageContext();
         String brokers = (String) axis2mc.getAxis2MessageContext()
                 .getOperationContext().getProperty("kafka.brokerList");
         String serializationClass = (String) axis2mc.getAxis2MessageContext()
@@ -125,18 +125,23 @@ public class KafkaUtils {
     public static String formatMessage(
             org.apache.axis2.context.MessageContext messageContext) throws AxisFault {
         OMOutputFormat format = BaseUtils.getOMOutputFormat(messageContext);
-        MessageFormatter messageFormatter;
-        messageFormatter = MessageProcessorSelector.getMessageFormatter(messageContext);
-        OutputStream out;
-        StringWriter stringWriter;
-        stringWriter = new StringWriter();
-        out = new WriterOutputStream(stringWriter, format.getCharSetEncoding());
+        MessageFormatter messageFormatter = MessageProcessorSelector.getMessageFormatter(messageContext);         ;
+        StringWriter stringWriter = new StringWriter();
+        OutputStream out = new WriterOutputStream(stringWriter, format.getCharSetEncoding());
         try {
             if (out != null) {
                 messageFormatter.writeTo(messageContext, format, out, true);
-                out.close();
             }
         } catch (IOException e) {
+            throw new AxisFault("The Error occurs while formatting the message",e);
+        }
+        finally {
+            try {
+                out.close();
+            }catch (Exception e)
+            {
+                throw new AxisFault("The Error occurs while closing the output stream",e);
+            }
         }
 
         return stringWriter.toString();
