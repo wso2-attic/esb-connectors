@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="salesforce_sendEmailMessage"
+       statistics="disable" trace="disable" transports="https http">
+    <target>
+        <inSequence>
+            <property action="set"
+                      expression="//per:config/per:clientId" name="clientId"
+                      scope="default" type="STRING" xmlns:per="http://connector.esb.wso2.org"/>
+            <property action="set"
+                      expression="//per:config/per:clientSecret" name="clientSecret"
+                      scope="default" type="STRING" xmlns:per="http://connector.esb.wso2.org"/>
+            <property action="set" expression="//per:config/per:refreshToken"
+                      name="refreshToken" scope="default" type="STRING" xmlns:per="http://connector.esb.wso2.org"/>
+            <property action="set" expression="//per:config/per:apiVersion"
+                      name="apiVersion" scope="default" type="STRING" xmlns:per="http://connector.esb.wso2.org"/>
+            <property action="set" expression="//per:sendEmailMessage/per:emailId"
+                      name="emailId" scope="default" type="STRING" xmlns:per="http://connector.esb.wso2.org"/>
+
+            <salesforce.getAccessTokenFromRefreshToken>
+                <clientId>{$ctx:clientId}</clientId>
+                <refreshToken>{$ctx:refreshToken}</refreshToken>
+                <clientSecret>{$ctx:clientSecret}</clientSecret>
+            </salesforce.getAccessTokenFromRefreshToken>
+            <salesforce.init>
+                <apiVersion>{$ctx:apiVersion}</apiVersion>
+            </salesforce.init>
+            <log category="INFO" level="full" separator=","/>
+            <payloadFactory media-type="xml">
+                <format>
+                    <sfdc:emails xmlns:sfdc="sfdc">
+                        <sfdc:Ids>$1</sfdc:Ids>
+                    </sfdc:emails>
+                </format>
+                <args>
+                    <arg expression="get-property('emailId')"/>
+                </args>
+            </payloadFactory>
+            <salesforce.sendEmailMessage>
+                <sendEmailMessage xmlns:sfdc="sfdc">{//sfdc:emails}</sendEmailMessage>
+            </salesforce.sendEmailMessage>
+            <header action="remove" name="To"/>
+            <property action="remove" name="NO_ENTITY_BODY" scope="axis2"/>
+            <property action="set" name="RESPONSE" scope="default"
+                      type="STRING" value="true"/>
+            <respond/>
+        </inSequence>
+    </target>
+</proxy>
