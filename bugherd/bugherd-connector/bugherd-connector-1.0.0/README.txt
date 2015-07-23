@@ -20,7 +20,7 @@ STEPS:
  
  1. Follow the below mentioned steps for adding valid certificate to access bugherd API over https
 
-	i) Extract the certificate from browser by navigating to 'https://bugherd.com' and place the certificate file in following location.
+	i) Extract the certificate from browser by navigating to 'https://www.bugherd.com/' and place the certificate file in following location.
 	   "{ESB_Connector_Home}/bugherd/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/"
 	  
 	ii) Navigate to "{ESB_Connector_Home}/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME" in command line to import Bugherd certificate in to keystore. Give "wso2carbon" as password.
@@ -32,7 +32,7 @@ STEPS:
 	iv) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" in command line to import Bugherd certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from bugherd, change it accordingly. (e.g. -.bugherd.com)
 		       CERT_NAME is name of the certificate. (e.g. bugherd)
-			   
+
  2. Navigate to location "<ESB_Connector_Home>/repository/conf/axis2" and add/uncomment following lines in "axis2.xml" and Message Formatters and Message Builders should be added for each of the content types of the files to be added as attachments.
 	
 	Message Formatters :-
