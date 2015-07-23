@@ -37,8 +37,7 @@ public class KafkaProduce extends AbstractConnector {
         SynapseLog log = getLog(messageContext);
         log.auditLog("SEND : send message to  Broker lists");
         //Get the producer with the configuration
-        Producer<String, String> producer = KafkaUtils
-                .getProducer(messageContext);
+        Producer<String, String> producer = KafkaUtils.getProducer(messageContext);
         String topic = this.getTopic(messageContext);
         String key = this.getKey(messageContext);
         try {
