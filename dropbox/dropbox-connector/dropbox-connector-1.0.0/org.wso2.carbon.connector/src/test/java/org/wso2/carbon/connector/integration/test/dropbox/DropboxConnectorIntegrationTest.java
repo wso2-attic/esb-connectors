@@ -55,16 +55,8 @@ public class DropboxConnectorIntegrationTest extends ConnectorIntegrationTestBas
         
         apiRequestHeadersMap.put("Accept-Charset", "UTF-8");
         apiRequestHeadersMap.put("Content-Type", "application/x-www-form-urlencoded");
-<<<<<<< HEAD
         apiRequestHeadersMap.put("Authorization", "Bearer " + connectorProperties.getProperty("accessToken"));
         
-=======
-        apiRequestHeadersMap.put("Authorization", "Bearer "+connectorProperties.getProperty("accessToken"));
-        connectorProperties.setProperty("folderName1", System.currentTimeMillis() + connectorProperties
-                .getProperty("folderName1"));
-        connectorProperties.setProperty("folderName2", System.currentTimeMillis() + connectorProperties
-                .getProperty("folderName2"));
->>>>>>> 464b3836c3b536420e5668c79f6d58872998b6ef
     }
     
     /**
