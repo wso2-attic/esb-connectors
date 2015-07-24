@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="linkedin_checkAdminMember"
+       transports="https http"
+       startOnLoad="true"
+       trace="disable">
+   <description/>
+   <target>
+      <inSequence>
+         <property name="accessToken" expression="json-eval($.accessToken)"/>
+         <property name="apiUrl" expression="json-eval($.apiUrl)"/>
+         <property name="companyId" expression="json-eval($.companyId)"/>
+         <linkedin.init>
+            <apiUrl>{$ctx:apiUrl}</apiUrl>
+            <accessToken>{$ctx:accessToken}</accessToken>
+         </linkedin.init>
+         <linkedin.checkAdminMember>
+            <companyId>{$ctx:companyId}</companyId>
+         </linkedin.checkAdminMember>
+         <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+            <then>
+               <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+               <switch source="$axis2:HTTP_SC">
+                  <case regex="401">
+                     <property name="ERROR_MESSAGE" value="Unauthorized"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+                  <case regex="403">
+                     <property name="ERROR_MESSAGE" value="Forbidden"/>
+                     <property name="error_description" expression="json-eval($.message)"/>
+                  </case>
+                  <case regex="404">
+                     <property name="ERROR_MESSAGE" value="Not Found"/>
+                  </case>
+                  <case regex="400">
+                     <property name="ERROR_MESSAGE" value="Bad Request"/>
+                  </case>
+               </switch>
+            </then>
+         </filter>
+         <respond/>
+      </inSequence>
+      <outSequence>
+         <log/>
+         <send/>
+      </outSequence>
+   </target>
+</proxy>
