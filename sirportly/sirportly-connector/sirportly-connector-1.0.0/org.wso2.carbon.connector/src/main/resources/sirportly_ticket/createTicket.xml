@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://sirportly.com/docs/api-specification/tickets/submitting-a-new-ticket -->
+<template name="createTicket" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="subject" description="The subject for the ticket." />
+   <parameter name="status" description="The name or the ID of the status." />
+   <parameter name="priority" description="The name or ID of the ticket priority." />
+   <parameter name="sla" description="The name or ID of the SLA." />
+   <parameter name="brand" description="The name or ID of the brand." />
+   <parameter name="department" description="The name or ID of the department." />
+   <parameter name="team" description="The name or ID of the team." />
+   <parameter name="assignedUser" description="The username or ID of an assigned user." />
+   <parameter name="submittedAt" description="The date/time the ticket was created." />
+   <parameter name="customFields" description="The JSON object containing custom field values." />
+   <parameter name="contact" description="The ID of an existing contact." />
+   <parameter name="contactMethod" description="The ID of the existing contact method." />
+   <parameter name="contactMethodType" description="The type of contact method to used." />
+   <parameter name="contactMethodData" description="The email address or telephone number of the contact method." />
+   <parameter name="contactName" description="The name of the contact." />
+   <parameter name="additionalContactMethods" description="The comma seperated additional contact methods list." />
+   <sequence>
+      <property name="uri.var.subject" expression="$func:subject" />
+      <property name="uri.var.status" expression="$func:status" />
+      <property name="uri.var.priority" expression="$func:priority" />
+      <property name="uri.var.sla" expression="$func:sla" />
+      <property name="uri.var.brand" expression="$func:brand" />
+      <property name="uri.var.department" expression="$func:department" />
+      <property name="uri.var.team" expression="$func:team" />
+      <property name="uri.var.assignedUser" expression="$func:assignedUser" />
+      <property name="uri.var.submittedAt" expression="$func:submittedAt" />
+      <property name="uri.var.customFields" expression="$func:customFields" />
+      <property name="uri.var.contact" expression="$func:contact" />
+      <property name="uri.var.contactMethod" expression="$func:contactMethod" />
+      <property name="uri.var.contactMethodType" expression="$func:contactMethodType" />
+      <property name="uri.var.contactMethodData" expression="$func:contactMethodData" />
+      <property name="uri.var.contactName" expression="$func:contactName" />
+      <property name="uri.var.additionalContactMethods" expression="$func:additionalContactMethods" />
+      <script language="js">
+         <![CDATA[
+            var payload = mc.getPayloadJSON(); 
+            var customFields = mc.getProperty('uri.var.customFields');
+            var subject = mc.getProperty('uri.var.subject');
+            var status = mc.getProperty('uri.var.status');
+            var priority = mc.getProperty('uri.var.priority');
+            var sla = mc.getProperty('uri.var.sla');
+            var brand = mc.getProperty('uri.var.brand');
+            var department = mc.getProperty('uri.var.department');
+            var team = mc.getProperty('uri.var.team');
+            var assignedUser = mc.getProperty('uri.var.assignedUser');
+            var submittedAt = mc.getProperty('uri.var.submittedAt');
+            var contact = mc.getProperty('uri.var.contact');
+            var contactMethod = mc.getProperty('uri.var.contactMethod');
+            var contactMethodType = mc.getProperty('uri.var.contactMethodType');
+            var contactMethodData = mc.getProperty('uri.var.contactMethodData');
+            var contactName = mc.getProperty('uri.var.contactName');
+            var additionalContactMethods = mc.getProperty('uri.var.additionalContactMethods');           
+            // Since the paramters contain multiple occurrences directly add to the payload
+            if (customFields != null && customFields != "") {
+               payload = eval("(" + customFields + ")");
+            } else {
+               payload = new Object();
+            }
+            // Set the mandatory parameters
+            payload.subject = subject;
+            payload.status = status;
+            payload.priority = priority;
+            payload.department = department;
+            payload.team = team;
+            // Set the optional parameters
+            if (sla != null && sla != "") {
+               payload.sla = sla;
+            }
+            if (brand != null && brand != "") {
+               payload.brand = brand;
+            }
+            if (assignedUser != null && assignedUser != "") {
+               payload.user = assignedUser;
+            }
+            if (submittedAt != null && submittedAt != "") {
+               payload.submitted_at = submittedAt;
+            }
+            if (contact != null && contact != "") {
+               payload.contact = contact;
+            }
+            if (contactMethod != null && contactMethod != "") {
+               payload.contact_method = contactMethod;
+            }
+            if (contactMethodType != null && contactMethodType != "") {
+               payload.contact_method_type = contactMethodType;
+            }
+            if (contactMethodData != null && contactMethodData != "") {
+               payload.contact_method_data = contactMethodData;
+            }
+            if (contactName != null && contactName != "") {
+               payload.contact_name = contactName;
+            }
+            if (additionalContactMethods != null && additionalContactMethods != "") {
+               payload.additional_contact_methods = additionalContactMethods;
+            }
+            mc.setPayloadJSON(payload);
+         ]]>
+      </script>
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/tickets/submit" />
+         </endpoint>
+      </call>
+      <!-- Remove unwanted headers -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+   </sequence>
+</template>
