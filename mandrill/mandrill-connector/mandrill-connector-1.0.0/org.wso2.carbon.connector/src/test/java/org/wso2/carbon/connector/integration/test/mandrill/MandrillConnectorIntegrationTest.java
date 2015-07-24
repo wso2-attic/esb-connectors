@@ -312,7 +312,7 @@ public class MandrillConnectorIntegrationTest extends ConnectorIntegrationTestBa
      * @throws JSONException
      * @throws IOException
      */
-    @Test(groups = { "wso2.esb" }, description = "mandrill {searchMessageContent} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, enabled = false,description = "mandrill {searchMessageContent} integration test with mandatory parameters.")
     public void testSearchMessageContentWithMandatoryParameters() throws IOException, JSONException {
         
         esbRequestHeadersMap.put("Action", "urn:searchMessageContent");
