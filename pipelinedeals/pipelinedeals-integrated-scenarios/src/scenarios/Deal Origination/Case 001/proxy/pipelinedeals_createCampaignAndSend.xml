@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--Create campaigns and send them to a subscribers' list via MailChimp-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pipelinedeals_createCampaignAndSend" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+    <target>
+        <inSequence>
+            <!-- mailChimp Properties -->
+            <property name="mailchimp.apiUrl" expression="json-eval($.mailchimp.apiUrl)" />
+            <property name="mailchimp.apiKey" expression="json-eval($.mailchimp.apiKey)" />
+            <property name="mailchimp.listName" expression="json-eval($.mailchimp.listName)" />
+            <property name="mailchimp.templateId" expression="json-eval($.mailchimp.templateId)" />
+            <property name="mailchimp.campaignSubject" expression="json-eval($.mailchimp.campaignSubject)" />
+            <property name="mailchimp.content" expression="json-eval($.mailchimp.content)" />
+            <property name="mailchimp.fromEmail" expression="json-eval($.mailchimp.fromEmail)" />
+            <property name="mailchimp.fromName" expression="json-eval($.mailchimp.fromName)" />
+            
+			<!-- Operation scoped properties -->
+            <property name="responseString" value="" scope="operation" />
+            <property name="activityName" value="pipelinedeals_createCampaignAndSend" scope="operation" />
+           
+		   <!-- Get the ID of the subscriber list using the provided list name. It is troublesome for the user to obtain the list ID in Mailchimp,
+				as it cannot be done through the web application. Therefore the user is expected to provide the list name so the respective list ID can be obtained via the following call. -->
+            <mailchimp.init>
+                <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                <format>json</format>
+            </mailchimp.init>
+            <mailchimp.listSubscriberLists>
+                <listName>{$ctx:mailchimp.listName}</listName>
+            </mailchimp.listSubscriberLists>
+            <sequence key="removeResponseHeaders" />
+            <property name="mailchimp.listId" expression="json-eval($.data[0].id)" />
+            
+			<!-- START: Proceed to create the campaign in MailChimp only if the subscriber list ID could be retrieved using the name.
+				When there are no lists matching the provided name, an empty array ([]) is returned by the Mailchimp API. -->
+            <filter source="boolean(get-property('mailchimp.listId'))" regex="false">
+                <then>
+                    <!-- Failure case: Append an error message to be sent to the user. -->
+                    <property name="id" expression="fn:concat('mailchimp_listName:', get-property('mailchimp.listName'))" />
+                    <property name="errorResponse" expression="json-eval($)" />
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="mailchimp_getListIdFromListName" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="{$ctx:errorResponse}" />
+                    </call-template>
+                </then>
+                <else>
+                    <!-- Construct the mailchimp 'options' parameter -->
+                    <payloadFactory media-type="json">
+                        <format>{
+						"options": {
+							"list_id": "$1",
+							"subject": "$2",
+							"from_email": "$3",
+							"from_name": "$4",
+							"to_name": "Subscriber",
+							"template_id": "$5",
+							"tracking": {
+								"opens": true,
+								"html_clicks": true,
+								"text_clicks": true
+							}
+						}
+					}</format>
+                        <args>
+                            <arg expression="get-property('mailchimp.listId')" />
+                            <arg expression="get-property('mailchimp.campaignSubject')" />
+                            <arg expression="get-property('mailchimp.fromEmail')" />
+                            <arg expression="get-property('mailchimp.fromName')" />
+                            <arg expression="get-property('mailchimp.templateId')" />
+                        </args>
+                    </payloadFactory>
+                    <property name="mailchimp.options" expression="json-eval($.options)" />
+                    
+					<!-- Construct the mailchimp 'content' parameter where the HTML campaign parameters are specified. -->
+                    <payloadFactory media-type="json">
+                        <format>{
+						"content": {
+							"sections": {
+								"companyName": "$1",
+								"companyNameFooter": "$1",
+								"title": "$2",
+								"content": "$3"
+							}
+						}
+					}</format>
+                        <args>
+                            <arg expression="get-property('mailchimp.fromName')" />
+                            <arg expression="get-property('mailchimp.campaignSubject')" />
+                            <arg expression="get-property('mailchimp.content')" />
+                        </args>
+                    </payloadFactory>
+                    <property name="mailchimp.content" expression="json-eval($.content)" />
+                    
+					<!-- Create a draft campaign. -->
+                    <mailchimp.init>
+                        <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                        <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                        <format>json</format>
+                    </mailchimp.init>
+                    <mailchimp.createDraftCampaign>
+                        <options>{$ctx:mailchimp.options}</options>
+                        <content>{$ctx:mailchimp.content}</content>
+                        <type>regular</type>
+                    </mailchimp.createDraftCampaign>
+                    <property name="mailchimp.campaignId" expression="json-eval($.id)" />
+                    
+					<!-- START: Proceed to send the campaign only if it is created successfully. -->
+                    <filter source="boolean(get-property('mailchimp.campaignId'))" regex="false">
+                        <then>
+                            <!-- Failure case: Append an error message to be sent to the user. -->
+                            <property name="id" value="{}" />
+                            <property name="errorResponse" expression="json-eval($)" />
+                            <call-template target="responseHandlerTemplate">
+                                <with-param name="activity" value="mailchimp_createDraftCampaign" />
+                                <with-param name="id" value="{$ctx:id}" />
+                                <with-param name="status" value="Error" />
+                                <with-param name="message" value="{$ctx:errorResponse}" />
+                            </call-template>
+                        </then>
+                        <else>
+                            <!-- Send the draft campaign. -->
+                            <mailchimp.init>
+                                <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                                <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                                <format>json</format>
+                            </mailchimp.init>
+                            <mailchimp.sendCampaign>
+                                <campaignId>{$ctx:mailchimp.campaignId}</campaignId>
+                            </mailchimp.sendCampaign>
+                            <property name="mailchimp.complete" expression="json-eval($.complete)" />
+                            <property name="id" expression="fn:concat('mailchimp_campaignId:', get-property('mailchimp.campaignId'))" />
+                           
+						   <!-- START: Build the response based on whether the campaign is successfully sent or not -->
+                            <filter source="get-property('mailchimp.complete')" regex="true">
+                                <then>
+                                    <property name="status" value="Success" />
+                                    <property name="message" value="The campaign has been created and successfully sent." />
+                                </then>
+                                <else>
+                                    <property name="status" value="Error" />
+                                    <property name="message" expression="json-eval($)" />
+                                </else>
+                            </filter>
+                            <!-- Append message to be sent to the user. -->
+                            <call-template target="responseHandlerTemplate">
+                                <with-param name="activity" value="mailchimp_sendCampaign" />
+                                <with-param name="id" value="{$ctx:id}" />
+                                <with-param name="status" value="{$ctx:status}" />
+                                <with-param name="message" value="{$ctx:message}" />
+                            </call-template>
+                        </else>
+                    </filter>
+                    <!-- END: Proceed to send the campaign only if it is created successfully. -->
+                </else>
+            </filter>
+            <!-- END: Proceed to create the campaign in MailChimp only if the subscriber list ID could be retrieved using the name.
+				When there are no lists matching the provided name, an empty array ([]) is returned by the Mailchimp API. -->
+            
+			<!-- Send the constructed response to the user. -->
+            <payloadFactory media-type="json">
+                <format>{
+					"Response": {
+						"process": "pipelinedeals_createCampaignAndSend",
+						"activityResponse": [$1]
+					}
+				}</format>
+                <args>
+                    <arg expression="get-property('operation', 'responseString')" />
+                </args>
+            </payloadFactory>
+            <respond />
+        </inSequence>
+        <outSequence />
+    </target>
+</proxy>

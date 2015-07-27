@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- The proxy will retrieve the documents found in a temporary folder in Dropbox and move them to a permanent folder (under a folder created for the associated deal).
+	 It will also create those documents in PipelineDeals and notify the owner of the deal regarding the document.-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pipelinedeals_synchronizeDocuments" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+    <target>
+        <inSequence>
+            <!-- Dropbox Properties -->
+            <property name="dropbox.apiUrl" value="https://api.dropbox.com" />
+            <property name="dropbox.accessToken" expression="json-eval($.dropbox.accessToken)" />
+            <property name="dropbox.newFilesPath" expression="json-eval($.dropbox.newFilesPath)" />
+            <property name="dropbox.permanentDealFilesPath" expression="json-eval($.dropbox.permanentDealFilesPath)" />
+			
+            <!-- PipelineDeals Properties -->
+            <property name="pipelinedeals.apiUrl" value="https://api.pipelinedeals.com" />
+            <property name="pipelinedeals.apiKey" expression="json-eval($.pipelinedeals.apiKey)" />
+			
+            <!-- Madnrill Properties -->
+            <property name="mandrill.apiUrl" value="https://mandrillapp.com" />
+            <property name="mandrill.apiKey" expression="json-eval($.mandrill.apiKey)" />
+			
+			<!-- Common Properties -->
+            <property name="id.empty" value="{}" />
+            <property name="responseString" value="" scope="operation" />
+			
+            <!-- Get all the files from the 'New Files' Folder. This folder would be used as a temp folder to add new deal related files. -->
+            <dropbox.init>
+                <apiUrl>{$ctx:dropbox.apiUrl}</apiUrl>
+                <root>auto</root>
+                <path>{$ctx:dropbox.newFilesPath}</path>
+                <accessToken>{$ctx:dropbox.accessToken}</accessToken>
+            </dropbox.init>
+            <dropbox.getMetadata>
+                <list>true</list>
+            </dropbox.getMetadata>
+            <sequence key="removeResponseHeaders" />
+			
+			<!-- Decode binary response to a JSON object. -->
+            <sequence key="base64DecodeDropboxResponse" />
+			
+            <property name="dropbox.status" expression="$axis2:HTTP_SC" />
+            <!-- Terminate the scenario for a negative response. -->
+            <filter xpath="get-property('dropbox.status') != 200">
+                <then>
+                    <property name="message" expression="json-eval($)" />
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="dropbox_getNewDealFiles" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="Error" />
+                        <with-param name="message" value="{$ctx:message}" />
+                    </call-template>
+                    <loopback />
+                </then>
+            </filter>
+			
+            <property name="fileCount" expression="count(//contents)" />
+            <property name="fileIndex" expression="0" scope="operation" />
+			
+            <!-- START: Append a skip message to the user if there are no new files in dropbox. -->
+            <filter source="get-property('fileCount')" regex="0.0">
+                <then>
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="dropbox_getNewDealFiles" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="There aren't any new files to be processed." />
+                    </call-template>
+                    <loopback />
+                </then>
+                <else>
+                    <!--FOR EACH File: BEGIN -->
+                    <iterate continueParent="false" id="files" expression="//contents" sequential="true">
+                        <target>
+                            <sequence>
+                                <property name="dropbox.oldFilePath" expression="//path/text()" />
+								
+                                <script language="js">
+									<![CDATA[
+										// Adding a delay due to the API reate limiting.
+										java.lang.Thread.sleep(2000);
+										
+										var oldFilePath = mc.getProperty('dropbox.oldFilePath');
+										var permanentDealFilesPath = mc.getProperty('dropbox.permanentDealFilesPath');
+										
+										var paths = oldFilePath.split('/');										
+										var filename = paths[paths.length-1];
+										
+										if(filename.indexOf('-') != -1){
+											// ID of the deal
+											var dealId = filename.split('-')[0];
+											mc.setProperty('pipelinedeals.dealId', dealId);	
+											// Name of the file without ID								
+											mc.setProperty('dropbox.filename', new java.lang.String(filename).substring(dealId.length()+1));
+										}
+									]]>
+								</script>
+								
+                                <!-- START: Get the deal details if the deal ID could be retrieved. -->
+                                <filter source="boolean(get-property('pipelinedeals.dealId'))" regex="true">
+                                    <then>
+                                        <!-- Retrieve deal information. -->
+                                        <pipelinedeals.init>
+                                            <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                            <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                        </pipelinedeals.init>
+                                        <pipelinedeals.getDeal>
+                                            <dealId>{$ctx:pipelinedeals.dealId}</dealId>
+                                        </pipelinedeals.getDeal>
+                                        <sequence key="removeResponseHeaders" />
+										
+                                        <property name="pipelinedeals.dealId" expression="json-eval($.id)" />
+                                        <property name="pipelinedeals.dealName" expression="json-eval($.name)" />
+                                        <property name="pipelinedeals.contactId" expression="json-eval($.primary_contact_id)" />
+                                        <property name="pipelinedeals.ownerId" expression="json-eval($.user.id)" />
+                                        <property name="pipelinedeals.dealSummary" expression="json-eval($.summary)" />
+										
+                                        <!-- START: Proceed only if the deal information could be successfully retrieved. -->
+                                        <filter source="boolean(get-property('pipelinedeals.dealId'))" regex="true">
+                                            <then>
+                                                <property name="dropbox.newFilePath" expression="fn:concat(get-property('dropbox.permanentDealFilesPath'), '/', get-property('pipelinedeals.dealName'), '/', get-property('dropbox.filename'))" />
+                                                <!-- Move the file to the deal folder. -->
+                                                <dropbox.init>
+                                                    <apiUrl>{$ctx:dropbox.apiUrl}</apiUrl>
+                                                    <accessToken>{$ctx:dropbox.accessToken}</accessToken>
+                                                    <root>auto</root>
+                                                </dropbox.init>
+                                                <dropbox.move>
+                                                    <fromPath>{$ctx:dropbox.oldFilePath}</fromPath>
+                                                    <toPath>{$ctx:dropbox.newFilePath}</toPath>
+                                                </dropbox.move>
+                                                <sequence key="removeResponseHeaders" />
+												
+												<!-- Decode binary response to a JSON object. -->
+                                                <sequence key="base64DecodeDropboxResponse" />
+												
+                                                <property name="dropbox.path" expression="json-eval($.path)" />
+												
+                                                <!-- START: Proceed only if the file was successfully moved to permanent storage. -->
+                                                <filter xpath="get-property('dropbox.path') != get-property('dropbox.newFilePath')">
+                                                    <then>
+                                                        <property name="id" expression="fn:concat('dropbox_fileName:', get-property('dropbox.filename'))" />
+                                                        <property name="message" expression="json-eval($)" />
+                                                        <call-template target="responseHandlerTemplate">
+                                                            <with-param name="activity" value="dropbox_moveFile" />
+                                                            <with-param name="id" value="{$ctx:id}" />
+                                                            <with-param name="status" value="Error" />
+                                                            <with-param name="message" value="{$ctx:message}" />
+                                                        </call-template>
+                                                    </then>
+                                                    <else>
+                                                        <!-- Create a public direct link for the file. -->
+                                                        <dropbox.init>
+                                                            <apiUrl>{$ctx:dropbox.apiUrl}</apiUrl>
+                                                            <accessToken>{$ctx:dropbox.accessToken}</accessToken>
+                                                            <root>auto</root>
+                                                            <path>{$ctx:dropbox.path}</path>
+                                                        </dropbox.init>
+                                                        <dropbox.createDirectLink />
+                                                        <sequence key="removeResponseHeaders" />
+														
+														<!-- Decode binary response to a JSON object. -->
+                                                        <sequence key="base64DecodeDropboxResponse" />
+														
+                                                        <property name="dropbox.directUrl" expression="json-eval($.url)" />
+                                                        <property name="dropbox.expires" expression="json-eval($.expires)" />
+														
+                                                        <!-- START: Proceed to create the document only if the direct link is created successfully. -->
+                                                        <filter source="boolean(get-property('dropbox.directUrl'))" regex="false">
+                                                            <then>
+                                                                <property name="id" expression="fn:concat('dropbox_fileName:', get-property('dropbox.filename'))" />
+                                                                <property name="message" expression="json-eval($)" />
+                                                                <call-template target="responseHandlerTemplate">
+                                                                    <with-param name="activity" value="dropbox_createDirectLink" />
+                                                                    <with-param name="id" value="{$ctx:id}" />
+                                                                    <with-param name="status" value="Error" />
+                                                                    <with-param name="message" value="{$ctx:message}" />
+                                                                </call-template>
+                                                            </then>
+                                                            <else>
+                                                                <!-- Create the document in PipelineDeals. -->
+                                                                <pipelinedeals.init>
+                                                                    <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                                                    <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                                                    <attributes>{$ctx:pipelinedeals.attributes}</attributes>
+                                                                </pipelinedeals.init>
+                                                                <pipelinedeals.createDocument>
+                                                                    <title>{$ctx:dropbox.filename}</title>
+                                                                    <dealId>{$ctx:pipelinedeals.dealId}</dealId>
+                                                                    <personId>{$ctx:pipelinedeals.contactId}</personId>
+                                                                    <ownerId>{$ctx:pipelinedeals.ownerId}</ownerId>
+                                                                    <publicFileUrl>{$ctx:dropbox.directUrl}</publicFileUrl>
+                                                                </pipelinedeals.createDocument>
+                                                                <sequence key="removeResponseHeaders" />
+																
+                                                                <property name="pipelinedeals.fileId" expression="json-eval($.id)" />
+																
+                                                                <!-- START: Proceed only if the document was created successfully. -->
+                                                                <filter source="boolean(get-property('pipelinedeals.fileId'))" regex="false">
+                                                                    <then>
+                                                                        <property name="id" expression="fn:concat('pipelinesdeals_dealId:', get-property('pipelinedeals.dealId'), ',dropbox_fileName:', get-property('dropbox.filename'))" />
+                                                                        <property name="message" expression="json-eval($)" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                            <with-param name="activity" value="pipelinedeals_createDocument" />
+                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                            <with-param name="status" value="Skipped" />
+                                                                            <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+                                                                    </then>
+                                                                    <else>
+                                                                        <property name="id" expression="fn:concat('pipelinesdeals_dealId:', get-property('pipelinedeals.dealId'), ',dropbox_fileName:', get-property('dropbox.filename'), ',pipelinesdeals_documentId:', get-property('pipelinedeals.fileId'))" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                            <with-param name="activity" value="pipelinedeals_createDocument" />
+                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                            <with-param name="status" value="Success" />
+                                                                            <with-param name="message" value="Document has been successfully created." />
+                                                                        </call-template>
+																		
+                                                                        <!-- Get deal owner information. -->
+                                                                        <pipelinedeals.init>
+                                                                            <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                                                            <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                                                        </pipelinedeals.init>
+                                                                        <pipelinedeals.getUser>
+                                                                            <userId>{$ctx:pipelinedeals.ownerId}</userId>
+                                                                        </pipelinedeals.getUser>
+                                                                        <sequence key="removeResponseHeaders" />
+																		
+                                                                        <property name="pipelinedeals.userEmail" expression="json-eval($.email)" />
+                                                                        <property name="pipelinedeals.userFirstName" expression="json-eval($.first_name)" />
+																		
+                                                                        <!-- Get account information. -->
+                                                                        <pipelinedeals.init>
+                                                                            <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                                                            <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                                                        </pipelinedeals.init>
+                                                                        <pipelinedeals.getAccountDetails />
+                                                                        <sequence key="removeResponseHeaders" />
+																		
+                                                                        <property name="pipelinedeals.users" expression="json-eval($.users)" />
+                                                                        <script language="js">
+																			<![CDATA[
+																				var users = eval("(" + mc.getProperty('pipelinedeals.users') + ")");								  
+																				for(var i=0; i<users.length; i++){
+																					if(users[i].is_account_admin == true){
+																						mc.setProperty('mandrill.fromName', users[i].first_name);
+																						mc.setProperty('mandrill.fromEmail', users[i].email);
+																						break;
+																					}
+																				}
+																													  
+																				var userEmail = mc.getProperty('pipelinedeals.userEmail');							  
+																				var userFirstName = mc.getProperty('pipelinedeals.userFirstName');		
+																				var fileName = mc.getProperty('dropbox.filename');										  
+																				var filePath = mc.getProperty('dropbox.path');													  
+																				var filePublicLink = mc.getProperty('dropbox.directUrl');								  
+																				var fileExpiration = mc.getProperty('dropbox.expires');									  
+																				var dealName = mc.getProperty('pipelinedeals.dealName');							  
+																				var dealSummary = mc.getProperty('pipelinedeals.dealSummary');	
+																				var dealSummaryText = '';
+																				if(dealSummary != null && dealSummary != ''){
+																					var dealSummaryText = '<p>Summary: <i>' + dealSummary + '</i></p>';
+																				}																				
+																				
+																				var mailHTMLUser = '<h3>Dear ' + userFirstName + ',</h3><p>A new document has been created for the Deal.</p><p>Deal Name: <b>' + dealName + '</b></p>' + dealSummaryText + '<p>Document Name: <b>' + fileName + '</b></p><p>Dropbox Path: <b>' + filePath + "</b></p><p>`</p><p>You can also view/download the file by <u><a href='" + filePublicLink + "'>Clicking here</a></u>. (Link expires on " + fileExpiration + ')</p> <p>`</p><p> </p>`<p> </p>`<p> </p><p>This is an auto-generated email. Please do not reply.</p>';
+																				mc.setProperty('mandrill.htmlUser', mailHTMLUser);	
+																																		
+																				mc.setProperty('mandrill.subject', 'New Document added for the Deal [' + dealName + ']');
+																				
+																				var mailToUser = '[{"email": "' + userEmail + '", "name": "' + userFirstName + '", "type": "to"}]';
+																				mc.setProperty('mandrill.toUser', mailToUser);
+																			]]>
+																		</script>
+																		
+                                                                        <property name="mandrill.htmlUser" expression="fn:concat('&lt;html&gt;', get-property('mandrill.htmlUser'), '&lt;/html&gt;')" />
+                                                                        
+																		<!-- Send survey to deal owner. -->
+                                                                        <mandrill.init>
+                                                                            <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                                                            <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                                                            <format>json</format>
+                                                                        </mandrill.init>
+                                                                        <mandrill.sendMessage>
+                                                                            <html>{$ctx:mandrill.htmlUser}</html>
+                                                                            <subject>{$ctx:mandrill.subject}</subject>
+                                                                            <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+                                                                            <fromName>{$ctx:mandrill.fromName}</fromName>
+                                                                            <to>{$ctx:mandrill.toUser}</to>
+                                                                        </mandrill.sendMessage>
+                                                                        <sequence key="removeResponseHeaders" />
+																		
+                                                                        <property name="mandrill.mailIdUser" expression="json-eval($[0]._id)" />
+                                                                        <property name="id" expression="fn:concat('pipelinedeals_documentId:', get-property('pipelinedeals.fileId'), ',pipelinedeals_userId:', get-property('pipelinedeals.ownerId'))" />
+                                                                        
+																		<!-- START: Append a message to be sent to the user regarding the status of the send email operation. -->
+                                                                        <filter source="boolean(get-property('mandrill.mailIdUser'))" regex="true">
+                                                                            <then>
+                                                                                <property name="status" value="Success" />
+                                                                                <property name="message" value="A notification email has been sent to the owner of the deal." />
+                                                                            </then>
+                                                                            <else>
+                                                                                <property name="status" value="Error" />
+                                                                                <property name="message" expression="json-eval($)" />
+                                                                            </else>
+                                                                        </filter>
+                                                                        <!-- END: Append a message to be sent to the user regarding the status of the send email operation. -->
+                                                                        
+																		<call-template target="responseHandlerTemplate">
+                                                                            <with-param name="activity" value="mandrill_sendNotificationToOwner" />
+                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                            <with-param name="status" value="{$ctx:status}" />
+                                                                            <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+                                                                    </else>
+                                                                </filter>
+                                                                <!-- END: Proceed only if the document was created successfully. -->
+                                                            </else>
+                                                        </filter>
+                                                        <!-- END: Proceed to create the document only if the direct link is created successfully. -->
+                                                    </else>
+                                                </filter>
+                                                <!-- END: Proceed only if the deal has an associated folder created in Box. -->
+                                            </then>
+                                            <else>
+                                                <property name="id" expression="fn:concat('dropbox_fileName:', get-property('dropbox.filename'))" />
+                                                <call-template target="responseHandlerTemplate">
+                                                    <with-param name="activity" value="pipelinedeals_getAssociatedDeal" />
+                                                    <with-param name="id" value="{$ctx:id}" />
+                                                    <with-param name="status" value="Skipped" />
+                                                    <with-param name="message" value="File is associated with an invalid deal or the deal has been deleted." />
+                                                </call-template>
+                                            </else>
+                                        </filter>
+                                        <!-- END: Proceed only if the deal information could be successfully retrieved. -->
+                                    </then>
+                                    <else>
+                                        <property name="id" expression="fn:concat('dropbox_filePath:', get-property('dropbox.oldFilePath'))" />
+                                        <call-template target="responseHandlerTemplate">
+                                            <with-param name="activity" value="pipelinedeals_getAssociatedDeal" />
+                                            <with-param name="id" value="{$ctx:id}" />
+                                            <with-param name="status" value="Skipped" />
+                                            <with-param name="message" value="File doesn't have a deal associated with it." />
+                                        </call-template>
+                                    </else>
+                                </filter>
+                                <!-- END: Get the deal details if the deal ID could be retrieved. -->
+								
+                                <!--Increment the file count by 1 -->
+                                <property name="fileIndex" expression="get-property('operation','fileIndex') + 1" scope="operation" />
+								
+                                <!-- Loopback after last iteration. -->
+                                <filter xpath="get-property('fileCount') = get-property('operation', 'fileIndex')">
+                                    <then>
+                                        <loopback />
+                                    </then>
+                                </filter>
+								
+                            </sequence>
+                        </target>
+                    </iterate>
+                    <!--FOR EACH File: END -->
+                </else>
+            </filter>
+            <!-- END: Append a skip message to the user if there are no new files in dropbox. -->
+        </inSequence>
+        <outSequence>
+            <!-- Send the constructed response to the user. -->
+            <payloadFactory media-type="json">
+                <format>
+					{
+					   "Response":{
+						   "process":"pipelinedeals_synchronizeDocuments",
+						   "activityResponse": [$1]
+					   }
+					}
+				</format>
+                <args>
+                    <arg expression="get-property('operation', 'responseString')" />
+                </args>
+            </payloadFactory>
+            <send />
+        </outSequence>
+    </target>
+</proxy>

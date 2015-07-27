@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- The proxy will retrieve people from PipelineDeals on a daily basis and add them to the subscribers' list in MailChimp. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pipelinedeals_addPeopleToSubscribersList" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+    <target>
+        <inSequence>
+            <!-- ZohoCrm Properties -->
+            <property name="mailchimp.apiUrl" expression="json-eval($.mailchimp.apiUrl)" />
+            <property name="mailchimp.apiKey" expression="json-eval($.mailchimp.apiKey)" />
+            <property name="mailchimp.listName" expression="json-eval($.mailchimp.listName)" />
+			
+            <!-- PipelineDeals Properties -->
+            <property name="pipelinedeals.apiUrl" value="https://api.pipelinedeals.com" />
+            <property name="pipelinedeals.apiKey" expression="json-eval($.pipelinedeals.apiKey)" />
+            <property name="pipelinedeals.modifiedAfter" expression="json-eval($.pipelinedeals.modifiedAfter)" />
+			
+            <!-- Common properties -->
+            <property name="id.empty" value="{}" />
+            <property name="responseString" value="" scope="operation" />
+            <property name="activityName" value="pipelinedeals_addPeopleToSubscribersList" scope="operation" />
+			
+            <!-- If the user has not provided the modifiedAfter date, only the users modifed on the current day of execution will be considered. -->
+            <script language="js">
+				<![CDATA[
+					var modifiedAfter = mc.getProperty('pipelinedeals.modifiedAfter');				
+					if(modifiedAfter == null || modifiedAfter == ''){
+						var fromDate = new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date());
+						mc.setProperty('pipelinedeals.modifiedAfter', encodeURIComponent(fromDate));
+					}
+				]]>
+			</script>
+			
+            <!-- List all the people who were modified after the 'modifiedAfter'. -->
+            <pipelinedeals.init>
+                <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                <attributes>email</attributes>
+            </pipelinedeals.init>
+            <pipelinedeals.listPeople>
+                <personModifiedFromDate>{$ctx:pipelinedeals.modifiedAfter}</personModifiedFromDate>
+                <perPage>200</perPage>
+            </pipelinedeals.listPeople>
+            <sequence key="removeResponseHeaders" />
+			
+            <property name="pipelinedeals.people" expression="json-eval($.entries)" />
+			
+			<!--The script mediator will construct the array of subscribers to update. -->
+            <script language="js">
+				<![CDATA[
+					// Construct the email array to add to the subscribers' list in Mailchimp.
+					var people = eval("(" + mc.getProperty('pipelinedeals.people') + ")");
+					var batchEmailString = '';		
+					var noOfPeople = people.length;
+					if(noOfPeople > 0){
+						for(var i=0; i<noOfPeople; i++){
+							var email = people[i].email;
+							if(email != null && email != ''){
+								batchEmailString += '{ "email": { "email": "' + email + '" }, "email_type": "text" }';
+							}
+							if(i < noOfPeople-1){
+								batchEmailString += ',';
+							}
+						}
+						batchEmailString = '[' + batchEmailString + ']';
+					}
+					mc.setProperty('mailchimp.batchEmailString', batchEmailString);
+				]]>
+			</script>
+			
+            <!-- Terminate the scenario if there are no new people in 'PipelineDeals' to add to the subscribers' list. -->
+            <filter source="boolean(get-property('mailchimp.batchEmailString'))" regex="false">
+                <then>
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="mailchimp_addPeopleToSubscribersList" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="Error" />
+                        <with-param name="message" value="There are no new people in 'PipelineDeals' to add to the subscribers' list." />
+                    </call-template>
+                    <loopback />
+                </then>
+            </filter>
+			
+            <!-- List the subscribers' list which match the provided list name -->
+            <mailchimp.init>
+                <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                <format>json</format>
+            </mailchimp.init>
+            <mailchimp.listSubscriberLists>
+                <listName>{$ctx:mailchimp.listName}</listName>
+                <sortField>created</sortField>
+                <sortDirection>DESC</sortDirection>
+            </mailchimp.listSubscriberLists>
+            <sequence key="removeResponseHeaders" />
+			
+            <property name="mailchimp.listCount" expression="count(//data)" />
+			
+            <!-- START: Proceed only if at least one list is returned. -->
+            <filter source="get-property('mailchimp.listCount')" regex="0.0">
+                <then>
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="mailchimp_getSubscribersList" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="There are no subscribers' list that match the name." />
+                    </call-template>
+                </then>
+                <else>
+                    <property name="mailchimp.listId" expression="//data[1]/id/text()" />
+					
+                    <!-- Subscribe people to list -->
+                    <mailchimp.init>
+                        <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                        <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                        <format>json</format>
+                    </mailchimp.init>
+                    <mailchimp.addSubscribersToList>
+                        <listId>{$ctx:mailchimp.listId}</listId>
+                        <batch>{$ctx:mailchimp.batchEmailString}</batch>
+                        <doubleOptin>false</doubleOptin>
+                        <updateExisting>true</updateExisting>
+                    </mailchimp.addSubscribersToList>
+                    <sequence key="removeResponseHeaders" />
+					
+                    <property name="mailchimp.addCount" expression="json-eval($.add_count)" />
+                    <property name="id" expression="fn:concat('mailchimp_subscribersListId:', get-property('mailchimp.listId'))" />
+                    <filter xpath="get-property('mailchimp.addCount') &gt; 0">
+                        <then>
+                            <property name="status" value="Success" />
+                            <property name="message" expression="fn:concat(get-property('mailchimp.addCount'), ' subscriber(s) have been added to the list.')" />
+                        </then>
+                        <else>
+                            <property name="status" value="Skipped" />
+                            <property name="message" value="All people are already part of the subscribers' list." />
+                        </else>
+                    </filter>
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="mailchimp_addPeopleToSubscribersList" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                    </call-template>
+                    <property name="mailchimp.errorCount" expression="json-eval($.error_count)" />
+					
+                    <filter xpath="get-property('mailchimp.errorCount') &gt; 0">
+                        <then>
+                            <property name="message" expression="json-eval($.errors)" />
+                            <call-template target="responseHandlerTemplate">
+                                <with-param name="activity" value="mailchimp_addPeopleToSubscribersList" />
+                                <with-param name="id" value="{$ctx:id}" />
+                                <with-param name="status" value="Skipped" />
+                                <with-param name="message" value="{$ctx:message}" />
+                            </call-template>
+                        </then>
+                    </filter>
+                </else>
+            </filter>
+            <!-- END: Proceed only if at least one list is returned. -->
+            <loopback />
+        </inSequence>
+        <outSequence>
+            <!-- Send the constructed response to the user. -->
+            <payloadFactory media-type="json">
+                <format>
+					{
+					   "Response":{
+						   "process":"pipelinedeals_addPeopleToSubscribersList",
+						   "activityResponse": [$1]
+					   }
+					}
+			    </format>
+                <args>
+                    <arg expression="get-property('operation', 'responseString')" />
+                </args>
+            </payloadFactory>
+            <send />
+        </outSequence>
+    </target>
+</proxy>

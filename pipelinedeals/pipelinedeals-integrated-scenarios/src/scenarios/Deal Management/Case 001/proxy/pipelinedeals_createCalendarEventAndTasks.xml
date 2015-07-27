@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Create a Calendar Entry for a Deal in PipeLineDeals API and then Create Calendar Event in Google Calendar API 
+	 if the Type is equal to CalendarEntry. Create Task in Wunderlist API if the Type is equal to CalendarTask. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pipelinedeals_createCalendarEventAndTasks" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+	  
+         <!--PipeLineDeals Properties -->
+         <property name="pipeLineDeals.apiUrl" value="https://api.pipelinedeals.com" />
+         <property name="pipeLineDeals.apiKey" expression="json-eval($.pipeLineDeals.apiKey)" />
+         <property name="pipeLineDeals.calendarEntry" expression="json-eval($.pipeLineDeals.calendarEntry)" />
+         <!-- GoogleCalendar Properties -->
+         <property name="googleCalendar.apiUrl" value="https://www.googleapis.com" />
+         <property name="googleCalendar.accessToken" expression="json-eval($.googleCalendar.accessToken)" />
+         <property name="googleCalendar.calendarId" expression="json-eval($.googleCalendar.calendarId)" />
+         <!-- Wunderlist Properties -->
+         <property name="wunderlist.apiUrl" value="https://a.wunderlist.com" />
+         <property name="wunderlist.accessToken" expression="json-eval($.wunderlist.accessToken)" />
+         <property name="wunderlist.clientId" expression="json-eval($.wunderlist.clientId)" />
+         <property name="wunderlist.remindOnDaysBefore" expression="json-eval($.wunderlist.remindOnDaysBefore)" />
+		 
+         <!--Process only if the calendar entries are available -->
+         <filter source="boolean(get-property('pipeLineDeals.calendarEntry'))" regex="false">
+            <then>
+               <property name="id" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="pipelinedeals_createCalendarEntry" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="No calendar entry details to process." />
+               </call-template>
+            </then>
+            <else>
+               <property name="pipeLineDeals.calendarEntryType" expression="json-eval($.pipeLineDeals.calendarEntry.type)" />
+               <property name="pipeLineDeals.calendarEntryDueDate" expression="json-eval($.pipeLineDeals.calendarEntry.dueDate)" />
+               <property name="pipeLineDeals.calendarEntryName" expression="json-eval($.pipeLineDeals.calendarEntry.name)" />
+               <property name="pipeLineDeals.startTime" expression="json-eval($.pipeLineDeals.calendarEntry.startTime)" />
+               <property name="pipeLineDeals.endTime" expression="json-eval($.pipeLineDeals.calendarEntry.endTime)" />
+               <property name="pipeLineDeals.calendarEntryDescription" expression="json-eval($.pipeLineDeals.calendarEntry.description)" />
+               <property name="pipeLineDeals.calendarEntryAssociationId" expression="json-eval($.pipeLineDeals.calendarEntry.dealId)" />
+               <filter source="boolean(get-property('pipeLineDeals.calendarEntryAssociationId'))" regex="false">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="status" value="Skipped" />
+                     <property name="message" value="Deal ID is required." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="pipelinedeals_createCalendarEntry" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <pipelinedeals.init>
+                        <apiUrl>{$ctx:pipeLineDeals.apiUrl}</apiUrl>
+                        <apiKey>{$ctx:pipeLineDeals.apiKey}</apiKey>
+                     </pipelinedeals.init>
+                     <pipelinedeals.getDeal>
+                        <dealId>{$ctx:pipeLineDeals.calendarEntryAssociationId}</dealId>
+                     </pipelinedeals.getDeal>
+					 
+                     <property name="pipelinedeals.dealId" expression="json-eval($.id)" />
+                     <property name="pipeLineDeals.deal.customFields" expression="json-eval($.custom_fields)" />
+                     <property name="pipelinedeals.deal.ownerId" expression="json-eval($.user.id)" />
+                     <property name="pipeLineDeals.calendarEntryCompanyId" expression="json-eval($.company_id)" />
+                     <property name="wunderlist.deal.name" expression="json-eval($.name)" />
+                     
+					 <filter source="boolean(get-property('pipelinedeals.dealId'))" regex="false">
+                        <then>
+                           <property name="id" value="{}" />
+                           <property name="status" value="Error" />
+                           <property name="message" expression="json-eval($)" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="activity" value="pipelinedeals_createCalendarEntry" />
+                              <with-param name="status" value="{$ctx:status}" />
+                              <with-param name="message" value="{$ctx:message}" />
+                           </call-template>
+                           <loopback />
+                        </then>
+                        <else>
+                           <header name="Content-Encoding" action="remove" scope="transport" />
+                           <!-- Calling PipeLineDeals createCalendarEntry method to create a
+                              new calendar entry -->
+                           <pipelinedeals.init>
+                              <apiUrl>{$ctx:pipeLineDeals.apiUrl}</apiUrl>
+                              <apiKey>{$ctx:pipeLineDeals.apiKey}</apiKey>
+                           </pipelinedeals.init>
+                           <pipelinedeals.createCalendarEntry>
+                              <type>{$ctx:pipeLineDeals.calendarEntryType}</type>
+                              <dueDate>{$ctx:pipeLineDeals.calendarEntryDueDate}</dueDate>
+                              <name>{$ctx:pipeLineDeals.calendarEntryName}</name>
+                              <companyId>{$ctx:pipeLineDeals.calendarEntryCompanyId}</companyId>
+                              <startTime>{$ctx:pipeLineDeals.startTime}</startTime>
+                              <endTime>{$ctx:pipeLineDeals.endTime}</endTime>
+                              <description>{$ctx:pipeLineDeals.calendarEntryDescription}</description>
+                              <associationType>Deal</associationType>
+                              <associationId>{$ctx:pipeLineDeals.calendarEntryAssociationId}</associationId>
+                           </pipelinedeals.createCalendarEntry>
+						   
+                           <property name="pipeLineDeals.calendarEntryId" expression="json-eval($.id)" />
+                           <filter source="boolean(get-property('pipeLineDeals.calendarEntryId'))" regex="false">
+                              <then>
+                                 <property name="id" value="{}" />
+                                 <property name="status" value="Error" />
+                                 <property name="message" expression="json-eval($)" />
+                                 <call-template target="responseHandlerTemplate">
+                                    <with-param name="id" value="{$ctx:id}" />
+                                    <with-param name="activity" value="pipelinedeals_createCalendarEntry" />
+                                    <with-param name="status" value="{$ctx:status}" />
+                                    <with-param name="message" value="{$ctx:message}" />
+                                 </call-template>
+                              </then>
+                              <else>
+                                 <property name="id" expression="fn:concat('calendarEntryId:',get-property('pipeLineDeals.calendarEntryId'))" />
+                                 <property name="status" value="Success" />
+                                 <property name="message" value="Calendar entry has been created." />
+                                 <call-template target="responseHandlerTemplate">
+                                    <with-param name="id" value="{$ctx:id}" />
+                                    <with-param name="activity" value="pipelinedeals_createCalendarEntry" />
+                                    <with-param name="status" value="{$ctx:status}" />
+                                    <with-param name="message" value="{$ctx:message}" />
+                                 </call-template>
+								 
+                                 <filter xpath="get-property('pipeLineDeals.calendarEntryType') = 'CalendarEvent'">
+                                    <then>
+                                       <property name="pipeLineDeals.calendarEntry.startTime" expression="json-eval($.start_time)" />
+                                       <property name="pipeLineDeals.calendarEntry.endTime" expression="json-eval($.end_time)" />
+                                       <property name="googleCalendar.eventSummary" expression="get-property('pipeLineDeals.calendarEntryName')" />
+                                       <property name="googleCalendar.eventDescription" expression="get-property('pipeLineDeals.calendarEntryDescription')" />
+                                       <script language="js">
+										   <![CDATA[
+												 var startTime=mc.getProperty('pipeLineDeals.calendarEntry.startTime');
+												 var endTime=mc.getProperty('pipeLineDeals.calendarEntry.endTime');
+												 var dateTimeArray;
+												 var date="";
+												 var time="";
+												 var timeZone="";
+												 var dateTime="";
+												 if(startTime!=null && startTime!=""){
+													dateTimeArray=startTime.split(" ");
+												   date=dateTimeArray[0];
+												   date = date.replace("/", "-");
+												   time=dateTimeArray[1];
+												   timeZone=dateTimeArray[2];
+												   timeZone=timeZone.substring(0, 3)+":"+timeZone.substring(3, 5);
+												   dateTime=date+"T"+time+timeZone;
+												   mc.setProperty("googleCalendar.startTime", dateTime);
+												}
+												if(endTime!=null && endTime!=""){
+												   dateTimeArray=endTime.split(" ");
+												   date=dateTimeArray[0];
+												   date = date.replace("/", "-");
+												   time=dateTimeArray[1];
+												   timeZone=dateTimeArray[2];
+												   timeZone=timeZone.substring(0, 3)+":"+timeZone.substring(3, 5);
+												   dateTime=date+"T"+time+timeZone;
+												   mc.setProperty("googleCalendar.endTime", dateTime);
+												}
+											]]>
+										</script>
+                                       <payloadFactory media-type="json">
+                                          <format>
+											{
+                                                "start": {
+                                                   "dateTime": "$1"
+                                                },
+                                                "end": {
+                                                   "dateTime": "$2"
+                                                }
+                                             }
+										  </format>
+                                          <args>
+                                             <arg expression="get-property('googleCalendar.startTime')" />
+                                             <arg expression="get-property('googleCalendar.endTime')" />
+                                          </args>
+                                       </payloadFactory>
+                                       <property name="googleCalendar.eventStart" expression="json-eval($.start)" />
+                                       <property name="googleCalendar.eventEnd" expression="json-eval($.end)" />
+                                       
+									   <!-- Calling manageEvents sequence to do the events related operations -->
+                                       <sequence key="manageEvents" />
+                                    </then>
+                                    <else>
+                                        <!-- Calling manageTasks sequence to do the task related operations -->
+										<log><property name="pipeLineDeals.deal.customFields-Inside Proxy" expression="get-property('pipeLineDeals.deal.customFields')" /></log>
+									    <sequence key="manageTasks" />
+                                    </else>
+                                 </filter>
+                              </else>
+                           </filter>
+						   
+                        </else>
+                     </filter>
+					 
+                  </else>
+               </filter>
+            </else>
+         </filter>
+         <loopback />
+      </inSequence>
+	  
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>{
+               "Response":{
+               "process":"pipelinedeals-createCalendarEventAndTasks",
+               "activityResponse":[$1]
+               }
+               }</format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+</proxy>
