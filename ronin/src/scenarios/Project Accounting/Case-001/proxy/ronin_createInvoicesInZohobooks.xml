@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Retrieve daily invoices from Ronin API and create relevant invoice in ZohoBooks API. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="ronin_createInvoicesInZohobooks" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence>
+         <!--Zohobooks Properties -->
+         <property name="zohobooks.apiUrl" value="https://books.zoho.com" />
+         <property name="zohobooks.authToken" expression="json-eval($.zohobooks.authToken)" />
+         <property name="zohobooks.organizationId" expression="json-eval($.zohobooks.organizationId)" />
+
+         <!--Ronin Properties -->
+         <property name="ronin.apiUrl" expression="json-eval($.ronin.apiUrl)" />
+         <property name="ronin.apiToken" expression="json-eval($.ronin.apiToken)" />
+
+         <!--Common Properties -->
+         <property name="responseString" value="" scope="operation" />
+         <!-- Create current date in YYYY-MM-dd format and store in common.today property -->
+         <script language="js">
+           <![CDATA[
+                var systemDate = new Date();
+                var currentDate = '' + systemDate.getDate();
+                var currentMonth = '' + Number(systemDate.getMonth()+1);
+                if(currentDate.length == 1){
+                     currentDate="0"+currentDate;
+                }
+                if(currentMonth.length == 1){
+                     currentMonth="0"+currentMonth;
+                }
+                var dateString=systemDate.getFullYear() + "-" + currentMonth + "-" + currentDate ;
+                mc.setProperty('common.today',dateString);
+           ]]>
+         </script>
+         <!-- List Ronin invoices -->
+         <ronin.init>
+            <apiUrl>{$ctx:ronin.apiUrl}</apiUrl>
+            <apiToken>{$ctx:ronin.apiToken}</apiToken>
+         </ronin.init>
+         <ronin.listInvoices>
+            <updatedSince>{$ctx:common.today}</updatedSince>
+         </ronin.listInvoices>
+         <property name="invoicesCount" expression="count(//invoices)" scope="operation" />
+
+         <property name="invoiceIndex" value="0" scope="operation" />
+         <!-- Check if any invoices to process if not skip the process. -->
+         <filter xpath="get-property('operation','invoicesCount') = 0">
+            <then>
+               <property name="id" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="ronin_createLinvoicesInZohobooks" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="message" value="No Invoices to process." />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!--FOR EACH Invoice : BEGIN -->
+               <iterate continueParent="false" id="invoices" expression="//invoices" sequential="true">
+                  <target>
+                     <sequence>
+
+                        <property name="ronin.clientId" expression="//client_id" />
+                        <property name="ronin.invoiceId" expression="//invoices/id" />
+                        <property name="ronin.clientName" expression="//client/name" />
+                        <property name="ronin.invoiceItems" expression="//invoice_items" />
+                        <property name="ronin.createdDate" expression="//date" />
+                        <property name="ronin.tax1" expression="//tax" />
+                        <property name="ronin.tax1Lable" expression="//tax_label" />
+                        <property name="ronin.tax1Lable"
+                           expression="fn:concat(get-property('ronin.invoiceId'),'-',get-property('ronin.tax1Lable'))" />
+
+                        <script language="js">
+                           <![CDATA[
+                              var payload = mc.getPayloadXML();
+                              var items = payload.invoice_items;
+                              var zohobooksLineItems = [];
+                              var zohoRequestParamsObj = {};
+                              for(var i = 0 ; i < items.length(); i++){
+                                 var zohobooksLineItem = {};
+                                 var item = items[i];
+                                 var itemTitle = ''+item.title;
+                                 var itemPrice = ''+item.price;
+                                 var itemQuantity = ''+item.quantity;
+                                 var isTaxable = eval("(" + item['taxable?'] + ")");
+                                             
+                                 if(itemTitle != null && itemTitle !=''){
+                                    zohobooksLineItem.name = itemTitle;
+                                 }
+                                 if(itemPrice != null && itemPrice !=''){
+                                    zohobooksLineItem.rate = itemPrice;
+                                 }
+                                 if(itemQuantity != null && itemQuantity !=''){
+                                    zohobooksLineItem.quantity = itemQuantity;
+                                 }
+                                 if(isTaxable != null && isTaxable !=''){
+                                    zohobooksLineItem.isTaxable = eval("(" + isTaxable + ")");
+                                 }
+                                 zohobooksLineItems.push(zohobooksLineItem);
+                                 }         
+                                 zohoRequestParamsObj['line_items'] = zohobooksLineItems; 
+                                 mc.setPayloadJSON(zohoRequestParamsObj);
+                                             
+                            ]]>
+                        </script>
+                        <property name="zohobooks.lineItems" expression="json-eval($.line_items)" />
+                        <!-- Check if the invoice created on today. -->
+                        <filter xpath="get-property('common.today') = get-property('ronin.createdDate') ">
+                           <then>
+                              <!-- Check and create Zohobooks contact if not exists -->
+
+                              <call-template target="zohobooks-createContact">
+                                 <with-param name="zohobooks.apiUrl" value="{$ctx:zohobooks.apiUrl}" />
+                                 <with-param name="zohobooks.authToken" value="{$ctx:zohobooks.authToken}" />
+                                 <with-param name="zohobooks.organizationId" value="{$ctx:zohobooks.organizationId}" />
+                                 <with-param name="ronin.apiUrl" value="{$ctx:ronin.apiUrl}" />
+                                 <with-param name="ronin.apiToken" value="{$ctx:ronin.apiToken}" />
+                                 <with-param name="ronin.clientId" value="{$ctx:ronin.clientId}" />
+                              </call-template>
+
+                              <!-- Create XML payload using Ronin invoiceItems, to create lineItems JSON object for zohobooks -->
+                              <filter source="boolean(get-property('zohobooks.contactId'))" regex="true">
+                                 <then>
+
+                                    <property name="zohobooks.referenceNumber" expression="fn:concat('RONIN-',get-property('ronin.invoiceId'))" />
+                                    <!-- Get zohobooks invoices by reference number -->
+                                    <zohobooks.init>
+                                       <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                                       <authToken>{$ctx:zohobooks.authToken}</authToken>
+                                       <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                                    </zohobooks.init>
+                                    <zohobooks.listInvoices>
+                                       <referenceNumber>{$ctx:zohobooks.referenceNumber}</referenceNumber>
+                                    </zohobooks.listInvoices>
+
+                                    <property name="zohobooks.invoicesCount" expression="count(//invoices)" />
+                                    <!-- Check if invoice already created, if not create new invoice -->
+                                    <filter xpath="get-property('zohobooks.invoicesCount') = 0">
+                                       <then>
+                                          <!-- Create zohobooks Tax -->
+                                          <call-template target="zohobooks-createTax">
+                                             <with-param name="zohobooks.authToken" value="{$ctx:zohobooks.authToken}" />
+                                             <with-param name="zohobooks.organizationId" value="{$ctx:zohobooks.organizationId}" />
+                                             <with-param name="zohobooks.taxName" value="{$ctx:ronin.tax1Lable}" />
+                                             <with-param name="zohobooks.taxPrecentage" value="{$ctx:ronin.tax1}" />
+                                             <with-param name="zohobooks.taxType" value="tax" />
+                                          </call-template>
+                                          <filter source="boolean(get-property('zohobooks.taxId'))" regex="true">
+                                             <then>
+                                                <script language="js">
+                                                <![CDATA[
+                                                 var lineItems = eval("(" + mc.getProperty('zohobooks.lineItems') + ")");    
+                                                 var zohoRequestParamsObj = {};
+                                                 var zohobooksLineItems = [];
+                                                 for(var i = 0 ; i < lineItems.length; i++){
+                                                    var lineItem = lineItems[i];
+                                                    if(lineItem.isTaxable){
+                                                      lineItem.tax_id = mc.getProperty('zohobooks.taxId');
+                                                      delete lineItem.isTaxable;
+                                                    }
+                                                    zohobooksLineItems.push(lineItem);
+                                                 }
+                                                  zohoRequestParamsObj['line_items'] = zohobooksLineItems; 
+                                                  mc.setPayloadJSON(zohoRequestParamsObj);                    
+                                                 ]]>
+                                                </script>
+                                                <property name="zohobooks.lineItems" expression="json-eval($.line_items)" />
+                                             </then>
+                                          </filter>
+                                          <!-- Create zohobooks invoice. -->
+                                          <zohobooks.init>
+                                             <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                                             <authToken>{$ctx:zohobooks.authToken}</authToken>
+                                             <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                                          </zohobooks.init>
+                                          <zohobooks.createInvoice>
+                                             <customerId>{$ctx:zohobooks.contactId}</customerId>
+                                             <lineItems>{$ctx:zohobooks.lineItems}</lineItems>
+                                             <referenceNumber>{$ctx:zohobooks.referenceNumber}</referenceNumber>
+                                          </zohobooks.createInvoice>
+                                          <filter source="$axis2:HTTP_SC" regex="201">
+                                             <then>
+                                                <property name="zohobooks.invoiceId" expression="json-eval($.invoice.invoice_id)" />
+                                                <property name="status" value="success" />
+                                                <property name="invoiceIdObject"
+                                                   expression="fn:concat('roninInvoiceId:',get-property('ronin.invoiceId'),',zohobooksInvoiceId:',get-property('zohobooks.invoiceId'))" />
+                                                <property name="message" value="Invoice has been created successfully." />
+                                             </then>
+                                             <else>
+                                                <property name="invoiceIdObject"
+                                                   expression="fn:concat('roninInvoiceId:',get-property('ronin.invoiceId'))" />
+                                                <property name="status" value="error" />
+                                                <property name="message" expression="json-eval($.)" />
+                                             </else>
+                                          </filter>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:invoiceIdObject}" />
+                                             <with-param name="activity" value="zohobooks_createInvoice" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                    </filter>
+                                 </then>
+                              </filter>
+
+                           </then>
+                        </filter>
+                        <property name="invoiceIndex" expression="get-property('operation','invoiceIndex') + 1"
+                           scope="operation" />
+                        <filter xpath="get-property('operation','invoicesCount') = get-property('operation','invoiceIndex') ">
+                           <then>
+                              <loopback />
+                           </then>
+                        </filter>
+                     </sequence>
+                  </target>
+               </iterate>
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>
+                     {
+                     "Response":{
+                     "process":"ronin_createInvoicesInZohobooks",
+                     "activityResponse":"No invoices to process."
+                     }
+                     }
+                  </format>
+               </payloadFactory>
+            </then>
+            <else>
+               <payloadFactory media-type="json">
+                  <format>
+                     {
+                     "Response":{
+                     "process":"ronin_createInvoicesInZohobooks",
+                     "activityResponse":[$1]
+                     }
+                     }
+                  </format>
+                  <args>
+                     <arg expression="get-property('operation', 'responseString')" />
+                  </args>
+               </payloadFactory>
+            </else>
+         </filter>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>  
