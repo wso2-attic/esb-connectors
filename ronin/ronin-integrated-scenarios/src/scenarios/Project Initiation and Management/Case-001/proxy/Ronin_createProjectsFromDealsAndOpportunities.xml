@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ronin Business Scenario : Project Initiation and Management Retrieving 
+	selected won deals from PipeDrive API and selected won opportunities from 
+	CapsuleCRM, and create projects in Ronin API -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="ronin_createProjectsFromDealsAndOpportunities"
+	transports="https,http" statistics="disable" trace="disable"
+	startOnLoad="true">
+	<target>
+		<inSequence onError="faultHandlerSeq">
+			<!--Ronin Properties -->
+			<property name="ronin.apiUrl" expression="json-eval($.ronin.apiUrl)" />
+			<property name="ronin.apiToken" expression="json-eval($.ronin.apiToken)" />
+
+			<!-- PipeDrive Properties -->
+			<property name="pipedrive.apiUrl" expression="json-eval($.pipedrive.apiUrl)" />
+			<property name="pipedrive.apiToken" expression="json-eval($.pipedrive.apiToken)" />
+			<property name="pipedrive.filterId" expression="json-eval($.pipedrive.filterId)" />
+
+			<!-- CapsuleCRM properties -->
+			<property name="capsulecrm.apiUrl" expression="json-eval($.capsulecrm.apiUrl)" />
+			<property name="capsulecrm.apiToken" expression="json-eval($.capsulecrm.apiToken)" />
+			<property name="capsulecrm.opportunityActualClosedDate"
+				expression="json-eval($.capsulecrm.opportunityActualClosedDate)" />
+
+			<!-- Retrieving selected won deals from PipeDrive API and create Projects 
+				in Ronin API: BEGIN -->
+
+			<!--Removing the Accept-Encoding Header. -->
+			<header name="Accept-Encoding" action="remove" scope="transport" />
+
+			<!-- Calling PipeDrive listDeals method to retrieve selected won deals 
+				by filter -->
+			<pipedrive.init>
+				<apiUrl>{$ctx:pipedrive.apiUrl}</apiUrl>
+				<apiToken>{$ctx:pipedrive.apiToken}</apiToken>
+			</pipedrive.init>
+			<pipedrive.listDeals>
+				<filterId>{$ctx:pipedrive.filterId}</filterId>
+			</pipedrive.listDeals>
+
+			<filter source="$axis2:HTTP_SC" regex="200">
+				<then>
+					<property name="data" expression="json-eval($.data)" />
+
+					<filter xpath="get-property('data')!='null'">
+						<then>
+							<property name="deal.count" expression="count(//data)"
+								scope="operation" />
+						</then>
+						<else>
+							<property name="deal.count" expression="0" scope="operation" />
+						</else>
+					</filter>
+
+					<property name="deal.index" expression="0" scope="operation" />
+
+					<filter xpath="get-property('operation', 'deal.count')=0">
+						<then>
+							<property name="id" value="{}" />
+							<property name="status" value="skipped" />
+							<property name="message" value="No won deal(s) in PipeDrive to process." />
+							<call-template target="responseHandlerTemplate">
+								<with-param name="id" value="{$ctx:id}" />
+								<with-param name="activity" value="ronin_createProject" />
+								<with-param name="status" value="{$ctx:status}" />
+								<with-param name="message" value="{$ctx:message}" />
+							</call-template>
+							<property name="pipeDrive.isOperationsDone" value="true"
+								scope="operation" />
+						</then>
+						<else>
+							<!--FOR EACH deals : BEGIN -->
+							<iterate continueParent="false" id="deals" expression="//data"
+								sequential="true">
+								<target>
+									<sequence>
+
+										<property name="pipedrive.deal.id" expression="json-eval($.data.id)" />
+										<property name="ronin.project.name" expression="json-eval($.data.title)" />
+										<property name="ronin.project.description"
+											expression="json-eval($.data.title)" />
+										<property name="ronin.project.rate" expression="json-eval($.data.value)" />
+										<property name="ronin.project.currencyCode"
+											expression="json-eval($.data.currency)" />
+
+										<property name="pipedrive.organization" expression="json-eval($.data.org_id)" />
+										<property name="ronin.client.name" value="" />
+										<property name="ronin.client.id" value="" />
+										<filter xpath="get-property('pipedrive.organization')!='null'">
+											<then>
+												<property name="ronin.client.name" expression="json-eval($.data.org_id.name)" />
+												<property name="pipedrive.orgId" expression="json-eval($.data.org_id.value)" />
+												<property name="common.client.id"
+													expression="fn:concat('pipedrive_organizationId:', get-property('pipedrive.orgId'))" />
+											</then>
+											<else>
+												<property name="ronin.client.name" expression="json-eval($.data.person_id.name)" />
+												<property name="pipedrive.personId" expression="json-eval($.data.person_id.value)" />
+												<property name="common.client.id"
+													expression="fn:concat('pipedrive_personId:', get-property('pipedrive.personId'))" />
+											</else>
+										</filter>
+
+										<property name="pipedrive.person" expression="json-eval($.data.person_id)" />
+										<property name="ronin.contact.name" value="" />
+										<property name="ronin.contact.email" value="" />
+
+										<filter xpath="get-property('pipedrive.person')!='null'">
+											<then>
+												<property name="ronin.contact.name" expression="json-eval($.data.person_id.name)" />
+												<property name="ronin.contact.email" expression="json-eval($.data.person_id.email.value)" />
+											</then>
+										</filter>
+
+										<property name="common.contact.id"
+											expression="fn:concat('pipedrive_contactPersonName:', get-property('ronin.contact.name'))" />
+
+
+										<property name="ronin.project.clientId"
+											expression="get-property('operation','ronin.project.clientId')" />
+										<property name="common.id"
+											expression="fn:concat('pipedrive_dealId:', get-property('pipedrive.deal.id'))"/>
+
+										<!-- Calling createClientsContactsAndProjects sequence to create client/contact and projects
+										in Ronin API-->
+										<sequence key="createClientsContactsAndProjects" />
+
+										<property name="deal.index"
+											expression="get-property('operation','deal.index') + 1"
+											scope="operation" />
+
+										<filter
+											xpath="get-property('operation','deal.count')=get-property('operation','deal.index')">
+											<then>
+												<property name="pipeDrive.isOperationsDone" value="true"
+													scope="operation" />
+											</then>
+										</filter>
+
+									</sequence>
+								</target>
+							</iterate>
+							<!--FOR EACH deals : END -->
+						</else>
+					</filter>
+				</then>
+				<else>
+					<property name="id" value="{}" />
+					<property name="status" value="error" />
+					<property name="message" expression="json-eval($.)" />
+					<call-template target="responseHandlerTemplate">
+						<with-param name="id" value="{$ctx:id}" />
+						<with-param name="activity" value="ronin_createProject" />
+						<with-param name="status" value="{$ctx:status}" />
+						<with-param name="message" value="{$ctx:message}" />
+					</call-template>
+					<property name="pipeDrive.isOperationsDone" value="true"
+						scope="operation" />
+				</else>
+			</filter>
+
+			<!-- Retrieving selected won deals from PipeDrive API and create Projects 
+				in Ronin API: END -->
+
+			<filter
+				xpath="get-property('operation','pipeDrive.isOperationsDone')='true'">
+				<then>
+					<!-- Retrieving selected won opportunities from CapsuleCRM API and create 
+						Projects in Ronin API: BEGIN -->
+
+					<!-- Calling CapsuleCRM listOpportunities to retrieve won opportunities -->
+					<capsulecrm.init>
+						<apiUrl>{$ctx:capsulecrm.apiUrl}</apiUrl>
+						<apiToken>{$ctx:capsulecrm.apiToken}</apiToken>
+						<format>json</format>
+					</capsulecrm.init>
+					<capsulecrm.listOpportunities>
+						<milestone>won</milestone>
+					</capsulecrm.listOpportunities>
+
+					<filter source="$axis2:HTTP_SC" regex="200">
+						<then>
+							<property name="capsulecrm.opportunity.count"
+								expression="count(//opportunities/opportunity)" scope="operation" />
+							<property name="capsulecrm.opportunity.index"
+								expression="0" scope="operation" />
+
+							<filter
+								xpath="get-property('operation','capsulecrm.opportunity.count')>0">
+								<then>
+									<!--FOR EACH opportunities : BEGIN -->
+									<iterate continueParent="true" id="opportunities"
+										expression="//opportunities/opportunity" sequential="true">
+										<target>
+											<sequence>
+												<property name="capsulecrm.opportunity.actualCloseDate"
+													expression="json-eval($.opportunity.actualCloseDate)" />
+
+												<property name="capsulecrm.opportunity.actualCloseDate"
+													expression="fn:substring-before(get-property('capsulecrm.opportunity.actualCloseDate'), 'T')" />
+												
+												<filter xpath="get-property('capsulecrm.opportunity.actualCloseDate')=get-property('capsulecrm.opportunityActualClosedDate')">
+													<then>
+														<property name="capsulecrm.opportunityId"
+															expression="json-eval($.opportunity.id)" />
+
+														<property name="ronin.project.name" expression="json-eval($.opportunity.name)" />
+														<property name="ronin.project.description"
+															expression="json-eval($.opportunity.description)" />
+														<property name="ronin.project.rate" expression="json-eval($.opportunity.value)" />
+														<property name="ronin.project.currencyCode"
+															expression="json-eval($.opportunity.currency)" />
+														<property name="ronin.project.partyId"
+															expression="json-eval($.opportunity.partyId)" />
+
+
+														<!-- Calling CapsuleCRM getParty method to retrieve contact 
+															details -->
+														<capsulecrm.init>
+															<apiUrl>{$ctx:capsulecrm.apiUrl}</apiUrl>
+															<apiToken>{$ctx:capsulecrm.apiToken}</apiToken>
+															<format>json</format>
+														</capsulecrm.init>
+														<capsulecrm.getParty>
+															<partyId>{$ctx:ronin.project.partyId}</partyId>
+														</capsulecrm.getParty>
+
+														<property name="capsulecrm.party.organisation"
+															expression="json-eval($.organisation)" />
+														<property name="capsulecrm.party.person"
+															expression="json-eval($.person)" />
+
+														<filter
+															source="boolean(get-property('capsulecrm.party.organisation'))"
+															regex="true">
+															<then>
+																<property name="capsulecrm.party.isOrganisation"
+																	value="true" />
+															</then>
+														</filter>
+
+														<filter source="boolean(get-property('capsulecrm.party.person'))"
+															regex="true">
+															<then>
+																<property name="capsulecrm.party.isPerson"
+																	value="true" />
+															</then>
+														</filter>
+
+														<property name="ronin.contact.name" value="" />
+														<property name="ronin.contact.email" value="" />
+														<filter
+															xpath="get-property('capsulecrm.party.isOrganisation')='true'">
+															<then>
+
+																<property name="ronin.client.name" expression="json-eval($.organisation.name)" />
+																<property name="capsulecrm.partyId" expression="json-eval($.organisation.id)" />
+																<property name="common.client.id"
+																	expression="fn:concat('capsulecrm_partyId:', get-property('capsulecrm.partyId'))" />
+																<property name="ronin.contact.name"
+																	expression="get-property('ronin.client.name')" />
+																<property name="ronin.contact.email"
+																	expression="json-eval($.organisation.contacts.email.emailAddress)" />
+															</then>
+														</filter>
+
+														<filter xpath="get-property('capsulecrm.party.isPerson')='true'">
+															<then>
+																<property name="ronin.client.name"
+																	expression="json-eval($.person.organisationName)" />
+																<property name="capsulecrm.contact.firstName"
+																	expression="json-eval($.person.firstName)" />
+																<property name="capsulecrm.contact.lastName"
+																	expression="json-eval($.person.lastName)" />
+																<filter source="boolean(get-property('ronin.client.name'))"
+																	regex="false">
+																	<then>
+																		<property name="ronin.client.name"
+																			expression="fn:concat(get-property('capsulecrm.contact.firstName'),' ', get-property('capsulecrm.contact.lastName'))" />
+																	</then>
+																</filter>
+																<property name="capsulecrm.partyId" expression="json-eval($.person.id)" />
+																<property name="common.client.id"
+																	expression="fn:concat('capsulecrm_partyId:', get-property('capsulecrm.partyId'))" />
+																<property name="ronin.contact.name"
+																	expression="fn:concat(get-property('capsulecrm.contact.firstName'),' ', get-property('capsulecrm.contact.lastName'))" />
+																<property name="ronin.contact.email"
+																	expression="json-eval($.person.contacts.email.emailAddress)" />
+
+															</then>
+														</filter>
+														<property name="common.id"
+															expression="fn:concat('capsulecrm_opportunityId:', get-property('capsulecrm.opportunityId'))" />
+
+														<!-- Calling createClientsContactsAndProjects sequence to create client/contact and projects
+															in Ronin API-->
+														<sequence key="createClientsContactsAndProjects" />
+
+													</then>
+												</filter>
+
+												<property name="capsulecrm.opportunity.index"
+													expression="get-property('operation','capsulecrm.opportunity.index') + 1"
+													scope="operation" />
+
+												<filter
+													xpath="get-property('operation','capsulecrm.opportunity.count')=get-property('operation','capsulecrm.opportunity.index')">
+													<then>
+														<property name="capsulecrm.isOperationsDone"
+															value="true" scope="operation" />
+													</then>
+												</filter>
+											</sequence>
+										</target>
+									</iterate>
+									<!--FOR EACH opportunities : END -->
+								</then>
+								<else>
+									<property name="id" value="{}" />
+									<property name="status" value="skipped" />
+									<property name="message"
+										value="No won opportunities(s) in CapsuleCRM to process." />
+									<call-template target="responseHandlerTemplate">
+										<with-param name="id" value="{$ctx:id}" />
+										<with-param name="activity" value="ronin_createProject" />
+										<with-param name="status" value="{$ctx:status}" />
+										<with-param name="message" value="{$ctx:message}" />
+									</call-template>
+
+									<property name="capsulecrm.isOperationsDone" value="true"
+										scope="operation" />
+								</else>
+							</filter>
+
+						</then>
+						<else>
+							<property name="id" value="{}" />
+							<property name="status" value="error" />
+							<property name="message" expression="json-eval($.)" />
+							<call-template target="responseHandlerTemplate">
+								<with-param name="id" value="{$ctx:id}" />
+								<with-param name="activity" value="ronin_createProject" />
+								<with-param name="status" value="{$ctx:status}" />
+								<with-param name="message" value="{$ctx:message}" />
+							</call-template>
+
+							<property name="capsulecrm.isOperationsDone" value="true"
+								scope="operation" />
+						</else>
+					</filter>
+
+					<!-- Retrieving selected won opportunities from CapsuleCRM API and create 
+						Projects in Ronin API: END -->
+
+				</then>
+			</filter>
+			
+			<filter xpath="get-property('operation','capsulecrm.isOperationsDone')='true'">
+				<then>
+					<loopback />
+				</then>
+			</filter>
+
+		</inSequence>
+		<outSequence>
+			<payloadFactory media-type="json">
+				<format>
+					{
+						"Response":{
+							"process":"ronin-createProjectsFromDealsAndOpportunities",
+							"activityResponse":[$1]
+						}
+					}
+				</format>
+				<args>
+					<arg expression="get-property('operation','responseString')" />
+				</args>
+			</payloadFactory>
+			<property name="messageType" value="application/json" scope="axis2" />
+			<send />
+		</outSequence>
+	</target>
+</proxy> 

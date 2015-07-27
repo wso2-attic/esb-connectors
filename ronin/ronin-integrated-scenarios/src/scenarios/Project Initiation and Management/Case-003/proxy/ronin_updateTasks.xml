@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Retrieve daily updated tasks from googleTasks API and update the relevant task in Ronin API. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="ronin_updateTasks" transports="https http" startOnLoad="true" trace="disable">
+   <target>
+      <inSequence>
+         <!-- Ronin Properties-->
+         <property name="ronin.apiUrl" expression="json-eval($.ronin.apiUrl)" />
+         <property name="ronin.apiToken" expression="json-eval($.ronin.apiToken)" />
+         
+		 <!-- GoogleTask Properties-->
+         <property name="googletasks.accessToken" expression="json-eval($.googletasks.accessToken)" />
+         <property name="googletasks.taskListId" expression="json-eval($.googletasks.taskListId)" />
+		 
+		 <!--Get the current date mid night time to retrieve tasks updated for the current day-->
+		 <script language="js">
+		 <![CDATA[
+				 var currentDate=new Date();
+				 var currentday=""+currentDate.getDate();
+				 if(currentday.length==1){
+					currentday="0"+currentday;
+				 }
+				 var dateString=currentDate.getFullYear() + "-" + Number(currentDate.getMonth()+1) + "-" + currentday;
+				 var lastUpdate =dateString+"T00:00:00.000Z";
+				 mc.setProperty('googletasks.taskUpdateMin', lastUpdate);
+			]]>
+		 </script>
+
+		 <!-- Call googletasks connector listTask method to list all tasks for the given taskList -->
+         <googletasks.init>
+            <accessToken>{$ctx:googletasks.accessToken}</accessToken>
+         </googletasks.init>
+         <googletasks.listTasks>
+            <tasklist_id>{$ctx:googletasks.taskListId}</tasklist_id>
+            <updatedMin>{$ctx:googletasks.taskUpdateMin}</updatedMin>
+         </googletasks.listTasks>
+
+         <property name="googletasks.taskCount" expression="count(//items)" scope="operation" />
+     
+         <filter xpath="get-property('operation','googletasks.taskCount') = 0">
+            <then>
+               <property name="id" value="{}" />
+               <property name="status" value="Skipped" />
+               <property name="message" value="No task details to process." />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="googletasks_listTasks" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <property name="taskIndex" expression="0" scope="operation" />
+			   
+               <!--for each TASK : begin-->
+               <iterate continueParent="false" id="tasks" expression="//items" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="messageType" value="application/json" scope="axis2" />
+                        <property name="googletasks.taskId" expression="json-eval($.items.id)" />
+                        <property name="googletasks.taskTitle" expression="json-eval($.items.title)" />
+                        <property name="googletasks.taskStatus" expression="json-eval($.items.status)" />
+                        <property name="googletasks.taskDescription" expression="json-eval($.items.notes)" />
+                        <property name="googletasks.taskDueDate" expression="json-eval($.items.due)" />
+
+                        <switch source="get-property('googletasks.taskStatus')">
+                           <case regex="needsAction">
+                              <property name="ronin.taskStatus" value="false" />
+                           </case>
+                           <case regex="completed">
+                              <property name="ronin.taskStatus" value="true" />
+                           </case>
+                        </switch>
+
+                        <script language="js">
+						<![CDATA[
+							var taskTitle = mc.getProperty('googletasks.taskTitle');
+							//retrieve the roninId contains in the googleTask title
+							var matches = taskTitle.match(/\[(.*?)\]/);
+							if (matches) {
+								var roninId = matches[1];
+								mc.setProperty('ronin.taskId',roninId);
+							}
+						]]></script>
+
+                        <filter source="boolean(get-property('ronin.taskId'))" regex="true">
+                           <then>
+							  <!--Call ronin updateTask method to update the task associated with the googltasks task-->
+                              <ronin.init>
+                                 <apiUrl>{$ctx:ronin.apiUrl}</apiUrl>
+                                 <apiToken>{$ctx:ronin.apiToken}</apiToken>
+                              </ronin.init>
+                              <ronin.updateTask>
+                                 <taskId>{$ctx:ronin.taskId}</taskId>
+                                 <description>{$ctx:googletasks.taskDescription}</description>
+                                 <dueDate>{$ctx:googletasks.taskDueDate}</dueDate>
+                                 <complete>{$ctx:ronin.taskStatus}</complete>
+                              </ronin.updateTask>
+
+                              <property name="ronin.taskId" expression="json-eval($.id)" />
+                             
+                              <filter source="boolean(get-property('ronin.taskId'))" regex="false">
+                                 <then>
+                                    <property name="id" value="{}" />
+                                    <property name="status" value="error" />
+                                    <property name="message" expression="json-eval($.)" />
+                                 </then>
+                                 <else>
+                                    <property name="id" expression="fn:concat('googletasksTaskID:',get-property('googletasks.taskId'),',roninTaskId:',get-property('ronin.taskId'))" />
+                                    <property name="message" value="Task has been updated." />
+                                    <property name="status" value="success" />
+                                 </else>
+                              </filter>
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="activity" value="ronin_updateTask" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </then>
+                        </filter>
+                        <property name="taskIndex" expression="get-property('operation','taskIndex') + 1" scope="operation" />
+                        <property name="index" expression="get-property('operation','taskIndex')" />
+                 
+                        <filter xpath="get-property('operation','taskIndex') = get-property('operation', 'googletasks.taskCount')">
+                           <then>
+                              <loopback />
+                           </then>
+                        </filter>
+                     </sequence>
+                  </target>
+               </iterate>
+               <!--for each TASK : end-->
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>{
+               "Response":{
+				  "process":"ronin_updateTasks",
+					 "activityResponse":[$1]
+				  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

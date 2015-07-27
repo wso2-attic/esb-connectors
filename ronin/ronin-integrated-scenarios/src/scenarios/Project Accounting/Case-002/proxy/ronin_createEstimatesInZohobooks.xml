@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Retrieve estimates for selected clients from Ronin API and create relevant estimate in ZohoBooks API. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="ronin_createEstimatesInZohobooks" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence>
+         <!--Zohobooks Properties -->
+         <property name="zohobooks.apiUrl" value="https://books.zoho.com" />
+         <property name="zohobooks.authToken" expression="json-eval($.zohobooks.authToken)" />
+         <property name="zohobooks.organizationId" expression="json-eval($.zohobooks.organizationId)" />
+
+         <!--Ronin Properties -->
+         <property name="ronin.apiUrl" expression="json-eval($.ronin.apiUrl)" />
+         <property name="ronin.apiToken" expression="json-eval($.ronin.apiToken)" />
+         <property name="ronin.clientId" expression="json-eval($.ronin.clientId)" />
+
+         <!--Common Properties -->
+         <property name="responseString" value="" scope="operation" />
+
+         <!-- Check and create Zohobooks contact if not exists -->
+         <call-template target="zohobooks-createContact">
+            <with-param name="zohobooks.apiUrl" value="{$ctx:zohobooks.apiUrl}" />
+            <with-param name="zohobooks.authToken" value="{$ctx:zohobooks.authToken}" />
+            <with-param name="zohobooks.organizationId" value="{$ctx:zohobooks.organizationId}" />
+            <with-param name="ronin.apiUrl" value="{$ctx:ronin.apiUrl}" />
+            <with-param name="ronin.apiToken" value="{$ctx:ronin.apiToken}" />
+            <with-param name="ronin.clientId" value="{$ctx:ronin.clientId}" />
+         </call-template>
+
+         <filter source="boolean(get-property('zohobooks.contactId'))" regex="true">
+            <then>
+               <!-- List Ronin estimates by passing clientId. -->
+               <ronin.init>
+                  <apiUrl>{$ctx:ronin.apiUrl}</apiUrl>
+                  <apiToken>{$ctx:ronin.apiToken}</apiToken>
+               </ronin.init>
+               <ronin.listEstimates>
+                  <clientId>{$ctx:ronin.clientId}</clientId>
+               </ronin.listEstimates>
+               <property name="estimatesCount" expression="count(//estimates)" scope="operation" />
+               <property name="estimateIndex" value="0" scope="operation" />
+               <!-- Check if any estimates to process if not skip the process. -->
+               <filter xpath="get-property('operation','estimatesCount') = 0">
+                  <then>
+                     <property name="id" value="{}" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="ronin_createEstimatesInZohobooks" />
+                        <with-param name="status" value="skipped" />
+                        <with-param name="message" value="No Estimates to process." />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <!--FOR EACH Estimates : BEGIN -->
+                     <iterate continueParent="false" id="estimates" expression="//estimates" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="ronin.estimateId" expression="//estimates/id" />
+                              <property name="ronin.clientName" expression="//client/name" />
+                              <property name="ronin.tax1" expression="//tax" />
+                              <property name="ronin.tax1Lable" expression="//tax_label" />
+                              <property name="ronin.tax1Lable"
+                                 expression="fn:concat(get-property('ronin.estimateId'),'-',get-property('ronin.tax1Lable'))" />
+                              <!-- Create zohobooks lineItems JSON object using Ronin estimate_items. -->
+                              <script language="js">
+                                 <![CDATA[
+                                    var payload = mc.getPayloadXML();
+                                    var items = payload.estimate_items;
+                                    var zohobooksLineItems = [];
+                                    var zohoRequestParamsObj = {};
+									for(var i = 0 ; i < items.length(); i++){
+                                       var zohobooksLineItem = {};
+                                       var item = items[i];
+                                       var itemTitle = ''+item.title;
+                                       var itemPrice = ''+item.price;
+                                       var itemQuantity = ''+item.quantity;
+                                       var isTaxable = eval("(" + item['taxable?'] + ")");
+                                       
+                                       if(itemTitle != null && itemTitle !=''){
+                                      
+                                          zohobooksLineItem.name = itemTitle;
+                                       }
+                                       if(itemPrice != null && itemPrice !=''){
+                                          zohobooksLineItem.rate = itemPrice;
+                                       }
+                                       if(itemQuantity != null && itemQuantity !=''){
+                                          zohobooksLineItem.quantity = itemQuantity;
+                                       }
+                                       if(isTaxable != null && isTaxable !=''){
+                                          zohobooksLineItem.isTaxable = eval("(" + isTaxable + ")");
+                                       }
+                                       zohobooksLineItems.push(zohobooksLineItem);
+                                    }
+                                    
+                                    zohoRequestParamsObj['line_items'] = zohobooksLineItems; 
+                                    mc.setPayloadJSON(zohoRequestParamsObj);
+                                    
+                                  ]]>
+                              </script>
+                              <property name="zohobooks.lineItems" expression="json-eval($.line_items)" />
+                              <property name="zohobooks.referenceNumber" expression="fn:concat('RONIN-',get-property('ronin.estimateId'))" />
+
+                              <property name="uri.var.estimates"
+                                 expression="fn:concat(get-property('zohobooks.apiUrl'),'/api/v3/estimates?authtoken=',get-property('zohobooks.authToken'),'&amp;organization_id=',get-property('zohobooks.organizationId'),'&amp;reference_number=',get-property('zohobooks.referenceNumber'))" />
+                              <!-- Get zohobooks estimates by reference number -->
+                              <call>
+                                 <endpoint>
+                                    <http method="get" uri-template="{uri.var.estimates}" />
+                                 </endpoint>
+                              </call>
+
+                              <property name="zohobooks.estimatesCount" expression="count(//estimates)" />
+                              <!-- Check if estimate already created, if not create -->
+                              <filter xpath="get-property('zohobooks.estimatesCount') = 0">
+                                 <then>
+                                    <!-- Create zohobooks Tax -->
+                                    <call-template target="zohobooks-createTax">
+                                       <with-param name="zohobooks.authToken" value="{$ctx:zohobooks.authToken}" />
+                                       <with-param name="zohobooks.organizationId" value="{$ctx:zohobooks.organizationId}" />
+                                       <with-param name="zohobooks.taxName" value="{$ctx:ronin.tax1Lable}" />
+                                       <with-param name="zohobooks.taxPrecentage" value="{$ctx:ronin.tax1}" />
+                                       <with-param name="zohobooks.taxType" value="tax" />
+                                    </call-template>
+                                    <filter source="boolean(get-property('zohobooks.taxId'))" regex="true">
+                                       <then>
+                                          <script language="js">
+                                                <![CDATA[
+                                                 var lineItems = eval("(" + mc.getProperty('zohobooks.lineItems') + ")");    
+                                                 var zohoRequestParamsObj = {};
+                                                 var zohobooksLineItems = [];
+                                                 for(var i = 0 ; i < lineItems.length; i++){
+                                                    var lineItem = lineItems[i];
+                                                    if(lineItem.isTaxable){
+                                                      lineItem.tax_id = mc.getProperty('zohobooks.taxId');
+                                                      delete lineItem.isTaxable;
+                                                    }
+                                                    zohobooksLineItems.push(lineItem);
+                                                 }
+                                                  zohoRequestParamsObj['line_items'] = zohobooksLineItems; 
+                                                  mc.setPayloadJSON(zohoRequestParamsObj);                    
+                                                 ]]>
+                                          </script>
+                                          <property name="zohobooks.lineItems" expression="json-eval($.line_items)" />
+                                       </then>
+                                    </filter>
+                                    <!-- Create zohobooks estimate -->
+                                    <zohobooks.init>
+                                       <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                                       <authToken>{$ctx:zohobooks.authToken}</authToken>
+                                       <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                                    </zohobooks.init>
+                                    <zohobooks.createEstimate>
+                                       <customerId>{$ctx:zohobooks.contactId}</customerId>
+                                       <lineItems>{$ctx:zohobooks.lineItems}</lineItems>
+                                       <referenceNumber>{$ctx:zohobooks.referenceNumber}</referenceNumber>
+                                    </zohobooks.createEstimate>
+                                    <filter source="$axis2:HTTP_SC" regex="201">
+                                       <then>
+                                          <property name="zohobooks.estimateId" expression="json-eval($.estimate.estimate_id)" />
+                                          <property name="status" value="success" />
+                                          <property name="estimateIdObject"
+                                             expression="fn:concat('roninEstimateId:',get-property('ronin.estimateId'),',zohobooksEstimateId:',get-property('zohobooks.estimateId'))" />
+                                          <property name="message" value="Estimate has been created successfully." />
+                                       </then>
+                                       <else>
+                                          <property name="estimateIdObject"
+                                             expression="fn:concat('roninEstimateId:',get-property('ronin.estimateId'))" />
+                                          <property name="status" value="error" />
+                                          <property name="message" expression="json-eval($.)" />
+                                       </else>
+                                    </filter>
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:estimateIdObject}" />
+                                       <with-param name="activity" value="zohobooks_createEstimate" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </then>
+                              </filter>
+                              <property name="estimateIndex" expression="get-property('operation','estimateIndex') + 1"
+                                 scope="operation" />
+                              <filter
+                                 xpath="get-property('operation','estimatesCount') = get-property('operation','estimateIndex') ">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>
+                  </else>
+               </filter>
+            </then>
+            <else>
+               <property name="id" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="ronin_createEstimatesInZohobooks" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="message" value="Unable to find/create zohobooks Customer." />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>
+                     {
+                     "Response":{
+                     "process":"ronin_createEstimatesInZohobooks",
+                     "activityResponse":"No estimates to process."
+                     }
+                     }
+                  </format>
+               </payloadFactory>
+            </then>
+            <else>
+               <payloadFactory media-type="json">
+                  <format>
+                     {
+                     "Response":{
+                     "process":"ronin_createEstimatesInZohobooks",
+                     "activityResponse":[$1]
+                     }
+                     }
+                  </format>
+                  <args>
+                     <arg expression="get-property('operation', 'responseString')" />
+                  </args>
+               </payloadFactory>
+            </else>
+         </filter>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>  
