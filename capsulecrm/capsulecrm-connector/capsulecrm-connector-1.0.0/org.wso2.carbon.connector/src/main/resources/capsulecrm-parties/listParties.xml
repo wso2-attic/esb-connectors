@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights 
+	Reserved. WSO2 Inc. licenses this file to you under the Apache License, Version 
+	2.0 (the "License"); you may not use this file except in compliance with 
+	the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 
+	Unless required by applicable law or agreed to in writing, software distributed 
+	under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES 
+	OR CONDITIONS OF ANY KIND, either express or implied. See the License for 
+	the specific language governing permissions and limitations under the License. -->
+<!-- API Documentation URL - http://developer.capsulecrm.com/v1/resources/parties/ -->
+<template name="listParties" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="searchTerm"
+		description="The search term will be matched against name, telephone number and exact match on searchable custom fields." />
+	<parameter name="email" description="Search by email address." />
+	<parameter name="tag" description="Tagged with the specified tag for parties." />
+	<parameter name="lastModified" description="Added or updated since the date specified." />
+	<parameter name="start"
+		description="First record to be returned. The results start with an index of 0." />
+	<parameter name="limit"
+		description="The maximum number of matching records to be returned." />
+	<sequence>
+		<property name="uri.var.searchTerm" expression="$func:searchTerm" />
+		<property name="uri.var.email" expression="$func:email" />
+		<property name="uri.var.tag" expression="$func:tag" />
+		<property name="uri.var.lastModified" expression="$func:lastModified" />
+		<property name="uri.var.start" expression="$func:start" />
+		<property name="uri.var.limit" expression="$func:limit" />
+		<script language="js">
+         <![CDATA[
+         	var searchTerm = mc.getProperty('uri.var.searchTerm');
+            var email = mc.getProperty('uri.var.email');
+            var tag = mc.getProperty('uri.var.tag');
+            var lastModified = mc.getProperty('uri.var.lastModified');
+            var start = mc.getProperty('uri.var.start');
+            var limit = mc.getProperty('uri.var.limit');
+            var urlQuery = '';
+            if (searchTerm != null && searchTerm != ""){
+               urlQuery += 'q=' + searchTerm + '&';
+            }
+            if (email != null && email != ""){
+               urlQuery += 'email=' + email + '&';
+            }
+            if (tag != null && tag != ""){
+               urlQuery += 'tag=' + tag + '&';
+            }
+            if (lastModified != null && lastModified != ""){
+               urlQuery += 'lastmodified=' + lastModified + '&';
+            }
+            if (start != null && start != ""){
+               urlQuery += 'start=' + start + '&';
+            }
+            if (limit != null && limit != ""){
+               urlQuery += 'limit=' + limit + '&';
+            }
+            // Prefix the urlQuery with '?' and remove the trailing '&'
+            if (urlQuery != "") {
+              urlQuery = '?' + urlQuery.substring(0, urlQuery.length-1);
+              mc.setProperty('uri.var.urlQuery', urlQuery);    
+            } 
+            mc.setProperty('uri.var.urlQuery', urlQuery);   
+         ]]>
+      </script>
+		<call>
+			<endpoint>
+				<http method="get" uri-template="legacy-encoding:{uri.var.apiUrl}/party{+uri.var.urlQuery}" />
+			</endpoint>
+		</call>
+		<!--Removing custom headers from the Response. -->
+		<header name="X-Frame-Options" action="remove" scope="transport" />
+		<header name="Vary" action="remove" scope="transport" />
+		<header name="X-XSS-Protection" action="remove" scope="transport" />
+		<header name="X-Content-Type-Options" action="remove" scope="transport" />
+		<header name="Strict-Transport-Security" action="remove" scope="transport" />
+        <header name="X-RateLimit-Remaining" action="remove" scope="transport" />
+        <header name="X-RateLimit-Limit" action="remove" scope="transport" />
+        <header name="X-RateLimit-Reset" action="remove" scope="transport" />
+	</sequence>
+</template>
