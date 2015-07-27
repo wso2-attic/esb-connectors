@@ -642,10 +642,10 @@ public class ZendeskConnectorIntegrationTest extends ConnectorIntegrationTestBas
    }
    
    /**
-    * Positive test case for shoWMultipleTickets method with mandatory parameters.
+    * Positive test case for showMultipleTickets method with mandatory parameters.
     */
-   @Test(priority = 1, groups = { "wso2.esb" }, description = "Zendesk {shoWMultipleTickets} integration test with mandatory parameters.")
-   public void testShoWMultipleTicketsWithMandatoryParameters() throws Exception {
+   @Test(priority = 1, groups = { "wso2.esb" }, description = "Zendesk {showMultipleTickets} integration test with mandatory parameters.")
+   public void testShowMultipleTicketsWithMandatoryParameters() throws Exception {
    
       esbRequestHeadersMap.put("Action", "urn:showMultipleTickets");
       
@@ -665,10 +665,10 @@ public class ZendeskConnectorIntegrationTest extends ConnectorIntegrationTestBas
    }
    
    /**
-    * Positive test case for shoWMultipleTickets method with optional parameters.
+    * Positive test case for showMultipleTickets method with optional parameters.
     */
-   @Test(priority = 1, dependsOnMethods = { "testCreateTicketWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Zendesk {shoWMultipleTickets} integration test with optional parameters.")
-   public void testShoWMultipleTicketsWithOptionalParameters() throws Exception {
+   @Test(priority = 1, dependsOnMethods = { "testCreateTicketWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Zendesk {showMultipleTickets} integration test with optional parameters.")
+   public void testShowMultipleTicketsWithOptionalParameters() throws Exception {
    
       esbRequestHeadersMap.put("Action", "urn:showMultipleTickets");
       parametersMap.put("ticketIds", ticketIds.toString());
@@ -700,10 +700,10 @@ public class ZendeskConnectorIntegrationTest extends ConnectorIntegrationTestBas
    }
    
    /**
-    * Negative test case for shoWMultipleTickets method with invalid parameters.
+    * Negative test case for showMultipleTickets method with invalid parameters.
     */
-   @Test(priority = 1, groups = { "wso2.esb" }, description = "Zendesk {shoWMultipleTickets} integration test with invalid parameters.")
-   public void testShoWMultipleTicketsWithInvlalidParameters() throws Exception {
+   @Test(priority = 1, groups = { "wso2.esb" }, description = "Zendesk {showMultipleTickets} integration test with invalid parameters.")
+   public void testShowMultipleTicketsWithInvlalidParameters() throws Exception {
    
       esbRequestHeadersMap.put("Action", "urn:showMultipleTickets");
       
@@ -765,7 +765,7 @@ public class ZendeskConnectorIntegrationTest extends ConnectorIntegrationTestBas
       parametersMap.put("organizationId", organizationId);
       parametersMap.put("collaboratorId", requesterId);
       parametersMap.put("groupId", groupId);
-      
+      parametersMap.put("attachment", token);
       RestResponse<JSONObject> esbRestResponse =
             sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createTicket_optional.json", parametersMap);
       
@@ -896,11 +896,11 @@ public class ZendeskConnectorIntegrationTest extends ConnectorIntegrationTestBas
    
       final Map<String, String> apiParametersMap = new HashMap<String, String>();
       
-      esbRequestHeadersMap.put("Action", "urn:createTicket");
+      esbRequestHeadersMap.put("Action", "urn:updateTicket");
       parametersMap.put("ticketId", ticketId);
       
       RestResponse<JSONObject> esbRestResponse =
-            sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_udpateTicket_invalid.json", parametersMap);
+            sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateTicket_invalid.json", parametersMap);
       
       RestResponse<JSONObject> apiRestResponse =
             sendJsonRestRequest(connectorProperties.getProperty("apiUrl") + "/api/v2/tickets/" + ticketId + ".json",
@@ -917,7 +917,7 @@ public class ZendeskConnectorIntegrationTest extends ConnectorIntegrationTestBas
     * Positive test case for deleteUpload method with mandatory parameters.
     */
    @Test(priority = 1, dependsOnMethods = { "testUpdateTicketWithOptionalParameters" }, groups = { "wso2.esb" }, description = "Zendesk {deleteUpload} integration test with mandatory parameters.")
-   public void testDeleteUplaodWithMandatoryParameters() throws Exception {
+   public void testDeleteUploadWithMandatoryParameters() throws Exception {
    
       // generate new token and attachmentId for deletion
       testUploadFilesWithMandatoryParameters();
@@ -943,7 +943,7 @@ public class ZendeskConnectorIntegrationTest extends ConnectorIntegrationTestBas
     * Negative test case for deleteUpload method.
     */
    @Test(priority = 1, groups = { "wso2.esb" }, description = "Zendesk {deleteUpload} integration test with negative case.")
-   public void testDeleteUplaodWithNegativeCase() throws Exception {
+   public void testDeleteUploadWithNegativeCase() throws Exception {
    
       esbRequestHeadersMap.put("Action", "urn:deleteUpload");
       parametersMap.put("token", "INVALID");

@@ -43,13 +43,20 @@ Steps to follow in setting integration test.
 	iv) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" in command line to import Zendesk certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from zendesk, change it accordingly. (e.g. -.zendesk.com)
 			   CERT_NAME is name of the certificate. (e.g. zendesk)
+			   
+ 5. Add the files which is used for upload to the following location and update the values of the properties step 9 iv, v, vi, vii corresponding to the added files.
+    Location: "{ZENDESK_CONNECTOR_HOME}/zendesk-connector/zendesk-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/config/resources/zendesk/"
+ 
+ 6. ESB should be configured according to the files which are been uploaded.
+		<messageBuilder contentType="image/gif" class="org.wso2.carbon.relay.BinaryRelayBuilder" />
+		<messageFormatter contentType="image/gif" class="org.wso2.carbon.relay.ExpandingMessageFormatter" />
+		
+ 7. Compress modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
 
- 5. Compress modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
-
- 6. Make sure that Zendesk is specified as a module in ESB_Connector_Parent pom.
+ 8. Make sure that Zendesk is specified as a module in ESB_Connector_Parent pom.
  	<module>Zendesk/zendesk-connector/zendesk-connector-1.0.0/org.wso2.carbon.connector</module>	
-	
- 7. Update the 'zendesk.properties' file at the location "{ZENDESK_CONNECTOR_HOME}/zendesk-connector/zendesk-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config/" as below.
+ 
+ 9. Update the 'zendesk.properties' file at the location "{ZENDESK_CONNECTOR_HOME}/zendesk-connector/zendesk-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config/" as below.
    	 i) 	apiUrl						-		Use the api url, step 1->(iii)
 	 ii) 	username					-		Use the username, step 1->(iii)
 	 iii) 	password					-		Use the password, step 1->(iii)
@@ -65,5 +72,5 @@ Steps to follow in setting integration test.
 	 xiii)	dueAt						-		The task due date (format: yyyy-mm-dd) to create ticket with optional parameters.
 	 xvi)	dueAtOptional				-		The task due date (format: yyyy-mm-dd) to update ticket with optional parameters.
 	 
- 9. Navigate to "{ESB_Connector_Home}/" and run the following command.
+ 10. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
