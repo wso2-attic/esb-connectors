@@ -1,0 +1,702 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--This proxy will retrieve the unread submissions from Formstack and create tickets in Sirportly. 
+Requester of the ticket will be created if they do not exist and the tickets will be assigned with assignees. 
+Finally both assignees and contacts will be notified about the ticket creation. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="sirportly_createTicketAndNotifyUsers" transports="https" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Formstack Properties. -->
+         <property name="formstack.accessToken" expression="json-eval($.formstack.accessToken)" />
+         <property name="formstack.apiUrl" value="https://www.formstack.com" />
+         <property name="formstack.formId" expression="json-eval($.formstack.formId)" />
+		 
+         <!-- Sirportly Properties. -->
+         <property name="sirportly.apiUrl" expression="json-eval($.sirportly.apiUrl)" />
+         <property name="sirportly.apiToken" expression="json-eval($.sirportly.apiToken)" />
+         <property name="sirportly.apiSecret" expression="json-eval($.sirportly.apiSecret)" />
+         <property name="sirportly.agentIds" expression="json-eval($.sirportly.agentIds)" />
+         <property name="sirportly.departmentName" expression="json-eval($.sirportly.departmentName)" />
+         <property name="sirportly.brand" expression="json-eval($.sirportly.brandName)" />
+         <property name="sirportly.cashboardProjectId" expression="json-eval($.sirportly.cashboardProjectId)" />
+         <property name="sirportlyAgentIndex" expression="0" scope="operation" />
+		 
+         <!-- Mandrill Properties. -->
+         <property name="mandrill.apiUrl" value="https://mandrillapp.com" />
+         <property name="mandrill.apiKey" expression="json-eval($.mandrill.apiKey)" />
+         <property name="mandrill.fromEmail" expression="json-eval($.mandrill.fromEmail)" />
+         <property name="mandrill.fromName" expression="json-eval($.mandrill.fromName)" />
+		 
+         <!-- Cashboard Properties. -->
+         <property name="cashboard.apiUrl" expression="json-eval($.cashboard.apiUrl)" />
+         <property name="cashboard.emailAddress" expression="json-eval($.cashboard.emailAddress)" />
+         <property name="cashboard.password" expression="json-eval($.cashboard.password)" />
+         <property name="cashboard.subdomain" expression="json-eval($.cashboard.subdomain)" />
+         
+         <property name="id.empty" value="{}" />
+		 
+		 <!--Sequence is called inorder to track whether there are any authentication failure in Cashboard. -->
+		 <sequence key="authenticateCashboardRequest" />
+		 
+         <!-- List all submissions of the given form. -->
+         <formstack.init>
+            <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+            <accessToken>{$ctx:formstack.accessToken}</accessToken>
+            <format>json</format>
+         </formstack.init>
+         <formstack.listSubmissions>
+            <formId>{$ctx:formstack.formId}</formId>
+            <page>1</page>
+            <perPage>100</perPage>
+            <sort>ASC</sort>
+            <data>true</data>
+            <expandData>true</expandData>
+         </formstack.listSubmissions>
+		 
+         <!--Removing unused headers. -->
+         <sequence key="removeResponseHeaders" />
+		 
+         <property name="formStack.submissions" expression="json-eval($.submissions)" />
+         <property name="id" expression="fn:concat('formstack_formId : ', get-property('formstack.formId'))" />
+		 
+         <!-- START of Filter: proceed to process the submission. -->
+         <filter source="boolean(get-property('formStack.submissions'))" regex="false">
+            <then>
+               <property name="errorResponse" expression="json-eval($)" />
+			   
+               <!-- Failure case: Append an error message to be sent to the user. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="formstack_listSubmissions" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:errorResponse}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <property name="formstack.submissionCount" expression="count(//jsonObject/submissions)" />
+               <property name="formstack.submissionIndex" expression="0" scope="operation" />
+               <property name="formstack.readSubmissions" expression="0" scope="operation" />
+			   
+               <!-- START of Filter: proceed to process the submission if there are any. -->
+               <filter source="get-property('formstack.submissionCount')" regex="0.0">
+                  <then>
+                     <!-- Failure case: Append an error message to be sent to the user. -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="formstack_listSubmissions" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="There are no submissions for the given form." />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+				  
+                     <!--FOR EACH submission: BEGIN -->
+                     <iterate id="submissionsIterator" expression="//submissions" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="formstack.submissionRead" expression="//submissions/read" />
+                              <!-- START of Filter: Proceed only if submission is not read before. -->
+                              <filter source="get-property('formstack.submissionRead')" regex="0">
+                                 <then>
+                                    <property name="formstack.readSubmissions" expression="get-property('operation', 'formstack.readSubmissions') + 1" scope="operation" />
+                                    <property name="formstack.submissionId" expression="//submissions/id" />
+                                    <!-- Get the details of the submission. -->
+                                    <formstack.init>
+                                       <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+                                       <accessToken>{$ctx:formstack.accessToken}</accessToken>
+                                       <format>json</format>
+                                    </formstack.init>
+                                    <formstack.getSubmission>
+                                       <submissionId>{$ctx:formstack.submissionId}</submissionId>
+                                    </formstack.getSubmission>
+									
+                                    <!--Removing unused headers. -->
+                                    <sequence key="removeResponseHeaders" />
+									
+                                    <property name="response.submissionId" expression="json-eval($.id)" />
+									
+                                    <!-- START of Filter: Proceed if the submission's details are successfully received. -->
+                                    <filter source="boolean(get-property('response.submissionId'))" regex="true">
+                                       <else>
+                                          <property name="id" expression="fn:concat('formstack_submissionId : ', get-property('formstack.submissionId'))" />
+                                          <property name="message" expression="json-eval($)" />
+										  
+                                          <!-- Failure case: Append an error message to be sent to the user. -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="formstack_getSubmission" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Error" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                       <then>
+                                          <property name="formstack.companyId" expression="//jsonObject/data[1]/value/text()" />
+                                          <property name="formstack.requesterName" expression="//jsonObject/data[2]/value/text()" />
+                                          <property name="formstack.requesterEmail" expression="//jsonObject/data[3]/value/text()" />
+                                          <property name="formstack.priority" expression="//jsonObject/data[4]/value/text()" />
+                                          <property name="formstack.subject" expression="//jsonObject/data[5]/value/text()" />
+                                          <property name="formstack.submissionDescription" expression="//jsonObject/data[6]/value/text()" />
+										  
+                                          <!--Call the sequence in order check the existence of the client's company.-->
+                                          <sequence key="getClientCompany" />
+										  
+                                          <property name="response.companyId" expression="//client_company/id/text()" />
+										  
+										  <!-- START of Filter: proceed to create the contact if the company of the client does exist. -->
+                                          <filter source="boolean(get-property('response.companyId'))" regex="true">
+                                             <then>
+                                                <property name="cashboard.companyName" expression="//client_company/name/text()" />
+                                                <!-- Search contacts to check whether a requester with the same email already exists. -->
+                                                <sirportly.init>
+                                                   <apiUrl>{$ctx:sirportly.apiUrl}</apiUrl>
+                                                   <apiToken>{$ctx:sirportly.apiToken}</apiToken>
+                                                   <apiSecret>{$ctx:sirportly.apiSecret}</apiSecret>
+                                                </sirportly.init>
+                                                <sirportly.searchContacts>
+                                                   <query>{$ctx:formstack.requesterEmail}</query>
+                                                </sirportly.searchContacts>
+												
+												<!--Removing unused headers. -->
+                                                <sequence key="removeResponseHeaders" />
+												
+                                                <property name="sirportly.contactId" expression="json-eval($[0].contact.id)" />
+												
+                                                <!-- START of Filter: proceed to create the contact if contact does not exist. -->
+                                                <filter xpath="get-property('sirportly.contactId')='[]'">
+                                                    <then>
+                                                      <sirportly.init>
+                                                         <apiUrl>{$ctx:sirportly.apiUrl}</apiUrl>
+                                                         <apiToken>{$ctx:sirportly.apiToken}</apiToken>
+                                                         <apiSecret>{$ctx:sirportly.apiSecret}</apiSecret>
+                                                      </sirportly.init>
+                                                      <sirportly.createContact>
+                                                         <contactName>{$ctx:formstack.requesterName}</contactName>
+                                                         <company>{$ctx:cashboard.companyName}</company>
+                                                         <priority>{$ctx:formstack.priority}</priority>
+                                                      </sirportly.createContact>
+													  
+                                                      <!--Removing unused headers. -->
+                                                      <sequence key="removeResponseHeaders" />
+													  
+                                                      <!-- START of Filter: Add contact method to the created contact only if contact is created successfully. -->
+                                                      <filter source="$axis2:HTTP_SC" regex="201">
+                                                         <then>
+                                                            <property name="sirportly.contactId" expression="json-eval($.id)" />
+                                                            <sirportly.init>
+                                                               <apiUrl>{$ctx:sirportly.apiUrl}</apiUrl>
+                                                               <apiToken>{$ctx:sirportly.apiToken}</apiToken>
+                                                               <apiSecret>{$ctx:sirportly.apiSecret}</apiSecret>
+                                                            </sirportly.init>
+                                                            <sirportly.addContactMethod>
+                                                               <contact>{$ctx:sirportly.contactId}</contact>
+                                                               <contactMethodType>email</contactMethodType>
+                                                               <contactData>{$ctx:formstack.requesterEmail}</contactData>
+                                                               <isDefault>true</isDefault>
+                                                            </sirportly.addContactMethod>
+															
+                                                            <!--Removing unused headers. -->
+                                                            <sequence key="removeResponseHeaders" />
+															
+                                                            <!-- START of Filter: Append a message to be sent to the user regarding the status of adding the email to the contact. -->
+                                                            <filter source="$axis2:HTTP_SC" regex="422">
+                                                               <then>
+                                                                  <property name="id" expression="get-property('id.empty')" />
+                                                                  <property name="status" value="Error" />
+                                                                  <property name="message" value="Contact is created successfully. However failed to add the email to contact. Possible reason : email already assign to a client." />
+                                                               </then>
+                                                               <else>
+                                                                  <property name="id" expression="fn:concat('sirportly_contactId : ', get-property('sirportly.contactId'))" />
+                                                                  <property name="status" value="Success" />
+                                                                  <property name="message" value="Contact is created successfully." />
+                                                               </else>
+                                                            </filter><!-- END of Filter: Append a message to be sent to the user regarding the status of the add contact method to the contact. -->
+                                                            <!-- Append message to be sent to the user. -->
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="sirportly_addContact" />
+                                                               <with-param name="status" value="{$ctx:status}" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                         </then>
+                                                         <else>
+                                                            <property name="sirportly.contactId" value="" />
+															
+                                                            <!-- Failure case: Append an error message to be sent to the user. -->
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="sirportly_createContact" />
+                                                               <with-param name="id" value="{$ctx:id.empty}" />
+                                                               <with-param name="status" value="Error" />
+                                                               <with-param name="message" value="Error in creating contact." />
+                                                            </call-template>
+                                                         </else>
+                                                      </filter><!-- END of Filter: Add contact method to the created contact only if contact is created successfully. -->
+                                                   </then>
+                                                </filter><!-- END of Filter: proceed to create the contact if contact is not exist. -->
+                                               
+											   <!-- START: Proceed to create ticket, only if contact exist for the requester. -->
+                                                <filter source="boolean(get-property('sirportly.contactId'))" regex="true">
+                                                   <then>
+                                                      <property name="agentIndex" expression="get-property('operation','sirportlyAgentIndex')" />
+                                                      <script language="js"><![CDATA[ 
+															 var sirportlyAgentIndexString = '' +mc.getProperty('agentIndex'); 
+															 sirportlyAgentIndexString =sirportlyAgentIndexString.split('.')[0]; 
+															 //splitting the agentIds string by comma to access each agentId 
+															 var agentsArray=mc.getProperty('sirportly.agentIds').split(','); 
+															 var noOfAgents=agentsArray.length; 
+															 mc.setProperty('sirportly.currentAgentId', agentsArray[sirportlyAgentIndexString]);
+															 if(sirportlyAgentIndexString < noOfAgents - 1){ 
+																sirportlyAgentIndexString = java.lang.Integer.parseInt(sirportlyAgentIndexString) + 1; 
+															 } 
+															 else {
+																sirportlyAgentIndexString = 0; 
+															 } 
+															 var cashboardProjectId=mc.getProperty('sirportly.cashboardProjectId');
+															 var customFields="{'custom[Cashboard-projectId]':'"+cashboardProjectId+"','custom[IsBIllable]':'true','custom[totalEstimation]':'0.0'}";												
+															 mc.setProperty('customFields',customFields);
+															 mc.setProperty('agentIndex',sirportlyAgentIndexString);
+														 ]]></script>
+                                                      <property name="sirportlyAgentIndex" expression="get-property('agentIndex')" scope="operation" />
+                                                      <property name="sirportly.team" value="null" />
+													  
+                                                      <!-- Create ticket for the submission. -->
+                                                      <sirportly.init>
+                                                         <apiUrl>{$ctx:sirportly.apiUrl}</apiUrl>
+                                                         <apiToken>{$ctx:sirportly.apiToken}</apiToken>
+                                                         <apiSecret>{$ctx:sirportly.apiSecret}</apiSecret>
+                                                      </sirportly.init>
+                                                      <sirportly.createTicket>
+                                                         <subject>{$ctx:formstack.subject}</subject>
+                                                         <status>New</status>
+                                                         <team>{$ctx:sirportly.team}</team>
+                                                         <assignedUser>{$ctx:sirportly.currentAgentId}</assignedUser>
+                                                         <priority>{$ctx:formstack.priority}</priority>
+                                                         <brand>{$ctx:sirportly.brand}</brand>
+                                                         <department>{$ctx:sirportly.departmentName}</department>
+                                                         <contact>{$ctx:sirportly.contactId}</contact>
+                                                         <customFields>{$ctx:customFields}</customFields>
+                                                      </sirportly.createTicket>
+													  
+                                                      <!--Removing unused headers. -->
+                                                      <sequence key="removeResponseHeaders" />
+													  
+                                                      <property name="sirportly.ticketId" expression="json-eval($.id)" />
+                                                     
+													 <!-- START of Filter: Proceed to add content to the ticket, only if ticket is created. -->
+                                                      <filter source="boolean(get-property('sirportly.ticketId'))" regex="true">
+                                                         <then>
+                                                            <property name="sirportly.ticktReference" expression="json-eval($.reference)" />
+                                                            <property name="sirportly.userId" expression="json-eval($.user.id)" />
+                                                            <property name="sirportly.contactEmail" expression="json-eval($.contact_method.data)" />
+                                                            <property name="sirportly.ticketSubject" expression="json-eval($.subject)" />
+                                                            <property name="sirportly.ticketPriority" expression="json-eval($.priority.name)" />
+                                                            <property name="sirportly.ticketDepartment" expression="json-eval($.department.name)" />
+                                                            <property name="sirportly.ticketCompany" expression="json-eval($.contact.company)" />
+                                                            <property name="sirportly.ticketContact" expression="json-eval($.contact.name)" />
+                                                            <property name="sirportly.ticketSource" expression="json-eval($.source.name)" />
+                                                            <property name="sirportly.assigneeName" expression="json-eval($.user.first_name)" />
+															
+                                                            <sirportly.init>
+                                                               <apiUrl>{$ctx:sirportly.apiUrl}</apiUrl>
+                                                               <apiToken>{$ctx:sirportly.apiToken}</apiToken>
+                                                               <apiSecret>{$ctx:sirportly.apiSecret}</apiSecret>
+                                                            </sirportly.init>
+                                                            <sirportly.addContentToTicket>
+                                                               <ticketReference>{$ctx:sirportly.ticktReference}</ticketReference>
+                                                               <message>{$ctx:formstack.submissionDescription}</message>
+                                                            </sirportly.addContentToTicket>
+															
+                                                            <!--Removing unused headers. -->
+                                                            <sequence key="removeResponseHeaders" />
+															
+                                                            <property name="sirportly.ticketContentId" expression="json-eval($.id)" />
+                                                          
+														    <!-- START of Filter: Proceed only if contact is added to the ticket. -->
+                                                            <filter source="boolean(get-property('sirportly.ticketContentId'))" regex="true">
+                                                               <then>
+                                                                  <property name="id" expression="fn:concat('sirportly_ticketId : ', get-property('sirportly.ticketId'))" />
+                                                                  <!-- Success case: Append a success message to be sent to the user. -->
+                                                                  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="activity" value="sirportly_createTicket" />
+                                                                     <with-param name="id" value="{$ctx:id}" />
+                                                                     <with-param name="status" value="Success" />
+                                                                     <with-param name="message" value="Ticket is created successfully." />
+                                                                  </call-template>
+                                                              
+															      <!-- START of Filter: Proceed to send notification to assignee, only if user exist. -->
+                                                                  <filter source="boolean(get-property('sirportly.userId'))" regex="true">
+                                                                     <then>
+                                                                        <!-- Get the details of the user. -->
+                                                                        <sirportly.init>
+                                                                           <apiUrl>{$ctx:sirportly.apiUrl}</apiUrl>
+                                                                           <apiToken>{$ctx:sirportly.apiToken}</apiToken>
+                                                                           <apiSecret>{$ctx:sirportly.apiSecret}</apiSecret>
+                                                                        </sirportly.init>
+                                                                        <sirportly.getUser>
+                                                                           <user>{$ctx:sirportly.userId}</user>
+                                                                        </sirportly.getUser>
+																		
+                                                                        <property name="sirportly.userEmail" expression="json-eval($.email_address)" />
+                                                                        
+																		<!-- START of Filter: Proceed to send notification to assignee, only if assignee's email exist. -->
+                                                                        <filter source="boolean(get-property('sirportly.userEmail'))" regex="true">
+                                                                           <then>
+                                                                              <property name="sirportly.firstName" expression="json-eval($.first_name)" />
+                                                                              <property name="sirportly.lastName" expression="json-eval($.last_name)" />
+																			  
+                                                                              <script language="js"><![CDATA[
+																				 var assignee = mc.getProperty('sirportly.assigneeName');
+																				 var subject = mc.getProperty('sirportly.ticketSubject');
+																				 var priority = mc.getProperty('sirportly.ticketPriority');
+																				 var department = mc.getProperty('sirportly.ticketDepartment');
+																				 var company = mc.getProperty('sirportly.ticketCompany');
+																				 var source = mc.getProperty('sirportly.ticketSource');
+																				 var ticktReference = mc.getProperty('sirportly.ticktReference');
+																				 var fullName=mc.getProperty('sirportly.firstName')+" "+mc.getProperty('sirportly.lastName'); 
+																				 var to = '[{"email": "' + mc.getProperty('sirportly.userEmail') + '","name": "' + mc.getProperty('sirportly.firstName') + '","type": "to"}]';                                                   
+																				 var mailSubject = 'New Ticket for ' + department;                                                  
+																				 var mailContent = "<style>table.line,  td.line {border: 1px solid #D0BFF1;border-collapse: collapse;}</style><h3>Dear "+assignee+",</h3><p>You have been assigned to a new Ticket. Following are the details.</p><table class=line ><tr style=background-color:#D0BFF1><td class=line colspan='2'>Ticket Details</td></tr><tr><td class=line>Tickt Reference</td><td class=line>"+ticktReference+"</td></tr><tr><td class=line style=width:100px;>Subject</td><td class=line style=width:300px;>"+subject+"</td></tr><tr><td class=line>Priority</td><td class=line>"+priority+"</td></tr><tr><td class=line>Company</td> <td class=line>"+company+"</td></tr><tr><td class=line>Source</td><td class=line>"+source+"</td></tr></table><p>Thank you.</p>";
+																				 mc.setProperty('fullName', fullName);
+																				 mc.setProperty('mandrill.to', to);
+																				 mc.setProperty('mandrill.subject', mailSubject);
+																				 mc.setProperty('mandrill.requester.html', mailContent);
+																			  ]]></script>
+																			  
+                                                                              <property name="mandrill.html" expression="fn:concat('&lt;html&gt;', get-property('mandrill.requester.html'), '&lt;/html&gt;')" />
+
+                                                                              <mandrill.init>
+                                                                                 <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                                                                 <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                                                                 <format>json</format>
+                                                                              </mandrill.init>
+                                                                              <mandrill.sendMessage>
+                                                                                 <html>{$ctx:mandrill.html}</html>
+                                                                                 <subject>{$ctx:mandrill.subject}</subject>
+                                                                                 <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+                                                                                 <fromName>{$ctx:mandrill.fromName}</fromName>
+                                                                                 <to>{$ctx:mandrill.to}</to>
+                                                                              </mandrill.sendMessage>
+																			  
+                                                                              <property name="mandrill.messageId" expression="json-eval($[0]._id)" />
+                                                                              
+																			  <!-- START of Filter: Append a message to be sent to the user regarding the status of sending notification to assignee. -->
+                                                                              <filter source="boolean(get-property('mandrill.messageId'))" regex="true">
+                                                                                 <then>
+                                                                                    <property name="id" expression="fn:concat('mandrill_messageId : ', get-property('mandrill.messageId'))" />
+                                                                                    <property name="status" value="Success" />
+                                                                                    <property name="message" expression="fn:concat('Notification email is sent to assignee (', get-property('fullName'), ') successfully.')" />
+                                                                                 </then>
+                                                                                 <else>
+                                                                                    <property name="id" expression="get-property('id.empty')" />
+                                                                                    <property name="status" value="Error" />
+                                                                                    <property name="message" expression="json-eval($)" />
+                                                                                 </else>
+                                                                              </filter><!-- END of Filter: Append a message to be sent to the user regarding the status of sending notification to assignee. -->
+                                                                             
+																			 <!-- Append message to be sent to the user. -->
+                                                                              <call-template target="responseHandlerTemplate">
+                                                                                 <with-param name="activity" value="mandrill_sendMessage" />
+                                                                                 <with-param name="id" value="{$ctx:id}" />
+                                                                                 <with-param name="status" value="{$ctx:status}" />
+                                                                                 <with-param name="message" value="{$ctx:message}" />
+                                                                              </call-template>
+                                                                           </then>
+                                                                           <else>
+                                                                              <!-- Failure case: Append an error message to be sent to the user. -->
+                                                                              <call-template target="responseHandlerTemplate">
+                                                                                 <with-param name="activity" value="mandrill_sendMessage" />
+                                                                                 <with-param name="id" value="{$ctx:id.empty}" />
+                                                                                 <with-param name="status" value="Error" />
+                                                                                 <with-param name="message" value="Failed to notify user regarding the ticket creation since requester email does not exist." />
+                                                                              </call-template>
+                                                                           </else>
+                                                                        </filter><!-- END of Filter: Proceed to send notification to assignee, only if user's email exist. -->
+                                                                     </then>
+                                                                     <else>
+                                                                        <property name="id" expression="fn:concat('sirportly_ticketId : ', get-property('sirportly.ticketId'))" />
+																		
+                                                                        <!-- Failure case: Append an error message to be sent to the user. -->
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                           <with-param name="activity" value="mandrill_sendMessage" />
+                                                                           <with-param name="id" value="{$ctx:id}" />
+                                                                           <with-param name="status" value="Skipped" />
+                                                                           <with-param name="message" value="Assigning the ticket to a user is skipped because of not providing the assignee ID or providing an invalid ID. Therefore the assignee couldn't be notified via email.Please assign a user offline." />
+                                                                        </call-template>
+                                                                     </else>
+                                                                  </filter><!-- END of Filter: Proceed to send notification to assignee, only if user exist. -->
+                                                                  
+																  <!-- START of Filter: Proceed to send message to requester, only if requester's email exist. -->
+                                                                  <filter source="boolean(get-property('sirportly.contactEmail'))" regex="true">
+                                                                     <then>
+                                                                        <script language="js"><![CDATA[
+																			 //script that sets the message which has to be sent.
+																			 var requesterName = mc.getProperty('formstack.requesterName');
+																			 var requesterEmail = mc.getProperty('formstack.requesterEmail');
+																			 var ticktReference = mc.getProperty('sirportly.ticktReference');
+																			 var department = mc.getProperty('sirportly.ticketDepartment');
+																			 var subject = mc.getProperty('formstack.subject');
+																			 var description = mc.getProperty('formstack.submissionDescription');
+																			 var priority = mc.getProperty('formstack.priority');
+																			 var company = mc.getProperty('cashboard.companyName');
+																			 var to = '[{"email": "' + requesterEmail + '","name": "' + requesterName + '","type": "to"}]';                                                   
+																			 var mailSubject = 'Request acknowledgement';                                                  
+																			 var mailContent = "<style>table.line, td {border: 1px solid #D0BFF1;border-collapse: collapse;}</style><h3>Dear "+requesterName+",</h3><p>Thank you for reaching the <b>"+department+"</b>. We have logged Service Request<b> "+ticktReference+"</b> as follows:</p><table class=line><tr style=background-color:#D0BFF1><td colspan='2'>Ticket Details</td></tr><tr><td style=width:100px;>Subject</td><td style=width:300px;>"+subject+"</td></tr><tr><td>Description</td><td>"+description+"</td></tr><tr><td>Priority</td><td>"+priority+"</td></tr><tr><td>Company</td><td>"+company+"</td></tr></table><p>We will contact you soon.</p><p>Regards <br><b>"+department+"</b></p>";
+																			 mc.setProperty('mandrill.requester.to', to);
+																			 mc.setProperty('mandrill.requester.subject', mailSubject);
+																			 mc.setProperty('mandrill.requester.text', mailContent);
+																		 ]]></script>
+                                                                        <property name="mandrill.html" expression="fn:concat('&lt;html&gt;', get-property('mandrill.requester.text'), '&lt;/html&gt;')" />
+																		
+                                                                        <!-- Send notification email about the ticket creation to the requester. -->
+                                                                        <mandrill.init>
+                                                                           <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                                                           <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                                                           <format>json</format>
+                                                                        </mandrill.init>
+                                                                        <mandrill.sendMessage>
+                                                                           <html>{$ctx:mandrill.html}</html>
+                                                                           <subject>{$ctx:mandrill.requester.subject}</subject>
+                                                                           <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+                                                                           <fromName>{$ctx:mandrill.fromName}</fromName>
+                                                                           <to>{$ctx:mandrill.requester.to}</to>
+                                                                        </mandrill.sendMessage>
+																		
+                                                                        <property name="mandrill.messageId" expression="json-eval($[0]._id)" />
+                                                                        
+																		<!-- START of Filter: Append a message to be sent to the user regarding the status of the send message to requester. -->
+                                                                        <filter source="boolean(get-property('mandrill.messageId'))" regex="true">
+                                                                           <then>
+                                                                              <property name="id" expression="fn:concat('mandrill_messageId : ', get-property('mandrill.messageId'))" />
+                                                                              <property name="status" value="Success" />
+                                                                              <property name="message" expression="fn:concat('Notification email is sent to requester (', get-property('formstack.requesterName'), ') successfully.')" />
+                                                                           </then>
+                                                                           <else>
+                                                                              <property name="id" expression="get-property('id.empty')" />
+                                                                              <property name="status" value="Error" />
+                                                                              <property name="message" expression="json-eval($)" />
+                                                                           </else>
+                                                                        </filter><!-- END of Filter: Append a message to be sent to the user regarding the status of the send message to requester. -->
+                                                                        
+																		<!-- Append message to be sent to the user. -->
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                           <with-param name="activity" value="mandrill_sendMessage" />
+                                                                           <with-param name="id" value="{$ctx:id}" />
+                                                                           <with-param name="status" value="{$ctx:status}" />
+                                                                           <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+                                                                     </then>
+                                                                     <else>
+                                                                        <!-- Failure case: Append an error message to be sent to the user. -->
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                           <with-param name="activity" value="mandrill_sendMessage" />
+                                                                           <with-param name="id" value="{$ctx:id.empty}" />
+                                                                           <with-param name="status" value="Error" />
+                                                                           <with-param name="message" value="Failed to notify the assignee about the ticket creation since assignee email address does not exist." />
+                                                                        </call-template>
+                                                                     </else>
+                                                                  </filter><!-- END of Filter: Proceed to send message to requester, only if requester's email exist. -->
+                                                               </then>
+                                                               <else>
+                                                                  <!-- Failure case: Append an error message to be sent to the user. -->
+                                                                  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="activity" value="sirportly_addContentToTicket" />
+                                                                     <with-param name="id" value="{$ctx:id.empty}" />
+                                                                     <with-param name="status" value="Error" />
+                                                                     <with-param name="message" value="Ticket is created successfully. However failed to add content to the ticket." />
+                                                                  </call-template>
+                                                               </else>
+                                                            </filter><!-- END of Filter: Proceed only if contact is added to the ticket. -->
+                                                         </then>
+                                                         <else>
+                                                            <!-- Failure case: Append an error message to be sent to the user. -->
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="sirportly_createTicket." />
+                                                               <with-param name="id" value="{$ctx:id.empty}" />
+                                                               <with-param name="status" value="Error" />
+                                                               <with-param name="message" value="Error in creating ticket." />
+                                                            </call-template>
+                                                         </else>
+                                                      </filter><!-- END of Filter: Proceed to add content to the ticket, only if ticket is created. -->
+                                                   </then>
+                                                   <else>
+                                                      <!-- Failure case: Append an error message to be sent to the user. -->
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="sirportly_createTicket" />
+                                                         <with-param name="id" value="{$ctx:id.empty}" />
+                                                         <with-param name="status" value="Error" />
+                                                         <with-param name="message" value="Creation of the ticket is skipped because the contact couldn't be created." />
+                                                      </call-template>
+													  
+                                                      <!-- Update read value as false in ticket submission. -->
+                                                      <formstack.init>
+                                                         <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+                                                         <accessToken>{$ctx:formstack.accessToken}</accessToken>
+                                                         <format>json</format>
+                                                      </formstack.init>
+                                                      <formstack.updateSubmission>
+                                                         <submissionId>{$ctx:formstack.submissionId}</submissionId>
+                                                         <read>false</read>
+                                                      </formstack.updateSubmission>
+													  
+                                                      <property name="response.submissionId" expression="json-eval($.id)" />
+                                                      
+													  <!-- START of Filter: Append a message to be sent to the user regarding the status of the update submission. -->
+                                                      <filter source="boolean(get-property('response.submissionId'))" regex="true">
+                                                         <then>
+                                                            <property name="status" value="Success" />
+                                                            <property name="message" value="Submission is reverted back to unread state successfully." />
+                                                         </then>
+                                                         <else>
+                                                            <property name="status" value="Error" />
+                                                            <property name="message" value="Failed to revert the submission to unread state. Please manually set the submission as unread." />
+                                                         </else>
+                                                      </filter><!-- END of Filter: Append a message to be sent to the user regarding the status of the update submission. -->
+                                                      
+													  <property name="id" expression="fn:concat('formstack_submissionId : ', get-property('formstack.submissionId'))" />
+                                                      <!-- Append message to be sent to the user. -->
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="formstack_updateSubmission" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="{$ctx:status}" />
+                                                         <with-param name="message" value="{$ctx:message}" />
+                                                      </call-template>
+                                                   </else>
+                                                </filter><!-- END of Filter: Proceed to create ticket, only if contact exist for the requester. -->
+                                             </then>
+                                             <else>
+                                                <property name="id" expression="fn:concat('formstack_submissionId : ', get-property('formstack.submissionId'))" />
+												
+                                                <!-- Failure case: Append an error message to be sent to the user. -->
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="cashboard_getcompany" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Error" />
+                                                   <with-param name="message" value="The company ID provided when submitting the query form is incorrect." />
+                                                </call-template>
+                                                <script language="js"><![CDATA[
+													//script that sets the message which has to be sent.
+													 var requesterName = mc.getProperty('formstack.requesterName');
+													 var requesterEmail = mc.getProperty('formstack.requesterEmail');
+													 var companyId = mc.getProperty('formstack.companyId');
+													 var ticktReference = mc.getProperty('sirportly.ticktReference');
+													 var department = mc.getProperty('sirportly.departmentName');
+													 var subject = mc.getProperty('formstack.subject');
+													 var description = mc.getProperty('formstack.submissionDescription');
+													 var priority = mc.getProperty('formstack.priority');
+													 var company = mc.getProperty('cashboard.companyName');
+													 var to = '[{"email": "' + requesterEmail + '","name": "' + requesterName + '","type": "to"}]';                                                   
+													 var mailSubject = 'Request acknowledgement';                                                  
+													 var mailContent = "<h3>Dear "+requesterName+",</h3><p>Thank you for reaching the <b>"+department+"</b>.We are sorry to inform u that we were unable to raise your ticket in our system because the company reference ID ("+companyId+") that you have entered in the customer query form was incorrect. Please take some time to resubmit your issue with valid information so that we will be able to proceed with it.<p>Regards <br><b>"+department+"</b></p>";
+													 mc.setProperty('mandrill.requester.to', to);
+													 mc.setProperty('mandrill.requester.subject', mailSubject);
+													 mc.setProperty('mandrill.requester.text', mailContent);
+												]]></script>
+                                                <property name="mandrill.html" expression="fn:concat('&lt;html&gt;', get-property('mandrill.requester.text'), '&lt;/html&gt;')" />
+                                                <!-- Send message regarding the incorrect company ID to the requester. -->
+                                                <mandrill.init>
+                                                   <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                                   <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                                   <format>json</format>
+                                                </mandrill.init>
+                                                <mandrill.sendMessage>
+                                                   <html>{$ctx:mandrill.html}</html>
+                                                   <subject>{$ctx:mandrill.requester.subject}</subject>
+                                                   <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+                                                   <fromName>{$ctx:mandrill.fromName}</fromName>
+                                                   <to>{$ctx:mandrill.requester.to}</to>
+                                                </mandrill.sendMessage>
+												
+                                                <property name="mandrill.messageId" expression="json-eval($[0]._id)" />
+                                                
+												<!-- START of Filter: Append a message to be sent to the user regarding the status of the send message to requester. -->
+                                                <filter source="boolean(get-property('mandrill.messageId'))" regex="true">
+                                                   <then>
+                                                      <property name="id" expression="fn:concat('mandrill_messageId : ', get-property('mandrill.messageId'))" />
+                                                      <property name="status" value="Success" />
+                                                      <property name="message" expression="fn:concat('The email notification is sent to the requester (', get-property('formstack.requesterName'), ') about the incorrect form submission.')" />
+                                                   </then>
+                                                   <else>
+                                                      <property name="id" expression="get-property('id.empty')" />
+                                                      <property name="status" value="Error" />
+                                                      <property name="message" expression="json-eval($)" />
+                                                   </else>
+                                                </filter><!-- END of Filter: Append a message to be sent to the user regarding the status of the send message to requester. -->
+                                                <!-- Append message to be sent to the user. -->
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="mandrill_sendMessage" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </else>
+                                          </filter> <!-- END of Filter: proceed to create the contact if the company of the client does exist. -->
+                                       </then>
+                                    </filter><!-- END of Filter: Proceed if the submission's details has been successfully received. -->
+                                 </then>
+                              </filter><!-- END of Filter: Proceed only if submission is not read before. -->
+                              <property name="formstack.submissionIndex" expression="get-property('operation', 'formstack.submissionIndex') + 1" scope="operation" />
+                              
+							  <!--START of Filter: Move to outSequence when all the iterations are done. -->
+                              <filter xpath="get-property('formstack.submissionCount') = get-property('operation', 'formstack.submissionIndex')">
+                                 <then>
+								    <!--START of Filter: Append an skipped message only if there is no any form submission. -->
+                                    <filter source="get-property('operation','formstack.readSubmissions')" regex="0.0">
+                                       <then>
+                                          <!-- Skipped case: Append an skipped message to be sent to the user. -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="sirportly_createTicket" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Skipped" />
+                                             <with-param name="message" value="There are no any unread submissions for the given form." />
+                                          </call-template>
+                                       </then>
+                                    </filter><!--END of Filter: Append an skipped message only if there is no any form submission. -->
+                                    <loopback />
+                                 </then>
+                              </filter><!--END of Filter: Move to outSequence when all the iterations are done. -->
+                           </sequence>
+                        </target>
+                     </iterate><!--END of Iterate : FOR EACH submission. -->
+                  </else>
+               </filter><!-- END of Filter: proceed to process the submission if there are any. -->
+            </else>
+         </filter><!-- END of Filter: proceed to process the submission. -->
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+			   {  
+				   "Response":{  
+					  "process":"sirportly_createTicketAndNotifyUsers",
+					  "activityResponse":[  
+						 $1
+					  ]
+				   }
+			   }
+			</format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
