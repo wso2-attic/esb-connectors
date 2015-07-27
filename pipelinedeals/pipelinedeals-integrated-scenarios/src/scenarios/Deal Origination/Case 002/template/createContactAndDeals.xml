@@ -219,22 +219,11 @@
                             <status>2</status>
                             <summary>{$ctx:pipelinedeals.dealSummary}</summary>
                         </pipelinedeals.createDeal>
-                        <property name="pipelinedeals.dealId" expression="json-eval($.id)" />
                         
 						<!-- START: Proceed with updating the mailchimp notes only if the deal is created successfully -->
-                        <filter source="boolean(get-property('pipelinedeals.dealId'))" regex="false">
+                        <filter source="$axis2:HTTP_SC" regex="200">
                             <then>
-                                <property name="id" expression="fn:concat(',mailchimp_campaignId:',get-property('mailchimp.campaignId'),',pipelinedeals_personId:',get-property('pipelinedeals.personId'))" />
-                                <property name="status" value="Error" />
-                                <property name="message" expression="json-eval($)" />
-                                <call-template target="responseHandlerTemplate">
-                                    <with-param name="activity" value="pipelinedeals_createDeal" />
-                                    <with-param name="id" value="{$ctx:id}" />
-                                    <with-param name="status" value="{$ctx:status}" />
-                                    <with-param name="message" value="{$ctx:message}" />
-                                </call-template>
-                            </then>
-                            <else>
+								<property name="pipelinedeals.dealId" expression="json-eval($.id)" />
                                 <property name="id" expression="fn:concat('mailchimp_campaignId:',get-property('mailchimp.campaignId'),',pipelinedeals_personId:',get-property('pipelinedeals.personId'),',pipelinedeals_dealId:',get-property('pipelinedeals.dealId'))" />
                                 <property name="status" value="Success" />
                                 <property name="message" value="A deal has been created in pipeline deals." />
@@ -287,7 +276,18 @@
                                         </call-template>
                                     </then>
                                 </filter>
-                            </else>
+                            </then>
+							<else>
+                                <property name="id" expression="fn:concat(',mailchimp_campaignId:',get-property('mailchimp.campaignId'),',pipelinedeals_personId:',get-property('pipelinedeals.personId'))" />
+                                <property name="status" value="Error" />
+                                <property name="message" expression="json-eval($)" />
+                                <call-template target="responseHandlerTemplate">
+                                    <with-param name="activity" value="pipelinedeals_createDeal" />
+                                    <with-param name="id" value="{$ctx:id}" />
+                                    <with-param name="status" value="{$ctx:status}" />
+                                    <with-param name="message" value="{$ctx:message}" />
+                                </call-template>
+							</else>
                         </filter>
                         <!-- END: Proceed with updating the mailchimp notes only if the deal is created successfully -->
                     </then>
