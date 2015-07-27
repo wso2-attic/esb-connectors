@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+    WSO2 Inc. licenses this file to you under the Apache License,
+    Version 2.0 (the "License"); you may not use this file except
+    in compliance with the License.
+    You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+  -->
+<template name="getHistoricalFollowers" xmlns="http://ws.apache.org/ns/synapse">
+
+    <parameter name="companyId" description="The unique internal numeric company identifier" />
+    <parameter name="timeGranularity" description="Granularity of statistics eg values:day,month" />
+    <parameter name="startTimestamp" description="Starting timestamp of when the stats search should begin (milliseconds since epoch) " />
+    <parameter name="endTimestamp" description="Ending timestamp of when the stats search should end (milliseconds since epoch)" />
+
+    <sequence>
+        <property name="uri.var.companyId" expression="$func:companyId" />
+
+        <property name="uri.var.timeGranularity" expression="$func:timeGranularity" />
+        <property name="uri.var.startTimestamp" expression="$func:startTimestamp" />
+        <property name="uri.var.mandatoryParameter" value=""/>
+        <property name="uri.var.mandatoryParameter" expression="fn:concat('start-timestamp=',get-property('uri.var.startTimestamp'),'&amp;time-granularity=',get-property('uri.var.timeGranularity'))" />
+
+        <property name="uri.var.optionalParameter" value=""/>
+        <filter
+                xpath="(not(get-property('uri.var.endTimestamp') = '' or  (not(string(get-property('uri.var.endTimestamp'))))))">
+            <then>
+                <property name="uri.var.optionalParameter"
+                          expression="fn:concat(get-property('uri.var.optionalParameter'),'&amp;end-timestamp=',get-property('uri.var.endTimestamp'))"/>
+            </then>
+        </filter>
+       <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{+uri.var.apiUrl}/v1/companies/{+uri.var.companyId}/historical-follow-statistics?oauth2_access_token={+uri.var.accessToken}&amp;{+uri.var.mandatoryParameter}{+uri.var.optionalParameter}&amp;format=json"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove" />
+        <header name="X-LI-UUID" scope="transport" action="remove" />
+        <header name="X-Li-Pop" scope="transport" action="remove" />
+        <header name="X-Li-Fabric" scope="transport" action="remove" />
+        <header name="x-li-request-id" scope="transport" action="remove" />
+        <header name="Set-Cookie" scope="transport" action="remove" />
+    </sequence>
+</template>
