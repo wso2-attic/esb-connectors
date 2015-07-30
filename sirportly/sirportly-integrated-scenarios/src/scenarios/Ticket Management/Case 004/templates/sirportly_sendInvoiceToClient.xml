@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Send the invoice via Mandrill, update invoice has been sent as true via Cashboard and update the status in Sirportly.-->
+<template name="sirportly_sendInvoiceToClient" xmlns="http://ws.apache.org/ns/synapse">
+
+   <!-- Mandrill Properties. -->
+   <parameter name="mandrillApiKey" description="Mandrill API key." />
+   <parameter name="mandrillApiUrl" description="The API url of mandrill." />
+   <parameter name="mandrillHtmlContent" description="The html content to be sent." />
+   <parameter name="mandrillTo" description="The resever details object." />
+   <parameter name="mandrillSubject" description="The subject of the mail." />
+   <parameter name="mandrillFromEmail" description="The resever details object." />
+   <parameter name="mandrillFromName" description="The subject of the mail." />
+   
+   <!-- Cashboard Properties. -->
+   <parameter name="cashboardApiUrl" description="The URL of the Cashboard API." />
+   <parameter name="cashboardEmailAddress" description="Email which is used to create the Cashboard account." />
+   <parameter name="cashboardPassword" description="Password of the Cashboard account." />
+   <parameter name="cashboardSubdomain" description="Subdomain of the Cashboard account." />
+   <parameter name="cashboardInvoiceId" description="The unique identifier of the invoice." />
+   <parameter name="sirportlyApiUrl" description="The URL of the Cashboard API." />
+   
+   <!-- Sirportly Properties. -->
+   <parameter name="sirportlyApiToken" description="Email which is used to create the Cashboard account." />
+   <parameter name="sirportlyApiSecret" description="Password of the Cashboard account." />
+   <parameter name="sirportlySubject" description="Subdomain of the Cashboard account." />
+   <parameter name="sirportlyTicketReference" description="The unique identifier of the invoice." />
+   
+   <sequence> 
+      <property name="uri.var.mandrillApiKey" expression="$func:mandrillApiKey" />
+      <property name="uri.var.mandrillApiUrl" expression="$func:mandrillApiUrl" />
+      <property name="uri.var.mandrillHtmlContent" expression="$func:mandrillHtmlContent" />
+      <property name="uri.var.mandrillTo" expression="$func:mandrillTo" />
+      <property name="uri.var.mandrillSubject" expression="$func:mandrillSubject" />
+      <property name="uri.var.mandrillFromEmail" expression="$func:mandrillFromEmail" />
+      <property name="uri.var.mandrillFromName" expression="$func:mandrillFromName" />
+      <property name="uri.var.cashboardApiUrl" expression="$func:cashboardApiUrl" />
+      <property name="uri.var.cashboardEmailAddress" expression="$func:cashboardEmailAddress" />
+      <property name="uri.var.cashboardPassword" expression="$func:cashboardPassword" />
+      <property name="uri.var.cashboardSubdomain" expression="$func:cashboardSubdomain" />
+      <property name="uri.var.cashboardInvoiceId" expression="$func:cashboardInvoiceId" />
+      <property name="uri.var.sirportlyApiUrl" expression="$func:sirportlyApiUrl" />
+      <property name="uri.var.sirportlyApiToken" expression="$func:sirportlyApiToken" />
+      <property name="uri.var.sirportlyApiSecret" expression="$func:sirportlyApiSecret" />
+      <property name="uri.var.sirportlySubject" expression="$func:sirportlySubject" />
+      <property name="uri.var.sirportlyTicketReference" expression="$func:sirportlyTicketReference" />
+      
+      <!-- Check weather the Mandril apiKey is sent by the user. -->
+      <filter source="boolean(get-property('mandrill.apiKey'))" regex="true">
+         <then>        
+            <!-- If Mandrill apiKey is sent: Send the invoice through Mandril. -->
+            <mandrill.init>
+               <apiKey>{$ctx:uri.var.mandrillApiKey}</apiKey>
+               <apiUrl>{$ctx:uri.var.mandrillApiUrl}</apiUrl>
+               <format>json</format>
+            </mandrill.init>
+            <mandrill.sendMessage>
+               <html>{$ctx:uri.var.mandrillHtmlContent}</html>
+               <subject>{$ctx:uri.var.mandrillSubject}</subject>
+               <fromEmail>{$ctx:uri.var.mandrillFromEmail}</fromEmail>
+               <fromName>{$ctx:uri.var.mandrillFromName}</fromName>
+               <to>{$ctx:uri.var.mandrillTo}</to>
+            </mandrill.sendMessage>
+            
+            <!--Removing unused headers. -->
+            <sequence key="removeResponseHeaders" />
+            
+            <property name="uri.var.mandrill.messageId" expression="json-eval($[0]._id)" />
+			
+            <!-- Set error if message not sent in Mandrill. -->
+            <property name="responseStatus" expression="$axis2:HTTP_SC" />
+			
+			<!--START of Filter: Check response status for all possible error responses. -->
+            <filter xpath="get-property('responseStatus') != 200">
+               <then>
+                  <property name="uri.var.id" expression="fn:concat('cashboard.invoiceId:', get-property('cashboard.invoiceId'))" />
+                  <property name="uri.var.message" expression="json-eval($.message)" />
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="activity" value="mandrill_sendMessage" />
+                     <with-param name="status" value="Error" />
+                     <with-param name="id" value="{$ctx:uri.var.id}" />
+                     <with-param name="message" value="{$ctx:uri.var.message}" />
+                  </call-template>
+               </then>
+               <else>              
+                  <!-- Update the invoice status as sent. -->
+                  <cashboard.init>
+                     <apiUrl>{$ctx:uri.var.cashboardApiUrl}</apiUrl>
+                     <emailAddress>{$ctx:uri.var.cashboardEmailAddress}</emailAddress>
+                     <password>{$ctx:uri.var.cashboardPassword}</password>
+                     <subdomain>{$ctx:uri.var.cashboardSubdomain}</subdomain>
+                     <format>xml</format>
+                  </cashboard.init>
+                  <cashboard.updateInvoice>
+                     <invoiceId>{$ctx:uri.var.cashboardInvoiceId}</invoiceId>
+                     <hasBeenSent>true</hasBeenSent>
+                  </cashboard.updateInvoice>
+                  
+                  <!--Removing unused headers. -->
+                  <sequence key="removeResponseHeaders" />
+                  
+                  <!-- Set error if update invoice fails in Cashboard. -->
+                  <property name="responseStatus" expression="$axis2:HTTP_SC" />
+				  
+				  <!--START of Filter: Check response status for all possible error responses. -->
+                  <filter xpath="get-property('responseStatus') != 200">
+                     <then>                    
+                        <!--If in case the error response returns as html then retrieve the error message accordingly. -->
+                        <property name="uri.var.cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+						
+                        <!-- If any other response comes it will be caught here. -->
+                        <property name="uri.var.cashboard.errorResponse" expression="json-eval($)" />
+						
+                        <!--START of Filter: Checking for HTML responses. -->
+                        <filter source="boolean(get-property('uri.var.cashboard.errorResponseHtml'))" regex="true">
+                           <then>
+                              <!--If in case the error comes as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                              <call-template target="base64Decoder">
+                                 <with-param name="responseBinaryString" value="{$ctx:uri.var.cashboard.errorResponseHtml}" />
+                              </call-template>
+							  
+                              <property name="uri.var.cashboard.errorMessage" expression="get-property('decodedResult')" />
+                           </then>
+                           <else>
+                              <property name="uri.var.cashboard.errorMessage" expression="get-property('uri.var.cashboard.errorResponse')" />
+                           </else>
+                        </filter><!--END of Filter: Checking for HTML responses. -->
+						
+                        <property name="id" expression="fn:concat('cashboard_invoiceId:', get-property('uri.var.cashboardInvoiceId'))" />
+						
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="activity" value="cashboard_updateInvoice" />
+                           <with-param name="id" value="{$ctx:id}" />
+                           <with-param name="status" value="Error" />
+                           <with-param name="message" value="{$ctx:uri.var.cashboard.errorMessage}" />
+                        </call-template>
+                        <loopback />
+                     </then>
+                     <else>                     
+                        <!-- Update the ticket status as resolved. -->
+                        <sirportly.init>
+                           <apiUrl>{$ctx:uri.var.sirportlyApiUrl}</apiUrl>
+                           <apiToken>{$ctx:uri.var.sirportlyApiToken}</apiToken>
+                           <apiSecret>{$ctx:uri.var.sirportlyApiSecret}</apiSecret>
+                        </sirportly.init>
+                        <sirportly.updateTicket>
+                           <subject>{$ctx:uri.var.sirportlySubject}</subject>
+                           <ticketReference>{$ctx:uri.var.sirportlyTicketReference}</ticketReference>
+                           <status>Resolved</status>
+                        </sirportly.updateTicket>
+                        
+                        <!--Removing unused headers. -->
+                        <sequence key="removeResponseHeaders" />
+                        
+                        <property name="uri.var.sirportly.status" expression="json-eval($.status.name)" />
+                        
+                        <!--START of Filter: Check weather the status is successfully updated in Sirportly. -->
+                        <filter xpath="get-property('uri.var.sirportly.status') = 'Resolved'">
+                           <then>                          
+                              <!-- Set the success massage after sending the message. -->
+                              <property name="id"
+                                 expression="fn:concat('cashboard_invoiceId:', get-property('uri.var.cashboardInvoiceId'), ',mandrill_messageId:', get-property('uri.var.mandrill.messageId'))" />
+                              <property name="message"
+                                 expression="fn:concat('Invoice is sent to requester (', get-property('cashboardClientFirstName'), ') successfully.')" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="mandrill_sendMessage" />
+                                 <with-param name="status" value="Success" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </then>
+                           <else>                          
+                              <!-- Set the success massage in case of failure to update the status. -->
+                              <property name="id"
+                                 expression="fn:concat('cashboard_invoiceId:', get-property('uri.var.cashboardInvoiceId'), ',mandrill_messageId:', get-property('uri.var.mandrill.messageId'))" />
+                              <property name="message"
+                                 expression="fn:concat('Invoice is sent to requester (', get-property('cashboardClientFirstName'), ') successfully however failed to update the status of the ticket')" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="mandrill_sendMessage" />
+                                 <with-param name="status" value="Success" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </else>
+                        </filter><!--END of Filter: Check weather the status is successfully updated in Sirportly. -->
+                     </else>
+                  </filter><!--END of Filter: Check response status for all possible error responses. -->
+               </else>
+            </filter><!--END of Filter: Check response status for all possible error responses. -->
+         </then>
+         <else>        
+            <!-- Set error if Mandrill apiKey is not sent by the user. -->
+            <call-template target="responseHandlerTemplate">
+               <with-param name="activity" value="mandrill_sendMessage" />
+               <with-param name="status" value="Error" />
+               <with-param name="id" value="{$ctx:id.empty}" />
+               <with-param name="message" value="Mandrill api key is not provided in the request." />
+            </call-template>
+         </else>
+      </filter><!--END of Filter: Check weather the Mandril apiKey is sent by the user. -->
+   </sequence>
+</template>

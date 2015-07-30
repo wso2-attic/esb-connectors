@@ -1,0 +1,680 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--This proxy will create the unresolved tickets of Sirportly in Cashboard as projectLists in a daily basis, add task to the estimate and create initial estimate for the client. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="sirportly_createProjectListAndEstimates" transports="https" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence>
+         <!-- Sirportly Properties. -->
+         <property name="sirportly.apiUrl" expression="json-eval($.sirportly.apiUrl)" />
+         <property name="sirportly.apiToken" expression="json-eval($.sirportly.apiToken)" />
+         <property name="sirportly.apiSecret" expression="json-eval($.sirportly.apiSecret)" />
+         <property name="sirportly.ticketsFilterName" expression="json-eval($.sirportly.ticketsFilterName)" />
+		 
+         <!-- Cashboard Properties. -->
+         <property name="cashboard.apiUrl" expression="json-eval($.cashboard.apiUrl)" />
+         <property name="cashboard.emailAddress" expression="json-eval($.cashboard.emailAddress)" />
+         <property name="cashboard.password" expression="json-eval($.cashboard.password)" />
+         <property name="cashboard.subdomain" expression="json-eval($.cashboard.subdomain)" />
+		 
+         <!-- Operation scoped properties. -->
+         <property name="id.empty" value="{}" />
+         <property name="responseString" value="" scope="operation" />
+		 
+         <!--Retrieve all the unresolved tickets created/modified on the present day of execution which belongs to the specific Department of a specific Brand. -->
+         <sirportly.init>
+            <apiUrl>{$ctx:sirportly.apiUrl}</apiUrl>
+            <apiToken>{$ctx:sirportly.apiToken}</apiToken>
+            <apiSecret>{$ctx:sirportly.apiSecret}</apiSecret>
+         </sirportly.init>
+         <sirportly.listTicketsByFilter>
+            <filter>{$ctx:sirportly.ticketsFilterName}</filter>
+         </sirportly.listTicketsByFilter>
+		 
+         <!--Checking the availability of records. -->
+         <property name="sirportly.records" expression="//pagination/total_records/text()" />
+		 
+         <!--Case Error: If there are no any records then handle the failure case.-->
+         <filter source="boolean(get-property('sirportly.records'))" regex="false">
+            <then>
+               <property name="sirportly.errorResponse" expression="json-eval($)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="sirportly_listTicketsByFilter" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:sirportly.errorResponse}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!--Getting the number of records retrieved. -->
+               <property name="sirportly.recordsCount" expression="count(//records)" scope="operation" />
+               <property name="sirportly.ticketRecords" expression="//records" scope="operation" />
+               <property name="sirportly.recordsIndex" expression="0" scope="operation" />
+			   
+               <!--Case Error: If the records count is zero then handle the failure case.-->
+               <filter source="get-property('operation', 'sirportly.recordsCount')" regex="0.0">
+                  <then>
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="sirportly_listTicketsByFilter" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="There are no tickets to process the project list creation." />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <!--Call the sequence in order to construct a JSON object containing client company details(store clientCompanyName against clientCompanyId).-->
+                     <sequence key="mapClientCompanyDetails" />
+					 
+                     <!--Construct a JSON object containing all the employee details(store employeeEmailAddress against employeeId). -->
+                     <cashboard.init>
+                        <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+                        <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+                        <password>{$ctx:cashboard.password}</password>
+                        <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+                        <format>xml</format>
+                     </cashboard.init>
+                     <cashboard.listEmployees />
+					 
+                     <!--Removing unused headers. -->
+                     <sequence key="removeResponseHeaders" />
+					 
+                     <!--Checking the existence of employees -->
+                     <property name="cashboard.responseEmployees" expression="//employees" />
+					 
+                     <!--Case Skipped: If there occurred an error while listing the employees then handle the error scenario.-->
+                     <filter source="boolean(get-property('cashboard.responseEmployees'))" regex="false">
+                        <then>
+                           <property name="cashboard.errorResponse" expression="json-eval($)" />
+                           <property name="cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+                           <property name="cashboard.httpStatusCode" expression="$axis2:HTTP_SC" />
+						   
+                           <!--If in case the error comes as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                           <call-template target="base64Decoder">
+                              <with-param name="responseBinaryString" value="{$ctx:cashboard.errorResponseHtml}" />
+                           </call-template>
+                           <property name="cashboard.errorResponse" expression="get-property('decodedResult')" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="cashboard_listEmployees" />
+                              <with-param name="id" value="{$ctx:id.empty}" />
+                              <with-param name="status" value="Error" />
+                              <with-param name="message" value="{$ctx:cashboard.errorResponse}" />
+                           </call-template>
+						   
+                           <!--If there occurs an authentication failure then loopback.-->
+                           <filter source="get-property('cashboard.httpStatusCode')" regex="401">
+                              <then>
+                                 <loopback />
+                              </then>
+                           </filter><!--END of Filter: If there occurs an authentication failure then loopback.-->
+                        </then>
+                        <else>
+                           <property name="messageType" value="application/json" scope="axis2" />
+                           <!--Getting the number of employees retrieved. -->
+                           <property name="cashboard.employeeArray" expression="json-eval($.employees.employee)" />
+                           <script language="js"><![CDATA[
+								//script to construct the JSON object to map all the available employeeEmail against their IDs.
+								var employeeArray= eval("(" + mc.getProperty('cashboard.employeeArray') + ")");
+								var employeeObject={};
+								var employeeEmail="";
+								var employeeId="";				
+								for(i=0; i<employeeArray.length ; i++){
+									employeeEmail=employeeArray[i].email_address;
+									employeeId= '' + employeeArray[i].id;
+									employeeId=employeeId.split(".")[0];
+									employeeObject[employeeEmail]=employeeId;						
+								}
+								mc.setPayloadJSON(employeeObject);
+							]]></script>
+                           <property name="cashboardEmployeeObject" expression="json-eval($)" />
+                        </else>
+                     </filter><!--END of Filter: If there occurred an error while listing the employees then handle the error scenario.-->
+					 
+                     <!--Constructing a json object containing all the contact details(store contactEmails against contactIds).-->
+                     <cashboard.init>
+                        <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+                        <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+                        <password>{$ctx:cashboard.password}</password>
+                        <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+                        <format>xml</format>
+                     </cashboard.init>
+                     <cashboard.listClientContacts />
+					 
+                     <!--Removing unused headers. -->
+                     <sequence key="removeResponseHeaders" />
+					 
+                     <!--Checking the existence of client contacts. -->
+                     <property name="cashboard.responseClientContacts" expression="//client_contacts" />
+					 
+                     <!--Case Error: If there occurred an error while listing the contacts then handle the error scenario.-->
+                     <filter source="boolean(get-property('cashboard.responseClientContacts'))" regex="false">
+                        <then>
+                           <property name="cashboard.errorResponse" expression="json-eval($)" />
+                           <property name="cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+						   
+                           <!--If in case the error comes as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                           <call-template target="base64Decoder">
+                              <with-param name="responseBinaryString" value="{$ctx:cashboard.errorResponseHtml}" />
+                           </call-template>
+                           <property name="cashboard.errorResponse" expression="get-property('decodedResult')" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="cashboard_listClientContacts" />
+                              <with-param name="id" value="{$ctx:id.empty}" />
+                              <with-param name="status" value="Error" />
+                              <with-param name="message" value="{$ctx:cashboard.errorResponse}" />
+                           </call-template>
+                        </then>
+                        <else>
+                           <!--Getting the number of contacts retrieved. -->
+                           <property name="messageType" value="application/json" scope="axis2" />
+                           <property name="cashboard.clientContactArray" expression="json-eval($.client_contacts.client_contact)" />
+						   
+                           <script language="js"><![CDATA[
+									//script to construct the JSON object to map all the available contactEmail against their IDs.
+									var clientContactArray= eval("(" + mc.getProperty('cashboard.clientContactArray') + ")");
+									var clientContactObject={};
+									var clientContactEmail="";
+									var clientContactId="";				
+									for(i=0; i<clientContactArray.length ; i++){
+										clientContactEmail=clientContactArray[i].email_address;
+										clientContactId= '' + clientContactArray[i].id;
+										clientContactId=clientContactId.split(".")[0];
+										clientContactObject[clientContactEmail]=clientContactId;						
+									}
+									mc.setPayloadJSON(clientContactObject);
+							]]></script>
+                           <property name="cashboardClientContactObject" expression="json-eval($)" />
+                        </else>
+                     </filter><!--END of Filter: If there occurred an error while listing the contacts then handle the error scenario.-->
+					 
+                     <!--Retrieve all the unresolved tickets of the day which belongs to the specific Department of the Brand. -->
+                     <sirportly.init>
+                        <apiUrl>{$ctx:sirportly.apiUrl}</apiUrl>
+                        <apiToken>{$ctx:sirportly.apiToken}</apiToken>
+                        <apiSecret>{$ctx:sirportly.apiSecret}</apiSecret>
+                     </sirportly.init>
+                     <sirportly.listTicketsByFilter>
+                        <filter>{$ctx:sirportly.ticketsFilterName}</filter>
+                     </sirportly.listTicketsByFilter>
+					 
+                     <!--Removing unused headers. -->
+                     <sequence key="removeResponseHeaders" />
+					 
+                     <!--START LOOP: FOR EACH ticket. -->
+                     <iterate continueParent="false" id="ticketIterator" expression="//records" sequential="true">
+                        <target>
+                           <sequence>
+                              <!--Retrieve the ticket reference. -->
+                              <property name="sirportly.ticketReference" expression="//records/reference/text()" />
+                              <property name="sirportly.ticketsFilterName" action="remove" />
+							  
+                              <!--Delaying each iteration by 5 seconds to avoid duplicate creation of employees with the same email. -->
+                              <script language="js"><![CDATA[
+									java.lang.Thread.sleep(5000);
+								]]></script>
+							  
+                              <!--Get more details of the ticket -->
+                              <sirportly.init>
+                                 <apiUrl>{$ctx:sirportly.apiUrl}</apiUrl>
+                                 <apiToken>{$ctx:sirportly.apiToken}</apiToken>
+                                 <apiSecret>{$ctx:sirportly.apiSecret}</apiSecret>
+                              </sirportly.init>
+                              <sirportly.getTicket>
+                                 <ticketReference>{$ctx:sirportly.ticketReference}</ticketReference>
+                              </sirportly.getTicket>
+							  
+                              <!--Removing unused headers. -->
+                              <sequence key="removeResponseHeaders" />
+							  
+                              <property name="sirportly.responseId" expression="json-eval($.id)" />
+							  
+                              <!--Case Skipped: If there occurred an error while retrieving the specific ticket details then handle the error scenario.-->
+                              <filter source="boolean(get-property('sirportly.responseId'))" regex="false">
+                                 <then>
+                                    <property name="sirportly.errorResponse" expression="json-eval($)" />
+                                    <property name="id" expression="fn:concat('sirportly_ticketReference:',get-property('sirportly.ticketReference'))" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="sirportly_getTicket" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Skipped" />
+                                       <with-param name="message" value="{$ctx:sirportly.errorResponse}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                    <!--Retrieve ticket details.-->
+                                    <property name="sirportly.ticketSubject" expression="json-eval($.subject)" />
+                                    <property name="sirportly.cashboardProjectId" expression="json-eval($.custom_fields.Cashboard-projectId)" />
+									
+                                    <!--Retrieve details about the contact of the ticket.-->
+                                    <property name="sirportly.contactId" expression="json-eval($.contact.id)" />
+                                    <property name="sirportly.contactName" expression="json-eval($.contact.name)" />
+                                    <property name="sirportly.contactCompany" expression="json-eval($.contact.company)" />
+                                    <property name="sirportly.contactEmailAddress" expression="json-eval($.contact_method.data)" />
+									
+                                    <!--Retrieve details about assignee of the ticket. -->
+                                    <property name="sirportly.assigneeId" expression="json-eval($.user.id)" />
+                                    <property name="sirportly.assigneeFirstName" expression="json-eval($.user.first_name)" />
+                                    <property name="sirportly.assigneeLastName" expression="json-eval($.user.last_name)" />
+									
+                                    <!--Retrieve the user's email address. -->
+                                    <sirportly.init>
+                                       <apiUrl>{$ctx:sirportly.apiUrl}</apiUrl>
+                                       <apiToken>{$ctx:sirportly.apiToken}</apiToken>
+                                       <apiSecret>{$ctx:sirportly.apiSecret}</apiSecret>
+                                    </sirportly.init>
+                                    <sirportly.getUser>
+                                       <user>{$ctx:sirportly.assigneeId}</user>
+                                    </sirportly.getUser>
+									
+                                    <!--Removing unused headers. -->
+                                    <sequence key="removeResponseHeaders" />
+									
+                                    <property name="sirportly.responseId" expression="json-eval($.id)" />
+									
+                                    <!--Case Skipped: If there occurred an error while retrieving the specific user(assignee) details then handle the error scenario.-->
+                                    <filter source="boolean(get-property('sirportly.responseId'))" regex="false">
+                                       <then>
+                                          <property name="sirportly.errorResponse" expression="json-eval($)" />
+                                          <property name="id" expression="fn:concat('sirportly_assigneeId:',get-property('sirportly.assigneeId'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="sirportly_getUser" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Skipped" />
+                                             <with-param name="message" value="{$ctx:sirportly.errorResponse}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <!--Retrieve the email address of the assignee. -->
+                                          <property name="sirportly.assigneeEmail" expression="json-eval($.email_address)" />
+                                          <property name="cashboard.customField1" expression="fn:concat('Sirportly_AssigneeId-',get-property('sirportly.assigneeId'))" />
+										  
+                                          <!--Check for the existence of the employee in Cashboard -->
+                                          <script language="js"><![CDATA[
+												//script that checks the employeeID of an existing employee.
+												var assigneeEmail=mc.getProperty('sirportly.assigneeEmail');
+												var cashboardEmployeeObject= eval("(" + mc.getProperty('cashboardEmployeeObject') + ")");
+												var employeeId="";
+												if(cashboardEmployeeObject.hasOwnProperty(assigneeEmail)){
+													employeeId=cashboardEmployeeObject[assigneeEmail];
+												}
+												mc.setProperty('cashboard.existingEmployeeId',employeeId);
+											]]></script>
+                                          <!--If the employee exists then get the employeeId else create a new employee. -->
+                                          <filter source="boolean(get-property('cashboard.existingEmployeeId'))" regex="true">
+                                             <then>
+                                                <property name="cashboardEmployeeId" expression="get-property('cashboard.existingEmployeeId')" />
+                                             </then>
+                                             <else>
+                                                <!--Create the employee in Cashboard (if the employee is already created under the same email, this will be automatically skipped). -->
+                                                <cashboard.init>
+                                                   <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+                                                   <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+                                                   <password>{$ctx:cashboard.password}</password>
+                                                   <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+                                                </cashboard.init>
+                                                <cashboard.createEmployee>
+                                                   <firstName>{$ctx:sirportly.assigneeFirstName}</firstName>
+                                                   <lastName>{$ctx:sirportly.assigneeLastName}</lastName>
+                                                   <employeeEmailAddress>{$ctx:sirportly.assigneeEmail}</employeeEmailAddress>
+                                                   <custom1>{$ctx:cashboard.customField1}</custom1>
+                                                   <format>json</format>
+                                                </cashboard.createEmployee>
+												
+                                                <!--Removing unused headers. -->
+                                                <sequence key="removeResponseHeaders" />
+												
+                                                <property name="cashboardEmployeeId" expression="//employee/id/text()" />
+												
+                                                <!--Case Skipped: If there occurred an error while creating the employee then handle the error scenario.-->
+                                                <filter source="boolean(get-property('cashboardEmployeeId'))" regex="false">
+                                                   <then>
+                                                      <property name="cashboard.errorResponse" expression="json-eval($)" />
+                                                      <property name="cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+                                                      <property name="id" expression="fn:concat('sirportly_assigneeId:',get-property('sirportly.assigneeId'))" />
+													  
+                                                      <!--If in case the error comes as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                                                      <call-template target="base64Decoder">
+                                                         <with-param name="responseBinaryString" value="{$ctx:cashboard.errorResponseHtml}" />
+                                                      </call-template>
+                                                      <property name="cashboard.errorResponse" expression="get-property('decodedResult')" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="cashboard_createEmployee" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="Error" />
+                                                         <with-param name="message" value="{$ctx:cashboard.errorResponse}" />
+                                                      </call-template>
+                                                   </then>
+                                                   <else>
+                                                      <property name="id" expression="fn:concat('cashboard_employeeId:',get-property('cashboardEmployeeId'))" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="cashboard_createEmployee" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="Success" />
+                                                         <with-param name="message" value="Employee is created successfully." />
+                                                      </call-template>
+                                                   </else>
+                                                </filter><!--END of Filter: If there occurred an error while creating the employee then handle the error scenario.-->
+                                             </else>
+                                          </filter><!--END of Filter: If the employee exists then get the employeeId else create a new employee. -->
+                                       </else>
+                                    </filter><!--END of Filter: If there occurred an error while retrieving the specific user(assignee) details then handle the error scenario.-->
+                                    <!--Check for the existence of the client contact in Cashboard. -->
+                                    <script language="js"><![CDATA[
+											//script that checks the contactID of an existing contact.
+											var contactEmailAddress=mc.getProperty('sirportly.contactEmailAddress');
+											var cashboardClientContactObject= eval("(" + mc.getProperty('cashboardClientContactObject') + ")");
+											var contactId="";
+											if(cashboardClientContactObject.hasOwnProperty(contactEmailAddress)){
+													contactId=cashboardClientContactObject[contactEmailAddress];
+											}
+											mc.setProperty('cashboard.existingContactId',contactId);
+									]]></script>
+                                    <!--If the contact already exist then get the contactId else create a new contact. -->
+                                    <filter source="boolean(get-property('cashboard.existingContactId'))" regex="true">
+                                       <then>
+                                          <property name="cashboardContactId" expression="get-property('cashboard.existingContactId')" />
+                                          <property name="cashboardContactId&gt;&gt;&gt;" expression="get-property('cashboardContactId')" />
+                                       </then>
+                                       <else>
+                                          <property name="cashboard.contactCustomField1" expression="fn:concat('Sirportly_ContactId-',get-property('sirportly.contactId'))" />
+                                          <property name="uri.var.lastName" action="remove" />
+                                         
+										  <!--Create the contact in Cashboard (if the contact is already created under the same email, this will be automatically skipped).-->
+                                          <cashboard.init>
+                                             <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+                                             <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+                                             <password>{$ctx:cashboard.password}</password>
+                                             <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+                                          </cashboard.init>
+                                          <cashboard.createClientContact>
+                                             <clientEmailAddress>{$ctx:sirportly.contactEmailAddress}</clientEmailAddress>
+                                             <firstName>{$ctx:sirportly.contactName}</firstName>
+                                             <custom1>{$ctx:cashboard.contactCustomField1}</custom1>
+                                          </cashboard.createClientContact>
+										  
+                                          <!--Removing unused headers. -->
+                                          <sequence key="removeResponseHeaders" />
+										  
+                                          <property name="cashboardContactId" expression="//client_contact/id/text()" />
+										  
+                                          <!--Case Error: If there occurred an error while creating the employee then handle the error scenario.-->
+                                          <filter source="boolean(get-property('cashboardContactId'))" regex="false">
+                                             <then>
+                                                <property name="cashboard.errorResponse" expression="json-eval($)" />
+                                                <property name="cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+                                                <property name="id" expression="fn:concat('sirportly_contactId:',get-property('sirportly.contactId'))" />
+												
+                                                <!--If in case the error comes as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                                                <call-template target="base64Decoder">
+                                                   <with-param name="responseBinaryString" value="{$ctx:cashboard.errorResponseHtml}" />
+                                                </call-template>
+                                                <property name="cashboard.errorResponse" expression="get-property('decodedResult')" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="cashboard_createClientContact" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Error" />
+                                                   <with-param name="message" value="{$ctx:cashboard.errorResponse}" />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <property name="id" expression="fn:concat('cashboard_contactId:',get-property('cashboardContactId'))" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="cashboard_createClientContact" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Success" />
+                                                   <with-param name="message" value="Contact is created successfully." />
+                                                </call-template>
+                                                <!--If creation of the contact is successful then add the client to the company in Cashboard.-->
+                                                <script language="js"><![CDATA[
+												    //The script retrieves the ID of the client company in Cashboard to which the client is belong to.
+													var companyName=mc.getProperty('sirportly.contactCompany');
+													var cashboardCompaniesObject= eval("(" + mc.getProperty('companiesObject') + ")");
+													var companyId="";
+													if(cashboardCompaniesObject.hasOwnProperty(companyName)){
+															companyId=cashboardCompaniesObject[companyName];
+													}
+													mc.setProperty('cashboard.existingCompanyId',companyId);
+												]]></script>
+                                                <!--If the Client Company exist then add the client to the company. -->
+                                                <filter source="boolean(get-property('cashboard.existingCompanyId'))" regex="true">
+                                                   <then>
+                                                      <cashboard.init>
+                                                         <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+                                                         <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+                                                         <password>{$ctx:cashboard.password}</password>
+                                                         <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+                                                      </cashboard.init>
+                                                      <cashboard.addClientToCompany>
+                                                         <personId>{$ctx:cashboardContactId}</personId>
+                                                         <companyId>{$ctx:cashboard.existingCompanyId}</companyId>
+                                                      </cashboard.addClientToCompany>
+                                                      <property name="cashboard.responseAddClientToCompany" expression="//company_membership" />
+													  
+                                                      <!--Case Skipped: If the client is added to the company successfully then display custom success message.-->
+                                                      <filter source="boolean(get-property('cashboard.responseAddClientToCompany'))" regex="false">
+                                                         <then>
+                                                            <property name="id" expression="fn:concat('cashboard_clientId:',get-property('cashboardContactId'))" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="cashboard_createClientContact" />
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="status" value="Skipped" />
+                                                               <with-param name="message" value="The client is created successfully. However it is failed to add the client to the relevant company." />
+                                                            </call-template>
+                                                         </then>
+                                                      </filter><!--END of Filter: If the client is added to the company successfully then display custom success message.-->
+                                                   </then>
+                                                </filter><!--END of Filter: If the Client Company exist then add the client to the company. -->
+                                             </else>
+                                          </filter><!--END of Filter: If there occurred an error while creating the employee then handle the error scenario.-->
+                                       </else>
+                                    </filter><!--END of Filter: If the contact already exist then get the contactId else create a new contact. -->
+                                    
+									<!--Constructing the title for the project List (<sirportly.ticketReference>_<sirportly.ticketSubject>). -->
+                                    <property name="cashboard.projectListTitle" expression="fn:concat(get-property('sirportly.ticketReference'),'_',get-property('sirportly.ticketSubject'))" />
+									
+                                    <!--Create a projectList for the ticket in Cashboard.-->
+                                    <cashboard.init>
+                                       <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+                                       <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+                                       <password>{$ctx:cashboard.password}</password>
+                                       <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+                                    </cashboard.init>
+                                    <cashboard.createProjectList>
+                                       <personId>{$ctx:cashboardContactId}</personId>
+                                       <title>{$ctx:cashboard.projectListTitle}</title>
+                                       <projectId>{$ctx:sirportly.cashboardProjectId}</projectId>
+                                    </cashboard.createProjectList>
+									
+                                    <!--Removing unused headers -->
+                                    <sequence key="removeResponseHeaders" />
+									
+                                    <property name="cashboard.projectListId" expression="//project_list/id/text()" />
+									
+                                    <!--Case Error: If there occurred an error while creating the projectList then handle the error scenario.-->
+                                    <filter source="boolean(get-property('cashboard.projectListId'))" regex="false">
+                                       <then>
+                                          <property name="cashboard.errorResponse" expression="json-eval($)" />
+                                          <property name="cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+                                          <property name="id" expression="fn:concat('sirportly_ticketReference:',get-property('sirportly.ticketReference'))" />
+										  
+                                          <!--If in case the error comes as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                                          <call-template target="base64Decoder">
+                                             <with-param name="responseBinaryString" value="{$ctx:cashboard.errorResponseHtml}" />
+                                          </call-template>
+                                          <property name="cashboard.errorResponse" expression="get-property('decodedResult')" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="cashboard_createProjectList" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Error" />
+                                             <with-param name="message" value="{$ctx:cashboard.errorResponse}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <property name="id" expression="fn:concat('sirportly_ticketReference:', get-property('sirportly.ticketReference'),',cashboard_projectListId:',get-property('cashboard.projectListId'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="cashboard_createProjectList" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Success" />
+                                             <with-param name="message" value="Project list is created successfully for the ticket." />
+                                          </call-template>
+										  
+                                          <!--Constructing the description for the task.-->
+                                          <property name="cashboard.description" expression="fn:concat('This task will hold all the updates about the Sirportly ticket ',get-property('sirportly.ticketReference')) " />
+										  
+                                          <!--Constructing the title for the project task.-->
+                                          <property name="cashboard.taskTitle" value="Workshop Operations" />
+										  
+                                          <!--If creation of the projectList is successful then add a task to it titled as 'Workshop Operations'. -->
+                                          <cashboard.init>
+                                             <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+                                             <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+                                             <password>{$ctx:cashboard.password}</password>
+                                             <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+                                          </cashboard.init>
+                                          <cashboard.createLineItem>
+                                             <description>{$ctx:description}</description>
+                                             <personId>{$ctx:cashboardEmployeeId}</personId>
+                                             <projectId>{$ctx:sirportly.cashboardProjectId}</projectId>
+                                             <projectListId>{$ctx:cashboard.projectListId}</projectListId>
+                                             <title>{$ctx:cashboard.taskTitle}</title>
+                                          </cashboard.createLineItem>
+										  
+                                          <!--Removing unused headers -->
+                                          <sequence key="removeResponseHeaders" />
+										  
+                                          <property name="cashboard.lineItemId" expression="//line_item/id/text()" />
+										  
+                                          <!--Case Skipped: If there occurred an error while creating the lineItem then handle the error scenario.-->
+                                          <filter source="boolean(get-property('cashboard.lineItemId'))" regex="false">
+                                             <then>
+                                                <property name="cashboard.errorResponse" expression="json-eval($)" />
+                                                <property name="cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+                                                <property name="id" expression="fn:concat('cashboard_projectListId:',get-property('cashboard.projectListId'))" />
+                                                
+												<!--If in case the error comes as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                                                <call-template target="base64Decoder">
+                                                   <with-param name="responseBinaryString" value="{$ctx:cashboard.errorResponseHtml}" />
+                                                </call-template>
+                                                <property name="cashboard.errorResponse" expression="get-property('decodedResult')" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="cashboard_createLineItem" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Skipped" />
+                                                   <with-param name="message" value="{$ctx:cashboard.errorResponse}" />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <property name="id" expression="fn:concat('cashboard_projectListLineItemId:',get-property('cashboard.lineItemId'))" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="cashboard_createLineItem" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Success" />
+                                                   <with-param name="message" value="Task is added and employee is assigned to the project list successfully." />
+                                                </call-template>
+												
+                                                <!--Constructing the Estimation name.-->
+                                                <property name="cashboard.estimationName" expression="fn:concat(get-property('cashboard.projectListId'),'_',get-property('cashboard.projectListTitle'))" />
+                                                
+												<!--If the task is added to the project list then create an estimation for the projectList for the client.-->
+                                                <cashboard.init>
+                                                   <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+                                                   <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+                                                   <password>{$ctx:cashboard.password}</password>
+                                                   <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+                                                </cashboard.init>
+                                                <cashboard.createEstimate>
+                                                   <assignedId>{$ctx:cashboard.projectListId}</assignedId>
+                                                   <clientId>{$ctx:cashboardContactId}</clientId>
+                                                   <clientType>Person</clientType>
+                                                   <isSent>false</isSent>
+                                                   <isArchived>false</isArchived>
+                                                   <name>{$ctx:cashboard.estimationName}</name>
+                                                </cashboard.createEstimate>
+                                               
+											    <!--Removing unused headers -->
+                                                <sequence key="removeResponseHeaders" />
+                                               
+ 											    <property name="cashboard.estimateId" expression="//estimate/id/text()" />
+												
+                                                <!--Case Skipped: If there occurred an error while creating the estimation then handle the error scenario.-->
+                                                <filter source="boolean(get-property('cashboard.estimateId'))" regex="false">
+                                                   <then>
+                                                      <property name="cashboard.errorResponse" expression="json-eval($)" />
+                                                      <property name="cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+                                                      <property name="id" expression="fn:concat('cashboard_projectListId:',get-property('cashboard.projectListId'))" />
+                                                      <!--If in case the error comes as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                                                      <call-template target="base64Decoder">
+                                                         <with-param name="responseBinaryString" value="{$ctx:cashboard.errorResponseHtml}" />
+                                                      </call-template>
+                                                      <property name="cashboard.errorResponse" expression="get-property('decodedResult')" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="cashboard_createEstimate" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="Skipped" />
+                                                         <with-param name="message" value="{$ctx:cashboard.errorResponse}" />
+                                                      </call-template>
+                                                   </then>
+                                                   <else>
+                                                      <property name="id" expression="fn:concat('cashboard_estimateId:',get-property('cashboard.estimateId'))" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="cashboard_createEstimate" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="Success" />
+                                                         <with-param name="message" value="Estimate is created for the client of the project list successfully." />
+                                                      </call-template>
+                                                   </else>
+                                                </filter><!--END of Filter: If there occurred an error while creating the estimation then handle the error scenario.-->
+                                             </else>
+                                          </filter><!--END of Filter: If there occurred an error while creating the lineItem then handle the error scenario.-->
+                                       </else>
+                                    </filter><!--END of Filter: If there occurred an error while creating the projectList then handle the error scenario.-->
+                                 </else>
+                              </filter><!--END of Filter: If there occurred an error while retrieving the specific ticket details then handle the error scenario.-->
+                              <property name="sirportly.recordsIndex" expression="get-property('operation', 'sirportly.recordsIndex') + 1" scope="operation" />
+                              <!--FOR EACH Case : END -->
+                              <filter xpath="get-property('operation', 'sirportly.recordsCount') = get-property('operation', 'sirportly.recordsIndex')">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate><!--END LOOP: Retrieve details of each ticket array. -->
+                  </else>
+               </filter><!--END of Filter: If the records count is zero then handle the failure case.-->
+            </else>
+         </filter><!--END of Filter: If there are no any records then handle the failure case.-->
+      </inSequence>
+      <outSequence>
+         <!-- Send the constructed response to the user. -->
+         <payloadFactory media-type="json">
+            <format>{
+				   "Response":{
+					   "process":"sirportly_createProjectListAndEstimates",
+					   "activityResponse": [$1]
+				   }
+               }</format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+</proxy>
