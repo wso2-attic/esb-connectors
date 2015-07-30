@@ -48,7 +48,7 @@ Steps to follow in setting integration test.
  7. Compress modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
 
  8. Make sure that Pivotaltracker is specified as a module in ESB_Connector_Parent pom.
- 	<module>pivotaltracker\pivotaltracker-connector\pivotaltracker-connector-1.0.0\org.wso2.carbon.connector</module>	
+ 	<module>PivotalTracker\pivotaltracker-connector\pivotaltracker-connector-1.0.0\org.wso2.carbon.connector</module>	
  
  9. Update the 'pivotaltracker.properties' file at the location "{PIVOTALTRACKER_CONNECTOR_HOME}/pivotaltracker-connector/pivotaltracker-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config/" as below.
    	 i) 	apiUrl						-		Use the api url, step 1->(i)
@@ -67,16 +67,16 @@ Steps to follow in setting integration test.
 	xiv)	storyName 					-		A String for story name to create story with mandatory parameters.
 	xv)		storyNameOpt				-		A String for story name to create story with optional parameters.
 	xvi)	storyDescription			-		A String for story description to create story with optional parameters.
-	xvii)	storyState					-		A valid String for story state(accepted, delivered, finished, started, rejected, planned, unstarted, unscheduled) to create story with optional parameters.
-	xviii)	storyType					-		A valid String for story type(feature, bug, chore, release) to create story with optional parameters.
+	xvii)	storyState					-		A valid String for story state(This should be always 'accepted') to create story with optional parameters.
+	xviii)	storyType					-		A valid String for story type(This should be always 'release') to create story with optional parameters.
 	xix)	deadline					-		A datetime(eg:2013-04-30T04:25:15Z) for deadline to create story with optional parameters.
 	xx)		acceptedAt					-		A datetime(eg:2013-04-30T04:25:15Z) for accepted date to create story with optional parameters.
 	xxi)	createdBefore				-		A datetime(eg:2015-08-20T15:53:00) for created before date to list stories with optional parameters.		
 	xxii)	createdAfter				-		A datetime(eg:2015-08-20T15:53:00) for created after date to list stories with optional parameters.
 	
 	*	projectName and projectNameOpt values should be changed in each run.
-	*	createdBefore should be a past date. 
-	*	createdAfter should be a future date.
+	*	createdBefore should be a future date. 
+	*	createdAfter should be a past date.
 	
  10. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
