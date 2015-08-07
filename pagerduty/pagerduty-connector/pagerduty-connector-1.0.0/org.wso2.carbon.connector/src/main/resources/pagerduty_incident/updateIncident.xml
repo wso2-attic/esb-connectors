@@ -16,43 +16,34 @@
    specific language governing permissions and limitations
    under the License.
 -->
-<!-- API Doc: https://developer.pagerduty.com/documentation/rest/incidents/notes/create -->
-<template name="createNote" xmlns="http://ws.apache.org/ns/synapse">
-   <parameter name="incidentId" description="The unique identifier of the incident." />
-   <parameter name="requesterId" description="The unique identifier of the user who is making the request." />
-   <parameter name="noteContent" description="The content of the note to be added." />
+<!-- API Doc: https://developer.pagerduty.com/documentation/rest/incidents/update -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="updateIncident">
+   <parameter name="requesterId" description="The unique identifier of the incident. This can be incident ID or incident number." />
+   <parameter name="incidents" description="An array of incidents, including the parameters to update." />
    <sequence>
-      <property name="uri.var.incidentId" expression="$func:incidentId" />
       <property name="uri.var.requesterId" expression="$func:requesterId" />
-      <property name="uri.var.noteContent" expression="$func:noteContent" />
+      <property name="uri.var.incidents" expression="$func:incidents" />
       <payloadFactory media-type="json">
-         <format>
-            {
-               "note": { 
-                     "content": "$1"
-               }
-            }
-         </format>
+         <format>{
+               "requester_id": "$1"
+            }</format>
          <args>
-            <arg expression="get-property('uri.var.noteContent')" />
             <arg expression="get-property('uri.var.requesterId')" />
          </args>
       </payloadFactory>
       <script language="js">
-         <![CDATA[
-            //request body optional parameters
-            var requesterId = mc.getProperty('uri.var.requesterId');
-            var payload = mc.getPayloadJSON();
-            if (requesterId != null && requesterId != "") {
-               payload.requester_id = requesterId;
-            }
-            mc.setPayloadJSON(payload);
-         ]]>
-      </script>
-      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+	  <![CDATA[
+			var incidents = mc.getProperty('incidents'); 
+			var payload=mc.getPayloadJSON();
+			if (incidents != null && incidents != ""){
+               payload["incidents"] = eval ("(" + incidents + ")");
+            } 
+		  mc.setPayloadJSON(payload);
+		  ]]>
+	  </script>
       <call>
          <endpoint>
-            <http method="post" uri-template="{uri.var.apiUrl}/incidents/{uri.var.incidentId}/notes" />
+            <http method="put" uri-template="{uri.var.apiUrl}/incidents" />
          </endpoint>
       </call>
       <header name="X-Request-Id" scope="transport" action="remove" />
