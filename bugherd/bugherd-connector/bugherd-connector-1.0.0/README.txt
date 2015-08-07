@@ -22,22 +22,24 @@ Steps to follow in setting integration test.
 
 STEPS: 
  
- 1. Follow the below mentioned steps for adding valid certificate to access bugherd API over https
+ 1. Follow the below mentioned steps for adding valid certificate to access bugherd API over https.
 
 	i) Extract the certificate from browser by navigating to 'https://www.bugherd.com/' and place the certificate file in following location.
-	   "<ESB_Connector_Home>/bugherd/bugherd-connector/bugherd-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/"
+	   "<BUGHERD_CONNECTOR_HOME>/bugherd/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/"
+			NOTE : Make sure to use an API method endpoint URL to obtain the certificate (e.g.: https://www.bugherd.com/api_v2/projects.json )
+	
 	  
-	ii) Navigate to "<ESB_Connector_Home>/bugherd-connector/bugherd-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME" in command line to import Bugherd certificate in to keystore. Give "wso2carbon" as password.
+	ii) Navigate to "<ESB_CONNECTOR_HOME>/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME" in command line to import Bugherd certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from bugherd, change it accordingly. (e.g.: bugherd.cer)
 			   CERT_NAME is name of the certificate. (e.g.: bugherd)
 	   
-	iii) Go to new WSO2 ESB 4.9.0-BETA-SNAPSHOT folder and place the downloaded certificate in "<ESB_Connector_Home>/repository/resources/security/"
+	iii) Go to new WSO2 ESB 4.9.0-BETA-SNAPSHOT folder and place the downloaded certificate in "<ESB_CONNECTOR_HOME>/repository/resources/security/"
 
 	iv) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" in command line to import Bugherd certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from bugherd, change it accordingly. (e.g.: bugherd.cer)
 		       CERT_NAME is name of the certificate. (e.g.: bugherd)
 
- 2. Navigate to location "<ESB_Connector_Home>/repository/conf/axis2" and add/uncomment following lines in "axis2.xml" and Message Formatters and Message Builders should be added for each of the content types of the files to be added as attachments.
+ 2. Navigate to location "<ESB_CONNECTOR_HOME>/repository/conf/axis2" and add/uncomment following lines in "axis2.xml" and Message Formatters and Message Builders should be added for each of the content types of the files to be added as attachments.
 	
 	Message Formatters :-
 		
@@ -65,22 +67,22 @@ STEPS:
 	iii) Create a new project after creating an account.
 	iv)  Create two valid users for userId and assignedToId.
 
- 5. Update the BugHerd properties file at location "<BUGHERD_CONNECTOR_HOME>/bugherd-connector/bugherd-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 5. Update the BugHerd properties file at location "<BUGHERD_CONNECTOR_HOME>/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i) 		apiUrl - Use the API URL as "https://www.bugherd.com".
 	ii) 	apiKey - Use the API Key you got in step 4.
 	iii) 	projectId - Use the ID of a valid project created in step 4.
 	iv) 	timeOut - Currently Bugherd API has restricted request rate to 1 per 3 seconds. Please make sure timeOut >= 3000 (ms).
-	v) 		fileMandatory, fileOptional - Add two files (txt files preferred) to the following location "<BUGHERD_CONNECTOR_HOME>/bugherd-connector/bugherd-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/config/resources/bugherd". Specify their names with extensions (<name>.<ext>) as values (e.g.: fileMandatory=File1.txt, fileOptional=File2.txt).
+	v) 		fileMandatory, fileOptional - Add two files (txt files preferred) to the following location "<BUGHERD_CONNECTOR_HOME>/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/config/resources/bugherd". Specify their names with extensions (<name>.<ext>) as values (e.g.: fileMandatory=File1.txt, fileOptional=File2.txt).
 	vi)     fileContentType -  Change the content type of the files that are used to upload in step (v).
 	vii) 	commentMandatoryText - Add some text to be used for adding comment for Project Task.
 	viii) 	userId, assignedToId - ID of valid users registered on Bugherd account in step 4 (e.g.: 57285).		
 	ix)	    Leave the remaining properties unchanged.
 		
  6. Make sure that the BugHerd connector is set as a module in esb-connectors parent pom.
-        <module>bugherd/bugherd-connector/bugherd-connector-2.0.0/org.wso2.carbon.connector</module>
+        <module>bugherd/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector</module>
 
- 7. Navigate to "<ESB_Connector_Home>/" and run the following command.
+ 7. Navigate to "<ESB_CONNECTOR_HOME>/" and run the following command.
          $ mvn clean install
  NOTE :  
     i)  The created trial account is only valid for 14 days.
