@@ -602,7 +602,7 @@ public class DropboxConnectorIntegrationTest extends ConnectorIntegrationTestBas
      * @throws JSONException
      * @throws IOException
      */
-    @Test(priority = 1, dependsOnMethods = { "testShareWithoptionalParameters" }, description = "dropbox {share} integration test with negative parameters.")
+    @Test(priority = 1, dependsOnMethods = { "testShareWithOptionalParameters" }, description = "dropbox {share} integration test with negative parameters.")
     public void testShareWithNegativeCase() throws IOException, JSONException {
         
         esbRequestHeadersMap.put("Action", "urn:share");
