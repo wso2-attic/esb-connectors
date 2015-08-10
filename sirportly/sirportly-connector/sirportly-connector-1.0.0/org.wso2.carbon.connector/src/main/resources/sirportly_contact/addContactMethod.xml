@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://sirportly.com/docs/api-specification/contacts/add-a-contact-method -->
+<template name="addContactMethod" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="contact" description="The id, reference or name of a contact." />
+   <parameter name="contactMethodType" description="The type of contact method." />
+   <parameter name="contactData" description="The associated data of the contact method." />
+   <parameter name="isDefault" description="If true contact method will be the default to contact." />
+   <sequence>
+      <property expression="$func:contact" name="uri.var.contact" />
+      <property expression="$func:contactMethodType" name="uri.var.contactMethodType" />
+      <property expression="$func:contactData" name="uri.var.contactData" />
+      <property expression="$func:isDefault" name="uri.var.isDefault" />
+      <payloadFactory media-type="json">
+         <format> 
+            { 
+               "contact": "$1" 
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.contact')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+      <![CDATA[
+         var payload = mc.getPayloadJSON();       
+         var contactMethodType = mc.getProperty('uri.var.contactMethodType');
+         var contactData = mc.getProperty('uri.var.contactData');
+         var isDefault = mc.getProperty('uri.var.isDefault');        
+         if (contactMethodType != null && contactMethodType != "") {
+            payload.method_type = contactMethodType;
+         }
+         if (contactData != null && contactData != "") {
+            payload.data = contactData;
+         }
+         if (isDefault != null && isDefault != "") {
+            payload ["default"] = isDefault;
+         }
+         mc.setPayloadJSON(payload);
+      ]]>
+      </script>
+      
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/contacts/add_contact_method" />
+         </endpoint>
+      </call>
+      <!-- Remove unwanted headers -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+   </sequence>
+</template>

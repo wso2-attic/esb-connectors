@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://api.cashboardapp.com/project_lists -->
+<template name="listProjectLists" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="isArchived" description="The Archive status of the project list." />
+   <parameter name="personId" description="The Id of the client contact." />
+   <parameter name="projectId" description="The Id of the project." />
+   <parameter name="updatedSince" description="The value for filter using updated time." />
+   <sequence>
+      <property name="uri.var.isArchived" expression="$func:isArchived" />
+      <property name="uri.var.personId" expression="$func:personId" />
+      <property name="uri.var.projectId" expression="$func:projectId" />
+      <property name="uri.var.updatedSince" expression="$func:updatedSince" />
+      <script language="js">
+      <![CDATA[
+         var isArchived = mc.getProperty('uri.var.isArchived');
+         var personId = mc.getProperty('uri.var.personId');
+         var projectId = mc.getProperty('uri.var.projectId');
+         var updatedSince = mc.getProperty('uri.var.updatedSince');
+         var apiParameters = "";
+         if (isArchived != null && isArchived != "") {
+            apiParameters += "is_archived=" + isArchived + '&';
+         }
+         if (personId != null && personId != "") {
+            apiParameters += "person_id=" + personId + '&';
+         }
+         if (projectId != null && projectId != "") {
+            apiParameters += "project_id=" + projectId + '&';
+         }
+         if (updatedSince != null && updatedSince != "") {
+            updatedSince = updatedSince;
+            apiParameters += "updated_since=" + updatedSince + '&';
+         }
+         if (apiParameters != "") {
+            apiParameters = '?' + apiParameters.substring(0, apiParameters.length - 1);
+            mc.setProperty('uri.var.apiParameters', apiParameters);
+         } 
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/project_lists.{+uri.var.format}{+uri.var.apiParameters}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="X-Powered-By" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+   </sequence>
+</template>

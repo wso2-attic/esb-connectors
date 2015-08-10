@@ -122,10 +122,20 @@ public class FileCopyInStream extends AbstractConnector implements Connector {
 		FileObject localFile = manager.resolveFile(fileLocation + filename, opts);
 		FileObject remoteFile = manager.resolveFile(sftpURL, opts);
 
-		InputStream fin = localFile.getContent().getInputStream();
-		OutputStream fout = remoteFile.getContent().getOutputStream();
-
-		IOUtils.copyLarge(fin, fout);
+		InputStream fin = null;
+		OutputStream fout = null;
+		try {
+			fin = localFile.getContent().getInputStream();
+			fout = remoteFile.getContent().getOutputStream();
+			IOUtils.copyLarge(fin, fout);
+		} finally {
+			if (fout != null) {
+				fout.close();
+			}
+			if (fin != null) {
+				fin.close();
+			}
+		}
 
 		resultStatus = true;
 

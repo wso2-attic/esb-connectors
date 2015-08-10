@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: http://www.roninapp.com/api/contacts -->
+<template name="createContact" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="clientId" description="The ID of the client which the contact belongs." />
+   <parameter name="name" description="The name of contact." />
+   <parameter name="email" description="The email address of the contact." />
+   <parameter name="ext" description="The ext number of the contact." />
+   <parameter name="mobile" description="The mobile number of the contact." />
+   <parameter name="phone" description="The phone number of the contact." />
+   <parameter name="title" description="The title of the contact." />
+   <sequence>
+      <property name="uri.var.clientId" expression="$func:clientId" />
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.email" expression="$func:email" />
+      <property name="uri.var.ext" expression="$func:ext" />
+      <property name="uri.var.mobile" expression="$func:mobile" />
+      <property name="uri.var.phone" expression="$func:phone" />
+      <property name="uri.var.title" expression="$func:title" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "user": {
+            "name": "$1",
+            "email": "$2"
+            }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.name')" />
+            <arg expression="get-property('uri.var.email')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var jsonPayload = mc.getPayloadJSON();
+            var ext = mc.getProperty('uri.var.ext');
+            var mobile = mc.getProperty('uri.var.mobile');
+            var phone = mc.getProperty('uri.var.phone');
+            var title = mc.getProperty('uri.var.title');
+            if (ext != null && ext != ""){
+               jsonPayload.user.ext = ext;
+            }
+            if (mobile != null && mobile != ""){
+               jsonPayload.user.mobile = mobile;
+            } 
+            if (phone != null && phone != ""){
+               jsonPayload.user.phone = phone;
+            }
+            if (title != null && title != ""){
+               jsonPayload.user.title = title;
+            }   
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/clients/{uri.var.clientId}/contacts" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Runtime" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="X-Rack-Cache" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+   </sequence>
+</template>

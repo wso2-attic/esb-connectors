@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://sirportly.com/docs/api-specification/contacts/create-a-new-contact -->
+<template name="createContact" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="contactName" description="The name of the contact person." />
+   <parameter name="contactReference" description="The reference number of the contact." />
+   <parameter name="company" description="The company name of the contact." />
+   <parameter name="pin" description="The pin of the contact." />
+   <parameter name="sla" description="The ID or name of an SLA." />
+   <parameter name="priority" description="The ID or name of a priority." />
+   <sequence>
+      <property expression="$func:contactName" name="uri.var.contactName" />
+      <property expression="$func:contactReference" name="uri.var.contactReference" />
+      <property expression="$func:company" name="uri.var.company" />
+      <property expression="$func:pin" name="uri.var.pin" />
+      <property expression="$func:sla" name="uri.var.sla" />
+      <property expression="$func:priority" name="uri.var.priority" />
+      <script language="js">
+      <![CDATA[
+         var payload ={};            
+         var contactName = mc.getProperty('uri.var.contactName');
+         var contactReference = mc.getProperty('uri.var.contactReference');
+         var company = mc.getProperty('uri.var.company');
+         var pin = mc.getProperty('uri.var.pin');
+         var sla = mc.getProperty('uri.var.sla');
+         var priority = mc.getProperty('uri.var.priority');
+         if (contactName != null && contactName != "") {
+            payload.name = contactName;
+         }
+         if (contactReference != null && contactReference != "") {
+            payload.reference = contactReference;
+         }
+         if (company != null && company != "") {
+            payload.company = company;
+         }
+         if (pin != null && pin != "") {
+            payload.pin = pin;
+         }
+         if (sla != null && sla != "") {
+            payload.sla = sla;
+         }
+         if (priority != null && priority != "") {
+            payload.priority = priority;
+         }        
+         // Check whether any parameter exists in the payload.
+         for(var prop in payload) {
+            if (payload.hasOwnProperty(prop)) {
+               mc.setProperty('uri.var.isPayloadParamsExist', "true");
+               break;
+            }
+         }
+         mc.setPayloadJSON(payload);
+      ]]>
+      </script>
+      <filter xpath="boolean(get-property('uri.var.isPayloadParamsExist'))">
+         <then>
+            <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+         </then>
+      </filter>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/contacts/create" />
+         </endpoint>
+      </call>
+      <!-- Remove unwanted headers -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+   </sequence>
+</template>

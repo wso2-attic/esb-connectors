@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This sequence responsible for create Ronin API clients, contacts and projects -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="createClientsContactsAndProjects">
+	<!-- Reset property values to avoid conflicts -->
+	<property name="clientId" value="" scope="operation" />
+	<property name="uri.var.name" value="" />
+	<property name="uri.var.clientId" value="" />
+	<property name="uri.var.email" value="" />
+	<property name="uri.var.clientId" value="" />
+	<property name="uri.var.name" value="" />
+	<property name="uri.var.rate" value="" />
+	<property name="uri.var.description" value="" />
+	<property name="uri.var.currencyCode" value="" />
+	<property name="uri.var.apiUrl" value="" />
+	<property name="uri.var.clientId" value="" />
+	<property name="ronin.clientId" value="" />
+	<property name="ronin.client.Id" value="" />
+	<property name="ronin.contact.Id" value="" />
+	<property name="ronin.project.clientId" value="" scope="operation" />
+
+	<filter source="boolean(get-property('ronin.client.name'))"
+		regex="true">
+		<then>
+			<!-- Calling Ronin listClients method to validate the client -->
+			<ronin.init>
+				<apiUrl>{$ctx:ronin.apiUrl}</apiUrl>
+				<apiToken>{$ctx:ronin.apiToken}</apiToken>
+			</ronin.init>
+			<ronin.listClients>
+			</ronin.listClients>
+
+			<filter source="$axis2:HTTP_SC" regex="200">
+				<then>
+					<property name="client.count" expression="count(//clients)" />
+
+					<script language="js">
+							<![CDATA[
+						       var clientsCount=mc.getProperty('client.count');
+									
+							   if(clientsCount>0){
+							      payload = mc.getPayloadJSON();
+                                    
+							      var clients = payload.clients;
+							      var clientName=mc.getProperty("ronin.client.name");
+							      for(var key in clients) {
+							         if(clientName==clients[key].name){
+								        var clientId=""+clients[key].id;
+									    mc.setProperty("ronin.client.Id", clientId);
+									    break;
+								     }
+							      }	
+							   }	
+							]]>
+					</script>
+
+					<filter source="boolean(get-property('ronin.client.Id'))"
+						regex="true">
+						<then>
+							<property name="ronin.project.clientId" expression="get-property('ronin.client.Id')"
+								scope="operation" />
+						</then>
+					</filter>
+
+				</then>
+				<else>
+					<property name="id" expression="get-property('common.client.id')" />
+					<property name="status" value="error" />
+					<property name="message" expression="json-eval($.)" />
+					<call-template target="responseHandlerTemplate">
+						<with-param name="id" value="{$ctx:id}" />
+						<with-param name="activity" value="ronin_createClient" />
+						<with-param name="status" value="{$ctx:status}" />
+						<with-param name="message" value="{$ctx:message}" />
+					</call-template>
+				</else>
+			</filter>
+			<filter source="boolean(get-property('ronin.client.Id'))"
+				regex="false">
+				<then>
+					<!-- Calling Ronin createClient method to create a new client -->
+					<ronin.init>
+						<apiUrl>{$ctx:ronin.apiUrl}</apiUrl>
+						<apiToken>{$ctx:ronin.apiToken}</apiToken>
+					</ronin.init>
+					<ronin.createClient>
+						<name>{$ctx:ronin.client.name}</name>
+					</ronin.createClient>
+
+					<filter source="$axis2:HTTP_SC" regex="201">
+						<then>
+							<property name="ronin.client.Id" expression="json-eval($.id)" />
+							<property name="id"
+								expression="fn:concat(get-property('common.client.id'), ',ronin_clientId:', get-property('ronin.client.Id'))" />
+							<property name="status" value="success" />
+							<property name="message"
+								expression="fn:concat('Client ', get-property('ronin.client.name'), ' has been created successfully.') " />
+
+							<property name="ronin.project.clientId" expression="get-property('ronin.client.Id')"
+								scope="operation" />
+						</then>
+						<else>
+							<property name="id" expression="get-property('common.client.id')" />
+							<property name="status" value="error" />
+							<property name="message" expression="json-eval($.)" />
+						</else>
+					</filter>
+					<call-template target="responseHandlerTemplate">
+						<with-param name="id" value="{$ctx:id}" />
+						<with-param name="activity" value="ronin_createClient" />
+						<with-param name="status" value="{$ctx:status}" />
+						<with-param name="message" value="{$ctx:message}" />
+					</call-template>
+				</then>
+			</filter>
+
+			<filter source="boolean(get-property('ronin.client.Id'))"
+				regex="true">
+				<then>
+					<filter source="boolean(get-property('ronin.contact.email'))"
+						regex="true">
+						<then>
+							<!-- calling Ronin listContacts to validate the client -->
+							<ronin.init>
+								<apiUrl>{$ctx:ronin.apiUrl}</apiUrl>
+								<apiToken>{$ctx:ronin.apiToken}</apiToken>
+							</ronin.init>
+							<ronin.listContacts>
+								<clientId>{$ctx:ronin.client.Id}</clientId>
+							</ronin.listContacts>
+
+							<filter source="$axis2:HTTP_SC" regex="200">
+								<then>
+									<property name="contact.count" expression="count(//contacts)" />
+
+									<script language="js">
+											<![CDATA[
+										       var contactsCount=mc.getProperty('contact.count');
+													
+											   if(contactsCount>0){
+											      payload = mc.getPayloadJSON();
+				                                    
+											      var contacts = payload.contacts;
+											      var contactEmail=mc.getProperty("ronin.contact.email");
+											      for(var key in contacts) {
+											         if(contactEmail==contacts[key].email){
+												        var contactId=""+contacts[key].id;
+													    mc.setProperty("ronin.contact.Id", contactId);
+													    break;
+												     }
+											      }	
+											   }	
+											]]>
+									</script>
+								</then>
+								<else>
+									<property name="id" expression="get-property('common.contact.id')" />
+									<property name="status" value="error" />
+									<property name="message" expression="json-eval($.)" />
+									<call-template target="responseHandlerTemplate">
+										<with-param name="id" value="{$ctx:id}" />
+										<with-param name="activity" value="ronin_createContact" />
+										<with-param name="status" value="{$ctx:status}" />
+										<with-param name="message" value="{$ctx:message}" />
+									</call-template>
+								</else>
+							</filter>
+
+							<filter source="boolean(get-property('ronin.contact.Id'))"
+								regex="false">
+								<then>
+									<!-- Calling Ronin createContact to create a new contact for the 
+										client -->
+									<ronin.init>
+										<apiUrl>{$ctx:ronin.apiUrl}</apiUrl>
+										<apiToken>{$ctx:ronin.apiToken}</apiToken>
+									</ronin.init>
+									<ronin.createContact>
+										<clientId>{$ctx:ronin.client.Id}</clientId>
+										<name>{$ctx:ronin.contact.name}</name>
+										<email>{$ctx:ronin.contact.email}</email>
+									</ronin.createContact>
+
+									<filter source="$axis2:HTTP_SC" regex="201">
+										<then>
+											<property name="ronin.contact.Id" expression="json-eval($.id)" />
+											<property name="id"
+												expression="fn:concat('ronin_contactId:', get-property('ronin.contact.Id'))" />
+											<property name="status" value="success" />
+											<property name="message"
+												expression="fn:concat('Contact ', get-property('ronin.contact.name'), ' has been created successfully.') " />
+										</then>
+										<else>
+											<property name="id" expression="get-property('common.contact.id')" />
+											<property name="status" value="error" />
+											<property name="message" expression="json-eval($.)" />
+										</else>
+									</filter>
+									<call-template target="responseHandlerTemplate">
+										<with-param name="id" value="{$ctx:id}" />
+										<with-param name="activity" value="ronin_createContact" />
+										<with-param name="status" value="{$ctx:status}" />
+										<with-param name="message" value="{$ctx:message}" />
+									</call-template>
+								</then>
+							</filter>
+						</then>
+					</filter>
+				</then>
+			</filter>
+		</then>
+	</filter>
+
+	<property name="clientId" expression="get-property('ronin.client.Id')"
+		scope="operation" />
+
+	<!-- Creating projects in Ronin:BEGIN -->
+	
+	<property name="ronin.project.client" expression="get-property('operation','clientId')" />
+	<!-- Calling Ronin createProject to create a new project -->
+	<ronin.init>
+		<apiUrl>{$ctx:ronin.apiUrl}</apiUrl>
+		<apiToken>{$ctx:ronin.apiToken}</apiToken>
+	</ronin.init>
+	<ronin.createProject>
+		<name>{$ctx:ronin.project.name}</name>
+		<description>{$ctx:ronin.project.description}</description>
+		<rate>{$ctx:ronin.project.rate}</rate>
+		<currencyCode>{$ctx:ronin.project.currencyCode}</currencyCode>
+		<clientId>{$ctx:ronin.project.client}</clientId>
+		<projectType>2</projectType>
+	</ronin.createProject>
+
+	<filter source="$axis2:HTTP_SC" regex="201">
+		<then>
+			<property name="ronin.project.id" expression="json-eval($.id)" />
+			<property name="id"
+				expression="fn:concat(get-property('common.id'), ',ronin_projectId:', get-property('ronin.project.id'))" />
+			<property name="status" value="success" />
+			<property name="message"
+				expression="fn:concat('Project ', get-property('ronin.project.name'), ' has been created successfully.') " />
+		</then>
+		<else>
+			<property name="id" expression="get-property('common.id')" />
+			<property name="status" value="error" />
+			<property name="message" expression="json-eval($.)" />
+		</else>
+	</filter>
+	<call-template target="responseHandlerTemplate">
+		<with-param name="id" value="{$ctx:id}" />
+		<with-param name="activity" value="ronin_createProject" />
+		<with-param name="status" value="{$ctx:status}" />
+		<with-param name="message" value="{$ctx:message}" />
+	</call-template>
+	<!-- Creating projects in Ronin:END -->
+</sequence>

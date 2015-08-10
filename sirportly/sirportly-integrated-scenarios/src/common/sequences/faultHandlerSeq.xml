@@ -1,0 +1,79 @@
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--This sequence can be used as a faultHandler for scenarios. This will send the user the responseString if it is not empty and an error message about what eror was thrown.-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="faultHandlerSeq">
+   <property name="HTTP_SC" value="500" scope="axis2"/>
+   
+   <filter source="boolean(get-property('operation','responseString'))" regex="true">
+      <then>
+			<payloadFactory media-type="json">
+				<format>{
+							"Response":{
+								"process":"$1",
+								"activityResponse": [$2,
+								{ 
+										"activity":"$3",
+										"id":{},
+										"status":"Failed",
+										"message": {
+											"error_code": "$4",
+											"error_message": "$5"
+										}
+								}]
+							}
+						}
+				</format>
+				<args>
+					<arg expression="get-property('operation','processName')"/>
+					<arg expression="get-property('operation','responseString')"/>
+					<arg expression="get-property('operation','activityName')"/>					
+					<arg expression="get-property('ERROR_CODE')"/>
+					<arg expression="fn:normalize-space(get-property('ERROR_MESSAGE'))"/>
+				</args>
+			</payloadFactory>
+      </then>
+	  <else>
+         <payloadFactory media-type="json">
+				<format>{
+							"Response":{
+								"process":"$1",
+								"activityResponse": [{ 
+										"activity":"$2",
+										"id":{},
+										"status":"Failed",
+										"message": {
+											"error_code": "$3",
+											"error_message": "$4"
+										}
+								}]
+							}
+						}
+				</format>
+				<args>
+					<arg expression="get-property('operation','processName')"/>
+					<arg expression="get-property('operation','activityName')"/>
+					<arg expression="get-property('ERROR_CODE')"/>					
+					<arg expression="fn:normalize-space(get-property('ERROR_MESSAGE'))"/>
+				</args>
+			</payloadFactory>
+      </else>
+   </filter>
+	
+   <property name="messageType" value="application/json" scope="axis2"/>   
+   <respond/>
+</sequence>

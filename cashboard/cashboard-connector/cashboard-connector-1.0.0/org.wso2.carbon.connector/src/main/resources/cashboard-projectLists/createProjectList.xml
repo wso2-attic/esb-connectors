@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://api.cashboardapp.com/project_lists -->
+<template name="createProjectList" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="createdAt" description="The value for project list created at." />
+   <parameter name="personId" description="Id of the responsible person of the project list." />
+   <parameter name="rank" description="The rank value for the project list." />
+   <parameter name="title" description="The title of the project list." />
+   <parameter name="projectId" description="The Id of the project that the project list is belongs to." />
+   <sequence>
+      <property name="uri.var.createdAt" expression="$func:createdAt" />
+      <property name="uri.var.personId" expression="$func:personId" />
+      <property name="uri.var.rank" expression="$func:rank" />
+      <property name="uri.var.title" expression="$func:title" />
+      <property name="uri.var.projectId" expression="$func:projectId" />
+      <payloadFactory media-type="xml">
+         <format>
+            <project_list>
+               <project_id>$1</project_id>
+            </project_list>
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.projectId')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var createdAt = mc.getProperty('uri.var.createdAt');
+            var personId = mc.getProperty('uri.var.personId');
+            var rank = mc.getProperty('uri.var.rank');
+            var title = mc.getProperty('uri.var.title');       
+            //Get the existing payload
+            var payload = mc.getPayloadXML();            
+            if (createdAt != null && createdAt != "") {
+               payload.created_at = createdAt;
+            }
+            if (personId != null && personId != "") {
+               payload.person_id = personId;
+            }
+            if (rank != null && rank != "") {
+               payload.rank = rank;
+            }
+            if (title != null && title != "") {
+               payload.title = title;
+            }         
+            //Set the constructed payload
+            mc.setPayloadXML(payload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/project_lists.{+uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="X-Powered-By" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+   </sequence>
+</template>

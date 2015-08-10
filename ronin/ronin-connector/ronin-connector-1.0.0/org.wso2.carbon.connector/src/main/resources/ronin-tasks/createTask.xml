@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: http://www.roninapp.com/api/tasks -->
+<template name="createTask" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="title" description="The title of the task." />
+   <parameter name="projectId" description="The project Id of the task." />
+   <parameter name="assigneeId" description="The assignee Id of the task." />
+   <parameter name="clientId" description="The client Id of the task." />
+   <parameter name="description" description="The description" />
+   <parameter name="dueDate" description="The due date of the task." />
+   <parameter name="complete" description="The boolean flag to indicate that, task is completed or not." />
+   <sequence>
+      <property name="uri.var.title" expression="$func:title" />
+      <property name="uri.var.projectId" expression="$func:projectId" />
+      <property name="uri.var.assigneeId" expression="$func:assigneeId" />
+      <property name="uri.var.clientId" expression="$func:clientId" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.dueDate" expression="$func:dueDate" />
+      <property name="uri.var.complete" expression="$func:complete" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "task": {
+            "title": "$1"
+            }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.title')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var jsonPayload = mc.getPayloadJSON();
+            var projectId = mc.getProperty('uri.var.projectId');
+            var assigneeId = mc.getProperty('uri.var.assigneeId');
+            var clientId = mc.getProperty('uri.var.clientId');
+            var description = mc.getProperty('uri.var.description');
+            var dueDate = mc.getProperty('uri.var.dueDate');
+            var complete = mc.getProperty('uri.var.complete');
+            if (projectId != null && projectId != ""){
+               jsonPayload.task.project_id = projectId;
+            }
+            if (assigneeId != null && assigneeId != ""){
+               jsonPayload.task.assignee_id = assigneeId;
+            } 
+            if (clientId != null && clientId != ""){
+               jsonPayload.task.client_id = clientId;
+            }
+            if (description != null && description != ""){
+               jsonPayload.task.description = description;
+            }
+            if (dueDate != null && dueDate != ""){
+               jsonPayload.task.due_date = dueDate;
+            } 
+            if (complete != null && complete != ""){
+               jsonPayload.task.complete = complete;
+            }     
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/tasks" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Runtime" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="X-Rack-Cache" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+   </sequence>
+</template>

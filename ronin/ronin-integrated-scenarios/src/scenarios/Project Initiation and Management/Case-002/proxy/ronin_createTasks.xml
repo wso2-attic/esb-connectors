@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Create project related tasks in Ronin api and the same task will be added to a google tasks list. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="ronin_createTasks" transports="https http" startOnLoad="true" trace="disable">
+   <target>
+      <inSequence>
+         <!-- Ronin Properties-->
+         <property name="ronin.apiUrl" expression="json-eval($.ronin.apiUrl)" />
+         <property name="ronin.apiToken" expression="json-eval($.ronin.apiToken)" />
+		 <property name="ronin.projectId" expression="json-eval($.ronin.projectId)" />
+         
+		 <!-- GoogleTask Properties-->
+         <property name="googletasks.accessToken" expression="json-eval($.googletasks.accessToken)" />
+        
+		 <!--Common properties-->
+         <property name="sharedTasks" expression="json-eval($.shared.taskDetails)" />
+         <property name="task.count" expression="count(//shared/taskDetails)" scope="operation" />
+
+         <filter xpath="get-property('operation','task.count') = 0">
+            <then>
+               <property name="id" value="{}" />
+               <property name="status" value="Skipped" />
+               <property name="message" value="No task details to process." />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="ronin_createTasks" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <property name="taskIndex" expression="0" scope="operation" />
+			   
+               <!--FOR EACH task : BEGIN-->
+               <iterate continueParent="false" id="tasks" expression="//shared/taskDetails" sequential="true">
+                  <target>
+                     <sequence>
+
+                        <property name="task.title" expression="//taskDetails/taskTitle/text()" />
+                        <property name="task.description" expression="//taskDetails/taskDescription/text()" />
+						<property name="task.dueDate" expression="//taskDetails/dueDate/text()" />
+
+                        <property name="googleTasks.taskListId" expression="//taskDetails/googleTasksTaskListId/text()" />
+                      
+					    <!-- Call ronin connector createTask method to create a task for the given project -->
+                        <ronin.init>
+                           <apiUrl>{$ctx:ronin.apiUrl}</apiUrl>
+                           <apiToken>{$ctx:ronin.apiToken}</apiToken>
+                        </ronin.init>
+                        <ronin.createTask>
+                           <title>{$ctx:task.title}</title>
+                           <projectId>{$ctx:ronin.projectId}</projectId>
+                           <description>{$ctx:task.description}</description>
+                           <dueDate>{$ctx:task.dueDate}</dueDate>
+                        </ronin.createTask>
+
+                        <property name="ronin.taskId" expression="json-eval($.id)" />
+
+                        <filter source="boolean(get-property('ronin.taskId'))" regex="false">
+                           <then>
+                              <property name="id" value="{}" />
+                              <property name="status" value="error" />
+                              <property name="message" expression="json-eval($.)" />
+                           </then>
+                           <else>
+                              <property name="id" expression="fn:concat('taskId:',get-property('ronin.taskId'))" />
+                              <property name="message" value="Task has been created." />
+                              <property name="status" value="success" />
+                           </else>
+                        </filter>
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="id" value="{$ctx:id}" />
+                           <with-param name="activity" value="ronin_createTask" />
+                           <with-param name="status" value="{$ctx:status}" />
+                           <with-param name="message" value="{$ctx:message}" />
+                        </call-template>
+
+						<!--Remove the 'status' parameter value which appends to the payload of 'insertTask'-->
+                        <property name="status" action="remove" />
+
+                        <filter source="boolean(get-property('googleTasks.taskListId'))" regex="true">
+                           <then>
+                              <property name="googleTask.title" expression="fn:concat(get-property('task.title'),'[',get-property('ronin.taskId'),']')" />
+                              
+							  <!-- Call googletasks connector insertTask method to create a task for the given taskList -->
+							  <googletasks.init>
+                                 <accessToken>{$ctx:googletasks.accessToken}</accessToken>
+                              </googletasks.init>
+                              <googletasks.insertTask>
+                                 <tasklist_id>{$ctx:googleTasks.taskListId}</tasklist_id>
+                                 <title>{$ctx:googleTask.title}</title>
+                                 <notes>{$ctx:task.description}</notes>
+                                 <due>{$ctx:task.dueDate}</due>
+                              </googletasks.insertTask>
+
+                              <property name="googletask.taskId" expression="json-eval($.id)" />
+                            
+                              <filter source="boolean(get-property('googletask.taskId'))" regex="false">
+                                 <then>
+                                    <property name="id" value="{}" />
+                                    <property name="status" value="error" />
+                                    <property name="message" expression="json-eval($.)" />
+                                 </then>
+                                 <else>
+                                    <property name="id" expression="fn:concat('taskId:',get-property('googletask.taskId'))" />
+                                    <property name="message" value="Task has been created." />
+                                    <property name="status" value="success" />
+                                 </else>
+                              </filter>
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="activity" value="googletasks_createTask" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </then>
+                        </filter>
+
+                        <property name="taskIndex" expression="get-property('operation','taskIndex') + 1" scope="operation" />
+                        <property name="index" expression="get-property('operation','taskIndex')" />
+                       
+                        <filter xpath="get-property('operation','taskIndex') = get-property('operation', 'task.count')">
+                           <then>
+                              <loopback />
+                           </then>
+                        </filter>
+                     </sequence>
+                  </target>
+               </iterate>
+               <!--FOR EACH task end : END-->
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>{
+               "Response":{
+				  "process":"ronin-createTasks",
+				  "activityResponse":[$1]
+               }
+            }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

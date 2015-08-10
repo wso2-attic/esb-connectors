@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Check existence of zohobooks contacts and create contact using Ronin client Details . -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="zohobooks-createContact">
+   <parameter name="zohobooks.apiUrl" description="Base endpoint URL of ZohoBooks API." />
+   <parameter name="zohobooks.authToken" description="Auth token to access the ZohoBooks API." />
+   <parameter name="zohobooks.organizationId" description="ID of the organization." />
+   <parameter name="ronin.apiUrl" description="Base endpoint URL of Ronin API." />
+   <parameter name="ronin.apiToken" description="API Token of Ronin API." />
+   <parameter name="ronin.clientId" description="Ronin client Id." />
+   <sequence>
+      <property name="zohobooks.apiUrl" expression="$func:zohobooks.apiUrl" />
+      <property name="zohobooks.authToken" expression="$func:zohobooks.authToken" />
+      <property name="zohobooks.organizationId" expression="$func:zohobooks.organizationId" />
+      <property name="ronin.apiUrl" expression="$func:ronin.apiUrl" />
+      <property name="ronin.apiToken" expression="$func:ronin.apiToken" />
+      <property name="ronin.clientId" expression="$func:ronin.clientId" />
+      <property name="clientIdObj" expression="fn:concat('roninClientId:',get-property('ronin.clientId'))" />
+
+
+      <!-- List Ronin client detail -->
+      <ronin.init>
+         <apiUrl>{$ctx:ronin.apiUrl}</apiUrl>
+         <apiToken>{$ctx:ronin.apiToken}</apiToken>
+      </ronin.init>
+      <ronin.getClient>
+         <clientId>{$ctx:ronin.clientId}</clientId>
+      </ronin.getClient>
+      <filter source="$axis2:HTTP_SC" regex="200">
+         <then>
+            <property name="ronin.clientName" expression="json-eval($.name)" />
+            <!-- Get zohobooks contacts by ronin client name -->
+            <zohobooks.init>
+               <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+               <authToken>{$ctx:zohobooks.authToken}</authToken>
+               <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+            </zohobooks.init>
+            <zohobooks.listContacts>
+               <contactName>{$ctx:ronin.clientName}</contactName>
+            </zohobooks.listContacts>
+
+            <property name="zohobooks.contactsCount" expression="count(//contacts)" />
+            <!-- Check if contact already created, if not create new contact. -->
+            <filter xpath="get-property('zohobooks.contactsCount') = 0">
+               <then>
+                  <!-- List Ronin contact details by clientId. -->
+                  <ronin.init>
+                     <apiUrl>{$ctx:ronin.apiUrl}</apiUrl>
+                     <apiToken>{$ctx:ronin.apiToken}</apiToken>
+                  </ronin.init>
+                  <ronin.listContacts>
+                     <clientId>{$ctx:ronin.clientId}</clientId>
+                  </ronin.listContacts>
+                  <filter source="$axis2:HTTP_SC" regex="200">
+                     <then>
+                        <property name="ronin.contacts" expression="json-eval($.contacts)" />
+                        <!-- Construct contact persons JOSN obejct using Ronin contacts for zohobooks. -->
+                        <script language="js">
+                           <![CDATA[
+                             var roninContactsArray = eval("(" + mc.getProperty('ronin.contacts') + ")");
+                             var zohobooksContactPersons = [];
+                             var zohoRequestParamsObj = {};
+                             for(var i = 0; i < roninContactsArray.length ; i++){
+                                var roninContactObj = roninContactsArray[i];
+                                var zohobooksContactPerson = {};
+                                var email = roninContactObj.email;
+                                var phone = roninContactObj.phone;
+                                var mobile = roninContactObj.mobile;
+                                var salutation = roninContactObj.title;
+								
+                                if(email != null && email !=''){
+                                    zohobooksContactPerson.email = email;
+                                }
+                                if(phone != null && phone !=''){
+                                    zohobooksContactPerson.phone = phone;
+                                }
+                                if(mobile != null && mobile !=''){
+                                    zohobooksContactPerson.mobile = mobile;
+                                }
+                                if(salutation != null && salutation !=''){
+                                    zohobooksContactPerson.salutation = salutation;
+                                }
+                                if(i == 0){
+                                 var clientName = ''+roninContactObj.client.name;
+                                 mc.setProperty('ronin.clientName',clientName);
+                                }
+                               zohobooksContactPersons.push(zohobooksContactPerson);
+                                
+                             }
+                             zohoRequestParamsObj['contactPersons'] = zohobooksContactPersons;
+                             mc.setPayloadJSON(zohoRequestParamsObj);
+                           ]]>
+                        </script>
+                        <property name="zohobooks.contactPersons" expression="json-eval($.contactPersons)" />
+                        <!-- Create Zohobooks contact. -->
+                        <zohobooks.init>
+                           <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                           <authToken>{$ctx:zohobooks.authToken}</authToken>
+                           <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                        </zohobooks.init>
+                        <zohobooks.createContact>
+                           <contactName>{$ctx:ronin.clientName}</contactName>
+                           <contactPersons>{$ctx:zohobooks.contactPersons}</contactPersons>
+                        </zohobooks.createContact>
+                        <!-- Remove uri.var.contactPersons property from message context to avoid conflicts -->
+                        <property name="uri.var.contactPersons" action="remove" />
+
+                        <filter source="$axis2:HTTP_SC" regex="201">
+                           <then>
+                              <property name="zohobooks.contactId" expression="json-eval($.contact.contact_id)" />
+                              <property name="status" value="success" />
+                              <property name="contactIdObject"
+                                 expression="fn:concat(get-property('clientIdObj'),',zohobooksContactId:',get-property('zohobooks.contactId'))" />
+                              <property name="message" value="Contact has been created successfully for Ronin Client." />
+                           </then>
+                           <else>
+                              <property name="contactIdObject" expression="get-property('clientIdObj')" />
+                              <property name="status" value="error" />
+                              <property name="message" expression="json-eval($.)" />
+                           </else>
+                        </filter>
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="id" value="{$ctx:contactIdObject}" />
+                           <with-param name="activity" value="zohobooks_createContact" />
+                           <with-param name="status" value="{$ctx:status}" />
+                           <with-param name="message" value="{$ctx:message}" />
+                        </call-template>
+                     </then>
+                     <else>
+                        <!-- Failed to retrieve ronin contact details -->
+                        <property name="contactIdObject" expression="get-property('customerIdObj')" />
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="id" value="{$ctx:ronin.clientId}" />
+                           <with-param name="activity" value="ronin_retriveContactDetails" />
+                           <with-param name="status" value="error" />
+                           <with-param name="message" value="Failed to retrieve Contact Details." />
+                        </call-template>
+                     </else>
+                  </filter>
+               </then>
+               <else>
+                  <property name="zohobooks.contactId" expression="json-eval($.contacts[0].contact_id)" />
+               </else>
+            </filter>
+         </then>
+      </filter>
+   </sequence>
+</template>
