@@ -11,11 +11,11 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.9.0-ALPHA
+ - WSO2 ESB 4.9.0-BETA
 
 Steps to follow in setting integration test.
 
- 1. Download WSO2 ESB 4.9.0-ALPHA from official website.
+ 1. Download WSO2 ESB 4.9.0-BETA from official website.
 
  2. The ESB should be configured as below;
 	i)  Please make sure that the below mentioned Axis configurations are enabled (/repository/conf/axis2/axis2.xml).
@@ -32,14 +32,26 @@ Steps to follow in setting integration test.
 
 		<messageBuilder contentType="application/xml" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
- 3. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
+ 3. Extract the certificate from browser by navigating to "https://www.yammer.com/" and place the certificate file in following locations.
 
- 4. Create a Office 365 E3 trial account and derive the API Key.
+        	i)  "yammer/yammer-connector/yammer-connector-1.0.0/org wso2.carbon.connector/src/test/resources/keystores/products"
+
+        		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "yammer"' in command line to import yammer certificate in to keystore. Give "wso2carbon" as password.
+        		NOTE : CERT_FILE_NAME is the file name which was extracted from yammer with  the extension, change it accordingly. Remove the copied certificate.
+
+        	ii) "<ESB_HOME>/repository/resources/security"
+
+        		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "yammer"' in command line to import yammer certificate in to keystore. Give "wso2carbon" as password.
+        		NOTE : CERT_FILE_NAME is the file name which was extracted from yammer with  the extension, change it accordingly. Remove the copied certificate.
+
+ 4. Compress modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
+
+ 5. Create a Office 365 E3 trial account and derive the API Key.
 	i) 		Using the URL "http://www.yammer.com" create a Yammer trial account.(This user should not be the person who owned the company)
 	ii)		Create an app and get an api token by following the instruction given on this URL "https://developer.yammer.com/introduction/#gs-registerapp"
 	iii)	A message should be sent to a group by another user notifying the user created in step 4 - i).
 
- 5. Update the Yammer properties file at location "{ESB_Connector_Home}/yammer/yammer-connector/yammer-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 6. Update the Yammer properties file at location "{ESB_Connector_Home}/yammer/yammer-connector/yammer-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i)		apiUrl 						- 	Use "https://www.yammer.com".
 	ii) 	apiToken					-   Use the api token generated in step 4 - ii).
@@ -65,9 +77,9 @@ Steps to follow in setting integration test.
 		  After each run remove the relationships of users which belongs the following email addresses 
 		  relationshipEmail and relationshipEmailOpt 
 
- 6.  Make sure that the Yammer connector is set as a module in esb-connectors parent pom.
+ 7.  Make sure that the Yammer connector is set as a module in esb-connectors parent pom.
         <module>yammer/yammer-connector/yammer-connector-1.0.0/org.wso2.carbon.connector</module>
 
- 7. Navigate to "{ESB_Connector_Home}/" and run the following command.
+ 8. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
 	  
