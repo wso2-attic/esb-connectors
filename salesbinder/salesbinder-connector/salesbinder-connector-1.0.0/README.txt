@@ -15,13 +15,11 @@ Tested Platform:
  
 STEPS:
  
- 1. Download ESB 4.9.0 SNAPSHOT from official website.
- 
- 2. Deploy relevant patches, if applicable.
+ 1. Download ESB 4.9.0-BETA from official website.
 
- 3. Make sure that the ESB 4.9.0 SNAPSHOT zip file with latest patches  and the changes in step 1 and 2, is available at "{SALES_BINDER_CONNECTOR_HOME}/salesbinder-connector/salesbinder-connector-2.0.0/org.wso2.carbon.connector/repository/"	
+ 2. Make sure that the ESB 4.9.0 SNAPSHOT zip file with latest patches  and the changes in step 1 and 2, is available at "{SALES_BINDER_CONNECTOR_HOME}/salesbinder-connector/salesbinder-connector-2.0.0/org.wso2.carbon.connector/repository/"
  
- 4. The ESB should be configured as below;
+ 3. The ESB should be configured as below;
  
 	Please make sure that the below mentioned Axis configurations are enabled (/repository/conf/axis2/axis2.xml).
    
@@ -31,20 +29,20 @@ STEPS:
                           class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
  
  
- 5.	Follow the below steps to create a Sales Binder account and Derive the API key.
+ 4.	Follow the below steps to create a Sales Binder account and Derive the API key.
 
 	i)  Navigate to "https://www.salesbinder.com/" and click on "Create Account" button.
    ii)  Enter the required details and complete the account creation. 
    iii) Login to the created SalesBinder account and derive the API Key by navigating to Profile and by clicking on 'Generate New API Key' button.
  
  
- 6. Create two inventory items with a single location.
+ 5. Create two inventory items with a single location.
 	i)   Navigate to "https://www.salesbinder.com/" and login to the newly created Sales Binder account dashboard (Use the account credentials in step 5).
 	ii)  Navigate to "https://[subdomain].salesbinder.com/locations" and click on  "Add New Location" button to add a new inventory location.
 	iii) Go to "Locations & Zones" sub-category under "Inventory" in Sales Binder account dashboard, select the created location (in step (6)ii) and extract the location ID from URL.
 	iv) Navigate to "https://[subdomain].salesbinder.com/items" and create two new inventory items using a single location (use the location in step(6)[ii]).
  
- 7. Update the Sales Binder properties file at location "<SALES_BINDER_CONNECTOR_HOME>/salesbinder-connector/salesbinder-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 6. Update the Sales Binder properties file at location "<SALES_BINDER_CONNECTOR_HOME>/salesbinder-connector/salesbinder-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
    
 	i)   apiUrl		  				- The URL of Sales Binder api(http://[subdomain].salesbinder.com).
 	ii)  apiKey		  				- The API key obtained in step(5)[iii] which gives access to the API.
@@ -61,7 +59,7 @@ STEPS:
 	xiii)accountContextId 			- Context value to determine what type of Account to be created (Customer=2,Prospect=8,Supplier=10).
 	xiv) accountName 				- Name of the account (Unique). This parameter should be change in each integration run.
 	xv)  accountOfficeEmail 		- Official mailing address of the account.	
-	xvi) locationId					- ID of the location which created in step(6)[iii].
+	xvi) locationId					- ID of the location which created in step(5)[iii].
 	
 
  8. Navigate to "{SALES_BINDER_CONNECTOR_HOME}/salesbinder-connector/salesbinder-connector-2.0.0/org.wso2.carbon.connector/" and run the following command.
