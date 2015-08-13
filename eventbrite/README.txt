@@ -31,7 +31,8 @@ STEPS:
       ticketId=30329833
       orderId=364498473
 
-4. Required to change on test change the relevant data in the corresponding text file(Text files in the rest requests folder)
+4. Update the Evernote properties file.org name
+Required to change on test change the relevant data in the corresponding text file(Text files in the rest requests folder)
 
 5. Make sure that the eventbrite connector is set as a module in esb-connectors parent pom.
      <module>eventbrite/eventbrite-connector/eventbrite-connector-1.0.0/org.wso2.carbon.connector</module>
