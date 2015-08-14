@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.pipelinedeals.com/api/docs/resources/deals -->
+<template name="createDeal" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="name" description="The name of the deal."/>
+   <parameter name="summary" description="A description of the deal."/>
+   <parameter name="userId" description="The owner id of the deal."/>
+   <parameter name="status" description="A simple red-yellow-green status for the deal. 1 = red, 2 = yellow, 3 = green."/>
+   <parameter name="customFields" description="Custom fields for the deal. ."/>
+   <parameter name="createdAt" description="Timestamp for when deal was created."/>
+   <parameter name="updatedAt" description="Timestamp for when deal was last updated."/>
+   <parameter name="expectedCloseDate" description="The expected close date."/>
+   <parameter name="closedTime" description="The date when the deal was closed (either won or lost)."/>
+   <parameter name="isArchived" description="Flag for archived status."/>
+   <parameter name="value" description="The deal's value, possibly with decimal value (depends on the currency of the account)."/>
+   <parameter name="valueInCents" description="The deal's value, in cents. DEPRECATED: Please use value instead."/>
+   <parameter name="primaryContactId" description="The id of the primary contact for the deal."/>
+   <parameter name="personIds" description="A convenient list of collaborators that includes basic attributes for each."/>
+   <parameter name="sharedUserIds" description="The array of user ids with whom the deal's been shared."/>
+   <parameter name="companyId" description="The id of the company associated with the deal."/>
+   <parameter name="companyName" description="The company name of the deal (if changed, will find or create a company by that name)."/>
+   <parameter name="probability" description="The probability, from 0-100, that the deal will close."/>
+   <parameter name="dealStageId" description="The id of the deal stage."/>
+   <parameter name="sourceId" description="The source id of the deal."/>
+   <parameter name="todoTemplateId" description="To apply a deal-based todo template when creating the deal." />
+   <parameter name="todoTemplateUserId" description="To set the owner of any tasks created by applying the given todo template." />
+   <sequence>
+      <property name="uri.var.name" expression="$func:name"/>
+      <property name="uri.var.summary" expression="$func:summary"/>
+      <property name="uri.var.userId" expression="$func:userId"/>
+      <property name="uri.var.status" expression="$func:status"/>
+      <property name="uri.var.customFields" expression="$func:customFields"/>
+      <property name="uri.var.createdAt" expression="$func:createdAt"/>
+      <property name="uri.var.updatedAt" expression="$func:updatedAt"/>
+      <property name="uri.var.expectedCloseDate" expression="$func:expectedCloseDate"/>
+      <property name="uri.var.closedTime" expression="$func:closedTime"/>
+      <property name="uri.var.isArchived" expression="$func:isArchived"/>
+      <property name="uri.var.value" expression="$func:value"/>
+      <property name="uri.var.valueInCents" expression="$func:valueInCents"/>
+      <property name="uri.var.primaryContactId" expression="$func:primaryContactId"/>
+      <property name="uri.var.personIds" expression="$func:personIds"/>
+      <property name="uri.var.sharedUserIds" expression="$func:sharedUserIds"/>
+      <property name="uri.var.companyId" expression="$func:companyId"/>
+      <property name="uri.var.companyName" expression="$func:companyName"/>
+      <property name="uri.var.probability" expression="$func:probability"/>
+      <property name="uri.var.dealStageId" expression="$func:dealStageId"/>
+      <property name="uri.var.sourceId" expression="$func:sourceId"/>
+      <property name="uri.var.todoTemplateId" expression="$func:todoTemplateId" />
+      <property name="uri.var.todoTemplateUserId" expression="$func:todoTemplateUserId" />
+      <script language="js">
+         <![CDATA[
+            var summary = mc.getProperty('uri.var.summary');
+            var sourceId = mc.getProperty('uri.var.sourceId');
+            var sharedUserIds = mc.getProperty('uri.var.sharedUserIds');
+            var apiKey = mc.getProperty('uri.var.apiKey');
+            var customFields = mc.getProperty('uri.var.customFields');
+            var isArchived = mc.getProperty('uri.var.isArchived');
+            var probability = mc.getProperty('uri.var.probability');
+            var companyName = mc.getProperty('uri.var.companyName');
+            var valueInCents = mc.getProperty('uri.var.valueInCents');
+            var userId = mc.getProperty('uri.var.userId');
+            var closedTime = mc.getProperty('uri.var.closedTime');
+            var expectedCloseDate = mc.getProperty('uri.var.expectedCloseDate');
+            var primaryContactId = mc.getProperty('uri.var.primaryContactId');
+            var createdAt = mc.getProperty('uri.var.createdAt');
+            var companyId = mc.getProperty('uri.var.companyId');
+            var dealStageId = mc.getProperty('uri.var.dealStageId');
+            var name = mc.getProperty('uri.var.name');
+            var personIds = mc.getProperty('uri.var.personIds');
+            var attributes = mc.getProperty('uri.var.attributes');
+            var value = mc.getProperty('uri.var.value');
+            var status = mc.getProperty('uri.var.status');
+            var updatedAt = mc.getProperty('uri.var.updatedAt');
+            var todoTemplateId = mc.getProperty('uri.var.todoTemplateId');
+            var todoTemplateUserId = mc.getProperty('uri.var.todoTemplateUserId');
+            var jsonPayload = {};
+            var deal = {};
+            var urlQuery = '?api_key=' + apiKey;
+            if (attributes != null && attributes != "") {
+               urlQuery += '&attrs=' + attributes;
+            }
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+            if (name != null && name != ""){
+               deal.name = name;
+            }
+            if (summary != null && summary != ""){
+               deal.summary = summary;
+            }
+            if (userId != null && userId != ""){
+               deal.user_id = userId;
+            }
+            if (status != null && status != ""){
+               deal.status = status;
+            }
+            if (customFields != null && customFields != ""){
+               deal.custom_fields = eval("(" + customFields + ")");
+            }
+            if (createdAt != null && createdAt != ""){
+               deal.created_at = createdAt;
+            }
+            if (updatedAt != null && updatedAt != ""){
+               deal.updated_at = updatedAt;
+            }
+            if (expectedCloseDate != null && expectedCloseDate != ""){
+               deal.expected_close_date = expectedCloseDate;
+            }
+            if (closedTime != null && closedTime != ""){
+               deal.closed_time = closedTime;
+            }
+            if (isArchived != null && isArchived != ""){
+               deal.is_archived = isArchived;
+            }
+            if (value != null && value != ""){
+               deal.value = value;
+            }
+            if (valueInCents != null && valueInCents != ""){
+               deal.value_in_cents = valueInCents;
+            }
+            if (primaryContactId != null && primaryContactId != ""){
+               deal.primary_contact_id = primaryContactId;
+            }
+            if (personIds != null && personIds != ""){
+               deal.person_ids = eval("(" + personIds + ")");
+            }
+            if (sharedUserIds != null && sharedUserIds != ""){
+               deal.shared_user_ids = eval("(" + sharedUserIds + ")");
+            }
+            if (companyId != null && companyId != ""){
+               deal.company_id = companyId;
+            }
+            if (companyName != null && companyName != ""){
+               deal.company_name = companyName;
+            }
+            if (probability != null && probability != ""){
+               deal.probability = probability;
+            }
+            if (dealStageId != null && dealStageId != ""){
+               deal.deal_stage_id = dealStageId;
+            }
+            if (sourceId != null && sourceId != ""){
+               deal.source_id = sourceId;
+            }
+            if (todoTemplateId != null && todoTemplateId != ""){
+               jsonPayload.todo_template_id = todoTemplateId;
+            }
+            if (todoTemplateUserId != null && todoTemplateUserId != ""){
+               jsonPayload.todo_template_user_id = todoTemplateUserId;
+            }
+            jsonPayload.deal = deal;
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/deals.json{+uri.var.urlQuery}"/>
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Access-Control-Allow-Credentials" action="remove" scope="transport"/>
+      <header name="Access-Control-Expose-Headers" action="remove" scope="transport"/>
+      <header name="Access-Control-Max-Age" action="remove" scope="transport"/>
+      <header name="Status" action="remove" scope="transport"/>
+      <header name="Vary" action="remove" scope="transport"/>
+      <header name="X-Runtime" action="remove" scope="transport"/>
+      <header name="X-UA-Compatible" action="remove" scope="transport"/>
+      <header name="ETag" action="remove" scope="transport" />
+   </sequence>
+</template>

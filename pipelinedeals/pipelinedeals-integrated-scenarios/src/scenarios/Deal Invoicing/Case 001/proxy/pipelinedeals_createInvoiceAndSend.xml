@@ -1,0 +1,872 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Retrieving ready to invoice stage deals from PipeLineDeals and creating invoices in Billomat. If the customer/contact
+	 does not exits, creating customers and contacts in Billomat before creating invoices -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pipelinedeals_createInvoiceAndSend" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+    <target>
+        <inSequence onError="faultHandlerSeq">
+		
+            <!--PipeLineDeals Properties -->
+            <property name="pipelinedeals.apiUrl" value="https://api.pipelinedeals.com" />
+            <property name="pipelinedeals.apiKey" expression="json-eval($.pipeLineDeals.apiKey)" />
+			
+            <!--Billomat Properties -->
+            <property name="billomat.apiUrl" expression="json-eval($.billomat.apiUrl)" />
+            <property name="billomat.apiKey" expression="json-eval($.billomat.apiKey)" />
+			
+            <!-- ZohoCrm Properties -->
+            <property name="zohocrm.apiUrl" value="https://crm.zoho.com" />
+            <property name="zohocrm.accessToken" expression="json-eval($.zohocrm.accessToken)" />
+            <sequence key="createInvoiceAndSend-verifyPrerequisites" />
+			
+            <property name="id.empty" value="{}" />
+			<property name="pipelinedeals.processedDeals" expression="0" scope="operation" />
+			
+            <pipelinedeals.init>
+                <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+            </pipelinedeals.init>
+            <pipelinedeals.listDeals>
+                <dealStage>{$ctx:billomat.dealReadyToInvoiceStageId}</dealStage>
+            </pipelinedeals.listDeals>
+			
+            <property name="pipelinedeals.dealCount" expression="count(//entries)" scope="operation" />
+			
+            <!-- Process only if the deal count is not 0 -->
+            <filter xpath="get-property('operation','pipelinedeals.dealCount') = 0.0">
+                <then>
+                    <property name="id" value="{}" />
+                    <property name="status" value="Skipped" />
+                    <property name="message" value="There are no deals in 'Ready for Invoice' stage." />
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="billomat_createInvoice" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                    </call-template>
+                    <loopback />
+                </then>
+                <else>
+                    <property name="pipelinedeals.dealIndex" expression="0" scope="operation" />
+					
+                    <!--FOR EACH deals : BEGIN -->
+                    <iterate continueParent="true" id="deals" expression="//entries" sequential="true">
+                        <target>
+                            <sequence>
+							
+                                <property name="billomat.invoiceTitle" expression="json-eval($.entries.name)" />
+                                <property name="billomat.invoiceNote" expression="json-eval($.entries.summary)" />
+                                <property name="billomat.invoiceItemUnitPrice" expression="json-eval($.entries.value)" />
+                                <property name="pipelinedeals.ownerId" expression="json-eval($.entries.user.id)" />
+                                <property name="pipeLineDeals.deal.customFields" expression="json-eval($.entries.custom_fields)" />
+                                
+								<script language="js">
+									<![CDATA[
+										var dealCustomFields = mc.getProperty('pipeLineDeals.deal.customFields');
+																																   
+									   var billomatInvoiceIdLabel = mc.getProperty('pipelinedeals.deal.billomatInvoiceIdLabel');
+									   var billomatInvoiceId = '';
+																																	   
+									   if(dealCustomFields != null && dealCustomFields != ''){
+										  dealCustomFields = eval("(" + dealCustomFields + ")");
+										  if(dealCustomFields.hasOwnProperty(billomatInvoiceIdLabel) && dealCustomFields[billomatInvoiceIdLabel] != null){
+											billomatInvoiceId = dealCustomFields[billomatInvoiceIdLabel];
+										  }
+									   }
+																																	   
+									   mc.setProperty('billomat.invoiceId', billomatInvoiceId);
+								   ]]>
+							   </script>
+							   
+                                <!-- Validate billomat.invoiceId property, if doesn't exist creating a new invoice-->
+                                <filter source="boolean(get-property('billomat.invoiceId'))" regex="false">
+                                    <then>
+										<property name="pipelinedeals.processedDeals" expression="get-property('operation', 'pipelinedeals.processedDeals') + 1" scope="operation" />
+									
+                                        <property name="pipelinedeals.dealId" expression="json-eval($.entries.id)" />
+                                        <property name="pipelinedeals.companyId" expression="json-eval($.entries.company_id)" />
+                                        <property name="pipelinedeals.primaryContactPersonId" expression="json-eval($.entries.primary_contact_id)" />
+                                        
+										<filter xpath="get-property('pipelinedeals.primaryContactPersonId') = 'null'">
+                                            <then>
+                                                <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'))" />
+                                                <property name="status" value="Skipped" />
+                                                <property name="message" value="Primary contact person ID not available for this deal." />
+                                                <call-template target="responseHandlerTemplate">
+                                                    <with-param name="id" value="{$ctx:id}" />
+                                                    <with-param name="activity" value="billomat_createInvoice" />
+                                                    <with-param name="status" value="{$ctx:status}" />
+                                                    <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                            </then>
+                                            <else>
+											
+                                                <!-- Manage Clients in Billomat:BEGIN -->
+                                                
+												<!--Calling getPerson method in PipeLineDeals API to retrieve primary contact persons details -->
+                                                <pipelinedeals.init>
+                                                    <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                                    <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                                </pipelinedeals.init>
+                                                <pipelinedeals.getPerson>
+                                                    <personId>{$ctx:pipelinedeals.primaryContactPersonId}</personId>
+                                                </pipelinedeals.getPerson>
+												
+                                                <property name="pipelinedeals.personId" expression="json-eval($.id)" />
+												
+                                                <filter source="boolean(get-property('pipelinedeals.personId'))" regex="false">
+                                                    <then>
+                                                        <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',pipelinedeals_primaryContactPersonId:',get-property('pipelinedeals.primaryContactPersonId'))" />
+                                                        <property name="status" value="Error" />
+                                                        <property name="message" expression="json-eval($)" />
+                                                        <call-template target="responseHandlerTemplate">
+                                                            <with-param name="id" value="{$ctx:id}" />
+                                                            <with-param name="activity" value="pipelinedeals_getPerson" />
+                                                            <with-param name="status" value="{$ctx:status}" />
+                                                            <with-param name="message" value="{$ctx:message}" />
+                                                        </call-template>
+                                                    </then>
+                                                    <else>
+                                                        <property name="pipeLinedeals.personCustomFields" expression="json-eval($.custom_fields)" />
+                                                        <property name="pipelinedeals.personEmail" expression="json-eval($.email)" />
+                                                        <property name="pipelinedeals.personFax" expression="json-eval($.fax)" />
+                                                        <property name="pipelinedeals.personFirstName" expression="json-eval($.first_name)" />
+                                                        <property name="pipelinedeals.personLastName" expression="json-eval($.last_name)" />
+                                                        <property name="pipelinedeals.personHomeAddress" expression="json-eval($.home_address_1)" />
+                                                        <property name="pipelinedeals.personHomeCity" expression="json-eval($.home_city)" />
+                                                        <property name="pipelinedeals.personHomeState" expression="json-eval($.home_state)" />
+                                                        <property name="pipelinedeals.personPhone" expression="json-eval($.phone)" />
+                                                        <property name="pipelinedeals.personWorkAddress" expression="json-eval($.work_address_1)" />
+                                                        <property name="pipelinedeals.personWorkCity" expression="json-eval($.work_city)" />
+                                                        <property name="pipelinedeals.personWorkState" expression="json-eval($.work_state)" />
+                                                        <property name="pipelinedeals.personHomeEmail" expression="json-eval($.home_email)" />
+                                                        <property name="pipelinedeals.personWebsite" expression="json-eval($.website)" />
+                                                        <property name="pipelinedeals.personSummary" expression="json-eval($.summary)" />
+                                                        
+														<filter source="get-property('pipelinedeals.companyId')" regex="null">
+                                                            <then>
+																<script language="js">
+																	<![CDATA[
+																		var personCustomFields = mc.getProperty('pipeLinedeals.personCustomFields');
+																																									 
+																		 var billomatClientIdLabel = mc.getProperty('pipelinedeals.person.billomatClientIdLabel');
+																		 var billomatClientId = '';
+																																										 
+																		 if(personCustomFields != null && personCustomFields != ''){
+																			personCustomFields = eval("(" + personCustomFields + ")");
+																			if(personCustomFields.hasOwnProperty(billomatClientIdLabel) && personCustomFields[billomatClientIdLabel] != null){
+																			  billomatClientId = personCustomFields[billomatClientIdLabel];
+																			}
+																		 }
+																																										 
+																		 mc.setProperty('billomat.clientId', billomatClientId);
+																	 ]]>
+																 </script>
+															 
+                                                                <filter source="boolean(get-property('billomat.clientId'))" regex="false">
+                                                                    <then>
+                                                                        <property name="billomat.clientName" expression="fn:concat(get-property('pipelinedeals.personFirstName'),' ',get-property('pipelinedeals.personLastName'))" />
+                                                                        <filter xpath="get-property('pipelinedeals.personEmail') != 'null'">
+                                                                            <then>
+                                                                                <property name="billomat.clientEmail" expression="get-property('pipelinedeals.personEmail')" />
+                                                                            </then>
+                                                                            <else>
+                                                                                <property name="billomat.clientEmail" expression="get-property('pipelinedeals.personHomeEmail')" />
+                                                                            </else>
+                                                                        </filter>
+																		
+                                                                        <property name="billomat.clientPhone" expression="get-property('pipelinedeals.personPhone')" />
+                                                                        <property name="billomat.clientFax" expression="get-property('pipelinedeals.personFax')" />
+                                                                        <property name="billomat.clientFax" expression="get-property('pipelinedeals.personFax')" />
+                                                                        
+																		<filter xpath="get-property('pipelinedeals.personSummary') != 'null'">
+                                                                            <then>
+                                                                                <property name="billomat.clientNote" expression="get-property('pipelinedeals.personSummary')" />
+                                                                            </then>
+                                                                        </filter>
+																		
+                                                                        <filter xpath="get-property('pipelinedeals.personWorkAddress') != 'null'">
+                                                                            <then>
+                                                                                <property name="billomat.clientStreet" expression="get-property('pipelinedeals.personWorkAddress')" />
+                                                                                <property name="billomat.clientCity" expression="get-property('pipelinedeals.personWorkCity')" />
+                                                                                <property name="billomat.clientState" expression="get-property('pipelinedeals.personWorkState')" />
+                                                                            </then>
+                                                                            <else>
+                                                                                <property name="billomat.clientStreet" expression="get-property('pipelinedeals.personHomeAddress')" />
+                                                                                <property name="billomat.clientCity" expression="get-property('pipelinedeals.personHomeCity')" />
+                                                                                <property name="billomat.clientState" expression="get-property('pipelinedeals.personHomeState')" />
+                                                                            </else>
+                                                                        </filter>
+																		
+                                                                        <filter xpath="get-property('pipelinedeals.personWebsite') != 'null'">
+                                                                            <then>
+                                                                                <property name="billomat.clientWww" expression="get-property('pipelinedeals.personWebsite')" />
+                                                                            </then>
+                                                                        </filter>
+																		
+                                                                        <!-- Calling createClient method in Billomat to create a new client with pipelinedeals contact person details -->
+                                                                        <billomat.init>
+                                                                            <apiUrl>{$ctx:billomat.apiUrl}</apiUrl>
+                                                                            <apiKey>{$ctx:billomat.apiKey}</apiKey>
+                                                                        </billomat.init>
+                                                                        <billomat.createClient>
+                                                                            <name>{$ctx:billomat.clientName}</name>
+                                                                            <email>{$ctx:billomat.clientEmail}</email>
+                                                                            <phone>{$ctx:billomat.clientPhone}</phone>
+                                                                            <fax>{$ctx:billomat.clientFax}</fax>
+                                                                            <note>{$ctx:billomat.clientNote}</note>
+                                                                            <street>{$ctx:billomat.clientStreet}</street>
+                                                                            <city>{$ctx:billomat.clientCity}</city>
+                                                                            <state>{$ctx:billomat.clientState}</state>
+                                                                            <www>{$ctx:billomat.clientWww}</www>
+                                                                        </billomat.createClient>
+																		
+                                                                        <property name="billomat.clientId" expression="json-eval($.client.id)" />
+                                                                        
+																		<filter source="boolean(get-property('billomat.clientId'))" regex="false">
+                                                                            <then>
+                                                                                <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',pipelinedeals_personId:',get-property('pipelinedeals.personId'))" />
+                                                                                <property name="status" value="Error" />
+                                                                                <property name="message" expression="json-eval($)" />
+                                                                                <call-template target="responseHandlerTemplate">
+                                                                                    <with-param name="id" value="{$ctx:id}" />
+                                                                                    <with-param name="activity" value="billomat_createClient" />
+                                                                                    <with-param name="status" value="{$ctx:status}" />
+                                                                                    <with-param name="message" value="{$ctx:message}" />
+                                                                                </call-template>
+                                                                            </then>
+                                                                            <else>
+                                                                                <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',pipelinedeals_personId:',get-property('pipelinedeals.personId'),',billomat_clientId:', get-property('billomat.clientId'))" />
+                                                                                <property name="status" value="Success" />
+                                                                                <property name="message" value="Client has been created." />
+                                                                                <call-template target="responseHandlerTemplate">
+                                                                                    <with-param name="id" value="{$ctx:id}" />
+                                                                                    <with-param name="activity" value="billomat_createClient" />
+                                                                                    <with-param name="status" value="{$ctx:status}" />
+                                                                                    <with-param name="message" value="{$ctx:message}" />
+                                                                                </call-template>
+                                                                                <!-- Update PipeLineDeals person custom field with Billomat Client ID -->
+                                                                                
+																				<payloadFactory media-type="json">
+																					<format>
+																					{
+																						"customFields": {
+																							"$1": "$2"
+																						}
+																					}
+																					</format>
+                                                                                    <args>
+                                                                                        <arg expression="get-property('pipelinedeals.person.billomatClientIdLabel')" />
+                                                                                        <arg expression="get-property('billomat.clientId')" />
+                                                                                    </args>
+                                                                                </payloadFactory>
+																				
+                                                                                <property name="pipelindeals.personCustomFields" expression="json-eval($.customFields)" />
+                                                                                
+																				<pipelinedeals.init>
+                                                                                    <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                                                                    <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                                                                </pipelinedeals.init>
+                                                                                <pipelinedeals.updatePerson>
+                                                                                    <personId>{$ctx:pipelinedeals.personId}</personId>
+                                                                                    <customFields>{$ctx:pipelindeals.personCustomFields}</customFields>
+                                                                                </pipelinedeals.updatePerson>
+																				
+                                                                                <property name="pipelinedeals.personId" expression="json-eval($.id)" />
+                                                                                
+																				<filter source="boolean(get-property('pipelinedeals.personId'))" regex="false">
+                                                                                    <then>
+                                                                                        <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',pipelinedeals_personId:',get-property('pipelinedeals.personId'),',billomat_client_id:',get-property('billomat.clientId'))" />
+                                                                                        <property name="status" value="Error" />
+                                                                                        <property name="message" expression="json-eval($)" />
+                                                                                        <call-template target="responseHandlerTemplate">
+                                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                                            <with-param name="activity" value="billomat_updatePerson_CustomFieldBillomatClientId" />
+                                                                                            <with-param name="status" value="{$ctx:status}" />
+                                                                                            <with-param name="message" value="{$ctx:message}" />
+                                                                                        </call-template>
+                                                                                    </then>
+                                                                                </filter>
+                                                                            </else>
+                                                                        </filter>
+                                                                    </then>
+                                                                </filter>
+                                                            </then>
+															<else>
+                                                                <pipelinedeals.init>
+                                                                    <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                                                    <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                                                </pipelinedeals.init>
+                                                                <pipelinedeals.getCompany>
+                                                                    <companyId>{$ctx:pipelinedeals.companyId}</companyId>
+                                                                </pipelinedeals.getCompany>
+																
+                                                                <property name="pipeLineDeals.company.customFields" expression="json-eval($.custom_fields)" />
+                                                                <property name="pipelinedeals.companyId" expression="json-eval($.id)" />
+                                                                
+																<filter source="boolean(get-property('pipelinedeals.companyId'))" regex="false">
+                                                                    <then>
+                                                                        <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',pipelinedeals_companyId:',get-property('pipelinedeals.companyId'))" />
+                                                                        <property name="status" value="Error" />
+                                                                        <property name="message" expression="json-eval($)" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                            <with-param name="activity" value="pipelinedeals_getCompany" />
+                                                                            <with-param name="status" value="{$ctx:status}" />
+                                                                            <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+                                                                    </then>
+                                                                    <else>
+                                                                        <script language="js">
+																		<![CDATA[
+																			var companyCustomFields = mc.getProperty('pipeLineDeals.company.customFields');
+																																										 
+																			 var billomatClientIdLabel = mc.getProperty('pipelinedeals.company.billomatClientIdLabel');
+																			 var billomatClientId = '';
+																																											 
+																			 if(companyCustomFields != null && companyCustomFields != ''){
+																				companyCustomFields = eval("(" + companyCustomFields + ")");
+																				if(companyCustomFields.hasOwnProperty(billomatClientIdLabel) && companyCustomFields[billomatClientIdLabel] != null){
+																				  billomatClientId = companyCustomFields[billomatClientIdLabel];
+																				}
+																			 }
+																																											 
+																			 mc.setProperty('billomat.clientId', billomatClientId);
+																		]]>
+																		</script>
+																		
+                                                                        <filter source="boolean(get-property('billomat.clientId'))" regex="false">
+                                                                            <then>
+                                                                                <property name="billomat.clientName" expression="json-eval($.name)" />
+                                                                                <property name="billomat.clientEmail" expression="json-eval($.email)" />
+                                                                                <property name="billomat.clientPhone" expression="json-eval($.phone1)" />
+                                                                                <property name="billomat.clientFax" expression="json-eval($.fax)" />
+                                                                                <property name="billomat.clientNote" expression="json-eval($.description)" />
+                                                                                <property name="billomat.clientStreet" expression="json-eval($.address_1)" />
+                                                                                <property name="billomat.clientCity" expression="json-eval($.city)" />
+                                                                                <property name="billomat.clientState" expression="json-eval($.state)" />
+                                                                                <property name="billomat.clientWww" expression="json-eval($.web)" />
+                                                                                
+																				<!-- Calling createClient method in Billomat to create a new client with pipelinedeals company details -->
+                                                                                <billomat.init>
+                                                                                    <apiUrl>{$ctx:billomat.apiUrl}</apiUrl>
+                                                                                    <apiKey>{$ctx:billomat.apiKey}</apiKey>
+                                                                                </billomat.init>
+                                                                                <billomat.createClient>
+                                                                                    <name>{$ctx:billomat.clientName}</name>
+                                                                                    <email>{$ctx:billomat.clientEmail}</email>
+                                                                                    <phone>{$ctx:billomat.clientPhone}</phone>
+                                                                                    <fax>{$ctx:billomat.clientFax}</fax>
+                                                                                    <note>{$ctx:billomat.clientNote}</note>
+                                                                                    <street>{$ctx:billomat.clientStreet}</street>
+                                                                                    <city>{$ctx:billomat.clientCity}</city>
+                                                                                    <state>{$ctx:billomat.clientState}</state>
+                                                                                    <www>{$ctx:billomat.clientWww}</www>
+                                                                                </billomat.createClient>
+																				
+                                                                                <property name="billomat.clientId" expression="json-eval($.client.id)" />
+                                                                                
+																				<filter source="boolean(get-property('billomat.clientId'))" regex="false">
+                                                                                    <then>
+                                                                                        <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',pipelinedeals_companyId:',get-property('pipelinedeals.companyId'))" />
+                                                                                        <property name="status" value="Error" />
+                                                                                        <property name="message" expression="json-eval($)" />
+                                                                                        <call-template target="responseHandlerTemplate">
+                                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                                            <with-param name="activity" value="billomat_createClient" />
+                                                                                            <with-param name="status" value="{$ctx:status}" />
+                                                                                            <with-param name="message" value="{$ctx:message}" />
+                                                                                        </call-template>
+                                                                                    </then>
+                                                                                    <else>
+                                                                                        <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',pipelinedeals_companyId:',get-property('pipelinedeals.companyId'),',billomat_clientId:', get-property('billomat.clientId'))" />
+                                                                                        <property name="status" value="Success" />
+                                                                                        <property name="message" value="Client has been created." />
+                                                                                        <call-template target="responseHandlerTemplate">
+                                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                                            <with-param name="activity" value="billomat_createClient" />
+                                                                                            <with-param name="status" value="{$ctx:status}" />
+                                                                                            <with-param name="message" value="{$ctx:message}" />
+                                                                                        </call-template>
+																						
+                                                                                        <!-- Update PipeLineDeals company custom field with Billomat Client ID -->
+                                                                                        <payloadFactory media-type="json">
+                                                                                            <format>
+																							{
+																								"customFields": {
+																									"$1": "$2"
+																								}
+																							}
+																							</format>
+                                                                                            <args>
+                                                                                                <arg expression="get-property('pipelinedeals.company.billomatClientIdLabel')" />
+                                                                                                <arg expression="get-property('billomat.clientId')" />
+                                                                                            </args>
+                                                                                        </payloadFactory>
+																						
+                                                                                        <property name="pipelindeals.companyCustomFields" expression="json-eval($.customFields)" />
+                                                                                        <property name="uri.var.city" action="remove" />
+                                                                                        <property name="uri.var.state" action="remove" />
+                                                                                        <property name="uri.var.fax" action="remove" />
+                                                                                        <property name="uri.var.email" action="remove" />
+                                                                                        <pipelinedeals.init>
+                                                                                            <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                                                                            <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                                                                        </pipelinedeals.init>
+                                                                                        <pipelinedeals.updateCompany>
+                                                                                            <companyId>{$ctx:pipelinedeals.companyId}</companyId>
+                                                                                            <customFields>{$ctx:pipelindeals.companyCustomFields}</customFields>
+                                                                                        </pipelinedeals.updateCompany>
+																						
+                                                                                        <property name="pipelinedeals.companyId" expression="json-eval($.id)" />
+                                                                                        
+																						<filter source="boolean(get-property('pipelinedeals.companyId'))" regex="false">
+                                                                                            <then>
+                                                                                                <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',pipelinedeals_companyId:',get-property('pipelinedeals.companyId'),',billomat_client_id:',get-property('billomat.clientId'))" />
+                                                                                                <property name="status" value="Error" />
+                                                                                                <property name="message" expression="json-eval($)" />
+                                                                                                <call-template target="responseHandlerTemplate">
+                                                                                                    <with-param name="id" value="{$ctx:id}" />
+                                                                                                    <with-param name="activity" value="billomat_updateCompany_CustomFieldBillomatClientId" />
+                                                                                                    <with-param name="status" value="{$ctx:status}" />
+                                                                                                    <with-param name="message" value="{$ctx:message}" />
+                                                                                                </call-template>
+                                                                                            </then>
+                                                                                        </filter>
+                                                                                    </else>
+                                                                                </filter>
+                                                                            </then>
+                                                                        </filter>
+                                                                    </else>
+                                                                </filter>
+                                                            </else>                                                            
+                                                        </filter>
+                                                        <!-- Manage Clients in Billomat:END -->
+														
+                                                        <!-- Manage Contacts in Billomat:BEGIN -->
+                                                        <script language="js">
+														<![CDATA[
+															var personCustomFields = mc.getProperty('pipeLinedeals.personCustomFields');
+                                                                                                                                                         
+                                                            var billomatContactIdLabel = mc.getProperty('pipelinedeals.person.billomatContactIdLabel');
+                                                            var billomatContactId = '';
+                                                                                                                                                             
+															 if(personCustomFields != null && personCustomFields != ''){
+																personCustomFields = eval("(" + personCustomFields + ")");
+																if(personCustomFields.hasOwnProperty(billomatContactIdLabel) && personCustomFields[billomatContactIdLabel] != null){
+																  billomatContactId = personCustomFields[billomatContactIdLabel];
+																}
+															 }
+																																							 
+															 mc.setProperty('billomat.contactId', billomatContactId);
+														]]>
+														</script>
+														
+                                                        <filter source="boolean(get-property('billomat.contactId'))" regex="false">
+                                                            <then>
+                                                                <property name="billomat.contactName" expression="fn:concat(get-property('pipelinedeals.personFirstName'),' ',get-property('pipelinedeals.personLastName'))" />
+                                                                <property name="billomat.contactFirstName" expression="get-property('pipelinedeals.personFirstName')" />
+                                                                <property name="billomat.contactLastName" expression="get-property('pipelinedeals.personLastName')" />
+                                                                
+																<filter xpath="get-property('pipelinedeals.personEmail')!='null'">
+                                                                    <then>
+                                                                        <property name="billomat.contactEmail" expression="get-property('pipelinedeals.personEmail')" />
+                                                                    </then>
+                                                                    <else>
+                                                                        <property name="billomat.contactEmail" expression="get-property('pipelinedeals.personHomeEmail')" />
+                                                                    </else>
+                                                                </filter>
+																
+                                                                <property name="billomat.contactPhone" expression="get-property('pipelinedeals.personPhone')" />
+                                                                <property name="billomat.contactFax" expression="get-property('pipelinedeals.personFax')" />
+                                                                
+																<filter xpath="get-property('pipelinedeals.personSummary')!='null'">
+                                                                    <then>
+                                                                        <property name="billomat.clientNote" expression="get-property('pipelinedeals.personSummary')" />
+                                                                    </then>
+                                                                </filter>
+																
+                                                                <filter xpath="get-property('pipelinedeals.personWorkAddress')!='null'">
+                                                                    <then>
+                                                                        <property name="billomat.contactStreet" expression="get-property('pipelinedeals.personWorkAddress')" />
+                                                                        <property name="billomat.contactCity" expression="get-property('pipelinedeals.personWorkCity')" />
+                                                                        <property name="billomat.contactState" expression="get-property('pipelinedeals.personWorkState')" />
+                                                                    </then>
+                                                                    <else>
+                                                                        <property name="billomat.contactStreet" expression="get-property('pipelinedeals.personHomeAddress')" />
+                                                                        <property name="billomat.contactCity" expression="get-property('pipelinedeals.personHomeCity')" />
+                                                                        <property name="billomat.contactState" expression="get-property('pipelinedeals.personHomeState')" />
+                                                                    </else>
+                                                                </filter>
+																
+                                                                <filter xpath="get-property('pipelinedeals.personWebsite')!='null'">
+                                                                    <then>
+                                                                        <property name="billomat.contactWww" expression="get-property('pipelinedeals.personWebsite')" />
+                                                                    </then>
+                                                                </filter>
+																
+                                                                <property name="uri.var.name" action="remove" />
+                                                                <property name="uri.var.street" action="remove" />
+                                                                <property name="uri.var.city" action="remove" />
+                                                                <property name="uri.var.state" action="remove" />
+                                                                <property name="uri.var.phone" action="remove" />
+                                                                <property name="uri.var.fax" action="remove" />
+                                                                <property name="uri.var.email" action="remove" />
+                                                                <property name="uri.var.www" action="remove" />
+																
+                                                                <!-- Calling createContact method in Billomat to create a new client with pipelinedeals contact person details -->
+                                                                <billomat.init>
+                                                                    <apiUrl>{$ctx:billomat.apiUrl}</apiUrl>
+                                                                    <apiKey>{$ctx:billomat.apiKey}</apiKey>
+                                                                </billomat.init>
+                                                                <billomat.createContact>
+                                                                    <clientId>{$ctx:billomat.clientId}</clientId>
+                                                                    <street>{$ctx:billomat.contactStreet}</street>
+                                                                    <city>{$ctx:billomat.contactCity}</city>
+                                                                    <state>{$ctx:billomat.contactState}</state>
+                                                                    <firstName>{$ctx:billomat.contactFirstName}</firstName>
+                                                                    <lastName>{$ctx:billomat.contactLastName}</lastName>
+                                                                    <phone>{$ctx:billomat.contactPhone}</phone>
+                                                                    <fax>{$ctx:billomat.contactFax}</fax>
+                                                                    <email>{$ctx:billomat.contactEmail}</email>
+                                                                    <www>{$ctx:billomat.contactWww}</www>
+                                                                </billomat.createContact>
+																
+                                                                <property name="billomat.contactId" expression="json-eval($.contact.id)" />
+                                                                
+																<filter source="boolean(get-property('billomat.contactId'))" regex="false">
+                                                                    <then>
+                                                                        <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',pipelinedeals_personId:',get-property('pipelinedeals.personId'))" />
+                                                                        <property name="status" value="Error" />
+                                                                        <property name="message" expression="json-eval($)" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                            <with-param name="activity" value="billomat_createContact" />
+                                                                            <with-param name="status" value="{$ctx:status}" />
+                                                                            <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+                                                                    </then>
+                                                                    <else>
+                                                                        <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',pipelinedeals_personId:',get-property('pipelinedeals.personId'),',billomat_contactId:', get-property('billomat.contactId'))" />
+                                                                        <property name="status" value="Success" />
+                                                                        <property name="message" value="Contact has been created." />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                            <with-param name="activity" value="billomat_createContact" />
+                                                                            <with-param name="status" value="{$ctx:status}" />
+                                                                            <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+                                                                        <!-- Update PipeLineDeals person custom field with Billomat Contact ID -->
+                                                                        <payloadFactory media-type="json">
+                                                                            <format>
+																			{
+																				"customFields": {
+																					"$1": "$2"
+																				}
+																			}
+																			</format>
+                                                                            <args>
+                                                                                <arg expression="get-property('pipelinedeals.person.billomatContactIdLabel')" />
+                                                                                <arg expression="get-property('billomat.contactId')" />
+                                                                            </args>
+                                                                        </payloadFactory>
+																		
+                                                                        <property name="pipelindeals.personCustomFields" expression="json-eval($.customFields)" />
+                                                                        
+																		<!-- Remove existing properties to prevent ambiguity. -->
+                                                                        <property name="uri.var.fax" action="remove" />
+                                                                        <property name="uri.var.firstName" action="remove" />
+                                                                        <property name="uri.var.email" action="remove" />
+                                                                        <property name="uri.var.lastName" action="remove" />
+                                                                        <property name="uri.var.companyId" action="remove" />
+                                                                        <property name="uri.var.phone" action="remove" />
+                                                                        
+																		<pipelinedeals.init>
+                                                                            <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                                                            <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                                                        </pipelinedeals.init>
+                                                                        <pipelinedeals.updatePerson>
+                                                                            <personId>{$ctx:pipelinedeals.personId}</personId>
+                                                                            <customFields>{$ctx:pipelindeals.personCustomFields}</customFields>
+                                                                        </pipelinedeals.updatePerson>
+                                                                        
+																		<property name="pipelinedeals.personId" expression="json-eval($.id)" />
+                                                                        
+																		<filter source="boolean(get-property('pipelinedeals.personId'))" regex="false">
+                                                                            <then>
+                                                                                <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',pipelinedeals_personId:',get-property('pipelinedeals.personId'),',billomat_contactId:',get-property('billomat.contactId'))" />
+                                                                                <property name="status" value="Error" />
+                                                                                <property name="message" expression="json-eval($)" />
+                                                                                <call-template target="responseHandlerTemplate">
+                                                                                    <with-param name="id" value="{$ctx:id}" />
+                                                                                    <with-param name="activity" value="billomat_updatePerson_CustomFieldBillomatContactId" />
+                                                                                    <with-param name="status" value="{$ctx:status}" />
+                                                                                    <with-param name="message" value="{$ctx:message}" />
+                                                                                </call-template>
+                                                                            </then>
+                                                                        </filter>
+                                                                    </else>
+                                                                </filter>
+                                                            </then>
+                                                        </filter>
+                                                        <!-- Manage Contacts in Billomat:END -->
+														
+                                                        <!-- Manage Invoices in Billomat:BEGIN -->
+                                                        <property name="billomat.invoiceDate" expression="synapse:get-property('SYSTEM_DATE','yyyy-MM-dd')" />
+                                                        
+														<payloadFactory media-type="json">
+                                                            <format>
+															{
+																"invoice-item":{
+																	"unit":"piece",
+																	"unit_price":$1,
+																	"quantity":1,
+																	"title":"$2"
+																}
+															}
+															</format>
+                                                            <args>
+                                                                <arg expression="get-property('billomat.invoiceItemUnitPrice')" />
+                                                                <arg expression="get-property('billomat.invoiceTitle')" />
+                                                            </args>
+                                                        </payloadFactory>
+														
+                                                        <property name="billomat.invoiceItem" expression="json-eval($.)" />
+                                                        <property name="billomat.invoiceItems" expression="fn:concat('[',get-property('billomat.invoiceItem'),']')" />
+                                                        
+														<!-- Calling Billomat createInvoice method to create an invoice for the deal -->
+                                                        <billomat.init>
+                                                            <apiUrl>{$ctx:billomat.apiUrl}</apiUrl>
+                                                            <apiKey>{$ctx:billomat.apiKey}</apiKey>
+                                                        </billomat.init>
+                                                        <billomat.createInvoice>
+                                                            <clientId>{$ctx:billomat.clientId}</clientId>
+                                                            <contactId>{$ctx:billomat.contactId}</contactId>
+                                                            <date>{$ctx:billomat.invoiceDate}</date>
+                                                            <title>{$ctx:billomat.invoiceTitle}</title>
+                                                            <note>{$ctx:billomat.invoiceNote}</note>
+                                                            <currencyCode>USD</currencyCode>
+                                                            <invoiceItems>{$ctx:billomat.invoiceItems}</invoiceItems>
+                                                        </billomat.createInvoice>
+														
+                                                        <property name="billomat.invoiceId" expression="json-eval($.invoice.id)" />
+                                                        <filter source="boolean(get-property('billomat.invoiceId'))" regex="false">
+                                                            <then>
+                                                                <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'))" />
+                                                                <property name="status" value="Error" />
+                                                                <property name="message" expression="json-eval($)" />
+                                                                <call-template target="responseHandlerTemplate">
+                                                                    <with-param name="id" value="{$ctx:id}" />
+                                                                    <with-param name="activity" value="billomat_createInvoice" />
+                                                                    <with-param name="status" value="{$ctx:status}" />
+                                                                    <with-param name="message" value="{$ctx:message}" />
+                                                                </call-template>
+                                                            </then>
+                                                            <else>
+                                                                <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',billomat_invoiceId:',get-property('billomat.invoiceId'))" />
+                                                                <property name="status" value="Success" />
+                                                                <property name="message" value="Invoice has been created." />
+                                                                
+																<call-template target="responseHandlerTemplate">
+                                                                    <with-param name="id" value="{$ctx:id}" />
+                                                                    <with-param name="activity" value="billomat_createInvoice" />
+                                                                    <with-param name="status" value="{$ctx:status}" />
+                                                                    <with-param name="message" value="{$ctx:message}" />
+                                                                </call-template>
+																
+                                                                <pipelinedeals.init>
+                                                                    <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                                                    <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                                                </pipelinedeals.init>
+                                                                <pipelinedeals.getUser>
+                                                                    <userId>{$ctx:pipelinedeals.ownerId}</userId>
+                                                                </pipelinedeals.getUser>
+																
+                                                                <property name="pipelinedeals.dealOwnerEmail" expression="json-eval($.email)" />
+                                                                <property name="billomat.clientName" expression="get-property('pipelinedeals.personFirstName')" />
+                                                                
+																<!-- calling completeInvoiceAndSend to send the generated invoice-->
+                                                                <sequence key="completeInvoiceAndSend" />
+																
+                                                                <!-- Update PipeLineDeals deal custom field with Billomat Invoice ID -->
+                                                                <payloadFactory media-type="json">
+																	<format>
+																	{
+																		"customFields": {
+																			"$1": "$2"
+																		}
+																	}
+																	</format>
+                                                                    <args>
+                                                                        <arg expression="get-property('pipelinedeals.deal.billomatInvoiceIdLabel')" />
+                                                                        <arg expression="get-property('billomat.invoiceId')" />
+                                                                    </args>
+                                                                </payloadFactory>
+																
+                                                                <property name="pipelindeals.dealCustomFields" expression="json-eval($.customFields)" />
+                                                                
+																<!-- Remove existing properties to prevent ambiguity. -->
+                                                                <property name="uri.var.name" action="remove" />
+                                                                <property name="uri.var.companyId" action="remove" />
+                                                                <property name="uri.var.userId" action="remove" />
+                                                                
+																<pipelinedeals.init>
+                                                                    <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                                                    <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                                                </pipelinedeals.init>
+                                                                <pipelinedeals.updateDeal>
+                                                                    <dealId>{$ctx:pipelinedeals.dealId}</dealId>
+                                                                    <customFields>{$ctx:pipelindeals.dealCustomFields}</customFields>
+                                                                    <dealStageId>{$ctx:billomat.dealInvoicedStageId}</dealStageId>
+                                                                </pipelinedeals.updateDeal>
+																
+                                                                <property name="pipelinedeals.personId" expression="json-eval($.id)" />
+                                                                <filter source="boolean(get-property('pipelindeals.dealCustomFields'))" regex="false">
+                                                                    <then>
+                                                                        <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',billomat_invoiceId:',get-property('billomat.invoiceId'))" />
+                                                                        <property name="status" value="Error" />
+                                                                        <property name="message" expression="json-eval($)" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                            <with-param name="activity" value="billomat_updateDeal_CustomFieldBillomatInvoiceId" />
+                                                                            <with-param name="status" value="{$ctx:status}" />
+                                                                            <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+                                                                    </then>
+                                                                </filter>
+                                                                
+																<script language="js">
+																<![CDATA[
+																	var dealCustomFields = mc.getProperty('pipeLineDeals.deal.customFields');
+																																				   
+																	var zohoPotentialIdLabel = mc.getProperty('pipelinedeals.deal.zohoPotentialIdLabel');
+																	var zohoPotentialId = '';
+																																								   
+																	if(dealCustomFields != null && dealCustomFields != ''){
+																	  dealCustomFields = eval("(" + dealCustomFields + ")");
+																	  if(dealCustomFields.hasOwnProperty(zohoPotentialIdLabel) && dealCustomFields[zohoPotentialIdLabel] != null){
+																		zohoPotentialId = '' + dealCustomFields[zohoPotentialIdLabel];
+																	  }
+																	}
+																																					   
+																	mc.setProperty('zohocrm.potential.potentialId', '' + zohoPotentialId);
+																]]>
+																</script>
+																
+                                                                <filter source="boolean(get-property('zohocrm.potential.potentialId'))" regex="true">
+                                                                    <then>
+                                                                        <script language="js">
+																		<![CDATA[
+																			//constructing the xml data in order to update the potential in ZohoCrm                                                                                                                               
+																			var xmlData="<Potentials> <row no=\"1\"> <FL val=\"Stage\">Closed Won</FL></row> </Potentials>";                                                                                                                                                                                                                                      
+																			mc.setProperty('zohocrm.xmlData', xmlData);
+																			
+																			var tempArray;
+																			var potentialId = '' + mc.getProperty('zohocrm.potential.potentialId');
+																			potentialId = new java.lang.String(potentialId).substring(1);
+																			mc.setProperty('zohocrm.potential.potentialId', potentialId);
+																		]]>
+																		</script>
+																		
+                                                                        <zohocrm.init>
+                                                                            <scope>crmapi</scope>
+                                                                            <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+                                                                            <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+                                                                        </zohocrm.init>
+                                                                        <zohocrm.updateRecords>
+                                                                            <moduleType>Potentials</moduleType>
+                                                                            <id>{$ctx:zohocrm.potential.potentialId}</id>
+                                                                            <xmlData>{$ctx:zohocrm.xmlData}</xmlData>
+                                                                        </zohocrm.updateRecords>
+																		
+																		<!--Removing unwanted headers-->
+                                                                        <sequence key="removeResponseHeaders" />
+                                                                        
+																		<property name="zohocrm.potentialId" expression="//content[../val/text() = 'Id']" />
+                                                                        <filter source="boolean(get-property('zohocrm.potentialId'))" regex="false">
+                                                                            <then>
+                                                                                <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'))" />
+                                                                                <property name="status" value="Error" />
+                                                                                <property name="message" expression="json-eval($)" />
+                                                                            </then>
+                                                                            <else>
+                                                                                <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipelinedeals.dealId'),',zohocrm_potentialId:',get-property('zohocrm.potentialId'))" />
+                                                                                <property name="status" value="Success" />
+                                                                                <property name="message" value="Potential has been updated" />
+                                                                            </else>
+                                                                        </filter>
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                            <with-param name="activity" value="zohocrm_updateRecords" />
+                                                                            <with-param name="status" value="{$ctx:status}" />
+                                                                            <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+                                                                    </then>
+                                                                </filter>
+                                                            </else>
+                                                        </filter>
+                                                        <!-- Manage Invoices in Billomat:BEGIN -->
+                                                    </else>
+                                                </filter>
+                                            </else>
+                                        </filter>
+                                    </then>
+                                </filter>
+                                <property name="pipelinedeals.dealIndex" expression="get-property('operation','pipelinedeals.dealIndex')+1" scope="operation" />
+                                <filter xpath="get-property('operation','pipelinedeals.dealCount') = get-property('operation','pipelinedeals.dealIndex')">
+                                    <then>
+										<filter source="get-property('operation','pipelinedeals.processedDeals')" regex="0.0">
+											<then>
+												<call-template target="responseHandlerTemplate">
+													<with-param name="activity" value="pipelinedeals_processDeals" />
+													<with-param name="id" value="{$ctx:id.empty}" />
+													<with-param name="status" value="Skipped" />
+													<with-param name="message" value="All the deals in 'Ready to Invoice' stage have been processed already." />
+												</call-template>
+											</then>
+										</filter>
+                                        <loopback />
+                                    </then>
+                                </filter>
+                            </sequence>
+                        </target>
+                    </iterate>
+                    <!--FOR EACH deals : END -->
+                </else>
+            </filter>
+        </inSequence>
+        <outSequence>
+            <payloadFactory media-type="json">
+                <format>
+				{
+				   "Response":{
+					   "process":"pipelinedeals-createInvoiceAndSend",
+					   "activityResponse":[$1]
+				   }
+               }
+			   </format>
+                <args>
+                    <arg expression="get-property('operation','responseString')" />
+                </args>
+            </payloadFactory>
+            <property name="messageType" value="application/json" scope="axis2" />
+            <send />
+        </outSequence>
+    </target>
+</proxy>
