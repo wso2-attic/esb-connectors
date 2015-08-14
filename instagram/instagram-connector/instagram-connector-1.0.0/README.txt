@@ -18,7 +18,7 @@ Tested Platform:
 STEPS: 
  
  
- 1. Download the ESB 4.9.0-ALPHA.zip
+ 1. Download the ESB 4.9.0-BETA.zip
   
  
  2. Create a Instagram account and derive the access token: 
