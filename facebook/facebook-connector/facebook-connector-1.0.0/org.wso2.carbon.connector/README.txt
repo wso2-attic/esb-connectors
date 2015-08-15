@@ -6,107 +6,46 @@ Product: WSO2 ESB Connector for Facebook + Integration Tests
 
     Tested Platforms: 
 
-    - Microsoft WINDOWS V-7
+    - Microsoft WINDOWS V-7,UBUNTU 14.04
     - Ubuntu 13.04
-    - WSO2 ESB 4.8.1
+    - WSO2 ESB 4.9.0-ALPHA
     
-1. To build the connector without running tests from any location, run maven build with the -Dmaven.test.skip=true switch.
+ 1. Download ESB 4.9.0-ALPHA by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/
 
-2. Before attempting to run integration tests, uncomment the following in pom.xml:
+ 2. The ESB should be configured as below.
 
-    i)  <parent>
-            <groupId>org.wso2.esb</groupId>
-            <artifactId>esb-integration-tests</artifactId>
-            <version>4.8.1</version>
-            <relativePath>../pom.xml</relativePath>
-        </parent>
+ 	Navigate to location "/4.9.0-ALPHA/repository/conf/axis2" and add/uncomment following lines in "axis2.xml".
 
-    ii) <dependency>
-            <groupId>org.wso2.esb</groupId>
-            <artifactId>org.wso2.connector.integration.test.base</artifactId>
-            <version>4.8.1</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../integration-base/target/org.wso2.connector.integration.test.base-4.8.1.jar</systemPath>
-        </dependency> 
-Note:
+                <messageFormatter contentType="text/javascript" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+
+                <messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+
+                <messageBuilder contentType="text/javascript" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+
+                <messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+
+                <messageFormatter contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamFormatter"/>
+
+                <messageBuilder contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
+
+                <messageFormatter contentType="application/octet-stream" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+
+                <messageBuilder contentType="application/octet-stream" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+
+	
+Steps to follow in setting integration test.
+
+ .
+ 3.  Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
+
+ 4. Copy Property File, "facebook.properties" from location "facebook/integration-test/src/test/resources/artifacts/ESB/connector/config" to location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/connector/config/"
+     and edit using valid and relevant data.
+
+     Note:
 
 	This test suite can execute based on two scenarios.
 		1. Use the given test account and parameters. - in this scenario you only need to replace accessToken , pageAccessToken in property file
 		2. Setup new facebook account and follow all the instruction given below
-	
-Steps to follow in setting integration test.
-
-
-
- 3.  Download ESB 4.8.1 from official website.
-
- 4.  Deploy following patches.
-            patchjson
-            Empty-payload-patch
-            special-char-on-get
-            multipart-patch
-            http PATCH request patch
-
- 5.  Navigate to location "/wso2esb-4.8.1/repository/conf/axis2" and add/uncomment following lines in "axis2.xml".
-    
-            <messageFormatter contentType="text/javascript" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
-
-            <messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
-
-            <messageBuilder contentType="text/javascript" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
-
-            <messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
-
-            <messageFormatter contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamFormatter"/>
-
-            <messageBuilder contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
-
-            <messageFormatter contentType="application/octet-stream" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
-
-            <messageBuilder contentType="application/octet-stream" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
-
- 6.  Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "Integration_Test/products/esb/4.8.1/modules/distribution/target/".
-
- 7.  Make sure "integration-base" project is placed at "Integration_Test/products/esb/4.8.1/modules/integration/"
-
- 8.  Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/integration-base" and run the following command.
-      $ mvn clean install
-      
- 9.  Add following dependency to the file "Integration_Test/products/esb/4.8.1/modules/integration/connectors/pom.xml"
-     <dependency>
-
-         <groupId>org.wso2.esb</groupId>
-
-         <artifactId>org.wso2.connector.integration.test.base</artifactId>
-
-         <version>4.8.1</version>
-
-         <scope>system</scope>
-
-         <systemPath>${basedir}/../integration-base/target/org.wso2.connector.integration.test.base-4.8.1.jar</systemPath>
-
-     </dependency>
-  
- 10.  Copy Facebook connector, "facebook.zip" to the location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/repository/"
-
- 11.  Add following code block, just after the listeners block (Remove or comment all the other test blocks) in following file - "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/testng.xml"
-
-        <test name="Facebook-Connector-Test" preserve-order="true" verbose="2">
-            <packages>
-                <package name="org.wso2.carbon.connector.integration.test.facebook"/>
-            </packages>
-        </test> 
-         
- 12. Copy the java file "facebook/integration-test/src/test/java/org/wso2/carbon/connector/integration/test/facebook/FacebookConnectorIntegrationTest.java" to location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/java/org/wso2/carbon/connector/integration/test/facebook/"
- 
- 13. Copy proxy files from location "facebook/integration-test/src/test/resources/artifacts/ESB/config/proxies/facebook/" to location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/config/proxies/facebook/"
-
- 14. Copy request files from location "facebook/integration-test/src/test/resources/artifacts/ESB/config/restRequests/facebook" to location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/config/restRequests/facebook/" 
-    
- 15. Copy resource files from location "facebook/integration-test/src/test/resources/artifacts/ESB/config/resources/facebook" to location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/config/resources/facebook/" 
-
- 16. Copy Property File, "facebook.properties" from location "facebook/integration-test/src/test/resources/artifacts/ESB/connector/config" to location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/connector/config/" 
-     and edit using valid and relevant data.
         
  17. Prerequisites for Facebook Connector Integration Testing
 
@@ -234,10 +173,6 @@ Steps to follow in setting integration test.
 
         50)   friendListName is a suitable name for friend List to be created.
         
-18. Navigate to "Integration_Test/products/esb/4.8.1/modules/integration/connectors/" and run the following command.
-     $ mvn clean install
+ 8. Navigate to "{ESB_Connector_Home}/" and run the following command.
+       $ mvn clean install
 
-	 
-	 credential of test account:
-	 login:	virtusa.wso2.connector@gmail.com
-	 password: 2wsx3edc#
