@@ -1,76 +1,64 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
 <template name="getRecordById" xmlns="http://ws.apache.org/ns/synapse">
-		<parameter name="module" description="The module specifies the which section entries should be added. e.g. JobOpenings, Candidates, Clients, ClientContacts." />
-		<parameter name="id" description="The record id to retrieve a record." />
-      <parameter name="idList" description="List of semicolon separated record ids to retrieve the corresponding records." />
-      <parameter name="newFormat" description="Integer 1 or 2, specifying to exclude fields with null values or not while fetching data." />
-		<parameter name="version" description="ZohoRectuit API version being accessed." />
+    <parameter name="module"
+               description="The module specifies the which section entries should be added. e.g. JobOpenings, Candidates, Clients, ClientContacts."/>
+    <parameter name="id" description="The record id to retrieve a record."/>
+    <parameter name="newFormat" description="To exclude fields with null values while fetching data from your Recruit account." />
+    <parameter name="version" description="This will fetch responses based on the API versions." />
 
-		<sequence>	
-			<property name="uri.var.module" expression="$func:module" />
-			<property name="uri.var.id" expression="$func:id" /><property name="uri.var.id" expression="$func:id" />
-         <property name="uri.var.idList" expression="$func:idList" />
-			<property name="uri.var.newFormat" expression="$func:newFormat" />
-         <property name="uri.var.version" expression="$func:version" />
-			
-			<payloadFactory media-type="json">
-				<format>
-					{
-						"authtoken": "$1",
-						"scope":     "$2",
-                  "version":   "$3"
-					}
-				</format>
-				<args>
-					<arg expression="get-property('uri.var.authToken')" />
-					<arg expression="get-property('uri.var.scope')" />
-               <arg expression="get-property('uri.var.version')" />
-				</args>
-			</payloadFactory>
+    <sequence>
+        <property name="uri.var.module" expression="$func:module"/>
+        <property name="uri.var.id" expression="$func:id"/>
+        <property name="uri.var.newFormat" expression="$func:newFormat" />
+        <property name="uri.var.version" expression="$func:version" />
+        <property name="uri.var.urlQuery" value="" />
 
-			<script language="js">
-	    
-	    	<![CDATA[
-	     
-   	        // initializing the variables    
-   			  var id = mc.getProperty("uri.var.id");
-              var idList = mc.getProperty("uri.var.idList");
-              var newFormat = mc.getProperty("uri.var.newFormat");
-   			
-   			  //initializing the payload
-   	        var payload = mc.getPayloadJSON();
-   	        
-   	        // adding the optional parameters to the payload
-      		  if (id != null && id != "") {
-      		    payload.id = id;
-      		  }
-              if (idList != null && idList != "") {
-                payload.idList = idList;
-              }
-              if (newFormat != null && newFormat != "") {
-                payload.newFormat = newFormat;
-              }
-   			
-   			  mc.setPayloadJSON(payload);
-			                                     
-	       ]]>
+        <script language="js">
+            <![CDATA[
+            var newFormat = mc.getProperty('uri.var.newFormat');
+            var version = mc.getProperty('uri.var.version');
+            var urlQuery = "";
+            if (newFormat != null && newFormat != "") {
+               urlQuery += "newFormat=" + newFormat+ '&';
+            }
+            if (version != null && version != "") {
+               urlQuery += "version=" + version + '&';
+            }
+            if (urlQuery != "") {
+               urlQuery = '&' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+         ]]>
+        </script>
 
-		</script>
-		
-		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
-		
-		<call>
-			<endpoint>
-				<http method="post" uri-template="{uri.var.apiUrl}/recruit/private/{uri.var.responseFormat}/{uri.var.module}/getRecordById" />
-			</endpoint>
-		</call>
-			
-		<!-- Removing custom headers -->
-		<header name="Strict-Transport-Security" action="remove" scope="transport" />
-		<header name="X-XSS-Protection" action="remove" scope="transport" />
-		<header name="X-Content-Type-Options" action="remove" scope="transport" />
-		<header name="Pragma" action="remove" scope="transport" />
-		<header name="Cache-Control" action="remove" scope="transport" />
-      <header name="X-Download-Options" action="remove" scope="transport" />  
-	</sequence>
+        <call>
+            <endpoint>
+                <http method="GET" uri-template="{uri.var.apiUrl}/recruit/private/{uri.var.responseFormat}/{uri.var.module}/getRecordById?authtoken={uri.var.authToken}&amp;scope={uri.var.scope}&amp;id={uri.var.id}{uri.var.urlQuery}" />
+            </endpoint>
+        </call>
+        <!-- Removing custom headers -->
+        <header name="Strict-Transport-Security" action="remove" scope="transport"/>
+        <header name="X-XSS-Protection" action="remove" scope="transport"/>
+        <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+        <header name="Pragma" action="remove" scope="transport"/>
+        <header name="Cache-Control" action="remove" scope="transport"/>
+        <header name="X-Download-Options" action="remove" scope="transport"/>
+    </sequence>
 </template>

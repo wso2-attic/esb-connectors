@@ -1,44 +1,66 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<template name="associateJobOpening" xmlns="http://ws.apache.org/ns/synapse">
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 
-	<parameter name="jobId" description="This specifies an unique ID of the Job Opening record." />
-	<parameter name="candidateIds" description="This specifies comma separated candidate ids to associate with the above jobId." />
-	
-	<sequence>		
-		<property name="uri.var.jobId" expression="$func:jobId" />
-		<property name="uri.var.candidateIds" expression="$func:candidateIds" />
-	
-		<payloadFactory media-type="json">
-				<format>
-					{
-						"authtoken":    "$1",
-						"scope":        "$2",
-						"jobId":        "$3",
-						"candidateIds": "$4"
-					}
-				</format>
-				<args>
-					<arg expression="get-property('uri.var.authToken')" />
-					<arg expression="get-property('uri.var.scope')" />
-					<arg expression="get-property('uri.var.jobId')" />
-					<arg expression="get-property('uri.var.candidateIds')" />
-				</args>
-			</payloadFactory>
-		
-		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
-		
-		<call>
-			<endpoint>
-				<http method="post" uri-template="{uri.var.apiUrl}/ats/private/{uri.var.responseFormat}/Candidates/associateJobOpening" />
-			</endpoint>
-		</call>
-			
-		<!-- Removing custom headers -->
-		<header name="Strict-Transport-Security" action="remove" scope="transport" />
-		<header name="X-XSS-Protection" action="remove" scope="transport" />
-		<header name="X-Content-Type-Options" action="remove" scope="transport" />
-		<header name="Pragma" action="remove" scope="transport" />
-		<header name="Cache-Control" action="remove" scope="transport" />
-				
-	</sequence>
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="associateJobOpening" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="jobIds" description="This specifies an unique ID of the Job Opening record."/>
+    <parameter name="candidateIds"
+               description="This specifies comma separated candidate ids to associate with the above jobId."/>
+    <parameter name="version" description="The API version being used."/>
+    <parameter name="status" description="Specify the status of the Candidate with the associated Job opening."/>
+    <parameter name="comments" description="Specify the comments for the association."/>
+    <sequence>
+        <property name="uri.var.jobIds" expression="$func:jobIds"/>
+        <property name="uri.var.candidateIds" expression="$func:candidateIds"/>
+        <property name="uri.var.version" expression="$func:version"/>
+        <property name="uri.var.status" expression="$func:status"/>
+        <property name="uri.var.comments" expression="$func:comments"/>
+        <script language="js">
+            <![CDATA[
+            var status = mc.getProperty('uri.var.status');
+            var comments = mc.getProperty('uri.var.comments');
+            var version = mc.getProperty('uri.var.version');
+            var urlQuery = "";
+            if (status != null && status != "") {
+               urlQuery += "status=" + status+ '&';
+            }
+            if (comments != null && comments != "") {
+               urlQuery += "comments=" + comments+ '&';
+            }
+            if (version != null && version != "") {
+               urlQuery += "version=" + version + '&';
+            }
+            if (urlQuery != "") {
+               urlQuery = '&' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+         ]]>
+        </script>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="{uri.var.apiUrl}/recruit/private/{uri.var.responseFormat}/Candidates/associateJobOpening?authtoken={uri.var.authToken}&amp;scope={uri.var.scope}&amp;candidateIds={uri.var.candidateIds}&amp;jobIds={uri.var.jobIds}{uri.var.urlQuery}"/>
+            </endpoint>
+        </call>
+        <!-- Removing custom headers -->
+        <header name="Strict-Transport-Security" action="remove" scope="transport"/>
+        <header name="X-XSS-Protection" action="remove" scope="transport"/>
+        <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+        <header name="Pragma" action="remove" scope="transport"/>
+        <header name="Cache-Control" action="remove" scope="transport"/>
+    </sequence>
 </template>
