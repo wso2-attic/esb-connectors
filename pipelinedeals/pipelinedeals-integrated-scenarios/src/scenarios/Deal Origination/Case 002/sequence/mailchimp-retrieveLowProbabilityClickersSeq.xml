@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!--Create deals in PipelineDeals for the clickers who clicked the low probability URL in mailchimp-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="mailchimp-retrieveLowProbabilityClickerSeq">
+   
+   <!-- START: Proceed only if the link with low probability is found -->
+   <filter source="boolean(get-property('mailchimp.lowTrackId'))" regex="false">
+      <then>
+		<!-- Failure case: Append an error message to be sent to the user. -->
+         <property name="id" expression="fn:concat('mailchimp_campaignId:', get-property('mailchimp.campaignId'))" />
+         <property name="message" expression="fn:concat('The link [', get-property('mailchimp.lowUrl'),'] is not valid')" />
+         <property name="errorResponse" expression="json-eval($)" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="mailchimp_getCampaignClicks" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Skipped" />
+            <with-param name="message" value="{$ctx:message}" />
+         </call-template>
+         <loopback />
+      </then>
+      <else>
+		<!--Call mailchimp connector listCampaignClickers method to get the clickers for a particular Url -->
+         <mailchimp.init>
+            <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+            <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+            <format>json</format>
+         </mailchimp.init>
+         <mailchimp.listCampaignClickers>
+            <campaignId>{$ctx:mailchimp.campaignId}</campaignId>
+            <trackingid>{$ctx:mailchimp.lowTrackId}</trackingid>
+         </mailchimp.listCampaignClickers>
+
+         <filter source="$axis2:HTTP_SC" regex="200">
+            <then>
+               <property name="lowClickerIndex" expression="0" scope="operation" />
+               <property name="lowClickerCount" expression="count(//data)" scope="operation" />
+               
+			   <!-- START: Proceed only if there are clickers for the low probability url -->
+			   <filter xpath="get-property('operation', 'lowClickerCount') = 0">
+                  <then>
+                     <property name="id"
+                        expression="fn:concat('mailchimp_campaignId:',get-property('mailchimp.campaignId'),',mailchimp_lowUrlId:',get-property('mailchimp.highTrackId'))" />
+                     <property name="status" value="Skipped" />
+                     <property name="message" value="No clickers for the link." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="mailchimp_getClickers" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <iterate continueParent="false" id="lowClickers" expression="//data" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="mailchimp.memberId" expression="json-eval($.data.member.id)" />
+                              <property name="mailchimp.memberNotes" expression="json-eval($.data.member.notes)" />
+                              <property name="mailchimp.memberEmail" expression="json-eval($.data.member.email)" />
+							  <property name="mailchimp.listId" expression="json-eval($.data.member.list_id)" />
+							  <property name="mailchimp.memberFName" expression="json-eval($.data.member.merges.FNAME)" />
+							  <property name="mailchimp.memberLName" expression="json-eval($.data.member.merges.LNAME)" />
+
+							  <!-- Call pipelinedeals-createContactsAndDeals template to create people and deals -->
+                              <call-template target="createContactsAndDeals">
+                                 <with-param name="mailchimp.apiKey" value="{$ctx:mailchimp.apiKey}" />
+                                 <with-param name="mailchimp.apiUrl" value="{$ctx:mailchimp.apiUrl}" />
+                                 <with-param name="mailchimp.notes" value="{$ctx:mailchimp.memberNotes}" />
+                                 <with-param name="mailchimp.memberId" value="{$ctx:mailchimp.memberId}" />
+                                 <with-param name="mailchimp.listId" value="{$ctx:mailchimp.listId}" />
+                                 <with-param name="mailchimp.campaignId" value="{$ctx:mailchimp.responseCampaignId}" />
+                                 <with-param name="pipelinedeals.apiKey" value="{$ctx:pipelinedeals.apiKey}" />
+                                 <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipelinedeals.apiUrl}" />
+                                 <with-param name="pipelinedeals.personEmail" value="{$ctx:mailchimp.memberEmail}" />
+                                 <with-param name="pipelinedeals.dealName" value="{$ctx:mailchimp.campaignName}" />
+                                 <with-param name="pipelinedeals.dealProbability" value="{$ctx:mailchimp.lowProbability}" />
+                                 <with-param name="pipelinedeals.personFName" value="{$ctx:mailchimp.memberFName}" />
+                                 <with-param name="pipelinedeals.personLName" value="{$ctx:mailchimp.memberLName}" />
+                                 <with-param name="pipelinedeals.expectedCloseDate" value="{$ctx:pipelinedeals.expectedCloseDate}" />
+                                 <with-param name="pipelinedeals.value" value="{$ctx:pipelinedeals.value}" />
+                                 <with-param name="pipelinedeals.dealSummary" value="{$ctx:pipelinedeals.summary}" />
+                                 <with-param name="pipelinedeals.dealStageId" value="{$ctx:pipelinedeals.followupStageId}" />
+                                 <with-param name="pipelinedeals.sourceId" value="{$ctx:pipelinedeals.mailchimpDealSourceId}" />
+                              </call-template>
+
+                              <property name="lowClickerIndex" expression="get-property('operation','lowClickerIndex') + 1" scope="operation" />
+                              <property name="index" expression="get-property('operation','lowClickerIndex')" />
+
+                              <filter xpath="get-property('operation','lowClickerIndex') = get-property('operation', 'lowClickerCount')">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>
+                  </else>
+               </filter>
+			    <!-- END: Proceed only if there are clickers for the low probability url -->
+            </then>
+         </filter>
+      </else>
+   </filter>
+   <!-- END: Proceed only if the link with low probability is found -->
+</sequence>

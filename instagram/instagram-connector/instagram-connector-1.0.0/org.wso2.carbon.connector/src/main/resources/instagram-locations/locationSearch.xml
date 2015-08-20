@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2014-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ Licensed under the Apache License, Version 2.0 (the "License");
+~ you may not use this file except in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~      http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing, software
+~ distributed under the License is distributed on an "AS IS" BASIS,
+~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~ See the License for the specific language governing permissions and
+~ limitations under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="locationSearch">
+    <parameter name="lat" description="Latitude of the center search coordinate. If used, lng is required."/>
+    <parameter name="lng" description="Longitude of the center search coordinate. If used, lat is required."/>
+    <parameter name="foursquareId"
+               description="Returns a location mapped off of a foursquare v1 api location id. If used, you are not required to use lat and lng. Note that this method is deprecated; you should use the new foursquare IDs with V2 of their API."/>
+    <parameter name="foursquareV2Id"
+               description="Returns a location mapped off of a foursquare v2 api location id. If used, you are not required to use lat and lng."/>
+    <parameter name="facebookPlacesId"
+               description="Returns a location mapped off of a Facebook places id"/>
+    <parameter name="distance"
+               description="Search distance, in meters. Default is 1km (distance=1000), max distance is 5km (5000)"/>
+    <sequence>
+        <property name="uri.var.lat" expression="$func:lat"/>
+        <property name="uri.var.lng" expression="$func:lng"/>
+        <property name="uri.var.foursquareId" expression="$func:foursquareId"/>
+        <property name="uri.var.foursquareV2Id" expression="$func:foursquareV2Id"/>
+        <property name="uri.var.distance" expression="$func:distance"/>
+        <property name="uri.var.apiParameters" value=""/>
+        <filter xpath="(not(get-property('uri.var.lat') = '' or (not(string(get-property('uri.var.lat'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'lat=',get-property('uri.var.lat'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.lng') = '' or (not(string(get-property('uri.var.lng'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'lng=',get-property('uri.var.lng'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.distance') = '' or (not(string(get-property('uri.var.distance'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'distance=',get-property('uri.var.distance'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.foursquareId') = '' or (not(string(get-property('uri.var.foursquareId'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'foursquare_id=',get-property('uri.var.foursquareId'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.foursquareV2Id') = '' or (not(string(get-property('uri.var.foursquareV2Id'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'foursquare_v2_id=',get-property('uri.var.foursquareV2Id'),'&amp;')"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="{uri.var.apiUrl}/locations/search?{+uri.var.apiParameters}access_token={+uri.var.accessToken}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>
+
+

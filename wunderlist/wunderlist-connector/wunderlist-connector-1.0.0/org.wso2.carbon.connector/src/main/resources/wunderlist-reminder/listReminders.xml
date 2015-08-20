@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developer.wunderlist.com/documentation/endpoints/reminder -->
+<template name="listReminders" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="taskId" description="ID of the task whose reminders would be retrieved."/>
+   <parameter name="listId" description="ID of the list whose reminders would be retrieved."/>
+   <sequence>
+      <property name="uri.var.taskId" expression="$func:taskId"/>
+      <property name="uri.var.listId" expression="$func:listId"/>
+      <property name="uri.var.urlQuery" value=""/>
+      <filter source="boolean(get-property('uri.var.taskId'))" regex="true">
+         <then>
+            <property name="uri.var.urlQuery" expression="fn:concat(get-property('uri.var.urlQuery'), '&amp;task_id=', get-property('uri.var.taskId'))"/>
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.listId'))" regex="true">
+         <then>
+            <property name="uri.var.urlQuery" expression="fn:concat(get-property('uri.var.urlQuery'), '&amp;list_id=', get-property('uri.var.listId'))"/>
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.urlQuery'))" regex="true">
+         <then>
+            <property name="uri.var.urlQuery" expression="fn:concat('?', fn:substring(get-property('uri.var.urlQuery'), 1))"/>
+         </then>
+      </filter>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="legacy-encoding:{uri.var.apiUrl}/reminders{uri.var.urlQuery}"/>
+         </endpoint>
+      </call>
+      <!--Removing custom headers from the Response. -->
+      <header name="Via" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-Request-ID" action="remove" scope="transport" />
+      <header name="X-Current-User-ID" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+   </sequence>
+</template>

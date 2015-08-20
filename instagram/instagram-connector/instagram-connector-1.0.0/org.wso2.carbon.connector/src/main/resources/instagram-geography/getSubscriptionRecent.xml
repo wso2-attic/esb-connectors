@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2014-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ Licensed under the Apache License, Version 2.0 (the "License");
+~ you may not use this file except in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~      http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing, software
+~ distributed under the License is distributed on an "AS IS" BASIS,
+~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~ See the License for the specific language governing permissions and
+~ limitations under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="getSubscriptionRecent">
+    <parameter name="geoId" description="the media id"/>
+    <parameter name="count" description="Count of media to return."/>
+    <parameter name="minId" description="Return media later than this minId"/>
+    <sequence>
+        <property name="uri.var.geoId" expression="$func:geoId"/>
+        <property name="uri.var.count" expression="$func:count"/>
+        <property name="uri.var.minId" expression="$func:minId"/>
+        <filter xpath="(not(get-property('uri.var.count') = '' or (not(string(get-property('uri.var.count'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;count=',get-property('uri.var.count'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.minId') = '' or (not(string(get-property('uri.var.minId'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;min_id=',get-property('uri.var.minId'))"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="{uri.var.apiUrl}/geographies/{+uri.var.geoId}/media/recent?client_id={+uri.var.clientId}{uri.var.apiParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

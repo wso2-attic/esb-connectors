@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.pivotaltracker.com/help/api/rest/v5#projects_project_id_stories_post -->
+<template name="createStory" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="projectId" description="The ID of the project." />
+   <parameter name="name" description="The name of the story." />
+   <parameter name="description" description="The descriptionof the story requirements." />
+   <parameter name="storyType" description="The story type." />
+   <parameter name="currentState" description="The story's state of completion." />
+   <parameter name="estimate" description="The point value of the story." />
+   <parameter name="acceptedAt" description="The acceptance time." />
+   <parameter name="deadline" description="The due date/time." />
+   <parameter name="requestedById" description=" The id of the person who requested the story." />
+   <parameter name="ownerIds" description="The Ids of the current story owners." />
+   <parameter name="labels" description="The labels for the story." />
+   <parameter name="labelIds" description="The Ids of labels currently applied to story." />
+   <parameter name="tasks" description="The tasks for the story." />
+   <parameter name="followerIds" description="The Ids of people currently following the story." />
+   <parameter name="comments" description="The comments for the sory." />
+   <parameter name="createdAt" description="The creation time" />
+   <parameter name="beforeId" description="The Id of the story that the current story is located before. " />
+   <parameter name="afterId" description="The Id of the story that the current story is located after." />
+   <parameter name="integrationId" description="The Id of the integration API that is linked to this story." />
+   <parameter name="externalId" description="The integration's specific Id for the story." />
+   <sequence>
+      <property name="uri.var.projectId" expression="$func:projectId" />
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.storyType" expression="$func:storyType" />
+      <property name="uri.var.currentState" expression="$func:currentState" />
+      <property name="uri.var.estimate" expression="$func:estimate" />
+      <property name="uri.var.acceptedAt" expression="$func:acceptedAt" />
+      <property name="uri.var.deadline" expression="$func:deadline" />
+      <property name="uri.var.requestedById" expression="$func:requestedById" />
+      <property name="uri.var.ownerIds" expression="$func:ownerIds" />
+      <property name="uri.var.labels" expression="$func:labels" />
+      <property name="uri.var.labelIds" expression="$func:labelIds" />
+      <property name="uri.var.tasks" expression="$func:tasks" />
+      <property name="uri.var.followerIds" expression="$func:followerIds" />
+      <property name="uri.var.comments" expression="$func:comments" />
+      <property name="uri.var.createdAt" expression="$func:createdAt" />
+      <property name="uri.var.beforeId" expression="$func:beforeId" />
+      <property name="uri.var.afterId" expression="$func:afterId" />
+      <property name="uri.var.integrationId" expression="$func:integrationId" />
+      <property name="uri.var.externalId" expression="$func:externalId" />
+      <!-- In order to add INTEGER arrays as it is to the payload. -->
+      <script language="js">
+      <![CDATA[
+         var ownerIds = mc.getProperty('uri.var.ownerIds');
+         var labelIds = mc.getProperty('uri.var.labelIds');
+         var followerIds = mc.getProperty('uri.var.followerIds');
+         if (ownerIds == null || ownerIds == "") {
+            mc.setProperty("uri.var.pivotalOwnerIds","[]");
+         } else {
+            mc.setProperty("uri.var.pivotalOwnerIds",ownerIds);
+         }
+         if (labelIds == null || labelIds == "") {
+            mc.setProperty("uri.var.pivotalLabelIds","[]");
+         } else {
+            mc.setProperty("uri.var.pivotalLabelIds",labelIds);
+         }
+         if (followerIds == null || followerIds == "") {
+            mc.setProperty("uri.var.pivotalFollowerIds","[]");
+         } else {
+            mc.setProperty("uri.var.pivotalFollowerIds",followerIds);
+         }
+      ]]>
+      </script>
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "name":"$1",
+            "owner_ids":$2,
+            "follower_ids":$3,
+            "label_ids":$4
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.name')" />
+            <arg expression="get-property('uri.var.pivotalOwnerIds')" />
+            <arg expression="get-property('uri.var.pivotalFollowerIds')" />
+            <arg expression="get-property('uri.var.pivotalLabelIds')" />
+         </args>
+      </payloadFactory>
+      <!-- If not empty, values are converted into INTEGER type in order to attach to payload. -->
+      <filter xpath="boolean(get-property('uri.var.requestedById'))">
+         <then>
+            <property name="uri.var.requestedById" expression="get-property('uri.var.requestedById')" type="INTEGER" />
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.beforeId'))">
+         <then>
+            <property name="uri.var.beforeId" expression="get-property('uri.var.beforeId')" type="INTEGER" />
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.afterId'))">
+         <then>
+            <property name="uri.var.afterId" expression="get-property('uri.var.afterId')" type="INTEGER" />
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.integrationId'))">
+         <then>
+            <property name="uri.var.integrationId" expression="get-property('uri.var.integrationId')" type="INTEGER" />
+         </then>
+      </filter>
+      <script language="js">
+      <![CDATA[
+         var payload = mc.getPayloadJSON();
+         var description = mc.getProperty('uri.var.description');
+         var storyType = mc.getProperty('uri.var.storyType');
+         var currentState = mc.getProperty('uri.var.currentState');
+         var estimate = mc.getProperty('uri.var.estimate');
+         var acceptedAt = mc.getProperty('uri.var.acceptedAt');
+         var deadline = mc.getProperty('uri.var.deadline');
+         var requestedById = mc.getProperty('uri.var.requestedById');
+         var ownerIds = mc.getProperty('uri.var.ownerIds');
+         var labels = mc.getProperty('uri.var.labels');
+         var labelIds = mc.getProperty('uri.var.labelIds');
+         var tasks = mc.getProperty('uri.var.tasks');
+         var followerIds = mc.getProperty('uri.var.followerIds');
+         var comments = mc.getProperty('uri.var.comments');
+         var createdAt = mc.getProperty('uri.var.createdAt');
+         var beforeId = mc.getProperty('uri.var.beforeId');
+         var afterId = mc.getProperty('uri.var.afterId');
+         var integrationId = mc.getProperty('uri.var.integrationId');
+         var externalId = mc.getProperty('uri.var.externalId');
+         if (description != null && description != "") {
+            payload.description = description;
+         }
+         if (storyType != null && storyType != "") {
+            payload.story_type = storyType;
+         }
+         if (currentState != null && currentState != "") {
+            payload.current_state = currentState;
+         }
+         if (estimate != null && estimate != "") {
+            payload.estimate = eval("("+estimate+")");
+         }
+         if (acceptedAt != null && acceptedAt != "") {
+            payload.accepted_at = acceptedAt;
+         }
+         if (deadline != null && deadline != "") {
+            payload.deadline = deadline;
+         }
+         if (requestedById != null && requestedById != "") {
+            payload.requested_by_id = requestedById;
+         }
+         if (labels != null && labels != "") {
+            payload.labels = eval("("+labels+")");
+         }
+         if (tasks != null && tasks != "") {
+            payload.tasks = eval("("+tasks+")");
+         }
+         if (comments != null && comments != "") {
+            payload.comments = eval("("+comments+")");
+         }
+         if (createdAt != null && createdAt != "") {
+            payload.created_at = createdAt;
+         }
+         if (beforeId != null && beforeId != "") {
+            payload.before_id = beforeId;
+         }
+         if (afterId != null && afterId != "") {
+            payload.after_id = afterId;
+         }
+         if (integrationId != null && integrationId != "") {
+            payload.integration_id = integrationId;
+         }
+         if (externalId != null && externalId != "") {
+            payload.external_id = externalId;
+         }
+         //If vaules are not sent in arrays the parameters are removed from the payload.
+         if (ownerIds == null || ownerIds == "") {
+            delete payload.owner_ids;
+         }
+         if (labelIds == null || labelIds == "") {
+            delete payload.label_ids;
+         }
+         if (followerIds == null || followerIds == "") {
+            delete payload.follower_ids;
+         }
+         mc.setPayloadJSON(payload);
+      ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/projects/{uri.var.projectId}/stories" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="X-Runtime" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="X-Rack-Cache" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Credentials" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Methods" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Headers" action="remove" scope="transport" />
+      <header name="X-Tracker-Client-Pinger-Interval" action="remove" scope="transport" />
+      <header name="X-Tracker-Project-Version" action="remove" scope="transport" />
+   </sequence>
+</template>

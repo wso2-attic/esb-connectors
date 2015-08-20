@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!--For the active deals in PipelineDeals, retrieve completed tasks from wunderlist and update them back in PipelineDeals-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pipelinedeals_retrieveCompletedTasksAndUpdateCalendarEntries" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+    <target>
+        <inSequence>
+            
+			<!-- wunderList Properties -->
+            <property name="uri.var.wunderlist.apiUrl" value="https://a.wunderlist.com" />
+            <property name="uri.var.wunderlist.accessToken" expression="json-eval($.wunderlist.accessToken)" />
+            <property name="uri.var.wunderlist.clientId" expression="json-eval($.wunderlist.clientId)" />
+            
+			<!-- pipelineDeals Properties -->
+            <property name="uri.var.pipelinedeals.apiUrl" value="http://api.pipelinedeals.com" />
+            <property name="uri.var.pipelinedeals.apiKey" expression="json-eval($.pipelinedeals.apiKey)" />
+            
+			<!-- Common properties -->
+            <property name="id.empty" value="{}" />
+            <property name="responseString" value="" scope="operation" />
+            <property name="activityName" value="pipelinedeals_retrievePotentialsAndCreateDeals" scope="operation" />
+            
+			<!-- Calling retrieveDealsAndUpdateTasks-verifyPrerequisites sequence to get deal stages and wunderList list Id-->
+            <sequence key="retrieveCompletedTasksAndUpdateCalendarEntries-verifyPrerequisites" />
+            
+			<!---Remove unnecessary headers-->
+            <sequence key="removeResponseHeaders" />
+            
+			<!-- Call pipelinedeals connector listDeals method to list all deals in a given stage 'open' -->
+            <pipelinedeals.init>
+                <apiUrl>{$ctx:uri.var.pipelinedeals.apiUrl}</apiUrl>
+                <apiKey>{$ctx:uri.var.pipelinedeals.apiKey}</apiKey>
+            </pipelinedeals.init>
+            <pipelinedeals.listDeals>
+                <dealStage>{$ctx:pipelinedeals.dealStageId}</dealStage>
+            </pipelinedeals.listDeals>
+            <property name="deal.count" expression="count(//entries)" scope="operation" />
+            <property name="deal.entries" expression="json-eval($.entries)" />
+            
+			<!-- START: Proceed to update deals only if there are active deals. -->
+            <filter source="get-property('operation','deal.count')" regex="0.0">
+                <then>
+                    <property name="id" value="{}" />
+                    <property name="status" value="Skipped" />
+                    <property name="message" value="No deals to process." />
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="pipelinedeals_updateTasks" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                    </call-template>
+                    <loopback />
+                </then>
+                <else>
+                    <!---Remove unnecessary headers-->
+                    <sequence key="removeResponseHeaders" />
+                    <property name="dealIndex" value="0" scope="operation" />
+                    <property name="taskIndex" value="0" scope="operation" />
+                    <property name="taskCount" value="0" scope="operation" />
+            
+					<!--FOR EACH task : BEGIN-->
+                    <iterate continueParent="false" id="deals" expression="//entries" sequential="true">
+                        <target>
+                            <sequence>
+                                <property name="uri.var.pipelinedeals.dealId" expression="json-eval($.entries.id)" />
+                                <property name="pipelinedeals.dealCustomFields" expression="json-eval($.entries.custom_fields)" />
+                    
+								<!--To get the custom field value which stores the wunderlist list Id in pipeline deals -->
+                                <script language="js">
+									<![CDATA[
+										var dealCustomFields = eval("(" + mc.getProperty('pipelinedeals.dealCustomFields') + ")");
+										var wunderlistCustomField = mc.getProperty('pipelinedeals.customFieldString');
+								
+										if(dealCustomFields.hasOwnProperty(wunderlistCustomField)) {
+											var wunderlistId = ""+dealCustomFields[wunderlistCustomField];
+											mc.setProperty("uri.var.pipelinedeals.wunderlistId",wunderlistId);
+										}
+									]]>
+								</script>
+                               
+							   <!-- START: Proceed to retrieve tasks only if the related wunderList list ID is given for the deal. -->
+                                <filter source="boolean(get-property('uri.var.pipelinedeals.wunderlistId'))" regex="false">
+                                    <then>
+                                        <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('uri.var.pipelinedeals.dealId'))" />
+                                        <property name="status" value="Error" />
+                                        <property name="message" value="wunderList Id is not given in the custom field" />
+                                        <call-template target="responseHandlerTemplate">
+                                            <with-param name="id" value="{$ctx:id}" />
+                                            <with-param name="activity" value="wunderlist_getCompletedTasks" />
+                                            <with-param name="status" value="{$ctx:status}" />
+                                            <with-param name="message" value="{$ctx:message}" />
+                                        </call-template>
+                                        <property name="dealIndex" expression="get-property('operation','dealIndex') + 1" scope="operation" />
+                                    </then>
+                                    <else>
+                                        <!-- Call wunderlist connector listTasks method to list all the completed tasks for the selected list -->
+                                        <wunderlist.init>
+                                            <apiUrl>{$ctx:uri.var.wunderlist.apiUrl}</apiUrl>
+                                            <clientId>{$ctx:uri.var.wunderlist.clientId}</clientId>
+                                            <accessToken>{$ctx:uri.var.wunderlist.accessToken}</accessToken>
+                                        </wunderlist.init>
+                                        <wunderlist.listTasks>
+                                            <listId>{$ctx:uri.var.pipelinedeals.wunderlistId}</listId>
+                                            <completed>true</completed>
+                                        </wunderlist.listTasks>
+                                        <property name="tCount" expression="count(//jsonArray/jsonElement)" />
+										
+                                        <property name="dealIndex" expression="get-property('operation','dealIndex') + 1" scope="operation" />
+                                        
+										<!-- START: Proceed updating calender events only if there are completed tasks. -->
+                                        <filter xpath="get-property('tCount') != 0.0">
+                                            <then>
+                                                <property name="taskCount" expression="get-property('operation','taskCount') + get-property('tCount')" scope="operation" />
+                                                <property name="tCountdd" expression="get-property('operation','taskCount')" />
+                                                
+												<!--FOR EACH task : BEGIN -->
+                                                <iterate continueParent="false" id="tasks" expression="//jsonArray/jsonElement" sequential="true">
+                                                    <target>
+                                                        <sequence>
+                                                            <property name="uri.var.wunderlist.taskId" expression="//jsonElement/id/text()" />
+                                                            <property name="uri.var.wunderlist.taskRevision" expression="//jsonElement/revision/text()" />
+                                                            <property name="uri.var.listId" action="remove" />
+                                                           
+														   <!-- Call wunderlist connector listNotes method to list all the notes belongs to a particular task -->
+                                                            <wunderlist.init>
+                                                                <apiUrl>{$ctx:uri.var.wunderlist.apiUrl}</apiUrl>
+                                                                <clientId>{$ctx:uri.var.wunderlist.clientId}</clientId>
+                                                                <accessToken>{$ctx:uri.var.wunderlist.accessToken}</accessToken>
+                                                            </wunderlist.init>
+                                                            <wunderlist.listNotes>
+                                                                <taskId>{$ctx:uri.var.wunderlist.taskId}</taskId>
+                                                            </wunderlist.listNotes>
+                                                            <property name="wunderlist.note" expression="json-eval($.[0].content)" />
+                                                            
+															<script language="js">
+																<![CDATA[
+																	 var notes = ''+mc.getProperty('wunderlist.note');
+																	 //Get the pipeline taskId from wunderlist task's notes
+																	 if(new java.lang.String(notes).startsWith('PipelineDeals Calendar Entry ID')) {
+																		 var taskId = notes.split(':')[1];
+																		 mc.setProperty("uri.var.pipelinedeals.taskId",taskId);
+																	 }
+																]]>
+															</script>
+                                                            
+															<!-- START: Proceed to retrieve tasks only if the related wunderList list ID is given for the deal. -->
+                                                            <filter source="boolean(get-property('uri.var.pipelinedeals.taskId'))" regex="false">
+                                                                <then>
+                                                                    <property name="id" expression="fn:concat('wunderlist_taskId:',get-property('uri.var.wunderlist.taskId'))" />
+                                                                    <property name="status" value="Skipped" />
+                                                                    <property name="message" value="No task is associated with the wunderlist task." />
+                                                                    <call-template target="responseHandlerTemplate">
+                                                                        <with-param name="id" value="{$ctx:id}" />
+                                                                        <with-param name="activity" value="wunderlist_getCompletedTasks" />
+                                                                        <with-param name="status" value="{$ctx:status}" />
+                                                                        <with-param name="message" value="{$ctx:message}" />
+                                                                    </call-template>
+                                                                </then>
+                                                                <else>
+                                                                    <!-- Call pipelinedeals connector updateCalendarEntry method to update the calender entry as completed -->
+                                                                    <pipelinedeals.init>
+                                                                        <apiUrl>{$ctx:uri.var.pipelinedeals.apiUrl}</apiUrl>
+                                                                        <apiKey>{$ctx:uri.var.pipelinedeals.apiKey}</apiKey>
+                                                                    </pipelinedeals.init>
+                                                                    <pipelinedeals.updateCalendarEntry>
+                                                                        <complete>true</complete>
+                                                                        <calendarEntryId>{$ctx:uri.var.pipelinedeals.taskId}</calendarEntryId>
+                                                                    </pipelinedeals.updateCalendarEntry>
+                                                                    <property name="pipelinedeals.updatedTaskId" expression="json-eval($.id)" />
+                                                                    
+																	<!-- START: Append the response message according to the updateCalendarEntry response -->
+                                                                    <filter source="boolean(get-property('pipelinedeals.updatedTaskId'))" regex="false">
+                                                                        <then>
+                                                                            <property name="id" expression="fn:concat('wunderlist_taskId:',get-property('uri.var.wunderlist.taskId'),',pipelinedeals_taskId:',get-property('pipelinedeals.updatedTaskId'))" />
+                                                                            <property name="status" value="Error" />
+                                                                            <property name="message" expression="json-eval($)" />
+                                                                        </then>
+                                                                        <else>
+                                                                            <property name="id" expression="fn:concat('wunderlist_taskId:',get-property('uri.var.wunderlist.taskId'),',pipelinedeals_taskId:',get-property('pipelinedeals.updatedTaskId'))" />
+                                                                            <property name="status" value="Success" />
+                                                                            <property name="message" value="Task has been updated." />
+                                                                        </else>
+                                                                    </filter>
+                                                                    <!--Call the responseHandler template-->
+                                                                    <call-template target="responseHandlerTemplate">
+                                                                        <with-param name="activity" value="pipelinedeals_updateCalenderEntry" />
+                                                                        <with-param name="id" value="{$ctx:id}" />
+                                                                        <with-param name="status" value="{$ctx:status}" />
+                                                                        <with-param name="message" value="{$ctx:message}" />
+                                                                    </call-template>
+                                                                    
+																	<!-- START: Proceed with deleting the wunderlist task only if the calender entry has been updated-->
+                                                                    <filter source="boolean(get-property('pipelinedeals.updatedTaskId'))" regex="true">
+                                                                        <then>
+                                                                            <!-- Call wunderlist connector deleteTask method to delete the completed task -->
+                                                                            <wunderlist.init>
+                                                                                <apiUrl>{$ctx:uri.var.wunderlist.apiUrl}</apiUrl>
+                                                                                <clientId>{$ctx:uri.var.wunderlist.clientId}</clientId>
+                                                                                <accessToken>{$ctx:uri.var.wunderlist.accessToken}</accessToken>
+                                                                            </wunderlist.init>
+                                                                            <wunderlist.deleteTask>
+                                                                                <taskId>{$ctx:uri.var.wunderlist.taskId}</taskId>
+                                                                                <revision>{$ctx:uri.var.wunderlist.taskRevision}</revision>
+                                                                            </wunderlist.deleteTask>
+                                                                           
+																		   <!--This dummy call is made because of the delete operation returns content-length '0' -->
+                                                                            <wunderlist.init>
+                                                                                <apiUrl>{$ctx:uri.var.wunderlist.apiUrl}</apiUrl>
+                                                                                <clientId>{$ctx:uri.var.wunderlist.clientId}</clientId>
+                                                                                <accessToken>{$ctx:uri.var.wunderlist.accessToken}</accessToken>
+                                                                            </wunderlist.init>
+                                                                            <wunderlist.listNotes>
+                                                                                <taskId>{$ctx:uri.var.wunderlist.taskId}</taskId>
+                                                                            </wunderlist.listNotes>
+                                                                        </then>
+                                                                    </filter>
+                                                                    <!-- END: Proceed with deleting the wunderlist task only if the calender entry has been updated-->
+                                                                </else>
+                                                            </filter>
+                                                            <!-- END: Proceed to retrieve tasks only if the related wunderList list ID is given for the deal. -->
+                                                            <property name="taskIndex" expression="get-property('operation','taskIndex') + 1" scope="operation" />
+                                                        </sequence>
+                                                    </target>
+                                                </iterate>
+                                                <!--FOR EACH task : END -->
+                                            </then>
+                                        </filter>
+                                        <!-- END: Proceed updating calender events only if there are completed tasks. -->
+                                    </else>
+                                </filter>
+                                <!-- END: Proceed to retrieve tasks only if the related wunderList list ID is given for the deal. -->
+                                <filter xpath="(get-property('operation','dealIndex') = get-property('operation', 'deal.count')) and  (get-property('operation','taskIndex') = get-property('operation','taskCount'))">
+                                    <then>
+										<!-- Append a message to send to the user if no deals were created. -->
+										<filter xpath="get-property('operation','taskCount') = 0.0">
+											<then>
+												<call-template target="responseHandlerTemplate">
+													<with-param name="activity" value="wunderlist_getCompletedTasks" />
+													<with-param name="id" value="{$ctx:id.empty}" />
+													<with-param name="status" value="Skipped" />
+													<with-param name="message" value="None of the deals in 'Active' stage have completed tasks." />
+												</call-template>
+											</then>
+										</filter>
+                                        <loopback />
+                                    </then>
+                                </filter>
+                            </sequence>
+                        </target>
+                    </iterate>
+                    <!--FOR EACH task end : END-->
+                </else>
+            </filter>
+        </inSequence>
+        <outSequence>
+            <!-- Send the constructed response to the user. -->
+            <payloadFactory media-type="json">
+                <format>{
+               "Response":{
+				  "process":"pipelinedeals_retrieveDealsAndUpdateTasks",
+                  "activityResponse": [$1]
+               }
+            }</format>
+                <args>
+                    <arg expression="get-property('operation', 'responseString')" />
+                </args>
+            </payloadFactory>
+            <send />
+        </outSequence>
+    </target>
+</proxy>

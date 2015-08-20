@@ -1,0 +1,43 @@
+<template name="updatePageMilestone" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="milestoneId" description="The unique identifier of the milestone" />
+	<parameter name="title" description="The title of the milestone" />
+	<parameter name="description" description="The description of the milestone" />
+	<parameter name="startTime" description="The start time of the milestone" />
+	
+	<sequence>
+		<property name="uri.var.title" expression="$func:title" />
+		<property name="uri.var.description" expression="$func:description" />
+		<property name="uri.var.startTime" expression="$func:startTime" />
+		<property name="uri.var.milestoneId" expression="$func:milestoneId" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"title":"$1",
+				"description":"$2",
+				"start_time":"$3",
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.title')" />
+				<arg expression="get-property('uri.var.description')" />
+				<arg expression="get-property('uri.var.startTime')" />
+			</args>
+		</payloadFactory>
+		
+		<property name="messageType" value="application/x-www-form-urlencoded"
+			scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/{uri.var.milestoneId}" />
+			</endpoint>
+		</call>
+		
+				<!-- Remove response custom header information -->
+		<header name="X-FB-Debug" scope="transport" action="remove" />
+		<header name="X-FB-Rev" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		
+	</sequence>
+</template>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This sequence is responsible to manage event reated operations in Google Calandar API.-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="manageEvents">
+    
+	<!-- Validate the Google Calandar ID -->
+    <filter source="boolean(get-property('googleCalendar.calendarId'))" regex="false">
+        <then>
+            <property name="id" expression="fn:concat('calendarEntryId:',get-property('pipeLineDeals.calendarEntryId'))" />
+            <property name="status" value="Skipped" />
+            <property name="message" value="No valid Google calendar ID." />
+            <call-template target="responseHandlerTemplate">
+                <with-param name="id" value="{$ctx:id}" />
+                <with-param name="activity" value="googleCalendar_createEvent" />
+                <with-param name="status" value="{$ctx:status}" />
+                <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+            <loopback />
+        </then>
+        <else>
+            <pipelinedeals.init>
+                <apiUrl>{$ctx:pipeLineDeals.apiUrl}</apiUrl>
+                <apiKey>{$ctx:pipeLineDeals.apiKey}</apiKey>
+            </pipelinedeals.init>
+            <pipelinedeals.getUser>
+                <userId>{$ctx:pipelinedeals.deal.ownerId}</userId>
+            </pipelinedeals.getUser>
+            
+			<property name="googleCalendar.attendeeEmail" expression="json-eval($.email)" />
+            <property name="common.id" expression="fn:concat('pipeLineDeals_calendarEntryId:',get-property('pipeLineDeals.calendarEntryId'),',google_calendarId:', get-property('googleCalendar.calendarId'))" />
+            
+			<!-- Calling createCalendarEvents template to create new Calendar
+            event in Google Calendar -->
+            <call-template target="createCalendarEvents">
+                <with-param name="apiUrl" value="{$ctx:googleCalendar.apiUrl}" />
+                <with-param name="accessToken" value="{$ctx:googleCalendar.accessToken}" />
+                <with-param name="calendarId" value="{$ctx:googleCalendar.calendarId}" />
+                <with-param name="summary" value="{$ctx:googleCalendar.eventSummary}" />
+                <with-param name="description" value="{$ctx:googleCalendar.eventDescription}" />
+                <with-param name="start" value="{$ctx:googleCalendar.eventStart}" />
+                <with-param name="end" value="{$ctx:googleCalendar.eventEnd}" />
+                <with-param name="attendeeEmail" value="{$ctx:googleCalendar.attendeeEmail}" />
+                <with-param name="common.id" value="{$ctx:common.id}" />
+            </call-template>
+        </else>
+    </filter>
+</sequence>
