@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://sendloop.com/help/api-004/email-campaign-management#campaign_create -->
+<template name="createEmailCampaign" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="campaignName" description="Name of your campaign." />
+   <parameter name="fromName" description="The name which will in 'from' email header." />
+   <parameter name="fromEmail" description="Sender email address of the campaign." />
+   <parameter name="replyToName" description="The name which will shown in 'reply-to' email header." />
+   <parameter name="replyToEmail" description="Email address to receive replies." />
+   <parameter name="targetListIds" description="ID numbers of recipient lists. This parameter should be sent in array format." />
+   <parameter name="targetSegmentIds" description="ID numbers of recipient segments. This parameter should be sent in array format." />
+   <parameter name="googleAnalyticsDomainsToTrack"
+      description="List of domains to track in your Google Analytics. This parameter should be sent in array format." />
+   <parameter name="customerIds"
+      description="ID numbers of customer accounts you want to give access for reporting. This parameter should be sent in array format." />
+   <parameter name="subject" description="Subject of the email campaign." />
+   <parameter name="plainContent" description="Text content of your email campaign." />
+   <parameter name="htmlContent" description="HTML content of your email campaign." />
+   <sequence>
+      <property name="uri.var.campaignName" expression="$func:campaignName" />
+      <property name="uri.var.fromName" expression="$func:fromName" />
+      <property name="uri.var.fromEmail" expression="$func:fromEmail" />
+      <property name="uri.var.replyToName" expression="$func:replyToName" />
+      <property name="uri.var.replyToEmail" expression="$func:replyToEmail" />
+      <property name="uri.var.targetListIds" expression="$func:targetListIds" />
+      <property name="uri.var.targetSegmentIds" expression="$func:targetSegmentIds" />
+      <property name="uri.var.googleAnalyticsDomainsToTrack" expression="$func:googleAnalyticsDomainsToTrack" />
+      <property name="uri.var.customerIds" expression="$func:customerIds" />
+      <property name="uri.var.subject" expression="$func:subject" />
+      <property name="uri.var.plainContent" expression="$func:plainContent" />
+      <property name="uri.var.htmlContent" expression="$func:htmlContent" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "APIKey": "$1",
+                "FromName": "$2",
+                "ReplyToEmail": "$3",
+                "ReplyToName": "$4",
+                "CampaignName": "$5",
+                "FromEmail": "$6",
+                "Subject": "$7"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.apiKey')" />
+            <arg expression="get-property('uri.var.fromName')" />
+            <arg expression="get-property('uri.var.replyToEmail')" />
+            <arg expression="get-property('uri.var.replyToName')" />
+            <arg expression="get-property('uri.var.campaignName')" />
+            <arg expression="get-property('uri.var.fromEmail')" />
+            <arg expression="get-property('uri.var.subject')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var targetListIds = mc.getProperty('uri.var.targetListIds');
+            var googleAnalyticsDomainsToTrack = mc.getProperty('uri.var.googleAnalyticsDomainsToTrack');
+            var plainContent = mc.getProperty('uri.var.plainContent');
+            var customerIds = mc.getProperty('uri.var.customerIds');
+            var targetSegmentIds = mc.getProperty('uri.var.targetSegmentIds');
+            var htmlContent = mc.getProperty('uri.var.htmlContent');
+            var jsonPayload = mc.getPayloadJSON();
+            if (targetListIds != null && targetListIds != ""){
+			   targetListIds = eval("(" + targetListIds + ")");
+			   if(targetListIds.length > 0){
+			      for(var i=0; i<targetListIds.length; i++){
+				     jsonPayload["TargetListIDs[" + i + "]"] = targetListIds[i];
+				  }
+			   }
+            }
+            if (targetSegmentIds != null && targetSegmentIds != ""){
+			   targetSegmentIds = eval("(" + targetSegmentIds + ")");
+			   if(targetSegmentIds.length > 0){
+			      for(var i=0; i<targetSegmentIds.length; i++){
+				     jsonPayload["TargetSegmentIDs[" + i + "]"] = targetSegmentIds[i];
+				  }
+			   }
+            }
+            if (googleAnalyticsDomainsToTrack != null && googleAnalyticsDomainsToTrack != ""){
+			   googleAnalyticsDomainsToTrack = eval("(" + googleAnalyticsDomainsToTrack + ")");
+			   if(googleAnalyticsDomainsToTrack.length > 0){
+			      for(var i=0; i<googleAnalyticsDomainsToTrack.length; i++){
+				     jsonPayload["GoogleAnalyticsDomainsToTrack[" + i + "]"] = googleAnalyticsDomainsToTrack[i];
+				  }
+			   }
+            }
+            if (customerIds != null && customerIds != ""){
+			   customerIds = eval("(" + customerIds + ")");
+			   if(customerIds.length > 0){
+			      for(var i=0; i<customerIds.length; i++){
+				     jsonPayload["CustomerIDs[" + i + "]"] = customerIds[i];
+				  }
+			   }
+            }
+            if (plainContent != null && plainContent != ""){
+               jsonPayload.PlainContent = plainContent;
+            }
+            if (htmlContent != null && htmlContent != ""){
+               jsonPayload.HTMLContent = htmlContent;
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <!-- Set the axis2 property 'messageType' to application/x-www-form-urlencoded -->
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/Campaign.Create/{+uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="Server" action="remove" scope="transport" />
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Transfer-Encoding" action="remove" scope="transport" />
+   </sequence>
+</template>

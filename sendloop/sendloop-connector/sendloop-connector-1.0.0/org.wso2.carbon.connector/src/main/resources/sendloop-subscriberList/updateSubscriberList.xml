@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://sendloop.com/help/api-005/subscriber-list-management#list_update -->
+<template name="updateSubscriberList" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="listName" description="Name of the new subscriber list." />
+   <parameter name="optInMode"
+      description="Set the subscription type. It can be opt-in (no email confirmation will be sent) or double opt-in (confirmation email will be sent - recommended). Pass 'Single' or 'Double'." />
+   <parameter name="subscriberListId" description="ID of the subscriberList to update." />
+   <sequence>
+      <property name="uri.var.listName" expression="$func:listName" />
+      <property name="uri.var.optInMode" expression="$func:optInMode" />
+      <property name="uri.var.subscriberListId" expression="$func:subscriberListId" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "APIKey": "$1",
+                "ListID": "$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.apiKey')" />
+            <arg expression="get-property('uri.var.subscriberListId')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var listName = mc.getProperty('uri.var.listName');
+            var optInMode = mc.getProperty('uri.var.optInMode');
+            var jsonPayload = mc.getPayloadJSON();
+            if (listName != null && listName != ""){
+               jsonPayload.Name = listName;
+            }
+            if (optInMode != null && optInMode != ""){
+               jsonPayload.OptInMode = optInMode;
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <!-- Set the axis2 property 'messageType' to application/x-www-form-urlencoded -->
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/List.Update/{+uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="Server" action="remove" scope="transport" />
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Transfer-Encoding" action="remove" scope="transport" />
+   </sequence>
+</template>
