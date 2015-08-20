@@ -16,8 +16,8 @@
    specific language governing permissions and limitations
    under the License.
 -->
-<!-- API Documentation URL - http://www.salesbinder.com/kb/api-functions/add-new-item -->
-<template name="addInventoryItem" xmlns="http://ws.apache.org/ns/synapse">
+<!-- API Documentation URL - http://www.salesbinder.com/kb/api-functions/edit-item -->
+<template name="updateInventoryItem" xmlns="http://ws.apache.org/ns/synapse">
    <parameter name="name" description="Name of the item." />
    <parameter name="description" description="Optional description of item." />
    <parameter name="serialNumber" description="Item Serial Number (for unique items)." />
@@ -31,6 +31,7 @@
    <parameter name="categoryId" description="The category ID." />
    <parameter name="unitOfMeasureId" description="Unit of Measure ID." />
    <parameter name="customFields" description="Custom fields to set for inventory item." />
+   <parameter name="id" description="The id of the item." />
    <sequence>
       <property name="uri.var.name" expression="$func:name" />
       <property name="uri.var.description" expression="$func:description" />
@@ -45,24 +46,12 @@
       <property name="uri.var.categoryId" expression="$func:categoryId" />
       <property name="uri.var.unitOfMeasureId" expression="$func:unitOfMeasureId" />
       <property name="uri.var.customFields" expression="$func:customFields" />
-      <payloadFactory media-type="json">
-         <format>
-            {
-               "Item":{
-                  "name":"$1",
-                  "multiple":"$2",
-                  "cost":"$3"
-               }
-            }
-         </format>
-         <args>
-            <arg expression="get-property('uri.var.name')" />
-            <arg expression="get-property('uri.var.multiple')" />
-            <arg expression="get-property('uri.var.cost')" />
-         </args>
-      </payloadFactory>
+      <property name="uri.var.id" expression="$func:id" />
       <script language="js">
          <![CDATA[
+            var name = mc.getProperty('uri.var.name');
+            var multiple = mc.getProperty('uri.var.multiple');
+            var cost = mc.getProperty('uri.var.cost');
             var description = mc.getProperty('uri.var.description');
             var serialNumber = mc.getProperty('uri.var.serialNumber');
             var sku = mc.getProperty('uri.var.sku');
@@ -74,35 +63,46 @@
             var unitOfMeasureId = mc.getProperty('uri.var.unitOfMeasureId');
             var customFields = mc.getProperty('uri.var.customFields');
                 
-            payload = mc.getPayloadJSON();
-
+            var payload = {};            
+            var item = {};
+            
+            if (name != null && name!= ""){
+               item.name = name;
+            }
+            if (multiple != null && multiple!= ""){
+               item.multiple = multiple;
+            }
+            if (cost != null && cost!= ""){
+                item.cost = cost;
+            }
             if (description != null && description!= ""){
-               payload.Item.description = description;
+               item.description = description;
             }
             if (serialNumber != null && serialNumber!= ""){
-              payload.Item.serial_number = serialNumber;
+               item.serial_number = serialNumber;
             }
             if (sku != null && sku!= ""){
-                payload.Item.sku = sku;
+                item.sku = sku;
             }
             if (threshold != null && threshold!= ""){
-               payload.Item.threshold = threshold;
+               item.threshold = threshold;
             }
             if (price != null && price!= ""){
-               payload.Item.price = price;
+               item.price = price;
             }
             if (quantity != null && quantity!= ""){
-               payload.Item.quantity = quantity;
+               item.quantity = quantity;
             }
             if (locationId != null && locationId!= ""){
-               payload.Item.location_id = locationId;
+               item.location_id = locationId;
             }
             if (categoryId != null && categoryId!= ""){
-               payload.Item.category_id = categoryId;
+               item.category_id = categoryId;
             }
             if (unitOfMeasureId != null && unitOfMeasureId!= ""){
-               payload.Item.unit_of_measure_id = unitOfMeasureId;
+               item.unit_of_measure_id = unitOfMeasureId;
             }
+            payload.Item = item;
             if (customFields != null && customFields!= ""){
                payload.ItemDetail = eval("(" + customFields + ")");
             }
@@ -111,7 +111,7 @@
       </script>
       <call>
          <endpoint>
-            <http method="post" uri-template="{uri.var.apiUrl}/items.json" />
+            <http method="put" uri-template="{uri.var.apiUrl}/items/{uri.var.id}.json" />
          </endpoint>
       </call>
       <!-- Remove custom Headers from the API Response -->
@@ -124,7 +124,7 @@
       <!-- If Location header is returned in the response, fetch the object pointed by Location header. -->
       <property name="location" expression="$trp:Location" />
       <header name="Location" action="remove" scope="transport" />
-      <filter source="boolean(get-property('location'))" regex="true" >
+      <filter source="boolean(get-property('location'))" regex="true">
          <then>
             <salesbinder.fetchObjectFromLocation>
                <location>{$ctx:location}</location>
