@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://www.prodpad.com/api/post-ideas-id-statuses -->
+<template name="updateIdeaStatus" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="ideaId" description="The id of the idea that is having its status changed." />
+   <parameter name="statusId" description="The id of the status that the idea is to be set to." />
+   <parameter name="userId" description="The user id of the person making the status change." />
+   <parameter name="comment" description="The comment explaining the reason for the status change." />
+   <sequence>
+      <property name="uri.var.ideaId" expression="$func:ideaId" />
+      <property name="uri.var.statusId" expression="$func:statusId" />
+      <property name="uri.var.userId" expression="$func:userId" />
+      <property name="uri.var.comment" expression="$func:comment" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "status_id":"$1",
+            "idea_id":"$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.statusId')" />
+            <arg expression="get-property('uri.var.ideaId')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+      <![CDATA[
+         var payload = mc.getPayloadJSON();
+         var userId = mc.getProperty('uri.var.userId');
+         var comment = mc.getProperty('uri.var.comment');
+         if (userId != null && userId != "") {
+            payload.user_id = userId;
+         }
+         if (comment != null && comment != "") {
+            payload.comment = comment;
+         }
+         mc.setPayloadJSON(payload);
+      ]]>
+      </script>
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="legacy-encoding:{uri.var.apiUrl}/ideas/{uri.var.ideaId}/statuses{uri.var.apiKey}" />
+         </endpoint>
+      </call>
+      <!--Removing custom headers from the Response. -->
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Headers" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Set-Cookie" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Methods" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+   </sequence>
+</template>

@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This sequence is responsible to manage tasks related operations in Wunderlist API.-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="manageTasks">
+	
+    <!-- calling createCalendarEventAndTasks-verifyPrerequisites sequence to set prerequisites.-->
+	<sequence key="createCalendarEventAndTasks-verifyPrerequisites" />
+    
+	<!-- Manage Lists in WunderList:BEGIN -->
+    <script language="js">
+		<![CDATA[
+			var dealCustomFields = mc.getProperty('pipeLineDeals.deal.customFields');																							
+			 var wunderListListIdLabel = mc.getProperty('pipelinedeals.deal.wunderListListIdLabel');
+			 var wunderListListId = '';
+																													
+			 if(dealCustomFields != null && dealCustomFields != ''){
+				dealCustomFields = eval("(" + dealCustomFields + ")");
+				
+				if(dealCustomFields.hasOwnProperty(wunderListListIdLabel) && dealCustomFields[wunderListListIdLabel] != null){
+				   wunderListListId = dealCustomFields[wunderListListIdLabel];
+				}
+			 }                                                                                                       
+			 mc.setProperty('wunderlist.listId', wunderListListId);
+		 ]]>
+	</script>
+	
+    <filter source="boolean(get-property('wunderlist.listId'))" regex="false">
+        <then>           
+		   <!-- Calling WunderList createList method to create a new list -->
+            <wunderlist.init>
+                <apiUrl>{$ctx:wunderlist.apiUrl}</apiUrl>
+                <clientId>{$ctx:wunderlist.clientId}</clientId>
+                <accessToken>{$ctx:wunderlist.accessToken}</accessToken>
+            </wunderlist.init>
+            <wunderlist.createList>
+                <title>{$ctx:wunderlist.deal.name}</title>
+            </wunderlist.createList>
+			
+            <property name="wunderlist.listId" expression="json-eval($.id)" />
+            
+			<filter source="boolean(get-property('wunderlist.listId'))" regex="false">
+                <then>
+                    <property name="id" expression="fn:concat('pipelinedeals_dealId:',get-property('pipeLineDeals.calendarEntryAssociationId'))" />
+                    <property name="status" value="Error" />
+                    <property name="message" expression="json-eval($)" />
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="wunderlist_createList" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                    </call-template>
+                    <loopback />
+                </then>
+                <else>
+                   
+				   <!-- Update PipeLineDeals deal custom field with Wunderlist List ID -->
+                    <payloadFactory media-type="json">
+                        <format>
+						{
+							 "customFields": {
+								"$1": "$2"
+							 }
+						}
+						</format>
+                        <args>
+                            <arg expression="get-property('pipelinedeals.deal.wunderListListIdLabel')" />
+                            <arg expression="get-property('wunderlist.listId')" />
+                        </args>
+                    </payloadFactory>
+					
+                    <property name="pipelindeals.dealCustomFields" expression="json-eval($.customFields)" />
+                    <property name="uri.var.name" action="remove" />
+                    <property name="uri.var.companyId" action="remove" />
+                    
+					<pipelinedeals.init>
+                        <apiUrl>{$ctx:pipeLineDeals.apiUrl}</apiUrl>
+                        <apiKey>{$ctx:pipeLineDeals.apiKey}</apiKey>
+                    </pipelinedeals.init>
+                    <pipelinedeals.updateDeal>
+                        <dealId>{$ctx:pipeLineDeals.calendarEntryAssociationId}</dealId>
+                        <customFields>{$ctx:pipelindeals.dealCustomFields}</customFields>
+                    </pipelinedeals.updateDeal>
+					
+                </else>
+            </filter>
+        </then>
+    </filter>
+    <!-- Manage Lists in WunderList:END -->
+	
+    <!-- Manage Folders in WunderList:BEGIN -->
+    
+	<!-- Calling getCompany in PipeLineDeals to retrieve company details -->
+    <pipelinedeals.init>
+        <apiUrl>{$ctx:pipeLineDeals.apiUrl}</apiUrl>
+        <apiKey>{$ctx:pipeLineDeals.apiKey}</apiKey>
+    </pipelinedeals.init>
+    <pipelinedeals.getCompany>
+        <companyId>{$ctx:pipeLineDeals.calendarEntryCompanyId}</companyId>
+    </pipelinedeals.getCompany>
+	
+    <property name="pipeLineDeals.companyName" expression="json-eval($.name)" />
+    <property name="pipeLineDeals.company.customFields" expression="json-eval($.custom_fields)" />
+    
+	<!-- Calling Wunderlist listFolders to check folder exists for PipLineDeals company -->
+    <wunderlist.init>
+        <apiUrl>{$ctx:wunderlist.apiUrl}</apiUrl>
+        <clientId>{$ctx:wunderlist.clientId}</clientId>
+        <accessToken>{$ctx:wunderlist.accessToken}</accessToken>
+    </wunderlist.init>
+    <wunderlist.listFolders />
+    <property name="wunderlist.foldersCount" expression="count(//jsonArray/jsonElement)" />
+    
+	<script language="js">
+	<![CDATA[
+		var foldersCount=mc.getProperty('wunderlist.foldersCount');
+								  
+		if(foldersCount>0){
+			payload = mc.getPayloadJSON();
+									  
+			var companyName=mc.getProperty("pipeLineDeals.companyName");
+			for(var key in payload) {
+				if(companyName==payload[key].title){
+				   var folderId=""+payload[key].id;
+				   var listIds=payload[key].list_ids.toString();
+				   var folderRevision=""+payload[key].revision;
+				   mc.setProperty("wunderlist.folderId", folderId);
+				   mc.setProperty("wunderlist.folderListIds", listIds);
+				   mc.setProperty("wunderlist.folderRevision", folderRevision);
+				   break;
+				}
+			 }  
+		  }
+	  ]]>
+	</script>
+	
+    <filter source="boolean(get-property('wunderlist.folderId'))" regex="false">
+        <then>
+            <filter source="boolean(get-property('pipeLineDeals.companyName'))" regex="true">
+				<then>
+					<!-- Calling Wunderlist createFolder to create a new folder for the company -->
+					<property name="wunderlist.listIds" expression="fn:concat('[',get-property('wunderlist.listId'),']')" />
+					<wunderlist.init>
+						<apiUrl>{$ctx:wunderlist.apiUrl}</apiUrl>
+						<clientId>{$ctx:wunderlist.clientId}</clientId>
+						<accessToken>{$ctx:wunderlist.accessToken}</accessToken>
+					</wunderlist.init>
+					<wunderlist.createFolder>
+						<title>{$ctx:pipeLineDeals.companyName}</title>
+						<listIds>{$ctx:wunderlist.listIds}</listIds>
+					</wunderlist.createFolder>
+					
+					<property name="wunderlist.folderId" expression="json-eval($.id)" />
+					
+					<filter source="boolean(get-property('wunderlist.folderId'))" regex="false">
+						<then>
+							<property name="id" value="{}" />
+							<property name="status" value="Error" />
+							<property name="message" expression="json-eval($)" />
+							<call-template target="responseHandlerTemplate">
+								<with-param name="id" value="{$ctx:id}" />
+								<with-param name="activity" value="wunderlist_createFolder" />
+								<with-param name="status" value="{$ctx:status}" />
+								<with-param name="message" value="{$ctx:message}" />
+							</call-template>
+						</then>
+						<else>
+							<!-- Update PipeLineDeals company custom field with Wunderlist List ID -->
+							<payloadFactory media-type="json">
+							<format>
+							{
+								"customFields": {
+								   "$1": "$2"
+								}
+							}
+							 </format>
+							<args>
+								<arg expression="get-property('pipelinedeals.company.wunderlistFolderIdLabel')" />
+								<arg expression="get-property('wunderlist.folderId')" />
+							</args>
+							</payloadFactory>
+							
+							<property name="pipelindeals.companyCustomFields" expression="json-eval($.customFields)" />
+							
+							<!-- Removing an existing property to prevent ambiguity. -->
+							<property name="uri.var.description" action="remove" />
+							<pipelinedeals.init>
+								<apiUrl>{$ctx:pipeLineDeals.apiUrl}</apiUrl>
+								<apiKey>{$ctx:pipeLineDeals.apiKey}</apiKey>
+							</pipelinedeals.init>
+							<pipelinedeals.updateCompany>
+								<companyId>{$ctx:pipeLineDeals.calendarEntryCompanyId}</companyId>
+								<customFields>{$ctx:pipelindeals.companyCustomFields}</customFields>
+							</pipelinedeals.updateCompany>
+							
+						</else>
+					</filter>
+				</then>
+			</filter>
+        </then>
+        <else>
+            <!-- Update the company folder with list ID -->
+            <script language="js">
+			<![CDATA[
+				var newListId=mc.getProperty('wunderlist.listId');
+                var listIds=mc.getProperty('wunderlist.folderListIds');
+                var listIdsArray=new Array(listIds);
+                listIdsArray.push(newListId);
+                mc.setProperty("wunderlist.folderListIds", listIdsArray.toString());
+			]]>
+			</script>
+			
+            <property name="wunderlist.folderListIds" expression="fn:concat('[',get-property('wunderlist.folderListIds'),']')" />
+            
+			<!-- Removing an existing property to prevent ambiguity. -->
+            <property name="uri.var.title" action="remove" />
+            
+			<wunderlist.init>
+                <apiUrl>{$ctx:wunderlist.apiUrl}</apiUrl>
+                <clientId>{$ctx:wunderlist.clientId}</clientId>
+                <accessToken>{$ctx:wunderlist.accessToken}</accessToken>
+            </wunderlist.init>
+            <wunderlist.updateFolder>
+                <folderId>{$ctx:wunderlist.folderId}</folderId>
+                <revision>{$ctx:wunderlist.folderRevision}</revision>
+                <listIds>{$ctx:wunderlist.folderListIds}</listIds>
+            </wunderlist.updateFolder>
+        </else>
+    </filter>
+    <!-- Manage Folders in WunderList:END -->
+    
+	<!-- Manage Task related operations in WunderList:BEGIN -->
+    
+	<property name="pipelinedeals.userId" expression="get-property('pipelinedeals.deal.ownerId')" />
+    
+	<!-- Calling PipeLineDeals getUser method to retrieve the deal owner's email -->
+    <pipelinedeals.init>
+        <apiUrl>{$ctx:pipeLineDeals.apiUrl}</apiUrl>
+        <apiKey>{$ctx:pipeLineDeals.apiKey}</apiKey>
+    </pipelinedeals.init>
+    <pipelinedeals.getUser>
+        <userId>{$ctx:pipelinedeals.userId}</userId>
+    </pipelinedeals.getUser>
+	
+    <property name="wunderlist.member.email" expression="json-eval($.email)" />
+    
+	<filter source="boolean(get-property('wunderlist.member.email'))" regex="true">
+        <then>
+            <property name="uri.var.userId" value="" />
+            <!-- Calling addMember method in WunderList -->
+            <wunderlist.init>
+                <apiUrl>{$ctx:wunderlist.apiUrl}</apiUrl>
+                <clientId>{$ctx:wunderlist.clientId}</clientId>
+                <accessToken>{$ctx:wunderlist.accessToken}</accessToken>
+            </wunderlist.init>
+            <wunderlist.addMember>
+                <listId>{$ctx:wunderlist.listId}</listId>
+                <email>{$ctx:wunderlist.member.email}</email>
+            </wunderlist.addMember>
+            <property name="wunderlist.memberId" expression="json-eval($.id)" />
+            <filter source="boolean(get-property('wunderlist.memberId'))" regex="false">
+                <then>
+                    <property name="id" expression="fn:concat('wunderlist_listId:',get-property('wunderlist.listId'))" />
+                    <property name="status" value="Error" />
+                    <property name="message" expression="json-eval($)" />
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="wunderlist_addMember" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                    </call-template>
+                </then>
+            </filter>
+        </then>
+    </filter>
+	
+    <!-- Calling Wunderlist createTask to create a new task -->
+    <wunderlist.init>
+        <apiUrl>{$ctx:wunderlist.apiUrl}</apiUrl>
+        <clientId>{$ctx:wunderlist.clientId}</clientId>
+        <accessToken>{$ctx:wunderlist.accessToken}</accessToken>
+    </wunderlist.init>
+    <wunderlist.createTask>
+        <listId>{$ctx:wunderlist.listId}</listId>
+        <title>{$ctx:pipeLineDeals.calendarEntryName}</title>
+        <dueDate>{$ctx:pipeLineDeals.calendarEntryDueDate}</dueDate>
+    </wunderlist.createTask>
+	
+    <property name="wunderlist.taskId" expression="json-eval($.id)" />
+	
+    <filter source="boolean(get-property('wunderlist.taskId'))" regex="false">
+        <then>
+            <property name="id" expression="fn:concat('pipelineDeals_calendarEntryId:',get-property('pipeLineDeals.calendarEntryId'),',wunderlist_listId:',get-property('wunderlist.listId'))" />
+            <property name="status" value="Error" />
+            <property name="message" expression="json-eval($)" />
+            <call-template target="responseHandlerTemplate">
+                <with-param name="id" value="{$ctx:id}" />
+                <with-param name="activity" value="wunderlist_addTask" />
+                <with-param name="status" value="{$ctx:status}" />
+                <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+            <loopback />
+        </then>
+        <else>
+            <property name="id" expression="fn:concat('wunderlist_taskId:',get-property('wunderlist.taskId'),',pipelineDeals_calendarEntryId:',get-property('pipeLineDeals.calendarEntryId'),',wunderlist_listId:',get-property('wunderlist.listId'))" />
+            <property name="status" value="Success" />
+            <property name="message" value="A new task has been added to the list." />
+            <call-template target="responseHandlerTemplate">
+                <with-param name="id" value="{$ctx:id}" />
+                <with-param name="activity" value="wunderlist_addTask" />
+                <with-param name="status" value="{$ctx:status}" />
+                <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+            
+			<property name="wunderlist.noteContent" expression="fn:concat('PipelineDeals Calendar Entry ID:',get-property('pipeLineDeals.calendarEntryId'))" />
+            
+			<!-- Calling Wunderlist createNote to create a note for the task with Pipeline calendar entry ID -->
+            <wunderlist.init>
+                <apiUrl>{$ctx:wunderlist.apiUrl}</apiUrl>
+                <clientId>{$ctx:wunderlist.clientId}</clientId>
+                <accessToken>{$ctx:wunderlist.accessToken}</accessToken>
+            </wunderlist.init>
+            <wunderlist.createNote>
+                <taskId>{$ctx:wunderlist.taskId}</taskId>
+                <content>{$ctx:wunderlist.noteContent}</content>
+            </wunderlist.createNote>
+            
+			<property name="wunderlist.noteId" expression="json-eval($.id)" />
+            
+			<filter source="boolean(get-property('wunderlist.noteId'))" regex="false">
+                <then>
+                    <property name="id" expression="fn:concat('wunderlist_listId:',get-property('wunderlist.listId'),',wunderlist_taskId:',get-property('wunderlist.taskId'))" />
+                    <property name="status" value="error" />
+                    <property name="message" expression="json-eval($.)" />
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="wunderlist_addNote" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                    </call-template>
+                </then>
+            </filter>
+			
+            <filter source="boolean(get-property('pipeLineDeals.calendarEntryDueDate'))" regex="true">
+                <then>
+                    <script language="js">
+					<![CDATA[
+						var newListId = mc.getProperty('pipeLineDeals.calendarEntryDueDate');
+						var noOfDays = mc.getProperty('wunderlist.remindOnDaysBefore');
+						// Adding a reminder before 'noOfDays' days of the due date.
+						var reminderDate = new java.text.SimpleDateFormat('yyyy-MM-dd').format(new java.util.Date(new java.text.SimpleDateFormat('yyyy-MM-dd').parse(newListId).getTime() - 86400000 * noOfDays));
+						mc.setProperty("wunderlist.reminderDate", reminderDate);
+						]]>
+					</script>
+					
+                    <!-- calling Wunderlist createReminder to create a reminder for the task -->
+                    <wunderlist.init>
+                        <apiUrl>{$ctx:wunderlist.apiUrl}</apiUrl>
+                        <clientId>{$ctx:wunderlist.clientId}</clientId>
+                        <accessToken>{$ctx:wunderlist.accessToken}</accessToken>
+                    </wunderlist.init>
+                    <wunderlist.createReminder>
+                        <taskId>{$ctx:wunderlist.taskId}</taskId>
+                        <date>{$ctx:wunderlist.reminderDate}</date>
+                    </wunderlist.createReminder>
+					
+                    <property name="wunderlist.reminderId" expression="json-eval($.id)" />
+					
+                    <filter source="boolean(get-property('wunderlist.reminderId'))" regex="false">
+                        <then>
+                            <property name="id" expression="fn:concat('wunderlist_taskId:',get-property('wunderlist.taskId'))" />
+                            <property name="status" value="Error" />
+                            <property name="message" expression="json-eval($)" />
+                        </then>
+                        <else>
+                            <property name="id" expression="fn:concat('wunderlist_taskId:',get-property('wunderlist.taskId'),',wunderlist_reminderId:',get-property('wunderlist.reminderId'))" />
+                            <property name="status" value="Success" />
+                            <property name="message" value="A reminder has been created for the task." />
+                        </else>
+                    </filter>
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="wunderlist_addReminder" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                    </call-template>
+                </then>
+            </filter>
+        </else>
+    </filter>
+    <!-- Manage Task related operations in WunderList:END -->
+</sequence>

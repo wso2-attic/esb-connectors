@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--This sequence is responsible to get all required custom fields lables from pipelinedeals related to invoicing in Billomat API-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="createInvoiceAndSend-verifyPrerequisites">
+    
+	<call-template target="pipelinedeals-getDealStageIdByName">
+        <with-param name="pipelinedeals.apiKey" value="{$ctx:pipelinedeals.apiKey}" />
+        <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipelinedeals.apiUrl}" />
+        <with-param name="pipelinedeals.dealStageName" value="Ready For invoice" />
+    </call-template>
+	
+    <property name="billomat.dealReadyToInvoiceStageId" expression="get-property('pipelinedeals.dealStageId')" />
+    
+	<filter source="boolean(get-property('billomat.dealReadyToInvoiceStageId'))" regex="false">
+        <then>
+            <property name="id" value="{}" />
+            <property name="status" value="Skipped" />
+            <property name="message" value="PipeLineDeals deal stage ID not found for Ready For invoice stage." />
+            <call-template target="responseHandlerTemplate">
+                <with-param name="id" value="{$ctx:id}" />
+                <with-param name="activity" value="billomat_createInvoice" />
+                <with-param name="status" value="{$ctx:status}" />
+                <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+	
+    <call-template target="pipelinedeals-getDealStageIdByName">
+        <with-param name="pipelinedeals.apiKey" value="{$ctx:pipelinedeals.apiKey}" />
+        <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipelinedeals.apiUrl}" />
+        <with-param name="pipelinedeals.dealStageName" value="Invoiced" />
+    </call-template>
+	
+    <property name="billomat.dealInvoicedStageId" expression="get-property('pipelinedeals.dealStageId')" />
+    
+	<filter source="boolean(get-property('billomat.dealInvoicedStageId'))" regex="false">
+        <then>
+            <property name="id" value="{}" />
+            <property name="status" value="Skipped" />
+            <property name="message" value="PipeLineDeals deal stage ID not found for Invoiced stage." />
+            <call-template target="responseHandlerTemplate">
+                <with-param name="id" value="{$ctx:id}" />
+                <with-param name="activity" value="billomat_createInvoice" />
+                <with-param name="status" value="{$ctx:status}" />
+                <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+	
+    <call-template target="pipelinedeals-getCustomFieldIdByName">
+        <with-param name="pipelinedeals.apiKey" value="{$ctx:pipelinedeals.apiKey}" />
+        <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipelinedeals.apiUrl}" />
+        <with-param name="pipelinedeals.resourceName" value="deal" />
+        <with-param name="pipelinedeals.customFieldName" value="Billomat Invoice ID" />
+    </call-template>
+	
+    <property name="pipelinedeals.deal.billomatInvoiceIdLabel" expression="get-property('pipelinedeals.customFieldString')" />
+    
+	<filter source="boolean(get-property('pipelinedeals.deal.billomatInvoiceIdLabel'))" regex="false">
+        <then>
+            <property name="id" value="{}" />
+            <property name="status" value="Skipped" />
+            <property name="message" value="Billomat Invoice ID custom field not found in deals in PipeLineDeals account." />
+            <call-template target="responseHandlerTemplate">
+                <with-param name="id" value="{$ctx:id}" />
+                <with-param name="activity" value="billomat_createInvoice" />
+                <with-param name="status" value="{$ctx:status}" />
+                <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+	
+    <call-template target="pipelinedeals-getCustomFieldIdByName">
+        <with-param name="pipelinedeals.apiKey" value="{$ctx:pipelinedeals.apiKey}" />
+        <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipelinedeals.apiUrl}" />
+        <with-param name="pipelinedeals.resourceName" value="deal" />
+        <with-param name="pipelinedeals.customFieldName" value="ZohoCRM Potential ID" />
+    </call-template>
+	
+    <property name="pipelinedeals.deal.zohoPotentialIdLabel" expression="get-property('pipelinedeals.customFieldString')" />
+    
+	<filter source="boolean(get-property('pipelinedeals.deal.zohoPotentialIdLabel'))" regex="false">
+        <then>
+            <property name="id" value="{}" />
+            <property name="status" value="Skipped" />
+            <property name="message" value="ZohoCRM Potential ID custom field not found in deals in PipeLineDeals account." />
+            <call-template target="responseHandlerTemplate">
+                <with-param name="id" value="{$ctx:id}" />
+                <with-param name="activity" value="billomat_createInvoice" />
+                <with-param name="status" value="{$ctx:status}" />
+                <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+	
+    <call-template target="pipelinedeals-getCustomFieldIdByName">
+        <with-param name="pipelinedeals.apiKey" value="{$ctx:pipelinedeals.apiKey}" />
+        <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipelinedeals.apiUrl}" />
+        <with-param name="pipelinedeals.resourceName" value="company" />
+        <with-param name="pipelinedeals.customFieldName" value="Billomat Client ID" />
+    </call-template>
+	
+    <property name="pipelinedeals.company.billomatClientIdLabel" expression="get-property('pipelinedeals.customFieldString')" />
+    
+	<filter source="boolean(get-property('pipelinedeals.company.billomatClientIdLabel'))" regex="false">
+        <then>
+            <property name="id" value="{}" />
+            <property name="status" value="Skipped" />
+            <property name="message" value="Billomat Client ID custom field not found in company in PipeLineDeals account." />
+            <call-template target="responseHandlerTemplate">
+                <with-param name="id" value="{$ctx:id}" />
+                <with-param name="activity" value="billomat_createInvoice" />
+                <with-param name="status" value="{$ctx:status}" />
+                <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+	
+    <call-template target="pipelinedeals-getCustomFieldIdByName">
+        <with-param name="pipelinedeals.apiKey" value="{$ctx:pipelinedeals.apiKey}" />
+        <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipelinedeals.apiUrl}" />
+        <with-param name="pipelinedeals.resourceName" value="person" />
+        <with-param name="pipelinedeals.customFieldName" value="Billomat Client ID" />
+    </call-template>
+	
+    <property name="pipelinedeals.person.billomatClientIdLabel" expression="get-property('pipelinedeals.customFieldString')" />
+    
+	<filter source="boolean(get-property('pipelinedeals.person.billomatClientIdLabel'))" regex="false">
+        <then>
+            <property name="id" value="{}" />
+            <property name="status" value="Skipped" />
+            <property name="message" value="Billomat Client ID custom field not found in persons in PipeLineDeals account." />
+            <call-template target="responseHandlerTemplate">
+                <with-param name="id" value="{$ctx:id}" />
+                <with-param name="activity" value="billomat_createInvoice" />
+                <with-param name="status" value="{$ctx:status}" />
+                <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+	
+    <call-template target="pipelinedeals-getCustomFieldIdByName">
+        <with-param name="pipelinedeals.apiKey" value="{$ctx:pipelinedeals.apiKey}" />
+        <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipelinedeals.apiUrl}" />
+        <with-param name="pipelinedeals.resourceName" value="person" />
+        <with-param name="pipelinedeals.customFieldName" value="Billomat Contact ID" />
+    </call-template>
+	
+    <property name="pipelinedeals.person.billomatContactIdLabel" expression="get-property('pipelinedeals.customFieldString')" />
+    
+	<filter source="boolean(get-property('pipelinedeals.person.billomatContactIdLabel'))" regex="false">
+        <then>
+            <property name="id" value="{}" />
+            <property name="status" value="Skipped" />
+            <property name="message" value="Billomat Contact ID custom field not found in persons in PipeLineDeals account." />
+            <call-template target="responseHandlerTemplate">
+                <with-param name="id" value="{$ctx:id}" />
+                <with-param name="activity" value="billomat_createInvoice" />
+                <with-param name="status" value="{$ctx:status}" />
+                <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+</sequence>

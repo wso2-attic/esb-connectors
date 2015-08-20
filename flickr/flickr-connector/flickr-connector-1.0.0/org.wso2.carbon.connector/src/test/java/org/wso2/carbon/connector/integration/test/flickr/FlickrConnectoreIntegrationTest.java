@@ -282,7 +282,7 @@ public class FlickrConnectoreIntegrationTest extends ESBIntegrationTest {
         String rawString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         rawString = rawString.replace("dummyvalue", addCommentMethodCommentId);
         String comment = flickrConnectorProperties.getProperty("comment") + System.currentTimeMillis();
-        rawString = rawString.replace("comment", comment);
+        rawString = rawString.replace("dummycomment", comment);
         final String jsonString = addCredentials(rawString);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
         //String modifiedJsonString = String.format(jsonString, accessToken);
@@ -767,7 +767,7 @@ public class FlickrConnectoreIntegrationTest extends ESBIntegrationTest {
 
         String rawString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         String comment = flickrConnectorProperties.getProperty("comment") + System.currentTimeMillis();
-        rawString = rawString.replace("comment", comment);
+        rawString = rawString.replace("dummycomment", comment);
         final String jsonString = addCredentials(rawString);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + "/negetive/" + methodName + ".xml";
 

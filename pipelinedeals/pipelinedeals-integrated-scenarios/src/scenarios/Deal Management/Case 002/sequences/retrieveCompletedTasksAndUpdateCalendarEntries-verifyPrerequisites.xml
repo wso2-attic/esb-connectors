@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!-- The sequence will verify whether the prerequisites are met to proceed with the case. It will terminate the process otherwise. -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="retrieveCompletedTasksAndUpdateCalendarEntries-verifyPrerequisites">
+   
+   <!-- Call pipelinedeals-manageCustomFields template to retrieve the custom field ID -->
+    <call-template target="pipelinedeals-getCustomFieldIdByName">
+        <with-param name="uri.var.pipelinedeals.apiKey" value="{$ctx:uri.var.pipelinedeals.apiKey}" />
+        <with-param name="uri.var.pipelinedeals.apiUrl" value="{$ctx:uri.var.pipelinedeals.apiUrl}" />
+        <with-param name="pipelinedeals.customFieldName" value="WunderList List ID" />
+        <with-param name="pipelinedeals.resourceName" value="deal" />
+    </call-template>
+    <property name="pipelinedeals.customFieldString" expression="get-property('pipelinedeals.customFieldString')" />
+
+    <!-- Terminate the scenario if a custom field named 'WunderList List ID' is not found in the PipelineDeals account. -->
+    <filter source="boolean(get-property('pipelinedeals.customFieldString'))" regex="false">
+        <then>
+            <call-template target="responseHandlerTemplate">
+                <with-param name="activity" value="pipelinedeals_getCustomFieldIdByName" />
+                <with-param name="id" value="{$ctx:id.empty}" />
+                <with-param name="status" value="Skipped" />
+                <with-param name="message" value="A custom field named 'WunderList List ID' was not found in the PipelineDeals account." />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+
+    <sequence key="removeResponseHeaders" />
+
+    <call-template target="pipelinedeals-getDealStageIdByName">
+        <with-param name="pipelinedeals.apiKey" value="{$ctx:pipelinedeals.apiKey}" />
+        <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipelinedeals.apiUrl}" />
+        <with-param name="pipelinedeals.dealStageName" value="Active" />
+    </call-template>
+    <property name="pipelinedeals.dealStageId" expression="get-property('pipelinedeals.dealStageId')" />
+
+    <!-- Terminate the scenario if a deal stage named 'Active' is not found in the PipelineDeals account. -->
+    <filter source="boolean(get-property('pipelinedeals.dealStageId'))" regex="false">
+        <then>
+            <call-template target="responseHandlerTemplate">
+                <with-param name="activity" value="pipelinedeals_getActiveStageId" />
+                <with-param name="id" value="{$ctx:id.empty}" />
+                <with-param name="status" value="Skipped" />
+                <with-param name="message" value="A deal stage named 'Active' was not found in the PipelineDeals account." />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+</sequence>
