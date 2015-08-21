@@ -28,7 +28,7 @@ STEPS:
 	
 	- accessToken: Use the sandbox account created below no-3. Get the access token by the following URL :http://developer.linkedin.com/documents/authentication.
 	- Alternatively you can also follow the below mentioned steps to get the access token through apigee console.
-		- Navigate to https://apigee.com/console/linkedin
+		- Navigate to f
 		- Under “Authentication” select Oauth2
 		- Select sign in with linkedIn
 		- Provide ur username and password on re-directed page and click allow access
