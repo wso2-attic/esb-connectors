@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Retrieve User Stories which are "Queued for Dev" from ProdPad API and create Stories in Pivotaltracker API -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="prodpad_createStoriesInPivotaltracker" transports="https" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- Prodpad parameters. -->
+         <property name="prodpad.apiUrl" value="https://api.prodpad.com" />
+         <property name="prodpad.apiKey" expression="json-eval($.prodpad.apiKey)" />
+         <property name="prodpad.idea.status.id" expression="json-eval($.prodpad.inDevelopmentStatusId)" />
+         <property name="prodpad.status" value="Queued for Dev" />
+
+         <!-- Pivotaltracker parameters. -->
+         <property name="pivotaltracker.apiUrl" value="https://www.pivotaltracker.com" />
+         <property name="pivotaltracker.userName" expression="json-eval($.pivotaltracker.userName)" />
+         <property name="pivotaltracker.password" expression="json-eval($.pivotaltracker.password)" />
+
+
+         <!-- List projects. -->
+         <pivotaltracker.init>
+            <apiUrl>{$ctx:pivotaltracker.apiUrl}</apiUrl>
+            <userName>{$ctx:pivotaltracker.userName}</userName>
+            <password>{$ctx:pivotaltracker.password}</password>
+         </pivotaltracker.init>
+         <filter source="$axis2:HTTP_SC" regex="200">
+            <then>
+               <pivotaltracker.listProjects>
+               </pivotaltracker.listProjects>
+               <property name="pivotaltracker.projects" expression="json-eval($.)" />
+               <property name="projectCount" expression="count(//jsonElement)" />
+               <filter xpath="get-property('operation', 'ideaCount') = 0">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="message" value="Ideas have not been found." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="pivotaltracker_listProjects" />
+                        <with-param name="status" value="skipped" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+               </filter>
+               <!-- Create a list of projects. -->
+               <script language="js">
+               <![CDATA[
+                  var pivotaltrackerProjectLists = eval("("+mc.getProperty("pivotaltracker.projects")+")");
+                  var pivotaltrackerProjects = { projects:[]};
+                  for(var i = 0; i < pivotaltrackerProjectLists.length; i++) {
+                     pivotaltrackerProjects.projects.push({ 
+                        "name" : pivotaltrackerProjectLists[i].name,     
+                        "id" :  "" + pivotaltrackerProjectLists[i].id});
+                  }
+                  mc.setPayloadJSON(pivotaltrackerProjects);                             
+                ]]>
+               </script>
+               <property name="pivotaltracker.projects" expression="json-eval($.)" />
+               <!-- List ideas. -->
+               <prodpad.init>
+                  <apiKey>{$ctx:prodpad.apiKey}</apiKey>
+                  <apiUrl>{$ctx:prodpad.apiUrl}</apiUrl>
+               </prodpad.init>
+               <prodpad.listIdeas>
+                  <status>{$ctx:prodpad.status}</status>
+               </prodpad.listIdeas>
+               <filter source="$axis2:HTTP_SC" regex="200">
+                  <then>
+                     <property name="ideaCount" expression="count(//ideas)" scope="operation" />
+                     <property name="storyCount" value="0" scope="operation" />
+                     <filter xpath="get-property('operation', 'ideaCount') = 0">
+                        <then>
+                           <property name="id" value="{}" />
+                           <property name="message" value="Ideas  have not been found." />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="activity" value="prodpad_listIdeas" />
+                              <with-param name="status" value="skipped" />
+                              <with-param name="message" value="{$ctx:message}" />
+                           </call-template>
+                           <loopback />
+                        </then>
+                     </filter>
+                     <property name="ideaIndex" expression="0" scope="operation" />
+                     <property name="storyIndex" expression="0" scope="operation" />
+                     <property name="storyCount" expression="0" scope="operation" />
+                     <!-- Idea iterater -->
+                     <iterate continueParent="true" id="ideaIterator" expression="//ideas" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="prodpad.idea.id" expression="//ideas/id" />
+                              <property name="prodpad.expand" value="true" />
+                              <!-- Get idea. -->
+                              <prodpad.init>
+                                 <apiKey>{$ctx:prodpad.apiKey}</apiKey>
+                                 <apiUrl>{$ctx:prodpad.apiUrl}</apiUrl>
+                              </prodpad.init>
+                              <prodpad.getIdea>
+                                 <ideaId>{$ctx:prodpad.idea.id}</ideaId>
+                                 <expand>{$ctx:prodpad.expand}</expand>
+                              </prodpad.getIdea>
+                              <filter source="$axis2:HTTP_SC" regex="200">
+                                 <then>
+                                    <property name="prodpad.idea.title" expression="//jsonObject/title" />
+                                    <property name="prodpad.userStories" expression="json-eval($.user_stories)" />
+                                    <property name="prodpad.storyCount" expression="count(//user_stories)" />
+                                    <property name="prodpad.product.name" expression="//jsonObject/products/name" />
+                                    <property name="prodpad.product.id" expression="//jsonObject/products/id" />
+                                    <property name="pivotaltrackerProjects" expression="get-property('operation','pivotaltrackerProjects')" />
+                                    <filter xpath="boolean(get-property('prodpad.product.name'))">
+                                       <then>
+                                          <!-- Get project id. -->
+                                          <script language="js">
+                                          <![CDATA[
+                                             var pivotaltrackerProjects = eval("(" +mc.getProperty("pivotaltracker.projects")+")").projects;
+                                             var prodpadProjectName = mc.getProperty("prodpad.product.name");
+                                             var pivotaltrackerProjectId = "";
+                                             for(var i = 0; i < pivotaltrackerProjects.length; i++) {
+                                                if(pivotaltrackerProjects[i].name == prodpadProjectName) {
+                                                   pivotaltrackerProjectId = "" + pivotaltrackerProjects[i].id;
+                                                   break;
+                                                }
+                                             }
+                                             mc.setProperty("pivotaltracker.project.id",pivotaltrackerProjectId);    
+                                           ]]>
+                                          </script>
+                                          <filter xpath="boolean(get-property('pivotaltracker.project.id'))">
+                                             <then>
+                                                <filter source="get-property('prodpad.storyCount') = 0" regex="false">
+                                                   <then>
+                                                      <!-- Update status. -->
+                                                      <prodpad.init>
+                                                         <apiKey>{$ctx:prodpad.apiKey}</apiKey>
+                                                         <apiUrl>{$ctx:prodpad.apiUrl}</apiUrl>
+                                                      </prodpad.init>
+                                                      <prodpad.updateIdeaStatus>
+                                                         <ideaId>{$ctx:prodpad.idea.id}</ideaId>
+                                                         <statusId>{$ctx:prodpad.idea.status.id}</statusId>
+                                                      </prodpad.updateIdeaStatus>
+                                                      <filter source="$axis2:HTTP_SC" regex="201">
+                                                         <then>
+                                                            <property name="message" value="Idea status has been updated successfully." />
+                                                            <property name="id" expression="fn:concat('idea_id:',get-property('prodpad.idea.id'))" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="activity" value="prodpad_updateStatus" />
+                                                               <with-param name="status" value="success" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                            <!-- Create story payload and labels property. -->
+                                                            <script language="js">
+                                                            <![CDATA[
+                                                               var payload = {};
+                                                               var userStories = mc.getProperty("prodpad.userStories");
+                                                               var ideaId = mc.getProperty("prodpad.idea.id");
+                                                               if (userStories != null && userStories != "") {
+                                                                  payload.stories = eval( "(" + userStories + ")" );
+                                                               }
+                                                               if (ideaId != null && ideaId != "") {
+                                                                  ideaId = "" + ideaId; 
+                                                                  var labels = '["' + ideaId + '"]';
+                                                                  mc.setProperty('pivotaltracker.labels',labels)
+                                                               }
+                                                               mc.setPayloadJSON(payload);                                 
+                                                             ]]>
+                                                            </script>
+                                                            <property name="ideaIndex" expression="get-property('operation','ideaIndex') + 1" scope="operation" />
+                                                            <property name="storyCount" expression="get-property('prodpad.storyCount') + get-property('operation','storyCount')" scope="operation" />
+                                                            <!-- Story iterater. -->
+                                                            <iterate continueParent="ture" id="storyIterator" expression="//stories" sequential="true">
+                                                               <target>
+                                                                  <sequence>
+                                                                     <property name="pivotaltracker.story" expression="//stories/story" />
+                                                                     <property name="pivotaltracker.story.id" expression="//stories/id" />
+                                                                     <!-- Create Story. -->
+                                                                     <pivotaltracker.init>
+                                                                        <apiUrl>{$ctx:pivotaltracker.apiUrl}</apiUrl>
+                                                                        <userName>{$ctx:pivotaltracker.userName}</userName>
+                                                                        <password>{$ctx:pivotaltracker.password}</password>
+                                                                     </pivotaltracker.init>
+                                                                     <pivotaltracker.createStory>
+                                                                        <projectId>{$ctx:pivotaltracker.project.id}</projectId>
+                                                                        <name>{$ctx:pivotaltracker.story}</name>
+                                                                        <labels>{$ctx:pivotaltracker.labels}</labels>
+                                                                     </pivotaltracker.createStory>
+                                                                     <filter source="$axis2:HTTP_SC" regex="200">
+                                                                        <then>
+                                                                           <property name="pivotaltracker.story.id" expression="//jsonObject/id" />
+                                                                           <property name="message" value="Story has beeen created successfully." />
+                                                                           <property name="id" expression="fn:concat('project_id:',get-property('pivotaltracker.project.id'),',story_id:',get-property('pivotaltracker.story.id'),',idea_id:',get-property('prodpad.idea.id'),',userStory_id:',get-property('pivotaltracker.story.id'))" />
+                                                                           <property name="status" value="success" />
+                                                                        </then>
+                                                                        <else>
+                                                                           <property name="message" value="Story creation has been failed. Please create the story mannually." />
+                                                                           <property name="id" expression="fn:concat('project_id:',get-property('pivotaltracker.project.id'),',idea_id:',get-property('prodpad.idea.id'),',userStory_id:',get-property('pivotaltracker.story.id'))" />
+                                                                           <property name="status" value="error" />
+                                                                        </else>
+                                                                     </filter>
+                                                                     <call-template target="responseHandlerTemplate">
+                                                                        <with-param name="id" value="{$ctx:id}" />
+                                                                        <with-param name="activity" value="pivotaltracker_createStory" />
+                                                                        <with-param name="status" value="{$ctx:status}" />
+                                                                        <with-param name="message" value="{$ctx:message}" />
+                                                                     </call-template>
+                                                                     <property name="storyIndex" expression="get-property('operation','storyIndex') + 1" scope="operation" />
+                                                                  </sequence>
+                                                               </target>
+                                                            </iterate>
+                                                         </then>
+                                                         <else>
+                                                            <property name="ideaIndex" expression="get-property('operation','ideaIndex') + 1" scope="operation" />
+                                                            <property name="message" expression="//user_message" />
+                                                            <property name="id" expression="fn:concat('idea_id:',get-property('prodpad.idea.id'))" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="activity" value="prodpad_updateStatus" />
+                                                               <with-param name="status" value="error" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                         </else>
+                                                      </filter>
+                                                   </then>
+                                                   <else>
+                                                      <property name="ideaIndex" expression="get-property('operation','ideaIndex') + 1" scope="operation" />
+                                                   </else>
+                                                </filter>
+                                             </then>
+                                             <else>
+                                                <property name="ideaIndex" expression="get-property('operation','ideaIndex') + 1" scope="operation" />
+                                                <property name="message" value="Project does not exists in pivotaltracker." />
+                                                <property name="id" expression="fn:concat('idea_id:',get-property('prodpad.idea.id'),',product_id:',get-property('prodpad.product.id'))" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="activity" value="prodpad_getIdea" />
+                                                   <with-param name="status" value="skipped" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </else>
+                                          </filter>
+                                       </then>
+                                       <else>
+                                          <property name="ideaIndex" expression="get-property('operation','ideaIndex') + 1" scope="operation" />
+                                          <property name="message" value="This idea is not associate with a product." />
+                                          <property name="id" expression="fn:concat('idea_id:',get-property('prodpad.idea.id'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="activity" value="prodpad_getIdea" />
+                                             <with-param name="status" value="skipped" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                    </filter>
+                                 </then>
+                                 <else>
+                                    <property name="message" expression="//user_message" />
+                                    <property name="id" expression="fn:concat('idea_id:',get-property('prodpad.idea.id'))" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="activity" value="prodpad_getIdea" />
+                                       <with-param name="status" value="error" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </else>
+                              </filter>
+                              <filter xpath="(get-property('operation','ideaCount') = get-property('operation','ideaIndex')) and (get-property('operation','storyCount') = get-property('operation','storyIndex')) ">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>
+                  </then>
+                  <else>
+                     <property name="message" expression="//user_message" />
+                     <property name="id" value="{}" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="prodpad_listIdeas" />
+                        <with-param name="status" value="error" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </else>
+               </filter>
+            </then>
+            <else>
+               <property name="message" expression="//jsonObject/error" />
+               <property name="id" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="pivotaltracker_listProjects" />
+                  <with-param name="status" value="error" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+	  <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>{
+                     "Response":{
+                     "process":"prodpad_createStoriesInPivotaltracker",
+                     "activityResponse":"No Stories to process."
+                     }
+                     }
+                  </format>
+                  <args />
+               </payloadFactory>
+            </then>
+            <else>
+               <payloadFactory media-type="json">
+                  <format>{
+                     "Response":{
+                     "process":"prodpad_createStoriesInPivotaltracker",
+                     "activityResponse":[$1]
+                     }
+                     }
+                  </format>
+                  <args>
+                     <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+                  </args>
+               </payloadFactory>
+            </else>
+         </filter>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
