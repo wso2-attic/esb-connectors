@@ -16,7 +16,7 @@
  
    Steps to follow in setting integration test.
 
-   1. Download ESB 4.9.0-BETA-SNAPSHOT by following the URL: http://svn.wso2.org/repos/wso2/people/malaka/ESB/beta/
+   1. Download ESB 4.9.0-BETA-SNAPSHOT by following the URL: http://svn.wso2.org/repos/wso2/people/malaka/ESB/beta/ .
 
    2. Deploy relevant patches, if applicable. Place the patch files into location <ESB_HOME>/repository/components/patches.
 
@@ -28,14 +28,14 @@
 
   
       ii) Navigate to "<BUGHERD_CONNECTOR_HOME>/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME" in command line to import Bugherd certificate in to keystore. Give "wso2carbon" as password.
-          NOTE : CERT_FILE_NAME is the file name which was extracted from bugherd, change it accordingly. (e.g.: bugherd.cer)
-          CERT_NAME is name of the certificate. (e.g.: bugherd)
+          NOTE : CERT_FILE_NAME is the file name which was extracted from bugherd, change it accordingly (e.g.: bugherd.cer).
+          CERT_NAME is name of the certificate (e.g.: bugherd).
    
       iii)Go to new WSO2 ESB 4.9.0-BETA-SNAPSHOT folder and place the downloaded certificate in "<ESB_HOME>/repository/resources/security/"
 
       iv) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" in command line to import Bugherd certificate in to keystore. Give "wso2carbon" as password.
           NOTE : CERT_FILE_NAME is the file name which was extracted from bugherd, change it accordingly. (e.g.: bugherd.cer)
-          CERT_NAME is name of the certificate. (e.g.: bugherd)
+          CERT_NAME is name of the certificate (e.g.: bugherd).
 
    4. Navigate to location "<ESB_HOME>/repository/conf/axis2" and add/uncomment following lines in "axis2.xml" and Message Formatters and Message Builders should be added for each of the content types of the files to be added as attachments.
 
@@ -57,7 +57,7 @@
       <messageBuilder contentType="application/binary" class="org.apache.axis2.builder.MultipartFormDataBuilder"/>
       <messageBuilder contentType="text/plain" class="org.apache.axis2.format.PlainTextBuilder"/>
  
-   5. Compress modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file in to location "<ESB_HOME>/repository/".
+   5. Compress modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file in to location "<ESB_CONNECTOR_HOME>/repository/".
  
    6. Create a BugHerd account and derive the access token:
       i)   Using the URL "https://www.bugherd.com/" create a BugHerd account.
@@ -74,7 +74,7 @@
       v)   fileMandatory, fileOptional - Add two files (txt files preferred) to the following location "<BUGHERD_CONNECTOR_HOME>/bugherd-connector/bugherd-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/config/resources/bugherd". Specify their names with extensions (<name>.<ext>) as values (e.g.: fileMandatory=File1.txt, fileOptional=File2.txt).
       vi)  fileContentType             - Change the content type of the files that are used to upload in step (v).
       vii) commentMandatoryText        - Add some text to be used for adding comment for Project Task.
-      viii)userId, assignedToId        - ID of valid users registered on Bugherd account in step 6 (e.g.: 57285).		
+      viii)userId, assignedToId        - ID of valid users registered on Bugherd account in step 6 (e.g.: 57285).
       ix)  Leave the remaining properties unchanged.
 
    8. Make sure that the BugHerd connector is set as a module in esb-connectors parent pom.
