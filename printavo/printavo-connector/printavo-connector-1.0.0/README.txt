@@ -22,14 +22,14 @@ STEPS:
     If required add the X.509 certificate from https://www.printavo.com to the client-truststore.jks of the ESB located in <ESB_HOME>/repository/resources/security folder
     and wso2carbon.jks located in <PRINTAVO_CONNECTOR_HOME>/printavo-connector/printavo-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products.
 
- 3. Create a Printavo trial account and derive the API Token and Secret.
+ 3. Create a Printavo trial account and derive the API Key and Secret.
    i)    Using the URL "https://www.printavo.com/" create a Printavo trial account.
    ii)   Login to the created Printavo account and go to https://www.printavo.com/users/edit and obtain the API key.
 
  4. Update the Printavo properties file at location "<PRINTAVO_CONNECTOR_HOME>/printavo-connector/printavo-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
    i)        apiUrl                                      - Use https://www.printavo.com.
-   ii)       apiToken                                    - Use the API Token obtained under Step 3 ii).
+   ii)       apiKey                                      - Use the API Key obtained under Step 3 ii).
    iii)      customerFirstName                           - First name of the customer for createCustomer mandatory case. Use a valid string value.
    iv)       optionalCustomerFirstName                   - First name of the customer for createCustomer optional case. Use a valid string value.
    v)        optionalCustomerLastName                    - Last name of the customer for createCustomer optional case. Use a valid string value.
@@ -46,21 +46,21 @@ STEPS:
    xvi)      orderUserId                                 - ID of the user to whom Use a valid user ID.
    xvii)     orderStatusId                               - Use a valid status ID of an order.
    xiii)     orderFormattedDueDate                       - Use valid date formatted as follows 07/30/2015.
-   xix)      orderSalesTax                               - Use a valid integet value as the tax value.
+   xix)      orderSalesTax                               - Use a valid integer value as the tax value.
    xx)       orderDiscountAsPercentage                   - Use a boolean value to indecate the discount value mus use as persentage or not.
-   xxi)      orderDiscount                               - Use a valid integet value to indecate the discount.
+   xxi)      orderDiscount                               - Use a valid integer value to indecate the discount.
    xxii)     orderProductionNotes                        - Use a valid string value as a note of the product.
    xxiii)    orderNickname                               - Use a valid string value as an optional name for the order.
-   xxiv)     optionalOrderSalesTaxUpdated                - Sales tax of the order for updateOrder optional case. Use a valid integet value other than the value given in xix).
+   xxiv)     optionalOrderSalesTaxUpdated                - Sales tax of the order for updateOrder optional case. Use a valid integer value other than the value given in xix).
    xxv)      optionalOrderDiscountAsPercentageUpdated    - Whether discount value should take as persentage of the order for updateOrder optional case. Use the opposite boolean value given in xx).
-   xxvi)     optionalOrderDiscountUpdated                - Discount of the order for updateOrder optional case. Use a valid integet value other than the value given in xxi).
+   xxvi)     optionalOrderDiscountUpdated                - Discount of the order for updateOrder optional case. Use a valid integer value other than the value given in xxi).
    xxvii)    optionalOrderProductionNotesUpdated         - Production notes of the order for updateOrder optional case. Use a valid String value other than the value given in xxii).
    xxviii)   optionalOrderNicknameUpdated                - Nickname for the order for updateOrder optional case. Use a valid String value other than the value given in xxiii).
-   xxix)     productPricePer                             - Use a valid integet value as the unit price of a product.
+   xxix)     productPricePer                             - Use a valid integer value as the unit price of a product.
    xxx)      styleNumber                                 - Use a valid String value as the style number of a product.
    xxxi)     brand                                       - Use a valid String value to indecate the brand of the product.
    xxxii)    size                                        - Use a valid String value indecate the size of the product.
-   xxxiii)   productPricePerUpdated                      - Unit price of the product for updateProduct optional case. Use a valid integet value other than the value given in xxix).
+   xxxiii)   productPricePerUpdated                      - Unit price of the product for updateProduct optional case. Use a valid integer value other than the value given in xxix).
    xxxiv)    productStyleNumberUpdated                   - Style number of the product for updateProduct optional case. Use a valid String value other than the value given in xxx).
    xxxv)     productBrandUpdated                         - Brand of the product for updateProduct optional case. Use a valid String value other than the value given in xxxi).
    xxxvi)    productSizeUpdated                          - Unit price of the product for updateProduct optional case. Use a valid String value other than the value given in xxxii).
