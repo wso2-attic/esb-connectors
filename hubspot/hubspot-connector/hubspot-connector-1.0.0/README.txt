@@ -54,5 +54,5 @@ Steps to follow in setting integration test.
    xiv)  timeout                    -  Integer value for timeout(default value is 15000).
 
 
- 8k. Navigate to "{ESB_CONNECTOR_HOME}/" and run the following command.
+ 8. Navigate to "{ESB_CONNECTOR_HOME}/" and run the following command.
       $ mvn clean install
