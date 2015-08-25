@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This sequence is responsible for complete and send invoices in Billomat API.-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="completeInvoiceAndSend">
+    
+	<property name="uri.var.apiUrl" expression="get-property('billomat.apiUrl')" />
+    <property name="uri.var.apiKey" expression="get-property('billomat.apiKey')" />
+    <property name="uri.var.invoiceId" expression="get-property('billomat.invoiceId')" />
+	
+    <property name="Content-Type" value="application/json" scope="transport" type="STRING" />
+	<property name="Accept" value="application/json" scope="transport" type="STRING" />
+    <payloadFactory media-type="json">
+        <format>
+		{
+			"invoice":{
+			}
+		}
+		</format>
+    </payloadFactory>
+	
+    <!-- Calling invoiceComplete method in Billomat API to complete the draft invoice-->
+    <call>
+        <endpoint>
+            <http method="put" uri-template="{uri.var.apiUrl}/api/invoices/{uri.var.invoiceId}/complete?api_key={uri.var.apiKey}" />
+        </endpoint>
+    </call>
+	
+    <filter source="$axis2:HTTP_SC" regex="200">
+        <then>
+            <payloadFactory media-type="json">
+                <format>
+				{
+					"email":{
+						"from":"$1",
+						"recipients":{
+							"to":"$2"
+						},
+						"subject":"Invoice confirmation [$3]",
+						"body":"Hi $4,\n\nInvoice has been generated for the completed deal: $3.\n\nPlease find the attached invoice.",
+						"filename":"Invoice_$3"
+					}
+				}
+				</format>
+                <args>
+                    <arg expression="get-property('pipelinedeals.dealOwnerEmail')" />
+                    <arg expression="get-property('pipelinedeals.personEmail')" />
+                    <arg expression="get-property('billomat.invoiceTitle')" />
+                    <arg expression="get-property('billomat.clientName')" />
+                </args>
+            </payloadFactory>
+			
+            <property name="uri.var.apiUrl" expression="get-property('billomat.apiUrl')" />
+            <property name="uri.var.apiKey" expression="get-property('billomat.apiKey')" />
+            <property name="uri.var.invoiceId" expression="get-property('billomat.invoiceId')" />
+            <property name="Content-Type" value="application/json" scope="transport" type="STRING" />
+            <property name="Accept" value="application/json" scope="transport" type="STRING" />
+            
+			<!-- Calling sendInvoice method in Billomat API to send the completed invoice-->
+            <call>
+                <endpoint>
+                    <http method="post" uri-template="{uri.var.apiUrl}/api/invoices/{uri.var.invoiceId}/email?api_key={uri.var.apiKey}" />
+                </endpoint>
+            </call>
+			
+            <filter source="$axis2:HTTP_SC" regex="200">
+                <then>
+                    <property name="id" expression="fn:concat('billomat_invoiceId:',get-property('billomat.invoiceId'))" />
+                    <property name="status" value="Success" />
+                    <property name="message" expression="fn:concat('Invoice has been completed and sent to ',get-property('pipelinedeals.personEmail'))" />
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="billomat_sendInvoice" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                    </call-template>
+                </then>
+                <else>
+                    <property name="id" expression="fn:concat('billomat_invoiceId:',get-property('billomat.invoiceId'))" />
+                    <property name="status" value="Error" />
+                    <property name="message" expression="json-eval($)" />
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="billomat_sendInvoice" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                    </call-template>
+                </else>
+            </filter>
+        </then>
+        <else>
+            <property name="id" expression="fn:concat('billomat_invoiceId:',get-property('billomat.invoiceId'))" />
+            <property name="status" value="Error" />
+            <property name="message" expression="json-eval($)" />
+            <call-template target="responseHandlerTemplate">
+                <with-param name="id" value="{$ctx:id}" />
+                <with-param name="activity" value="billomat_completeInvoice" />
+                <with-param name="status" value="{$ctx:status}" />
+                <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+        </else>
+    </filter>
+</sequence>

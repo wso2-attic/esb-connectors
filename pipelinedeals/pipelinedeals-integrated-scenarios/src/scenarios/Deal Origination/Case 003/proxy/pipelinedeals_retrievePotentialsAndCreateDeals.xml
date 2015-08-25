@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- The proxy retrieves new potentials from ZohoCRM and creates them as deals in PipelineDeals Account.
+	 If the companies and contacts associated with the deal are not found in PipelineDeals Account, they're created as well. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pipelinedeals_retrievePotentialsAndCreateDeals" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+    <target>
+        <inSequence>
+            <!-- ZohoCrm Properties -->
+            <property name="zohocrm.apiUrl" value="https://crm.zoho.com" />
+            <property name="zohocrm.accessToken" expression="json-eval($.zohocrm.accessToken)" />
+			
+            <!-- PipelineDeals Properties -->
+            <property name="pipelinedeals.apiUrl" value="https://api.pipelinedeals.com" />
+            <property name="pipelinedeals.apiKey" expression="json-eval($.pipelinedeals.apiKey)" />
+			
+            <!-- Common properties -->
+            <property name="id.empty" value="{}" />
+            <property name="responseString" value="" scope="operation" />
+            <property name="activityName" value="pipelinedeals_retrievePotentialsAndCreateDeals" scope="operation" />
+			
+            <!-- The sequence will verify whether the prerequisites are met to proceed with the case. It will terminate the process otherwise. -->
+            <sequence key="retrievePotentialsAndCreateDeals-verifyPrerequisites" />
+			
+            <!-- Get the start of the current day as the 'lastModifiedTime'-->
+            <script language="js">
+				<![CDATA[
+					mc.setProperty('zohocrm.lastModifiedTime', new java.text.SimpleDateFormat("yyyy-MM-dd '00:00:00'").format(new java.util.Date()));
+				]]>
+			</script>
+			
+            <!-- Retrieve all new potentials which are created/modified on the current day of execution. -->
+            <zohocrm.init>
+                <scope>crmapi</scope>
+                <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+                <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+            </zohocrm.init>
+            <zohocrm.getRecords>
+                <moduleType>Potentials</moduleType>
+                <selectColumns>All</selectColumns>
+                <lastModifiedTime>{$ctx:zohocrm.lastModifiedTime}</lastModifiedTime>
+            </zohocrm.getRecords>
+            <sequence key="removeResponseHeaders" />
+			
+            <!--Retrieving the response from the result -->
+            <property name="zohocrm.response" expression="json-eval($.response.result)" />
+			
+            <!-- START: Error case: If the response is having errors then display the error message given by the API. -->
+            <filter source="boolean(get-property('zohocrm.response'))" regex="false">
+                <then>
+                    <property name="errorResponse" expression="json-eval($)" />
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="zohocrm_getPotentialsOfTheDay" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="Error" />
+                        <with-param name="message" value="{$ctx:errorResponse}" />
+                    </call-template>
+                    <loopback />
+                </then>
+                <else>
+                    <property name="zohoCrm.potentialCount" expression="count(//row)" />
+                    <property name="zohoCrm.potentialIndex" expression="0" scope="operation" />
+					
+                    <!-- START: Proceed only if there any potentials created/modified on the current day of execution. -->
+                    <filter source="get-property('zohoCrm.potentialCount')" regex="0.0">
+                        <then>
+                            <call-template target="responseHandlerTemplate">
+                                <with-param name="activity" value="zohocrm_getRecords" />
+                                <with-param name="id" value="{$ctx:id.empty}" />
+                                <with-param name="status" value="Error" />
+                                <with-param name="message" value="There are no potentials created today." />
+                            </call-template>
+                            <loopback />
+                        </then>
+                        <else>
+                            <property name="dealsInFollowUp" expression="0" scope="operation" />
+							
+                            <!-- BEGIN: FOR EACH potential -->
+                            <iterate continueParent="false" id="casePotential" expression="//row" sequential="true">
+                                <target>
+                                    <sequence>
+                                        <property name="potentialAttributes" expression="json-eval($.row.FL)" />
+                                        <property name="zohocrm.potential.potentialId" expression="//content[../val/text() = 'POTENTIALID']" />
+                                        <property name="zohocrm.potential.accountId" expression="//content[../val/text() = 'ACCOUNTID']" />
+                                        <property name="zohocrm.potential.contactId" expression="//content[../val/text() = 'CONTACTID']" />
+                                        <property name="zohocrm.potential.dealId" expression="//content[../val/text() = 'PipelineDeals Deal ID']" />
+                                        <property name="zohocrm.potential.stage" expression="//content[../val/text() = 'Stage']" />
+                                        <property name="zohocrm.potential.name" expression="//content[../val/text() = 'Potential Name']" />
+                                        <property name="zohocrm.potential.description" expression="//content[../val/text() = 'Description']" />
+                                        <property name="zohocrm.potential.probability" expression="//content[../val/text() = 'Probability']" />
+                                        <property name="zohocrm.potential.amount" expression="//content[../val/text() = 'Amount']" />
+                                        <property name="zohocrm.potential.expectedCloseDate" expression="//content[../val/text() = 'Closing Date']" />
+                                        
+										<!-- START: Proceed to create the deal only if it is not created already. -->
+                                        <filter source="boolean(get-property('zohocrm.potential.dealId'))" regex="false">
+                                            <then>
+                                                <!-- START: Proceed only if the potential is in 'Follow-Up' stage. -->
+                                                <filter source="fn:lower-case(get-property('zohocrm.potential.stage'))" regex="follow-up">
+                                                    <then>
+                                                        <property name="dealsInFollowUp" expression="get-property('operation', 'dealsInFollowUp') + 1" scope="operation" />
+                                                        
+														<!-- Timeout of 5s have been added to prevent duplication of companies and people in PipelineDeals API. -->
+                                                        <script language="js">
+															<![CDATA[
+																java.lang.Thread.sleep(5000);
+															]]>
+														</script>
+                                                        
+														<!-- Get the details of the account in ZohoCRM to which the potential belongs. -->
+                                                        <zohocrm.init>
+                                                            <scope>crmapi</scope>
+                                                            <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+                                                            <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+                                                        </zohocrm.init>
+                                                        <zohocrm.getRecordsById>
+                                                            <id>{$ctx:zohocrm.potential.accountId}</id>
+                                                            <moduleType>Accounts</moduleType>
+                                                        </zohocrm.getRecordsById>
+                                                        <sequence key="removeResponseHeaders" />
+														
+                                                        <property name="zohocrm.potential.companyId" expression="//content[../val/text() = 'PipelineDeals Company ID']" />
+                                                        <property name="zohocrm.account.name" expression="//content[../val/text() = 'Account Name']" />
+                                                        <property name="zohocrm.account.phone" expression="//content[../val/text() = 'Phone']" />
+                                                        <property name="zohocrm.account.fax" expression="//content[../val/text() = 'Fax']" />
+                                                        <property name="zohocrm.account.website" expression="//content[../val/text() = 'Website']" />
+                                                        <property name="zohocrm.account.email" expression="//content[../val/text() = 'Work Email']" />
+                                                        <property name="zohocrm.account.billingStreet" expression="//content[../val/text() = 'Billing Street']" />
+                                                        <property name="zohocrm.account.billingCity" expression="//content[../val/text() = 'Billing City']" />
+                                                        <property name="zohocrm.account.billingState" expression="//content[../val/text() = 'Billing State']" />
+                                                        <property name="zohocrm.account.description" expression="//content[../val/text() = 'Description']" />
+                                                        <property name="zohocrm.account.billingCode" expression="//content[../val/text() = 'Billing Code']" />
+                                                        <property name="zohocrm.account.billingCountry" expression="//content[../val/text() = 'Billing Country']" />
+                                                        
+														<!-- START: Proceed to create the company in Pipeline Deals (for the ZohoCRM account) if not already created. -->
+                                                        <filter source="boolean(get-property('zohocrm.potential.companyId'))" regex="false">
+                                                            <then>
+                                                                <property name="messageType" value="application/json" scope="axis2" />
+                                                                
+																<!-- Create a company based on the ZohoCRM Account. -->
+                                                                <pipelinedeals.init>
+                                                                    <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                                                    <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                                                    <attributes>id</attributes>
+                                                                </pipelinedeals.init>
+                                                                <pipelinedeals.createCompany>
+                                                                    <companyName>{$ctx:zohocrm.account.name}</companyName>
+                                                                    <description>{$ctx:zohocrm.account.description}</description>
+                                                                    <email>{$ctx:zohocrm.account.email}</email>
+                                                                    <website>{$ctx:zohocrm.account.website}</website>
+                                                                    <fax>{$ctx:zohocrm.account.fax}</fax>
+                                                                    <address1>{$ctx:zohocrm.account.billingStreet}</address1>
+                                                                    <city>{$ctx:zohocrm.account.billingCity}</city>
+                                                                    <state>{$ctx:zohocrm.account.billingState}</state>
+                                                                    <postalCode>{$ctx:zohocrm.account.billingCode}</postalCode>
+                                                                    <country>{$ctx:zohocrm.account.billingCountry}</country>
+                                                                    <phone1>{$ctx:zohocrm.account.phone}</phone1>
+                                                                    <phone1Description>Work Phone</phone1Description>
+                                                                </pipelinedeals.createCompany>
+                                                                <sequence key="removeResponseHeaders" />
+                                                                
+																<property name="zohocrm.potential.companyId" expression="json-eval($.id)" />
+                                                                
+																<!-- START: Proceed to update the custom field only if the company has been created successfully. -->
+                                                                <filter source="boolean(get-property('zohocrm.potential.companyId'))" regex="true">
+                                                                    <then>
+                                                                        <property name="id" expression="fn:concat('zohocrm_accountId:', get-property('zohocrm.potential.accountId'), ',pipelinedeals_companyId:', get-property('zohocrm.potential.companyId'))" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                            <with-param name="activity" value="pipelinedeals_createCompany" />
+                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                            <with-param name="status" value="Success" />
+                                                                            <with-param name="message" value="Company has been created successfully." />
+                                                                        </call-template>
+																		
+                                                                        <!--Update the PipelineDeals company ID in the zohoCrm account in the custom field 'PipelineDeals Company ID' -->
+                                                                        <script language="js">
+																			<![CDATA[
+																				//constructing the xml data in order to update the account in ZohoCrm								
+																				var companyId = mc.getProperty('zohocrm.potential.companyId');								
+																				var xmlData="<Accounts> <row no=\"1\"> <FL val=\"PipelineDeals Company ID\">"+companyId+"</FL> </row> </Accounts>";															
+																				mc.setProperty('zohocrm.xmlData', xmlData);
+																			]]>
+																		</script>
+																		
+                                                                        <!-- Update the ZohoCRM account with PipelineDeals Company ID. -->
+                                                                        <zohocrm.init>
+                                                                            <scope>crmapi</scope>
+                                                                            <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+                                                                            <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+                                                                        </zohocrm.init>
+                                                                        <zohocrm.updateRecords>
+                                                                            <moduleType>Accounts</moduleType>
+                                                                            <id>{$ctx:zohocrm.potential.accountId}</id>
+                                                                            <xmlData>{$ctx:zohocrm.xmlData}</xmlData>
+                                                                        </zohocrm.updateRecords>
+                                                                        <sequence key="removeResponseHeaders" />
+																		
+                                                                        <property name="zohocrm.accountId" expression="//content[../val/text() = 'Id']" />
+                                                                        
+																		<!-- Append an error message to the user only if the update fails. -->
+                                                                        <filter source="boolean(get-property('zohocrm.accountId'))" regex="false">
+                                                                            <then>
+                                                                                <property name="id" expression="fn:concat('zohocrm_accountId:', get-property('zohocrm.potential.accountId'), ',pipelinedeals_companyId:', get-property('zohocrm.potential.companyId'))" />
+                                                                                <property name="message" expression="json-eval($)" />
+                                                                                <call-template target="responseHandlerTemplate">
+                                                                                    <with-param name="activity" value="zohocrm_updateAccount" />
+                                                                                    <with-param name="id" value="{$ctx:id}" />
+                                                                                    <with-param name="status" value="Error" />
+                                                                                    <with-param name="message" value="{$ctx:message}" />
+                                                                                </call-template>
+                                                                            </then>
+                                                                        </filter>
+                                                                    </then>
+                                                                    <else>
+                                                                        <property name="message" expression="json-eval($)" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                            <with-param name="activity" value="pipelinedeals_createCompany" />
+                                                                            <with-param name="id" value="{$ctx:id.empty}" />
+                                                                            <with-param name="status" value="Error" />
+                                                                            <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+                                                                    </else>
+                                                                </filter>
+                                                                <!-- END: Proceed to update the custom field only if the company has been created successfully. -->
+                                                            </then>
+                                                        </filter>
+                                                        <!-- END: Proceed to create the company in Pipeline Deals (for the ZohoCRM account) if not already created. -->
+														
+                                                        <!-- Get the details of the contact in ZohoCRM to which the potential belongs. -->
+                                                        <zohocrm.init>
+                                                            <scope>crmapi</scope>
+                                                            <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+                                                            <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+                                                        </zohocrm.init>
+                                                        <zohocrm.getRecordsById>
+                                                            <id>{$ctx:zohocrm.potential.contactId}</id>
+                                                            <moduleType>Contacts</moduleType>
+                                                        </zohocrm.getRecordsById>
+                                                        <sequence key="removeResponseHeaders" />
+														
+                                                        <property name="zohocrm.potential.personId" expression="//content[../val/text() = 'PipelineDeals Person ID']" />
+														
+                                                        <!-- START: Proceed to create the person in Pipeline Deals (for the ZohoCRM contact) if not already created. -->
+                                                        <filter source="boolean(get-property('zohocrm.potential.personId'))" regex="false">
+                                                            <then>
+                                                                <property name="zohocrm.contact.firstName" expression="//content[../val/text() = 'First Name']" />
+                                                                <property name="zohocrm.contact.lastName" expression="//content[../val/text() = 'Last Name']" />
+                                                                <property name="zohocrm.contact.name" expression="fn:concat(get-property('zohocrm.contact.firstName'), ' ', get-property('zohocrm.contact.lastName'))" />
+                                                                <property name="zohocrm.contact.phone" expression="//content[../val/text() = 'Phone']" />
+                                                                <property name="zohocrm.contact.description" expression="//content[../val/text() = 'Description']" />
+                                                                <property name="zohocrm.contact.mobile" expression="//content[../val/text() = 'Mobile']" />
+                                                                <property name="zohocrm.contact.title" expression="//content[../val/text() = 'Title']" />
+                                                                <property name="zohocrm.contact.email" expression="//content[../val/text() = 'Email']" />
+                                                                <property name="zohocrm.contact.mailingStreet" expression="//content[../val/text() = 'Mailing Street']" />
+                                                                <property name="zohocrm.contact.mailingCity" expression="//content[../val/text() = 'Mailing City']" />
+                                                                <property name="zohocrm.contact.mailingState" expression="//content[../val/text() = 'Mailing State']" />
+                                                                <property name="zohocrm.contact.mailingZip" expression="//content[../val/text() = 'Mailing Zip']" />
+                                                                <property name="zohocrm.contact.mailingCountry" expression="//content[../val/text() = 'Mailing Country']" />
+                                                                <property name="zohocrm.contact.otherStreet" expression="//content[../val/text() = 'Other Street']" />
+                                                                <property name="zohocrm.contact.otherCity" expression="//content[../val/text() = 'Other City']" />
+                                                                <property name="zohocrm.contact.otherState" expression="//content[../val/text() = 'Other State']" />
+                                                                <property name="zohocrm.contact.otherZip" expression="//content[../val/text() = 'Other Zip']" />
+                                                                <property name="zohocrm.contact.otherCountry" expression="//content[../val/text() = 'Other Country']" />
+                                                                
+																<!-- Create a person based on the ZohoCRM contact. -->
+                                                                <property name="messageType" value="application/json" scope="axis2" />
+                                                                <pipelinedeals.init>
+                                                                    <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                                                    <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                                                    <attributes>id</attributes>
+                                                                </pipelinedeals.init>
+                                                                <pipelinedeals.createPerson>
+                                                                    <fullName>{$ctx:zohocrm.contact.name}</fullName>
+                                                                    <firstName>{$ctx:zohocrm.contact.firstName}</firstName>
+                                                                    <lastName>{$ctx:zohocrm.contact.lastName}</lastName>
+                                                                    <summary>{$ctx:zohocrm.contact.description}</summary>
+                                                                    <phone>{$ctx:zohocrm.contact.phone}</phone>
+                                                                    <mobile>{$ctx:zohocrm.contact.mobile}</mobile>
+                                                                    <position>{$ctx:zohocrm.contact.title}</position>
+                                                                    <website>{$ctx:zohocrm.account.website}</website>
+                                                                    <email>{$ctx:zohocrm.contact.email}</email>
+                                                                    <companyId>{$ctx:zohocrm.potential.companyId}</companyId>
+                                                                    <type>Contact</type>
+                                                                    <workAddress>{$ctx:zohocrm.contact.mailingStreet}</workAddress>
+                                                                    <secondaryWorkAddress>{$ctx:secondaryWorkAddress}</secondaryWorkAddress>
+                                                                    <workCity>{$ctx:zohocrm.contact.mailingCity}</workCity>
+                                                                    <workState>{$ctx:zohocrm.contact.mailingState}</workState>
+                                                                    <workCountry>{$ctx:zohocrm.contact.mailingCountry}</workCountry>
+                                                                    <workPostalCode>{$ctx:zohocrm.contact.mailingZip}</workPostalCode>
+                                                                    <homeAddress>{$ctx:zohocrm.contact.otherStreet}</homeAddress>
+                                                                    <secondaryHomeAddress>{$ctx:secondaryHomeAddress}</secondaryHomeAddress>
+                                                                    <homeCity>{$ctx:zohocrm.contact.otherCity}</homeCity>
+                                                                    <homeState>{$ctx:zohocrm.contact.otherState}</homeState>
+                                                                    <homeCountry>{$ctx:zohocrm.contact.otherCountry}</homeCountry>
+                                                                    <homePostalCode>{$ctx:zohocrm.contact.otherZip}</homePostalCode>
+                                                                    <unsubscribed>false</unsubscribed>
+                                                                    <fax>{$ctx:zohocrm.account.fax}</fax>
+                                                                </pipelinedeals.createPerson>
+                                                                <sequence key="removeResponseHeaders" />
+																
+                                                                <property name="zohocrm.potential.personId" expression="json-eval($.id)" />
+																
+                                                                <!-- START: Proceed to update the custom field only if the contact has been created successfully. -->
+                                                                <filter source="boolean(get-property('zohocrm.potential.personId'))" regex="true">
+                                                                    <then>
+                                                                        <property name="id" expression="fn:concat('zohocrm_contactId:', get-property('zohocrm.potential.contactId'), ',pipelinedeals_personId:', get-property('zohocrm.potential.personId'))" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                            <with-param name="activity" value="pipelinedeals_createPerson" />
+                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                            <with-param name="status" value="Success" />
+                                                                            <with-param name="message" value="Person has been created successfully." />
+                                                                        </call-template>
+                                                                        <!--Update the PipelineDeals person ID in the zohoCrm account in the custom field 'PipelineDeals Person ID' -->
+                                                                        <script language="js">
+																			<![CDATA[
+																				//constructing the xml data in order to update the contact in ZohoCrm								
+																				var personId = mc.getProperty('zohocrm.potential.personId');								
+																				var xmlData="<Contacts> <row no=\"1\"> <FL val=\"PipelineDeals Person ID\">" + personId + "</FL> </row> </Contacts>";															
+																				mc.setProperty('zohocrm.xmlData', xmlData);
+																			]]>
+																		</script>
+																		
+                                                                        <!-- Update the ZohoCRM contact with PipelineDeals Person ID. -->
+                                                                        <zohocrm.init>
+                                                                            <scope>crmapi</scope>
+                                                                            <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+                                                                            <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+                                                                        </zohocrm.init>
+                                                                        <zohocrm.updateRecords>
+                                                                            <moduleType>Contacts</moduleType>
+                                                                            <id>{$ctx:zohocrm.potential.contactId}</id>
+                                                                            <xmlData>{$ctx:zohocrm.xmlData}</xmlData>
+                                                                        </zohocrm.updateRecords>
+                                                                        <sequence key="removeResponseHeaders" />
+																		
+                                                                        <property name="zohocrm.contactId" expression="//content[../val/text() = 'Id']" />
+                                                                        
+																		<!-- Append an error message to the user only if the update fails. -->
+                                                                        <filter source="boolean(get-property('zohocrm.contactId'))" regex="false">
+                                                                            <then>
+                                                                                <property name="id" expression="fn:concat('zohocrm_contactId:', get-property('zohocrm.potential.contactId'), ',pipelinedeals_companyId:', get-property('zohocrm.potential.personId'))" />
+                                                                                <property name="message" expression="json-eval($)" />
+                                                                                <call-template target="responseHandlerTemplate">
+                                                                                    <with-param name="activity" value="zohocrm_updateContact" />
+                                                                                    <with-param name="id" value="{$ctx:id}" />
+                                                                                    <with-param name="status" value="Error" />
+                                                                                    <with-param name="message" value="{$ctx:message}" />
+                                                                                </call-template>
+                                                                            </then>
+                                                                        </filter>
+                                                                    </then>
+                                                                    <else>
+                                                                        <property name="message" expression="json-eval($)" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                            <with-param name="activity" value="pipelinedeals_createCompany" />
+                                                                            <with-param name="id" value="{$ctx:id.empty}" />
+                                                                            <with-param name="status" value="Error" />
+                                                                            <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+                                                                    </else>
+                                                                </filter>
+                                                                <!-- END: Proceed to update the custom field only if the contact has been created successfully. -->
+                                                            </then>
+                                                        </filter>
+                                                        <!-- END: Proceed to create the person in Pipeline Deals (for the ZohoCRM contact) if not already created. -->
+														
+                                                        <!-- START: Proceed to create the deal only if company and contact exists in PipelineDeals. -->
+                                                        <filter xpath="boolean(get-property('zohocrm.potential.companyId')) and boolean(get-property('zohocrm.potential.personId'))">
+                                                            <then>
+                                                                <property name="deal.customFields" expression="fn:concat('{&quot;', get-property('pipelinedeals.zohocrmPotentialCustomFieldId'), '&quot; : &quot;#', get-property('zohocrm.potential.potentialId'), '&quot;}')" />
+                                                                
+																<!-- Create a deal based on the ZohoCRM potential. -->
+                                                                <property name="messageType" value="application/json" scope="axis2" />
+																
+                                                                <pipelinedeals.init>
+                                                                    <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                                                                    <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                                                                    <attributes>id</attributes>
+                                                                </pipelinedeals.init>
+                                                                <pipelinedeals.createDeal>
+                                                                    <name>{$ctx:zohocrm.potential.name}</name>
+                                                                    <summary>{$ctx:zohocrm.potential.description}</summary>
+                                                                    <status>2</status>
+                                                                    <customFields>{$ctx:deal.customFields}</customFields>
+                                                                    <expectedCloseDate>{$ctx:zohocrm.potential.expectedCloseDate}</expectedCloseDate>
+                                                                    <isArchived>false</isArchived>
+                                                                    <value>{$ctx:zohocrm.potential.amount}</value>
+                                                                    <primaryContactId>{$ctx:zohocrm.potential.personId}</primaryContactId>
+                                                                    <companyId>{$ctx:zohocrm.potential.companyId}</companyId>
+                                                                    <probability>{$ctx:zohocrm.potential.probability}</probability>
+                                                                    <dealStageId>{$ctx:pipelinedeals.followupStageId}</dealStageId>
+                                                                    <sourceId>{$ctx:pipelinedeals.zohocrmDealSourceId}</sourceId>
+                                                                </pipelinedeals.createDeal>
+                                                                <sequence key="removeResponseHeaders" />
+																
+                                                                <property name="pipelinedeals.dealId" expression="json-eval($.id)" />
+                                                                
+																<!-- START: Proceed to update the custom field only if the deal has been created successfully. -->
+                                                                <filter source="boolean(get-property('pipelinedeals.dealId'))" regex="true">
+                                                                    <then>
+                                                                        <property name="id" expression="fn:concat('zohocrm_potentialId:', get-property('zohocrm.potential.potentialId'), ',pipelinedeals_dealId:', get-property('pipelinedeals.dealId'))" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                            <with-param name="activity" value="pipelinedeals_createDeal" />
+                                                                            <with-param name="id" value="{$ctx:id}" />
+                                                                            <with-param name="status" value="Success" />
+                                                                            <with-param name="message" value="Deal has been created successfully." />
+                                                                        </call-template>
+                                                                        
+																		<!--Update the PipelineDeals deal ID in the zohoCrm account in the custom field 'PipelineDeals Deal ID' -->
+                                                                        <script language="js">
+																			<![CDATA[
+																				//constructing the xml data in order to update the account in ZohoCrm								
+																				var dealId = mc.getProperty('pipelinedeals.dealId');								
+																				var xmlData="<Potentials> <row no=\"1\"> <FL val=\"PipelineDeals Deal ID\">" + dealId + "</FL> <FL val=\"Stage\">Archive</FL> </row> </Potentials>";															
+																				mc.setProperty('zohocrm.xmlData', xmlData);
+																			]]>
+																		</script>
+																		
+																		<!-- Update the ZohoCRM potential with PipelineDeals Deal ID. -->
+                                                                        <zohocrm.init>
+                                                                            <scope>crmapi</scope>
+                                                                            <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+                                                                            <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+                                                                        </zohocrm.init>
+                                                                        <zohocrm.updateRecords>
+                                                                            <moduleType>Potentials</moduleType>
+                                                                            <id>{$ctx:zohocrm.potential.potentialId}</id>
+                                                                            <xmlData>{$ctx:zohocrm.xmlData}</xmlData>
+                                                                        </zohocrm.updateRecords>
+                                                                        <sequence key="removeResponseHeaders" />
+																		
+                                                                        <property name="zohocrm.potentialId" expression="//content[../val/text() = 'Id']" />
+                                                                        <!-- Append an error message to the user only if the update fails. -->
+                                                                        <filter source="boolean(get-property('zohocrm.potentialId'))" regex="false">
+                                                                            <then>
+                                                                                <property name="id" expression="fn:concat('zohocrm_potentialId:', get-property('zohocrm.potential.potentialId'), ',pipelinedeals_dealId:', get-property('pipelinedeals.dealId'))" />
+                                                                                <property name="message" expression="json-eval($)" />
+                                                                                <call-template target="responseHandlerTemplate">
+                                                                                    <with-param name="activity" value="zohocrm_updatePotential" />
+                                                                                    <with-param name="id" value="{$ctx:id}" />
+                                                                                    <with-param name="status" value="Error" />
+                                                                                    <with-param name="message" value="{$ctx:message}" />
+                                                                                </call-template>
+                                                                            </then>
+                                                                        </filter>
+                                                                    </then>
+                                                                    <else>
+                                                                        <property name="message" expression="json-eval($)" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                            <with-param name="activity" value="pipelinedeals_createDeal" />
+                                                                            <with-param name="id" value="{$ctx:id.empty}" />
+                                                                            <with-param name="status" value="Error" />
+                                                                            <with-param name="message" value="{$ctx:message}" />
+                                                                        </call-template>
+                                                                    </else>
+                                                                </filter>
+                                                                <!-- START: Proceed to update the custom field only if the company has been created successfully. -->
+                                                            </then>
+                                                            <else>
+                                                                <property name="id" expression="fn:concat('zohocrm_potentialId:', get-property('zohocrm.potential.potentialId'))" />
+                                                                <call-template target="responseHandlerTemplate">
+                                                                    <with-param name="activity" value="pipelinedeals_createDeal" />
+                                                                    <with-param name="id" value="{$ctx:id}" />
+                                                                    <with-param name="status" value="Error" />
+                                                                    <with-param name="message" value="Deal was not created since the associated company and/or contact could not be created." />
+                                                                </call-template>
+                                                            </else>
+                                                        </filter>
+                                                        <!-- END: Proceed to create the deal only if company and contact exists in PipelineDeals. -->
+                                                    </then>
+                                                </filter>
+                                                <!-- END: Proceed only if the potential is in 'Follow-Up' stage. -->
+                                            </then>
+                                        </filter>
+                                        <!-- END: Proceed to create the deal only if it is not created already. -->
+										
+                                        <!--Increment the potentialIndex count -->
+                                        <property name="zohoCrm.potentialIndex" expression="get-property('operation', 'zohoCrm.potentialIndex') + 1" scope="operation" />
+                                        
+										<!-- START: Loopback if all the iterations are done. -->
+										<filter xpath="get-property('zohoCrm.potentialCount') = get-property('operation', 'zohoCrm.potentialIndex')">
+                                            <then>
+												<!-- Append a message to send to the user if no deals were created. -->
+                                                <filter source="get-property('operation','dealsInFollowUp')" regex="0.0">
+                                                    <then>
+                                                        <call-template target="responseHandlerTemplate">
+                                                            <with-param name="activity" value="pipelinedeals_createDeal" />
+                                                            <with-param name="id" value="{$ctx:id.empty}" />
+                                                            <with-param name="status" value="Skipped" />
+                                                            <with-param name="message" value="There are no new potentials in the 'Follow-Up stage'." />
+                                                        </call-template>
+                                                    </then>
+                                                </filter>
+                                                <loopback />
+                                            </then>
+                                        </filter>
+										<!-- START: Loopback if all the iterations are done. -->
+                                    </sequence>
+                                </target>
+                            </iterate>
+                            <!-- END: FOR EACH potential -->
+                        </else>
+                    </filter>
+                    <!-- END: Proceed only if there any potentials created/modified on the current day of execution. -->
+                </else>
+            </filter>
+            <!-- END: Error case: If the response is having errors then display the error message given by the API. -->
+        </inSequence>
+        <outSequence>
+            <!-- Send the constructed response to the user. -->
+            <payloadFactory media-type="json">
+                <format>
+					{
+					   "Response":{
+						   "process":"pipelinedeals_retrievePotentialsAndCreateDeals",
+						   "activityResponse": [$1]
+					   }
+					}
+			   </format>
+                <args>
+                    <arg expression="get-property('operation', 'responseString')" />
+                </args>
+            </payloadFactory>
+            <send />
+        </outSequence>
+    </target>
+</proxy>

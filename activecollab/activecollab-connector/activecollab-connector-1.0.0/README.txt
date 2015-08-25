@@ -10,12 +10,11 @@ Product: Integration tests for WSO2 ESB ActiveCollab connector
     Tested Platforms: 
 
     - Microsoft WINDOWS V-7
-    - Ubuntu 14.04
-    - WSO2 ESB 4.9.0
+    - Ubuntu 14.04, Mac OSx 10.9
+    - WSO2 ESB 4.9.0-BETA
  
 Steps to follow in setting integration test.
- 1.  Download ESB 4.9.0 from official website.
- 2.  Deploy relevant patches, if applicable.
+ 1.  Download ESB 4.9.0-BETA from official website.
 
 STEPS:
 		
@@ -35,12 +34,12 @@ STEPS:
 	<messageBuilder contentType="text/html"                                
 					  class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 	
- 2. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{activecollab_CONNECTOR_HOME}/activecollab-connector/activecollab-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 2. Compress modified ESB and copy that zip file in to location "{activecollab_CONNECTOR_HOME}/activecollab-connector/activecollab-connector-1.0.0/org.wso2.carbon.connector/repository/".
 	
  3. Create an activecollab trial account and derive the API key:
-	i) 	 Using the URL "https://www.activecollab.com/" create an activecollab Free Trial account.
+	i) 	 Using the URL "https://www.activecollab.com/" create a Free Trial account for activecollab version 4.
 	ii)  Login to the created activecollab account and derive the API Key by selecting the user account that has been created >> Click on Options >> Select API Subscription >> Create a new Subscription (make sure that the 'Read Only' radio button is set as 'No') >> click the API subscription details icon and get the API URL and the api token. 
-	iii) Add a project Role following the below steps
+	iii) Add a project Role by following the below steps
 		 a)Select Administration and click on Administration.
 		 b)Under Projects select 'Project Roles'.
 		 c)Click on New Role and enter a name for the role >> select the appropriate permissions and click 'Add Role'
@@ -78,11 +77,12 @@ STEPS:
 	Properties vi) and vii) needs to be changed before running the integration test each time.
 		
  5. Make sure that the activecollab connector is set as a module in esb-connectors parent pom.
-               <module>activecollab/activecollab-connector/activecollab-connector-1.0.0</module>
+     <module>activecollab/activecollab-connector/activecollab-connector-1.0.0</module>
 
  6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
-               $ mvn clean install
+     $ mvn clean install
 
- NOTE : 
+ NOTE :
+      -activecollab V4 account is needed to execute the tests.
 	  -activecollab Free trial account is only valid for 30 days.
 	  

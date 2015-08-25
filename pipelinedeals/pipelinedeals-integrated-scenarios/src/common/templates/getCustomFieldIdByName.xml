@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template gets the ID of a custom field (identified by the provided label name) and sets it to the property 'pipelinedeals.customFieldString'. -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="pipelinedeals-getCustomFieldIdByName">
+    <parameter name="pipelinedeals.apiKey" description="Encrypted alphanumeric string to authenticate the pipe line deals credentials." />
+    <parameter name="pipelinedeals.apiUrl" description="The piplinedeals API URL." />
+    <parameter name="pipelinedeals.resourceName" description="Name of the resource in pipeline deal account." />
+    <parameter name="pipelinedeals.customFieldName" description="Name of the custom field in pipeline deal account." />
+    <sequence>
+        <property name="uri.var.pipelinedeals.apiKey" expression="$func:pipelinedeals.apiKey" />
+        <property name="uri.var.pipelinedeals.apiUrl" expression="$func:pipelinedeals.apiUrl" />
+        <property name="uri.var.pipelinedeals.customFieldName" expression="$func:pipelinedeals.customFieldName" />
+        <property name="uri.var.pipelinedeals.resourceName" expression="$func:pipelinedeals.resourceName" />
+        <property name="uri.var.pipelinedeals.resourceName" expression="fn:lower-case(get-property('uri.var.pipelinedeals.resourceName'))" />
+		
+        <!-- Retrieve information about the PipelineDeals Account. -->
+        <pipelinedeals.init>
+            <apiUrl>{$ctx:uri.var.pipelinedeals.apiUrl}</apiUrl>
+            <apiKey>{$ctx:uri.var.pipelinedeals.apiKey}</apiKey>
+        </pipelinedeals.init>
+        <pipelinedeals.getAccountDetails />
+		
+        <!-- Get the custom fields relevent to the given resource e.g : deals, company, person. -->
+        <switch source="get-property('uri.var.pipelinedeals.resourceName')">
+            <case regex="deal">
+                <property name="uri.var.pipelinedeals.customField" expression="json-eval($.deal_custom_field_labels)" />
+            </case>
+            <case regex="company">
+                <property name="uri.var.pipelinedeals.customField" expression="json-eval($.company_custom_field_labels)" />
+            </case>
+            <case regex="person">
+                <property name="uri.var.pipelinedeals.customField" expression="json-eval($.person_custom_field_labels)" />
+            </case>
+        </switch>
+		
+        <!-- Iterate over the custom fields and and extract the one whose label name matches the provided name. -->
+        <script language="js">
+			<![CDATA[
+				var customFields = eval("(" + mc.getProperty('uri.var.pipelinedeals.customField') + ")");
+				var customFieldName = mc.getProperty('uri.var.pipelinedeals.customFieldName');
+				var customFieldString = '';
+				
+				if(customFields.length > 0){
+					for(var i=0; i<customFields.length; i++){
+						var customField = customFields[i];
+					
+						if(customField.name.toLowerCase() == customFieldName.toLowerCase()) {
+							var customFieldId = '' + customField.id;
+							customFieldId = customFieldId.split('.')[0];
+							customFieldString = 'custom_label_' + customFieldId;
+							break;
+						}
+					}
+				}
+				
+				mc.setProperty('pipelinedeals.customFieldString', customFieldString);
+			]]>
+		</script>
+    </sequence>
+</template>

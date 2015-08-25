@@ -75,9 +75,13 @@ public class GenerateSignature extends AbstractMediator {
         mac.init(key);
         Base64 base64 = new Base64();
         // encode it, base64 it, change it to string.
-        String signature =
-                new String(base64.encode(mac.doFinal(baseString.toString().getBytes(ENC))), ENC).trim();
-        msgctx.setProperty("flickr.oauth.signature",URLEncoder.encode(signature,ENC));
+        String signature = "";
+        signature = new String(base64.encode(mac.doFinal(baseString.toString().getBytes(ENC))), ENC).trim();
+        while (signature.contains("+")) {
+            signature = new String(base64.encode(mac.doFinal(baseString.toString().getBytes(ENC))), ENC).trim();
+        }
+
+        msgctx.setProperty("flickr.oauth.signature", URLEncoder.encode(signature, ENC));
 
     }
 

@@ -1,0 +1,45 @@
+<template name="createAppAchievements" xmlns="http://ws.apache.org/ns/synapse">
+
+	<parameter name="appId" description="The application id" />
+	<parameter name="achievement" description="The URL of an Open Graph Achievement object" />
+	<parameter name="displayOrder"
+		description="Order of the achievement when shown in any achievement stories UI" />
+
+	<sequence>
+
+		<property name="uri.var.appId" expression="$func:appId" />
+		<property name="uri.var.achievement" expression="$func:achievement" />
+		<property name="uri.var.displayOrder" expression="$func:displayOrder" />
+
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"achievement":"$1",
+				"display_order":"$2"
+				}
+			</format>
+
+			<args>
+				<arg expression="get-property('uri.var.achievement')" />
+				<arg expression="get-property('uri.var.displayOrder')" />
+			</args>
+
+		</payloadFactory>
+
+		<property name="messageType" value="application/x-www-form-urlencoded"
+			scope="axis2" />
+
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/{uri.var.appId}/achievements?access_token={uri.var.accessToken}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+
+		<header name="X-FB-Debug" scope="transport" action="remove" />
+		<header name="X-FB-Rev" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+		
+	</sequence>
+</template>

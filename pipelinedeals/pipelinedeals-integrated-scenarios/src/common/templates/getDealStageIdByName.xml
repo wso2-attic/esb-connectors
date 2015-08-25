@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template gets the ID of a deal stage (identified by the provided deal_stage name) and sets it to the property 'pipelinedeals.dealStageId'. -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="pipelinedeals-getDealStageIdByName">
+    <parameter name="pipelinedeals.apiKey" description="Encrypted alphanumeric string to authenticate the pipe line deals credentials." />
+    <parameter name="pipelinedeals.apiUrl" description="The piplinedeals API URL." />
+    <parameter name="pipelinedeals.dealStageName" description="Name of the deal stage in pipeline deal account." />
+    <sequence>
+        <property name="uri.var.pipelinedeals.apiKey" expression="$func:pipelinedeals.apiKey" />
+        <property name="uri.var.pipelinedeals.apiUrl" expression="$func:pipelinedeals.apiUrl" />
+        <property name="uri.var.pipelinedeals.dealStageName" expression="$func:pipelinedeals.dealStageName" />
+        <property name="uri.var.pipelinedeals.dealStageName" expression="fn:lower-case(get-property('uri.var.pipelinedeals.dealStageName'))" />
+		
+        <!-- Retrieve information about the PipelineDeals Account. -->
+        <pipelinedeals.init>
+            <apiUrl>{$ctx:uri.var.pipelinedeals.apiUrl}</apiUrl>
+            <apiKey>{$ctx:uri.var.pipelinedeals.apiKey}</apiKey>
+        </pipelinedeals.init>
+        <pipelinedeals.getAccountDetails />
+		
+        <property name="uri.var.pipelinedeals.dealStages" expression="json-eval($.deal_stages)" />
+		
+        <!-- Iterate over the deal stages and and extract the one whose name matches the provided name. -->
+        <script language="js">
+			<![CDATA[
+				var dealStages = eval("(" + mc.getProperty('uri.var.pipelinedeals.dealStages') + ")");
+				var dealStageName = mc.getProperty('uri.var.pipelinedeals.dealStageName');
+				var stageId = '';
+				if(dealStages.length > 0){
+					for(var i=0; i<dealStages.length; i++){
+						var dealStage = dealStages[i];
+						if(dealStage.name.toLowerCase() == dealStageName.toLowerCase()) {
+							stageId = '' + dealStage.id;
+						}
+					}
+				}
+				mc.setProperty('pipelinedeals.dealStageId', stageId);
+			]]>
+		</script>
+    </sequence>
+</template>
