@@ -42,11 +42,11 @@ STEPS:
    ii)   Navigate to "https://[subdomain].salesbinder.com/locations" and click on  "Add New Location" button to add a new inventory location.
          Follow the same and create another location to be used for update test case.
    iii)  Go to "Locations & Zones" sub-category under "Inventory" in Sales Binder account dashboard, select the created locations (in step (5)ii) and extract the IDs of both locations from the URL.
-   iv)   Navigate to "https://[subdomain].salesbinder.com/items" and create two new inventory items using a single location (use the location in step(5)[ii]).
+   iv)   Navigate to "https://[subdomain].salesbinder.com/items" and create two new inventory items using a single location (use the location in step(5)ii).
  
  6.   Update the Sales Binder properties file at location "<SALES_BINDER_CONNECTOR_HOME>/salesbinder-connector/salesbinder-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
    i)       apiUrl                  - The URL of Sales Binder api (https://[subdomain].salesbinder.com).
-   ii)      apiKey                  - The API key obtained in step(4)[iii] which gives access to the API.
+   ii)      apiKey                  - The API key obtained in step(4) iii) which gives access to the API.
    iii)     contactEmail            - Email address of the contact to be created with mandatory parameters.
    iv)      contactEmailOpt         - Email address of the contact to be created with optional parameters.
    v)       contactFirstName        - First name of the contact.
@@ -60,15 +60,15 @@ STEPS:
    xiii)    accountContextId        - Context value to determine what type of Account to be created (Customer=2,Prospect=8,Supplier=10).
    xiv)     accountName             - Name of the account (Unique). This parameter should be change in each integration run.
    xv)      accountOfficeEmail      - Official mailing address of the account.   
-   xvi)     locationId              - ID of one of the locations created in step(5)[iii].
+   xvi)     locationId              - ID of one of the locations created in step(5) iii).
    xvii)    itemNameUpdated         - Updated name of the inventory item. Use a different value to what was used in 6. vii)
    xviii)   itemCostUpdated         - Updated cost of the inventory item. Use a different value to what was used in 6. viii)
-   xix)     locationIdUpdated       - Updated location ID of the inventory item. Use the ID the location (the one which was not used in 6. xvi)) created in step(5)[iii].
+   xix)     locationIdUpdated       - Updated location ID of the inventory item. Use the ID the location (the one which was not used in 6. xvi)) created in step(5) iii).
    xx)      itemDescriptionUpdated  - Updated description of the inventory item.
    xxi)     itemMultipleUpdated     - Updated multiple status of the inventory item. Use a different value to what was used in 6. ix)(0 = Unique Item, 1 = Quantity Item)
    
  7.   Make sure that SalesBinder is specified as a module in ESB Connector Parent pom.
-         <module>SalesBinder\salesbinder-connector\salesbinder-connector-1.0.0\org.wso2.carbon.connector</module>
+         <module>salesBinder\salesbinder-connector\salesbinder-connector-1.0.0\org.wso2.carbon.connector</module>
  
  8.   Navigate to "{ESB_Connector_Home}/" and run the following command.
          $ mvn clean install
