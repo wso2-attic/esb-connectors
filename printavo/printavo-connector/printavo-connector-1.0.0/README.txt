@@ -38,7 +38,7 @@ STEPS:
    vi)       optionalCustomerCompany                     - Company of the customer for createCustomer optional case. Use a valid string value.
    vii)      optionalCustomerEmail                       - Email of the customer for createCustomer optional case. Use any email address which is correctly formatted.
    viii)     optionalCustomerPhone                       - Phone number of the customer for createCustomer optional case. Use a 10-digit phone number.
-   ix)       perPage                                     - No of entries to return in a page. Use 1 or 2. (Use 1 or 2).
+   ix)       perPage                                     - No of entries to return in a page. Use 1 or 2.
    x)        page                                        - No of the page to return. Use 1.
    xi)       customerFax                                 - Fax of the customer for updateCustomer optional case. Use a valid fax number.
    xii)      customerTaxExempt                           - Tax exempt status of the customer for updateCustomer optional case. Use a boolean value.
