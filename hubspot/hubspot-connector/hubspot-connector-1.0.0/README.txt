@@ -20,13 +20,13 @@ Steps to follow in setting integration test.
  
  2. Deploy relevant patches, if applicable.
 
- 3. Create a Hubspot free account and login using "http://www.hubspot.com/crm".
+ 3. Create a Hubspot free sales account and login using "http://www.hubspot.com/crm".
    i) Click on the user avatar on the top right corner and from the top down select the 'Integration' option.
    ii) On the Integrations page, select the option "Get your HubSpot API Key" and generate the API key for further use. 
 
- 4. Navigate to "https://api.hubapi.com" and extract the certificate from browser and place the certificate file in following location. 
+ 4. Once login to the application navigate to "https://app.hubspot.com" and extract the certificate from root using browser and place the certificate file in following location. 
 
-   i)    "<HUBSPOT_CONNECTOR_HOME>/hubspot-connector/hubspot-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products"
+   i) "<HUBSPOT_CONNECTOR_HOME>/hubspot-connector/hubspot-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products"
 
       Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "hubspot"' in command line to import Hubspot certificate in to keystore. Give "wso2carbon" as password.
       NOTE : CERT_FILE_NAME is the file name which was extracted from Hubspot with  the extension, change it accordingly. Remove the copied certificate.
@@ -44,14 +44,15 @@ Steps to follow in setting integration test.
    iv)   contactLastName            -  String value for the contact's last name.
    v)    contactWebsite             -  Website address for the contact's website.
    vi)   contactPhone               -  String value for the contact's phone number.
-   vii)  companyName                -  String value for the company name.
-   viii) companyDescription         -  String value for the company description.
-   ix)   companyCountry             -  String value for the company's country.
-   x)    companyCity                -  String value for the company's city.
-   xi)   companyWebsite             -  Website address for the company's website.
-   xii)  dealName                   -  String value for the deal name.
-   xiii) dealAmount                 -  Integer value for deal amount.
-   xiv)  timeout                    -  Integer value for timeout(default value is 15000).
+   Vii)  contactAddress             -  String value for the contact's address.
+   viii) companyName                -  String value for the company name.
+   ix)   companyDescription         -  String value for the company description.
+   x)    companyCountry             -  String value for the company's country.
+   xi)   companyCity                -  String value for the company's city.
+   xii)  companyWebsite             -  Website address for the company's website.
+   xiii) dealName                   -  String value for the deal name.
+   xiv)  dealAmount                 -  Integer value for deal amount.
+   xv)   timeout                    -  Integer value for timeout(Default value is 15000.If "addContactToCompany" mandatory test case is failing increase the value).
 
 
  8. Navigate to "{ESB_CONNECTOR_HOME}/" and run the following command.
