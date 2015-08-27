@@ -19,6 +19,7 @@ Steps to follow in setting integration test.
 
 
  1. Download ESB 4.9.0-BETA-SNAPSHOT by navigating to the following URL: http://svn.wso2.org/repos/wso2/people/malaka/ESB/beta/
+ 
 
 
  2. Deploy relevant patches, if applicable. Place the patch files into location <ESB_HOME>/repository/components/patches.
@@ -40,7 +41,7 @@ Steps to follow in setting integration test.
 
 
 
- 4. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
+ 4. Compress modified ESB as wso2esb-4.9.0-BETA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME >/repository/".
 
 
  5. Create a openWeatherMAp  account and derive the API Key.
