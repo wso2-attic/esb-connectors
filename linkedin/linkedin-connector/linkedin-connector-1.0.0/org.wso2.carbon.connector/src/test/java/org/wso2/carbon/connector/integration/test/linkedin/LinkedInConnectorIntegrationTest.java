@@ -108,7 +108,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("jobId"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("jobId"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -131,7 +131,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("jobId"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("jobId"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -154,7 +154,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("accessToken"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -167,11 +167,10 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
     }
 
 
-
     /**
      * Mandatory parameter test case for addComment method.
      */
-    @Test(groups = { "wso2.esb" }, description = "linkedin {addComment} integration test.")
+    @Test(groups = {"wso2.esb"}, description = "linkedin {addComment} integration test.")
     public void testAddCommentWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "addComment_mandatory.txt";
@@ -179,7 +178,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"),linkedinConnectorProperties.getProperty("followCompanyId"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("followCompanyId"), linkedinConnectorProperties.getProperty("updateKey"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -202,7 +201,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("updateKey"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -217,7 +216,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for getHistoricalStatusUpdate method.
      */
-    @Test(groups = { "wso2.esb" }, description = "linkedin {gethistoricalStatusUpdate} integration test.")
+    @Test(groups = {"wso2.esb"}, description = "linkedin {gethistoricalStatusUpdate} integration test.")
     public void testGetHistoricalStatusUpdateWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "getHistoricalStatusUpdate_mandatory.txt";
@@ -225,7 +224,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"),linkedinConnectorProperties.getProperty("followCompanyId"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("followCompanyId"), linkedinConnectorProperties.getProperty("timeGranularity"), linkedinConnectorProperties.getProperty("startTimestamp"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -239,7 +238,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Optional parameter test case for getHistoricalStatusUpdate method.
      */
-    @Test(groups = { "wso2.esb" }, description = "linkedin {getHistoricalStatusUpdate} integration test.")
+    @Test(groups = {"wso2.esb"}, description = "linkedin {getHistoricalStatusUpdate} integration test.")
     public void testGetHistoricalStatusUpdateWithOptionalParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "getHistoricalStatusUpdate_optional.txt";
@@ -247,7 +246,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"),linkedinConnectorProperties.getProperty("followCompanyId"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("followCompanyId"), linkedinConnectorProperties.getProperty("timeGranularity"), linkedinConnectorProperties.getProperty("startTimestamp"), linkedinConnectorProperties.getProperty("endTimestamp"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -270,7 +269,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("timeGranularity"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -285,7 +284,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for getStatus method.
      */
-    @Test(groups = { "wso2.esb" }, description = "linkedin {getStatus} integration test.")
+    @Test(groups = {"wso2.esb"}, description = "linkedin {getStatus} integration test.")
     public void testGetStatusWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "getStatus_mandatory.txt";
@@ -293,7 +292,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"),linkedinConnectorProperties.getProperty("followCompanyId"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("memberId"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -307,7 +306,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Optional parameter test case for getStatus method.
      */
-    @Test(groups = { "wso2.esb" }, description = "linkedin {getStatus} integration test.")
+    @Test(groups = {"wso2.esb"}, description = "linkedin {getStatus} integration test.")
     public void testGetStatusWithOptionalParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "getStatus_optional.txt";
@@ -315,7 +314,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"),linkedinConnectorProperties.getProperty("followCompanyId"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("memberId"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -338,7 +337,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -361,7 +360,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("memberId"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("memberId"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -384,7 +383,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -395,21 +394,22 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
             proxyAdmin.deleteProxy(methodName);
         }
     }
-  /**
+
+    /**
      * Mandatory parameter test case for shareResources method.
      */
-    @Test(groups = { "wso2.esb" }, description = "linkedin {shareResources} integration test.")
+    @Test(groups = {"wso2.esb"}, description = "linkedin {shareResources} integration test.")
     public void testShareResourcesWithMandatoryParameters() throws Exception {
-    
+
         String jsonRequestFilePath = pathToRequestsDirectory + "shareResources_mandatory.txt";
         String methodName = "linkedin_shareResources";
-        
+
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
-        
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
+
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
-        
+
         try {
             JSONObject jsonObject = ConnectorIntegrationUtil.sendRequest(getProxyServiceURL(methodName), modifiedJsonString);
             Assert.assertTrue(jsonObject.has("updateKey"));
@@ -429,7 +429,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken1"), linkedinConnectorProperties.getProperty("apiUrl"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -452,7 +452,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("memberId"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("memberId"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -474,7 +474,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("memberId"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("memberId"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -497,7 +497,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -520,7 +520,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("additionalProfileFields"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -531,7 +531,8 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
         }
     }
 
-    /** Negative test case for getAdditionalProfileFields  method.
+    /**
+     * Negative test case for getAdditionalProfileFields  method.
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "linkedin {getProfile with Additional Fields} integration test.")
     public void testGetAdditionalProfileFieldsNegativeCase() throws Exception {
@@ -541,7 +542,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken1"), linkedinConnectorProperties.getProperty("apiUrl"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken1"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("additionalProfileFields"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -564,7 +565,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"),linkedinConnectorProperties.getProperty("apiUrl"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -586,7 +587,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken1"),linkedinConnectorProperties.getProperty("apiUrl"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken1"), linkedinConnectorProperties.getProperty("apiUrl"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -645,8 +646,8 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
     }
 
     /**
-     //     * Negative parameter test case for getHistoricalFollowers_negative method.
-     //     */
+     * Negative parameter test case for getHistoricalFollowers_negative method.
+     */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "linkedin {getHistoricalFollowers with negative  Fields} integration test.")
     public void testGetHistoricalFollowers_negative() throws Exception {
 
@@ -655,7 +656,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("companyId"), linkedinConnectorProperties.getProperty("timeGranularity"), linkedinConnectorProperties.getProperty("startTimestamp"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -713,8 +714,8 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
     }
 
     /**
-     //     * Negative parameter test case for listCompanyByMember method.
-     //     */
+     * Negative parameter test case for listCompanyByMember method.
+     */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "linkedin {listCompanyByMember with negative  Fields} integration test.")
     public void testListCompanyByMember_negative() throws Exception {
 
@@ -723,7 +724,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken1"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("start"), linkedinConnectorProperties.getProperty("count"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         try {
             int responseHeader = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
@@ -757,8 +758,8 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
     }
 
     /**
-     //     * Negative parameter test case for checkAdminMember method.
-     //     */
+     * Negative parameter test case for checkAdminMember method.
+     */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "linkedin {checkAdminMember with negative  Fields} integration test.")
     public void testCheckAdminMember_negative() throws Exception {
 
@@ -849,8 +850,8 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
     }
 
     /**
-     //     * Negative parameter test case for checkShare method.
-     //     */
+     * Negative parameter test case for checkShare method.
+     */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "linkedin {checkShare with negative  Fields} integration test.")
     public void testCheckShare_negative() throws Exception {
 
@@ -891,7 +892,8 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
         }
     }
 
-    /** Negative test case for getcommentsForSpecificUpdate  method.
+    /**
+     * Negative test case for getcommentsForSpecificUpdate  method.
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "linkedin {getcommentsForSpecificUpdate with negative fields} integration test.")
     public void testGetcommentsForSpecificUpdate_negative() throws Exception {
@@ -901,7 +903,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("companyId"), linkedinConnectorProperties.getProperty("updateKey"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("updateKey1"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -935,7 +937,8 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
         }
     }
 
-    /** Negative test case for getCompanySpecificUpdate  method.
+    /**
+     * Negative test case for getCompanySpecificUpdate  method.
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "linkedin {getCompanySpecificUpdate with negative fields} integration test.")
     public void testGetCompanySpecificUpdate_negative() throws Exception {
@@ -945,7 +948,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("companyId"), linkedinConnectorProperties.getProperty("updateKey"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("updateKey"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -1003,8 +1006,8 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
     }
 
     /**
-     //     * Negative parameter test case for getCompanyUpdate method.
-     //     */
+     * Negative parameter test case for getCompanyUpdate method.
+     */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "linkedin {getCompanyUpdate with negative  Fields} integration test.")
     public void testGetCompanyUpdate_negative() throws Exception {
 
@@ -1013,7 +1016,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("companyId"), linkedinConnectorProperties.getProperty("start"), linkedinConnectorProperties.getProperty("count"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         try {
             int responseHeader = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
@@ -1070,8 +1073,8 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
     }
 
     /**
-     //     * Negative parameter test case for getfollowers method.
-     //     */
+     * Negative parameter test case for getfollowers method.
+     */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "linkedin {getfollowers with negative  Fields} integration test.")
     public void testGetfollowers_negative() throws Exception {
 
@@ -1080,7 +1083,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("companyId"), linkedinConnectorProperties.getProperty("start"), linkedinConnectorProperties.getProperty("count"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
         try {
             int responseHeader = ConnectorIntegrationUtil.sendRequestToRetriveHeaders(getProxyServiceURL(methodName), modifiedJsonString);
@@ -1101,7 +1104,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("companyId"), linkedinConnectorProperties.getProperty("updateKey"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("basicProfileFields"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -1112,7 +1115,8 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
         }
     }
 
-    /** Negative test case for getMemberProfile  method.
+    /**
+     * Negative test case for getMemberProfile  method.
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "linkedin {getMemberProfile with negative fields} integration test.")
     public void testGetMemberProfile_negative() throws Exception {
@@ -1122,7 +1126,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("companyId"), linkedinConnectorProperties.getProperty("updateKey"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("basicProfileFields"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -1156,7 +1160,8 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
         }
     }
 
-    /** Negative test case for getLikesForCompanyUpdate  method.
+    /**
+     * Negative test case for getLikesForCompanyUpdate  method.
      */
     @Test(enabled = true, groups = {"wso2.esb"}, description = "linkedin {getLikesForCompanyUpdate with negative fields} integration test.")
     public void testGetLikesForCompanyUpdate_negative() throws Exception {
@@ -1166,7 +1171,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("companyId"), linkedinConnectorProperties.getProperty("updateKey"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("updateKey"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -1177,6 +1182,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
             proxyAdmin.deleteProxy(methodName);
         }
     }
+
     /**
      * mandatory parameter test case for companyLookUp method.
      */
@@ -1189,7 +1195,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("companyId"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("companyId"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -1214,7 +1220,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -1239,7 +1245,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -1264,7 +1270,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -1290,7 +1296,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("companyId"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("companyId"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -1316,7 +1322,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -1342,7 +1348,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -1368,7 +1374,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -1393,7 +1399,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -1416,7 +1422,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, "aaaaa");
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken1"), linkedinConnectorProperties.getProperty("apiUrl"));
 
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
@@ -1439,7 +1445,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -1461,7 +1467,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("refineResults"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -1484,7 +1490,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -1507,7 +1513,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
         final String jsonString = ConnectorIntegrationUtil.getFileContent(jsonRequestFilePath);
         final String proxyFilePath = "file:///" + pathToProxiesDirectory + methodName + ".xml";
-        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"));
+        String modifiedJsonString = String.format(jsonString, linkedinConnectorProperties.getProperty("accessToken"), linkedinConnectorProperties.getProperty("apiUrl"), linkedinConnectorProperties.getProperty("refineResults"));
         proxyAdmin.addProxyService(new DataHandler(new URL(proxyFilePath)));
 
         try {
@@ -1516,8 +1522,5 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
         } finally {
             proxyAdmin.deleteProxy(methodName);
         }
-
     }
-
-
 }
