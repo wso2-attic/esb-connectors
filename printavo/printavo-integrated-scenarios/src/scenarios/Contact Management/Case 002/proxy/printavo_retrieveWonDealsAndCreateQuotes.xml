@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!--Create contacts and quotes respectively in Printavo for the won deals in BaseCRM-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="printavo_retrieveWonDealsAndCreateQuotes" transports="https" startOnLoad="true" trace="disable">
+   <description />
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- BaseCRM Properties-->
+         <property name="uri.var.basecrm.apiKey" expression="json-eval($.basecrm.apiKey)" />
+         <property name="uri.var.basecrm.apiUrl" value="https://api.getbase.com" />
+         <property name="basecrm.dealUrl" value="https://leads.futuresimple.com" />
+         <property name="basecrm.version1Url" value="https://sales.futuresimple.com" />
+         <property name="basecrm.email" expression="json-eval($.basecrm.email)" />
+         <property name="basecrm.password" expression="json-eval($.basecrm.password)" />
+         <property name="uri.var.basecrm.wonStageId" expression="json-eval($.basecrm.wonStageId)" />
+         
+		 <!-- Printavo Properties-->
+         <property name="printavo.apiUrl" value="https://www.printavo.com" />
+         <property name="printavo.apiKey" expression="json-eval($.printavo.apiKey)" />
+         
+		 <!--Call BaseCRM api method to list deals in won stage-->
+		 <!--The method listDeals implemented in BaseCRM connector does not have any filter parameters-->
+         <property name="uri.var.apikey" expression="fn:concat('Bearer ',get-property('uri.var.basecrm.apiKey'))" />
+         <header name="Accept" value="application/json" scope="transport" />
+         <header name="Authorization" expression="get-property('uri.var.apikey')" scope="transport" />
+         <call>
+            <endpoint>
+               <http method="get" uri-template="{uri.var.basecrm.apiUrl}/v2/deals?stage_id={uri.var.basecrm.wonStageId}" />
+            </endpoint>
+         </call>
+         
+		 <!-- START: Proceed only if the deals are retrieved successfully. -->
+		 <filter source="$axis2:HTTP_SC" regex="200">
+			<then>
+				 <property name="basecrm.dealCount" expression="count(//items)" scope="operation" />
+				 <property name="dealIndex" value="0" scope="operation" />
+				 <sequence key="removeResponseHeaders" />
+				
+				 <!-- START: Proceed only if there is atleast one deal. -->
+				 <filter xpath="(get-property('basecrm.dealCount'))='0.0'">
+					<then>
+					   <property name="id" value="{}" />
+					   <property name="status" value="Skipped" />
+					   <property name="message" value="No won deals to process." />
+					   <call-template target="responseHandlerTemplate">
+						  <with-param name="id" value="{$ctx:id}" />
+						  <with-param name="activity" value="basecrm_retrieveWonDeals" />
+						  <with-param name="status" value="{$ctx:status}" />
+						  <with-param name="message" value="{$ctx:message}" />
+					   </call-template>
+					   <loopback />
+					</then>
+					<else>
+					   <!--BEGIN : FOR EACH deal-->
+					   <iterate continueParent="false" id="dealIterator" expression="//items" sequential="true">
+						  <target>
+							 <sequence>
+								<property name="uri.var.basecrm.dealId" expression="json-eval($.items.data.id)" />
+								<property name="basecrm.dealPrintavoQuotes" expression="json-eval($.items.data.custom_fields.printavo_quote)" />
+
+								<!-- START: Process only if the quote creation in printavo is required. -->
+								<filter source="boolean(get-property('basecrm.dealPrintavoQuotes'))" regex="true">
+								   <then>
+									  <property name="id" expression="fn:concat('basecrm_dealId:',get-property('uri.var.basecrm.dealId'))" />
+									  <property name="status" value="Skipped" />
+									  <property name="message" value="A quote has been already created for the deal" />
+									  <call-template target="responseHandlerTemplate">
+										 <with-param name="id" value="{$ctx:id}" />
+										 <with-param name="activity" value="printavo_createQuote" />
+										 <with-param name="status" value="{$ctx:status}" />
+										 <with-param name="message" value="{$ctx:message}" />
+									  </call-template>
+								   </then>
+								   <else>
+									  <property name="printavo.quoteDueDate" expression="json-eval($.items.data.estimated_close_date)" />
+									  <property name="printavo.quoteValue" expression="json-eval($.items.data.value)" />
+									  <property name="printavo.quoteNote" expression="fn:concat('deal_value:',get-property('printavo.quoteValue'))" />
+									  <property name="basecrm.contactId" expression="json-eval($.items.data.contact_id)" />
+									  
+									  <!--Construct the date in the format which printavo orders accept-->
+									  <script language="js">
+										<![CDATA[
+											var dueDate = ''+mc.getProperty('printavo.quoteDueDate');
+											var year = dueDate.split('-')[0];
+											var month = dueDate.split('-')[1];
+											var date = dueDate.split('-')[2];  
+											 
+											var dateString = month+'/'+date+'/'+year;
+											mc.setProperty("printavo.quoteDueDate",dateString);
+										]]>
+									  </script>
+									  
+									  <!--Call basecrm connector getContactById method to get the details of the contact -->
+									  <basecrm.init>
+										 <email>{$ctx:basecrm.email}</email>
+										 <responseType>json</responseType>
+										 <apiUrl>{$ctx:basecrm.version1Url}</apiUrl>
+										 <password>{$ctx:basecrm.password}</password>
+									  </basecrm.init>
+									  <basecrm.getContactById>
+										 <contactId>{$ctx:basecrm.contactId}</contactId>
+									  </basecrm.getContactById>
+									  <property name="uri.var.basecrm.contactId" expression="json-eval($.contact.id)" />
+						
+									  <!-- START: Process only if the contact is retrieved successfully. -->
+									  <filter source="boolean(get-property('uri.var.basecrm.contactId'))" regex="false">
+										 <then>
+											<property name="id" expression="fn:concat('basecrm_dealId:',get-property('uri.var.basecrm.dealId'))" />
+											<property name="status" value="Error" />
+											<property name="message" expression="json-eval($.)" />
+											<call-template target="responseHandlerTemplate">
+											   <with-param name="activity" value="basecrm_getContactDetails" />
+											   <with-param name="id" value="{$ctx:id}" />
+											   <with-param name="status" value="{$ctx:status}" />
+											   <with-param name="message" value="{$ctx:message}" />
+											</call-template>
+										 </then>
+										 <else>
+											<property name="basecrm.printavoCustomer" expression="json-eval($.contact.custom_fields.printavo_customer.value)" />
+											<property name="printavo.customerEmail" expression="json-eval($.contact.email)" />
+											<property name="printavo.customerFirstName" expression="json-eval($.contact.first_name)" />
+											<property name="printavo.customerLastName" expression="json-eval($.contact.last_name)" />
+											<property name="printavo.customerCompany" expression="json-eval($.contact.organisation_name)" />
+											<property name="printavo.customerPhone" expression="json-eval($.contact.phone)" />
+											<property name="printavo.customerFax" expression="json-eval($.contact.fax)" />
+										
+											<!-- START: Process only if the contact creation in printavo is required. -->
+											<filter source="boolean(get-property('basecrm.printavoCustomer'))" regex="false">
+											   <then>
+												  
+												  <!--Call printavo connector createCustomer method to create a customer-->
+												  <printavo.init>
+													 <apiUrl>{$ctx:printavo.apiUrl}</apiUrl>
+													 <apiKey>{$ctx:printavo.apiKey}</apiKey>
+												  </printavo.init>
+												  <printavo.createCustomer>
+													 <firstName>{$ctx:printavo.customerFirstName}</firstName>
+													 <lastName>{$ctx:printavo.customerLastName}</lastName>
+													 <fax>{$ctx:printavo.customerFax}</fax>
+													 <company>{$ctx:printavo.customerCompany}</company>
+													 <email>{$ctx:printavo.customerEmail}</email>
+													 <phone>{$ctx:printavo.customerPhone}</phone>
+												  </printavo.createCustomer>
+												  <property name="basecrm.printavoCustomer" expression="json-eval($.id)" />
+												  
+												  <!-- START: Process only if the customer creation is successfull -->
+												  <filter source="boolean(get-property('basecrm.printavoCustomer'))" regex="false">
+													 <then>
+														<property name="id" expression="fn:concat('basecrm_contactId:',get-property('uri.var.basecrm.contactId'))" />
+														<property name="status" value="Error" />
+														<property name="message" expression="json-eval($.)" />
+														<call-template target="responseHandlerTemplate">
+														   <with-param name="activity" value="printavo_createCustomers" />
+														   <with-param name="id" value="{$ctx:id}" />
+														   <with-param name="status" value="{$ctx:status}" />
+														   <with-param name="message" value="{$ctx:message}" />
+														</call-template>
+														<loopback />
+													 </then>
+													 <else>
+														<payloadFactory media-type="json">
+														   <format>{
+																	"data": {
+																		"custom_fields": {
+																		  "printavo_customer": "$1"
+																		}
+																	}
+																}</format>
+														   <args>
+															  <arg expression="get-property('basecrm.printavoCustomer')" />
+														   </args>
+														</payloadFactory>
+													   
+													    <!---Call basecrm api method to update the contact-->
+													    <header name="Accept" value="application/json" scope="transport" />
+														<header name="Authorization" expression="get-property('uri.var.apikey')" scope="transport" />
+														<call>
+														   <endpoint>
+															  <http method="put" uri-template="{uri.var.basecrm.apiUrl}/v2/contacts/{uri.var.basecrm.contactId}" />
+														   </endpoint>
+														</call>
+														
+														<property name="basecrm.updatedContactId" expression="json-eval($.data.id)" />
+														
+														<!-- START: Process only if contact updation is failed in basecrm -->
+														<filter source="boolean(get-property('basecrm.updatedContactId'))" regex="false">
+														   <then>
+															  <property name="id" value="{}" />
+															  <property name="status" value="Error" />
+															  <property name="message" expression="json-eval($.)" />
+															  <call-template target="responseHandlerTemplate">
+																 <with-param name="activity" value="baseCrm_updateContact" />
+																 <with-param name="id" value="{$ctx:id}" />
+																 <with-param name="status" value="{$ctx:status}" />
+																 <with-param name="message" value="{$ctx:message}" />
+															  </call-template>
+														   </then>
+														</filter>
+														<!-- END: Process only if contact updation is failed in basecrm -->
+													 </else>
+												  </filter>
+												  <!-- END: Process only if the customer creation is successful -->
+											   </then>
+											</filter>
+											<!-- END: Process only if the contact creation in printavo is required. -->
+											
+											<!-- START: Process only if the printavo customer has been already created for the basecrm contact. -->
+											<filter source="boolean(get-property('basecrm.printavoCustomer'))" regex="true">
+											   <then>
+												  
+												  <!-- Calling printavo-getUserIdSeq sequence to get the user ID-->
+												  <sequence key="printavo-getUserIdSeq" />
+												  
+												  <!-- Calling printavo-getOrderIdSeq sequence to get the order status ID-->
+												  <sequence key="printavo-getOrderIdSeq" />
+												  
+												  <!--Call printavo connector createOrder method to create a quote for the won deal-->
+												  <printavo.init>
+													 <apiUrl>{$ctx:printavo.apiUrl}</apiUrl>
+													 <apiKey>{$ctx:printavo.apiKey}</apiKey>
+												  </printavo.init>
+												  <printavo.createOrder>
+													 <userId>{$ctx:printavo.userId}</userId>
+													 <orderstatusId>{$ctx:printavo.OrderStatusId}</orderstatusId>
+													 <customerId>{$ctx:basecrm.printavoCustomer}</customerId>
+													 <formattedDueDate>{$ctx:printavo.quoteDueDate}</formattedDueDate>
+													 <notes>{$ctx:printavo.quoteNote}</notes>
+												  </printavo.createOrder>
+												  <property name="printavo.orderId" expression="json-eval($.id)" />
+												  
+												  <!-- START: Process only if the order has been created successfully -->
+												  <filter source="boolean(get-property('printavo.orderId'))" regex="false">
+													 <then>
+														<property name="id" expression="fn:concat('basecrm_dealId:',get-property('uri.var.basecrm.dealId'))" />
+														<property name="status" value="Error" />
+														<property name="message" expression="json-eval($.)" />
+														<call-template target="responseHandlerTemplate">
+														   <with-param name="activity" value="printavo_createQuote" />
+														   <with-param name="id" value="{$ctx:id}" />
+														   <with-param name="status" value="{$ctx:status}" />
+														   <with-param name="message" value="{$ctx:message}" />
+														</call-template>
+													 </then>
+													 <else>
+														<property name="id" expression="fn:concat('printavo_quoteId:',get-property('printavo.orderId'),',basecrm_dealId:',get-property('uri.var.basecrm.dealId'))" />
+														<property name="status" value="Success" />
+														<property name="message" value="The quote has been successfully created for the won deal." />
+														<call-template target="responseHandlerTemplate">
+														   <with-param name="activity" value="printavo_createQuote" />
+														   <with-param name="id" value="{$ctx:id}" />
+														   <with-param name="status" value="{$ctx:status}" />
+														   <with-param name="message" value="{$ctx:message}" />
+														</call-template>
+														
+														<payloadFactory media-type="json">
+														   <format>{
+																	"data": {
+																		"custom_fields": {
+																		  "printavo_quote": "$1"
+																		}
+																	}
+																}</format>
+														   <args>
+															  <arg expression="get-property('printavo.orderId')" />
+														   </args>
+														</payloadFactory>
+														
+														<!--Call basecrm api method to update the deal with the created quote ID-->
+														<header name="Accept" value="application/json" scope="transport" />
+														<header name="Authorization" expression="get-property('uri.var.apikey')" scope="transport" />
+														<call>
+														   <endpoint>
+															  <http method="put" uri-template="{uri.var.basecrm.apiUrl}/v2/deals/{uri.var.basecrm.dealId}" />
+														   </endpoint>
+														</call>
+														<property name="basecrm.updatedDealId" expression="json-eval($.data.id)" />
+														
+														 <!-- START: Process only if the updation has not been successful -->
+														<filter source="boolean(get-property('basecrm.updatedDealId'))" regex="false">
+														   <then>
+															  <property name="id" value="{}" />
+															  <property name="status" value="Error" />
+															  <property name="message" expression="json-eval($.)" />
+															  <call-template target="responseHandlerTemplate">
+																 <with-param name="activity" value="baseCrm_updateDeal" />
+																 <with-param name="id" value="{$ctx:id}" />
+																 <with-param name="status" value="{$ctx:status}" />
+																 <with-param name="message" value="{$ctx:message}" />
+															  </call-template>
+														   </then>
+														</filter>
+														<!-- END: Process only if the updation has not been successful -->
+													 </else>
+												  </filter>
+												  <!-- END: Process only if the printavo customer has been already created for the basecrm contact. -->
+											   </then>
+											</filter>
+											<!-- END: Process only if the printavo customer has been already created for the basecrm contact. -->
+										 </else>
+									  </filter>
+									  <!-- END: Process only if the contact is retrieved successfully. -->
+								   </else>
+								</filter>
+								<!-- END: Process only if the quote creation in printavo is required. -->
+								<property name="dealIndex" expression="get-property('operation','dealIndex') + 1" scope="operation" />
+
+								<filter xpath="get-property('operation','dealIndex') = get-property('operation', 'basecrm.dealCount')">
+								   <then>
+									  <loopback />
+								   </then>
+								</filter>
+							 </sequence>
+						  </target>
+					   </iterate>
+					   <!--END : FOR EACH deal-->
+					</else>
+				 </filter>
+				 <!-- END: Proceed only if there is atleast one deal. -->
+			</then>
+			<else>
+			   <property name="id" value="{}" />
+               <property name="status" value="Error" />
+               <property name="message" expression="json-eval($.)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="basecrm_retrieveDeals" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback/>
+			</else>
+		 </filter>
+		 <!-- END: Proceed only if the deals are retrieved successfully. -->
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>{
+				"Response":{
+					"process":"printavo_retrieveWonDealsAndCreateQuotes",
+					"activityResponse":[$1]
+				}
+				}</format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+</proxy>

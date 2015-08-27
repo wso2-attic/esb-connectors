@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!--Create product in Printavo for the items in Salesbinder and send campaigns for those products if required via Sendloop-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="printavo_createProductsAndMarket" transports="https http" startOnLoad="true" trace="disable">
+   <target>
+      <inSequence>
+         <!-- Printavo Properties-->
+         <property name="printavo.apiUrl" value="https://www.printavo.com" />
+         <property name="printavo.apiKey" expression="json-eval($.printavo.apiKey)" />
+         
+		 <!-- SalesBinder Properties-->
+         <property name="salesbinder.apiUrl" expression="json-eval($.salesbinder.apiUrl)" />
+         <property name="salesbinder.apiKey" expression="json-eval($.salesbinder.apiKey)" />
+         <property name="salesbinder.customerIndex" expression="0" scope="operation" />
+        
+		 <!-- Sendloop Properties-->
+         <property name="sendloop.apiUrl" expression="json-eval($.sendloop.apiUrl)" />
+         <property name="sendloop.apiKey" expression="json-eval($.sendloop.apiKey)" />
+         <property name="sendloop.fromName" expression="json-eval($.sendloop.fromName)" />
+         <property name="sendloop.fromEmail" expression="json-eval($.sendloop.fromEmail)" />
+         <property name="sendloop.replyToName" expression="json-eval($.sendloop.replyToName)" />
+         <property name="sendloop.replyToEmail" expression="json-eval($.sendloop.replyToEmail)" />
+         <property name="responseString" value="" scope="operation" />
+         
+		 
+		 <!--Call Salesbinder API method get the category ID of the category 'Screen Printing' -->
+		 <property name="uri.var.password" value="X" />
+		 <property name="Authorization"
+         expression="fn:concat('Basic ', base64Encode(fn:concat(get-property('salesbinder.apiKey'), ':', get-property('uri.var.password'))))"
+         scope="transport" type="STRING" />
+		 <property name="uri.var.apiUrl" expression="get-property('salesbinder.apiUrl')"/>
+		
+		  <header name="Accept" value="application/json" scope="transport" />
+		 
+          <call>
+			 <endpoint>
+				<http method="get" uri-template="{uri.var.apiUrl}/api/categories.json" />
+			 </endpoint>
+		  </call>
+		  
+		  <property name="salesbinder.categories" expression="json-eval($.Categories)" />
+		  
+		  <!--Retrieve the category ID of the cateogry 'Screen Printing'-->
+		  <script language="js">
+			<![CDATA[
+				 var categoryDetails = eval("(" + mc.getProperty('salesbinder.categories') + ")");
+				 var categoryId='';
+				 
+				 for(var i=0 ; i<categoryDetails.length ;i++) {
+				   var name = categoryDetails[i].name;
+				   
+				   if(name== 'Screen Printing') {
+						categoryId = categoryDetails[i].id;
+						mc.setProperty("salesbinder.categoryId",categoryId);
+						break;
+					}
+				 }
+			 ]]>
+		  </script>
+		 
+		 <!--Call SalesBinder connector listInventoryItems method to retrieve all the items for the given category -->
+         <salesbinder.init>
+            <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+            <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+         </salesbinder.init>
+         <salesbinder.listInventoryItems>
+            <categoryId>{$ctx:salesbinder.categoryId}</categoryId>
+         </salesbinder.listInventoryItems>
+         <property name="salesbinder.itemResponse" expression="json-eval($.Items)" />
+         
+		 <property name="salesbinder.itemCount" expression="json-eval($.count)" scope="operation" />
+         <property name="salesbinder.itemIndex" value="0" scope="operation" />
+         
+         <!-- START: Proceed only if items are retrieved successfully -->
+         <filter source="boolean(get-property('salesbinder.itemResponse'))" regex="false">
+            <then>
+               <property name="errorResponse" expression="json-eval($)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="salesbinder_listInventoryItems" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:errorResponse}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+			   <!-- START: Proceed only if there are one or more items -->
+               <filter xpath="get-property('operation','salesbinder.itemCount') = 0">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="status" value="Skipped" />
+                     <property name="message" value="No items to process." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="salesbinder_listInventoryItems" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <property name="salesbinder.items" expression="count(//Items)" scope="operation" />
+                     
+                     <!--BEGIN : FOR EACH item-->
+                     <iterate continueParent="false" id="items" expression="//Items" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="salesbinder.itemId" expression="json-eval($.Items.Item.id)" />
+                              <property name="salesbinder.itemName" expression="json-eval($.Items.Item.name)" />
+                              <property name="salesbinder.itemDetails" expression="json-eval($.Items.ItemDetail)" />
+                              
+							  <!--Script to check whether campaign creation and product creation is needed-->
+                              <script language="js">
+								<![CDATA[
+									 var itemDetails = eval("(" + mc.getProperty('salesbinder.itemDetails') + ")");
+									 var printavoCreated;
+									 var campaignCreated;
+									 var printavoCF;
+									 var campaignCF;
+									 
+									 var detailLength = itemDetails.length;
+									 
+									 for(var i=0 ; i<itemDetails.length ;i++) {
+									   var id = itemDetails[i].id;
+									   mc.setProperty("salesbinder.CFid",id);
+									   var name = itemDetails[i].CustomField.name;
+									   
+									   if(name== 'printavo_product') {
+											printavoCreated = itemDetails[i].value;
+											if(printavoCreated !="" || printavoCreated !=null) {
+												mc.setProperty("salesbinder.printavoCreation",printavoCreated);
+											}
+											printavoCF = itemDetails[i].custom_field_id;
+									   }
+									   if(name== 'campaign_creation (true or false)') {
+											campaignCreated = ''+itemDetails[i].value;
+											campaignCreated = campaignCreated.toLowerCase();
+											if(campaignCreated != "true") {
+												mc.setProperty("salesbinder.campaignCreation",campaignCreated);
+											}
+											campaignCF = itemDetails[i].custom_field_id;
+									   }
+									 }
+									 mc.setProperty("salesbinder.printavoCF",printavoCF);
+									 mc.setProperty("salesbinder.campaignCF",campaignCF);
+								 ]]>
+							  </script>
+							  
+							  <!-- START: Proceed only if a product has not been created for the item -->
+                              <filter source="boolean(get-property('salesbinder.printavoCreation'))" regex="false">
+                                 <then>
+                                    <property name="salesbinder.itemPrice" expression="json-eval($.Items.Item.price)" />
+                                    <property name="salesbinder.itemQuantity" expression="json-eval($.Items.Item.quantity)" />
+                                    <property name="salesbinder.itemSerialNumber" expression="json-eval($.Items.Item.sku)" />
+                                    
+									<!--Call printavo createProduct method to create a product related to the salesbinder item-->
+									<printavo.init>
+                                       <apiUrl>{$ctx:printavo.apiUrl}</apiUrl>
+                                       <apiKey>{$ctx:printavo.apiKey}</apiKey>
+                                    </printavo.init>
+                                    <printavo.createProduct>
+                                       <pricePer>{$ctx:salesbinder.itemPrice}</pricePer>
+                                       <styleNumber>{$ctx:salesbinder.itemSerialNumber}</styleNumber>
+                                       <brand>{$ctx:salesbinder.itemName}</brand>
+                                       <size>{$ctx:salesbinder.itemQuantity}</size>
+                                    </printavo.createProduct>
+                                    <property name="printavo.productId" expression="json-eval($.id)" />
+                                  
+									<!-- START: Append the response message according to the createProduct response -->
+                                    <filter source="boolean(get-property('printavo.productId'))" regex="false">
+                                       <then>
+                                          <property name="id" expression="fn:concat('salesbinder_itemId:',get-property('salesbinder.itemId'))" />
+                                          <property name="status" value="Error" />
+                                          <property name="message" expression="json-eval($)" />
+                                          <!--Call the responseHandler template-->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="printavo_createProduct" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <property name="salesbinder.printavoCreation" expression="get-property('printavo.productId')" />
+                                          <property name="id" expression="fn:concat('salesbinder_itemId:',get-property('salesbinder.itemId'),',printavo_productId:',get-property('printavo.productId'))" />
+                                          <property name="status" value="Success" />
+                                          <property name="message" value="The product has been successfully created." />
+                                          <!--Call the responseHandler template-->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="printavo_createProduct" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+										  
+										  <!--Update the salesbinder custom field with created product ID-->
+                                          <payloadFactory media-type="json">
+                                             <format>{
+												  "itemDetail": [
+													{
+														"value": "$1",
+														"custom_field_id": "$2",
+														"item_id": "$3"
+													}
+												  ]
+											   }</format>
+                                             <args>
+                                                <arg expression="get-property('printavo.productId')" />
+                                                <arg expression="get-property('salesbinder.printavoCF')" />
+                                                <arg expression="get-property('salesbinder.itemId')" />
+                                             </args>
+                                          </payloadFactory>
+                                          <property name="salesbinder.customField" expression="json-eval($.itemDetail)" />
+                                          
+										  <!--Call salesbinder updateInventoryItem method to update the custom field which contains printavo product ID-->
+										  <salesbinder.init>
+                                             <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+                                             <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+                                          </salesbinder.init>
+                                          <salesbinder.updateInventoryItem>
+                                             <customFields>{$ctx:salesbinder.customField}</customFields>
+                                             <id>{$ctx:salesbinder.itemId}</id>
+                                          </salesbinder.updateInventoryItem>
+                                          <property name="salesbinder.updateItemResponse" expression="json-eval($.Item)" />
+                                          
+										  <!-- START: Append the response message if updateInventoryItem is failed -->
+										  <filter source="boolean(get-property('salesbinder.updateItemResponse'))" regex="false">
+                                             <then>
+                                                <property name="id" expression="fn:concat('salesbinder_itemId:',get-property('salesbinder.itemId'))" />
+                                                <property name="errorResponse" expression="json-eval($)" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="salesbinder_updateInventoryItem" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Error" />
+                                                   <with-param name="message" value="{$ctx:errorResponse}" />
+                                                </call-template>
+                                             </then>
+                                          </filter>
+										  <!-- END: Append the response message if updateInventoryItem is failed -->
+                                       </else>
+                                    </filter>
+									<!-- END: Append the response message according to the createProduct response -->
+                                 </then>
+                              </filter>
+							  <!-- END: Proceed only if a product has not been created for the item -->
+							  
+							  <!-- Calling sendloop-createAndSendCampaignsSeq sequence to create and send campaign for the products-->
+							  <sequence key="sendloop-createAndSendCampaignsSeq" />
+							  
+                              <property name="salesbinder.itemIndex" expression="get-property('operation','salesbinder.itemIndex') + 1" scope="operation" />
+                              
+                              <filter xpath="get-property('operation','salesbinder.itemIndex') = get-property('operation', 'salesbinder.items')">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!--END : FOR EACH item-->
+                  </else>
+               </filter>
+			   <!-- END: Proceed only if there are one or more items -->
+            </else>
+         </filter>
+         <!-- END: Proceed only if items are retrieved successfully -->
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>{
+                     "Response":{
+						"process":"printavo_createProductsAndMarket",
+						"activityResponse":"All preferred items have been created in printavo and campaigns have been sent."
+                     }
+                  }</format>
+               </payloadFactory>
+            </then>
+            <else>
+               <payloadFactory media-type="json">
+                  <format>{
+						"Response":{
+							"process":"printavo_createProductsAndMarket",
+							"activityResponse":[$1]
+						}
+					}</format>
+                  <args>
+                     <arg expression="get-property('operation', 'responseString')" />
+                  </args>
+               </payloadFactory>
+            </else>
+         </filter>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
