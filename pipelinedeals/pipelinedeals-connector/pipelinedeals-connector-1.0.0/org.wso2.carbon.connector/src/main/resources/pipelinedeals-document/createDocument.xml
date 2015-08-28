@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.pipelinedeals.com/api/docs/resources/documents -->
+<template name="createDocument" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="title" description="The filename for the document that the user will see." />
+   <parameter name="updatedAt" description="The time the document was last updated." />
+   <parameter name="dealId" description="The id of the deal to associate with." />
+   <parameter name="personId" description="The id of the person to associate with." />
+   <parameter name="ownerId" description="The id of the user who uploaded the document." />
+   <parameter name="publicFileUrl" description="The url the document is available at." />
+   <sequence>
+      <property name="uri.var.title" expression="$func:title" />
+      <property name="uri.var.updatedAt" expression="$func:updatedAt" />
+      <property name="uri.var.dealId" expression="$func:dealId" />
+      <property name="uri.var.personId" expression="$func:personId" />
+      <property name="uri.var.ownerId" expression="$func:ownerId" />
+      <property name="uri.var.publicFileUrl" expression="$func:publicFileUrl" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "document": {
+                  "url": "$1"
+               }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.publicFileUrl')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var apiKey = mc.getProperty('uri.var.apiKey');
+            var dealId = mc.getProperty('uri.var.dealId');
+            var personId = mc.getProperty('uri.var.personId');
+            var attributes = mc.getProperty('uri.var.attributes');
+            var title = mc.getProperty('uri.var.title');
+            var ownerId = mc.getProperty('uri.var.ownerId');
+            var updatedAt = mc.getProperty('uri.var.updatedAt');
+            var jsonPayload = mc.getPayloadJSON();
+            var urlQuery = '?api_key=' + apiKey;
+            if (attributes != null && attributes != "") {
+               urlQuery += '&attrs=' + attributes;
+            }
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+            var document = jsonPayload["document"];
+            if (title != null && title != ""){
+               document.title = title;
+            }
+            if (updatedAt != null && updatedAt != ""){
+               document.updated_at = updatedAt;
+            }
+            if (dealId != null && dealId != ""){
+               document.deal_id = dealId;
+            }
+            if (personId != null && personId != ""){
+               document.person_id = personId;
+            }
+            if (ownerId != null && ownerId != ""){
+               document.owner_id = ownerId;
+            }
+            jsonPayload.document = document;
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/documents.json{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Access-Control-Allow-Credentials" action="remove" scope="transport" />
+      <header name="Access-Control-Expose-Headers" action="remove" scope="transport" />
+      <header name="Access-Control-Max-Age" action="remove" scope="transport" />
+      <header name="Status" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-Runtime" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+   </sequence>
+</template>

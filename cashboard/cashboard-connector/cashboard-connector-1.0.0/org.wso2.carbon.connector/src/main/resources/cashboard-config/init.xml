@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://api.cashboardapp.com/ -->
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="apiUrl" description="The URL of the Cashboard API." />
+   <parameter name="emailAddress" description="Email which is used to create the Cashboard account." />
+   <parameter name="password" description="Password of the Cashboard account." />
+   <parameter name="subdomain" description="Subdomain of the Cashboard account." />
+   <parameter name="format" description="Format of the response." />
+   <sequence>
+      <property name="uri.var.apiUrl" expression="$func:apiUrl" />
+      <property name="uri.var.emailAddress" expression="$func:emailAddress" />
+      <property name="uri.var.password" expression="$func:password" />
+      <property name="uri.var.subdomain" expression="$func:subdomain" />
+      <property name="uri.var.format" expression="$func:format" />
+      <!-- If the apiUrl is not specified, set the default value as https://api.cashboardapp.com -->
+      <filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+         <then>
+            <property name="uri.var.apiUrl" value="https://api.cashboardapp.com" />
+         </then>
+      </filter>
+      <!-- If the format is not specified, set the default value as 'xml' -->
+      <filter source="boolean(get-property('uri.var.format'))" regex="false">
+         <then>
+            <property name="uri.var.format" value="xml" />
+         </then>
+      </filter>
+      <!--if the emailAddress, password and the subdomain name is provided then construct the Authorization header -->
+      <filter
+         source="boolean(get-property('uri.var.emailAddress')) and 
+                      boolean(get-property('uri.var.password')) and 
+                      boolean(get-property('uri.var.subdomain'))"
+         regex="true">
+         <then>
+            <!--Construct the message body for the function invocation to retrieve the apiKey -->
+            <payloadFactory media-type="xml">
+               <format>
+                  <user>
+                     <email_address>$1</email_address>
+                     <password>$2</password>
+                     <subdomain>$3</subdomain>
+                  </user>
+               </format>
+               <args>
+                  <arg expression="get-property('uri.var.emailAddress')" />
+                  <arg expression="get-property('uri.var.password')" />
+                  <arg expression="get-property('uri.var.subdomain')" />
+               </args>
+            </payloadFactory>
+            <call>
+               <endpoint>
+                  <http method="post" uri-template="{uri.var.apiUrl}/account/auth" />
+               </endpoint>
+            </call>
+            <!--Get apiKey from the Response. -->
+            <property name="uri.var.apiKey" expression="json-eval($.binary)" />
+            <!--Base64Decode and get the JSON object from Base64Encoded String
+               - Issue caused by Content-Type: text/html response header. -->
+            <script language="js">
+           <![CDATA[
+             function base64_decode(data) {
+               var b64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+               var o1, o2, o3, h1, h2, h3, h4, bits, i = 0, ac = 0, dec = '', tmp_arr = [];
+               if (data.trim().length == 0) {
+               return data;
+               } else {
+               data += '';
+               }               
+               do {
+               // unpack four hexets into three octets using index points in b64
+               h1 = b64.indexOf(data.charAt(i++));
+               h2 = b64.indexOf(data.charAt(i++));
+               h3 = b64.indexOf(data.charAt(i++));
+               h4 = b64.indexOf(data.charAt(i++));  
+               bits = h1 << 18 | h2 << 12 | h3 << 6 | h4;  
+               o1 = bits >> 16 & 0xff;
+               o2 = bits >> 8 & 0xff;
+               o3 = bits & 0xff;  
+               if (h3 == 64) {
+                 tmp_arr[ac++] = String.fromCharCode(o1);
+               } else if (h4 == 64) {
+                 tmp_arr[ac++] = String.fromCharCode(o1, o2);
+               } else {
+                 tmp_arr[ac++] = String.fromCharCode(o1, o2, o3);
+               }
+               } while (i < data.length);  
+               dec = tmp_arr.join(''); 
+               return dec.replace(/\0+$/, '');
+             }            
+             var binaryString = mc.getProperty('uri.var.apiKey');            
+             if(binaryString != null && binaryString != ""){
+               var apiKey = base64_decode(binaryString);
+               mc.setProperty('uri.var.apiKey', apiKey);
+             }         
+           ]]>
+            </script>
+            <header name="Authorization"
+               expression="fn:concat('Basic ', base64Encode(fn:concat(get-property('uri.var.subdomain'), ':',get-property('uri.var.apiKey'))))"
+               scope="transport" />
+         </then>
+      </filter>
+   </sequence>
+</template>

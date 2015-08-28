@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Retrieve daily invoice payments from Zohobooks API and create new corresponding Invoice payments in Ronin API. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="ronin_createInvoicePaymentFromZohobooks" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence>
+         <!--Zohobooks Properties -->
+         <property name="zohobooks.apiUrl" value="https://books.zoho.com" />
+         <property name="zohobooks.authToken" expression="json-eval($.zohobooks.authToken)" />
+         <property name="zohobooks.organizationId" expression="json-eval($.zohobooks.organizationId)" />
+
+         <!--Ronin Properties -->
+         <property name="ronin.apiUrl" expression="json-eval($.ronin.apiUrl)" />
+         <property name="ronin.apiToken" expression="json-eval($.ronin.apiToken)" />
+
+         <!--Common Properties -->
+         <property name="responseString" value="" scope="operation" />
+         <!-- Create current date in YYYY-MM-dd format and store in common.today property -->
+         <script language="js">
+           <![CDATA[
+                var systemDate = new Date();
+                var currentDate = '' + systemDate.getDate();
+                var currentMonth = '' + Number(systemDate.getMonth()+1);
+                if(currentDate.length == 1){
+                     currentDate="0"+currentDate;
+                }
+                if(currentMonth.length == 1){
+                     currentMonth="0"+currentMonth;
+                }
+                var dateString=systemDate.getFullYear() + "-" + currentMonth + "-" + currentDate ;
+                mc.setProperty('common.today',dateString);
+           ]]>
+         </script>
+         <!-- List Zohobooks payments which made on today -->
+         <zohobooks.init>
+            <authToken>{$ctx:zohobooks.authToken}</authToken>
+            <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+            <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+         </zohobooks.init>
+         <zohobooks.listCustomerPayments>
+            <date>{$ctx:common.today}</date>
+         </zohobooks.listCustomerPayments>
+
+         <property name="paymentsCount" expression="count(//customerpayments)" scope="operation" />
+         <property name="paymentIndex" value="0" scope="operation" />
+         <!-- Check if any payments to process if not skip the process. -->
+         <filter xpath="get-property('operation','paymentsCount') = 0">
+            <then>
+               <property name="id" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="ronin_createInvoicePaymentFromZohobooks" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="message" value="No Payments to process." />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!--FOR EACH Payments : BEGIN -->
+               <iterate continueParent="false" id="payments" expression="//customerpayments" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="zohobooks.invoiceNumber" expression="//customerpayments/invoice_numbers" />
+                        <property name="zohobooks.amount" expression="//customerpayments/amount" />
+                        <property name="zohobooks.date" expression="//customerpayments/date" />
+                        <property name="zohobooks.paymentId" expression="//customerpayments/payment_id" />
+                        <property name="zohobooks.paymentMode" expression="//customerpayments/payment_mode" />
+                        <property name="ronin.paymentNote"
+                           expression="fn:concat('Zohobooks payment:',get-property('zohobooks.paymentId'),':',get-property('zohobooks.paymentMode'))" />
+                        <!-- Get zohobooks invoice details from Invoice number, additionally passing 'referenceNumberStartsWith'
+                           as RONIN to validate for Ronin invoices. -->
+                        <property name="uri.var.date" action="remove" />
+                        <zohobooks.init>
+                           <authToken>{$ctx:zohobooks.authToken}</authToken>
+                           <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                           <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                        </zohobooks.init>
+                        <zohobooks.listInvoices>
+                           <invoiceNumber>{$ctx:zohobooks.invoiceNumber}</invoiceNumber>
+                           <referenceNumberStartsWith>RONIN</referenceNumberStartsWith>
+                        </zohobooks.listInvoices>
+                        <property name="zohobooksInvoicesCount" expression="count(//invoices)" />
+                        <!-- Process only if invoice is created for Ronin. -->
+                        <filter xpath="get-property('zohobooksInvoicesCount') != 0">
+                           <then>
+                              <property name="zohobooks.referenceNo" expression="json-eval($.invoices[:1].reference_number)" />
+                              <!-- Extract Ronin invoice id from zohobooks invoice reference number. The reference number
+                                 is prefixed
+                                 with 'RONIN-' -->
+                              <script language="js">
+                                 <![CDATA[
+                                    var zohobooksRefNo = ''+eval("(" + mc.getProperty('zohobooks.referenceNo') + ")");
+                                    var roninInvoiceId = zohobooksRefNo.split('-').pop();
+                                    mc.setProperty('ronin.invoiceId',roninInvoiceId);
+                                  ]]>
+                              </script>
+                              <!-- Retrieve Ronin invoice details to check zohobooks invoice payment already updated in Ronin. -->
+                              <ronin.init>
+                                 <apiUrl>{$ctx:ronin.apiUrl}</apiUrl>
+                                 <apiToken>{$ctx:ronin.apiToken}</apiToken>
+                              </ronin.init>
+                              <ronin.getInvoice>
+                                 <invoiceId>{$ctx:ronin.invoiceId}</invoiceId>
+                              </ronin.getInvoice>
+                              <filter source="$axis2:HTTP_SC" regex="200">
+                                 <then>
+                                    <script language="js">
+                                       <![CDATA[
+                                          var payload = mc.getPayloadJSON();
+                                          var paymentDetails = payload.payments;
+                                          var zohoPaymentId = mc.getProperty('zohobooks.paymentId');
+                                          var isPaymentCreated = false;
+                                          
+                                          if(paymentDetails.length != 0){
+                                             for(var i = 0; i < paymentDetails.length ;i++ ){
+                                                var paymentDetail = paymentDetails[i];
+                                                var paymentNote = ''+paymentDetail.note;
+                                                var paymentNoteArray = paymentNote.split(':');
+                                                if(paymentNoteArray.length == 3){
+                                                   var zohoRefnoInRonin = paymentNoteArray[1];
+                                                   if(zohoRefnoInRonin == zohoPaymentId){
+                                                      isPaymentCreated = true;
+                                                      break;
+                                                   }
+                                                }
+                                             }
+                                          }
+                                          mc.setProperty('ronin.isPaymentCreated',isPaymentCreated);
+                                             ]]>
+                                    </script>
+                                    <!-- Create Ronin invoice payment if not already created. -->
+                                    <filter source="get-property('ronin.isPaymentCreated')" regex="false">
+                                       <then>
+                                          <ronin.init>
+                                             <apiUrl>{$ctx:ronin.apiUrl}</apiUrl>
+                                             <apiToken>{$ctx:ronin.apiToken}</apiToken>
+                                          </ronin.init>
+                                          <ronin.createInvoicePayment>
+                                             <invoiceId>{$ctx:ronin.invoiceId}</invoiceId>
+                                             <amount>{$ctx:zohobooks.amount}</amount>
+                                             <note>{$ctx:ronin.paymentNote}</note>
+                                             <receivedOn>{$ctx:zohobooks.date}</receivedOn>
+                                          </ronin.createInvoicePayment>
+                                          <filter source="$axis2:HTTP_SC" regex="201">
+                                             <then>
+                                                <property name="ronin.paymentId" expression="json-eval($.id)" />
+                                                <property name="status" value="success" />
+                                                <property name="paymentIdObject"
+                                                   expression="fn:concat('zohobooksInvoiceNumber:',get-property('zohobooks.invoiceNumber'),',roninInvoiceId:',get-property('ronin.invoiceId'))" />
+                                                <property name="message"
+                                                   value="Zohobooks invoice payment added for Ronin invoice." />
+                                             </then>
+                                             <else>
+                                                <property name="paymentIdObject"
+                                                   expression="fn:concat('zohobooksInvoiceNumber:',get-property('zohobooks.invoiceNumber'))" />
+                                                <property name="status" value="error" />
+                                                <property name="message" expression="json-eval($.)" />
+                                             </else>
+                                          </filter>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:paymentIdObject}" />
+                                             <with-param name="activity" value="ronin_createInvoicePaymentFromZohobooks" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <property name="paymentIdObject"
+                                             expression="fn:concat('zohobooksInvoiceNumber:',get-property('zohobooks.invoiceNumber'),',roninInvoiceId:',get-property('ronin.invoiceId'))" />
+                                          <property name="message"
+                                             value="Zohobooks invoice payment already added for Ronin invoice." />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:paymentIdObject}" />
+                                             <with-param name="activity" value="ronin_createInvoicePaymentFromZohobooks" />
+                                             <with-param name="status" value="skipped" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                    </filter>
+                                 </then>
+                                 <else>
+                                    <property name="paymentIdObject"
+                                       expression="fn:concat('zohobooksInvoiceNumber:',get-property('zohobooks.invoiceNumber'))" />
+                                    <property name="status" value="error" />
+                                    <property name="message" expression="json-eval($.)" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:paymentIdObject}" />
+                                       <with-param name="activity" value="ronin_createInvoicePaymentFromZohobooks" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </else>
+                              </filter>
+                           </then>
+                        </filter>
+                        <property name="paymentIndex" expression="get-property('operation','paymentIndex') + 1"
+                           scope="operation" />
+                        <filter xpath="get-property('operation','paymentsCount') = get-property('operation','paymentIndex') ">
+                           <then>
+                              <loopback />
+                           </then>
+                        </filter>
+                     </sequence>
+                  </target>
+               </iterate>
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"ronin_createInvoicePaymentFromZohobooks",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>  

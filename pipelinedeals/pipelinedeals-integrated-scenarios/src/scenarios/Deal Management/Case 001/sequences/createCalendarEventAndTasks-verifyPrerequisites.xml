@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This sequence is responsible to get customfield lables from PipeLineDeals API related to create tasks in WunderList-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="createCalendarEventAndTasks-verifyPrerequisites">
+    <call-template target="pipelinedeals-getCustomFieldIdByName">
+        <with-param name="pipelinedeals.apiKey" value="{$ctx:pipeLineDeals.apiKey}" />
+        <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipeLineDeals.apiUrl}" />
+        <with-param name="pipelinedeals.customFieldName" value="WunderList List ID" />
+        <with-param name="pipelinedeals.resourceName" value="deal" />
+    </call-template>
+    <property name="pipelinedeals.deal.wunderListListIdLabel" expression="get-property('pipelinedeals.customFieldString')" />
+	
+    <filter source="boolean(get-property('pipelinedeals.deal.wunderListListIdLabel'))" regex="false">
+        <then>
+            <property name="id" value="{}" />
+            <property name="status" value="Skipped" />
+            <property name="message" value="WunderList List ID custom field not found in deals in PipeLineDeals account." />
+            <call-template target="responseHandlerTemplate">
+                <with-param name="id" value="{$ctx:id}" />
+                <with-param name="activity" value="wunderlist_createTask" />
+                <with-param name="status" value="{$ctx:status}" />
+                <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+	
+    <call-template target="pipelinedeals-getCustomFieldIdByName">
+        <with-param name="pipelinedeals.apiKey" value="{$ctx:pipelinedeals.apiKey}" />
+        <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipelinedeals.apiUrl}" />
+        <with-param name="pipelinedeals.resourceName" value="company" />
+        <with-param name="pipelinedeals.customFieldName" value="WunderList Folder ID" />
+    </call-template>
+    <property name="pipelinedeals.company.wunderlistFolderIdLabel" expression="get-property('pipelinedeals.customFieldString')" />
+	
+    <filter source="boolean(get-property('pipelinedeals.company.wunderlistFolderIdLabel'))" regex="false">
+        <then>
+            <property name="id" value="{}" />
+            <property name="status" value="Skipped" />
+            <property name="message" value="WunderList Folder ID custom field not found in company in PipeLineDeals account." />
+            <call-template target="responseHandlerTemplate">
+                <with-param name="id" value="{$ctx:id}" />
+                <with-param name="activity" value="wunderlist_createTask" />
+                <with-param name="status" value="{$ctx:status}" />
+                <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+</sequence>

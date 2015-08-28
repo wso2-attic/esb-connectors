@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template responsible for creating calendar event in Google Calendar 
+	for the given Calendar ID -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="createCalendarEvents">
+
+    <!-- Google Calendar related template parameters -->
+    <parameter name="apiUrl" description="API url of Google Calendar." />
+    <parameter name="accessToken" description="The access token to authorize the requests to Google Calendar." />
+    <parameter name="calendarId" description="ID of the Google Calendar." />
+    <parameter name="description" description="Descrition of the event." />
+    <parameter name="summary" description="Summary of the event." />
+    <parameter name="start" description="Start time of the event." />
+    <parameter name="end" description="End time of the event." />
+    <parameter name="attendeeEmail" description="Email of the event attendee." />
+    <parameter name="common.id" description="ID object to create an event." />
+	
+    <sequence>
+	
+        <!-- Google Calendar related template properties -->
+        <property name="apiUrl" expression="$func:apiUrl" />
+        <property name="accessToken" expression="$func:accessToken" />
+        <property name="calendarId" expression="$func:calendarId" />
+        <property name="description" expression="$func:description" />
+        <property name="summary" expression="$func:summary" />
+        <property name="start" expression="$func:start" />
+        <property name="end" expression="$func:end" />
+        <property name="attendeeEmail" expression="$func:attendeeEmail" />
+        <property name="common.id" expression="$func:common.id" />
+        <property name="googlecalendar.attendees" expression="fn:concat('[{&quot;email&quot;:&quot;',get-property('attendeeEmail'),'&quot;}]')" />
+        
+		<googlecalendar.init>
+            <apiUrl>{$ctx:apiUrl}</apiUrl>
+            <accessToken>{$ctx:accessToken}</accessToken>
+        </googlecalendar.init>
+        <googlecalendar.createEvent>
+            <calendarId>{$ctx:calendarId}</calendarId>
+            <description>{$ctx:description}</description>
+            <summary>{$ctx:summary}</summary>
+            <start>{$ctx:start}</start>
+            <end>{$ctx:end}</end>
+            <attendees>{$ctx:googlecalendar.attendees}</attendees>
+        </googlecalendar.createEvent>
+		
+        <property name="googleCalendar.eventId" expression="json-eval($.id)" />
+		
+        <filter source="boolean(get-property('googleCalendar.eventId'))" regex="false">
+            <then>
+                <property name="common.id" expression="get-property('common.id')" />
+                <property name="status" value="Error" />
+                <property name="message" expression="json-eval($)" />
+                <call-template target="responseHandlerTemplate">
+                    <with-param name="id" value="{$ctx:common.id}" />
+                    <with-param name="activity" value="googleCalendar_createEvent" />
+                    <with-param name="status" value="{$ctx:status}" />
+                    <with-param name="message" value="{$ctx:message}" />
+                </call-template>
+            </then>
+            <else>
+                <property name="common.id" expression="fn:concat('googleCalendar_eventId:',get-property('googleCalendar.eventId'), ',', get-property('common.id'))" />
+                <property name="status" value="Success" />
+                <property name="message" value="Calendar event has been created." />
+                <call-template target="responseHandlerTemplate">
+                    <with-param name="id" value="{$ctx:common.id}" />
+                    <with-param name="activity" value="googleCalendar_createEvent" />
+                    <with-param name="status" value="{$ctx:status}" />
+                    <with-param name="message" value="{$ctx:message}" />
+                </call-template>
+            </else>
+        </filter>
+    </sequence>
+</template>

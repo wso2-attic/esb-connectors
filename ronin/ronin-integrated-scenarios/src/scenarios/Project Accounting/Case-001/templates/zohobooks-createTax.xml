@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template xmlns="http://ws.apache.org/ns/synapse" name="zohobooks-createTax">
+   <parameter name="zohobooks.authToken" />
+   <parameter name="zohobooks.organizationId" />
+   <parameter name="zohobooks.taxName" />
+   <parameter name="zohobooks.taxPrecentage" />
+   <parameter name="zohobooks.taxType" />
+   <sequence>
+      <property name="uri.var.apiUrl" value="https://books.zoho.com/api/v3" />
+      <property name="zohobooks.authToken" expression="$func:zohobooks.authToken" />
+      <property name="zohobooks.organizationId" expression="$func:zohobooks.organizationId" />
+      <property name="zohobooks.taxName" expression="$func:zohobooks.taxName" />
+      <property name="zohobooks.taxPrecentage" expression="$func:zohobooks.taxPrecentage" />
+      <property name="zohobooks.taxType" expression="$func:zohobooks.taxType" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "tax_name":"$1",
+            "tax_percentage": "$2",
+            "tax_type": "$3"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('zohobooks.taxName')" />
+            <arg expression="get-property('zohobooks.taxPrecentage')" />
+            <arg expression="get-property('zohobooks.taxType')" />
+         </args>
+      </payloadFactory>
+
+      <!--Extract the JSON object to a Property. -->
+      <property name="uri.var.jsonString" expression="json-eval($)" />
+      <!--This script mediator is used for the purpose of URL encoding the JSON Object that was built in the Script Mediator 
+         above. -->
+      <script language="js">
+         <![CDATA[
+			var jsonString = mc.getProperty('uri.var.jsonString');
+			var authToken = mc.getProperty('zohobooks.authToken');
+            var organizationId = mc.getProperty('zohobooks.organizationId');
+            var urlQuery = '?authtoken=' + authToken + '&organization_id=' + organizationId;
+			urlQuery += '&JSONString=' + encodeURIComponent(jsonString);
+			mc.setProperty('uri.var.urlQuery', urlQuery);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="legacy-encoding:{uri.var.apiUrl}/settings/taxes{uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <filter source="$axis2:HTTP_SC" regex="201">
+         <then>
+            <property name="zohobooks.taxId" expression="json-eval($.tax.tax_id)" />
+         </then>
+        
+      </filter>
+     
+      <!--Removing custom headers from the Response. -->
+      <header name="X-Rate-Limit-Limit" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Rate-Limit-Remaining" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="BUILD_VERSION" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Content-Disposition" action="remove" scope="transport" />
+      <header name="X-Rate-Limit-Reset" action="remove" scope="transport" />
+      <header name="Status" action="remove" scope="transport" />
+   </sequence>
+</template>

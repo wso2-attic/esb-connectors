@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.prodpad.com/api/get-ideas/ -->
+<template name="listIdeas" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="page" description="Page number of the results to return. Each page is a max of 20 ideas." />
+   <parameter name="tags" description="URL encoded comma separated list of tag names." />
+   <parameter name="product" description="URL encoded name of a product for the account." />
+   <parameter name="persona" description="URL encoded name of a persona for the account." />
+   <parameter name="status" description="URL encode status for the account." />
+   <sequence>
+      <property name="uri.var.page" expression="$func:page" />
+      <property name="uri.var.tags" expression="$func:tags" />
+      <property name="uri.var.product" expression="$func:product" />
+      <property name="uri.var.persona" expression="$func:persona" />
+      <property name="uri.var.status" expression="$func:status" />
+      <script language="js">
+         <![CDATA[
+            var page = mc.getProperty('uri.var.page');
+            var tags = mc.getProperty('uri.var.tags');
+            var product = mc.getProperty('uri.var.product');
+            var persona = mc.getProperty('uri.var.persona');
+            var status = mc.getProperty('uri.var.status');
+            var urlQuery = '';
+            if (page != null && page != ""){
+               urlQuery += '&page=' + page;
+            }
+            if (tags != null && tags != ""){
+               urlQuery += '&tags=' + tags;
+            }
+            if (product != null && product != ""){
+               urlQuery += '&product=' + product;
+            }
+            if (persona != null && persona != ""){
+               urlQuery += '&persona=' + persona;
+            }
+            if (status != null && status != ""){
+               urlQuery += '&status=' + status;
+            }
+            mc.setProperty('uri.var.urlQuery',urlQuery); 
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="legacy-encoding:{uri.var.apiUrl}/ideas{uri.var.apiKey}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!--Removing custom headers from the Response. -->
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Headers" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Set-Cookie" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Methods" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+   </sequence>
+</template>

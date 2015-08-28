@@ -1,0 +1,132 @@
+<template name="createPageOffer" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="pageId" qrcode="Unique identifier of the page" />
+	<parameter name="title" qrcode="The title of the offer." />
+	<parameter name="expirationTime" qrcode="The expiration time of the offer." />
+	<parameter name="terms" qrcode="Terms and conditions of the offer." />
+	<parameter name="imageUrl" qrcode="The URL for the offer's image." />
+	<parameter name="image" qrcode="The image for the offer." />
+	<parameter name="claimLimit"
+		qrcode="The maximum number of times the offer can be claimed." />
+	<parameter name="couponType" qrcode="The type of offer." />
+	<parameter name="qrcode" qrcode="QR code." />
+	<parameter name="barcode"
+		qrcode="12-character UPC-A or 13-character EAN-13 barcode." />
+	<parameter name="redemptionLink" qrcode="The URL where the offer may be redeemed." />
+	<parameter name="redemptionCode"
+		qrcode="A code to enter on your website to receive the discount or promotion" />
+	<parameter name="published"
+		qrcode="Whether a post is published. Default is published." />
+	<parameter name="scheduledPublishTime" qrcode="Time when the page post should go live." />
+	<parameter name="reminderTime"
+		qrcode="Time before the expiration_time of the offer when the user receives a notification that the offer is about to expire." />
+	<parameter name="message" qrcode="The body text of the offer" />
+	<sequence>
+		<property name="uri.var.pageId" expression="$func:pageId" />
+
+		<property name="uri.var.message" expression="$func:message" />
+		<property name="uri.var.title" expression="$func:title" />
+		<property name="uri.var.expirationTime" expression="$func:expirationTime" />
+		<property name="uri.var.terms" expression="$func:terms" />
+		<property name="uri.var.imageUrl" expression="$func:imageUrl" />
+		<property name="uri.var.image" expression="$func:image" />
+		<property name="uri.var.claimLimit" expression="$func:claimLimit" />
+		<property name="uri.var.couponType" expression="$func:couponType" />
+		<property name="uri.var.qrcode" expression="$func:qrcode" />
+		<property name="uri.var.barcode" expression="$func:barcode" />
+		<property name="uri.var.redemptionLink" expression="$func:redemptionLink" />
+		<property name="uri.var.redemptionCode" expression="$func:redemptionCode" />
+		<property name="uri.var.published" expression="$func:published" />
+		<property name="uri.var.scheduledPublishTime" expression="$func:scheduledPublishTime" />
+		<property name="uri.var.reminderTime" expression="$func:reminderTime" />
+		<payloadFactory media-type="json">
+			<format>
+				{
+				"title":"$1",
+				"expiration_time":"$2",
+				}
+			</format>
+			<args>
+				<arg expression="get-property('uri.var.title')" />
+				<arg expression="get-property('uri.var.expirationTime')" />
+			</args>
+		</payloadFactory>
+		<script language="js"><![CDATA[
+		
+			var terms=mc.getProperty('uri.var.terms');
+			var imageUrl=mc.getProperty('uri.var.imageUrl');
+			var image=mc.getProperty('uri.var.image');
+			var claimLimit=mc.getProperty('uri.var.claimLimit');
+			var couponType=mc.getProperty('uri.var.couponType');
+			var qrcode=mc.getProperty('uri.var.qrcode');
+			var barcode=mc.getProperty('uri.var.barcode');
+			var redemptionLink=mc.getProperty('uri.var.redemptionLink');
+			var redemptionCode=mc.getProperty('uri.var.redemptionCode');
+			var published=mc.getProperty('uri.var.published');
+			var scheduledPublishTime=mc.getProperty('uri.var.scheduledPublishTime');
+			var reminderTime=mc.getProperty('uri.var.reminderTime');
+			
+			payload = mc.getPayloadJSON();
+			
+			if(terms != null && terms != ""){
+				payload.terms = terms;
+			}
+			
+			if(imageUrl !=null && imageUrl != ""){
+				payload.image_url=imageUrl;
+			}
+			
+			if(image !=null && image != ""){
+				payload.image=image;
+			}
+					
+			if(claimLimit != null && claimLimit != ""){
+				payload.claim_limit = claimLimit;
+			}
+			
+			if(couponType !=null && couponType != ""){
+				payload.coupon_type=couponType;
+			}
+			
+			if(qrcode !=null && qrcode != ""){
+				payload.qrcode=qrcode;
+			}
+            
+            if(barcode !=null && barcode != ""){
+				payload.barcode=barcode;
+			}
+			
+			if(redemptionLink !=null && redemptionLink != ""){
+				payload.redemption_link=redemptionLink;
+			}
+			
+			if(redemptionCode !=null && redemptionCode != ""){
+				payload.redemption_code=redemptionCode;
+			}
+			
+			if(published !=null && published != ""){
+				payload.published=published;
+			}
+			
+			if(scheduledPublishTime !=null && scheduledPublishTime != ""){
+				payload.scheduled_publish_time=scheduledPublishTime;
+			}
+			
+			if(reminderTime !=null && reminderTime != ""){
+				payload.reminder_time=reminderTime;
+			}               
+           
+           mc.setPayloadJSON(payload);
+         ]]></script>
+		<property name="messageType" value="application/x-www-form-urlencoded"
+			scope="axis2" />
+		<call>
+			<endpoint>
+				<http method="post" uri-template="{uri.var.apiUrl}/{uri.var.pageId}/offers?access_token={uri.var.accessToken}" />
+			</endpoint>
+		</call>
+		<!-- Remove response custom header information -->
+		<header name="X-FB-Debug" scope="transport" action="remove" />
+		<header name="X-FB-Rev" scope="transport" action="remove" />
+		<header name="WWW-Authenticate" scope="transport" action="remove" />
+	</sequence>
+</template>

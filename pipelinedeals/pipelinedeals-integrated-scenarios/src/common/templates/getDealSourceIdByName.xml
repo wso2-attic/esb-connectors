@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template gets the ID of a deal source (identified by the provided deal source name) and sets it to the property 'pipelinedeals.dealSourceId'. -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="pipelinedeals-getDealSourceIdByName">
+    <parameter name="pipelinedeals.apiKey" description="Encrypted alphanumeric string to authenticate the pipe line deals credentials." />
+    <parameter name="pipelinedeals.apiUrl" description="The piplinedeals API URL." />
+    <parameter name="pipelinedeals.dealSourceName" description="Name of the deal source in pipeline deal account." />
+    <sequence>
+        <property name="uri.var.pipelinedeals.apiKey" expression="$func:pipelinedeals.apiKey" />
+        <property name="uri.var.pipelinedeals.apiUrl" expression="$func:pipelinedeals.apiUrl" />
+        <property name="uri.var.pipelinedeals.dealSourceName" expression="$func:pipelinedeals.dealSourceName" />
+        <property name="uri.var.pipelinedeals.dealSourceName" expression="fn:lower-case(get-property('uri.var.pipelinedeals.dealSourceName'))" />
+		
+        <!-- Retrieve information about the PipelineDeals Account. -->
+        <pipelinedeals.init>
+            <apiUrl>{$ctx:uri.var.pipelinedeals.apiUrl}</apiUrl>
+            <apiKey>{$ctx:uri.var.pipelinedeals.apiKey}</apiKey>
+        </pipelinedeals.init>
+        <pipelinedeals.getAccountDetails />
+		
+        <property name="uri.var.pipelinedeals.dealSources" expression="json-eval($.lead_sources)" />
+		
+        <!-- Iterate over the deal sources and and extract the one whose name matches the provided name. -->
+        <script language="js">
+			<![CDATA[
+				var dealSources = eval("(" + mc.getProperty('uri.var.pipelinedeals.dealSources') + ")");
+				var dealSourceName = mc.getProperty('uri.var.pipelinedeals.dealSourceName');
+				var sourceId = '';
+				if(dealSources.length > 0){
+					for(var i=0; i<dealSources.length; i++){
+						var dealSource = dealSources[i];
+						if(dealSource.name.toLowerCase() == dealSourceName.toLowerCase()) {
+							sourceId = '' + dealSource.id;
+						}
+					}
+				}
+				mc.setProperty('pipelinedeals.dealSourceId', sourceId);
+			]]>
+			</script>
+    </sequence>
+</template>

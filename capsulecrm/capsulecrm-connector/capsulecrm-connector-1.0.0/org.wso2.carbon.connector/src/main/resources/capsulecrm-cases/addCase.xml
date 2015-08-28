@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Documentation URL - http://developer.capsulecrm.com/v1/resources/cases/ -->
+<template name="addCase" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="partyId" description="ID of the person or organisation." />
+   <parameter name="trackId" description="Track ID for track to the new case as it is being created." />
+   <parameter name="name" description="Name of the case." />
+   <parameter name="description" description="Description of the case." />
+   <parameter name="owner" description="The authenticated username to create case." />
+   <parameter name="status" description="Status of the case.It defaults to OPEN, available options are OPEN, CLOSED." />
+   <parameter name="closeDate" description="The case close date. Ignored unless status is CLOSED." />
+   <sequence>
+      <property name="uri.var.partyId" expression="$func:partyId" />
+      <property name="uri.var.trackId" expression="$func:trackId" />
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.owner" expression="$func:owner" />
+      <property name="uri.var.status" expression="$func:status" />
+      <property name="uri.var.closeDate" expression="$func:closeDate" />
+      <property name="uri.var.urlQuery" value=""/>
+      <!-- Setting empty namespace to avoid set the default synapse namespace. -->
+      <payloadFactory media-type="xml">
+         <format>
+            <kase xmlns="">
+               <name>$1</name>
+            </kase>
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.name')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+        <![CDATA[
+           payload = mc.getPayloadXML();
+           var trackId=mc.getProperty('uri.var.trackId');
+           var description=mc.getProperty('uri.var.description');
+           var owner=mc.getProperty('uri.var.owner');
+           var status=mc.getProperty('uri.var.status');
+           var closeDate=mc.getProperty('uri.var.closeDate');
+           if (trackId != null && trackId != "") {
+              var query="?trackId="+trackId;
+              mc.setProperty("uri.var.urlQuery", query);
+           }
+           if (description != null && description != "") {
+              payload.description=description;
+           }
+           if (owner != null && owner != "") {
+              payload.owner=owner;
+           } 
+           if (status != null && status != "") {
+              payload.status=status;
+           }
+           if (closeDate != null && closeDate != "") {
+              payload.closeDate=closeDate;
+           }
+           mc.setPayloadXML(payload);
+        ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="legacy-encoding:{uri.var.apiUrl}/party/{uri.var.partyId}/kase{uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!--Removing custom headers from the Response. -->
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="X-RateLimit-Remaining" action="remove" scope="transport" />
+      <header name="X-RateLimit-Limit" action="remove" scope="transport" />
+      <header name="X-RateLimit-Reset" action="remove" scope="transport" />
+   </sequence>
+</template>

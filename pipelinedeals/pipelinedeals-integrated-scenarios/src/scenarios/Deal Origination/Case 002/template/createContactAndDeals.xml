@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!-- This template gets the ID of a custom field (identified by the provided label name) and sets it to the property 'pipelinedeals.customFieldString' -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="createContactsAndDeals">
+    
+	<!--Pipeline Deals parameters-->
+    <parameter name="pipelinedeals.apiKey" description="Encrypted alphanumeric string to authenticate the pipelinedeals credentials." />
+    <parameter name="pipelinedeals.apiUrl" description="The pipelinedeals API URL." />
+    <parameter name="pipelinedeals.expectedCloseDate" description="The expected close date of the pipelineDeals deal." />
+    <parameter name="pipelinedeals.value" description="The value of the deal of pipelineDeals." />
+    <parameter name="pipelinedeals.dealStageId" description="The deal stage Id of 'FollowUp' stage in pipelineDeals." />
+    <parameter name="pipelinedeals.sourceId" description="The deal source Id of 'mailchimp' source in pipelineDeals." />
+    <parameter name="pipelinedeals.personEmail" description="The email of the person in pipelineDeals." />
+    <parameter name="pipelinedeals.dealName" description="The name of the deal in pipelineDeals." />
+    <parameter name="pipelinedeals.dealProbability" description="The probability of the deal in pipelineDeals." />
+    <parameter name="pipelinedeals.personFName" description="The first name of the person in pipelineDeals." />
+    <parameter name="pipelinedeals.personLName" description="The last name of the person in pipelineDeals." />
+    <parameter name="pipelinedeals.dealSummary" description="Summary of the deal to be created." />
+    
+	<!-- Mailchimp parameters-->
+    <parameter name="mailchimp.apiKey" description="Encrypted alphanumeric string to authenticate the mailchimp credentials." />
+    <parameter name="mailchimp.apiUrl" description="The mailchimp API URL." />
+    <parameter name="mailchimp.notes" description="The notes of the mailchimp memeber." />
+    <parameter name="mailchimp.campaignId" description="The  ID of the mailchimp campaign." />
+    <parameter name="mailchimp.memberId" description="The ID of the memeber who clicked a campaign link." />
+    <parameter name="mailchimp.listId" description="The ID of the list which mailchimp memeber is belong." />
+   
+   <sequence>
+        <property name="pipelinedeals.apiKey" expression="$func:pipelinedeals.apiKey" />
+        <property name="pipelinedeals.apiUrl" expression="$func:pipelinedeals.apiUrl" />
+        <property name="pipelinedeals.expectedCloseDate" expression="$func:pipelinedeals.expectedCloseDate" />
+        <property name="pipelinedeals.value" expression="$func:pipelinedeals.value" />
+        <property name="pipelinedeals.dealStageId" expression="$func:pipelinedeals.dealStageId" />
+        <property name="pipelinedeals.sourceId" expression="$func:pipelinedeals.sourceId" />
+        <property name="pipelinedeals.personEmail" expression="$func:pipelinedeals.personEmail" />
+        <property name="pipelinedeals.dealName" expression="$func:pipelinedeals.dealName" />
+        <property name="pipelinedeals.personFName" expression="$func:pipelinedeals.personFName" />
+        <property name="pipelinedeals.personLName" expression="$func:pipelinedeals.personLName" />
+        <property name="pipelinedeals.dealProbability" expression="$func:pipelinedeals.dealProbability" />
+        <property name="pipelinedeals.dealSummary" expression="$func:pipelinedeals.dealSummary" />
+        <property name="mailchimp.apiKey" expression="$func:mailchimp.apiKey" />
+        <property name="mailchimp.apiUrl" expression="$func:mailchimp.apiUrl" />
+        <property name="mailchimp.notes" expression="$func:mailchimp.notes" />
+        <property name="mailchimp.memberId" expression="$func:mailchimp.memberId" />
+        <property name="mailchimp.listId" expression="$func:mailchimp.listId" />
+        <property name="mailchimp.campaignId" expression="$func:mailchimp.campaignId" />
+        <property name="mailchimp.notes.contact" value="pipelineDeal people ID" />
+        <property name="mailchimp.notes.deal" value="pipelineDeal deal ID" />
+        <property name="pipelinedeals.personId" value="" />
+        <property name="pipelinedeals.dealId" value="" />
+
+        <!-- To retrieve deal ID and person ID from mailchimp members's notes if provided-->
+        <script language="js">
+			<![CDATA[
+				var memberNotes = mc.getProperty('mailchimp.notes');
+				var dealName = ''+mc.getProperty('pipelinedeals.dealName');
+				var customFieldString = '';
+				if(!new java.lang.String(memberNotes).startsWith('[')) {
+					memberNotes = '['+memberNotes+']';
+				}
+				memberNotes = eval("(" + memberNotes + ")");
+				
+				if(memberNotes.length > 0){
+					for(var i=0; i<memberNotes.length; i++){
+						var memberNote = memberNotes[i];
+						var noteName = ''+memberNote.note;
+						if(new java.lang.String(noteName).startsWith('PipelineDeals Person ID')) {
+							var peopleId = noteName.split(':')[1];
+							mc.setProperty("pipelinedeals.personId",peopleId);
+						}
+						if(new java.lang.String(noteName).startsWith(dealName)) {
+							var dealId = noteName.split(':')[1];
+							mc.setProperty("pipelinedeals.dealId",dealId);
+						}
+					}
+				}
+			]]>
+		</script>
+        
+		<!-- START: Proceed only if the deal ID doesn't exist in the  mailchimp notes -->
+        <filter source="boolean(get-property('pipelinedeals.dealId'))" regex="false">
+            <then>
+                
+				<!-- START: Proceed only if the person ID doesn't exist in the mailchimp notes -->
+                <filter source="boolean(get-property('pipelinedeals.personId'))" regex="false">
+                    <then>
+                        <sequence key="removeResponseHeaders" />
+                        <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+                        
+						<!-- Call pipelinedeals connector createPerson method to create a person -->
+                        <pipelinedeals.init>
+                            <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                            <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                        </pipelinedeals.init>
+                        <pipelinedeals.createPerson>
+                            <email>{$ctx:pipelinedeals.personEmail}</email>
+                            <firstName>{$ctx:pipelinedeals.personFName}</firstName>
+                            <lastName>{$ctx:pipelinedeals.personLName}</lastName>
+                            <unsubscribed>false</unsubscribed>
+                            <type>Contact</type>
+                            <homeEmail>{$ctx:pipelinedeals.personEmail}</homeEmail>
+                        </pipelinedeals.createPerson>
+                        <property name="pipelinedeals.personId" expression="json-eval($.id)" />
+                       
+					   <!-- START: Proceed only if the the person is created successfully -->
+                        <filter source="boolean(get-property('pipelinedeals.personId'))" regex="false">
+                            <then>
+                                <property name="id" expression="fn:concat('mailchimp_memberId:',get-property('mailchimp.memberId'))" />
+                                <property name="status" value="Error" />
+                                <property name="message" expression="json-eval($)" />
+                                <!--Call the responseHandler template-->
+                                <call-template target="responseHandlerTemplate">
+                                    <with-param name="activity" value="pipelinedeals_createPerson" />
+                                    <with-param name="id" value="{$ctx:id}" />
+                                    <with-param name="status" value="{$ctx:status}" />
+                                    <with-param name="message" value="{$ctx:message}" />
+                                </call-template>
+                            </then>
+                            <else>
+                                <property name="id" expression="fn:concat('mailchimp_memberId:',get-property('mailchimp.memberId'),',pipelinedeals_personId:',get-property('pipelinedeals.personId'))" />
+                                <property name="status" value="Success" />
+                                <property name="message" value="A person has been created in pipeline deals." />
+                                <!--Call the responseHandler template-->
+                                <call-template target="responseHandlerTemplate">
+                                    <with-param name="activity" value="pipelinedeals_createPerson" />
+                                    <with-param name="id" value="{$ctx:id}" />
+                                    <with-param name="status" value="{$ctx:status}" />
+                                    <with-param name="message" value="{$ctx:message}" />
+                                </call-template>
+                                <property name="mailchimp.memberNote" expression="fn:concat('PipelineDeals Person ID:',get-property('pipelinedeals.personId'))" />
+                                
+								<!-- Update member in mailchimp. -->
+                                <payloadFactory media-type="json">
+                                    <format>{
+										"notes":[
+											{
+												"note":"$1"
+											}
+										]
+									}</format>
+                                    <args>
+                                        <arg expression="get-property('mailchimp.memberNote')" />
+                                    </args>
+                                </payloadFactory>
+								
+                                <property name="mailchimp.memberNote" expression="json-eval($.notes)" />
+                                
+								<!-- Call mailchimp connector updateMember method to update memeber note with pipelinedeals person -->
+                                <mailchimp.init>
+                                    <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                                    <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                                    <format>json</format>
+                                </mailchimp.init>
+                                <mailchimp.updateMember>
+                                    <listId>{$ctx:mailchimp.listId}</listId>
+                                    <email>{$ctx:pipelinedeals.personEmail}</email>
+                                    <mcNotes>{$ctx:mailchimp.memberNote}</mcNotes>
+                                </mailchimp.updateMember>
+                                <property name="mailchimp.email" expression="json-eval($.email)" />
+                                
+								<!-- Append an error message to the user only if the update fails. -->
+                                <filter source="boolean(get-property('mailchimp.email'))" regex="false">
+                                    <then>
+                                        <property name="id" expression="fn:concat('pipelinedeals_personId:', get-property('pipelinedeals.personId'))" />
+                                        <property name="message" expression="json-eval($)" />
+                                        <call-template target="responseHandlerTemplate">
+                                            <with-param name="activity" value="mailchimp_updateMember" />
+                                            <with-param name="id" value="{$ctx:id}" />
+                                            <with-param name="status" value="Error" />
+                                            <with-param name="message" value="{$ctx:message}" />
+                                        </call-template>
+                                    </then>
+                                </filter>
+                            </else>
+                        </filter>
+                        <!-- END: Proceed only if the the person is created successfully -->
+                    </then>
+                </filter>
+                <!-- END: Proceed only if the person ID doesn't exist in the mailchimp notes -->
+                
+				<!-- START: Proceed with deal creation only if the the person is created successfully -->
+                <filter source="boolean(get-property('pipelinedeals.personId'))" regex="true">
+                    <then>
+                        <sequence key="removeResponseHeaders" />
+                        <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+                        <property name="pipelinedeals.newDealName" expression="fn:concat(get-property('pipelinedeals.dealName'),' [',get-property('pipelinedeals.personFName'),' ',get-property('pipelinedeals.personLName'),']')" />
+                        
+						<!-- Call pipelinedeals connector createDeal method to create a deal -->
+                        <pipelinedeals.init>
+                            <apiUrl>{$ctx:pipelinedeals.apiUrl}</apiUrl>
+                            <apiKey>{$ctx:pipelinedeals.apiKey}</apiKey>
+                        </pipelinedeals.init>
+                        <pipelinedeals.createDeal>
+                            <name>{$ctx:pipelinedeals.newDealName}</name>
+                            <primaryContactId>{$ctx:pipelinedeals.personId}</primaryContactId>
+                            <probability>{$ctx:pipelinedeals.dealProbability}</probability>
+                            <dealStageId>{$ctx:pipelinedeals.dealStageId}</dealStageId>
+                            <sourceId>{$ctx:pipelinedeals.sourceId}</sourceId>
+                            <expectedCloseDate>{$ctx:pipelinedeals.expectedCloseDate}</expectedCloseDate>
+                            <isArchived>false</isArchived>
+                            <value>{$ctx:pipelinedeals.value}</value>
+                            <status>2</status>
+                            <summary>{$ctx:pipelinedeals.dealSummary}</summary>
+                        </pipelinedeals.createDeal>
+                        
+						<!-- START: Proceed with updating the mailchimp notes only if the deal is created successfully -->
+                        <filter source="$axis2:HTTP_SC" regex="200">
+                            <then>
+								<property name="pipelinedeals.dealId" expression="json-eval($.id)" />
+                                <property name="id" expression="fn:concat('mailchimp_campaignId:',get-property('mailchimp.campaignId'),',pipelinedeals_personId:',get-property('pipelinedeals.personId'),',pipelinedeals_dealId:',get-property('pipelinedeals.dealId'))" />
+                                <property name="status" value="Success" />
+                                <property name="message" value="A deal has been created in pipeline deals." />
+                                <call-template target="responseHandlerTemplate">
+                                    <with-param name="activity" value="pipelinedeals_createDeal" />
+                                    <with-param name="id" value="{$ctx:id}" />
+                                    <with-param name="status" value="{$ctx:status}" />
+                                    <with-param name="message" value="{$ctx:message}" />
+                                </call-template>
+                                <property name="mailchimp.memberDealNote" expression="fn:concat(get-property('pipelinedeals.dealName'),':',get-property('pipelinedeals.dealId'))" />
+                               
+							   <!-- Update member in mailchimp. -->
+                                <payloadFactory media-type="json">
+                                    <format>{
+										"notes":[
+										{
+											"note":"$1"
+										}
+									  ]
+									}</format>
+                                    <args>
+                                        <arg expression="get-property('mailchimp.memberDealNote')" />
+                                    </args>
+                                </payloadFactory>
+                                <property name="mailchimp.memberDealNote" expression="json-eval($.notes)" />
+                                
+								<!-- Call mailchimp connector updateMember method to update memeber note with pipelinedeals deal -->
+                                <mailchimp.init>
+                                    <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                                    <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                                    <format>json</format>
+                                </mailchimp.init>
+                                <mailchimp.updateMember>
+                                    <listId>{$ctx:mailchimp.listId}</listId>
+                                    <email>{$ctx:pipelinedeals.personEmail}</email>
+                                    <mcNotes>{$ctx:mailchimp.memberDealNote}</mcNotes>
+                                </mailchimp.updateMember>
+                                <property name="mailchimp.email" expression="json-eval($.email)" />
+                               
+							   <!-- Append an error message to the user only if the update fails. -->
+                                <filter source="boolean(get-property('mailchimp.email'))" regex="false">
+                                    <then>
+                                        <property name="id" expression="fn:concat('pipelinedeals_dealId:', get-property('pipelinedeals.dealId'))" />
+                                        <property name="message" expression="json-eval($)" />
+                                        <call-template target="responseHandlerTemplate">
+                                            <with-param name="activity" value="mailchimp_updateMember" />
+                                            <with-param name="id" value="{$ctx:id}" />
+                                            <with-param name="status" value="Error" />
+                                            <with-param name="message" value="{$ctx:message}" />
+                                        </call-template>
+                                    </then>
+                                </filter>
+                            </then>
+							<else>
+                                <property name="id" expression="fn:concat(',mailchimp_campaignId:',get-property('mailchimp.campaignId'),',pipelinedeals_personId:',get-property('pipelinedeals.personId'))" />
+                                <property name="status" value="Error" />
+                                <property name="message" expression="json-eval($)" />
+                                <call-template target="responseHandlerTemplate">
+                                    <with-param name="activity" value="pipelinedeals_createDeal" />
+                                    <with-param name="id" value="{$ctx:id}" />
+                                    <with-param name="status" value="{$ctx:status}" />
+                                    <with-param name="message" value="{$ctx:message}" />
+                                </call-template>
+							</else>
+                        </filter>
+                        <!-- END: Proceed with updating the mailchimp notes only if the deal is created successfully -->
+                    </then>
+                </filter>
+                <!-- END: Proceed with deal creation only if the the person is created successfully -->
+            </then>
+        </filter>
+        <!-- END: Proceed only if the deal ID is exist in the notes -->
+    </sequence>
+</template>

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://apidocs.mailchimp.com/api/2.0/lists/update-member.php -->
+<template name="updateMember" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="listId" description="ID of the list to which the member belongs."/>
+   <parameter name="email" description="Email address of the member."/>
+   <parameter name="emailUniqueId" description="The unique id for an email address."/>
+   <parameter name="listEmailId" description="The list email id (previously called web_id) for a list-member-info type call. this doesn't change when the email address changes."/>
+   <parameter name="emailType" description="Change the email type preference for the member"/>
+   <parameter name="replaceInterests" description="Flag to determine whether we replace the interest groups with the updated groups provided, or we add the provided groups to the member's interest groups"/>
+   <parameter name="newEmail" description="set this to change the email address. This is only respected on calls using update_existing or when passed to lists/update."/>
+   <parameter name="groupings" description="Array of Interest Grouping structs."/>
+   <parameter name="optinIp" description="Set the Opt-in IP field. Abusing this may cause your account to be suspended. We do validate this and it must not be a private IP address."/>
+   <parameter name="optinTime" description="Set the Opt-in Time field. Abusing this may cause your account to be suspended. We do validate this and it must be a valid date."/>
+   <parameter name="mcLanguage" description="Set the member's language preference."/>
+   <parameter name="mcNotes" description="Array of structs for managing notes."/>
+   <parameter name="latitude" description="Use the specified latitude (longitude must exist for this to work)."/>
+   <parameter name="longitude" description="Use the specified longitude (latitude must exist for this to work)."/>
+   <parameter name="anything" description="If this (or any other key exists here) we'll try to use the optin ip."/>
+   <sequence>
+      <property name="uri.var.listId" expression="$func:listId"/>
+      <property name="uri.var.email" expression="$func:email"/>
+      <property name="uri.var.emailUniqueId" expression="$func:emailUniqueId"/>
+      <property name="uri.var.listEmailId" expression="$func:listEmailId"/>
+      <property name="uri.var.emailType" expression="$func:emailType"/>
+      <property name="uri.var.replaceInterests" expression="$func:replaceInterests"/>
+      <property name="uri.var.newEmail" expression="$func:newEmail"/>
+      <property name="uri.var.groupings" expression="$func:groupings"/>
+      <property name="uri.var.optinIp" expression="$func:optinIp"/>
+      <property name="uri.var.optinTime" expression="$func:optinTime"/>
+      <property name="uri.var.mcLanguage" expression="$func:mcLanguage"/>
+      <property name="uri.var.mcNotes" expression="$func:mcNotes"/>
+      <property name="uri.var.latitude" expression="$func:latitude"/>
+      <property name="uri.var.longitude" expression="$func:longitude"/>
+      <property name="uri.var.anything" expression="$func:anything"/>
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "apikey": "$1",
+                "id": "$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.apiKey')"/>
+            <arg expression="get-property('uri.var.listId')"/>
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var emailUniqueId = mc.getProperty('uri.var.emailUniqueId');
+            var optinTime = mc.getProperty('uri.var.optinTime');
+            var replaceInterests = mc.getProperty('uri.var.replaceInterests');
+            var mcLanguage = mc.getProperty('uri.var.mcLanguage');
+            var latitude = mc.getProperty('uri.var.latitude');
+            var listEmailId = mc.getProperty('uri.var.listEmailId');
+            var anything = mc.getProperty('uri.var.anything');
+            var emailType = mc.getProperty('uri.var.emailType');
+            var groupings = mc.getProperty('uri.var.groupings');
+            var optinIp = mc.getProperty('uri.var.optinIp');
+            var newEmail = mc.getProperty('uri.var.newEmail');
+            var mcNotes = mc.getProperty('uri.var.mcNotes');
+            var email = mc.getProperty('uri.var.email');
+            var longitude = mc.getProperty('uri.var.longitude');
+            var jsonPayload = mc.getPayloadJSON();
+            var emailObject = {};
+			if (email != null && email != ""){
+               emailObject.email = email;
+            }
+			if (emailUniqueId != null && emailUniqueId != ""){
+               emailObject.euid = emailUniqueId;
+            }
+			if (listEmailId != null && listEmailId != ""){
+               emailObject.leid = listEmailId;
+            }
+			// If email has either of email, euid, leid set the email property to 'jsonPayload'
+			if(emailObject.hasOwnProperty('email') || emailObject.hasOwnProperty('euid') || emailObject.hasOwnProperty('leid')){
+				jsonPayload["email"] = emailObject;
+			} 
+			if (emailType != null && emailType != ""){
+               jsonPayload.email_type = emailType;
+            }
+			if (replaceInterests != null && replaceInterests != ""){
+               jsonPayload.replace_interests = replaceInterests;
+            }
+			var merge_vars = {};
+            if (newEmail != null && newEmail != ""){
+               merge_vars["new-email"] = newEmail;
+            }
+			if (groupings != null && groupings != ""){
+               merge_vars.groupings = eval("(" + groupings + ")");
+            }
+			if (optinIp != null && optinIp != ""){
+               merge_vars.optin_ip = optinIp;
+            }
+			if (optinTime != null && optinTime != ""){
+               merge_vars.optin_time = optinTime;
+            }
+			if (mcLanguage != null && mcLanguage != ""){
+               merge_vars.mc_language = mcLanguage;
+            }
+			if (mcNotes != null && mcNotes != ""){
+               merge_vars.mc_notes = eval("(" + mcNotes + ")");
+            }
+			var mc_location = {};
+            if (latitude != null && latitude != ""){
+               mc_location.latitude = latitude;
+            }
+			if (longitude != null && longitude != ""){
+               mc_location.longitude = longitude;
+            }
+			if (anything != null && anything != ""){
+               mc_location.anything = anything;
+            }
+			// If mc_location has either of latitude, longitude, anything set the mc_location property to 'merge_vars'
+			if(mc_location.hasOwnProperty('latitude') || mc_location.hasOwnProperty('longitude') || mc_location.hasOwnProperty('anything')){
+				merge_vars.mc_location = mc_location;
+			}  
+			// If merge_vars has either of new-email, groupings, optin_ip, mc_language, mc_notes, mc_location set the merge_vars property to 'jsonPayload'
+			if(merge_vars.hasOwnProperty('new-email') || merge_vars.hasOwnProperty('groupings') || merge_vars.hasOwnProperty('optin_ip')
+				|| merge_vars.hasOwnProperty('mc_language') || merge_vars.hasOwnProperty('mc_notes') || merge_vars.hasOwnProperty('mc_location')){
+				jsonPayload.merge_vars = merge_vars;
+			}
+			mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <!--MailChimp API expects Content-Length Header -->
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/lists/update-member.{uri.var.format}"/>
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-N" action="remove" scope="transport" />
+      <header name="X-MailChimp-API-Error-Code" action="remove" scope="transport" />
+   </sequence>
+</template>

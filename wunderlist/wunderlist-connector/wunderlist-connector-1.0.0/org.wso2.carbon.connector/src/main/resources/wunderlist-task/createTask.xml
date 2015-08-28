@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developer.wunderlist.com/documentation/endpoints/task -->
+<template name="createTask" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="listId" description="ID of the list to which the task would be added."/>
+   <parameter name="title" description="Title of the task. Maximum length is 255 characters."/>
+   <parameter name="assigneeId" description="ID of the person to whom the task is assigned."/>
+   <parameter name="completed" description="Indicate whether the task is completed or not."/>
+   <parameter name="recurrenceType" description="Type of recurrence: day, week, month, year. ."/>
+   <parameter name="recurrenceCount" description="No. of recurrences."/>
+   <parameter name="dueDate" description="Due date of the task. Formatted as an ISO8601 date."/>
+   <parameter name="starred" description="Indicate whether the task is starred or not."/>
+   <sequence>
+      <property name="uri.var.listId" expression="$func:listId"/>
+      <property name="uri.var.title" expression="$func:title"/>
+      <property name="uri.var.assigneeId" expression="$func:assigneeId"/>
+      <property name="uri.var.completed" expression="$func:completed"/>
+      <property name="uri.var.recurrenceType" expression="$func:recurrenceType"/>
+      <property name="uri.var.recurrenceCount" expression="$func:recurrenceCount"/>
+      <property name="uri.var.dueDate" expression="$func:dueDate"/>
+      <property name="uri.var.starred" expression="$func:starred"/>
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "list_id": $1,
+                "title": "$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.listId')"/>
+            <arg expression="get-property('uri.var.title')"/>
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var starred = mc.getProperty('uri.var.starred');
+            var dueDate = mc.getProperty('uri.var.dueDate');
+            var recurrenceCount = mc.getProperty('uri.var.recurrenceCount');
+            var completed = mc.getProperty('uri.var.completed');
+            var assigneeId = mc.getProperty('uri.var.assigneeId');
+            var recurrenceType = mc.getProperty('uri.var.recurrenceType');
+            var jsonPayload = mc.getPayloadJSON();
+            if (assigneeId != null && assigneeId != ""){
+               jsonPayload.assignee_id = eval("(" + assigneeId + ")");
+            }
+            if (completed != null && completed != ""){
+               jsonPayload.completed = eval("(" + completed + ")");
+            }
+            if (recurrenceType != null && recurrenceType != ""){
+               jsonPayload.recurrence_type = recurrenceType;
+            }
+            if (recurrenceCount != null && recurrenceCount != ""){
+               jsonPayload.recurrence_count = eval("(" + recurrenceCount + ")");
+            }
+            if (dueDate != null && dueDate != ""){
+               jsonPayload.due_date = dueDate;
+            }
+            if (starred != null && starred != ""){
+               jsonPayload.starred = eval("(" + starred + ")");
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/tasks"/>
+         </endpoint>
+      </call>
+      <!--Removing custom headers from the Response. -->
+      <header name="Via" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-Request-ID" action="remove" scope="transport" />
+      <header name="X-Current-User-ID" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+   </sequence>
+</template>

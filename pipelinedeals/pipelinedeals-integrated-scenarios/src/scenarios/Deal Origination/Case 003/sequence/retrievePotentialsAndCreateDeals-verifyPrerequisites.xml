@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- The sequence will verify whether the prerequisites are met to proceed with the 'retrievePotentialsAndCreateDeals' case.
+	 It will terminate the process otherwise. -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="retrievePotentialsAndCreateDeals-verifyPrerequisites">
+    <call-template target="pipelinedeals-getDealSourceIdByName">
+        <with-param name="pipelinedeals.apiKey" value="{$ctx:pipelinedeals.apiKey}" />
+        <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipelinedeals.apiUrl}" />
+        <with-param name="pipelinedeals.dealSourceName" value="ZohoCRM" />
+    </call-template>	
+    <property name="pipelinedeals.zohocrmDealSourceId" expression="get-property('pipelinedeals.dealSourceId')" />
+	
+    <!-- Terminate the scenario if a deal source named 'ZohoCRM' is not found in the PipelineDeals account. -->
+    <filter source="boolean(get-property('pipelinedeals.zohocrmDealSourceId'))" regex="false">
+        <then>
+            <call-template target="responseHandlerTemplate">
+                <with-param name="activity" value="pipelinedeals_getZohoCRMDealSourceId" />
+                <with-param name="id" value="{$ctx:id.empty}" />
+                <with-param name="status" value="Error" />
+                <with-param name="message" value="A deal source named 'ZohoCRM' was not found in the PipelineDeals account." />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+	
+    <call-template target="pipelinedeals-getDealStageIdByName">
+        <with-param name="pipelinedeals.apiKey" value="{$ctx:pipelinedeals.apiKey}" />
+        <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipelinedeals.apiUrl}" />
+        <with-param name="pipelinedeals.dealStageName" value="Follow-Up" />
+    </call-template>
+    <property name="pipelinedeals.followupStageId" expression="get-property('pipelinedeals.dealStageId')" />
+	
+    <!-- Terminate the scenario if a deal stage named 'Follow-Up' is not found in the PipelineDeals account. -->
+    <filter source="boolean(get-property('pipelinedeals.followupStageId'))" regex="false">
+        <then>
+            <call-template target="responseHandlerTemplate">
+                <with-param name="activity" value="pipelinedeals_getFollowupStageId" />
+                <with-param name="id" value="{$ctx:id.empty}" />
+                <with-param name="status" value="Error" />
+                <with-param name="message" value="A deal stage named 'Follow-Up' was not found in the PipelineDeals account." />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+	
+    <call-template target="pipelinedeals-getCustomFieldIdByName">
+        <with-param name="pipelinedeals.apiKey" value="{$ctx:pipelinedeals.apiKey}" />
+        <with-param name="pipelinedeals.apiUrl" value="{$ctx:pipelinedeals.apiUrl}" />
+        <with-param name="pipelinedeals.customFieldName" value="ZohoCRM Potential ID" />
+        <with-param name="pipelinedeals.resourceName" value="deal" />
+    </call-template>
+    <property name="pipelinedeals.zohocrmPotentialCustomFieldId" expression="get-property('pipelinedeals.customFieldString')" />
+	
+    <!-- Terminate the scenario if a custom field for deals named 'ZohoCRM Potential ID' is not found in the PipelineDeals account. -->
+    <filter source="boolean(get-property('pipelinedeals.zohocrmPotentialCustomFieldId'))" regex="false">
+        <then>
+            <call-template target="responseHandlerTemplate">
+                <with-param name="activity" value="pipelinedeals_getZohoCRMPotentialCustomFieldId" />
+                <with-param name="id" value="{$ctx:id.empty}" />
+                <with-param name="status" value="Error" />
+                <with-param name="message" value="A custom field for deals, named 'ZohoCRM Potential ID' was not found in the PipelineDeals account." />
+            </call-template>
+            <loopback />
+        </then>
+    </filter>
+</sequence>

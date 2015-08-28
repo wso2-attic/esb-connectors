@@ -1,0 +1,506 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--This proxy is used to retrieve estimates and mail them to the client through Mandrill. Also retrieves the total estimate for the ticket from Cashboard and create it as total estimate in the Sirportly. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="sirportly_retrieveEstimatesAndNotifyClients" transports="https" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Cashboard parameters. -->
+         <property name="cashboard.apiUrl" expression="json-eval($.cashboard.apiUrl)" />
+         <property name="cashboard.password" expression="json-eval($.cashboard.password)" />
+         <property name="cashboard.subdomain" expression="json-eval($.cashboard.subdomain)" />
+         <property name="cashboard.emailAddress" expression="json-eval($.cashboard.emailAddress)" />
+         <property name="cashboard.updatedSince" expression="json-eval($.cashboard.updatedSince)" />
+		 
+         <!-- Mandrill parameters. -->
+         <property name="mandrill.apiUrl" value="https://mandrillapp.com" />
+         <property name="mandrill.apiKey" expression="json-eval($.mandrill.apiKey)" />
+         <property name="mandrill.fromEmail" expression="json-eval($.mandrill.fromEmail)" />
+         <property name="mandrill.fromName" expression="json-eval($.mandrill.fromName)" />
+		 
+         <!-- Sirportly parameters. -->
+         <property name="sirportly.apiUrl" expression="json-eval($.sirportly.apiUrl)" />
+         <property name="sirportly.apiToken" expression="json-eval($.sirportly.apiToken)" />
+         <property name="sirportly.apiSecret" expression="json-eval($.sirportly.apiSecret)" />
+		 
+         <!-- Operation scoped properties -->
+         <property name="id.empty" value="{}" />
+         <property name="responseString" value="" scope="operation" />
+         
+         <!-- If the value for updateSince parameter is not provided, set the default value as current date -->
+         <script language="js">
+            <![CDATA[
+               var requestUpdatedDate = mc.getProperty('cashboard.updatedSince');
+               if(requestUpdatedDate != null && requestUpdatedDate != "")
+                  {
+                     mc.setProperty('cashboard.updatedSince', requestUpdatedDate);
+                  }else{
+                     mc.setProperty('cashboard.updatedSince', new java.text.SimpleDateFormat("yyyy-MM-dd '00:00:00'").format(new java.util.Date()));
+                  }
+            ]]>
+         </script>
+         
+         <!-- List open Estimates daily basis. -->
+         <cashboard.init>
+            <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+            <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+            <password>{$ctx:cashboard.password}</password>
+            <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+            <format>xml</format>
+         </cashboard.init>
+         <cashboard.listEstimates>
+            <clientType>Person</clientType>
+            <isArchived>false</isArchived>
+            <updatedSince>{$ctx:cashboard.updatedSince}</updatedSince>
+         </cashboard.listEstimates>
+		 
+         <property name="messageType" value="application/xml" scope="axis2" />
+         <property name="estimatesCount" expression="count(//estimates/estimate)" scope="operation" />
+         <property name="index" expression="0" scope="operation" />
+		 
+         <!-- Get the response status. -->
+         <property name="responseStatus" expression="$axis2:HTTP_SC" />
+         
+         <!-- Check response status for all possible error responses. -->
+         <filter xpath="get-property('responseStatus') != 200">
+            <then>
+               <!--If in case the error response returns as html then retrieve the error message accordingly. -->
+               <property name="cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+			   
+               <!-- if any other response comes it will be caught here. -->
+               <property name="cashboard.errorResponse" expression="json-eval($)" />
+			   
+               <!-- Checking for HTML responses. -->
+               <filter source="boolean(get-property('cashboard.errorResponseHtml'))" regex="true">
+                  <then>
+                     <!--If in case the error comes as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                     <call-template target="base64Decoder">
+                        <with-param name="responseBinaryString" value="{$ctx:cashboard.errorResponseHtml}" />
+                     </call-template>
+                     <property name="cashboard.errorMessage" expression="get-property('decodedResult')" />
+                  </then>
+                  <else>
+                     <property name="cashboard.errorMessage" expression="get-property('cashboard.errorResponse')" />
+                  </else>
+               </filter><!--END of Filter: Checking for HTML responses. -->
+               
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="cashboard_listProjectLists" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:cashboard.errorMessage}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!-- Set error if no estimates retrieved. -->
+               <filter xpath="0 = get-property('operation', 'estimatesCount')">
+                  <then>
+                     <property name="message" value="There are no estimates found." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="cashboard_listEstimates" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+               </filter><!--END of Filter: Checking the estimation count. -->
+            </else>
+         </filter><!--END of Filter: Check response status for all possible error responses. -->
+         
+         <!--START LOOP: Retrieve details of each estimate.-->
+         <iterate continueParent="false" id="estimateIterator" expression="//estimates/estimate" sequential="true">
+            <target>
+               <sequence>
+                  <property name="cashboard.estimationId" expression="//estimate/id" />
+                  <property name="cashboard.clientContactId" expression="//estimate/client_id" />
+                  <property name="cashboard.clientAgreement" expression="//estimate/requires_agreement" />
+                  <property name="ticketId" expression="substring-after(//estimate/name/text(),'_')" />
+                  <property name="sirportly.ticketReference" expression="substring-before(get-property('ticketId'),'_')" />
+                  <property name="sirportly.estimatedCost" expression="//estimate/price_best" />
+                  
+                  <!-- Get Sirportly ticket. -->
+                  <sirportly.init>
+                     <apiUrl>{$ctx:sirportly.apiUrl}</apiUrl>
+                     <apiToken>{$ctx:sirportly.apiToken}</apiToken>
+                     <apiSecret>{$ctx:sirportly.apiSecret}</apiSecret>
+                  </sirportly.init>
+                  <sirportly.getTicket>
+                     <ticketReference>{$ctx:sirportly.ticketReference}</ticketReference>
+                  </sirportly.getTicket>
+				  
+                  <property name="sirportly.subject" expression="json-eval($.subject)" />
+                  <property name="sirportly.isBIllable" expression="json-eval($.custom_fields.IsBIllable)" />
+                  
+                  <!-- Set error if no ticket retrieved. -->
+                  <property name="responseStatus" expression="$axis2:HTTP_SC" />
+				  
+				  <!--START of Filter: Check for the unsuccessful response status code.-->
+                  <filter xpath="get-property('responseStatus') != 200">
+                     <then>
+                        <property name="id" expression="fn:concat('sirportly_ticketReference:', get-property('sirportly.ticketReference'))" />
+                        <property name="message" expression="json-eval($)" />
+						
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="activity" value="sirportly_getTicket" />
+                           <with-param name="status" value="Error" />
+                           <with-param name="id" value="{$ctx:id}" />
+                           <with-param name="message" value="{$ctx:message}" />
+                        </call-template>
+                     </then>
+                     <else>            
+                        <!-- START of Filter: Check the ticket is billable. -->
+                        <filter xpath="get-property('sirportly.isBIllable') = 'true'">
+                           <then>
+                              <!-- START of Filter: Check the estimate needs customer agreement. -->
+                              <filter xpath="get-property('cashboard.clientAgreement') = 'true'">
+                                 <then>
+                                    <!-- Get client details related to the estimation. -->
+                                    <cashboard.init>
+                                       <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+                                       <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+                                       <password>{$ctx:cashboard.password}</password>
+                                       <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+                                       <format>xml</format>
+                                    </cashboard.init>
+                                    <cashboard.getClientContact>
+                                       <clientContactId>{$ctx:cashboard.clientContactId}</clientContactId>
+                                    </cashboard.getClientContact>
+                                    
+                                    <!-- Set error if no contact retrieved. -->
+                                    <property name="responseStatus" expression="$axis2:HTTP_SC" />
+									
+									<!-- START of Filter: Check for the unsuccessful response code. -->
+                                    <filter xpath="get-property('responseStatus') != 200">
+                                       <then>
+                                          <!--If in case the error response returns as html then retrieve the error message accordingly. -->
+                                          <property name="cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+										  
+                                          <!--If any other response comes it will be caught here. -->
+                                          <property name="cashboard.errorResponse" expression="json-eval($)" />
+										  
+                                          <!--START of Filter: Checking for HTML responses. -->
+                                          <filter source="boolean(get-property('cashboard.errorResponseHtml'))" regex="true">
+                                             <then>
+                                                <!--If in case the error comes as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                                                <call-template target="base64Decoder">
+                                                   <with-param name="responseBinaryString" value="{$ctx:cashboard.errorResponseHtml}" />
+                                                </call-template>
+                                                <property name="cashboard.errorMessage" expression="get-property('decodedResult')" />
+                                             </then>
+                                             <else>
+                                                <property name="cashboard.errorMessage" expression="get-property('cashboard.errorResponse')" />
+                                             </else>
+                                          </filter><!--END of Filter: Checking for HTML responses.-->
+                                          
+                                          <property name="id" expression="fn:concat('cashboard_estimateId:', get-property('cashboard.estimationId'))" />
+										  
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="cashboard_getClientContact" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Error" />
+                                             <with-param name="message" value="{$ctx:cashboard.errorMessage}" />
+                                          </call-template>
+                                          <loopback />
+                                       </then>
+                                       <else>
+                                          <property name="cashboardClientFirstName" expression="//first_name" />
+                                          <property name="cashboardClientContactEmailAddress" expression="//email_address" />
+                                          
+                                          <!-- Get estimation in html version needed to be sent to client. -->
+                                          <cashboard.init>
+                                             <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+                                             <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+                                             <password>{$ctx:cashboard.password}</password>
+                                             <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+                                             <format>html</format>
+                                          </cashboard.init>
+                                          <cashboard.getEstimate>
+                                             <estimateId>{$ctx:cashboard.estimationId}</estimateId>
+                                          </cashboard.getEstimate>
+                                          
+                                          <!-- Set error if no estimation retrieved. -->
+                                          <property name="responseStatus" expression="$axis2:HTTP_SC" />
+										  
+										  <!-- START of Filter: Check for the unsuccessful response code. -->
+                                          <filter xpath="get-property('responseStatus') != 200">
+                                             <then>
+                                                <property name="id" expression="fn:concat('cashboard_estimateId:', get-property('cashboard.estimationId'))" />
+												
+                                                <!--If in case the error response returns as html then retrieve the error message accordingly. -->
+                                                <property name="cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+												
+                                                <!-- If any other response comes it will be caught here. -->
+                                                <property name="cashboard.errorResponse" expression="json-eval($)" />
+												
+                                                <!--START of Filter: Checking for HTML responses.-->
+                                                <filter source="boolean(get-property('cashboard.errorResponseHtml'))" regex="true">
+                                                   <then>
+                                                      <!--If in case the error comes as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                                                      <call-template target="base64Decoder">
+                                                         <with-param name="responseBinaryString" value="{$ctx:cashboard.errorResponseHtml}" />
+                                                      </call-template>
+                                                      <property name="cashboard.errorMessage" expression="get-property('decodedResult')" />
+                                                   </then>
+                                                   <else>
+                                                      <property name="cashboard.errorMessage" expression="get-property('cashboard.errorResponse')" />
+                                                   </else>
+                                                </filter><!--END of Filter: Checking for HTML responses. -->
+                                                
+                                                <property name="id" expression="fn:concat('cashboard_estimateId:', get-property('cashboard.estimationId'))" />
+                                               
+											    <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="cashboard_getClientContact" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Error" />
+                                                   <with-param name="message" value="{$ctx:cashboard.errorMessage}" />
+                                                </call-template>
+                                                <loopback />
+                                             </then>
+                                             <else>
+                                                <property name="messageType" value="application/xml" scope="axis2" />
+                                                <property name="binaryString" expression="json-eval($.binary)" />
+												
+                                                <!--Base64Decode and get the JSON object from Base64Encoded String 
+												  - Issue caused by Content-Type: text/html response header. -->
+                                                <script language="js"><![CDATA[
+													  function base64_decode(data) {
+														  var b64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+														  var o1, o2, o3, h1, h2, h3, h4, bits, i = 0, ac = 0, dec = '', tmp_arr = [];
+														  if (data.trim().length == 0) {
+																return data;
+														  } else {
+																data += '';
+														  }
+														  do {
+															  // unpack four hexets into three octets using index points in b64
+															  h1 = b64.indexOf(data.charAt(i++));
+															  h2 = b64.indexOf(data.charAt(i++));
+															  h3 = b64.indexOf(data.charAt(i++));
+															  h4 = b64.indexOf(data.charAt(i++));
+															  bits = h1 << 18 | h2 << 12 | h3 << 6 | h4;
+															  o1 = bits >> 16 & 0xff;
+															  o2 = bits >> 8 & 0xff;
+															  o3 = bits & 0xff;
+															  if (h3 == 64) {
+																	tmp_arr[ac++] = String.fromCharCode(o1);
+															  } else if (h4 == 64) {
+																	tmp_arr[ac++] = String.fromCharCode(o1, o2);
+															  } else {
+																	tmp_arr[ac++] = String.fromCharCode(o1, o2, o3);
+															  }
+														  } while (i < data.length);                                        
+														  dec = tmp_arr.join('');
+														  return dec.replace(/\0+$/, '');
+                                                    }
+                                                    var binaryString = mc.getProperty('binaryString');
+                                                    var name = mc.getProperty('cashboardClientFirstName');
+                                                    var email = mc.getProperty('cashboardClientContactEmailAddress');
+                                                    
+                                                    if(binaryString != null && binaryString != ""){
+														var htmlContent = base64_decode(binaryString);
+														mc.setProperty('htmlContent', new java.lang.String(htmlContent).replace("\n", "").replace("\r", "").replace("\"", "\\\\\\\""));
+                                                    }
+                                                   var mailTo = '[{"email":"' + email + '","name":"' + name + '","type": "to"}]'; 
+                                                   mc.setProperty('mandrill.to', mailTo);
+												  ]]></script>
+                                                <payloadFactory media-type="json">
+                                                   <format>{ 
+                                                         "html":"$1" 
+                                                      }
+                                                   </format>
+                                                   <args>
+                                                      <arg expression="get-property('htmlContent')" />
+                                                   </args>
+                                                </payloadFactory>
+												
+                                                <property name="mandrill.html" expression="json-eval($.html)" />
+                                                <property name="mandrill.to" expression="get-property('mandrill.to')" />
+                                                <property name="mandrill.subject" expression="fn:concat('Estimation for the ticket you raised under ', get-property('sirportly.ticketReference'))" />
+                                                
+                                                <!--START of Filter: Check weather the Mandril apiKey is sent by the user. -->
+                                                <filter source="boolean(get-property('mandrill.apiKey'))" regex="true">
+                                                   <then>
+                                                      <!-- If Mandril apiKey is sent,send the estimation through Mandril. -->
+                                                      <mandrill.init>
+                                                         <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                                         <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                                         <format>json</format>
+                                                      </mandrill.init>
+                                                      <mandrill.sendMessage>
+                                                         <html>{$ctx:mandrill.html}</html>
+                                                         <subject>{$ctx:mandrill.subject}</subject>
+                                                         <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+                                                         <fromName>{$ctx:mandrill.fromName}</fromName>
+                                                         <to>{$ctx:mandrill.to}</to>
+                                                      </mandrill.sendMessage>
+													  
+                                                      <property name="mandrill.messageId" expression="json-eval($[0]._id)" />
+                                                      <property name="mandrill.subject" action="remove" />
+                                                      
+                                                      <!-- Set error if estimation not sent. -->
+                                                      <property name="responseStatus" expression="$axis2:HTTP_SC" />
+													  
+													  <!-- START of Filter: Check for the unsuccessful response code. -->
+                                                      <filter xpath="get-property('responseStatus') != 200">
+                                                         <then>
+                                                            <property name="id" expression="fn:concat('cashboard_estimateId:', get-property('cashboard.estimationId'))" />
+                                                            <property name="message" expression="json-eval($.message)" />
+															
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="mandrill_sendMessage" />
+                                                               <with-param name="status" value="Error" />
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                         </then>
+                                                         <else>
+                                                            <payloadFactory media-type="json">
+                                                               <format>{ 
+                                                                     "customFields" : { 
+                                                                           "custom[totalEstimation]" : "$1" 
+                                                                        } 
+                                                                  }
+                                                               </format>
+                                                               <args>
+                                                                  <arg expression="get-property('sirportly.estimatedCost')" />
+                                                               </args>
+                                                            </payloadFactory>
+                                                            
+                                                            <property name="sirportly.customFields" expression="json-eval($.customFields)" />
+															
+                                                            <!-- Update the total estimation in Sirportly ticket. -->
+                                                            <sirportly.init>
+                                                               <apiUrl>{$ctx:sirportly.apiUrl}</apiUrl>
+                                                               <apiToken>{$ctx:sirportly.apiToken}</apiToken>
+                                                               <apiSecret>{$ctx:sirportly.apiSecret}</apiSecret>
+                                                            </sirportly.init>
+                                                            <sirportly.updateTicket>
+                                                               <subject>{$ctx:sirportly.subject}</subject>
+                                                               <ticketReference>{$ctx:sirportly.ticketReference}</ticketReference>
+                                                               <customFields>{$ctx:sirportly.customFields}</customFields>
+                                                            </sirportly.updateTicket>
+                                                            
+                                                            <property name="sirportly.updatedCustomField" expression="json-eval($.custom_fields.totalEstimation)" />
+                                                            
+															<!--START of Filter: Check weather the total estimation is successfully updated in Sirportly. -->
+                                                            <filter xpath="get-property('sirportly.updatedCustomField') = get-property('sirportly.estimatedCost')">
+                                                               <then>
+                                                                  <!-- Set the success massage after sending the message. -->
+                                                                  <property name="id" expression="fn:concat('cashboard_estimateId:', get-property('cashboard.estimationId'), ',mandrill_messageId:', get-property('mandrill.messageId'))" />
+                                                                  <property name="message" expression="fn:concat('Estimation is sent to ', get-property('cashboardClientFirstName'), ' successfully.')" />
+                                                                  
+																  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="activity" value="mandrill_sendMessage" />
+                                                                     <with-param name="status" value="Success" />
+                                                                     <with-param name="id" value="{$ctx:id}" />
+                                                                     <with-param name="message" value="{$ctx:message}" />
+                                                                  </call-template>
+                                                               </then>
+                                                               <else>
+                                                                  <!-- Set the success massage in case of failure to update the total estimation. -->
+                                                                  <property name="id" expression="fn:concat('cashboard_estimateId:', get-property('cashboard.estimationId'), ',mandrill_messageId:', get-property('mandrill.messageId'))" />
+                                                                  <property name="message" expression="fn:concat('Estimation is sent to ', get-property('cashboardClientFirstName'), ' successfully however failed to update the total estimation of the ticket')" />
+                                                                  
+																  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="activity" value="mandrill_sendMessage" />
+                                                                     <with-param name="status" value="Success" />
+                                                                     <with-param name="id" value="{$ctx:id}" />
+                                                                     <with-param name="message" value="{$ctx:message}" />
+                                                                  </call-template>
+                                                               </else>
+                                                            </filter><!--END of Filter: Check weather the total estimation is successfully updated in Sirportly. -->
+                                                         </else>
+                                                      </filter><!--END of Filter: Check for the unsuccessful response code.-->
+                                                   </then>
+                                                   <else>
+                                                      <!-- Set error if Mandrill apiKey is not sent by the user. -->
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="mandrill_sendMessage" />
+                                                         <with-param name="status" value="Error" />
+                                                         <with-param name="id" value="{$ctx:id.empty}" />
+                                                         <with-param name="message" value="Mandrill api key is not provided in the request." />
+                                                      </call-template>
+                                                   </else>
+                                                </filter> <!--END of Filter: Check weather the Mandril apiKey is sent by the user.-->
+                                             </else>
+                                          </filter><!--END of Filter: Check for the unsuccessful response code. -->
+                                       </else>
+                                    </filter><!--END of Filter: Check for the unsuccessful response code. -->
+                                 </then>
+                                 <else>
+                                    <property name="id" expression="fn:concat('cashboard_estimateId:', get-property('cashboard.estimationId'))" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="cashboard_getEstimate" />
+                                       <with-param name="status" value="Skipped" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="message" value="Estimation is not ready to send." />
+                                    </call-template>
+                                 </else>
+                              </filter><!--END of Filter: Check the estimate needs customer agreement. -->
+                           </then>
+                           <else>
+                              <property name="id" expression="fn:concat('sirportly_ticketReference:', get-property('sirportly.ticketReference'))" />
+							  
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="sirportly_getTicket" />
+                                 <with-param name="status" value="Skipped" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="message" value="Ticket is not billable." />
+                              </call-template>
+                           </else>
+                        </filter><!--END of Filter: Check the ticket is billable. -->
+                     </else>
+                  </filter><!--END of Filter: Check for the unsuccessful response status code. -->
+				  
+                  <!--Increment the index count for each iteration. -->
+                  <property name="index" expression="get-property('operation','index') + 1" scope="operation" />
+				  
+               </sequence>
+            </target>
+         </iterate><!--END LOOP: Retrieve details of each estimate.-->
+         
+         <!-- Check for all the iterations has completed. -->
+         <filter xpath="get-property('operation', 'index') = get-property('operation', 'estimatesCount')">
+            <then>
+               <loopback />
+            </then>
+         </filter><!--END of Filter: Checking all iterations has completed. -->
+      </inSequence>
+      
+      <outSequence>
+         <!-- Send the constructed response to the user. -->
+         <payloadFactory media-type="json">
+            <format>{ 
+                  "Response": 
+                     { 
+                        "activity":"sirportly_retrieveEstimatesAndNotifyClients", 
+                        "activityResponse":[$1] 
+                     }
+               }</format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

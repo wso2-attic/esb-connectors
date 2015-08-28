@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--The sequence will be used to check authentication failure scenario in Cashboard and if so loopback. -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="authenticateCashboardRequest">
+
+   <property name="uri.var.apiUrl" expression="get-property('cashboard.apiUrl')" />
+   
+   <cashboard.init>
+      <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+      <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+      <password>{$ctx:cashboard.password}</password>
+      <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+      <format>xml</format>
+   </cashboard.init>
+   <cashboard.listInvoices>
+      <hasBeenSent>false</hasBeenSent>
+   </cashboard.listInvoices>
+   
+   <!--Removing unused headers. -->
+   <sequence key="removeResponseHeaders" />
+
+   <!-- START of Filter: display an error message only if get an error with access denied. -->
+   <filter source="$axis2:HTTP_SC" regex="401">
+      <then>
+         <property name="id" value="" />
+		 <!-- Failure case: Append an error message to be sent to the user. -->                                                                    
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="cashboard" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Skipped" />
+            <with-param name="message" value="HTTP Basic: Access denied." />
+         </call-template>
+         <loopback />
+      </then>
+   </filter> <!-- END of Filter: display an error message only if get an error with access denied. -->
+</sequence>
