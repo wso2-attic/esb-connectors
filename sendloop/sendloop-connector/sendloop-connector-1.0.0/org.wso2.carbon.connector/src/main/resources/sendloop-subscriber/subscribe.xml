@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://sendloop.com/help/api-006/subscriber-management#subscriber_subscribe -->
+<template name="subscribe" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="emailAddress" description="The email address which is going to be subscribed." />
+   <parameter name="subscriberListId" description="ID of the target subscriber list." />
+   <parameter name="subscriptionIp" description="IP address of the subscriber." />
+   <parameter name="fields" description="If you are going to pass custom fields such as name or age, pass them in array here." />
+   <sequence>
+      <property name="uri.var.emailAddress" expression="$func:emailAddress" />
+      <property name="uri.var.subscriberListId" expression="$func:subscriberListId" />
+      <property name="uri.var.subscriptionIp" expression="$func:subscriptionIp" />
+      <property name="uri.var.fields" expression="$func:fields" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "APIKey": "$1",
+                "ListID": "$2",
+                "EmailAddress": "$3",
+                "SubscriptionIP": "$4"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.apiKey')" />
+            <arg expression="get-property('uri.var.subscriberListId')" />
+            <arg expression="get-property('uri.var.emailAddress')" />
+            <arg expression="get-property('uri.var.subscriptionIp')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var fields = mc.getProperty('uri.var.fields');
+            if (fields != null && fields != ""){
+			   fields = eval("(" + fields + ")");
+			   if(fields.length > 0){
+                  var jsonPayload = mc.getPayloadJSON();
+			      for(var i=0; i<fields.length; i++){
+				     jsonPayload["Fields[CustomField" + fields[i].index + "]"] = fields[i].value;
+				  }
+                  mc.setPayloadJSON(jsonPayload);
+			   }
+            }
+         ]]>
+      </script>
+      <!-- Set the axis2 property 'messageType' to application/x-www-form-urlencoded -->
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/Subscriber.Subscribe/{+uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="Server" action="remove" scope="transport" />
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Transfer-Encoding" action="remove" scope="transport" />
+   </sequence>
+</template>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://sendloop.com/help/api-004/email-campaign-management#campaign_getlist -->
+<template name="listEmailCampaigns" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="ignoreDrafts" description="Set this field to 1 if you want to exclude drafts. Otherwise, set to zero (0)." />
+   <parameter name="ignoreSending"
+      description="Set this field to 1 if you want to exclude currently sending campaigns. Otherwise, set to zero (0)." />
+   <parameter name="ignorePaused" description="Set this field to 1 if you want to exclude paused campaigns. Otherwise, set to zero (0)." />
+   <parameter name="ignoreSent" description="Set this field to 1 if you want to exclude sent campaigns. Otherwise, set to zero (0)." />
+   <parameter name="ignoreFailed" description="Set this field to 1 if you want to exclude failed campaigns. Otherwise, set to zero (0)." />
+   <parameter name="ignoreApproval"
+      description="Set this field to 1 if you want to exclude approval pending campaigns. Otherwise, set to zero (0)." />
+   <sequence>
+      <property name="uri.var.ignoreDrafts" expression="$func:ignoreDrafts" />
+      <property name="uri.var.ignoreSending" expression="$func:ignoreSending" />
+      <property name="uri.var.ignorePaused" expression="$func:ignorePaused" />
+      <property name="uri.var.ignoreSent" expression="$func:ignoreSent" />
+      <property name="uri.var.ignoreFailed" expression="$func:ignoreFailed" />
+      <property name="uri.var.ignoreApproval" expression="$func:ignoreApproval" />
+      <payloadFactory media-type="json">
+         <format>
+            {"APIKey": "$1"}
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.apiKey')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var ignoreDrafts = mc.getProperty('uri.var.ignoreDrafts');
+            var ignoreApproval = mc.getProperty('uri.var.ignoreApproval');
+            var ignoreSent = mc.getProperty('uri.var.ignoreSent');
+            var ignoreSending = mc.getProperty('uri.var.ignoreSending');
+            var ignorePaused = mc.getProperty('uri.var.ignorePaused');
+            var ignoreFailed = mc.getProperty('uri.var.ignoreFailed');
+            var jsonPayload = mc.getPayloadJSON();
+            if (ignoreDrafts != null && ignoreDrafts != ""){
+               jsonPayload.IgnoreDrafts = ignoreDrafts;
+            }
+            if (ignoreSending != null && ignoreSending != ""){
+               jsonPayload.IgnoreSending = ignoreSending;
+            }
+            if (ignorePaused != null && ignorePaused != ""){
+               jsonPayload.IgnorePaused = ignorePaused;
+            }
+            if (ignoreSent != null && ignoreSent != ""){
+               jsonPayload.IgnoreSent = ignoreSent;
+            }
+            if (ignoreFailed != null && ignoreFailed != ""){
+               jsonPayload.IgnoreFailed = ignoreFailed;
+            }
+            if (ignoreApproval != null && ignoreApproval != ""){
+               jsonPayload.IgnoreApproval = ignoreApproval;
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <!-- Set the axis2 property 'messageType' to application/x-www-form-urlencoded -->
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/Campaign.GetList/{+uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="Server" action="remove" scope="transport" />
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Transfer-Encoding" action="remove" scope="transport" />
+   </sequence>
+</template>
