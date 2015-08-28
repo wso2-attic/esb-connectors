@@ -64,12 +64,13 @@ public class PagerdutyConnectorIntegrationTest extends ConnectorIntegrationTestB
     * Positive test case for createUser method with mandatory parameters.
     */
    @Test(priority = 1, groups = { "wso2.esb" }, description = "pagerduty {createUser} integration test with mandatory parameters.")
-   public void testCreateUserWithMandatoryParameters() throws IOException, JSONException {
+   public void testCreateUserWithMandatoryParameters() throws IOException, JSONException, NumberFormatException, InterruptedException {
    
       esbRequestHeadersMap.put("Action", "urn:createUser");
       
       final RestResponse<JSONObject> esbRestResponse =
             sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createUser_mandatory.json");
+      Thread.sleep(Long.parseLong(connectorProperties.getProperty("timeOut")));
       
       Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 201);
       final String userId = esbRestResponse.getBody().getJSONObject("user").getString("id");
@@ -494,12 +495,14 @@ public class PagerdutyConnectorIntegrationTest extends ConnectorIntegrationTestB
     * Negative test case for createIncident method.
     */
    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateIncidentWithOptionalParameters" }, description = "pagerduty {createIncident} integration test with negative case.")
-   public void testCreateIncidentWithNegativeCase() throws IOException, JSONException {
+   public void testCreateIncidentWithNegativeCase() throws IOException, JSONException,InterruptedException {
    
       esbRequestHeadersMap.put("Action", "urn:createIncident");
       
       final RestResponse<JSONObject> esbRestResponse =
             sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createIncident_negative.json");
+      
+      Thread.sleep(Long.parseLong(connectorProperties.getProperty("timeOut")));
       
       Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
       
@@ -752,6 +755,7 @@ public class PagerdutyConnectorIntegrationTest extends ConnectorIntegrationTestB
       final RestResponse<JSONObject> esbRestResponse =
             sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_reassignIncident_mandatory.json");
       
+      
       Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
       
       final String apiEndPoint = apiUrl + "/incidents/" + connectorProperties.getProperty("incidentIdMandatory");
@@ -860,4 +864,98 @@ public class PagerdutyConnectorIntegrationTest extends ConnectorIntegrationTestB
             .getJSONObject("error").getString("code"));
    }
    
+   /**
+    * Positive test case for updateIncident method with mandatory parameters.
+    */
+   @Test(priority = 1, groups = { "wso2.esb" }, dependsOnMethods = { "testCreateIncidentWithMandatoryParameters" }, description = "pagerduty {updateIncident} integration test with mandatory parameters.")
+   public void testUpdateIncidentWithMandatoryParameters() throws IOException, JSONException, NumberFormatException,
+         InterruptedException {
+   
+      esbRequestHeadersMap.put("Action", "urn:updateIncident");
+      
+      //checking for the incident before updating
+      final String apiEndPoint = apiUrl + "/incidents/" + connectorProperties.getProperty("incidentIdMandatory");
+      final RestResponse<JSONObject> apiRestResponseBefore = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+      
+      Thread.sleep(Long.parseLong(connectorProperties.getProperty("timeOut")));
+            
+      final RestResponse<JSONObject> esbRestResponse =
+            sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateIncident_mandatory.json");
+                   
+      Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);           
+      
+      Assert.assertEquals(
+              apiRestResponseBefore.getBody().getString("status"), 
+              esbRestResponse.getBody().getJSONArray("incidents").getJSONObject(0).getString("status"));
+      Assert.assertEquals(
+              apiRestResponseBefore.getBody().getJSONObject("assigned_to_user").getString("id"), 
+              esbRestResponse.getBody().getJSONArray("incidents").getJSONObject(0).getString("assigned_to_user"));
+   } 
+   
+   /**
+    * Positive test case for updateIncident method with optional parameters.
+    */
+   @Test(priority = 1, groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateIncidentWithMandatoryParameters" }, description = "pagerduty {updateIncident} integration test with optional parameters.")
+   public void testUpdateIncidentWithOptionalParameters() throws IOException, JSONException, NumberFormatException,
+         InterruptedException {
+   
+      esbRequestHeadersMap.put("Action", "urn:updateIncident");
+      
+      //checking for the incident before updating
+      final String apiEndPoint = apiUrl + "/incidents/" + connectorProperties.getProperty("incidentIdMandatory");
+      final RestResponse<JSONObject> apiRestResponseBefore = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+           
+      final String incidentStatusBefore = apiRestResponseBefore.getBody().getString("status");
+      final String incidentAssignedToUserBefore = apiRestResponseBefore.getBody().getJSONObject("assigned_to_user").getString("id");
+                       
+      final RestResponse<JSONObject> esbRestResponse =
+            sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateIncident_optional.json");
+      
+      Thread.sleep(Long.parseLong(connectorProperties.getProperty("timeOut")));
+      
+      //checking for the incident after updating
+      final RestResponse<JSONObject> apiRestResponseAfter = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+      
+      final String incidentStatusAfter = apiRestResponseAfter.getBody().getString("status");
+      final String incidentAssignedToUserAfter = apiRestResponseAfter.getBody().getJSONObject("assigned_to_user").getString("id");
+                   
+      Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);           
+      
+      //asserting the incident's values before and after updating
+      Assert.assertNotEquals(incidentStatusBefore, incidentStatusAfter);
+      Assert.assertNotEquals(incidentAssignedToUserBefore, incidentAssignedToUserAfter);
+            
+      Assert.assertEquals(
+              connectorProperties.getProperty("incidentStatusUpdate"), 
+              esbRestResponse.getBody().getJSONArray("incidents").getJSONObject(0).getString("status"));      
+      Assert.assertEquals(
+              connectorProperties.getProperty("incidentEscalationLevelUpdate"),
+              esbRestResponse.getBody().getJSONArray("incidents").getJSONObject(0).getString("escalation_level"));            
+      Assert.assertEquals(
+              connectorProperties.getProperty("requesterId"),
+              esbRestResponse.getBody().getJSONArray("incidents").getJSONObject(0).getString("assigned_to_user"));     
+   } 
+   
+   /**
+    * Negative test case for updateIncident method.
+    */
+   @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testUpdateIncidentWithMandatoryParameters" }, description = "pagerduty {updateIncident} integration test with negative case.")
+   public void testUpdateIncidentWithNegativeCase() throws IOException, JSONException {
+   
+      esbRequestHeadersMap.put("Action", "urn:updateIncident");
+      
+      final RestResponse<JSONObject> esbRestResponse =
+            sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateIncident_negative.json");
+      
+      final String apiEndPoint = apiUrl + "/incidents";
+      final RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "PUT", apiRequestHeadersMap,"api_updateIncident_negative.json");
+      
+      Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
+      Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 400);
+      
+      Assert.assertEquals(esbRestResponse.getBody().getJSONObject("error").getString("message"),
+            apiRestResponse.getBody().getJSONObject("error").getString("message"));
+      Assert.assertEquals(esbRestResponse.getBody().getJSONObject("error").getString("code"), 
+            apiRestResponse.getBody().getJSONObject("error").getString("code"));
+   }
 }
