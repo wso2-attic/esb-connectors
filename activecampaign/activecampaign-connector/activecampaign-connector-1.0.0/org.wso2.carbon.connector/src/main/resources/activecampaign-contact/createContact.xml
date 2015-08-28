@@ -16,7 +16,7 @@
    specific language governing permissions and limitations
    under the License.
 -->
-
+<!-- API Doc: http://www.activecampaign.com/api/example.php?call=contact_add -->
 <template name="createContact" xmlns="http://ws.apache.org/ns/synapse">
    <parameter name="email" description="Email of the new contact." />
    <parameter name="firstName" description="First name of the contact." />
@@ -27,7 +27,6 @@
    <parameter name="ip4" description="IP address of the contact. Default to 127.0.0.1" />
    <parameter name="form" description="Optional subscription form ID to inherit those redirection settings." />
    <parameter name="listDetails" description="All the details of lists this contact belongs to." />
-
    <sequence>
       <property name="uri.var.email" expression="$func:email" />
       <property name="uri.var.firstName" expression="$func:firstName" />
@@ -38,10 +37,8 @@
       <property name="uri.var.ip4" expression="$func:ip4" />
       <property name="uri.var.form" expression="$func:form" />
       <property name="uri.var.listDetails" expression="$func:listDetails" />
-
       <script language="js">
       <![CDATA[
-
           var listDetails = mc.getProperty("uri.var.listDetails");
           var email = mc.getProperty("uri.var.email");
           var firstName = mc.getProperty("uri.var.firstName");
@@ -50,64 +47,50 @@
           var orgName = mc.getProperty("uri.var.orgName");
           var tags = mc.getProperty("uri.var.tags");
           var ip4 = mc.getProperty("uri.var.ip4");
-          var form = mc.getProperty("uri.var.form");
-          
+          var form = mc.getProperty("uri.var.form");          
           /*
             Since some parameter keys are not supported through JSON path,
             Need to set them directly to the payload. e.g. p[1],p[2]         
           */
           var payload = new Object();
-
           if(listDetails != null && listDetails != ""){
              payload = eval('(' + listDetails + ')');
           }
-
           payload.email = email; 
-
           if(firstName != null && firstName != ""){
             payload.first_name = firstName;           
           }
-
           if(lastName != null && lastName != ""){
             payload.last_name = lastName;           
           }
-
           if(phone != null && phone != ""){
             payload.phone = phone;           
           }
-
           if(orgName != null && orgName != ""){
             payload.orgname = orgName;           
           }
-
           if(tags != null && tags != ""){
             payload.tags = tags;           
           }
-
           if(ip4 != null && ip4 != ""){
             payload.ip4 = ip4;           
           }
-
           if(form != null && form != ""){
             payload.form = form;           
           }
-
           mc.setPayloadJSON(payload);    
-
       ]]>
       </script>
-
       <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
       <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
-
       <call>
          <endpoint>
             <http method="post" uri-template="{uri.var.apiUrl}contact_add{+uri.var.queryParams}" />
          </endpoint>
       </call>
-
       <!-- Remove response custom header information -->
       <header name="X-Powered-By" scope="transport" action="remove" />
-
+      <header name="Pragma" scope="transport" action="remove" />
+      <header name="Cache-control" scope="transport" action="remove" />
    </sequence>
 </template>
