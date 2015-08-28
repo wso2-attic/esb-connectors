@@ -47,7 +47,7 @@ public class LinkedInConnectorIntegrationTest extends ESBIntegrationTest {
 
     private String repoLocation = null;
 
-    private String linkedinConnectorFileName = CONNECTOR_NAME + ".zip";
+    private String linkedinConnectorFileName = CONNECTOR_NAME + "-connector-1.0.0.zip";
 
     private Properties linkedinConnectorProperties = null;
 
