@@ -16,56 +16,47 @@
    specific language governing permissions and limitations
    under the License.
 -->
-
+<!-- API Doc: http://www.activecampaign.com/api/example.php?call=list_list -->
 <template name="listMailingLists" xmlns="http://ws.apache.org/ns/synapse">
    <parameter name="ids" description="A comma-separated list of subscription form IDs of lists." />
    <parameter name="nameFilter" description="The name filter, perform a pattern match for List Name." />
    <parameter name="isGlobalFields" description="The boolean vlaue indicating whether or not to include global custom fields." />
    <parameter name="isFull" description="The boolean flag indicating whether or not to return ALL data, or an abbreviated portion." />
-
    <sequence>
       <property name="uri.var.ids" expression="$func:ids" />
       <property name="uri.var.nameFilter" expression="$func:nameFilter" />
       <property name="uri.var.isGlobalFields" expression="$func:isGlobalFields" />
       <property name="uri.var.isFull" expression="$func:isFull" />
-
       <script language="js">
-         <![CDATA[ 
-         
+         <![CDATA[          
           var nameFilter = mc.getProperty('uri.var.nameFilter');
           var isGlobalFields = mc.getProperty('uri.var.isGlobalFields');
           var isFull = mc.getProperty('uri.var.isFull');
           var urlQuery = "";
-
           if (nameFilter != null && nameFilter != "") {
              urlQuery += "filters[name]=" + encodeURIComponent(nameFilter) + '&';
           }
-
           if (isFull != null && isFull != "") {
              urlQuery += "full=" + isFull + '&';
           }
-
           if (isGlobalFields != null && isGlobalFields != "") {
              urlQuery += "global_fields=" + isGlobalFields + '&';
           }
-
           if (urlQuery != "") {
              urlQuery = '&' + urlQuery.substring(0, urlQuery.length - 1);
              mc.setProperty('uri.var.urlQuery', urlQuery);
           } 
-
         ]]>
-      </script>
-     
+      </script>     
       <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
-
       <call>
          <endpoint>
             <http method="get" uri-template="legacy-encoding:{uri.var.apiUrl}list_list{uri.var.queryParams}&amp;ids={uri.var.ids}{uri.var.urlQuery}" />
          </endpoint>
       </call>
-
       <!-- Remove response custom header information -->
       <header name="X-Powered-By" scope="transport" action="remove" />
+      <header name="Pragma" scope="transport" action="remove" />
+      <header name="Cache-control" scope="transport" action="remove" />
    </sequence>
 </template>
