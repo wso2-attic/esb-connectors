@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!--Create and send campaigns in sendloop for the items in salesbinder-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="sendloop-createAndSendCampaignsSeq">
+   
+  <!-- START: Proceed only if a product has been created for the item -->
+  <filter source="boolean(get-property('salesbinder.printavoCreation'))" regex="true">
+	 <then>
+		<!-- START: Proceed only if campaign creation is required for the product -->
+		<filter source="boolean(get-property('salesbinder.campaignCreation'))" regex="false">
+		   <then>
+			  <!--Script to get campaign related information from the custom fields of the item-->
+			  <script language="js">
+				<![CDATA[
+					 var itemDetails = eval("(" + mc.getProperty('salesbinder.itemDetails') + ")");
+					
+					 var campaignName='';
+					 var campaignSubject='';
+					 var campaignLink='';
+					 var campaignListId='';
+					 var campaignContent='';
+					 var campaignHeading='';
+					 var productId='';
+					 
+					 for(var i=0 ; i<itemDetails.length ;i++) {
+					   var id = itemDetails[i].id;
+					   var name = itemDetails[i].CustomField.name;
+					   if(name== 'campaign_name') {
+							campaignName = itemDetails[i].value;
+							mc.setProperty("sendloop.campaignName",campaignName);
+					   }
+					   if(name== 'campaign_subject') {
+							campaignSubject = itemDetails[i].value;
+							mc.setProperty("sendloop.campaignSubject",campaignSubject);
+					   }
+					   if(name== 'campaign_link') {
+							campaignLink = itemDetails[i].value;
+							mc.setProperty("sendloop.campaignHtmlContent",campaignLink);
+					   }
+					   if(name== 'campaign_listId') {
+							campaignListId = itemDetails[i].value;
+							mc.setProperty("sendloop.campaignListId",campaignListId);
+					   }
+					   if(name== 'campaign_content') {
+							campaignContent = itemDetails[i].value;
+							mc.setProperty("sendloop.campaignContent",campaignContent);
+					   }
+					   if(name== 'campaign_contentHeading') {
+							campaignHeading = itemDetails[i].value;
+							mc.setProperty("sendloop.campaignHeading",campaignHeading);
+					   }
+					 }
+				]]>
+			  </script>
+			  
+			  <property name="sendloop.campaignListId" expression="fn:concat('[',get-property('sendloop.campaignListId'),']')" />
+			  
+			  <!--Construct the HTML content of the campaign-->
+			  <payloadFactory media-type="json">
+				 <format>{
+						"html_content":"&lt;p&gt;&lt;b&gt;$1&lt;/b&gt;&lt;/p&gt;&lt;p&gt;$2&lt;/p&gt;&lt;p&gt;For more information &lt;a href=\\\&quot;$3\\\&quot;&gt;Click Here&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Unsubscription information:&lt;/strong&gt;&lt;br&gt;This email has been sent to %Subscriber:EmailAddress%&lt;br&gt;&lt;a href=\\\&quot;%Link:Unsubscribe%\\\&quot;&gt;Click here to unsubscribe now&lt;/a&gt;&lt;/p&gt;"
+					}</format>
+				 <args>
+					<arg expression="get-property('sendloop.campaignHeading')" />
+					<arg expression="get-property('sendloop.campaignContent')" />
+					<arg expression="get-property('sendloop.campaignHtmlContent')" />
+				 </args>
+			  </payloadFactory>
+			  <property name="sendloop.link" expression="json-eval($.html_content)" />
+
+			  <!--Call the sendloop connector createEmailCampaign method to create the campaign-->
+			  <sendloop.init>
+				 <apiUrl>{$ctx:sendloop.apiUrl}</apiUrl>
+				 <apiKey>{$ctx:sendloop.apiKey}</apiKey>
+				 <format>json</format>
+			  </sendloop.init>
+			  <sendloop.createEmailCampaign>
+				 <campaignName>{$ctx:sendloop.campaignName}</campaignName>
+				 <fromName>{$ctx:sendloop.fromName}</fromName>
+				 <fromEmail>{$ctx:sendloop.fromEmail}</fromEmail>
+				 <replyToName>{$ctx:sendloop.replyToName}</replyToName>
+				 <replyToEmail>{$ctx:sendloop.replyToEmail}</replyToEmail>
+				 <targetListIds>{$ctx:sendloop.campaignListId}</targetListIds>
+				 <subject>{$ctx:sendloop.campaignSubject}</subject>
+				 <htmlContent>{$ctx:sendloop.link}</htmlContent>
+			  </sendloop.createEmailCampaign>
+			  <property name="sendloop.campaignId" expression="json-eval($.CampaignID)" />
+			  
+			  <!-- START: Append the response message if createEmailCampaign is failed -->
+			  <filter source="boolean(get-property('sendloop.campaignId'))" regex="false">
+				 <then>
+					<property name="id" expression="fn:concat('salesbinder_itemId:',get-property('salesbinder.itemId'))" />
+					<property name="status" value="Error" />
+					<property name="message" expression="json-eval($)" />
+					<!--Call the responseHandler template-->
+					<call-template target="responseHandlerTemplate">
+					   <with-param name="activity" value="sendloop_createCampaign" />
+					   <with-param name="id" value="{$ctx:id}" />
+					   <with-param name="status" value="{$ctx:status}" />
+					   <with-param name="message" value="{$ctx:message}" />
+					</call-template>
+				 </then>
+				 <else>
+					<payloadFactory media-type="json">
+					   <format>{
+							  "itemDetail": [
+								{
+									"value": "false",
+									"custom_field_id": "$1",
+									"item_id": "$2"
+								},
+								{
+									"value": "$3",
+									"custom_field_id": "$4"
+								}
+							  ]
+						   }</format>
+					   <args>
+						  <arg expression="get-property('salesbinder.campaignCF')" />
+						  <arg expression="get-property('salesbinder.itemId')" />
+						  <arg expression="get-property('salesbinder.printavoCreation')" />
+						  <arg expression="get-property('salesbinder.printavoCF')" />
+					   </args>
+					</payloadFactory>
+					<property name="salesbinder.customField" expression="json-eval($.itemDetail)" />
+					
+					<!--Call the salesbinder connector updateInventoryItem method to update the campaign creation custom field-->
+					<salesbinder.init>
+					   <apiUrl>{$ctx:salesbinder.apiUrl}</apiUrl>
+					   <apiKey>{$ctx:salesbinder.apiKey}</apiKey>
+					</salesbinder.init>
+					<salesbinder.updateInventoryItem>
+					   <customFields>{$ctx:salesbinder.customField}</customFields>
+					   <id>{$ctx:salesbinder.itemId}</id>
+					</salesbinder.updateInventoryItem>
+					<property name="salesbinder.updateItemResponse" expression="json-eval($.Item)" />
+					
+					<!-- START: Append the response message if updateInventoryItem is failed -->
+					<filter source="boolean(get-property('salesbinder.updateItemResponse'))" regex="false">
+					   <then>
+						  <property name="id" expression="fn:concat('salesbinder_itemId:',get-property('salesbinder.itemId'))" />
+						  <property name="errorResponse" expression="json-eval($)" />
+						  <call-template target="responseHandlerTemplate">
+							 <with-param name="activity" value="salesbinder_updateInventoryItem" />
+							 <with-param name="id" value="{$ctx:id}" />
+							 <with-param name="status" value="Error" />
+							 <with-param name="message" value="{$ctx:errorResponse}" />
+						  </call-template>
+					   </then>
+					</filter>
+					<!-- END: Append the response message if updateInventoryItem is failed -->
+					
+					<!--Call the sendloop connector sendEmailCampaign method to send the campaign to the mentioned subscriber list-->
+					<sendloop.init>
+					   <apiUrl>{$ctx:sendloop.apiUrl}</apiUrl>
+					   <apiKey>{$ctx:sendloop.apiKey}</apiKey>
+					   <format>json</format>
+					</sendloop.init>
+					<sendloop.sendEmailCampaign>
+					   <campaignId>{$ctx:sendloop.campaignId}</campaignId>
+					   <sendDate>NOW</sendDate>
+					</sendloop.sendEmailCampaign>
+					<property name="sendloop.sendCampaign" expression="json-eval($.Success)" />
+					
+					<!-- START: Append the response message according to the response of the sendEmailCampaign -->
+					<filter xpath="(get-property('sendloop.sendCampaign'))='true'">
+					   <then>
+						  <property name="id" expression="fn:concat('sendloop_campaignId:',get-property('sendloop.campaignId'),',printavo_productId:',get-property('salesbinder.printavoCreation'))" />
+						  <property name="status" value="Success" />
+						  <property name="message" value="The campaign has been successfully sent." />
+						  <!--Call the responseHandler template-->
+						  <call-template target="responseHandlerTemplate">
+							 <with-param name="activity" value="sendloop_sendCampaign" />
+							 <with-param name="id" value="{$ctx:id}" />
+							 <with-param name="status" value="{$ctx:status}" />
+							 <with-param name="message" value="{$ctx:message}" />
+						  </call-template>
+					   </then>
+					   <else>
+						  <property name="id" expression="fn:concat('sendloop_campaignId:',get-property('sendloop.campaignId'),',printavo_productId:',get-property('salesbinder.printavoCreation'))" />
+						  <property name="status" value="Error" />
+						  <property name="message" expression="json-eval($)" />
+						  <!--Call the responseHandler template-->
+						  <call-template target="responseHandlerTemplate">
+							 <with-param name="activity" value="sendloop_sendCampaign" />
+							 <with-param name="id" value="{$ctx:id}" />
+							 <with-param name="status" value="{$ctx:status}" />
+							 <with-param name="message" value="{$ctx:message}" />
+						  </call-template>
+					   </else>
+					</filter>
+					<!-- END: Append the response message according to the response of the sendEmailCampaign -->
+				 </else>
+			  </filter>
+			  <!-- END: Append the response message if createEmailCampaign is failed -->
+		   </then>
+		</filter>
+		<!-- END: Proceed only if campaign creation is required for the product -->
+	 </then>
+  </filter>
+  <!-- END: Proceed only if a product has been created for the item -->
+</sequence>
