@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Document: http://developers.hubspot.com/docs/methods/deals/create_deal -->
+<template name="createDeal" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="properties" description="The deal details as a JSON array." />
+   <parameter name="associatedCompanyIds" description="Company Ids which the deal is associtaed to as a JSON array." />
+   <parameter name="associatedVIds" description="The virtual Ids of the contacts which the deal is associated to as a JSON array." />
+   <parameter name="portalId" description="The Id of the portal which the deal is created." />
+   <sequence>
+      <property name="uri.var.properties" expression="$func:properties" />
+      <property name="uri.var.associatedCompanyIds" expression="$func:associatedCompanyIds" />
+      <property name="uri.var.associatedVIds" expression="$func:associatedVIds" />
+      <property name="uri.var.portalId" expression="$func:portalId" />
+      <property name="uri.var.urlQuery" value="" />
+      <filter source="boolean(get-property('uri.var.associatedCompanyIds'))" regex="false">
+         <then>
+            <property name="uri.var.associatedCompanyIds" value="[]" />
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.associatedVIds'))" regex="false">
+         <then>
+            <property name="uri.var.associatedVIds" value="[]" />
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.portalId'))" regex="true">
+         <then>
+            <property name="uri.var.urlQuery" expression="fn:concat(get-property('uri.var.urlQuery'),'&amp;portalId=', get-property('uri.var.portalId'))" />
+         </then>
+      </filter>
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "properties":$1,
+            "associations": {
+            "associatedCompanyIds":$2,
+            "associatedVids":$3
+            }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.properties')" />
+            <arg expression="get-property('uri.var.associatedCompanyIds')" />
+            <arg expression="get-property('uri.var.associatedVIds')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+      <![CDATA[
+         var payload = mc.getPayloadJSON();
+         var associatedCompanyIds = mc.getProperty('uri.var.associatedCompanyIds');
+         var associatedVIds = mc.getProperty('uri.var.associatedVIds');
+         //If vaules are not sent in arrays the parameters are removed from the payload.
+         if (associatedCompanyIds == null || associatedCompanyIds == "[]") {
+            delete payload.associations.associatedCompanyIds;
+         }
+         if (associatedVIds == null || associatedVIds == "[]") {
+            delete payload.associations.associatedVids;
+         } 
+         if ((associatedVIds == null || associatedVIds == "[]" ) && (associatedCompanyIds == null || associatedCompanyIds == "[]")) {
+            delete payload.associations;
+         }        
+         mc.setPayloadJSON(payload);
+      ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/deals/v1/deal{+uri.var.apiKey}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="Access-Control-Allow-Credentials" scope="transport" action="remove" />
+      <header name="X-HubSpot-NotFound" scope="transport" action="remove" />
+   </sequence>
+</template>
