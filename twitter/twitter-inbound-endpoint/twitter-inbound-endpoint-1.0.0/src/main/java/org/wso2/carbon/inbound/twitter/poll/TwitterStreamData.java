@@ -23,7 +23,20 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.SynapseException;
 import org.apache.synapse.core.SynapseEnvironment;
 import org.wso2.carbon.inbound.endpoint.protocol.generic.GenericPollingConsumer;
-import twitter4j.*;
+import twitter4j.Status;
+import twitter4j.StatusListener;
+import twitter4j.User;
+import twitter4j.UserStreamListener;
+import twitter4j.conf.ConfigurationBuilder;
+import twitter4j.UserList;
+import twitter4j.TwitterException;
+import twitter4j.DirectMessage;
+import twitter4j.StallWarning;
+import twitter4j.StatusDeletionNotice;
+import twitter4j.SiteStreamsListener;
+import twitter4j.TwitterStream;
+import twitter4j.FilterQuery;
+import twitter4j.TwitterStreamFactory;
 import twitter4j.conf.ConfigurationBuilder;
 
 import java.util.Properties;
@@ -45,6 +58,7 @@ public class TwitterStreamData extends GenericPollingConsumer {
     private String countParam;
     private String withFollowingsParam;
     private String filterLevelParam;
+    private String locationParam;
 
     // Twitter URL parameters value
     private int count;
@@ -53,6 +67,8 @@ public class TwitterStreamData extends GenericPollingConsumer {
     private long[] follow;
     private boolean withFollowings;
     private String filterLevel;
+    private double[][] locations;
+    private String[] locationPair;
 
     private String injectingSeq;
 
@@ -97,6 +113,18 @@ public class TwitterStreamData extends GenericPollingConsumer {
             }
         }
         filterLevel = filterLevelParam;
+
+        if (locationParam != null) {
+            locationPair = new String[locationParam.split(",").length];
+            for (int i = 0; i < (locationParam.split(",")).length; i++) {
+                locationPair[i] = locationParam.split(",")[i];
+            }
+        }
+        locations = new double[locationPair.length][2];
+        for (int j = 0; j < locationPair.length; j++) {
+            locations[j][0] = Double.parseDouble((String) locationPair[j].split(":")[0]);
+            locations[j][1] = Double.parseDouble((String) locationPair[j].split(":")[1]);
+        }
 
         // Establishing connection with twitter streaming api
         try {
@@ -154,6 +182,8 @@ public class TwitterStreamData extends GenericPollingConsumer {
                 .getProperty(TwitterConstant.TWITTER_WITH_FOLLOWINGS);
         this.filterLevelParam = properties
                 .getProperty(TwitterConstant.TWITTER_FILTER_LEVEL);
+        this.locationParam = properties
+                .getProperty(TwitterConstant.TWITTER_LOCATIONS);
         if (log.isDebugEnabled()) {
             log.debug("Loading the twitter URL parameters. countParam: "
                     + countParam + ",follow : " + followParam + ",track : "
@@ -230,10 +260,13 @@ public class TwitterStreamData extends GenericPollingConsumer {
             if (follow != null) {
                 query.follow(follow);
             }
+            if (locations != null) {
+                query.locations(locations);
+            }
             if (filterLevel != null) {
                 query.filterLevel(filterLevel);
             }
-            if (languages == null & tracks == null) {
+            if (languages == null & tracks == null & locations == null) {
                 handleException("At least follow, locations, or track must be specified.");
             }
             query.count(count);
@@ -261,7 +294,7 @@ public class TwitterStreamData extends GenericPollingConsumer {
             }
         }
         /*
-		 User Streams provide a stream of data and events specific to the
+         User Streams provide a stream of data and events specific to the
 		 authenticated user.This provides to access the Streams messages for a
 		 single user.
 		 */
