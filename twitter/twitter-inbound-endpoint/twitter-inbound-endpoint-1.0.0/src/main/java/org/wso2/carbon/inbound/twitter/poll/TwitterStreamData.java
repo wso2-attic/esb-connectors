@@ -120,10 +120,12 @@ public class TwitterStreamData extends GenericPollingConsumer {
                 locationPair[i] = locationParam.split(",")[i];
             }
         }
-        locations = new double[locationPair.length][2];
-        for (int j = 0; j < locationPair.length; j++) {
-            locations[j][0] = Double.parseDouble((String) locationPair[j].split(":")[0]);
-            locations[j][1] = Double.parseDouble((String) locationPair[j].split(":")[1]);
+        if(locationPair!=null) {
+            locations = new double[locationPair.length][2];
+            for (int j = 0; j < locationPair.length; j++) {
+                locations[j][0] = Double.parseDouble((String) locationPair[j].split(":")[0]);
+                locations[j][1] = Double.parseDouble((String) locationPair[j].split(":")[1]);
+            }
         }
 
         // Establishing connection with twitter streaming api
@@ -234,7 +236,8 @@ public class TwitterStreamData extends GenericPollingConsumer {
         if (twitterOperation.equals(TwitterConstant.FILTER_STREAM_OPERATION)
                 || twitterOperation.equals(TwitterConstant.FIREHOSE_STREAM_OPERATION)
                 || twitterOperation.equals(TwitterConstant.LINK_STREAM_OPERATION)
-                || twitterOperation.equals(TwitterConstant.SAMPLE_STREAM_OPERATION)) {
+                || twitterOperation.equals(TwitterConstant.SAMPLE_STREAM_OPERATION)
+                || twitterOperation.equals(TwitterConstant.RETWEET_STREAM_OPERATION)) {
             statusStreamsListener = new StatusListenerImpl();
             twitterStream.addListener(statusStreamsListener);
         } else if (twitterOperation.equals(TwitterConstant.USER_STREAM_OPERATION)) {
@@ -266,7 +269,7 @@ public class TwitterStreamData extends GenericPollingConsumer {
             if (filterLevel != null) {
                 query.filterLevel(filterLevel);
             }
-            if (languages == null & tracks == null & locations == null) {
+            if (follow == null & tracks == null & locations == null) {
                 handleException("At least follow, locations, or track must be specified.");
             }
             query.count(count);
@@ -283,8 +286,9 @@ public class TwitterStreamData extends GenericPollingConsumer {
                 } else {
                     handleException("A language can be used for the sample operation");
                 }
+            } else {
+                twitterStream.sample();
             }
-            twitterStream.sample();
         }
         /* Asynchronously retrieves all public statuses.*/
         if ((properties.getProperty(TwitterConstant.TWITTER_OPERATION))
@@ -302,10 +306,11 @@ public class TwitterStreamData extends GenericPollingConsumer {
                 .equals(TwitterConstant.USER_STREAM_OPERATION)) {
             if (tracks != null) {
                 twitterStream.user(tracks);
+            }else {
+                twitterStream.user();
             }
-            twitterStream.user();
         }
-		/*
+        /*
 		 * Link Streams provide asynchronously retrieves all statuses containing 'http:' and 'https:'.
 		 */
         if ((properties.getProperty(TwitterConstant.TWITTER_OPERATION))
