@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--The sequence will perform three of the activities given as below.
+   ACTIVITY 1: Add a note to Producteev task containing the resolution of the Bug in Bugherd or Incident in PagerDuty.
+   ACTIVITY 2: Update the Producteev task as 'resolved'.
+   ACTIVITY 3: Send a message to the requester of the ticket via Mandrill informing that the task is resolved with the given resolution.
+   ACTIVITY 4: Update the appropriate Case in ZohoCrm with setting the resolution of the task and the status as resolved.
+-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="updateTaskAndSendMessage">
+
+
+   <property name="producteev.message" expression="fn:concat('Task Resolution:',get-property('operation','producteev.message'))" />
+
+   <!--ACTIVITY 1: Add a note to Producteev task containing the resolution of the Bug in Bugherd or Incident in PagerDuty. -->
+   <producteev.init>
+      <apiUrl>{$ctx:producteev.apiUrl}</apiUrl>
+      <accessToken>{$ctx:producteev.accessToken}</accessToken>
+   </producteev.init>
+   <producteev.createNote>
+      <taskId>{$ctx:producteev.taskId}</taskId>
+      <message>{$ctx:producteev.message}</message>
+   </producteev.createNote>
+
+   <!--Removing unused headers. -->
+   <sequence key="removeResponseHeaders" />
+
+   <property name="producteev.noteId" expression="//note/id/text()" />
+
+   <!--START: If there occurred an error while adding the note to the Producteev task, display the error message given by the API. -->
+   <filter source="boolean(get-property('producteev.noteId'))" regex="false">
+      <then>
+         <property name="producteev.errorResponse" expression="json-eval($)" />
+         <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'))" />
+
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="producteev_createNote" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Skipped" />
+            <with-param name="message" value="{$ctx:producteev.errorResponse}" />
+         </call-template>
+      </then>
+      <else>
+         <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'))" />
+
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="producteev_createNote" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Success" />
+            <with-param name="message" value="Resolution is successfully added to the task." />
+         </call-template>
+
+         <!--Removing unwanted property -->
+         <property name="uri.var.projectId" action="remove" />
+
+         <!--ACTIVITY 2: Update the Producteev task as 'resolved'. -->
+         <producteev.init>
+            <accessToken>{$ctx:producteev.accessToken}</accessToken>
+            <apiUrl>{$ctx:producteev.apiUrl}</apiUrl>
+         </producteev.init>
+         <producteev.updateTask>
+            <taskId>{$ctx:producteev.taskId}</taskId>
+            <status>resolved</status>
+         </producteev.updateTask>
+
+         <!--Removing unused headers. -->
+         <sequence key="removeResponseHeaders" />
+
+         <property name="producteev.updatedTaskId" expression="//task/id/text()" />
+         <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'))" />
+
+         <!--START: If there occurred an error while updating the task in Producteev as resolved, display the error message given by the API. -->
+         <filter source="boolean(get-property('producteev.updatedTaskId'))" regex="false">
+            <then>
+               <property name="producteev.errorResponse" expression="json-eval($)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="producteev_resolveTask" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="{$ctx:producteev.errorResponse}" />
+               </call-template>
+            </then>
+            <else>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="producteev_resolveTask" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Success" />
+                  <with-param name="message" value="Task is successfully resolved." />
+               </call-template>
+            </else>
+         </filter><!--END: If there occurred an error while updating the task in Producteev as resolved, display the error message given by the API. -->
+      </else>
+   </filter><!--END: If there occurred an error while adding the note to the Producteev task, display the error message given by the API. -->
+
+   <!--ACTIVITY 3: Send a message to the requester of the ticket via Mandril informing that the task is resolved with the given resolution. -->
+   <!--Retrieve the requester name from the ZohoCrm case. -->
+   <zohocrm.init>
+      <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+      <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+      <scope>crmapi</scope>
+   </zohocrm.init>
+   <zohocrm.getRecordsById>
+      <id>{$ctx:zohocrm.caseId}</id>
+      <moduleType>Cases</moduleType>
+   </zohocrm.getRecordsById>
+
+   <!--Removing unused headers. -->
+   <sequence key="removeResponseHeaders" />
+
+   <property name="zohocrm.responseId" expression="json-eval($.response.result.Cases.row.FL[0].content)" />
+   <property name="id" expression="fn:concat('zohocrm_caseId:', get-property('zohocrm.caseId'))" />
+
+   <!--START : Checking whether there occurred an error while retrieving the case in ZohoCrm. -->
+   <filter source="boolean(get-property('zohocrm.responseId'))" regex="false">
+      <then>
+         <property name="zohocrm.errorResponse" expression="json-eval($)" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="zohocrm_getCase" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Error" />
+            <with-param name="message" value="{$ctx:zohocrm.errorResponse}" />
+         </call-template>
+      </then>
+      <else>
+         <property name="caseAttributes" expression="json-eval($.response.result.Cases.row.FL)" />
+
+         <script language="js"><![CDATA[
+				//Script Mediator is used to extract necessary properties from the JSON response.
+				//Attributes of the case are returned as a map (key-value pairs) rather than as an object
+				var jsn = eval("(" + mc.getProperty("caseAttributes") + ")");
+				for (var i = 0; i<jsn.length ; i++) {
+						if(jsn[i].val == "Reported By"){
+							mc.setProperty('zohoCrm.requesterName', '' + jsn[i].content);
+						}
+				}
+				//formatting the email contents to be sent via Mandril.		
+				var serviceProviderName = mc.getProperty('mandrill.fromName');
+				var taskSubject = mc.getProperty('producteev.taskSubject');
+				var taskDescription = mc.getProperty('producteev.taskDescription');
+				var incidentKey = mc.getProperty('producteev.taskId');
+				var requesterName = mc.getProperty('zohoCrm.requesterName');
+				var to = '[{"email": "' + mc.getProperty('producteev.clientEmail') + '"}]';                                                   
+				var mailSubject = 'Service Request Closed.';                                                  
+				var mailContent = "<style>table.line, td.line {border: 1px solid #33CCFF;border-collapse: collapse;}</style> <h3>Dear "+requesterName+",</h3> <p>Thank you for reaching the "+serviceProviderName+"</p> <p>Please note that the ticket you raised is being addressed and closed as follows.</p> <table class=line> <tr style=background-color:#33CCFF> <td class=line colspan='2'>Ticket Details</td> </tr> <tr> <td class=line>Ticket Reference</td> <td class=line>"+incidentKey+"</td> </tr> <tr> <td class=line style=width:100px;>Ticket Subject</td> <td class=line style=width:300px;>"+taskSubject+"</td> </tr> <tr> <td class=line>Description</td> <td class=line>"+taskDescription+"</td> </tr> <tr> <td class=line>Status</td> <td class=line>Resolved</td> </tr> </table> <p>Regards,</p> <p><b>"+serviceProviderName+"</b></p>";
+				mc.setProperty('mandrill.to', to);
+				mc.setProperty('mandrill.subject', mailSubject);
+				mc.setProperty('mandrill.requester.html', mailContent);			 
+			
+		  ]]></script>
+         <property name="mandrill.html" expression="fn:concat('&lt;html&gt;', get-property('mandrill.requester.html'), '&lt;/html&gt;')" />
+
+         <mandrill.init>
+            <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+            <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+            <format>json</format>
+         </mandrill.init>
+         <mandrill.sendMessage>
+            <html>{$ctx:mandrill.html}</html>
+            <subject>{$ctx:mandrill.subject}</subject>
+            <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+            <fromName>{$ctx:mandrill.fromName}</fromName>
+            <to>{$ctx:mandrill.to}</to>
+         </mandrill.sendMessage>
+
+         <!--Removing unused headers. -->
+         <sequence key="removeResponseHeaders" />
+
+         <property name="mandrill.messageId" expression="json-eval($[0]._id)" />
+
+         <!-- START: Append a message to be sent to the user regarding the status of sending notification to requester. -->
+         <filter source="boolean(get-property('mandrill.messageId'))" regex="false">
+            <then>
+               <property name="mandrill.errorResponse" expression="json-eval($)" />
+               <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'))" />
+
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="mandrill_sendNotification" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:mandrill.errorResponse}" />
+               </call-template>
+            </then>
+            <else>
+               <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'),',mandrill_messageId:',get-property('mandrill.messageId'))" />
+               <property name="message" expression="fn:concat('Notification is successfully sent(to ', get-property('zohoCrm.requesterName'),').')" />
+
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="mandrill_sendNotification" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Success" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+            </else>
+         </filter><!-- END of Filter: Append a message to be sent to the user regarding the status of sending notification to assignee. -->
+      </else>
+   </filter>
+
+   <!--ACTIVITY 4: Update the appropriate Case in ZohoCrm with setting the resolution of the task and the status as resolved. -->
+   <script language="js"><![CDATA[
+			//constructing the xml data in order to update the Case in ZohoCrm								
+			var taskResolution = mc.getProperty('producteev.message').split(":")[1];								
+			var xmlData="<Cases> <row no=\"1\"> <FL val=\"Status\">Closed</FL><FL val=\"Solution\">"+taskResolution+"</FL></row> </Cases>";
+			mc.setProperty('zohocrm.xmlData', xmlData);
+		]]></script>
+
+   <zohocrm.init>
+      <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+      <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+      <scope>crmapi</scope>
+   </zohocrm.init>
+   <zohocrm.updateRecords>
+      <moduleType>Cases</moduleType>
+      <id>{$ctx:zohocrm.caseId}</id>
+      <xmlData>{$ctx:zohocrm.xmlData}</xmlData>
+   </zohocrm.updateRecords>
+
+   <!--Removing unused headers -->
+   <sequence key="removeResponseHeaders" />
+
+   <property name="zohocrm.responseId" expression="json-eval($.response.result.recorddetail.FL[0].content)" />
+   <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'),',zohocrm_caseId:', get-property('zohocrm.caseId'))" />
+
+   <!--START : Checking whether there occurred an error while updating the case in ZohoCrm. -->
+   <filter source="boolean(get-property('zohocrm.responseId'))" regex="false">
+      <then>
+         <property name="zohocrm.errorResponse" expression="json-eval($)" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="zohocrm_updateCase" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Error" />
+            <with-param name="message" value="{$ctx:zohocrm.errorResponse}" />
+         </call-template>
+      </then>
+      <else>
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="zohocrm_updateCase" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Success" />
+            <with-param name="message" value="Case is successfully resolved with a resolution." />
+         </call-template>
+      </else>
+   </filter><!--END : Checking whether there occurred an error while updating the case in ZohoCrm. -->
+
+   <!--START: If the task type is 'Bug' then update the Bugherd task status as 'closed' -->
+   <filter xpath="get-property('operation','producteev.taskType') = 'Bug'">
+      <then>
+         <script language="js"><![CDATA[
+				//script to construct the JSON object to update the task.
+				var taskObject={"status":"closed"};
+				mc.setPayloadJSON(taskObject);
+			]]></script>
+
+         <property name="bugherd.task" expression="json-eval($)" />
+
+         <bugherd.init>
+            <apiUrl>{$ctx:bugherd.apiUrl}</apiUrl>
+            <apiKey>{$ctx:bugherd.apiKey}</apiKey>
+            <projectId>{$ctx:bugherd.projectId}</projectId>
+         </bugherd.init>
+         <bugherd.updateProjectTask>
+            <taskId>{$ctx:bugherd.resolvedTaskId}</taskId>
+            <task>{$ctx:bugherd.task}</task>
+         </bugherd.updateProjectTask>
+
+         <!--Removing unused headers. -->
+         <sequence key="removeResponseHeaders" />
+
+         <property name="bugherd.resolvedTaskUpdateResponse" expression="//task" />
+         <property name="id" expression="fn:concat('bugherd_taskId:', get-property('bugherd.resolvedTaskId'))" />
+
+         <!--START : Checking whether there are any errors in updating the status of the task as 'Closed'. -->
+         <filter source="boolean(get-property('bugherd.resolvedTaskUpdateResponse'))" regex="false">
+            <then>
+               <property name="bugherd.errorResponse" expression="json-eval($)" />
+
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="bugherd_updateTask" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:bugherd.errorResponse}" />
+               </call-template>
+            </then>
+         </filter><!--END : Checking whether there are any errors in updating the status of the task as 'Closed'. -->
+      </then>
+   </filter><!--END: If the task type is 'Bug' then update the Bugherd task status as 'closed' -->
+</sequence>

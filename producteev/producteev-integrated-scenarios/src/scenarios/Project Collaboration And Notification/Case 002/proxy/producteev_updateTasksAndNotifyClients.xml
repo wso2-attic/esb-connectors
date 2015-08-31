@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--This proxy will retrieve all the resolved bugs in Bugherd and incidents in PagerDuty, notify the requesters of them via Mandrill and finally update the resolution and the status of them in Producteev 
+   and ZohoCrm accordingly. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="producteev_updateTasksAndNotifyClients" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence>
+         <!-- Bugherd Properties. -->
+         <property name="bugherd.apiUrl" value="https://www.bugherd.com" />
+         <property name="bugherd.apiKey" expression="json-eval($.bugherd.apiKey)" />
+
+         <!-- PagerDuty Properties. -->
+         <property name="pagerduty.apiUrl" expression="json-eval($.pagerduty.apiUrl)" />
+         <property name="pagerduty.apiToken" expression="json-eval($.pagerduty.apiToken)" />
+         <property name="pagerduty.serviceId" expression="json-eval($.pagerduty.serviceId)" />
+
+         <!-- Mandrill Properties. -->
+         <property name="mandrill.apiUrl" value="https://mandrillapp.com" />
+         <property name="mandrill.apiKey" expression="json-eval($.mandrill.apiKey)" />
+         <property name="mandrill.fromEmail" expression="json-eval($.mandrill.fromEmail)" />
+         <property name="mandrill.fromName" expression="json-eval($.mandrill.fromName)" />
+
+         <!-- Producteev Properties. -->
+         <property name="producteev.apiUrl" value="https://www.producteev.com" />
+         <property name="producteev.accessToken" expression="json-eval($.producteev.accessToken)" />
+
+         <!-- ZohoCrm Properties. -->
+         <property name="zohocrm.apiUrl" value="https://crm.zoho.com" />
+         <property name="zohocrm.accessToken" expression="json-eval($.zohocrm.accessToken)" />
+
+         <!-- Operation scoped properties. -->
+         <property name="id.empty" value="{}" />
+         <property name="responseString" value="" scope="operation" />
+         <property name="producteev.taskType" value="" scope="operation" />
+
+         <!--Listing down all the incidents in the PagerDuty account that are resolved. -->
+         <pagerduty.init>
+            <apiUrl>{$ctx:pagerduty.apiUrl}</apiUrl>
+            <apiToken>{$ctx:pagerduty.apiToken}</apiToken>
+         </pagerduty.init>
+         <pagerduty.listIncidents>
+            <dateRange>all</dateRange>
+            <status>resolved</status>
+            <service>{$ctx:pagerduty.serviceId}</service>
+            <sortBy>asc</sortBy>
+         </pagerduty.listIncidents>
+
+         <!--Removing unused headers. -->
+         <sequence key="removeResponseHeaders" />
+
+         <property name="pagerduty.httpStatusCode" expression="$axis2:HTTP_SC" />
+         <!--START: If there occurs an authentication failure in Pagerduty then call the 'processResolvedBugsAndNotifyRequester' sequence. -->
+         <filter source="get-property('pagerduty.httpStatusCode')" regex="401">
+            <then>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="pagerduty_updateTasksAndNotifyClients" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="Failed to authenticate Pagerduty API.Please verify the authentication credentials." />
+               </call-template>
+
+               <!--Call the sequence in order to process the resolved Bugs in Bugherd and notify the requesters. -->
+               <sequence key="processResolvedBugsAndNotifyRequester" />
+            </then>
+            <else>
+               <!--Checking the availability of resolved incidents. -->
+               <property name="pagerDuty.resolvedIncidentsCount" expression="count(//incidents)" scope="operation" />
+               <property name="pagerDuty.resolvedIncidentsIndex" expression="0" scope="operation" />
+
+               <!--START: If the resolved incidents count is zero then handle the failure case. -->
+               <filter source="get-property('operation','pagerDuty.resolvedIncidentsCount')" regex="0.0">
+                  <then>
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="pagerduty_updateTasksAndNotifyClients" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="There are no resolved incidents in the provided service to process." />
+                     </call-template>
+
+                     <!--Call the sequence in order to process the resolved Bugs in Bugherd and notify the requesters. -->
+                     <sequence key="processResolvedBugsAndNotifyRequester" />
+
+                  </then>
+                  <else>
+                     <property name="producteev.activeTaskCount" expression="0" scope="operation" />
+                     <!-- BEGIN: FOR EACH resolved incident -->
+                     <iterate continueParent="false" id="resolvedIncidentsIterator" expression="//incidents" sequential="true">
+                        <target>
+                           <sequence>
+                              <!--Retrieve the ticket reference. -->
+                              <property name="pagerDuty.incidentId" expression="//incidents/id/text()" />
+                              <property name="pagerDuty.incidentKey" expression="//incidents/incident_key/text()" />
+                              <property name="pagerDuty.incidentDescription" expression="//trigger_summary_data/description/text()" />
+                              <property name="pagerDuty.incidentClientEmail" expression="//trigger_summary_data/client/text()" />
+
+                              <!--Checking whether the incident is already closed in producteev. -->
+                              <producteev.init>
+                                 <apiUrl>{$ctx:producteev.apiUrl}</apiUrl>
+                                 <accessToken>{$ctx:producteev.accessToken}</accessToken>
+                              </producteev.init>
+                              <producteev.getTask>
+                                 <taskId>{$ctx:pagerDuty.incidentKey}</taskId>
+                              </producteev.getTask>
+
+                              <!--Removing unused headers. -->
+                              <sequence key="removeResponseHeaders" />
+
+                              <property name="producteev.taskStatus" expression="//task/status/text()" />
+
+                              <!--START: Retrieve only the tasks in Producteev which are not already closed. -->
+                              <filter xpath="get-property('producteev.taskStatus')!=0">
+                                 <then>
+                                    <property name="producteev.activeTaskCount" expression="get-property('operation','producteev.activeTaskCount')+1" scope="operation" />
+
+                                    <property name="producteev.taskSubject" expression="//task/title/text()" />
+
+                                    <!--Call the 'retrieveTaskDetailsFromNotes' template in order to retrieve the note details from the Producteev task. -->
+                                    <call-template target="retrieveTaskDetailsFromNotes">
+                                       <with-param name="producteev.apiUrl" value="{$ctx:producteev.apiUrl}" />
+                                       <with-param name="producteev.accessToken" value="{$ctx:producteev.accessToken}" />
+                                       <with-param name="producteev.taskId" value="{$ctx:pagerDuty.incidentKey}" />
+                                    </call-template>
+
+                                    <!--Retrieve the resolution added in Pagerduty. -->
+                                    <pagerduty.init>
+                                       <apiUrl>{$ctx:pagerduty.apiUrl}</apiUrl>
+                                       <apiToken>{$ctx:pagerduty.apiToken}</apiToken>
+                                    </pagerduty.init>
+                                    <pagerduty.listNotes>
+                                       <incidentId>{$ctx:pagerDuty.incidentId}</incidentId>
+                                    </pagerduty.listNotes>
+
+                                    <!--Removing unused headers. -->
+                                    <sequence key="removeResponseHeaders" />
+
+                                    <property name="pagerDuty.responseNotes" expression="//notes" />
+                                    <property name="id" expression="fn:concat('pagerduty_incidentId:', get-property('pagerDuty.incidentId'))" />
+
+                                    <!--START : Checking whether there occurred an error while retrieving the notes of the resolved incident in PagerDuty. -->
+                                    <filter source="boolean(get-property('pagerDuty.responseNotes'))" regex="false">
+                                       <then>
+                                          <property name="pagerDuty.errorResponse" expression="json-eval($)" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="pagerduty_listNotes" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Error" />
+                                             <with-param name="message" value="{$ctx:pagerDuty.errorResponse}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <property name="pagerDuty.incidentNotesCount" expression="count(//notes)" scope="operation" />
+
+                                          <!--START : Checking whether the resolution is added as a note in the Pagerduty incident. -->
+                                          <filter source="get-property('operation','pagerDuty.incidentNotesCount')" regex="0.0">
+                                             <then>
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="pagerduty_listNotes" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Skipped" />
+                                                   <with-param name="message" value="There are no notes added to the incident thus the resolution could not be retrieved." />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <!--FOR EACH notes : BEGIN -->
+                                                <iterate continueParent="true" id="pagerDutyIncidentNotes" expression="//notes" sequential="true">
+                                                   <target>
+                                                      <sequence>
+                                                         <property name="pagerduty.noteContent" expression="json-eval($.notes.content)" />
+                                                         <!--Retrieving the resolution and the task description of the incident from notes. -->
+                                                         <script language="js"><![CDATA[
+															   var noteContent = mc.getProperty('pagerduty.noteContent'); 
+															   if(noteContent.indexOf("Task Resolution:")!=-1){
+																  var noteStringArray = noteContent.split('Task Resolution:');
+																  mc.setProperty('taskResolution',noteStringArray[1]);
+															   }
+															   if(noteContent.indexOf("Task Description:")!=-1){
+																  var noteStringArray = noteContent.split('Task Description:');
+																  mc.setProperty('taskDescription',noteStringArray[1]);
+															   }
+														   ]]></script>
+
+                                                         <property name="producteev.message" expression="get-property('taskResolution')" scope="operation" />
+                                                         <!-- Set Producteev task description to operation scope -->
+                                                         <filter source="boolean(get-property('taskDescription'))" regex="true">
+                                                            <then>
+                                                               <property name="producteev.taskDescription" expression="get-property('taskDescription')" />
+                                                            </then>
+                                                         </filter>
+
+                                                      </sequence>
+                                                   </target>
+                                                </iterate>
+                                                <!-- Call the sequence to perform the following activities ;
+                                                   ACTIVITY 1: Add a note to Producteev task containing the resolution of the Incident in Pagerduty.
+                                                   ACTIVITY 2: Update the Producteev task as 'resolved'.
+                                                   ACTIVITY 3: Send a message to the requester of the ticket via Mandrill informing that the task is resolved with the given resolution.
+                                                   ACTIVITY 4: Update the appropriate Case in ZohoCrm with setting the resolution of the task and the status as resolved.
+                                                -->
+                                                <property name="producteev.taskId" expression="get-property('pagerDuty.incidentKey')" />
+
+                                                <property name="producteev.clientEmail" expression="get-property('pagerDuty.incidentClientEmail')" />
+
+
+                                                <sequence key="updateTaskAndSendMessage" />
+
+                                             </else>
+                                          </filter><!--END : Checking whether the resolution is added as a note in the Pagerduty incident. -->
+                                       </else>
+                                    </filter><!--END : Checking whether there occurred an error while retrieving the notes of the resolved incident in Pagerduty. -->
+                                 </then>
+                              </filter><!--END: Retrieve only the tasks in Producteev which are not already closed. -->
+
+                              <!--Incrementing the index -->
+                              <property name="pagerDuty.resolvedIncidentsIndex" expression="get-property('operation','pagerDuty.resolvedIncidentsIndex') + 1" scope="operation" />
+
+                              <filter xpath="get-property('operation','pagerDuty.resolvedIncidentsCount') = get-property('operation', 'pagerDuty.resolvedIncidentsIndex')">
+                                 <then>
+                                    <filter source="get-property('operation','producteev.activeTaskCount')" regex="0.0">
+                                       <call-template target="responseHandlerTemplate">
+                                          <with-param name="activity" value="pagerduty_updateTasksAndNotifyClients" />
+                                          <with-param name="id" value="{$ctx:id.empty}" />
+                                          <with-param name="status" value="Skipped" />
+                                          <with-param name="message" value="There are no unresolved incidents to process." />
+                                       </call-template>
+                                    </filter>
+                                    <!--Call the sequence in order to process the resolved bugs in Bugherd and notify the requesters. -->
+                                    <sequence key="processResolvedBugsAndNotifyRequester" />
+
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate><!-- END: FOR EACH resolved incident -->
+                  </else>
+               </filter><!--END: If the resolved incidents count is zero then handle the failure case. -->
+            </else>
+         </filter>
+         <!--END of Filter: If there occurs an authentication failure in Pagerduty then loopback. -->
+      </inSequence>
+      <outSequence>
+         <!-- Send the constructed response to the user. -->
+         <payloadFactory media-type="json">
+            <format>{
+               "Response":{
+                  "process":"producteev_updateTasksAndNotifyClients",
+                     "activityResponse": [$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+</proxy>
