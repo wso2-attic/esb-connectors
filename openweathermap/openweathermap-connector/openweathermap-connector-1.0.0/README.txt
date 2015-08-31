@@ -76,7 +76,7 @@ Steps to follow in setting integration test.
     	xxi)	end			                    -	Use a valid end date with the format of (unix time, UTC time zone)(E.g. start=1369728000 ).
     	xxii)	stationID						-	Use a valid station ID(E.g. 29584).
     	xxiii)  frequencyType					-   frequency of data, possible parameters are 'daily', 'hour', and 'tick'. Parameter 'tick.
-    	xxiv) 	callback				        -	Use a unique string as the project name to create project with optional parameters.
+    	xxiv) 	callback				        -	Use JavaScript code you can transfer callback functionName to JSONP callback
 
 
  8.  Navigate to "{ESB_Connector_Home}/" and run the following command.
