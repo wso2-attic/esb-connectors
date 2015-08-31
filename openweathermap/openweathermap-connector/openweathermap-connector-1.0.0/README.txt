@@ -56,8 +56,8 @@ Steps to follow in setting integration test.
     	v)	cityName		        - 	Use a valid Country name.
     	vi)	zipCode				-       Use a valid numeric value for zipCode.
     	vii)	countryCode			-	Use a valid Country Code (E.g. uk, us).
-    	viii)   lat			        -	Use a valid numerical value for City geo location, longitude.
-    	ix)	lon			        -	Use a valid numerical value for City geo location, latitude.
+    	viii)   lat			        -	Use a valid numerical value for City geo location, latitude.
+    	ix)	lon			        -	Use a valid numerical value for City geo location,longitude.
     	x)	count              	        -	Use a integer value for count.
     	xi) 	cluster  		        -	use server clustering of points. Possible values ​​are [yes, no].
     	xii)	cnt                 		-	Use a integer value for cnt.
