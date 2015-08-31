@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This sequence creates an incident in PagerDuty and assigns the user who is assigned to the corresponding Producteev task. -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="createIncident">
+
+   <!-- Create incident in PagerDuty by setting Producteev taskId as incidentKey. -->
+   <pagerduty.createIncident>
+      <serviceKey>{$ctx:pagerduty.serviceKey}</serviceKey>
+      <eventType>trigger</eventType>
+      <description>{$ctx:producteev.taskTitle}</description>
+      <incidentKey>{$ctx:producteev.taskId}</incidentKey>
+      <client>{$ctx:clientEmail}</client>
+   </pagerduty.createIncident>
+   
+   <!-- Removing unused headers. -->
+   <sequence key="removeResponseHeaders" />
+   <property name="pagerduty.incidentKey" expression="json-eval($.incident_key)" />
+   
+   <!-- START of Filter: Proceed to process if incident is created. -->
+   <filter source="boolean(get-property('pagerduty.incidentKey'))" regex="false">
+      <then>
+         <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'))" />
+         <property name="errorResponse" expression="json-eval($)" />
+         <!-- Failure case: Append an error message to be sent to the user. -->
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="property_createIncident" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Error" />
+            <with-param name="message" value="{$ctx:errorResponse}" />
+         </call-template>
+      </then>
+      <else>
+         <!-- List all triggered incidents in PagerDuty. -->
+         <pagerduty.init>
+            <apiUrl>{$ctx:pagerduty.apiUrl}</apiUrl>
+            <apiToken>{$ctx:pagerduty.apiToken}</apiToken>
+         </pagerduty.init>
+         <pagerduty.listIncidents>
+            <status>triggered</status>
+            <incidentKey>{$ctx:pagerduty.incidentKey}</incidentKey>
+            <service>{$ctx:pagerduty.serviceId}</service>
+         </pagerduty.listIncidents>
+		 
+         <!-- Removing unused headers. -->
+         <sequence key="removeResponseHeaders" />
+		 
+         <property name="pagerduty.incidentId" expression="json-eval($.incidents[0].id)" />
+		 
+         <!-- START of Filter: Proceed to process if incident is retrieved. -->
+         <filter source="boolean(get-property('pagerduty.incidentId'))" regex="false">
+            <then>
+               <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'))" />
+               <property name="errorResponse" expression="json-eval($)" />
+			   
+               <!-- Failure case: Append an error message to be sent to the user. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="property_listIncidents" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Skipped" />
+                  <with-param name="message" value="{$ctx:errorResponse}" />
+               </call-template>
+            </then>
+            <else>
+               <property name="append.taskId" expression="get-property('pagerduty.incidentId')" />
+			   
+               <!-- Get user by assignee email in PagerDuty. -->
+               <pagerduty.init>
+                  <apiUrl>{$ctx:pagerduty.apiUrl}</apiUrl>
+                  <apiToken>{$ctx:pagerduty.apiToken}</apiToken>
+               </pagerduty.init>
+               <pagerduty.listUsers>
+                  <query>{$ctx:producteev.assigneeEmail}</query>
+               </pagerduty.listUsers>
+			   
+               <!-- Removing unused headers. -->
+               <sequence key="removeResponseHeaders" />
+			   
+               <property name="pagerduty.userId" expression="json-eval($.users[0].id)" />
+			   
+               <!-- START of Filter: Proceed to process if user exist. -->
+               <filter source="boolean(get-property('pagerduty.userId'))" regex="false">
+                  <then>
+                     <property name="id" expression="fn:concat('pagerduty_incidentId:', get-property('pagerduty.incidentId'),',producteev_taskId : ', get-property('producteev.taskId'))" />
+                     <property name="errorResponse" expression="json-eval($)" />
+					 
+                     <!-- Failure case: Append an error message to be sent to the user. -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="pagerduty_listUsers" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Error" />
+                        <with-param name="message" value="Could not assign a user to the incident due to an error." />
+                     </call-template>
+                  </then>
+                  <else>
+                     <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'),',pagerduty_incidentId :', get-property('pagerduty.incidentId'))" />
+                    
+					<!-- Append a success message to be sent to the user. -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="pagerduty_createIncident" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Success" />
+                        <with-param name="message" value="Incident is successfully created." />
+                     </call-template>
+					 
+                      <payloadFactory media-type="json">
+						<format>[
+									{
+									 "id":"$1",
+									 "assigned_to_user":"$2"
+									}
+								]
+						</format>
+						<args>
+						   <arg expression="get-property('pagerduty.incidentId')" />
+						   <arg expression="get-property('pagerduty.userId')" />
+						</args>
+					 </payloadFactory>
+					 
+                     <property name="incidents" expression="json-eval($)" />
+                     <property name="pagerduty.incidents" expression="json-eval($)" />
+					 
+                     <!-- Assign a user to the incident. -->
+                     <pagerduty.init>
+                        <apiUrl>{$ctx:pagerduty.apiUrl}</apiUrl>
+                        <apiToken>{$ctx:pagerduty.apiToken}</apiToken>
+                     </pagerduty.init>
+                     <pagerduty.updateIncident>
+                        <requesterId>{$ctx:pagerduty.requesterId}</requesterId>
+                        <incidents>{$ctx:pagerduty.incidents}</incidents>
+                     </pagerduty.updateIncident>
+					 
+                     <!-- Removing unused headers. -->
+                     <sequence key="removeResponseHeaders" />
+					 
+                     <property name="pagerduty.incidentNumber" expression="json-eval($.incidents[0].incident_number)" />
+                     <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'),',pagerduty_incidentId :', get-property('pagerduty.incidentId'))" />
+                     
+					 <!-- START of Filter: Set the message to be sent to the user according to the status of incident update. -->
+                     <filter source="boolean(get-property('pagerduty.incidentNumber'))" regex="false">
+                        <then>
+                           <!-- Failure case: Append an error message to be sent to the user. -->
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="pagerduty_updateIncident" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="Error" />
+                              <with-param name="message" value="Unknown error occurred while assigning a user to the incident." />
+                           </call-template>
+                        </then>
+                     </filter><!-- END of Filter: Set the message to be sent to the user according to the status of incident update. -->
+                     
+					 <script language="js">
+						 <![CDATA[
+							//Create a note for the incident.
+							var taskDescription = mc.getProperty('producteev.taskDescription');
+							taskDescription = "Task Description:"+taskDescription;
+							mc.setProperty("noteContent",taskDescription);
+						 ]]>
+					 </script>
+                     <!-- Add description for the task as not in PagerDuty. -->
+                     <pagerduty.init>
+                        <apiUrl>{$ctx:pagerduty.apiUrl}</apiUrl>
+                        <apiToken>{$ctx:pagerduty.apiToken}</apiToken>
+                     </pagerduty.init>
+                     <pagerduty.createNote>
+                        <incidentId>{$ctx:pagerduty.incidentId}</incidentId>
+                        <requesterId>{$ctx:pagerduty.requesterId}</requesterId>
+                        <noteContent>{$ctx:noteContent}</noteContent>
+                     </pagerduty.createNote>
+                     <property name="pagerduty.incidentNoteId" expression="json-eval($.note.id)" />
+					 
+                     <filter source="boolean(get-property('pagerduty.incidentNoteId'))" regex="false">
+                        <then>
+                           <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'),',pagerduty_incidentId :', get-property('pagerduty.incidentId'))" />
+                           
+						   <!-- Failure case: Append an error message to be sent to the user. -->
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="pagerduty_createNote" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="Error" />
+                              <with-param name="message" value="Could not add a note to the incident due to an error." />
+                           </call-template>
+                        </then>
+                     </filter>
+                  </else>
+               </filter><!-- END of Filter: Proceed to process if user exist. -->
+            </else>
+         </filter><!-- END of Filter: Proceed to process if incident is received. -->
+      </else>
+   </filter><!-- END of Filter: Proceed to process if incident is created. -->
+</sequence>

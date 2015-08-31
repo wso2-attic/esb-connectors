@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Retrieving form submissions from JotForm API and create cases in ZohoCRM API -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="producteev_retrieveSubmissionsAndCreateCases" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!--Jotform Properties -->
+         <property name="jotform.apiUrl" value="https://api.jotform.com" />
+         <property name="jotform.apiKey" expression="json-eval($.jotform.apiKey)" />
+         <property name="jotform.formId" expression="json-eval($.jotform.formId)" />
+
+         <!--ZohoCRM Properties -->
+         <property name="zohocrm.apiUrl" value="https://crm.zoho.com" />
+         <property name="zohocrm.accessToken" expression="json-eval($.zohocrm.accessToken)" />
+
+         <!-- Calling Jotform getFormSubmissions to retrieve submissions information -->
+         <jotform.init>
+            <apiUrl>{$ctx:jotform.apiUrl}</apiUrl>
+            <apiKey>{$ctx:jotform.apiKey}</apiKey>
+         </jotform.init>
+         <jotform.getFormSubmissions>
+            <formId>{$ctx:jotform.formId}</formId>
+            <filter>{$ctx:jotform.formFilter}</filter>
+         </jotform.getFormSubmissions>
+
+         <!-- Validating the getFormSubmission response -->
+         <filter source="$axis2:HTTP_SC" regex="200">
+            <then>
+               <property name="jotform.newSubmissionCount" expression="count(//content/flag[.='0'])" />
+
+               <!-- Process only if new submission(s) available which flaged as '0' -->
+               <filter xpath="get-property('jotform.newSubmissionCount')=0.0">
+                  <then>
+                     <property name="id" expression="fn:concat('jotform_formId:',get-property('jotform.formId'))" />
+                     <property name="status" value="Skipped" />
+                     <property name="message" value="There are no new submission(s) for this form." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="jotform_listSubmissions" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <property name="submissionIndex" expression="0.0" scope="operation" />
+                     <property name="submissionCount" expression="count(//content)" scope="operation" />
+                     <!--FOR EACH submissions : BEGIN -->
+                     <iterate continueParent="false" id="submissions" expression="//content" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="jotform.submissionFlag" expression="json-eval($.content.flag)" />
+                              <property name="jotform.submissionId" expression="json-eval($.content.id)" />
+
+                              <!-- Getting only new submissions to process -->
+                              <filter xpath="get-property('jotform.submissionFlag')='0'">
+                                 <then>
+                                    <property name="zohocrm.caseReportedBy" expression="//answer[../text/text() = 'Your name']" />
+                                    <property name="zohocrm.caseEmail" expression="//answer[../text/text() = 'Your email']" />
+                                    <property name="zohocrm.potentialId" expression="//answer[../text/text() = 'Your project referance']" />
+                                    <property name="zohocrm.caseSubject" expression="//answer[../text/text() = 'Type a brief subject about your query']" />
+                                    <property name="zohocrm.caseDescription" expression="//answer[../text/text() = 'Describe your query']" />
+
+                                    <!-- Process only the potential ID value is not empty -->
+                                    <filter source="boolean(get-property('zohocrm.potentialId'))" regex="false">
+                                       <then>
+                                          <property name="id" expression="fn:concat('jotform_submissionId:',get-property('jotform.submissionId'))" />
+                                          <property name="status" value="Skipped" />
+                                          <property name="message" value="project referance is empty in this submission." />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="activity" value="retrieveSubmissionsAndCreateCases" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+
+                                          <!-- Calling getRecordsById method in ZohoCRM to get the potential -->
+                                          <zohocrm.init>
+                                             <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+                                             <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+                                             <scope>crmapi</scope>
+                                          </zohocrm.init>
+
+                                          <zohocrm.getRecordsById>
+                                             <id>{$ctx:zohocrm.potentialId}</id>
+                                             <moduleType>Potentials</moduleType>
+                                             <newFormat>1</newFormat>
+                                             <version>1</version>
+                                          </zohocrm.getRecordsById>
+
+                                          <property name="potentialId" expression="json-eval($.response.result.Potentials.row.FL[0].content)" />
+
+                                          <!-- Validating the ZohoCRM potential ID and process the rest only if the potential ID is valid -->
+                                          <filter source="boolean(get-property('potentialId'))" regex="false">
+                                             <then>
+                                                <property name="id" expression="fn:concat('zohocrm_potentialId:',get-property('zohocrm.potentialId'))" />
+                                                <property name="status" value="Error" />
+                                                <property name="message" expression="json-eval($)" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="activity" value="zohocrm_createCase" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <script language="js">
+                                                   <![CDATA[
+                                                      var caseSubject=mc.getProperty('zohocrm.caseSubject');
+                                                      var caseDescription=mc.getProperty('zohocrm.caseDescription');
+                                                      var potentialId=mc.getProperty('zohocrm.potentialId');
+                                                      var caseReportedBy=mc.getProperty('zohocrm.caseReportedBy');
+                                                      var caseEmail=mc.getProperty('zohocrm.caseEmail');
+                                                         
+                                                      //constructing the xml data in order to create the case in ZohoCrm                                                                                                                               
+                                                      var xmlData="<Cases> <row no=\"1\"><FL val=\"Status\">New</FL><FL val=\"Subject\">"+caseSubject+"</FL><FL val=\"Description\">"+caseDescription+"</FL><FL val=\"POTENTIALID\">"+potentialId+"</FL><FL val=\"Reported By\">"+caseReportedBy+"</FL><FL val=\"Email\">"+caseEmail+"</FL><FL val=\"Case Origin\">Web</FL><FL val=\"Priority\">Medium</FL><FL val=\"Case Reason\">New Problem</FL></row></Cases>";                                                                                                                                                                                                                                      
+                                                      mc.setProperty('zohocrm.caseXMLData', xmlData);
+                                                   ]]>
+                                                </script>
+
+                                                <!-- Calling insert record method in ZohoCRM to create a new case for the potential -->
+                                                <zohocrm.init>
+                                                   <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+                                                   <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+                                                   <scope>crmapi</scope>
+                                                </zohocrm.init>
+
+                                                <zohocrm.insertRecords>
+                                                   <moduleType>Cases</moduleType>
+                                                   <xmlData>{$ctx:zohocrm.caseXMLData}</xmlData>
+                                                   <newFormat>1</newFormat>
+                                                   <version>1</version>
+                                                </zohocrm.insertRecords>
+
+                                                <property name="zohocrm.caseId" expression="json-eval($.response.result.recorddetail.FL[0].content)" />
+
+                                                <!-- Checking the status of case creation in ZohoCRM -->
+                                                <filter source="boolean(get-property('zohocrm.caseId'))" regex="false">
+                                                   <then>
+                                                      <property name="id" expression="fn:concat('jotform_submissionId:',get-property('jotform.submissionId'))" />
+                                                      <property name="message" expression="json-eval($)" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="activity" value="zohocrm_createCase" />
+                                                         <with-param name="status" value="Error" />
+                                                         <with-param name="message" value="{$ctx:message}" />
+                                                      </call-template>
+                                                   </then>
+                                                   <else>
+                                                      <property name="id"
+                                                         expression="fn:concat('jotform_submissionId:',get-property('jotform.submissionId'),',zohocrm_caseId:',get-property('zohocrm.caseId'))" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="activity" value="zohocrm_createCase" />
+                                                         <with-param name="status" value="Success" />
+                                                         <with-param name="message" value="Case is successfully created." />
+                                                      </call-template>
+
+                                                      <!-- Updating the form submission by calling updateSubmission method in JotForm to change flag value as '1' after case creation -->
+                                                      <jotform.init>
+                                                         <apiUrl>{$ctx:jotform.apiUrl}</apiUrl>
+                                                         <apiKey>{$ctx:jotform.apiKey}</apiKey>
+                                                      </jotform.init>
+                                                      <jotform.updateSubmission>
+                                                         <submissionFlag>1</submissionFlag>
+                                                         <submissionId>{$ctx:jotform.submissionId}</submissionId>
+                                                      </jotform.updateSubmission>
+
+                                                      <property name="jotform.submissionUpdateStatus" expression="json-eval($.message)" />
+
+                                                      <!-- Return Error response only if the update submission is failed -->
+                                                      <filter xpath="get-property('jotform.submissionUpdateStatus')!='success'">
+                                                         <then>
+                                                            <property name="id" expression="fn:concat('jotform_submissionId:',get-property('jotform.submissionId'))" />
+                                                            <property name="message" expression="json-eval($)" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="activity" value="jotform_updateSubmission" />
+                                                               <with-param name="status" value="Error" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                         </then>
+                                                      </filter>
+
+                                                   </else>
+                                                </filter>
+
+                                             </else>
+                                          </filter>
+
+                                       </else>
+                                    </filter>
+
+                                 </then>
+                              </filter>
+
+                              <property name="submissionIndex" expression="get-property('operation', 'submissionIndex')+1" scope="operation" />
+
+                              <filter xpath="get-property('operation','submissionIndex')=get-property('operation','submissionCount')">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!--FOR EACH submissions : END -->
+                  </else>
+               </filter>
+            </then>
+            <else>
+               <filter source="$axis2:HTTP_SC" regex="404">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="status" value="Skipped" />
+                     <property name="message" value="No submission(s) for this form." />
+                  </then>
+                  <else>
+                     <property name="id" value="{}" />
+                     <property name="status" value="Error" />
+                     <property name="message" expression="json-eval($)" />
+                  </else>
+               </filter>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="zohocrm_createCase" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"producteev_retrieveSubmissionsAndCreateCases",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+</proxy>

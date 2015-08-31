@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This sequence creates a task in Bugherd and assigns a user who is assigned to the corresponding Producteev task. -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="createBug">
+   <property name="projectDetails" expression="get-property('operation','bugherd.projectDetails')" />
+   
+	<script language="js">
+		<![CDATA[
+			//Checkk whether the project exists in Bugherd.
+			var projectTitle = mc.getProperty('producteev.projectTitle');
+			var projectDetails = mc.getProperty('projectDetails');
+			projectDetails =eval("(" + projectDetails + ")");
+			var projectId="";
+			if(projectDetails[projectTitle]!=null){
+			 projectId=projectDetails[projectTitle];
+			}		
+			mc.setProperty("bugherd.projectId",projectId);
+		]]>
+	</script>
+	
+   <!-- START of Filter: Proceed to process if project exist in Bugherd. -->
+   <filter source="boolean(get-property('bugherd.projectId'))" regex="false">
+      <then>
+         <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'))" />
+         <property name="errorResponse" expression="fn:concat('Project (',get-property('producteev.projectTitle'),') does not exist in Bugherd.')" />
+         <!-- Failure case: Append an error message to be sent to the user. -->
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="bugherd_listProjects" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Skipped" />
+            <with-param name="message" value="{$ctx:errorResponse}" />
+         </call-template>
+      </then>
+      <else>
+	  
+		<!-- Map the priority of Producteev with severity of that of Bugherd. -->
+         <switch source="get-property('producteev.taskPriority')">
+            <case regex="0">
+               <property name="bugherd.taskPriority" value="not set" />
+            </case>
+            <case regex="1">
+               <property name="bugherd.taskPriority" value="minor" />
+            </case>
+            <case regex="2">
+               <property name="bugherd.taskPriority" value="minor" />
+            </case>
+            <case regex="3">
+               <property name="bugherd.taskPriority" value="normal" />
+            </case>
+            <case regex="4">
+               <property name="bugherd.taskPriority" value="important" />
+            </case>
+            <case regex="5">
+               <property name="bugherd.taskPriority" value="critical" />
+            </case>
+         </switch>
+		 
+         <property name="userDetails" expression="get-property('operation','bugherd.userDetails')" />
+         <script language="js">
+			<![CDATA[
+				//Construct the JSON object for task to be used in createProjectTask method call. 
+				var task = {}; 
+				var taskPriority = mc.getProperty('bugherd.taskPriority');
+				var taskId = mc.getProperty('producteev.taskId');
+				var assigneeEmail = mc.getProperty('producteev.assigneeEmail');
+				var taskTitle = mc.getProperty('producteev.taskTitle');
+				var requesterEmail = mc.getProperty('clientEmail');
+				var userDetails = mc.getProperty('userDetails');
+				userDetails =eval("(" + userDetails + ")");
+				var userId="";
+				if(userDetails[assigneeEmail]!=null){
+				 userId=userDetails[assigneeEmail];
+				}
+				task['description'] = taskTitle;
+				task['priority'] = taskPriority;
+				task['status'] = "Backlog";
+				task['requester_email'] = requesterEmail;
+				task['assigned_to_id'] = userId;
+				task['external_id'] = taskId;
+				mc.setPayloadJSON(task);
+			]]>
+		 </script>
+         <property name="producteev.task" expression="json-eval($)" />
+		 
+         <!-- Create task in Bugherd. -->
+         <bugherd.init>
+            <apiUrl>{$ctx:bugherd.apiUrl}</apiUrl>
+            <apiKey>{$ctx:bugherd.apiKey}</apiKey>
+            <projectId>{$ctx:bugherd.projectId}</projectId>
+         </bugherd.init>
+         <bugherd.createProjectTask>
+            <task>{$ctx:producteev.task}</task>
+         </bugherd.createProjectTask>
+		 
+         <!-- Removing unused headers. -->
+         <sequence key="removeResponseHeaders" />
+		 
+         <property name="bugherd.taskId" expression="json-eval($.task.id)" />
+         <property name="bugherd.assignedTo" expression="json-eval($.task.assigned_to)" />
+		 
+         <!-- START of Filter: Proceed to process if task is created. -->
+         <filter source="boolean(get-property('bugherd.taskId'))" regex="false">
+            <then>
+               <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'))" />
+               <property name="responseMessage" expression="json-eval($)" />
+			   
+               <!-- Append an error message to be sent to the user. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="bugherd_createTask" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:responseMessage}" />
+               </call-template>
+            </then>
+            <else>
+               <property name="append.taskId" expression="get-property('bugherd.taskId')" />
+               <property name="id" expression="fn:concat('bugherd_taskId:', get-property('bugherd.taskId'),',producteev_taskId:',get-property('producteev.taskId'))" />
+               <property name="responseMessage" value="Bug is successfully created." />
+			   
+               <!-- Append a success message to be sent to the user. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="bugherd_createTask" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Success" />
+                  <with-param name="message" value="{$ctx:responseMessage}" />
+               </call-template>
+			   
+               <!-- START of Filter: Set error message if user is not assigned. -->
+               <filter source="get-property('bugherd.assignedTo')" regex="null">
+                  <then>
+                     <property name="id" expression="fn:concat('bugherd_taskId:', get-property('bugherd.taskId'),',producteev_taskId:',get-property('producteev.taskId'))" />
+                     
+					 <!-- Append an error message to be sent to the user. -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="bugherd_createTask" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Error" />
+                        <with-param name="message" value="Unknown error occurred while assigning a user to the task." />
+                     </call-template>
+                  </then>
+               </filter><!-- END of Filter: Set error message if user is not assigned. -->
+			   
+               <script language="js">
+					<![CDATA[
+						//Create a comment for the task.
+						var note = {}; 
+						var taskDescription = mc.getProperty('producteev.taskDescription');
+						taskDescription = "Task Description:"+taskDescription;
+						note['text'] = taskDescription;
+						mc.setPayloadJSON(note);
+					]]>
+			   </script>
+               <property name="bugherd.comment" expression="json-eval($)" />
+			   
+               <!-- Add description for the task as comment in Bugherd. -->
+               <bugherd.init>
+                  <apiUrl>{$ctx:bugherd.apiUrl}</apiUrl>
+                  <apiKey>{$ctx:bugherd.apiKey}</apiKey>
+                  <projectId>{$ctx:bugherd.projectId}</projectId>
+               </bugherd.init>
+               <bugherd.addTaskComment>
+                  <taskId>{$ctx:bugherd.taskId}</taskId>
+                  <comment>{$ctx:bugherd.comment}</comment>
+               </bugherd.addTaskComment>
+			   
+			   <!-- Removing unused headers. -->
+			   <sequence key="removeResponseHeaders" />
+			   
+               <property name="bugherd.taskCommentId" expression="json-eval($.comment.id)" />
+			   
+               <filter source="boolean(get-property('bugherd.taskCommentId'))" regex="false">
+                  <then>
+                     <property name="id" expression="fn:concat('bugherd_taskId:', get-property('bugherd.taskId'),',producteev_taskId:',get-property('producteev.taskId'))" />
+                     <!-- Failure case: Append an error message to be sent to the user. -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="bugherd_addComment" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Error" />
+                        <with-param name="message" value="Unknown error occurred while adding comment to the task." />
+                     </call-template>
+                  </then>
+               </filter>
+            </else>
+         </filter><!-- END of Filter: Proceed to process if task is created. -->
+      </else>
+   </filter>
+   <!-- END of Filter: proceed to Process if project exist in Bugherd. -->
+</sequence>
