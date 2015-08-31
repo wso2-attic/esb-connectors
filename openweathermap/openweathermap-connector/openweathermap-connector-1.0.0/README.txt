@@ -71,7 +71,7 @@ Steps to follow in setting integration test.
     	xvi)	units					        -	Use a valid string such as  Standard, metric, and imperial units are available.
     	xvii)	type					        -	Use accuracy level either use the 'accurate' or 'like' as type .
     	xviii)	mode						    -	possible values are xml and html. If mode parameter is empty the format is JSON by default.
-    	xix)	types					        -	use a type as 'hour'.
+    	xix)	types					        -	use a types as 'hour'.
     	xx)		start				            -	Use a valid start date with the format of (unix time, UTC time zone)(E.g. start=1369728000 ).
     	xxi)	end			                    -	Use a valid end date with the format of (unix time, UTC time zone)(E.g. start=1369728000 ).
     	xxii)	stationID						-	Use a valid station ID(E.g. 29584).
