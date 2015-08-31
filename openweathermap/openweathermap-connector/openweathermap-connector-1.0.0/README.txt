@@ -28,16 +28,12 @@ Steps to follow in setting integration test.
     Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml)
 
         Message Formatters :-
-	<messageFormatter contentType="application/json"
-							  class="org.apache.synapse.commons.json.JsonStreamFormatter"/>
-	<messageFormatter contentType="text/html"
-        							  class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+	<messageFormatter contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamFormatter"/>
+	<messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
 
         Message Builders :-
-	<messageBuilder contentType="application/json"
-							  class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
-	<messageBuilder contentType="text/html"
-							  class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+	<messageBuilder contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
+	<messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
 
 
