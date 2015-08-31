@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.producteev.com/api/doc/#Create a note -->
+<template name="createNote" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="taskId" description="ID of the task to add note."/>
+   <parameter name="message" description="Message string to set as note."/>
+   <parameter name="files" description="An array of File objects."/>
+   <sequence>
+      <property name="uri.var.taskId" expression="$func:taskId"/>
+      <property name="uri.var.message" expression="$func:message"/>
+      <property name="uri.var.files" expression="$func:files"/>
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "note":{
+                  "message":"$1",
+                  "task":{
+                     "id":"$2"
+                  }
+               }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.message')"/>
+            <arg expression="get-property('uri.var.taskId')"/>
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var files = mc.getProperty('uri.var.files');
+            var payload=mc.getPayloadJSON();
+            if (files != null && files != ""){
+               payload["note"]["files"] = eval ("(" + files + ")");
+            }
+            mc.setPayloadJSON(payload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/notes"/>
+         </endpoint>
+      </call>
+      <!--Removing custom headers from the Response. -->
+	  <header name="Vary" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="WWW-Authenticate" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+   </sequence>
+</template>

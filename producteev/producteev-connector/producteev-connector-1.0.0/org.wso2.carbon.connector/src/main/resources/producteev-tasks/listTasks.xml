@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.producteev.com/api/doc/#Search -->
+<template name="listTasks" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="sort" description="Sorting order of the tasks. Possible values are 'created_at', 'updated_at', 'project', 'creator', 'deadline_time', 'priority', 'status' and 'title'."/>
+   <parameter name="order" description="Order of the task list. Posible values are 'asc' and 'desc'."/>
+   <parameter name="page" description="Number of the page to view."/>
+   <parameter name="alias" description="Alias to list tasks. Posible values are 'all', 'starred', 'completed', 'created', 'responsible', 'duetoday', 'duethisweek', 'late', 'files', 'inprogress' and 'paused'"/>
+   <parameter name="includeDeleted" description="Boolean value to list tasks with deleted task. Default value is false."/>
+   <parameter name="networksCriteria" description="An array of network IDs to search by network criteria."/>
+   <parameter name="projectsCriteria" description="An array of project IDs to search by project criteria."/>
+   <parameter name="prioritiesCriteria" description="An array of priority IDs to search by priority criteria."/>
+   <parameter name="statusesCriteria" description="An array of task status IDs to search by task status criteria."/>
+   <parameter name="responsiblesCriteria" description="An array of user IDs to search by task responsibles criteria."/>
+   <parameter name="followersCriteria" description="An array of user IDs to search by task followers criteria."/>
+   <parameter name="creatorsCriteria" description="An array of user IDs to search by task creators criteria."/>
+   <parameter name="labelsCriteria" description="An array of label IDs to search by task labels criteria."/>
+   <parameter name="searchTextCriteria" description="Text string to search tasks."/>
+   <parameter name="deadlineFromCriteria" description="Deadline from date. The date should be in epoch format."/>
+   <parameter name="deadlineToCriteria" description="Task deadline to date. The date should be in epoch format."/>
+   <parameter name="createdAtFromCriteria" description="Task created at 'from' date. The date should be in epoch format."/>
+   <parameter name="createdAtToCriteria" description="Task created at 'to' date. The date should be in epoch format."/>
+   <parameter name="updatedAtFromCriteria" description="Task updated at 'from' date. The date should be in epoch format."/>
+   <parameter name="updatedAtToCriteria" description="Task updated at 'to' date. The date should be in epoch format."/>
+   <sequence>
+      <property name="uri.var.sort" expression="$func:sort"/>
+      <property name="uri.var.order" expression="$func:order"/>
+      <property name="uri.var.page" expression="$func:page"/>
+      <property name="uri.var.alias" expression="$func:alias"/>
+      <property name="uri.var.includeDeleted" expression="$func:includeDeleted"/>
+      <property name="uri.var.networksCriteria" expression="$func:networksCriteria"/>
+      <property name="uri.var.projectsCriteria" expression="$func:projectsCriteria"/>
+      <property name="uri.var.prioritiesCriteria" expression="$func:prioritiesCriteria"/>
+      <property name="uri.var.statusesCriteria" expression="$func:statusesCriteria"/>
+      <property name="uri.var.responsiblesCriteria" expression="$func:responsiblesCriteria"/>
+      <property name="uri.var.followersCriteria" expression="$func:followersCriteria"/>
+      <property name="uri.var.creatorsCriteria" expression="$func:creatorsCriteria"/>
+      <property name="uri.var.labelsCriteria" expression="$func:labelsCriteria"/>
+      <property name="uri.var.searchTextCriteria" expression="$func:searchTextCriteria"/>
+      <property name="uri.var.deadlineFromCriteria" expression="$func:deadlineFromCriteria"/>
+      <property name="uri.var.deadlineToCriteria" expression="$func:deadlineToCriteria"/>
+      <property name="uri.var.createdAtFromCriteria" expression="$func:createdAtFromCriteria"/>
+      <property name="uri.var.createdAtToCriteria" expression="$func:createdAtToCriteria"/>
+      <property name="uri.var.updatedAtFromCriteria" expression="$func:updatedAtFromCriteria"/>
+      <property name="uri.var.updatedAtToCriteria" expression="$func:updatedAtToCriteria"/>
+      <script language="js">
+         <![CDATA[
+            var page = mc.getProperty('uri.var.page');
+            var alias = mc.getProperty('uri.var.alias');
+            var includeDeleted = mc.getProperty('uri.var.includeDeleted');
+            var networksCriteria = mc.getProperty('uri.var.networksCriteria');
+            var projectsCriteria = mc.getProperty('uri.var.projectsCriteria');
+            var prioritiesCriteria = mc.getProperty('uri.var.prioritiesCriteria');
+            var statusesCriteria = mc.getProperty('uri.var.statusesCriteria');
+            var responsiblesCriteria = mc.getProperty('uri.var.responsiblesCriteria');
+            var followersCriteria = mc.getProperty('uri.var.followersCriteria');
+            var creatorsCriteria = mc.getProperty('uri.var.creatorsCriteria');
+            var labelsCriteria = mc.getProperty('uri.var.labelsCriteria');
+            var searchTextCriteria = mc.getProperty('uri.var.searchTextCriteria');
+            var deadline=new Object();
+            var deadlineFromCriteria = mc.getProperty('uri.var.deadlineFromCriteria');
+            var deadlineToCriteria = mc.getProperty('uri.var.deadlineToCriteria');
+            var createdAt=new Object();
+            var createdAtFromCriteria = mc.getProperty('uri.var.createdAtFromCriteria');
+            var createdAtToCriteria = mc.getProperty('uri.var.createdAtToCriteria');
+            var updatedAt=new Object();
+            var updatedAtFromCriteria = mc.getProperty('uri.var.updatedAtFromCriteria');
+            var updatedAtToCriteria = mc.getProperty('uri.var.updatedAtToCriteria');
+            var urlQuery = '';
+            var payload=new Object();
+            if (page != null && page != ""){
+               urlQuery += 'page=' + page + '&';
+            }
+            if (alias != null && alias != ""){
+               urlQuery += 'alias=' + alias + '&';
+            }
+            if (includeDeleted != null && includeDeleted != ""){
+               urlQuery += 'include_deleted=' + includeDeleted + '&';
+            }
+            // Prefix the urlQuery adding '&' to begin and remove the trailing '&'
+            if (urlQuery != "") {
+              urlQuery ='&'+urlQuery.substring(0, urlQuery.length-1);
+              mc.setProperty('uri.var.urlQuery', urlQuery);    
+            } 
+            mc.setProperty('uri.var.urlQuery', urlQuery);   
+            if(networksCriteria!=null && networksCriteria!=""){
+               payload["networks"]=eval ("(" + networksCriteria + ")");
+            }
+            if(projectsCriteria!=null && projectsCriteria!=""){
+               payload["projects"]=eval ("(" + projectsCriteria + ")");
+            }
+            if(prioritiesCriteria!=null && prioritiesCriteria!=""){
+               payload["priorities"]=eval ("(" + prioritiesCriteria + ")");
+            }
+            if(statusesCriteria!=null && statusesCriteria!=""){
+               payload["statuses"]=eval ("(" + statusesCriteria + ")");
+            }
+            if(responsiblesCriteria!=null && responsiblesCriteria!=""){
+               payload["responsibles"]=eval ("(" + responsiblesCriteria + ")");
+            }
+            if(followersCriteria!=null && followersCriteria!=""){
+               payload["followers"]=eval ("(" + followersCriteria + ")");
+            }
+            if(creatorsCriteria!=null && creatorsCriteria!=""){
+               payload["creators"]=eval ("(" + creatorsCriteria + ")");
+            }
+            if(labelsCriteria!=null && labelsCriteria!=""){
+               payload["labels"]=eval ("(" + labelsCriteria + ")");
+            }
+            if(searchTextCriteria!=null && searchTextCriteria!=""){
+               var search=new Object();
+               search["text"]=searchTextCriteria;
+               payload["search"]=search;
+            }
+            if(deadlineFromCriteria!=null && deadlineFromCriteria!=""){
+               deadline["from"]=deadlineFromCriteria;
+               payload["deadline"]=deadline;
+            }
+            if(deadlineToCriteria!=null && deadlineToCriteria!=""){
+               deadline["to"]=deadlineToCriteria;
+               payload["deadline"]=deadline;
+            }
+            if(createdAtFromCriteria!=null && createdAtFromCriteria!=""){
+               createdAt["from"]=createdAtFromCriteria;
+               payload["created_at"]=createdAt;
+            }
+            if(createdAtToCriteria!=null && createdAtToCriteria!=""){
+               createdAt["to"]=createdAtToCriteria;
+               payload["created_at"]=createdAt;
+            }
+             if(updatedAtFromCriteria!=null && updatedAtFromCriteria!=""){
+               updatedAt["from"]=updatedAtFromCriteria;
+               payload["updated_at"]=updatedAt;
+            }
+            if(updatedAtToCriteria!=null && updatedAtToCriteria!=""){
+               updatedAt["to"]=updatedAtToCriteria;
+               payload["updated_at"]=updatedAt;
+            }
+            mc.setPayloadJSON(payload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="legacy-encoding:{uri.var.apiUrl}/tasks/search?sort={uri.var.sort}&amp;order={uri.var.order}{uri.var.urlQuery}"/>
+         </endpoint>
+      </call>
+      <!--Removing custom headers from the Response. -->
+	  <header name="Vary" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="WWW-Authenticate" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+   </sequence>
+</template>
