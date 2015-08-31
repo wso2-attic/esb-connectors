@@ -27,16 +27,16 @@ Steps to follow in setting integration test.
  3. ESB should be configured as below.
     Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml)
 
-	    Message Formatters :-
-	    <messageFormatter contentType="application/json"
+        Message Formatters :-
+	<messageFormatter contentType="application/json"
 							  class="org.apache.synapse.commons.json.JsonStreamFormatter"/>
-		<messageFormatter contentType="text/html"
+	<messageFormatter contentType="text/html"
         							  class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
 
-		Message Builders :-
-		<messageBuilder contentType="application/json"
+        Message Builders :-
+	<messageBuilder contentType="application/json"
 							  class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
-		<messageBuilder contentType="text/html"
+	<messageBuilder contentType="text/html"
 							  class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
 
