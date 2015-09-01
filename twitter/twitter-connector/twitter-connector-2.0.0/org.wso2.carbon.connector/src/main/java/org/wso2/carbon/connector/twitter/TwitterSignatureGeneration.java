@@ -24,12 +24,12 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.MessageContext;
 import org.apache.synapse.SynapseException;
 import org.wso2.carbon.connector.core.AbstractConnector;
-import org.wso2.carbon.connector.core.ConnectException;
 
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
+import java.lang.Exception;
 import java.net.URLEncoder;
 import java.security.GeneralSecurityException;
 import java.util.Calendar;
@@ -49,7 +49,7 @@ public class TwitterSignatureGeneration extends AbstractConnector {
 
     private static Log log = LogFactory.getLog(TwitterSignatureGeneration.class);
 
-    public void connect(MessageContext msgContext) throws ConnectException {
+    public void connect(MessageContext msgContext) throws SynapseException {
         try {
             log.debug("Starting to generate the header with the signature");
             generateSignature(msgContext.getProperty(TwitterConstants.TWITTER_CONSUMER_KEY).toString(),
@@ -62,7 +62,7 @@ public class TwitterSignatureGeneration extends AbstractConnector {
                         + TwitterConstants.TWITTER_ACCESS_TOKEN + ",accessSecret : " + TwitterConstants.TWITTER_ACCESS_TOKEN_SECRET);
             }
         } catch (Exception e) {
-            handleException("Error while generating the signature", e);
+            handleException("Error while generating the header", e);
         }
     }
 
@@ -78,38 +78,42 @@ public class TwitterSignatureGeneration extends AbstractConnector {
         }
         String encoded;
         try {
-            if (log.isDebugEnabled()) {
-                log.debug("The encoding format is  : " + TwitterConstants.ENC);
+            try {
+                if (log.isDebugEnabled()) {
+                    log.debug("The encoding format is  : " + TwitterConstants.ENC);
+                }
+                encoded = URLEncoder.encode(value, TwitterConstants.ENC);
+            } catch (UnsupportedEncodingException usee) {
+                log.error("Unsupported encoding", usee);
+                throw new SynapseException("Unsupported encoding", usee);
             }
-            encoded = URLEncoder.encode(value, TwitterConstants.ENC);
-        } catch (UnsupportedEncodingException usee) {
-            log.error("Unsupported encoding", usee);
-            throw new SynapseException("Unsupported encoding", usee);
-        }
-        StringBuilder buf = null;
-        if (encoded != null) {
-            buf = new StringBuilder(encoded.length());
-            char focus;
-            for (int i = 0; i < encoded.length(); i++) {
-                focus = encoded.charAt(i);
-                if (focus == '*') {
-                    buf.append("%2A");
-                } else if (focus == '+') {
-                    buf.append("%20");
-                } else if (focus == '%' && (i + 1) < encoded.length()
-                        && encoded.charAt(i + 1) == '7' && encoded.charAt(i + 2) == 'E') {
-                    buf.append('~');
-                    i += 2;
-                } else {
-                    buf.append(focus);
+            StringBuilder buf = null;
+            if (encoded != null) {
+                buf = new StringBuilder(encoded.length());
+                char focus;
+                for (int i = 0; i < encoded.length(); i++) {
+                    focus = encoded.charAt(i);
+                    if (focus == '*') {
+                        buf.append("%2A");
+                    } else if (focus == '+') {
+                        buf.append("%20");
+                    } else if (focus == '%' && (i + 1) < encoded.length()
+                            && encoded.charAt(i + 1) == '7' && encoded.charAt(i + 2) == 'E') {
+                        buf.append('~');
+                        i += 2;
+                    } else {
+                        buf.append(focus);
+                    }
                 }
             }
-        }
-        if (buf != null) {
-            if (log.isDebugEnabled()) {
-                log.debug(value + "is encoded to " + buf.toString());
+            if (buf != null) {
+                if (log.isDebugEnabled()) {
+                    log.debug(value + "is encoded to " + buf.toString());
+                }
+                return buf.toString();
             }
-            return buf.toString();
+        } catch (Exception e) {
+            handleException("Error while encoding", e);
         }
         return null;
     }
@@ -118,7 +122,7 @@ public class TwitterSignatureGeneration extends AbstractConnector {
      * compute the signature for the authorization header
      *
      * @param baseString the signature base
-     * @param keyString the key string
+     * @param keyString  the key string
      * @return generated signature with the twitter credential, url params,timestamp and nonce value
      * @throws GeneralSecurityException
      * @throws UnsupportedEncodingException
@@ -127,84 +131,93 @@ public class TwitterSignatureGeneration extends AbstractConnector {
         if (log.isDebugEnabled()) {
             log.debug("Starting to compute the signature");
         }
-        SecretKey secretKey;
-        byte[] keyBytes = keyString.getBytes();
-        secretKey = new SecretKeySpec(keyBytes, TwitterConstants.SIGNATURE_METHOD);
-        Mac mac = Mac.getInstance(TwitterConstants.SIGNATURE_METHOD);
-        mac.init(secretKey);
-        byte[] text = baseString.getBytes();
-        return new String(Base64.encodeBase64(mac.doFinal(text))).trim();
+        try {
+            SecretKey secretKey;
+            byte[] keyBytes = keyString.getBytes();
+            secretKey = new SecretKeySpec(keyBytes, TwitterConstants.SIGNATURE_METHOD);
+            Mac mac = Mac.getInstance(TwitterConstants.SIGNATURE_METHOD);
+            mac.init(secretKey);
+            byte[] text = baseString.getBytes();
+            return new String(Base64.encodeBase64(mac.doFinal(text))).trim();
+        } catch (Exception e) {
+            handleException(e);
+        }
+        return null;
     }
 
     /**
      * generate the authorization header using oauth1.a mechanism
      *
-     * @param consumerKey the twitter account consumer key
-     * @param consumerSecret the twitter account consumer key
-     * @param accessToken the twitter account consumer key
+     * @param consumerKey       the twitter account consumer key
+     * @param consumerSecret    the twitter account consumer key
+     * @param accessToken       the twitter account consumer key
      * @param accessTokenSecret the twitter account consumer key
-     * @param msgContext the twitter account consumer key
+     * @param msgContext        the twitter account consumer key
      */
     public void generateSignature(String consumerKey, String consumerSecret, String accessToken, String accessTokenSecret, MessageContext msgContext) {
         if (log.isDebugEnabled()) {
             log.debug("Starting to generate the signature header");
         }
-        //the HTTP method type of the API method
-        String httpMethod = (String) msgContext.getProperty(TwitterConstants.HTTP_METHOD);
-
-        //the API endpoint
-        String twitterEndpoint = (String) msgContext.getProperty(TwitterConstants.TWITTER_ENDPOINT);
-
-        //generate the nonce value
-        String randomString = UUID.randomUUID().toString();
-        randomString = randomString.replaceAll("-", "");
-        String oauth_nonce = randomString;
-
-        //get the timestamp
-        Calendar calendar = Calendar.getInstance();
-        long ts = calendar.getTimeInMillis();
-        String oauth_timestamp = (new Long(ts / 1000)).toString();
-
-        //get the required URL parameters
-        Map<String, String> parametersMap = getParametersMap(msgContext);
-
-        parametersMap.put("uri.var.consumerKey", "oauth_consumer_key=" + consumerKey);
-        parametersMap.put("uri.var.oauthToken", "oauth_token=" + accessToken);
-        parametersMap.put("uri.var.nonce", "oauth_nonce=" + oauth_nonce);
-        parametersMap.put("uri.var.timestamp", "oauth_timestamp=" + oauth_timestamp);
-        parametersMap.put("uri.var.signatureMethod", "oauth_signature_method=" + TwitterConstants.SIGNATURE_METHOD);
-        parametersMap.put("uri.var.oauthVersion", "oauth_version=1.0");
-
-        //sort the parameters alphabetically
-        Map<String, String> sortedMap = sortByValue(parametersMap);
-
-        StringBuilder str = new StringBuilder("");
-        for (Map.Entry<String, String> entry : sortedMap.entrySet()) {
-            if (!(entry.getValue().equals(""))) {
-                str.append(entry.getValue()).append("&");
-            }
-        }
-        str.delete(str.length() - 1, str.length());
-
-        String signatureBase = httpMethod + "&" + encode(twitterEndpoint) + "&" + encode(str.toString());
-
-        //the base string is signed consumer secret and access token secret
-        String oauthSignature = "";
         try {
-            oauthSignature = computeSignature(signatureBase, consumerSecret + "&" + encode(accessTokenSecret));
-        } catch (GeneralSecurityException e) {
-            throw new SynapseException(e);
-        } catch (UnsupportedEncodingException e) {
-            throw new SynapseException(e);
-        }
+            //the HTTP method type of the API method
+            String httpMethod = (String) msgContext.getProperty(TwitterConstants.HTTP_METHOD);
 
-        String authorizationHeader = "OAuth oauth_consumer_key=\"" + consumerKey + "\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"" + oauth_timestamp +
-                "\",oauth_nonce=\"" + oauth_nonce + "\",oauth_version=\"1.0\",oauth_signature=\"" + encode(oauthSignature) + "\",oauth_token=\"" + encode(accessToken) + "\"";
+            //the API endpoint
+            String twitterEndpoint = (String) msgContext.getProperty(TwitterConstants.TWITTER_ENDPOINT);
 
-        if (log.isDebugEnabled()) {
-            log.debug("The authorization header is " + authorizationHeader);
+            //generate the nonce value
+            String randomString = UUID.randomUUID().toString();
+            randomString = randomString.replaceAll("-", "");
+            String oauth_nonce = randomString;
+
+            //get the timestamp
+            Calendar calendar = Calendar.getInstance();
+            long ts = calendar.getTimeInMillis();
+            String oauth_timestamp = (new Long(ts / 1000)).toString();
+
+            //get the required URL parameters
+            Map<String, String> parametersMap = getParametersMap(msgContext);
+
+            parametersMap.put("uri.var.consumerKey", "oauth_consumer_key=" + consumerKey);
+            parametersMap.put("uri.var.oauthToken", "oauth_token=" + accessToken);
+            parametersMap.put("uri.var.nonce", "oauth_nonce=" + oauth_nonce);
+            parametersMap.put("uri.var.timestamp", "oauth_timestamp=" + oauth_timestamp);
+            parametersMap.put("uri.var.signatureMethod", "oauth_signature_method=" + TwitterConstants.SIGNATURE_METHOD);
+            parametersMap.put("uri.var.oauthVersion", "oauth_version=1.0");
+
+            //sort the parameters alphabetically
+            Map<String, String> sortedMap = sortByValue(parametersMap);
+
+            StringBuilder str = new StringBuilder("");
+            for (Map.Entry<String, String> entry : sortedMap.entrySet()) {
+                if (!(entry.getValue().equals(""))) {
+                    str.append(entry.getValue()).append("&");
+                }
+            }
+            str.delete(str.length() - 1, str.length());
+
+            String signatureBase = httpMethod + "&" + encode(twitterEndpoint) + "&" + encode(str.toString());
+
+            //the base string is signed consumer secret and access token secret
+            String oauthSignature = "";
+            try {
+                oauthSignature = computeSignature(signatureBase, consumerSecret + "&" + encode(accessTokenSecret));
+            } catch (GeneralSecurityException e) {
+                throw new SynapseException(e);
+            } catch (UnsupportedEncodingException e) {
+                throw new SynapseException(e);
+            }
+
+            String authorizationHeader = "OAuth oauth_consumer_key=\"" + consumerKey + "\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"" + oauth_timestamp +
+                    "\",oauth_nonce=\"" + oauth_nonce + "\",oauth_version=\"1.0\",oauth_signature=\"" + encode(oauthSignature) + "\",oauth_token=\"" + encode(accessToken) + "\"";
+
+            if (log.isDebugEnabled()) {
+                log.debug("The authorization header is " + authorizationHeader);
+            }
+            msgContext.setProperty("uri.var.signature", authorizationHeader);
+        } catch (Exception e) {
+            handleException(e);
         }
-        msgContext.setProperty("uri.var.signature", authorizationHeader);
     }
 
     /**
@@ -217,19 +230,24 @@ public class TwitterSignatureGeneration extends AbstractConnector {
         if (log.isDebugEnabled()) {
             log.debug("Starting to collect the url parameters");
         }
-        Object[] keys = messageContext.getPropertyKeySet().toArray();
-        Map<String, String> parametersMap = new HashMap<String, String>();
-        for (Object key : keys) {
-            if ((key).toString().startsWith("uri.var.") && !(key).toString().startsWith("uri.var.uriParams")
-                    && !(key).toString().startsWith("uri.var.apiUrl")
-                    && !(key).toString().startsWith("uri.var.httpMethod")
-                    && !(key).toString().startsWith("uri.var.apiUrl.final")) {
-                String paramValue =
-                        (messageContext.getProperty((String) (key)).toString() != null) ? messageContext.getProperty((String) (key)).toString() : TwitterConstants.EMPTY_STR;
-                parametersMap.put((key).toString(), paramValue);
+        try {
+            Object[] keys = messageContext.getPropertyKeySet().toArray();
+            Map<String, String> parametersMap = new HashMap<String, String>();
+            for (Object key : keys) {
+                if ((key).toString().startsWith("uri.var.") && !(key).toString().startsWith("uri.var.uriParams")
+                        && !(key).toString().startsWith("uri.var.apiUrl")
+                        && !(key).toString().startsWith("uri.var.httpMethod")
+                        && !(key).toString().startsWith("uri.var.apiUrl.final")) {
+                    String paramValue =
+                            (messageContext.getProperty((String) (key)).toString() != null) ? messageContext.getProperty((String) (key)).toString() : TwitterConstants.EMPTY_STR;
+                    parametersMap.put((key).toString(), paramValue);
+                }
             }
+            return parametersMap;
+        } catch (Exception e) {
+            handleException(e);
         }
-        return parametersMap;
+        return null;
     }
 
     /**
@@ -242,25 +260,35 @@ public class TwitterSignatureGeneration extends AbstractConnector {
         if (log.isDebugEnabled()) {
             log.debug("Starting to sort the header parameters");
         }
-        List list = new LinkedList(unsortedMap.entrySet());
-        Collections.sort(list, new Comparator() {
-            public int compare(Object o1, Object o2) {
-                return ((Comparable) ((Map.Entry) (o1)).getValue())
-                        .compareTo(((Map.Entry) (o2)).getValue());
-            }
-        });
+        try {
+            List list = new LinkedList(unsortedMap.entrySet());
+            Collections.sort(list, new Comparator() {
+                public int compare(Object object1, Object object2) {
+                    return ((Comparable) ((Map.Entry) (object1)).getValue())
+                            .compareTo(((Map.Entry) (object2)).getValue());
+                }
+            });
 
-        Map sortedMap = new LinkedHashMap();
-        for (Object aList : list) {
-            Map.Entry entry = (Map.Entry) aList;
-            sortedMap.put(entry.getKey(), entry.getValue());
+            Map sortedMap = new LinkedHashMap();
+            for (Object aList : list) {
+                Map.Entry entry = (Map.Entry) aList;
+                sortedMap.put(entry.getKey(), entry.getValue());
+            }
+            return sortedMap;
+        } catch (Exception e) {
+            handleException(e);
         }
-        return sortedMap;
+        return null;
+
     }
 
-    private void handleException(String msg, Exception ex) throws ConnectException {
+    private static void handleException(String msg, Exception ex) {
         log.error(msg, ex);
-        throw new ConnectException(ex,msg);
+        throw new SynapseException(msg, ex);
+    }
+
+    private static void handleException(Exception ex) {
+        throw new SynapseException(ex);
     }
 }
 

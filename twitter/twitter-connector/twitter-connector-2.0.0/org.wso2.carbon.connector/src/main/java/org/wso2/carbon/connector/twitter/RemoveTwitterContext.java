@@ -21,6 +21,7 @@ package org.wso2.carbon.connector.twitter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.MessageContext;
+import org.apache.synapse.SynapseException;
 import org.wso2.carbon.connector.core.AbstractConnector;
 import org.wso2.carbon.connector.core.ConnectException;
 
@@ -28,17 +29,18 @@ public class RemoveTwitterContext extends AbstractConnector {
 
     private static Log log = LogFactory.getLog(TwitterSignatureGeneration.class);
 
-    public void connect(MessageContext msgContext) throws ConnectException {
+    public void connect(MessageContext msgContext) throws SynapseException {
         try {
             RemoveContext(msgContext);
         } catch (Exception e) {
             log.error("Error while removing the properties");
-            throw new ConnectException(e, "Error while removing the properties");
+            throw new SynapseException("Error while removing the properties", e);
         }
     }
 
     /**
      * Remove the previous twitter method's context
+     *
      * @param messageContext
      */
     private void RemoveContext(final MessageContext messageContext) {
