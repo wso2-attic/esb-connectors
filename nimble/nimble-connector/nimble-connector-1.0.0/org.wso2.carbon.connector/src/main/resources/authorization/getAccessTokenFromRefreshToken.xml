@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+<template name="getAccessTokenFromRefreshToken" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="refreshToken" description="value of your Refresh token"/>
+    <parameter name="clientId" description="Value of your clientId given when you registered your application with Nimble"/>
+    <parameter name="clientSecret" description="Value of your secret key given when you registered your application with Nimble"/>
+    <parameter name="grantType" description="Token grant type. Value must be set to refresh token"/>
+    <parameter name="redirectUri" description="Redirect URI for your application"/>
+    <sequence>
+        <property name="uri.var.refreshToken" expression="$func:refreshToken"/>
+        <property name="uri.var.clientId" expression="$func:clientId"/>
+        <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
+        <property name="uri.var.grantType" expression="$func:grantType"/>
+        <property name="uri.var.redirectUri" expression="$func:redirectUri"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                   "refresh_token":"$1",
+                   "client_id":"$2",
+                   "client_secret":"$3",
+                   "grant_type":"$4",
+                   "redirect_uri":"$5"
+                }
+            </format>
+            <args>
+                <arg expression="$func:refreshToken"/>
+                <arg expression="$func:clientId"/>
+                <arg expression="$func:clientSecret"/>
+                <arg expression="$func:grantType"/>
+                <arg expression="$func:redirectUri"/>
+            </args>
+        </payloadFactory>
+
+        <header name="Content-Type" value="application/x-www-form-urlencoded" scope="transport"/>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+
+        <property name="REQUEST_HOST_HEADER" value="api.nimble.com" scope="axis2"/>
+
+        <call>
+            <endpoint>
+                <http method="post" uri-template="https://api.nimble.com/oauth/token"/>
+            </endpoint>
+        </call>
+        <filter source="$axis2:HTTP_SC" regex="[2][0][0]">
+            <then>
+                <property name="access_token" expression="json-eval($.access_token)"/>
+                <header name="Authorization" expression="fn:concat('Bearer ',get-property('access_token'))"
+                        scope="transport"/>
+            </then>
+        </filter>
+    </sequence>
+</template>

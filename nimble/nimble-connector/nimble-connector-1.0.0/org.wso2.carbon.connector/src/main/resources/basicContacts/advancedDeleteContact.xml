@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied.  See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+<template name="advancedDeleteContact" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="keyword" description=" Id for the contact"/>
+    <parameter name="recordType" description="Specifies the type of contact to create the record type.company/person"/>
+    <parameter name="query1" description="Describes a dictionary organized in the same structure as a contact listing response"/>
+    <parameter name="limit" description="Specifies the no of contacts to delete"/>
+    <sequence>
+        <property name="uri.var.keyword" expression="$func:keyword"/>
+        <property name="uri.var.recordType" expression="$func:recordType"/>
+        <property name="uri.var.query1" expression="$func:query1"/>
+        <property name="uri.var.limit" expression="$func:limit"/>
+        <script language="js"><![CDATA[
+            var query = mc.getProperty('uri.var.query');
+            var encodedQuery = encodeURIComponent(query);
+            mc.setProperty('uri.var.query1', encodedQuery);
+            ]]>
+        </script>
+        <filter xpath="(not(get-property('uri.var.query1') = '' or (not(string(get-property('uri.var.query1'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;query=',get-property('uri.var.query1'))"/>
+            </then>
+            <else>
+                <filter xpath="(not(get-property('uri.var.recordType') = '' or (not(string(get-property('uri.var.recordType'))))))">
+                    <then>
+                        <property name="uri.var.apiParameters"
+                                  expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;record_type=',get-property('uri.var.recordType'))"/>
+                    </then>
+                </filter>
+            </else>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.keyword') = '' or (not(string(get-property('uri.var.keyword'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;keyword=',get-property('uri.var.keyword'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.limit') = '' or (not(string(get-property('uri.var.limit'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;limit=',get-property('uri.var.limit'))"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="delete"
+                      uri-template="{uri.var.apiUrl}/contacts/list?{uri.var.apiParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ ~ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ ~ WSO2 Inc. licenses this file to you under the Apache License,
+ ~ Version 2.0 (the "License"); you may not use this file except
+ ~ in compliance with the License.
+ ~ You may obtain a copy of the License at
+ ~    http://www.apache.org/licenses/LICENSE-2.0
+ ~
+ ~ Unless required by applicable law or agreed to in writing,
+ ~ software distributed under the License is distributed on an
+ ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ ~ KIND, either express or implied.  See the License for the
+ ~ specific language governing permissions and limitations
+ ~ under the License.
+ -->
+<template name="createSavedSearch" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="queryName" description="Name of the saved search"/>
+    <parameter name="query1" description="Describes a dictionary organized in the same structure as a contact listing response"/>
+    <parameter name="isImportant" description="Boolean value of 1 or 0"/>
+    <sequence>
+        <property name="uri.var.queryName" expression="$func:queryName"/>
+        <property name="uri.var.isImportant" expression="$func:isImportant"/>
+        <property name="uri.var.query1" expression="$func:query1"/>
+        <script language="js"><![CDATA[
+                var str="'"+mc.getProperty('uri.var.query1')+"'";
+                var qReplacedString = str.replace(new RegExp(/"/g),'\\"');
+                var qReplacedStr = qReplacedString.replace(new RegExp(/'/g),'"');
+                mc.setProperty('uri.var.query1',qReplacedStr);
+            ]]>
+    </script>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                    "query_name":"$1",
+                    "is_important":"$2",
+                    "query":$3
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.queryName')"/>
+                <arg expression="get-property('uri.var.isImportant')"/>
+                <arg expression="get-property('uri.var.query1')"/>
+            </args>
+        </payloadFactory>
+        <property name="messageType" value="application/json"
+                  scope="axis2"/>
+        <header name="Content-Type" value="application/json" scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="{uri.var.apiUrl}/contacts/saved_search/"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>
+
+
+
