@@ -45,7 +45,7 @@ Steps to follow in setting integration test.
  6. Compress modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file into location "{ESB_CONNECTOR_HOME}/repository/".
 
  7. Make sure that contactform is specified as a module in ESB_Connector_Parent pom.
-   <module>contactform/contactform-connector/contactform-connector-1.0.0/org.wso2.carbon.connector</module> 
+   <module>123contactform/contactform-connector/contactform-connector-1.0.0/org.wso2.carbon.connector</module> 
 
  8. Prerequisites for 123ContactForm Connector Integration Testing  
 
