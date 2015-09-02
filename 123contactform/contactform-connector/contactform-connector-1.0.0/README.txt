@@ -49,7 +49,7 @@ Steps to follow in setting integration test.
 
  8. Prerequisites for 123ContactForm Connector Integration Testing  
 
-   i)    Navigate to "http://www.123contactform.com/index.php?p=dashboard", create a new form.
+   i)    Navigate to "http://www.123contactform.com/index.php?p=dashboard", create a new form with multiple fields (at least with 2 fields).
    ii)   Add at least 27 submissions for created form in step 8 i).
  
  9. Update the 123ContactForm properties file at location "<123CONTACTFORM_CONNECTOR_HOME>/contactform-connector/contactform-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
