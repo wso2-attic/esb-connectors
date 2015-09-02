@@ -41,7 +41,17 @@ Steps to follow in setting integration test.
 
  3. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/"..
 
- 4. Prerequisites for Canvas Connector Integration Testing
+ 4. Extract the certificate from browser by navigating to https://canvas.instructure.com/register_from_website
+
+ 5. Go to new ESB folder and place the downloaded certificate in "<ESB_HOME>/repository/resources/security/" and "<CANVAS_CONNEC  TOR_HOME>/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products"
+
+ 6.Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" in command line to import BaseCRM certificate in to keystore.
+		 Give "wso2carbon" as password. Press "Y" to complete certificate import process.
+		 
+ 7.Navigate to "<CANVAS_CONNECTOR_HOME>/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME" in command line to import BaseCRM certificate in to keystore.
+         	Give "wso2carbon" as password. Press "Y" to complete certificate import process.
+         	
+ 8. Prerequisites for Canvas Connector Integration Testing
 
 		i) 	Create a Canvas account using the URL "https://canvas.instructure.com/register_from_website".
 			Note: Sign-up as a Teacher account (Select "I'm a Teacher" option) when the creating a new Canvas account.
@@ -50,7 +60,7 @@ Steps to follow in setting integration test.
 		
 		iii) Retrieve a new access token from canvas dashboard "settings" tab, by selecting "New Access Token" option. 
 
- 5. Update the Canvas properties file at location "{Canvas_Connector_Home}/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 9. Update the Canvas properties file at location "{Canvas_Connector_Home}/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i)		apiUrl					-	Use the API URL as "https://canvas.instructure.com".
 	ii)		accessToken				-	Place the created access token in step 4 [iii].
@@ -66,11 +76,11 @@ Steps to follow in setting integration test.
 	xii)	courseCode				-	Short course code for create course optional case (e.g.:JMS).
 	
 	
- 6. Make sure that the canvas connector is set as a module in esb-connectors parent pom.
+ 10. Make sure that the canvas connector is set as a module in esb-connectors parent pom.
        <module>canvas/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector</module>
 
 
- 7. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+ 11. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
        $ mvn clean install
 
 
