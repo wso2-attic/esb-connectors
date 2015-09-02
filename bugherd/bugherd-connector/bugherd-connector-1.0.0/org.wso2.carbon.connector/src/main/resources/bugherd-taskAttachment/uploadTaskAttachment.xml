@@ -1,56 +1,42 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
-   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+<template name="uploadTaskAttachment" xmlns="http://ws.apache.org/ns/synapse">
+  <parameter name="taskId" description="ID of the Project Task to which the Attachment is to be associated."/>
+  <parameter name="fileName" description="Display name of the file to be uploaded."/>
+  
+  <sequence>
+    <property name="uri.var.taskId" expression="$func:taskId"/>
+    <property name="uri.var.fileName" expression="$func:fileName"/>
+    <property name="uri.var.queryString" value=""/>
+    
+    <filter xpath="boolean(get-property('uri.var.fileName'))">
+    	<then>
+    		<property name="uri.var.queryString" expression="fn:concat('?file_name=',get-property('uri.var.fileName'))"/>
+    	</then>
+    </filter> 
+    
+	<!-- content type set to application/binary -->
+	<property name="Content-Type" value="application/binary" scope="transport" type="STRING" />
 
-   WSO2 Inc. licenses this file to you under the Apache License,
-   Version 2.0 (the "License"); you may not use this file except
-   in compliance with the License.
-   You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing,
-   software distributed under the License is distributed on an
-   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-   KIND, either express or implied. See the License for the
-   specific language governing permissions and limitations
-   under the License.
--->
-<!-- API Doc: https://www.bugherd.com/api_v2#api_attachment_upload -->
-<template xmlns="http://ws.apache.org/ns/synapse" name="uploadTaskAttachment">
-   <parameter name="taskId" description="ID of the Project Task to which the Attachment is to be associated." />
-   <parameter name="fileName" description="Display name of the file to be uploaded." />
-   <sequence>
-      <property name="uri.var.taskId" expression="$func:taskId" />
-      <property name="uri.var.fileName" expression="$func:fileName" />
-      <property name="uri.var.queryString" value="" />
-      <filter xpath="boolean(get-property('uri.var.fileName'))">
-         <then>
-            <property name="uri.var.queryString" expression="fn:concat('?file_name=',get-property('uri.var.fileName'))" />
-         </then>
-      </filter>
-      <!-- content type set to application/binary -->
-      <property name="Content-Type" value="application/binary" scope="transport" type="STRING" />
-      <!-- Force ESB to send the content length to the API -->
-      <property name="FORCE_HTTP_CONTENT_LENGTH" value="true" scope="axis2" />
-      <property name="COPY_CONTENT_LENGTH_FROM_INCOMING" value="true" scope="axis2" />
-      <call>
-         <endpoint>
-            <http method="post" uri-template="{+uri.var.apiUrl}/api_v2/projects/{+uri.var.projectId}/tasks/{+uri.var.taskId}/attachments/upload{+uri.var.queryString}" />
-         </endpoint>
-      </call>
-      <!-- Remove custom Headers from the Response -->
-      <header name="Via" scope="transport" action="remove" />
-      <header name="ETag" scope="transport" action="remove" />
-      <header name="X-Runtime" scope="transport" action="remove" />
-      <header name="X-Powered-By" scope="transport" action="remove" />
-      <header name="X-Rack-Cache" scope="transport" action="remove" />
-      <header name="X-Request-Id" scope="transport" action="remove" />
-      <header name="X-Frame-Options" scope="transport" action="remove" />
-      <header name="X-UA-Compatible" scope="transport" action="remove" />
-      <header name="X-XSS-Protection" scope="transport" action="remove" />
-      <header name="X-Content-Type-Options" scope="transport" action="remove" />
-	  <header name="Cache-Control" scope="transport" action="remove" />
-      <header name="Status" scope="transport" action="remove" />
-   </sequence>
+    <!-- Force ESB to send the content length to the API -->
+	<property name="FORCE_HTTP_CONTENT_LENGTH" value="true" scope="axis2" />
+	<property name="COPY_CONTENT_LENGTH_FROM_INCOMING" value="true" scope="axis2" />
+			
+	<call>
+      <endpoint>
+        <http method="post" uri-template="{+uri.var.apiUrl}/api_v2/projects/{+uri.var.projectId}/tasks/{+uri.var.taskId}/attachments/upload{+uri.var.queryString}"/>
+      </endpoint>
+    </call>
+    
+    <!-- Remove custom Headers from the Response -->
+    <header name="Via" scope="transport" action="remove"/>
+    <header name="ETag" scope="transport" action="remove"/>
+    <header name="X-Runtime" scope="transport" action="remove"/>
+    <header name="X-Powered-By" scope="transport" action="remove"/>
+    <header name="X-Rack-Cache" scope="transport" action="remove"/>
+    <header name="X-Request-Id" scope="transport" action="remove"/>
+    <header name="X-Frame-Options" scope="transport" action="remove"/>
+    <header name="X-UA-Compatible" scope="transport" action="remove"/>
+    <header name="X-XSS-Protection" scope="transport" action="remove"/>
+    <header name="X-Content-Type-Options" scope="transport" action="remove"/>
+    
+  </sequence>
 </template>
