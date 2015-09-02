@@ -43,7 +43,7 @@ Steps to follow in setting integration test.
 
  4. Extract the certificate from browser by navigating to https://canvas.instructure.com/register_from_website
 
- 5. Go to new ESB folder and place the downloaded certificate in "<ESB_HOME>/repository/resources/security/" and "<CANVAS_CONNEC  TOR_HOME>/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products"
+ 5. Go to new ESB folder and place the downloaded certificate in "<ESB_HOME>/repository/resources/security/" and "<CANVAS_CONNECTOR_HOME>/canvas-connector/canvas-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products"
 
  6.Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" in command line to import BaseCRM certificate in to keystore.
 		 Give "wso2carbon" as password. Press "Y" to complete certificate import process.
