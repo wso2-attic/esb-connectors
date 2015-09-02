@@ -45,11 +45,11 @@ Steps to follow in setting integration test.
  6. Compress modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file into location "{ESB_CONNECTOR_HOME}/repository/".
 
  7. Make sure that contactform is specified as a module in ESB_Connector_Parent pom.
-   <module>123contactform/contactform-connector/contactform-connector-1.0.0/org.wso2.carbon.connector</module> 
+   <module>contactform/contactform-connector/contactform-connector-1.0.0/org.wso2.carbon.connector</module> 
 
  8. Prerequisites for 123ContactForm Connector Integration Testing  
 
-   i)    Navigate to "http://www.123contactform.com/index.php?p=dashboard", create a new form.
+   i)    Navigate to "http://www.123contactform.com/index.php?p=dashboard", create a new form with multiple fields (at least with 2 fields).
    ii)   Add at least 27 submissions for created form in step 8 i).
  
  9. Update the 123ContactForm properties file at location "<123CONTACTFORM_CONNECTOR_HOME>/contactform-connector/contactform-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
