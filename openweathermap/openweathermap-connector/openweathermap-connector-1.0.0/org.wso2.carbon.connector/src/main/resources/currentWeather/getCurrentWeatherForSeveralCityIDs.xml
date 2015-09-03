@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="getCurrentWeatherForSeveralCityIDs" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- Required parameters -->
+    <parameter name="cityIDs" description="City ID "/>
+    <!-- Optional parameters -->
+    <parameter name="units"
+               description="units metric, imperial. When you do not use units parameter, units is Standard by default."/>
+    <sequence>
+        <property name="uri.var.cityIDs" expression="$func:cityIDs"/>
+        <property name="uri.var.units" expression="$func:units"/>
+        <filter xpath="(not(get-property('uri.var.units') = '' or (not(string(get-property('uri.var.units'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;units=',get-property('uri.var.units'))"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/data/{uri.var.apiVersion}/group?id={+uri.var.cityIDs}{+uri.var.apiParameters}{+uri.var.appID}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="Set-Cookie" scope="transport" action="remove"/>
+    </sequence>
+</template>
