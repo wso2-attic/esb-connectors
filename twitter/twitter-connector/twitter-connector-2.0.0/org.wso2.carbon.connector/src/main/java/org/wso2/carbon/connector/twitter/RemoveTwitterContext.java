@@ -31,7 +31,7 @@ public class RemoveTwitterContext extends AbstractConnector {
 
     public void connect(MessageContext msgContext) throws SynapseException {
         try {
-            RemoveContext(msgContext);
+            removeContext(msgContext);
         } catch (Exception e) {
             log.error("Error while removing the properties");
             throw new SynapseException("Error while removing the properties", e);
@@ -43,7 +43,7 @@ public class RemoveTwitterContext extends AbstractConnector {
      *
      * @param messageContext
      */
-    private void RemoveContext(final MessageContext messageContext) {
+    private void removeContext(final MessageContext messageContext) {
         log.debug("Removing the unneeded properties of the already run methods");
         Object[] keys = messageContext.getPropertyKeySet().toArray();
         for (Object key : keys) {

@@ -108,7 +108,7 @@ public class TwitterSignatureGeneration extends AbstractConnector {
             }
             if (buf != null) {
                 if (log.isDebugEnabled()) {
-                    log.debug(value + "is encoded to " + buf.toString());
+                    log.debug(value + " is encoded to " + buf.toString());
                 }
                 return buf.toString();
             }
@@ -128,9 +128,7 @@ public class TwitterSignatureGeneration extends AbstractConnector {
      * @throws UnsupportedEncodingException
      */
     private static String computeSignature(String baseString, String keyString) throws GeneralSecurityException, UnsupportedEncodingException {
-        if (log.isDebugEnabled()) {
-            log.debug("Starting to compute the signature");
-        }
+        log.debug("Starting to compute the signature");
         try {
             SecretKey secretKey;
             byte[] keyBytes = keyString.getBytes();
@@ -148,40 +146,33 @@ public class TwitterSignatureGeneration extends AbstractConnector {
     /**
      * generate the authorization header using oauth1.a mechanism
      *
-     * @param consumerKey       the twitter account consumer key
-     * @param consumerSecret    the twitter account consumer key
-     * @param accessToken       the twitter account consumer key
-     * @param accessTokenSecret the twitter account consumer key
-     * @param msgContext        the twitter account consumer key
+     * @param consumerKey consumer key of twitter account
+     * @param consumerSecret consumer secret of twitter account
+     * @param accessToken access token of the twitter account
+     * @param accessTokenSecret access token secret of twitter account
+     * @param msgContext the message context
      */
     public void generateSignature(String consumerKey, String consumerSecret, String accessToken, String accessTokenSecret, MessageContext msgContext) {
-        if (log.isDebugEnabled()) {
-            log.debug("Starting to generate the signature header");
-        }
+        log.debug("Starting to generate the signature header");
         try {
             //the HTTP method type of the API method
             String httpMethod = (String) msgContext.getProperty(TwitterConstants.HTTP_METHOD);
-
             //the API endpoint
             String twitterEndpoint = (String) msgContext.getProperty(TwitterConstants.TWITTER_ENDPOINT);
-
             //generate the nonce value
             String randomString = UUID.randomUUID().toString();
             randomString = randomString.replaceAll("-", "");
-            String oauth_nonce = randomString;
-
+            String oauthNonce = randomString;
             //get the timestamp
             Calendar calendar = Calendar.getInstance();
             long ts = calendar.getTimeInMillis();
-            String oauth_timestamp = (new Long(ts / 1000)).toString();
-
+            String oauthTimestamp = (new Long(ts / 1000)).toString();
             //get the required URL parameters
             Map<String, String> parametersMap = getParametersMap(msgContext);
-
             parametersMap.put("uri.var.consumerKey", "oauth_consumer_key=" + consumerKey);
             parametersMap.put("uri.var.oauthToken", "oauth_token=" + accessToken);
-            parametersMap.put("uri.var.nonce", "oauth_nonce=" + oauth_nonce);
-            parametersMap.put("uri.var.timestamp", "oauth_timestamp=" + oauth_timestamp);
+            parametersMap.put("uri.var.nonce", "oauth_nonce=" + oauthNonce);
+            parametersMap.put("uri.var.timestamp", "oauth_timestamp=" + oauthTimestamp);
             parametersMap.put("uri.var.signatureMethod", "oauth_signature_method=" + TwitterConstants.SIGNATURE_METHOD);
             parametersMap.put("uri.var.oauthVersion", "oauth_version=1.0");
 
@@ -195,7 +186,6 @@ public class TwitterSignatureGeneration extends AbstractConnector {
                 }
             }
             str.delete(str.length() - 1, str.length());
-
             String signatureBase = httpMethod + "&" + encode(twitterEndpoint) + "&" + encode(str.toString());
 
             //the base string is signed consumer secret and access token secret
@@ -208,8 +198,8 @@ public class TwitterSignatureGeneration extends AbstractConnector {
                 throw new SynapseException(e);
             }
 
-            String authorizationHeader = "OAuth oauth_consumer_key=\"" + consumerKey + "\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"" + oauth_timestamp +
-                    "\",oauth_nonce=\"" + oauth_nonce + "\",oauth_version=\"1.0\",oauth_signature=\"" + encode(oauthSignature) + "\",oauth_token=\"" + encode(accessToken) + "\"";
+            String authorizationHeader = "OAuth oauth_consumer_key=\"" + consumerKey + "\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"" + oauthTimestamp +
+                    "\",oauth_nonce=\"" + oauthNonce + "\",oauth_version=\"1.0\",oauth_signature=\"" + encode(oauthSignature) + "\",oauth_token=\"" + encode(accessToken) + "\"";
 
             if (log.isDebugEnabled()) {
                 log.debug("The authorization header is " + authorizationHeader);
@@ -221,15 +211,13 @@ public class TwitterSignatureGeneration extends AbstractConnector {
     }
 
     /**
-     * getParametersMap method used to return list of parameter values passed.
+     * get list of URL parameter.
      *
      * @param messageContext the messageContext.
      * @return assigned parameter values as a Map.
      */
     private Map<String, String> getParametersMap(final MessageContext messageContext) {
-        if (log.isDebugEnabled()) {
-            log.debug("Starting to collect the url parameters");
-        }
+        log.debug("Starting to collect the url parameters");
         try {
             Object[] keys = messageContext.getPropertyKeySet().toArray();
             Map<String, String> parametersMap = new HashMap<String, String>();
@@ -238,8 +226,7 @@ public class TwitterSignatureGeneration extends AbstractConnector {
                         && !(key).toString().startsWith("uri.var.apiUrl")
                         && !(key).toString().startsWith("uri.var.httpMethod")
                         && !(key).toString().startsWith("uri.var.apiUrl.final")) {
-                    String paramValue =
-                            (messageContext.getProperty((String) (key)).toString() != null) ? messageContext.getProperty((String) (key)).toString() : TwitterConstants.EMPTY_STR;
+                    String paramValue = (messageContext.getProperty((String) (key)).toString() != null) ? messageContext.getProperty((String) (key)).toString() : TwitterConstants.EMPTY_STR;
                     parametersMap.put((key).toString(), paramValue);
                 }
             }
@@ -257,9 +244,7 @@ public class TwitterSignatureGeneration extends AbstractConnector {
      * @return the sorted parameters
      */
     public static Map sortByValue(Map unsortedMap) {
-        if (log.isDebugEnabled()) {
-            log.debug("Starting to sort the header parameters");
-        }
+        log.debug("Starting to sort the header parameters");
         try {
             List list = new LinkedList(unsortedMap.entrySet());
             Collections.sort(list, new Comparator() {
@@ -268,7 +253,6 @@ public class TwitterSignatureGeneration extends AbstractConnector {
                             .compareTo(((Map.Entry) (object2)).getValue());
                 }
             });
-
             Map sortedMap = new LinkedHashMap();
             for (Object aList : list) {
                 Map.Entry entry = (Map.Entry) aList;
@@ -279,7 +263,6 @@ public class TwitterSignatureGeneration extends AbstractConnector {
             handleException(e);
         }
         return null;
-
     }
 
     private static void handleException(String msg, Exception ex) {
