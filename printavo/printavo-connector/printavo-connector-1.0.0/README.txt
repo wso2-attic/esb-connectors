@@ -21,8 +21,6 @@ STEPS:
  2. Deploy relevant patches, if applicable. Place the patch files into location <ESB_HOME>/repository/components/patches.
     If required add the X.509 certificate from https://www.printavo.com to the client-truststore.jks of the ESB located in <ESB_HOME>/repository/resources/security folder
     and wso2carbon.jks located in <PRINTAVO_CONNECTOR_HOME>/printavo-connector/printavo-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products.
-                        
-    Compress the modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file in to location "<ESB_CONNECTOR_HOME>/repository/"
 
  3. Create a Printavo trial account and derive the API Key and Secret.
    i)    Using the URL "https://www.printavo.com/" create a Printavo trial account.

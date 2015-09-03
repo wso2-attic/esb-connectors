@@ -269,13 +269,13 @@ public class PrintavoConnectorIntegrationTest extends ConnectorIntegrationTestBa
         
         final String apiEndpoint =
                         apiEndpointUrl + "/customers" + authString + "&per_page="
-                                        + connectorProperties.getProperty("PerPage") + "&page="
-                                        + connectorProperties.getProperty("Page");
+                                        + connectorProperties.getProperty("perPage") + "&page="
+                                        + connectorProperties.getProperty("page");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        Assert.assertEquals(connectorProperties.getProperty("PerPage"), apiRestResponse.getBody().getJSONObject("meta")
+        Assert.assertEquals(connectorProperties.getProperty("perPage"), apiRestResponse.getBody().getJSONObject("meta")
                         .getString("per_page"));
-        Assert.assertEquals(connectorProperties.getProperty("Page"), apiRestResponse.getBody().getJSONObject("meta")
+        Assert.assertEquals(connectorProperties.getProperty("page"), apiRestResponse.getBody().getJSONObject("meta")
                         .getString("page"));
         Assert.assertEquals(esbRestResponse.getBody().getJSONArray("data").getJSONObject(0).getString("id"),
                         apiRestResponse.getBody().getJSONArray("data").getJSONObject(0).getString("id"));
@@ -578,13 +578,13 @@ public class PrintavoConnectorIntegrationTest extends ConnectorIntegrationTestBa
         
         final String apiEndpoint =
                         apiEndpointUrl + "/orders" + authString + "&per_page="
-                                        + connectorProperties.getProperty("PerPage") + "&page="
-                                        + connectorProperties.getProperty("Page");
+                                        + connectorProperties.getProperty("perPage") + "&page="
+                                        + connectorProperties.getProperty("page");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
-        Assert.assertEquals(connectorProperties.getProperty("Page"), apiRestResponse.getBody().getJSONObject("meta")
+        Assert.assertEquals(connectorProperties.getProperty("page"), apiRestResponse.getBody().getJSONObject("meta")
                         .getString("page"));
-        Assert.assertEquals(connectorProperties.getProperty("PerPage"), apiRestResponse.getBody().getJSONObject("meta")
+        Assert.assertEquals(connectorProperties.getProperty("perPage"), apiRestResponse.getBody().getJSONObject("meta")
                         .getString("per_page"));
         Assert.assertEquals(esbRestResponse.getBody().getJSONArray("data").getJSONObject(0).getString("id"),
                         apiRestResponse.getBody().getJSONArray("data").getJSONObject(0).getString("id"));
@@ -924,8 +924,8 @@ public class PrintavoConnectorIntegrationTest extends ConnectorIntegrationTestBa
         
         final String apiEndpoint =
                         apiEndpointUrl + "/products" + authString + "&per_page="
-                                        + connectorProperties.getProperty("PerPage") + "&page="
-                                        + connectorProperties.getProperty("Page");
+                                        + connectorProperties.getProperty("perPage") + "&page="
+                                        + connectorProperties.getProperty("page");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("meta").getString("page"), apiRestResponse
@@ -1194,8 +1194,8 @@ public class PrintavoConnectorIntegrationTest extends ConnectorIntegrationTestBa
         
         final String apiEndpoint =
                         apiEndpointUrl + "/payments" + authString + "&per_page="
-                                        + connectorProperties.getProperty("PerPage") + "&page="
-                                        + connectorProperties.getProperty("Page");
+                                        + connectorProperties.getProperty("perPage") + "&page="
+                                        + connectorProperties.getProperty("page");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("meta").getString("page"), apiRestResponse
@@ -1442,8 +1442,8 @@ public class PrintavoConnectorIntegrationTest extends ConnectorIntegrationTestBa
         
         final String apiEndpoint =
                         apiEndpointUrl + "/expenses" + authString + "&per_page="
-                                        + connectorProperties.getProperty("PerPage") + "&page="
-                                        + connectorProperties.getProperty("Page");
+                                        + connectorProperties.getProperty("perPage") + "&page="
+                                        + connectorProperties.getProperty("page");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
         Assert.assertEquals(esbRestResponse.getBody().getJSONObject("meta").getString("total_pages"), apiRestResponse
