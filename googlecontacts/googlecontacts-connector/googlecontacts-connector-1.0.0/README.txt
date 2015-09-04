@@ -39,8 +39,10 @@ STEPS:
 			    - client_id={YOUR_CLIENT_ID}
 			    - client_secrent={YOUR_CLIENT_SECRET}
 			    - grant_type=authorization_code
+ 4. Make sure that googlecontacts is specified as a module in ESB_Connector_Parent pom.
+      <module>googlecontacts/googlecontacts-connector/googlecontacts-connector-1.0.0/org.wso2.carbon.connector</module>
 
- 4. Navigate to "{ESB_Connector_Home}/" and run the following command.
+ 5. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install -DskipTests=true
       $ mvn test
 
