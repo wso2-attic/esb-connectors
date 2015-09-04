@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="getUserModeratorSubreddit" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="after" description="Fullname of a thing (Eg:t5_3g8u2t)"/>
+    <parameter name="before" description="Fullname of a thing (Eg:t5_2wv9a)"/>
+    <parameter name="count" description="A positive integer (default: 0)"/>
+    <parameter name="limit" description="The maximum number of items desired (default: 25, maximum: 100)"/>
+    <parameter name="show" description="Show whether the string all or not"/>
+    <parameter name="srDetail" description="Expand subreddits"/>
+    <sequence>
+        <property name="uri.var.after" expression="$func:after" />
+        <property name="uri.var.before" expression="$func:before" />
+        <property name="uri.var.count" expression="$func:count" />
+        <property name="uri.var.limit" expression="$func:limit" />
+        <property name="uri.var.show" expression="$func:show" />
+        <property name="uri.var.srDetail" expression="$func:srDetail" />
+        <property name="host" value=""/>
+        <property name="uri.var.optionalParameters" value=""/>
+        <filter xpath="(not(get-property('uri.var.srDetail') = '' or (not(string(get-property('uri.var.srDetail'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;sr_detail=',get-property('uri.var.srDetail'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.show') = '' or (not(string(get-property('uri.var.show'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;show=',get-property('uri.var.show'))"/>
+            </then>
+        </filter>
+        <script language="js">
+            <![CDATA[
+            var apiUrlOauth = mc.getProperty('uri.var.apiUrlOauth');
+            if(apiUrlOauth != "") {
+            var host = apiUrlOauth.replace("https://","");
+            mc.setProperty('host',host);
+            }
+            ]]>
+        </script>
+        <filter source="boolean(get-property('uri.var.apiUrlOauth'))" regex="true">
+            <then>
+                <property name="REQUEST_HOST_HEADER" scope="axis2" expression="get-property('host')"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="legacy-encoding:{uri.var.apiUrlOauth}/subreddits/mine/moderator?after={uri.var.after}&amp;before={uri.var.before}&amp;count={uri.var.count}&amp;limit={uri.var.limit}{uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+        <property name="Accept" value="*/*" scope="transport"/>
+    </sequence>
+</template>

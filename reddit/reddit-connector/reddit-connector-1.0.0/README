@@ -1,0 +1,114 @@
+Product: Integration tests for WSO2 ESB reddit connector
+Pre-requisites:
+- Maven 3.x
+- Java 1.6 or above
+
+Tested Platform:
+- Ubuntu 14.04
+- WSO2 ESB 4.9.0-BETA
+- Java 1.7
+
+STEPS:
+1. Download ESB 4.9.0-BETA by navigating the following the URL: http://svn.wso2.org/repos/wso2/people/malaka/ESB/beta/.
+
+2. Extract the certificate from browser by navigating to "https://www.reddit.com/" and place the certificate file in following locations.
+
+   	i)  "<REDDIT_CONNECTOR_HOME>/reddit/org wso2.carbon.connector/src/test/resources/keystores/products"
+
+   		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore
+   		wso2carbon.jks -alias "reddit"' in command line to import reddit certificate in to keystore. Give "wso2carbon" as password.
+   		NOTE : CERT_FILE_NAME is the file name which was extracted from reddit with  the extension(Eg:reddit.crt),
+   		change it accordingly. Remove the copied certificate.
+
+   	ii) "<ESB_HOME>/repository/resources/security"
+
+   		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore
+   		client-truststore.jks -alias "reddit"' in command line to import reddit certificate in to keystore. Give "wso2carbon" as password.
+   		NOTE : CERT_FILE_NAME is the file name which was extracted from reddit with  the extension, change it accordingly.
+   		Remove the copied certificate.
+
+
+3.  ESB should be configured as below.
+   	 Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
+
+	      <messageFormatter contentType="text/html"
+							class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+	      <messageBuilder contentType="text/html"
+							class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+          <messageFormatter contentType="text/plain"
+                            class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+          <messageBuilder contentType="text/plain"
+                            class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+
+4. Compress modified ESB as wso2esb-4.9.0-BETA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
+
+5. Make sure that reddit is specified as a module in ESB_Connector_Parent pom.
+     <module>reddit/reddit-connector/reddit-connector-1.0.0/org.wso2.carbon.connector</module>
+
+6. Create a reddit account and create a secret app.
+   	i) 	  Using the URL "https://www.reddit.com" create a reddit  account.
+   	ii)   Using the URL "https://www.reddit.com/prefs/apps/" create a secret app and obtain clientId and clientSecret
+   	iii)  Using the URL "https://github.com/reddit/reddit/wiki/OAuth2" obtain the authorization code, using the authorization
+   	      code retrieve the access token(code flow) and then get the refresh token (using "HTTP Basic Auth" to get access
+   	      token and refresh token).
+   	iv)   Using the refresh token (Bearer) in Authorization header(Eg:Bearer42591910-i3N4nJ0H3D40wR3JIgglwjY0V-E) to access
+   	      the operations in reddit rest api.
+   Note : When you try to get the code for the created secret app please use scope as following
+   		  "scope=identity,edit,flair,history,mysubreddits,privatemessages,read,report,save,submit,subscribe,vote,wikiedit,wikiread"
+   		  because, then only you can get that created app as authorized applications with that defined scope.
+   Note : When try to do the manual testing, Consider the endpoint "http://www.reddit.com/" to the public methods(methods without authorization)
+   		  When try to do the manual testing, Consider the endpoint "https://oauth.reddit.com/" to the Oauth scope methods such as Read,
+   		  Identity,Submit,PrivateMessages,Subreddit,History and etc.
+
+7.   Modify the proxy file in following location "{Reddit_Connector_Home}/reddit-connector/reddit-connector-1.0.0/
+     org.wso2.carbon.connector/src/test/resources/artifacts/ESB/config/proxies/reddit/
+
+8. Edit the "reddit.properties" at {Reddit_Connector_Home}/reddit-connector/reddit-connector-1.0.0/org.wso2.carbon.connector/
+   src/test/resources/artifacts/connector/config/ using valid and relevant data. Parameters to be changed are mentioned below.
+     accessToken: Access token (it should refresh after a 3600 sec, Make sure that after every 3600 sec change your
+                  accessToken in your properties file)
+     apiUrl: public methods URL
+     apiUrlOauth: Authorized methods URL
+     apiVersion: Version of API
+	 after: Fullname of a thing
+     before: Fullname of a thing
+     count: A positive integer (default: 0)
+     userName: Existing Reddit user name
+     limit: The maximum number of items desired (default: 25, maximum: 100)
+     show: Show whether the string all or not
+     sort: One of (relevance, hot, top, new, comments)
+     srDetail: Expand subreddits
+     time: One of (hour, day, week, month, year, all)
+     mark: A boolean value(true or false)
+     mid: Mid thing_id of the messages
+     endDate: End date of the notifications
+     startDate: Start date of the notifications
+     user: user name
+     email: Email Address
+     password1: password for account
+     password2: password for account (it should be same as password1)
+     destination: Destination
+     rem: rem is a boolean value which is need to register new account
+     reason: Purpose for creating account
+     includeFacets: A boolean value
+     type: Comma-delimited list of result types (sr, link)
+     syntax: One of (cloudsearch, lucene, plain)
+     restrictSr: A boolean value
+     str: A string
+     expandSrs: A boolean value
+Note:
+     getAnyPublicMultisList: if you have any public multis in your account, then only can get right response.otherwise
+                             you should get null string response.
+     getCurrentUserMultisList: if you have own multis list in your account, then only can get right response.
+                               otherwise you should get response with null string.
+     getSubredditKarma: if you have any karma points in your account, then only can get right response. otherwise you
+                        should get response with null string.
+     getUserModeratorSubreddit: if you have any moderator subreddit, then only can get right response. otherwise
+                                you should get response with null string.
+     getUserNotifications:if you have any notifications in your account, then only you can get right response. otherwise
+                          you should get response with null string.
+     reddit_register : if you need to register new reddit account, you need to give unique user name which is not
+                       already registered in reddit account.
+
+9. Navigate to "{ESB_Connector_Home}/" and run the following command.
+     $ mvn clean install
