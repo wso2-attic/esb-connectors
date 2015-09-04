@@ -49,32 +49,24 @@ public class Fileunzip extends AbstractConnector implements Connector {
                         messageContext,
                         "newfilelocation").toString();
 
-        if (log.isDebugEnabled()) {
-            log.info("Extracting a file...");
-        }
-        boolean resultStatus = false;
+        boolean resultStatus;
         try {
             resultStatus = new FileUnzipUtil().unzip(fileLocation, newFileLocation, messageContext);
-            // resultStatus = true;
         } catch (Exception e) {
             handleException(e.getMessage(), messageContext);
             resultStatus = false;
         }
         generateResults(messageContext, resultStatus);
-        if (log.isDebugEnabled()) {
-            log.info("File extracted......");
-        }
     }
 
     private void generateResults(MessageContext messageContext, boolean resultStatus) {
         ResultPayloadCreater resultPayload = new ResultPayloadCreater();
 
-        String responce = "<unzip><success>" + resultStatus + "</success></unzip>";
+        String responses = "<unzip><success>" + resultStatus + "</success></unzip>";
 
         try {
-            OMElement element = resultPayload.performSearchMessages(responce);
+            OMElement element = resultPayload.performSearchMessages(responses);
             resultPayload.preparePayload(messageContext, element);
-
         } catch (XMLStreamException e) {
             log.error(e.getMessage());
             handleException(e.getMessage(), messageContext);

@@ -29,14 +29,13 @@ import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.FileSystemOptions;
 import org.apache.commons.vfs2.VFS;
 import org.apache.synapse.MessageContext;
+import org.apache.synapse.SynapseException;
 import org.wso2.carbon.connector.core.AbstractConnector;
 import org.wso2.carbon.connector.core.ConnectException;
 import org.wso2.carbon.connector.core.Connector;
 import org.wso2.carbon.connector.util.FTPSiteUtils;
-
 import java.io.*;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 
 public class FileList extends AbstractConnector implements Connector {
@@ -50,54 +49,31 @@ public class FileList extends AbstractConnector implements Connector {
                         messageContext,
                         "filelocation").toString();
 
-        if (log.isDebugEnabled()) {
-            log.info("File Location..." + fileLocation);
-        }
-
         list(messageContext, fileLocation);
-
-        if (log.isDebugEnabled()) {
-            log.info("All files are listed......");
-
-            if (log.isDebugEnabled()) {
-                log.info("File read......");
-            }
-        }
+        log.info("All files are listed......");
     }
 
-    /**
-     * @param messageContext
-     * @param fileLocation
-     * @throws ZipException
-     * @throws IOException
-     */
-    public void list(MessageContext messageContext, String fileLocation) {
+    public void list(MessageContext messageContext, String fileLocation) throws SynapseException {
 
-        log.info("reading a zip file ");
-
-        if (log.isDebugEnabled()) {
-            log.info("The zip file is reading");
-        }
         try {
             FileSystemOptions opts = FTPSiteUtils.createDefaultOptions();
             FileSystemManager manager = VFS.getManager();
 
             // Create remote object
             FileObject remoteFile = manager.resolveFile(fileLocation, opts);
-            // open the zip file
-            InputStream input = remoteFile.getContent().getInputStream();
-            ZipInputStream zip = new ZipInputStream(input);
-            OMFactory factory = OMAbstractFactory.getOMFactory();
-            String outputResult;
-            OMNamespace ns = factory.createOMNamespace(FileConnectorConstants.FILECON, FileConnectorConstants.NAMESPACE);
-            OMElement result = factory.createOMElement(FileConnectorConstants.RESULT, ns);
-            try {
+            if (remoteFile.exists()) {
+                log.info("Reading a zip File.");
+                // open the zip file
+                InputStream input = remoteFile.getContent().getInputStream();
+                ZipInputStream zip = new ZipInputStream(input);
+                OMFactory factory = OMAbstractFactory.getOMFactory();
+                String outputResult;
+                OMNamespace ns = factory.createOMNamespace(FileConnectorConstants.FILECON,
+                        FileConnectorConstants.NAMESPACE);
+                OMElement result = factory.createOMElement(FileConnectorConstants.RESULT, ns);
                 ZipEntry zipEntry;
                 // iterates over entries in the zip file
                 while ((zipEntry = zip.getNextEntry()) != null) {
-                    if (log.isDebugEnabled()) {
-                        log.info("The entry is " + zipEntry.toString());
-                    }
                     if (!zipEntry.isDirectory()) {
                         //add the entries
                         outputResult = zipEntry.getName();
@@ -112,14 +88,13 @@ public class FileList extends AbstractConnector implements Connector {
                     log.info("The envelop body with the read files path is " +
                             messageContext.getEnvelope().getBody().toString());
                 }
-            } catch (Exception e) {
-                log.error("Unable to process :" + e.getMessage());
-            } finally {
                 //we must always close the zip file
                 zip.close();
+            } else {
+                log.error("Zip file does not exist.");
             }
         } catch (IOException e) {
-            log.error("Unable to process the zip file" + e.getMessage());
+            log.error("Unable to process the zip file", e);
             handleException(e.getMessage(), messageContext);
         }
     }
