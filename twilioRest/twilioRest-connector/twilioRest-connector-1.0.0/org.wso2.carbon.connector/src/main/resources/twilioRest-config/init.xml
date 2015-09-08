@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+    WSO2 Inc. licenses this file to you under the Apache License,
+    Version 2.0 (the "License"); you may not use this file except
+    in compliance with the License.
+    You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+<!--This template should be called prior to other Twilio templates. Once this has been added to
+     the flow, any number of templates can access the values. -->
+    <parameter name="accountSid" description="AccountSid for the twilio account"/>
+    <parameter name="authToken" description="API Authentication Token for the twilio API."/>
+    <parameter name="apiUrl" description="API URl for the twilio account"/>
+    <parameter name="apiVersion" description="API version for the twilio account"/>
+    <sequence>
+        <property name="uri.var.accountSid" expression="$func:accountSid" />
+        <property name="uri.var.authToken" expression="$func:authToken" />
+        <property name="uri.var.apiUrl" expression="$func:apiUrl" />
+        <property name="uri.var.apiVersion" expression="$func:apiVersion" />
+
+        <!-- Headers Required -->
+        <property name="Authorization"
+                  expression="fn:concat('Basic ', base64Encode(fn:concat(get-property('uri.var.accountSid'), ':', get-property('uri.var.authToken'))))"
+                  scope="transport" type="STRING" />
+
+        <header name="Content-Type" value="application/x-www-form-urlencoded" scope="transport"/>
+        <!-- If the apiUrl is not specified, set the default value as https://api.twilio.com -->
+        <filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+            <then>
+                <property name="uri.var.apiUrl" value="https://api.twilio.com" />
+            </then>
+            <else>
+                <property name="uri.var.apiUrl" expression="get-property('uri.var.apiUrl')" />
+            </else>
+        </filter>
+        <!-- If the version is not specified, set the default version as 2010-04-01 -->
+        <filter source="boolean(get-property('uri.var.apiVersion'))" regex="false">
+            <then>
+                <property name="uri.var.apiVersion" value="2010-04-01" />
+            </then>
+            <else>
+                <property name="uri.var.apiVersion" expression="get-property('uri.var.apiVersion')" />
+            </else>
+        </filter>
+
+    </sequence>
+</template>

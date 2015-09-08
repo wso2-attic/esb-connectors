@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Documentation URL -  https://www.twilio.com/docs/api/rest/incoming-phone-numbers#list  -->
+<template name="getIncomingPhoneNumberList" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="phoneNumber" description="Only shows the caller ID resource with this phone number.
+                                               Should be formatted with a '+' and country code, e.g., +16175551212 (E.164 format). Twilio will also accept unformatted US numbers, e.g., (415) 555-1212, 415-555-1212."/>
+    <parameter name="friendlyName" description=" Only shows the caller ID resource with this friendly name." />
+
+    <sequence>
+        <property name="uri.var.phoneNumber" expression="$func:phoneNumber" />
+        <property name="uri.var.friendlyName" expression="$func:friendlyName" />
+        <property name="uri.var.optionalParameters" value=""/>
+        <filter xpath="(not(get-property('uri.var.phoneNumber') = '' or (not(string(get-property('uri.var.phoneNumber'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;PhoneNumber=',get-property('uri.var.phoneNumber'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.friendlyName') = '' or (not(string(get-property('uri.var.friendlyName'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;FriendlyName=',get-property('uri.var.friendlyName'))"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="get" uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/Accounts/{uri.var.accountSid}/IncomingPhoneNumbers.json?{+uri.var.optionalParameters}" />
+            </endpoint>
+        </call>
+        <!--Removing custom headers from the Response. -->
+        <header name="X-Frame-Options" action="remove" scope="transport" />
+        <header name="Vary" action="remove" scope="transport" />
+        <header name="X-XSS-Protection" action="remove" scope="transport" />
+        <header name="X-Content-Type-Options" action="remove" scope="transport" />
+        <header name="Strict-Transport-Security" action="remove" scope="transport" />
+        <header name="X-RateLimit-Remaining" action="remove" scope="transport" />
+        <header name="X-RateLimit-Limit" action="remove" scope="transport" />
+        <header name="X-RateLimit-Reset" action="remove" scope="transport" />
+    </sequence>
+</template>
