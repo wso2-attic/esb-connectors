@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Documentation URL - https://www.twilio.com/docs/api/rest/available-phone-numbers#local  -->
+
+<template name="getAvailableLocalNumbers" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="country" description="The country code (such as US for United States, CA for Canada, and GB for United Kingdom) in which you want to find available toll-free numbers."/>
+    <parameter name="areaCode" description="Only shows numbers in this area code."/>
+    <parameter name="contains" description="Only shows numbers that match the specified pattern. Valid characters are * and 0-9a-zA-Z.The * character will match any single digit."/>
+    <parameter name="inRegion" description="Only shows numbers in this region (state or province)."/>
+    <parameter name="inPostalCode" description="Only shows numbers in this postal code."/>
+    <parameter name="nearLatLong" description="Only shows numbers within 25 miles of this latitude/longitude coordinate.
+                                                To change the search distance from the given coordinate, also specify the distance property."/>
+    <parameter name="nearNumber" description="Only shows numbers within 25 miles of this phone number. To change the search distance from the given number, also specify the distance property."/>
+    <parameter name="inLata" description=" Only shows numbers in this Local Access and Transport Area (LATA). "/>
+    <parameter name="inRateCenter" description="Only shows numbers in this rate center."/>
+    <parameter name="distance" description="Specifies the distance from the coordinate (nearLatLong) or number (nearNumber) to search, up to 500 miles. Defaults to 25."/>
+    <sequence>
+        <property name="uri.var.country" expression="$func:country"/>
+        <property name="uri.var.areaCode" expression="$func:areaCode"/>
+        <property name="uri.var.contains" expression="$func:contains"/>
+        <property name="uri.var.inRegion" expression="$func:inRegion"/>
+        <property name="uri.var.inPostalCode" expression="$func:inPostalCode"/>
+        <property name="uri.var.nearLatLong" expression="$func:nearLatLong"/>
+        <property name="uri.var.nearNumber" expression="$func:nearNumber"/>
+        <property name="uri.var.inLata" expression="$func:inLata"/>
+        <property name="uri.var.inRateCenter" expression="$func:inRateCenter"/>
+        <property name="uri.var.distance" expression="$func:distance"/>
+        <property name="uri.var.optionalParameters" value=""/>
+        <filter xpath="(not(get-property('uri.var.areaCode') = '' or (not(string(get-property('uri.var.areaCode'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;AreaCode=',get-property('uri.var.areaCode'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.contains') = '' or (not(string(get-property('uri.var.contains'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;Contains=',get-property('uri.var.contains'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.inRegion') = '' or (not(string(get-property('uri.var.inRegion'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;InRegion=',get-property('uri.var.inRegion'))"/>
+            </then>        </filter>
+
+        <filter xpath="(not(get-property('uri.var.inPostalCode') = '' or (not(string(get-property('uri.var.inPostalCode'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;InPostalCode=',get-property('uri.var.inPostalCode'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.nearLatLong') = '' or (not(string(get-property('uri.var.nearLatLong'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;NearLatLong=',get-property('uri.var.nearLatLong'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.nearNumber') = '' or (not(string(get-property('uri.var.nearNumber'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;NearNumber=',get-property('uri.var.nearNumber'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.inLata') = '' or (not(string(get-property('uri.var.inLata'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;InLata=',get-property('uri.var.inLata'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.inRateCenter') = '' or (not(string(get-property('uri.var.inRateCenter'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;InRateCenter=',get-property('uri.var.inRateCenter'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.distance') = '' or (not(string(get-property('uri.var.distance'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;Distance=',get-property('uri.var.distance'))"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/Accounts/{uri.var.accountSid}/AvailablePhoneNumbers/{uri.var.country}/Local.json?{+uri.var.optionalParameters}"/>
+            </endpoint>
+        </call>
+        <!--Removing custom headers from the Response. -->
+        <header name="X-Frame-Options" action="remove" scope="transport"/>
+        <header name="Vary" action="remove" scope="transport"/>
+        <header name="X-XSS-Protection" action="remove" scope="transport"/>
+        <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+        <header name="Strict-Transport-Security" action="remove" scope="transport"/>
+        <header name="X-RateLimit-Remaining" action="remove" scope="transport"/>
+        <header name="X-RateLimit-Limit" action="remove" scope="transport"/>
+        <header name="X-RateLimit-Reset" action="remove" scope="transport"/>
+    </sequence>
+</template>
