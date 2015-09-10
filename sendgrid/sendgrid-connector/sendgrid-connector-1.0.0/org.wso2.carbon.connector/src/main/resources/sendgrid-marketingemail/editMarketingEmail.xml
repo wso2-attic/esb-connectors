@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~ http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied. See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+
+<template name="editMarketingEmail" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="identity" description="The Identity (Sender Address) that will be used for the Marketing Email being created." />
+    <parameter name="name" description="The name that will be used for the Marketing Email." />
+    <parameter name="newname" description="The new name that will be used for the Marketing Email." />
+    <parameter name="subject" description="The subject that will be used for the Marketing Email." />
+    <parameter name="text" description="The text portion of the Marketing Email." />
+    <parameter name="html" description="The html portion of the Marketing Email." />
+
+    <sequence>
+        <property name="uri.var.identity" expression="$func:identity" />
+        <property name="uri.var.name" expression="$func:name" />
+        <property name="uri.var.newname" expression="$func:newname" />
+        <property name="uri.var.subject" expression="$func:subject" />
+        <property name="uri.var.replyto" expression="$func:replyto" />
+        <property name="uri.var.text" expression="$func:text" />
+        <property name="uri.var.html" expression="$func:html" />
+
+
+        <filter xpath="(not(get-property('uri.var.newname') = '' or (not(string(get-property('uri.var.newname'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;newname=',get-property('uri.var.newname'))"/>
+            </then>
+        </filter>
+
+
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/edit.json?api_user={+uri.var.apiUser}&amp;api_key={+uri.var.apiKey}&amp;identity={+uri.var.identity}&amp;name={+uri.var.name}&amp;subject={+uri.var.subject}&amp;replyto={+uri.var.replyto}&amp;text={+uri.var.text}&amp;html={+uri.var.html}&amp;{+uri.var.optionalParameters}" />
+
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="X-Runtime" action="remove" scope="transport" />
+        <header name="ETag" action="remove" scope="transport" />
+        <header name="X-UA-Compatible" action="remove" scope="transport" />
+        <header name="X-Request-Id" action="remove" scope="transport" />
+        <header name="X-Rack-Cache" action="remove" scope="transport" />
+        <header name="X-Powered-By" action="remove" scope="transport" />
+
+    </sequence>
+</template>

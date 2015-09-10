@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~ http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied. See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+
+<template name="addSenderaddress" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="identity" description="Create an Address named this." />
+    <parameter name="name" description="Specify the name to be used for this Address." />
+    <parameter name="email" description="Specify the email address to be used for this Address." />
+    <parameter name="replyTo" description="Specify an email address to be used in the Reply-To field. If not defined, will default to the email parameter." />
+    <parameter name="address" description="Specify the physical address to be used for this Address." />
+    <parameter name="city" description="Specify the city to be used for this Address." />
+    <parameter name="state" description="Specify the state to be used for this Address." />
+    <parameter name="zip" description="Specify the zipcode/postal code to be used for this Address." />
+    <parameter name="country" description="Specify the country to be used for this Address." />
+
+    <sequence>
+        <property name="uri.var.identity" expression="$func:identity" />
+        <property name="uri.var.name" expression="$func:name" />
+        <property name="uri.var.email" expression="$func:email" />
+        <property name="uri.var.replyTo" expression="$func:replyTo" />
+        <property name="uri.var.address" expression="$func:address" />
+        <property name="uri.var.city" expression="$func:city" />
+        <property name="uri.var.state" expression="$func:state" />
+        <property name="uri.var.zip" expression="$func:zip" />
+        <property name="uri.var.country" expression="$func:country" />
+
+
+        <filter xpath="(not(get-property('uri.var.replyTo') = '' or (not(string(get-property('uri.var.replyTo'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;replyto=',get-property('uri.var.replyTo'))"/>
+            </then>
+        </filter>
+
+
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/identity/add.json?api_user={+uri.var.apiUser}&amp;api_key={+uri.var.apiKey}&amp;identity={+uri.var.identity}&amp;address={+uri.var.address}&amp;name={+uri.var.name}&amp;email={+uri.var.email}&amp;city={+uri.var.city}&amp;state={+uri.var.state}&amp;zip={+uri.var.zip}&amp;country={+uri.var.country}&amp;{+uri.var.optionalParameters}"/>
+
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="X-Runtime" action="remove" scope="transport" />
+        <header name="ETag" action="remove" scope="transport" />
+        <header name="X-UA-Compatible" action="remove" scope="transport" />
+        <header name="X-Request-Id" action="remove" scope="transport" />
+        <header name="X-Rack-Cache" action="remove" scope="transport" />
+        <header name="X-Powered-By" action="remove" scope="transport" />
+
+    </sequence>
+</template>
