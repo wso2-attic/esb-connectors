@@ -22,7 +22,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
      */
     @BeforeClass(alwaysRun = true)
     public void setEnvironment() throws Exception {
-        init("gmailRest");
+        init("gmailRest-connector-2.0.0");
         esbRequestHeadersMap.put("Accept-Charset", "UTF-8");
         esbRequestHeadersMap.put("Content-Type", "application/json");
         String authorization = connectorProperties.getProperty("accessToken");
@@ -380,7 +380,7 @@ public class GmailConnectorIntegrationTest extends ConnectorIntegrationTestBase{
     /**
      * Positive test case for createAMail method with mandatory parameters.
      */
-    @Test(enabled = true, description = "gmailRest {createAMail} integration test with mandatory parameter.")
+    @Test(enabled = false, description = "gmailRest {createAMail} integration test with mandatory parameter.")
     public void testCreateAMailWithMandatoryParameters() throws IOException, JSONException {
         String methodName = "gmailRest_createAMail";
         RestResponse<JSONObject> esbRestResponse =
