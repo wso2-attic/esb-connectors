@@ -84,7 +84,7 @@ Steps to follow in setting integration test.
    xxxvii)  deliveryNoteTitle          -  Text to be used as 'title' while creating a delivery note with optional parameters.
    xxxviii) deliveryNoteDate           -  Text to be used as 'date' while creating a  delivery note with optional parameters in the format of 'yyyy-mm-dd' (e.g. 2015-05-30).
    xxxix)   deliveryNoteNumber         -  Numerical value to be used as 'number' while creating a delivery note with optional parameters.
-   xL)      deliveryNoteNumberPre      -  Text to be used as 'number_pre' while creating a delivery note with optional parameters.
+   xL)      deliveryNoteNumberPrefix   -  Text to be used as 'number_pre' while creating a delivery note with optional parameters.
    xLi)     deliveryNoteStatus         -  Text to be used as 'status' while creating a delivery note with optional parameters.(Make sure to use the value 'DRAFT' as the status).
    
    
