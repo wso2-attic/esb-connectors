@@ -79,12 +79,12 @@ Steps to follow in setting integration test.
    xxxiv)   invoiceItemQuantity        -  Numerical value to be used as 'quantity' while creating an invoice item with optional parameters.
    
    xxxv)    page                       -  Numerical value to be used as 'page' while listing clients/contacts/invoices/invoice-items with optional parameters.
-   xxxvi)   clientPerPage              -  Numerical value to be used as 'per_page' while listing contacts/invoices/invoice-items with optional parameters.
+   xxxvi)   perPage                    -  Numerical value to be used as 'per_page' while listing contacts/invoices/invoice-items with optional parameters.
    
    xxxvii)  deliveryNoteTitle          -  Text to be used as 'title' while creating a delivery note with optional parameters.
    xxxviii) deliveryNoteDate           -  Text to be used as 'date' while creating a  delivery note with optional parameters in the format of 'yyyy-mm-dd' (e.g. 2015-05-30).
    xxxix)   deliveryNoteNumber         -  Numerical value to be used as 'number' while creating a delivery note with optional parameters.
-   xL)      deliveryNoteNumberPrefix   -  Text to be used as 'number_pre' while creating a delivery note with optional parameters.
+   xL)      deliveryNoteNumberPre      -  Text to be used as 'number_pre' while creating a delivery note with optional parameters.
    xLi)     deliveryNoteStatus         -  Text to be used as 'status' while creating a delivery note with optional parameters.(Make sure to use the value 'DRAFT' as the status).
    
    
