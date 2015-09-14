@@ -166,12 +166,13 @@ public class FormstackConnectorIntegrationTest extends ConnectorIntegrationTestB
         
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_copyForm_mandatory.json");
+      
         final JSONArray esbResponseArray = esbRestResponse.getBody().getJSONArray("fields");
         
         final String apiEndPoint = apiRequestUrl + "/form/" + connectorProperties.getProperty("formId") + "/copy.json";
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap);
         final JSONArray apiResponseArray = apiRestResponse.getBody().getJSONArray("fields");
-        
+       
         Assert.assertEquals(esbResponseArray.getJSONObject(0).getString("label"), apiResponseArray.getJSONObject(0)
                 .getString("label"));
         Assert.assertEquals(esbResponseArray.getJSONObject(1).getString("label"), apiResponseArray.getJSONObject(1)
@@ -236,6 +237,7 @@ public class FormstackConnectorIntegrationTest extends ConnectorIntegrationTestB
         
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listSubmissions_optional.json");
+       
         final JSONArray esbResponseArray = esbRestResponse.getBody().getJSONArray("submissions");
         final String submissionId = esbResponseArray.getJSONObject(0).getString("id");
         connectorProperties.setProperty("submissionId", submissionId);
@@ -263,7 +265,7 @@ public class FormstackConnectorIntegrationTest extends ConnectorIntegrationTestB
      * Negative test case for listSubmissions method.
      */
     @Test(groups = { "wso2.esb" }, description = "formstack {listSubmissions} integration test with negative case.")
-    public void estListSubmissionsWithWithNegativeCase() throws IOException, JSONException {
+    public void testListSubmissionsWithWithNegativeCase() throws IOException, JSONException {
         esbRequestHeadersMap.put("Action", "urn:listSubmissions");
         
         RestResponse<JSONObject> esbRestResponse =
@@ -296,8 +298,6 @@ public class FormstackConnectorIntegrationTest extends ConnectorIntegrationTestB
         Assert.assertEquals(esbRestResponse.getBody().getString("form"), apiRestResponse.getBody().getString("form"));
         Assert.assertEquals(esbRestResponse.getBody().getJSONArray("data").length(), apiRestResponse.getBody()
                 .getJSONArray("data").length());
-        Assert.assertEquals(esbRestResponse.getBody().getString("pretty_field_id"), apiRestResponse.getBody()
-                .getString("pretty_field_id"));
         Assert.assertEquals(esbRestResponse.getBody().getString("payment_status"), apiRestResponse.getBody().getString(
                 "payment_status"));
     }
@@ -322,8 +322,6 @@ public class FormstackConnectorIntegrationTest extends ConnectorIntegrationTestB
         Assert.assertEquals(esbRestResponse.getBody().getString("form"), apiRestResponse.getBody().getString("form"));
         Assert.assertEquals(esbRestResponse.getBody().getJSONArray("data").length(), apiRestResponse.getBody()
                 .getJSONArray("data").length());
-        Assert.assertEquals(esbRestResponse.getBody().getString("pretty_field_id"), apiRestResponse.getBody()
-                .getString("pretty_field_id"));
         Assert.assertEquals(esbRestResponse.getBody().getString("payment_status"), apiRestResponse.getBody().getString(
                 "payment_status"));
     }
@@ -811,4 +809,50 @@ public class FormstackConnectorIntegrationTest extends ConnectorIntegrationTestB
         Assert.assertEquals(esbRestResponse.getBody().getString("error"), apiRestResponse.getBody().getString("error"));
     }
     
+    /**
+     * Positive test case for deleteForm method with mandatory parameters.
+     */
+    @Test(groups = { "wso2.esb" }, description = "formstack {deleteForm} integration test with mandatory parameters.")
+    public void testDeleteFormWithMandatoryParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:deleteForm");
+        
+        final String apiEndPoint = apiRequestUrl + "/form/" + connectorProperties.getProperty("deleteFormId") + ".json";
+        RestResponse<JSONObject> apiRestResponseBefore = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_deleteForm_mandatory.json");
+        
+        Assert.assertEquals(connectorProperties.getProperty("deleteFormId"),esbRestResponse.getBody().getString("id"));
+        
+        RestResponse<JSONObject> apiRestResponseAfter = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(apiRestResponseBefore.getBody().getString("id"),connectorProperties.getProperty("deleteFormId") );
+        Assert.assertEquals(apiRestResponseAfter.getBody().getString("status"), "error");
+    }
+    
+    /**
+     * Method name: deleteForm
+     * Test scenario: Optional
+     * Reason to skip: In deleteForm method there is only one parameter which is a mandatory one.
+     */
+    
+    /**
+     * Negative test case for deleteForm method.
+     */
+    @Test(groups = { "wso2.esb" }, description = "formstack {deleteForm} integration test with negative case.")
+    public void testDeleteFormWithNegativeCase() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:deleteForm");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_deleteForm_negative.json");
+        
+        final String apiEndPoint = apiRequestUrl + "/form/invalid.json";
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "DELETE", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getString("status"), apiRestResponse.getBody()
+                .getString("status"));
+        Assert.assertEquals(esbRestResponse.getBody().getString("error"), apiRestResponse.getBody().getString("error"));
+        Assert.assertEquals(esbRestResponse.getBody().getString("status"), apiRestResponse.getBody().getString("status"));
+    }
 }
