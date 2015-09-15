@@ -48,9 +48,9 @@ Steps to follow in setting integration test.
  5. Update the formstack properties file at location "<FORMSTACK_CONNECTOR_HOME>/formstack-connector/formstack-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
    01)   apiUrl                           -  Base endpoint URL of the API. Use https://www.formstack.com.
-   02)   authToken                        - Authentication obtained in 3. ii).
-   03)   folderName                       - Name of the folder created in 3. iii).
-   04)   formId                           - ID of the form created in 3. iv).
+   02)   authToken                        - Authentication obtained in 4. ii).
+   03)   folderName                       - Name of the folder created in 4. iii).
+   04)   formId                           - ID of the form created in 4. iv).
    05)   updateSubmissionTimestamp        - Text to be used as 'timestamp' while updating submission. It should be in the format: yyyy-MM-dd HH:mm:ss.
    06)   updateSubmissionUserAgent        - Text to be used as 'userAgent' while updating submission.
    07)   updateSubmissionRemoteAddress    - RemoteAddress to be used while updating submission.
@@ -89,16 +89,13 @@ Steps to follow in setting integration test.
    36)   updateConfirmationMessage        - Text to be used as 'message' while updating confirmation.
    37)   updateConfirmationDelay          - Date of delay to be used as 'delay' while updating confirmation.
    
-   38)   deleteFormId                     - ID of the form created in 3. vi).
+   38)   deleteFormId                     - ID of the form created in 4. vi).
    
    Note: i)  Except for properties 4. 03) and 4. 04), test suite can be executed without making any changes to the provided property file.
-         ii) For each execution, repeatedly follow steps 3. iii) , 3. iv), 3. v) and 3. vi) .
+         ii) For each execution, repeatedly follow steps 4. iii) , 4. iv), 4. v) and 4. vi) .
       
- 6. Make sure that the formstack connector is set as a module in esb-connectors parent pom.
-            <module>/formstack-connector/formstack-connector-1.0.0/org.wso2.carbon.connector/</module>
-
- 7. Navigate to "{ESB_Connector_Home}/" and run the following command.
-          $ mvn clean install
+ 6. Make sure that Formstack is specified as a module in ESB Connector Parent pom and run the following command.
+          <module>formstack/formstack-connector/formstack-connector-1.0.0/org.wso2.carbon.connector</module>
 
     Note:- Formstack trial account expires within 14 days.
 
