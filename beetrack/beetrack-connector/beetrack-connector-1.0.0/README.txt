@@ -31,19 +31,19 @@ STEPS:
 
  4. Update the beetrack properties file at location "<BEETRACK_CONNECTOR_HOME>/beetrack-connector/beetrack-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
-   i)        apiUrl                                      - Use http://www.beetrack.com.
-   ii)       apiKey                                      - Use the API Key obtained under Step 3 ii).
+   i)        apiUrl                                      - Use http://app.beetrack.com.
+   ii)       accessToken                                 - Use the API Key obtained under Step 3 ii).
    iii)      vehicleId                                   - Identifier of the vehicle for createVehicle mandatory case. Use a valid string value.
    iv)       routeDate                                   - Date in which the route is going to be managed for createRoute mandatory case. Use the current date value in following format (Format dd-mm-yyyy).
    v)        routeDispatches                             - Dispatch id obtained under Step 3 v).
    vi)       routeDriverIdentifier                       - The username obtained under Step 3 iii).
    vii)      routeEnableEstimations                      - Use any boolean value.
    viii)     routeDispatchesUpdated                      - Dispatch id obtained under Step 3 v). For the second route.
-   ix)       routStartTimeUpdate                         - Time at which the route started. Use following date format (2015-09-15T11:52:30.000+05:30).
-   x)        routEndTimeUpdate                           - Time at which the route ended. Use following date format (2015-09-15T11:52:30.000+05:30).
+   ix)       routeStartTimeUpdate                        - Time at which the route started. Use the valu given in 4 iv) in following date format (2015-09-15).
+   x)        routeEndTimeUpdate                          - Time at which the route ended. Use following date format (2015-09-15).
 
  5. Make sure that beetrack is specified as a module in ESB Connector Parent pom.
         <module>beetrack/beetrack-connector/beetrack-connector-1.0.0/org.wso2.carbon.connector</module> 
 
- 6. Navigate to "{ESB_Connector_Home}/" and run the following command.
+ 6. Navigate to "{ESB_CONNECTOR_HOME}/" and run the following command.
          $ mvn clean install
