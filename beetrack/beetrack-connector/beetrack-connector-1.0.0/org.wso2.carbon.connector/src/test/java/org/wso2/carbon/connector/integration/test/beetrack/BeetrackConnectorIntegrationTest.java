@@ -479,8 +479,8 @@ public class BeetrackConnectorIntegrationTest extends ConnectorIntegrationTestBa
       Assert.assertEquals(connectorProperties.getProperty("routeDispatchesUpdated"),
             apiRestResponse2.getBody().getJSONObject("response").getJSONObject("route").getJSONArray("dispatches")
                   .getJSONObject(1).getString("identifier"));
-      Assert.assertEquals(connectorProperties.getProperty("routStartTimeUpdate"), startDateWithoutTimeAPI[0]);
-      Assert.assertEquals(connectorProperties.getProperty("routEndTimeUpdate"), endDateWithoutTimeAPI[0]);
+      Assert.assertEquals(connectorProperties.getProperty("routeStartTimeUpdate"), startDateWithoutTimeAPI[0]);
+      Assert.assertEquals(connectorProperties.getProperty("routeEndTimeUpdate"), endDateWithoutTimeAPI[0]);
       
    }
    

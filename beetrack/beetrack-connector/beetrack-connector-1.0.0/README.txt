@@ -45,5 +45,5 @@ STEPS:
  5. Make sure that beetrack is specified as a module in ESB Connector Parent pom.
         <module>beetrack/beetrack-connector/beetrack-connector-1.0.0/org.wso2.carbon.connector</module> 
 
- 6. Navigate to "{ESB_CONNECTOR_HOME}/" and run the following command.
+ 6. Navigate to "<ESB_CONNECTOR_HOME>/" and run the following command.
          $ mvn clean install
