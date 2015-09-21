@@ -19,10 +19,10 @@
 package org.wso2.carbon.connector.integration.test.jotform;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.catalina.util.URLEncoder;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -55,6 +55,7 @@ public class JotformConnectorIntegrationTest extends ConnectorIntegrationTestBas
       esbRequestHeadersMap.put("Content-Type", "application/json");
       
       apiRequestHeadersMap.putAll(esbRequestHeadersMap);
+      apiRequestHeadersMap.put("Content-Type", "application/x-www-form-urlencoded");
       apiRequestHeadersMap.put("APIKEY", connectorProperties.getProperty("apiKey"));
       apiEndpointUrl = connectorProperties.getProperty("apiUrl");
       
@@ -81,15 +82,14 @@ public class JotformConnectorIntegrationTest extends ConnectorIntegrationTestBas
       Assert.assertEquals(esbRestResponse.getBody().getString("message"), "success");
       Assert.assertEquals(clonedApiRestResponse.getBody().getJSONObject("content").getString("title"), "Clone of "
             + apiRestResponse.getBody().getJSONObject("content").getString("title"));
-      
    }
    
    /**
-    * Method Name: cloneForm
-    * Skipped Case: optional case
-    * Reason: No optional parameter(s) to assert. 
+    * Method Name: cloneForm 
+    * Skipped Case: optional case 
+    * Reason: No optional parameter(s) to assert.
     */
-     
+   
    /**
     * Negative test case for cloneForm method.
     * 
@@ -110,7 +110,6 @@ public class JotformConnectorIntegrationTest extends ConnectorIntegrationTestBas
             .getString("message"));
       Assert.assertEquals(esbRestResponse.getBody().getString("responseCode"),
             apiRestResponse.getBody().getString("responseCode"));
-      
    }
    
    /**
@@ -140,13 +139,12 @@ public class JotformConnectorIntegrationTest extends ConnectorIntegrationTestBas
             apiRestResponse.getBody().getJSONObject("content").getString("last_submission"));
       Assert.assertEquals(esbRestResponse.getBody().getJSONObject("content").getString("username"), apiRestResponse
             .getBody().getJSONObject("content").getString("username"));
-      
    }
    
    /**
-    * Method Name: getForm
-    * Skipped Case: optional case
-    * Reason: No optional parameter(s) to assert. 
+    * Method Name: getForm 
+    * Skipped Case: optional case 
+    * Reason: No optional parameter(s) to assert.
     */
    
    /**
@@ -171,7 +169,6 @@ public class JotformConnectorIntegrationTest extends ConnectorIntegrationTestBas
             apiRestResponse.getBody().getString("responseCode"));
       Assert.assertEquals(esbRestResponse.getBody().getString("message"), apiRestResponse.getBody()
             .getString("message"));
-      
    }
    
    /**
@@ -190,6 +187,10 @@ public class JotformConnectorIntegrationTest extends ConnectorIntegrationTestBas
       final String apiEndpoint =
             apiEndpointUrl + "/submission/" + connectorProperties.getProperty("submissionId") + "?apikey="
                   + connectorProperties.getProperty("apiKey");
+      
+      connectorProperties.setProperty("submissionNew",
+            esbRestResponse.getBody().getJSONObject("content").getString("new"));
+      
       RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
       Assert.assertEquals(esbRestResponse.getBody().getJSONObject("content").getString("id"), apiRestResponse.getBody()
             .getJSONObject("content").getString("id"));
@@ -204,9 +205,9 @@ public class JotformConnectorIntegrationTest extends ConnectorIntegrationTestBas
    }
    
    /**
-    * Method Name: getSubmission
-    * Skipped Case: optional case
-    * Reason: No optional parameter(s) to assert. 
+    * Method Name: getSubmission 
+    * Skipped Case: optional case 
+    * Reason: No optional parameter(s) to assert.
     */
    
    /**
@@ -262,7 +263,6 @@ public class JotformConnectorIntegrationTest extends ConnectorIntegrationTestBas
             apiRestResponse.getBody().getJSONArray("content").getJSONObject(0).getString("created_at"));
       Assert.assertEquals(esbRestResponse.getBody().getJSONArray("content").getJSONObject(0).getString("status"),
             apiRestResponse.getBody().getJSONArray("content").getJSONObject(0).getString("status"));
-      
    }
    
    /**
@@ -281,9 +281,12 @@ public class JotformConnectorIntegrationTest extends ConnectorIntegrationTestBas
       final String apiEndpoint =
             apiEndpointUrl + "/user/submissions?apikey=" + connectorProperties.getProperty("apiKey")
                   + "&offset=0&limit=10&filter=" + filter + "&orderby=id";
+      
       RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+      
       Assert.assertEquals(esbRestResponse.getBody().getJSONArray("content").getJSONObject(0).getString("id"),
             apiRestResponse.getBody().getJSONArray("content").getJSONObject(0).getString("id"));
+      
       Assert.assertEquals(esbRestResponse.getBody().getJSONArray("content").getJSONObject(0).getString("form_id"),
             apiRestResponse.getBody().getJSONArray("content").getJSONObject(0).getString("form_id"));
       Assert.assertEquals(esbRestResponse.getBody().getJSONArray("content").getJSONObject(0).getString("ip"),
@@ -295,9 +298,9 @@ public class JotformConnectorIntegrationTest extends ConnectorIntegrationTestBas
    }
    
    /**
-    * Method Name: getUserSubmissions
-    * Skipped Case: negative case
-    * Reason: No parameter(s) to test negative case. 
+    * Method Name: getUserSubmissions 
+    * Skipped Case: negative case 
+    * Reason: No parameter(s) to test negative case.
     */
    
    /**
@@ -328,7 +331,6 @@ public class JotformConnectorIntegrationTest extends ConnectorIntegrationTestBas
             apiRestResponse.getBody().getJSONArray("content").getJSONObject(0).getString("created_at"));
       Assert.assertEquals(esbRestResponse.getBody().getJSONArray("content").getJSONObject(0).getString("status"),
             apiRestResponse.getBody().getJSONArray("content").getJSONObject(0).getString("status"));
-      
    }
    
    /**
@@ -384,7 +386,146 @@ public class JotformConnectorIntegrationTest extends ConnectorIntegrationTestBas
             apiRestResponse.getBody().getString("responseCode"));
       Assert.assertEquals(esbRestResponse.getBody().getString("message"), apiRestResponse.getBody()
             .getString("message"));
-      
    }
    
+   /**
+    * Positive test case for updateSubmission method with mandatory parameters.
+    * 
+    * @throws JSONException
+    * @throws IOException
+    */
+   @Test(groups = { "wso2.esb" }, description = "jotform {updateSubmission} integration test with mandatory parameters.")
+   public void testUpdateSubmissionWithMandatoryParameters() throws IOException, JSONException {
+   
+      esbRequestHeadersMap.put("Action", "urn:updateSubmission");
+      
+      // Retrieving and storing the content of submission before updating.
+      final String apiEndpoint =
+            apiEndpointUrl + "/submission/" + connectorProperties.getProperty("submissionId") + "?apikey="
+                  + connectorProperties.getProperty("apiKey");
+      
+      RestResponse<JSONObject> apiResponseBeforeUpdate = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+      Assert.assertEquals(apiResponseBeforeUpdate.getBody().getString("message"), "success");
+      
+      JSONObject apiBeforeUpdate = apiResponseBeforeUpdate.getBody().getJSONObject("content");
+      
+      // Updating the submission.
+      RestResponse<JSONObject> esbRestResponse =
+            sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateSubmission_mandatory.json");
+      Assert.assertEquals(esbRestResponse.getBody().getString("message"), "success");
+      
+      // Retrieving the content of submission after updating.
+      RestResponse<JSONObject> apiResponseAfterUpdate = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+      Assert.assertEquals(apiResponseAfterUpdate.getBody().getString("message"), "success");
+      
+      JSONObject apiAfterUpdate = apiResponseAfterUpdate.getBody().getJSONObject("content");
+      
+      // Comparing the submission content before and after updating.
+      Assert.assertEquals(connectorProperties.getProperty("submissionNewUpdateMandatory"),
+            apiAfterUpdate.getString("new"));
+      Assert.assertNotEquals(apiBeforeUpdate.getString("new"), apiAfterUpdate.getString("new"));
+   }
+   
+   /**
+    * Positive test case for updateSubmission method with optional parameters.
+    * 
+    * @throws JSONException
+    * @throws IOException
+    */
+   @Test(groups = { "wso2.esb" }, description = "jotform {updateSubmission} integration test with optional parameters.")
+   public void testUpdateSubmissionWithOptionalParameters() throws IOException, JSONException {
+   
+      esbRequestHeadersMap.put("Action", "urn:updateSubmission");
+      
+      final String apiEndpoint =
+            apiEndpointUrl + "/submission/" + connectorProperties.getProperty("submissionIdOptional") + "?apikey="
+                  + connectorProperties.getProperty("apiKey");
+      
+      // Retrieving and storing the content of submission before updating.
+      RestResponse<JSONObject> apiResponseBeforeUpdate = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+      Assert.assertEquals(apiResponseBeforeUpdate.getBody().getString("message"), "success");
+      
+      JSONObject apiBeforeUpdate = apiResponseBeforeUpdate.getBody().getJSONObject("content");
+      JSONObject answersBefore = apiBeforeUpdate.getJSONObject("answers");
+      JSONArray answerIds = answersBefore.names();
+      
+      // Sorting to retrieve the answerIds in ascending order.
+      Integer[] questionIds = new Integer[answerIds.length()];
+      for (int i = 0; i < answerIds.length(); i++) {
+         questionIds[i] = Integer.parseInt(answerIds.get(i).toString());
+      }
+      Arrays.sort(questionIds);
+      
+      String firstQuestionId = Integer.toString(questionIds[0]);
+      String secondQuestionId = Integer.toString(questionIds[1]);
+      JSONObject firstAnswer = answersBefore.getJSONObject(firstQuestionId);
+      JSONObject secondAnswer = answersBefore.getJSONObject(secondQuestionId);
+      
+      String firstName = firstAnswer.getJSONObject("answer").getString("first");
+      String lastName = firstAnswer.getJSONObject("answer").getString("last");
+      
+      connectorProperties.setProperty("firstName", firstName);
+      connectorProperties.setProperty("lastName", lastName);
+      connectorProperties.setProperty("firstQuestionId", firstQuestionId);
+      
+      connectorProperties.setProperty("secondQuestionId", secondQuestionId);
+      String email = secondAnswer.getString("answer");
+      connectorProperties.setProperty("email", email);
+      
+      // Updating the submission.
+      RestResponse<JSONObject> esbRestResponse =
+            sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateSubmission_optional.json");
+      Assert.assertEquals(esbRestResponse.getBody().getString("message"), "success");
+      
+      // Retrieving the content of submission after updating.
+      RestResponse<JSONObject> apiResponseAfterUpdate = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+      Assert.assertEquals(apiResponseAfterUpdate.getBody().getString("message"), "success");
+      
+      JSONObject apiAfterUpdate = apiResponseAfterUpdate.getBody().getJSONObject("content");
+      JSONObject answersAfter = apiAfterUpdate.getJSONObject("answers");
+      
+      JSONObject updatedfirstAnswer = answersAfter.getJSONObject(firstQuestionId);
+      JSONObject updatedSecondAnswer = answersAfter.getJSONObject(secondQuestionId);
+      
+      // Comparing the submission content before and after updating.
+      Assert.assertNotEquals(connectorProperties.getProperty("firstName"), updatedfirstAnswer.getJSONObject("answer")
+            .getString("first"));
+      Assert.assertNotEquals(connectorProperties.getProperty("lastName"), updatedfirstAnswer.getJSONObject("answer")
+            .getString("last"));
+      Assert.assertNotEquals(connectorProperties.getProperty("email"), updatedSecondAnswer.getString("answer"));
+      
+      Assert.assertEquals(connectorProperties.getProperty("submissionNewUpdateOptional"),
+            apiAfterUpdate.getString("new"));
+      Assert.assertEquals(connectorProperties.getProperty("submissionFlagUpdateOptional"),
+            apiAfterUpdate.getString("flag"));
+      
+      Assert.assertNotEquals(apiBeforeUpdate.getString("new"), apiAfterUpdate.getString("new"));
+      Assert.assertNotEquals(apiBeforeUpdate.getString("flag"), apiAfterUpdate.getString("flag"));
+   }
+   
+   /**
+    * Negative test case for updateSubmission method. Trying to update providing only the submissionId.
+    * 
+    * @throws JSONException
+    * @throws IOException
+    */
+   @Test(groups = { "wso2.esb" }, description = "jotform {updateSubmission} integration test with negative case.")
+   public void testUpdateSubmissionWithNegativeCase() throws IOException, JSONException {
+   
+      esbRequestHeadersMap.put("Action", "urn:updateSubmission");
+      
+      final String apiEndpoint =
+            apiEndpointUrl + "/submission/" + connectorProperties.getProperty("submissionId") + "?apikey="
+                  + connectorProperties.getProperty("apiKey");
+      
+      RestResponse<JSONObject> apiRestResponse =
+            sendJsonRestRequest(apiEndpoint, "POST", apiRequestHeadersMap, "api_updateSubmission_negative.json");
+      
+      RestResponse<JSONObject> esbRestResponse =
+            sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateSubmission_negative.json");
+      Assert.assertEquals(esbRestResponse.getBody().getString("responseCode"),
+            apiRestResponse.getBody().getString("responseCode"));
+      Assert.assertEquals(esbRestResponse.getBody().getString("message"), apiRestResponse.getBody()
+            .getString("message"));
+   }
 }
