@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!--Create and send campaigns in sendloop for the items in salesbinder-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="printavo-getOrderIdSeq">
+   
+   <!--Call the API method to retrieve orders to retrieve the quote status ID. -->
+   <property name="uri.var.printavo.apiKey" expression="get-property('printavo.apiKey')" />
+   <property name="uri.var.printavo.apiUrl" expression="get-property('printavo.apiUrl')" />
+   <header name="Accept" value="application/json" scope="transport" />
+	
+   <call>
+	 <endpoint>
+		<http method="get" uri-template="{uri.var.printavo.apiUrl}/api/v1/orders?key={uri.var.printavo.apiKey}" />
+	 </endpoint>
+   </call>
+   
+   <property name="printavo.orders" expression="json-eval($.data)" />
+   
+   <script language="js">
+	<![CDATA[
+		 var orders = eval("(" + mc.getProperty('printavo.orders') + ")");
+		 var quoteStatusId='';
+		 
+		 for(var i=0 ; i<orders.length ;i++) {
+		   var statusName = orders[i].orderstatus.name;
+		   
+		   if(statusName== 'Quote') {
+				quoteStatusId = orders[i].orderstatus_id;
+				break;
+		   }
+		 }
+		 mc.setProperty("printavo.OrderStatusId",quoteStatusId);
+	 ]]>
+  </script>
+
+</sequence>

@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!--Retrieve clickers for a given campaign and add them to a new list and create them as leads in basecrm-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="printavo_retrieveClickersAndCreateLeads" transports="https" startOnLoad="true" trace="disable">
+   <description />
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Sendloop Properties-->
+         <property name="sendloop.apiUrl" expression="json-eval($.sendloop.apiUrl)" />
+         <property name="sendloop.apiKey" expression="json-eval($.sendloop.apiKey)" />
+         <property name="sendloop.campaignId" expression="json-eval($.sendloop.campaignId)" />
+         
+		 <!-- BaseCRM Properties-->
+         <property name="uri.var.basecrm.apiKey" expression="json-eval($.basecrm.apiKey)" />
+         <property name="uri.var.basecrm.apiUrl" value="https://api.getbase.com" />
+         <property name="basecrm.leadUrl" value="https://leads.futuresimple.com" />
+         <property name="basecrm.version1Url" value="https://sales.futuresimple.com" />
+         <property name="basecrm.email" expression="json-eval($.basecrm.email)" />
+         <property name="basecrm.password" expression="json-eval($.basecrm.password)" />
+        
+		<!--Call sendloop connector getEmailCampaign method to retrieve details of clickers-->
+         <sendloop.init>
+            <apiUrl>{$ctx:sendloop.apiUrl}</apiUrl>
+            <apiKey>{$ctx:sendloop.apiKey}</apiKey>
+            <format>json</format>
+         </sendloop.init>
+         <sendloop.getEmailCampaign>
+            <campaignId>{$ctx:sendloop.campaignId}</campaignId>
+         </sendloop.getEmailCampaign>
+         
+		 <property name="sendloop.campaignlistId" expression="json-eval($.Campaign.Lists[0])" />
+         <property name="sendloop.campaignName" expression="json-eval($.Campaign.CampaignName)" />
+         
+		 <sequence key="removeResponseHeaders" />
+
+		 <!-- START: Proceed only if there is a campaign from the given ID. -->
+         <filter source="boolean(get-property('sendloop.campaignName'))" regex="false">
+            <then>
+               <property name="id" expression="fn:concat('sendloop_campaignId:',get-property('sendloop.campaignId'))" />
+               <property name="status" value="Error" />
+               <property name="message" expression="json-eval($)" />
+               <!--Call the responseHandler template-->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="sendloop_getCampaign" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!--Call sendloop connector getCampaignLinkClickers method to retrieve details of clickers-->
+               <sendloop.init>
+                  <apiUrl>{$ctx:sendloop.apiUrl}</apiUrl>
+                  <apiKey>{$ctx:sendloop.apiKey}</apiKey>
+                  <format>json</format>
+               </sendloop.init>
+               <sendloop.getCampaignLinkClickers>
+                  <campaignId>{$ctx:sendloop.campaignId}</campaignId>
+               </sendloop.getCampaignLinkClickers>
+               
+			   <sequence key="removeResponseHeaders" />
+               
+			  <!-- START: Proceed only if the clickers are retrieved successfully. -->
+               <filter source="$axis2:HTTP_SC" regex="200">
+                  <then>
+                     <property name="sendloop.clickersCount" expression="count(//Data)" scope="operation" />
+                     <property name="clickerIndex" expression="0" scope="operation" />
+					 <property name="sendloop.clickerResponse" expression="0" scope="operation" />
+					 <property name="sendloop.leadResponse" expression="0" scope="operation" />
+                     
+					 <!-- START: Proceed only if there are one or more clickers. -->
+					 <filter xpath="get-property('operation', 'sendloop.clickersCount') = 0">
+                        <then>
+                           <property name="id" value="{}" />
+                           <property name="status" value="Skipped" />
+                           <property name="message" value="No clickers for the campaign." />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="activity" value="printavo_retrieveClickers" />
+                              <with-param name="status" value="{$ctx:status}" />
+                              <with-param name="message" value="{$ctx:message}" />
+                           </call-template>
+                           <loopback />
+                        </then>
+                        <else>
+						  <property name="sendloop.clickers" expression="json-eval($.Data)" />
+                          <!--Call sendloop connector listSubscriberLists method to retrieve the subscriber lists available-->
+						  <sendloop.init>
+                              <apiUrl>{$ctx:sendloop.apiUrl}</apiUrl>
+                              <apiKey>{$ctx:sendloop.apiKey}</apiKey>
+                              <format>json</format>
+                           </sendloop.init>
+                           <sendloop.listSubscriberLists />
+						   
+                           <property name="sendloop.subscriberLists" expression="json-eval($.Lists)" />
+						   
+						   <!--To check whether there is a list already for the given campaign-->
+                           <script language="js">
+							  <![CDATA[
+								 var listArray = eval("(" + mc.getProperty('sendloop.subscriberLists') + ")");
+								 var campaignName = ''+mc.getProperty('sendloop.campaignName');
+								 var listId;
+								 
+								 for(var i=0 ; i<listArray.length ;i++) {
+								   var listName = listArray[i].Name;
+								   if(listName== campaignName) {
+										listId = listArray[i].ListID;
+										mc.setProperty("sendloop.newListId",listId);
+										break;
+								   }
+								 }
+							  ]]>
+							 </script>
+						
+						   <!-- START: Proceed only if there is no list existing for the campaign. -->
+                           <filter source="boolean(get-property('sendloop.newListId'))" regex="false">
+                              <then>
+                                 <sendloop.init>
+                                    <apiUrl>{$ctx:sendloop.apiUrl}</apiUrl>
+                                    <apiKey>{$ctx:sendloop.apiKey}</apiKey>
+                                    <format>json</format>
+                                 </sendloop.init>
+                                 <sendloop.createSubscriberList>
+                                    <listName>{$ctx:sendloop.campaignName}</listName>
+                                    <optInMode>Single</optInMode>
+                                 </sendloop.createSubscriberList>
+                                 <sequence key="removeResponseHeaders" />
+                                 <property name="sendloop.newListId" expression="json-eval($.ListID)" />
+								 
+								 <!-- START: Check whether the subscriber is added to the new list. -->
+								 <filter source="boolean(get-property('sendloop.newListId'))" regex="false">
+								   <then>
+									  <property name="id" value="{}" />
+									  <property name="status" value="Error" />
+									  <property name="message" expression="json-eval($.)" />
+								   </then>
+								   <else>
+									  <property name="id" expression="fn:concat('sendloop_listId:',get-property('sendloop.newListId'))"/>
+									  <property name="status" value="Success" />
+									  <property name="message" value="A new list has been successfully created for the clickers." />
+								   </else>
+								 </filter>
+								 <!-- END: Check whether the subscriber is added to the new list. -->
+								 <call-template target="responseHandlerTemplate">
+								   <with-param name="activity" value="sendloop_createSubscriberList" />
+								   <with-param name="id" value="{$ctx:id}" />
+								   <with-param name="status" value="{$ctx:status}" />
+								   <with-param name="message" value="{$ctx:message}" />
+								 </call-template>
+								 
+                              </then>
+                           </filter>
+						    <!-- END: Proceed only if there is no list existing for the campaign. -->
+						   
+                           <payloadFactory media-type="json">
+                              <format>{
+								 "data": $1
+							  }</format>
+                              <args>
+                                 <arg expression="get-property('sendloop.clickers')" />
+                              </args>
+                           </payloadFactory>
+                           
+						   <!--BEGIN : FOR EACH clicker-->
+                           <iterate continueParent="false" id="clickerIterator" expression="//data" sequential="true">
+                              <target>
+                                 <sequence>
+                                    <property name="sendloop.subscriberId" expression="json-eval($.data.SubscriberID)" />
+                                    
+									<!--Call Sendloop connector listSubscribers method to retrieve all the subscribers for the existing list -->
+                                    <sendloop.init>
+                                       <apiUrl>{$ctx:sendloop.apiUrl}</apiUrl>
+                                       <apiKey>{$ctx:sendloop.apiKey}</apiKey>
+                                       <format>json</format>
+                                    </sendloop.init>
+                                    <sendloop.listSubscribers>
+                                       <listId>{$ctx:sendloop.campaignlistId}</listId>
+                                    </sendloop.listSubscribers>
+                                    <property name="sendloop.subscribers" expression="json-eval($.Subscribers)" />
+                                    
+									<!--Retrieve all the information related to the clicker(Subscriber)-->
+									<script language="js">
+										<![CDATA[
+											 var subscriberArray = eval("(" + mc.getProperty('sendloop.subscribers') + ")");
+											 var subscirberId = ''+mc.getProperty('sendloop.subscriberId');
+											 var subscriberEmail;
+											 
+											 for(var i=0 ; i<subscriberArray.length ;i++) {
+											   var id = subscriberArray[i].SubscriberID;
+											   if(id== subscirberId) {
+													var subscriberObj = subscriberArray[i];
+													subscriberEmail = subscriberArray[i].EmailAddress;
+													
+													for (var key in subscriberObj) {
+														if(new java.lang.String(key).startsWith('CustomField')) {
+															var name = subscriberObj[key];
+															var firstName = name.split(' ')[0];
+															var lastName = name.split(' ')[1];
+															
+															mc.setProperty("sendloop.subscriberFirstName",firstName);
+															mc.setProperty("sendloop.subscriberLastName",lastName);
+															break;
+														}
+													}
+													mc.setProperty("sendloop.subscriberEmail",subscriberEmail);
+											   }
+											 }
+									    ]]>
+									</script>
+                                    
+								
+									<!-- Calling basecrm-createLeadsSeq sequence to create leads in basecrm for the clickers-->
+									<sequence key="basecrm-createLeadsSeq" />
+                                    
+									<!-- START: Check whether the subscriber list is already there. -->
+									<filter source="boolean(get-property('sendloop.newListId'))" regex="true">
+										<then>
+											<!--Call Sendloop connector subscribe method to add the subscriber to the new list -->
+											<sendloop.init>
+											   <apiUrl>{$ctx:sendloop.apiUrl}</apiUrl>
+											   <apiKey>{$ctx:sendloop.apiKey}</apiKey>
+											   <format>json</format>
+											</sendloop.init>
+											<sendloop.subscribe>
+											   <emailAddress>{$ctx:sendloop.subscriberEmail}</emailAddress>
+											   <subscriberListId>{$ctx:sendloop.newListId}</subscriberListId>
+											</sendloop.subscribe>
+											<property name="sendloop.subscribe" expression="json-eval($.Success)" />
+											
+											<!-- START: Creating list call is successfull. -->
+											<filter source="$axis2:HTTP_SC" regex="200">
+												<then>
+													<!-- START: Check whether the subscriber is added to the new list. -->
+													<filter xpath="(get-property('sendloop.subscribe'))='true'">
+													   <then>
+														  <property name="sendloop.clickerResponse" expression="get-property('operation','sendloop.clickerResponse') + 1" scope="operation" />
+														  <property name="id" expression="fn:concat('sendloop_subscriberId:',get-property('sendloop.subscriberId'),',sendloop_listId:',get-property('sendloop.newListId'))" />
+														  <property name="status" value="Success" />
+														  <property name="message" value="The subscriber has been successfully added to the created list." />
+														  <call-template target="responseHandlerTemplate">
+															<with-param name="activity" value="sendloop_addSubscriber" />
+															<with-param name="id" value="{$ctx:id}" />
+															<with-param name="status" value="{$ctx:status}" />
+															<with-param name="message" value="{$ctx:message}" />
+														  </call-template>
+													   </then>
+													</filter>
+													<!-- END: Check whether the subscriber is added to the new list. -->
+												</then>
+												<else>
+													<property name="id" expression="fn:concat('sendloop_subscriberId:',get-property('sendloop.subscriberId'),',sendloop_listId:',get-property('sendloop.newListId'))" />
+													<property name="status" value="Error" />
+													<property name="message" expression="json-eval($.)" />
+													<call-template target="responseHandlerTemplate">
+													   <with-param name="activity" value="sendloop_addSubscriber" />
+													   <with-param name="id" value="{$ctx:id}" />
+													   <with-param name="status" value="{$ctx:status}" />
+													   <with-param name="message" value="{$ctx:message}" />
+													</call-template>
+												</else>
+											</filter>
+											<!-- END: Creating list call is successfull. -->
+										</then>
+									</filter>
+									<!-- END: Check whether the subscriber list is already there. -->
+                                    <property name="clickerIndex" expression="get-property('operation','clickerIndex') + 1" scope="operation" />
+                                    
+                                    <filter xpath="get-property('operation','clickerIndex') = get-property('operation', 'sendloop.clickersCount')">
+                                       <then>
+											<!-- START: Check if no clickers are proceeding. -->
+											<filter xpath="(get-property('operation','sendloop.leadResponse') = '0.0') and (get-property('operation','sendloop.clickerResponse') = '0.0')">
+												<then>
+													<property name="id" value="{}" />
+													<property name="status" value="Skipped" />
+													<property name="message" value="All the clickers have been added to the new list in Sendloop and as well as created as leads in BaseCRM" />
+													<call-template target="responseHandlerTemplate">
+													   <with-param name="activity" value="printavo_retrieveClickersAndCreateLeads" />
+													   <with-param name="id" value="{$ctx:id}" />
+													   <with-param name="status" value="{$ctx:status}" />
+													   <with-param name="message" value="{$ctx:message}" />
+													</call-template>
+												</then>
+												<else>
+													<!-- START: Check if no clickers are proceeding as leads in BaseCRM. -->
+													<filter xpath="(get-property('operation','sendloop.leadResponse') = '0.0')">
+														<then>
+															<property name="id" value="{}" />
+															<property name="status" value="Skipped" />
+															<property name="message" value="All the clickers have been successfully created as leads in BaseCRM" />
+															<call-template target="responseHandlerTemplate">
+															   <with-param name="activity" value="basecrm_createLeads" />
+															   <with-param name="id" value="{$ctx:id}" />
+															   <with-param name="status" value="{$ctx:status}" />
+															   <with-param name="message" value="{$ctx:message}" />
+															</call-template>
+														</then>
+													</filter>
+													<!-- END: Check if no clickers are proceeding as leads in BaseCRM. -->
+													
+													<!-- START: Check if no clickers are proceeding as susbcribers to the new list. -->
+													<filter xpath="(get-property('operation','sendloop.clickerResponse') = '0.0')">
+														<then>
+															<property name="id" value="{}" />
+															<property name="status" value="Skipped" />
+															<property name="message" value="All the clickers have been successfully added to the new list in the sendloop" />
+															<call-template target="responseHandlerTemplate">
+															   <with-param name="activity" value="sendloop_addSubscriber" />
+															   <with-param name="id" value="{$ctx:id}" />
+															   <with-param name="status" value="{$ctx:status}" />
+															   <with-param name="message" value="{$ctx:message}" />
+															</call-template>
+														</then>
+													</filter>
+													<!-- END: Check if no clickers are proceeding as susbcribers to the new list. -->
+												</else>
+											</filter>
+											<!-- END: Check if no clickers are proceeding. -->
+                                          <loopback />
+                                       </then>
+                                    </filter>
+                                 </sequence>
+                              </target>
+                           </iterate>
+                           <!--=END : FOR EACH clicker-->
+                        </else>
+                     </filter>
+					 <!-- END: Proceed only if there are one or more clickers. -->
+                  </then>
+                  <else>
+                     <property name="id" value="{}" />
+                     <property name="status" value="Error" />
+                     <property name="message" expression="json-eval($.)" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="sendloop_retrieveCampaignClickers" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </else>
+               </filter>
+			    <!-- END: Proceed only if the clickers are retrieved successfully. -->
+            </else>
+         </filter>
+         <!-- END: Proceed only if there is a campaign from the given ID. -->
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>{
+				"Response":{
+					"process":"printavo_retrieveClickersAndCreateLeads",
+					"activityResponse":[$1]
+				}
+				}</format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+</proxy>

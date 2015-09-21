@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!--Create leads in basecrm for the sendloop clickers-->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="basecrm-createLeadsSeq">
+   
+   <!-- START: Proceed only if the subscriber is existing-->
+   <filter source="boolean(get-property('sendloop.subscriberEmail'))" regex="true">
+      <then>
+		 
+		 <!--Call basecrm API method get the lead by email -->
+		  <property name="uri.var.apikey" expression="fn:concat('Bearer ',get-property('uri.var.basecrm.apiKey'))"/>
+		  <property name="uri.var.sendloop.subscriberEmail" expression="get-property('sendloop.subscriberEmail')"/>
+		
+		  <header name="Accept" value="application/json" scope="transport" />
+		  <header name="Authorization" expression="get-property('uri.var.apikey')" scope="transport" />
+		  <!--The method listLeads implemented in BaseCRM connector does not have any filter parameters-->
+          <call>
+			 <endpoint>
+				<http method="get" uri-template="{uri.var.basecrm.apiUrl}/v2/leads?email={uri.var.sendloop.subscriberEmail}" />
+			 </endpoint>
+		  </call>
+		  
+		  <property name="basecrm.leadCount" expression="json-eval($.meta.count)"/>
+		  
+		  <!-- START: Proceed only there is no lead existing with the email of the clicker-->
+		  <filter xpath="(get-property('basecrm.leadCount'))='0'">
+			<then>
+				<!--Call basecrm connector createLead method to add the clicker as a lead in basecrm -->
+				<basecrm.init>
+					<apiUrl>{$ctx:basecrm.version1Url}</apiUrl>
+					<email>{$ctx:basecrm.email}</email>
+					<password>{$ctx:basecrm.password}</password>
+				 </basecrm.init>
+				 <basecrm.createLead>
+				    <leadServiceUrl>{$ctx:basecrm.leadUrl}</leadServiceUrl>
+					<leadLastName>{$ctx:sendloop.subscriberLastName}</leadLastName>
+					<leadFirstName>{$ctx:sendloop.subscriberFirstName}</leadFirstName>
+					<leadEmail>{$ctx:uri.var.sendloop.subscriberEmail}</leadEmail>
+				 </basecrm.createLead>
+				 
+				 
+				 <filter source="$axis2:HTTP_SC" regex="200">
+					<then>
+						<property name="basecrm.leadSuccess" expression="json-eval($.success)"/>
+						<!-- START: Proceed only the lead is created successfully-->
+						<filter xpath="(get-property('basecrm.leadSuccess'))='true'">
+							<then>
+								<property name="sendloop.leadResponse" expression="get-property('operation','sendloop.leadResponse') + 1" scope="operation" />
+								<property name="basecrm.leadId" expression="json-eval($.lead.id)"/>
+								<property name="id" expression="fn:concat('sendloop_subscriberId:',get-property('sendloop.subscriberId'),',basecrm_leadId:',get-property('basecrm.leadId'))" />
+								<property name="status" value="Success" />
+								<property name="message" expression="fn:concat('The clicker [',get-property('uri.var.sendloop.subscriberEmail'),'] has been successfully created as a lead.')" />
+								<call-template target="responseHandlerTemplate">
+									<with-param name="activity" value="basecrm_createLead" />
+									<with-param name="id" value="{$ctx:id}" />
+									<with-param name="status" value="{$ctx:status}" />
+									<with-param name="message" value="{$ctx:message}" />
+								 </call-template>
+							</then>
+						</filter>
+						<!-- END: Proceed only the lead is created successfully-->
+						</then>
+						<else>
+							<property name="id" expression="fn:concat('sendloop_subscriberId:',get-property('sendloop.subscriberId'))" />
+							<property name="status" value="Error" />
+							<property name="message" expression="json-eval($.)" />
+							<call-template target="responseHandlerTemplate">
+							   <with-param name="activity" value="basecrm_createLead" />
+							   <with-param name="id" value="{$ctx:id}" />
+							   <with-param name="status" value="{$ctx:status}" />
+							   <with-param name="message" value="{$ctx:message}" />
+							</call-template>
+						</else>
+				 </filter>
+			</then>
+		  </filter>
+		  <!-- START: Proceed only there is no lead existing with the email of the clicker-->
+      </then>
+   </filter>
+    <!-- END: Proceed only if the subscriber is existing-->
+</sequence>

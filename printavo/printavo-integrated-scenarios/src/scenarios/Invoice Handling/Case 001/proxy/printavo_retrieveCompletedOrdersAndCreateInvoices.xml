@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="printavo_retrieveCompletedOrdersAndCreateInvoices" transports="https http" startOnLoad="true" trace="disable">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Printavo Properties -->
+         <property name="printavo.apiUrl" value="https://www.printavo.com" />
+         <property name="printavo.apiKey" expression="json-eval($.printavo.apiKey)" />
+
+         <!-- FresBooks Properties -->
+         <property name="freshbooks.apiUrl" expression="json-eval($.freshbooks.apiUrl)" />
+         <property name="freshbooks.authenticationToken" expression="json-eval($.freshbooks.authenticationToken)" />
+
+         <!-- Common Properties -->
+         <property name="responseString" value="" scope="operation" />
+         <property name="id.empty" value="{}" />
+
+         <!-- List all the orders from Printavo API -->
+         <printavo.init>
+            <apiUrl>{$ctx:printavo.apiUrl}</apiUrl>
+            <apiKey>{$ctx:printavo.apiKey}</apiKey>
+         </printavo.init>
+         <printavo.listOrders>
+            <page>1</page>
+            <perPage>1000</perPage>
+         </printavo.listOrders>
+         <sequence key="removeResponseHeaders" />
+
+         <property name="printavo.totalOrders" expression="json-eval($.meta.total_count)" />
+
+         <!-- START: Proceed only if the listOrders call was successful. -->
+         <filter source="boolean(get-property('printavo.totalOrders'))" regex="false">
+            <then>
+               <!-- Error case: Append a message to be sent to the user. -->
+               <property name="errorResponse" expression="json-eval($)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="printavo_listOrders" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:errorResponse}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!-- START: Proceed only if there any listOrders to process. -->
+               <filter xpath="get-property('printavo.totalOrders') &gt; 0">
+                  <then>
+                     <property name="noOfOrders" expression="count(//data)" />
+                     <property name="orderIndex" expression="0" scope="operation" />
+                     <property name="noOfProcessedOrders" expression="0" scope="operation" />
+
+                     <!--FOR EACH Order: BEGIN -->
+                     <iterate continueParent="false" id="orders" expression="//data" sequential="false">
+                        <target>
+                           <sequence>
+                              <property name="printavo.orderId" expression="//data/id/text()" />
+                              <property name="printavo.orderStatus" expression="//data/orderstatus/name/text()" />
+
+                              <!-- Retrieve the details of the order. -->
+                              <printavo.init>
+                                 <apiUrl>{$ctx:printavo.apiUrl}</apiUrl>
+                                 <apiKey>{$ctx:printavo.apiKey}</apiKey>
+                              </printavo.init>
+                              <printavo.getOrder>
+                                 <orderId>{$ctx:printavo.orderId}</orderId>
+                              </printavo.getOrder>
+                              <sequence key="removeResponseHeaders" />
+
+                              <property name="printavo.orderId" expression="json-eval($.id)" />
+
+                              <!-- START: Proceed only if the order is not deleted already -->
+                              <filter source="boolean(get-property('printavo.orderId'))" regex="true">
+                                 <then>
+                                    <!-- START: Proceed to process the order only if it is in 'Completed' status -->
+                                    <filter xpath="fn:lower-case(get-property('printavo.orderStatus')) = 'completed'">
+                                       <then>
+                                          <property name="printavo.orderLineItems" expression="json-eval($.lineitems)" />
+                                          <property name="printavo.orderCustomerId" expression="json-eval($.customer_id)" />
+                                          <property name="printavo.orderPublicUrl" expression="json-eval($.public_url)" />
+                                          <property name="printavo.orderDiscount" expression="json-eval($.discount)" />
+                                          <property name="printavo.orderProductionNotes" expression="json-eval($.production_notes)" />
+                                          <property name="printavo.orderNotes" expression="json-eval($.notes)" />
+                                          <property name="printavo.orderCreatedDate" expression="json-eval($.created_at)" />
+                                          <property name="printavo.orderFirstName" expression="json-eval($.customer.first_name)" />
+                                          <property name="printavo.orderLastName" expression="json-eval($.customer.last_name)" />
+                                          <property name="printavo.orderCompany" expression="json-eval($.customer.company)" />
+                                          <property name="printavo.orderTaxPercent" expression="json-eval($.sales_tax)" />
+
+                                          <!-- Retrieve the details of the customer to whom the order belongs. -->
+                                          <printavo.init>
+                                             <apiUrl>{$ctx:printavo.apiUrl}</apiUrl>
+                                             <apiKey>{$ctx:printavo.apiKey}</apiKey>
+                                          </printavo.init>
+                                          <printavo.getCustomer>
+                                             <customerId>{$ctx:printavo.orderCustomerId}</customerId>
+                                          </printavo.getCustomer>
+                                          <sequence key="removeResponseHeaders" />
+
+                                          <property name="printavo.order.customerEmail" expression="json-eval($.email)" />
+                                          <property name="printavo.order.customerFirstName" expression="json-eval($.first_name)" />
+                                          <property name="printavo.order.customerLastName" expression="json-eval($.last_name)" />
+                                          <property name="printavo.order.customerCompany" expression="json-eval($.company)" />
+                                          <property name="printavo.order.customerFax" expression="json-eval($.fax)" />
+                                          <property name="printavo.order.customerPhone" expression="json-eval($.phone)" />
+                                          <property name="printavo.order.customerShippingAddress1" expression="json-eval($.shipping_address.address1)" />
+                                          <property name="printavo.order.customerShippingAddress1" expression="json-eval($.shipping_address.address2)" />
+                                          <property name="printavo.order.customerShippingCity" expression="json-eval($.shipping_address.city)" />
+                                          <property name="printavo.order.customerShippingState" expression="json-eval($.shipping_address.state)" />
+                                          <property name="printavo.order.customerShippingCountry" expression="json-eval($.shipping_address.country)" />
+                                          <property name="printavo.order.customerShippingZip" expression="json-eval($.shipping_address.zip)" />
+                                          <property name="printavo.order.customerBillingAddress1" expression="json-eval($.billing_address.address1)" />
+                                          <property name="printavo.order.customerBillingAddress2" expression="json-eval($.billing_address.address2)" />
+                                          <property name="printavo.order.customerBillingCity" expression="json-eval($.billing_address.city)" />
+                                          <property name="printavo.order.customerBillingState" expression="json-eval($.billing_address.state)" />
+                                          <property name="printavo.order.customerBillingCountry" expression="json-eval($.billing_address.country)" />
+                                          <property name="printavo.order.customerBillingZip" expression="json-eval($.billing_address.zip)" />
+                                          <property name="printavo.order.customerContact" expression="fn:concat('&lt;contact&gt;&lt;username&gt;', get-property('printavo.order.customerFirstName'), '&lt;/username&gt;&lt;first_name&gt;', get-property('printavo.order.customerFirstName'), '&lt;/first_name&gt;&lt;last_name&gt;', get-property('printavo.order.customerLastName'), '&lt;/last_name&gt;&lt;email&gt;', get-property('printavo.order.customerEmail'), '&lt;/email&gt;&lt;phone1&gt;', get-property('printavo.order.customerPhone'), '&lt;/phone1&gt;&lt;/contact&gt;')" />
+
+                                          <!-- START: Proceed only if the getCustomer call was successful -->
+                                          <filter source="boolean(get-property('printavo.order.customerEmail'))" regex="false">
+                                             <then>
+                                                <!-- Error case: Append a message to be sent to the user. -->
+                                                <property name="id" expression="fn:concat('printavo_customerId:', get-property('printavo.order.customerId'))" />
+                                                <property name="statusCode" expression="$axis2:HTTP_SC" />
+                                                <property name="message" expression="fn:concat('API response status code: ', get-property('statusCode'))" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="printavo_getCustomerDetails" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Error" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <!-- Removing properties to prevent ambiguity. -->
+                                                <property name="uri.var.page" action="remove" />
+                                                <property name="uri.var.perPage" action="remove" />
+
+                                                <!-- Verify whether the client already exists in Freshbooks. -->
+                                                <freshbooks.init>
+                                                   <apiUrl>{$ctx:freshbooks.apiUrl}</apiUrl>
+                                                   <authenticationToken>{$ctx:freshbooks.authenticationToken}</authenticationToken>
+                                                </freshbooks.init>
+                                                <freshbooks.listClients>
+                                                   <email>{$ctx:printavo.order.customerEmail}</email>
+                                                </freshbooks.listClients>
+                                                <sequence key="removeResponseHeaders" />
+
+                                                <property name="noOfMatchingClients" expression="count(//*[local-name()='clients']/*[local-name()='client'])" />
+
+                                                <!-- START: Verify whether the client already exist in Freshbooks and create if not. -->
+                                                <filter xpath="get-property('noOfMatchingClients') &gt; 0">
+                                                   <then>
+                                                      <!-- Take the first contact as the matching contact and store his IDs for later use. -->
+                                                      <property name="freshbooks.clientId" expression="//*[local-name()='clients']/*[local-name()='client'][1]/*[local-name()='client_id']/text()" />
+                                                      <property name="freshbooks.contactId" expression="//*[local-name()='clients']/*[local-name()='client'][1]/*[local-name()='contacts']/*[local-name()='contact'][1]/*[local-name()='contact_id']/text()" />
+                                                   </then>
+                                                   <else>
+                                                      <!-- Create the corresponding client and contact in Freshbooks. -->
+                                                      <freshbooks.init>
+                                                         <apiUrl>{$ctx:freshbooks.apiUrl}</apiUrl>
+                                                         <authenticationToken>{$ctx:freshbooks.authenticationToken}</authenticationToken>
+                                                      </freshbooks.init>
+                                                      <freshbooks.createClient>
+                                                         <firstName>{$ctx:printavo.order.customerFirstName}</firstName>
+                                                         <lastName>{$ctx:printavo.order.customerLastName}</lastName>
+                                                         <organization>{$ctx:printavo.order.customerCompany}</organization>
+                                                         <email>{$ctx:printavo.order.customerEmail}</email>
+                                                         <username>{$ctx:printavo.order.customerFirstName}</username>
+                                                         <password>1qaz2wsx@</password>
+                                                         <contacts>{$ctx:printavo.order.customerContact}</contacts>
+                                                         <workPhone>{$ctx:printavo.order.customerPhone}</workPhone>
+                                                         <fax>{$ctx:printavo.order.customerFax}</fax>
+                                                         <language>en</language>
+                                                         <currencyCode>USD</currencyCode>
+                                                         <pStreet1>{$ctx:printavo.order.customerShippingAddress1}</pStreet1>
+                                                         <pStreet2>{$ctx:printavo.order.customerShippingAddress2}</pStreet2>
+                                                         <pCity>{$ctx:printavo.order.customerShippingCity}</pCity>
+                                                         <pState>{$ctx:printavo.order.customerShippingState}</pState>
+                                                         <pCountry>{$ctx:printavo.order.customerShippingCountry}</pCountry>
+                                                         <pCode>{$ctx:printavo.order.customerShippingZip}</pCode>
+                                                         <sStreet1>{$ctx:printavo.order.customerBillingAddress1}</sStreet1>
+                                                         <sStreet2>{$ctx:printavo.order.customerBillingAddress2}</sStreet2>
+                                                         <sCity>{$ctx:printavo.order.customerBillingCity}</sCity>
+                                                         <sState>{$ctx:printavo.order.customerBillingState}</sState>
+                                                         <sCountry>{$ctx:printavo.order.customerBillingCountry}</sCountry>
+                                                         <sCode>{$ctx:printavo.order.customerBillingZip}</sCode>
+                                                      </freshbooks.createClient>
+                                                      <sequence key="removeResponseHeaders" />
+
+                                                      <property name="freshbooks.clientId" expression="//*[local-name()='client_id']/text()" />
+
+                                                      <!-- START: Proceed only if the client is successfully created. -->
+                                                      <filter source="boolean(get-property('freshbooks.clientId'))" regex="false">
+                                                         <then>
+                                                            <!-- Error case: Append a message to be sent to the user. -->
+                                                            <property name="id" expression="fn:concat('printavo_customerId:', get-property('printavo.order.customerId'))" />
+                                                            <property name="errorResponse" expression="//*[local-name()='error']/text()" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="freshbooks_createClient" />
+                                                               <with-param name="id" value="{$ctx:id.empty}" />
+                                                               <with-param name="status" value="Error" />
+                                                               <with-param name="message" value="{$ctx:errorResponse}" />
+                                                            </call-template>
+                                                         </then>
+                                                         <else>
+                                                            <!-- Success case: Append a message to be sent to the user. -->
+                                                            <property name="id" expression="fn:concat('printavo_customerId:', get-property('printavo.order.customerId'), 'freshbooks_clientId:', get-property('freshbooks.clientId'))" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="freshbooks_createClient" />
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="status" value="Success" />
+                                                               <with-param name="message" value="Client has been successfully created." />
+                                                            </call-template>
+
+                                                            <!-- Retrieve details of the client to get the contact person ID. -->
+                                                            <freshbooks.init>
+                                                               <apiUrl>{$ctx:freshbooks.apiUrl}</apiUrl>
+                                                               <authenticationToken>{$ctx:freshbooks.authenticationToken}</authenticationToken>
+                                                            </freshbooks.init>
+                                                            <freshbooks.getClient>
+                                                               <clientId>{$ctx:freshbooks.clientId}</clientId>
+                                                            </freshbooks.getClient>
+                                                            <sequence key="removeResponseHeaders" />
+
+                                                            <property name="freshbooks.contactId" expression="//*[local-name()='client']/*[local-name()='contacts']/*[local-name()='contact'][1]/*[local-name()='contact_id']/text()" />
+                                                         </else>
+                                                      </filter>
+                                                      <!-- END: Proceed only if the client is successfully created. -->
+                                                   </else>
+                                                </filter>
+                                                <!-- END: Verify whether the client already exist in Freshbooks and create if not. -->
+
+                                                <!-- START: Proceed to create the invoice if and only if both the clientId and contactId exists. -->
+                                                <filter xpath="boolean(get-property('freshbooks.clientId')) and boolean(get-property('freshbooks.contactId'))">
+                                                   <then>
+                                                      <script language="js">
+                                                         <![CDATA[
+                                                            // Constructing line items
+                                                            var lineItems = mc.getProperty('printavo.orderLineItems');
+                                                            var taxPercent = mc.getProperty('printavo.orderTaxPercent');
+                                                            if(lineItems != null && lineItems != ''){
+                                                               lineItems = eval("(" + lineItems + ")");
+                                                               if(lineItems.length > 0){
+                                                                  var lines = '';
+                                                                  for(var i=0; i<lineItems.length; i++){
+                                                                     var tax = '';
+                                                                     if(lineItems[i].lineitem.taxable == true || lineItems[i].lineitem.taxable == 'true'){
+                                                                        tax = '<tax1_name>Sales Tax</tax1_name><tax1_percent>' + taxPercent + '</tax1_percent>';
+                                                                     }
+                                                                     lines += '<line><name>' + lineItems[i].lineitem.style_number + '</name><description>' + lineItems[i].lineitem.style_description + '</description><unit_cost>' + lineItems[i].lineitem.unit_cost + '</unit_cost><quantity>' + lineItems[i].lineitem.total_quantities + '</quantity>' + tax + '</line>';
+                                                                  }
+                                                                  mc.setProperty('freshbooks.lineItems', lines);
+                                                               }
+                                                            }
+                                                            
+                                                            // Constructing contacts
+                                                            var contactId = mc.getProperty('freshbooks.contactId');
+                                                            mc.setProperty('freshbooks.contacts', '<contact><contact_id>' + contactId + '</contact_id></contact>');
+                                                            
+                                                            // Constructing date
+                                                            var orderCreatedDate = mc.getProperty('printavo.orderCreatedDate');
+                                                            mc.setProperty('printavo.orderCreatedDate', orderCreatedDate.split('T')[0]);
+                                                         ]]>
+                                                      </script>
+
+                                                      <!-- Create the invoice for the order. -->
+                                                      <freshbooks.init>
+                                                         <apiUrl>{$ctx:freshbooks.apiUrl}</apiUrl>
+                                                         <authenticationToken>{$ctx:freshbooks.authenticationToken}</authenticationToken>
+                                                      </freshbooks.init>
+                                                      <freshbooks.createInvoice>
+                                                         <returnUri>{$ctx:printavo.orderPublicUrl}</returnUri>
+                                                         <terms>{$ctx:printavo.orderProductionNotes}</terms>
+                                                         <date>{$ctx:printavo.orderCreatedDate}</date>
+                                                         <contacts>{$ctx:freshbooks.contacts}</contacts>
+                                                         <organization>{$ctx:printavo.orderCompany}</organization>
+                                                         <firstName>{$ctx:printavo.orderFirstName}</firstName>
+                                                         <lastName>{$ctx:printavo.orderLastName}</lastName>
+                                                         <currencyCode>USD</currencyCode>
+                                                         <status>sent</status>
+                                                         <number>{$ctx:printavo.orderId}</number>
+                                                         <clientId>{$ctx:freshbooks.clientId}</clientId>
+                                                         <discount>{$ctx:printavo.orderDiscount}</discount>
+                                                         <lines>{$ctx:freshbooks.lineItems}</lines>
+                                                         <language>en</language>
+                                                         <notes>{$ctx:printavo.orderNotes}</notes>
+                                                      </freshbooks.createInvoice>
+                                                      <sequence key="removeResponseHeaders" />
+
+                                                      <property name="freshbooks.invoiceId" expression="//*[local-name()='invoice_id']/text()" />
+
+                                                      <!-- START: Proceed to delete the order only if the invoice was created successfully. -->
+                                                      <filter source="boolean(get-property('freshbooks.invoiceId'))" regex="false">
+                                                         <then>
+                                                            <!-- Error case: Append a message to be sent to the user. -->
+                                                            <property name="errorResponse" expression="//*[local-name()='error']/text()" />
+                                                            <property name="id" expression="fn:concat('printavo_orderId:', get-property('printavo.orderId'))" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="freshbooks_createInvoice" />
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="status" value="Error" />
+                                                               <with-param name="message" value="{$ctx:errorResponse}" />
+                                                            </call-template>
+                                                         </then>
+                                                         <else>
+                                                            <!-- Success case: Append a message to be sent to the user. -->
+                                                            <property name="id" expression="fn:concat('printavo_orderId:', get-property('printavo.orderId'), ',freshbooks_invoiceId:', get-property('freshbooks.invoiceId'))" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="freshbooks_createInvoice" />
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="status" value="Success" />
+                                                               <with-param name="message" value="Invoice has been successfully created." />
+                                                            </call-template>
+
+                                                            <property name="noOfProcessedOrders" expression="get-property('operation', 'noOfProcessedOrders') + 1" scope="operation" />
+
+                                                            <!-- Delete the order in Printavo order which is successfully created in FreshBooks. -->
+                                                            <printavo.init>
+                                                               <apiUrl>{$ctx:printavo.apiUrl}</apiUrl>
+                                                               <apiKey>{$ctx:printavo.apiKey}</apiKey>
+                                                            </printavo.init>
+                                                            <printavo.deleteOrder>
+                                                               <orderId>{$ctx:printavo.orderId}</orderId>
+                                                            </printavo.deleteOrder>
+                                                         </else>
+                                                      </filter>
+                                                      <!-- END: Proceed to delete the order only if the invoice was created successfully. -->
+                                                   </then>
+                                                   <else>
+                                                      <!-- Success case: Append a message to be sent to the user. -->
+                                                      <property name="id" expression="fn:concat('printavo_orderId:', get-property('printavo.orderId'))" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="freshbooks_createInvoice" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="Skipped" />
+                                                         <with-param name="message" value="Client and/or Customer missing to create the invoice." />
+                                                      </call-template>
+                                                   </else>
+                                                </filter>
+                                                <!-- END: Proceed to create the invoice if and only if both the clientId and contactId exists. -->
+                                             </else>
+                                          </filter>
+                                          <!-- END: Proceed only if the getCustomer call was successful -->
+                                       </then>
+                                    </filter>
+                                    <!-- END: Proceed to process the order only if it is in 'Completed' status -->
+                                 </then>
+                              </filter>
+                              <!-- START: Proceed only if the order is not deleted already -->
+
+                              <!--Increment the order Count by 1 -->
+                              <property name="orderIndex" expression="get-property('operation', 'orderIndex') + 1" scope="operation" />
+
+                              <!-- Terminate the inSequence and move to outSequence when all the iterations are done. -->
+                              <filter xpath="get-property('noOfOrders') = get-property('operation', 'orderIndex')">
+                                 <then>
+                                    <filter xpath="get-property('operation', 'noOfProcessedOrders') = 0.0">
+                                       <then>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="printavo_retrieveOrders" />
+                                             <with-param name="id" value="{$ctx:id.empty}" />
+                                             <with-param name="status" value="Skipped" />
+                                             <with-param name="message" value="There are no orders in 'Completed' state." />
+                                          </call-template>
+                                       </then>
+                                    </filter>
+                                    <loopback />
+                                 </then>
+                              </filter>
+
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!--FOR EACH Order - END -->
+
+                  </then>
+                  <else>
+                     <!-- Skip case: Append a message to be sent to the user. -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="printavo_listOrders" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="There are no orders to process." />
+                     </call-template>
+                     <loopback />
+                  </else>
+               </filter>
+               <!-- END: Proceed only if there any listOrders to process. -->
+            </else>
+         </filter>
+         <!-- END: Proceed only if the listOrders call was successful -->
+      </inSequence>
+
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"printavo_retrieveCompletedOrdersAndCreateInvoices",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <property name="HTTP_SC" value="200" scope="axis2"/>
+         <send />
+      </outSequence>
+   </target>
+</proxy>
