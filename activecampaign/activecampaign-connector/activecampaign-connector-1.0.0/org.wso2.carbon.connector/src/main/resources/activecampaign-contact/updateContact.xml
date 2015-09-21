@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: http://www.activecampaign.com/api/example.php?call=contact_edit -->
+<template name="updateContact" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="overwrite" description="1 (overwrite all contact data), or 0 (only update included post parameters)" />
+   <parameter name="contactId" description="The ID of the contact you want to edit." />
+   <parameter name="email" description="Email of the new contact." />
+   <parameter name="firstName" description="First name of the contact." />
+   <parameter name="lastName" description="Last name of the contact." />
+   <parameter name="phone" description="Phone number of the contact." />
+   <parameter name="orgName" description="Organization name (if doesn't exist, this will create a new organization)-must have CRM feature for this." />
+   <parameter name="tags" description="Tags for this contact (comma-separated)." />
+   <parameter name="form" description="Optional subscription Form ID, to inherit those redirection settings." />
+   <parameter name="listDetails" description="A list of details need to be edited, which includes dynamic parameters such as unsubreason[1],sendoptout[123],lastmessage[123],instantresponders[123],noresponders[123],status[123],p[123],field[%PERS_1%,0],field[345,0]." />
+   <sequence>
+      <property name="uri.var.overwrite" expression="$func:overwrite" />
+      <property name="uri.var.contactId" expression="$func:contactId" />
+      <property name="uri.var.email" expression="$func:email" />
+      <property name="uri.var.firstName" expression="$func:firstName" />
+      <property name="uri.var.lastName" expression="$func:lastName" />
+      <property name="uri.var.phone" expression="$func:phone" />
+      <property name="uri.var.orgName" expression="$func:orgName" />
+      <property name="uri.var.tags" expression="$func:tags" />
+      <property name="uri.var.form" expression="$func:form" />
+      <property name="uri.var.listDetails" expression="$func:listDetails" />
+      <script language="js">
+         <![CDATA[
+             var listDetails = mc.getProperty("uri.var.listDetails");
+             var contactId = mc.getProperty("uri.var.contactId");
+             var email = mc.getProperty("uri.var.email");
+             var firstName = mc.getProperty("uri.var.firstName");
+             var lastName = mc.getProperty("uri.var.lastName");
+             var phone = mc.getProperty("uri.var.phone");
+             var orgName = mc.getProperty("uri.var.orgName");
+             var tags = mc.getProperty("uri.var.tags");
+             var form = mc.getProperty("uri.var.form");          
+             /*
+               Since some parameter keys are not supported through JSON path,
+               Need to set them directly to the payload. e.g. p[1],p[2]         
+             */
+             var payload = new Object();
+             if(listDetails != null && listDetails != ""){
+                payload = eval('(' + listDetails + ')');
+             }
+             payload.id = contactId;
+             payload.email = email; 
+             if(firstName != null && firstName != ""){
+               payload.first_name = firstName;           
+             }
+             if(lastName != null && lastName != ""){
+               payload.last_name = lastName;           
+             }
+             if(phone != null && phone != ""){
+               payload.phone = phone;           
+             }
+             if(orgName != null && orgName != ""){
+               payload.orgname = orgName;           
+             }
+             if(tags != null && tags != ""){
+               payload.tags = tags;           
+             }
+             if(form != null && form != ""){
+               payload.form = form;           
+             }
+             mc.setPayloadJSON(payload);    
+         ]]>
+      </script>
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}contact_edit{+uri.var.queryParams}&amp;overwrite={+uri.var.overwrite}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Powered-By" scope="transport" action="remove" />
+      <header name="Pragma" scope="transport" action="remove" />
+      <header name="Cache-control" scope="transport" action="remove" />
+   </sequence>
+</template>

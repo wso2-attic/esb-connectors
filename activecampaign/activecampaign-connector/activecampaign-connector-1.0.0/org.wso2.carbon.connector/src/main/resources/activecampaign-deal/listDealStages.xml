@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: http://www.activecampaign.com/api/example.php?call=deal_stage_list -->
+<template name="listDealStages" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="sort" description="The value to state the filed that the results are sorted on." />
+   <parameter name="page" description="The page number of the results." />
+   <parameter name="sortDirection" description="The direction of the sorted order." />
+   <parameter name="isFull" description="The boolean flag indicating whether or not to return ALL data, or an abbreviated portion." />   
+   <parameter name="titleFilter" description="The title filter, perform a pattern match for title." />
+   <parameter name="pipelineFilter" description="The pipeline filter, perform a match for pipeline id." />
+   <parameter name="colorFilter" description="The color filter, perform a match for color code." />
+   <sequence>
+      <property name="uri.var.sort" expression="$func:sort" />
+      <property name="uri.var.page" expression="$func:page" />
+      <property name="uri.var.sortDirection" expression="$func:sortDirection" />
+      <property name="uri.var.isFull" expression="$func:isFull" />
+      <property name="uri.var.titleFilter" expression="$func:titleFilter" />
+      <property name="uri.var.pipelineFilter" expression="$func:pipelineFilter" />
+      <property name="uri.var.colorFilter" expression="$func:colorFilter" />
+      <script language="js">
+      <![CDATA[ 
+          var sortField = mc.getProperty('uri.var.sort');
+          var page = mc.getProperty('uri.var.page');
+          var sortDirection = mc.getProperty('uri.var.sortDirection');
+          var isFull = mc.getProperty('uri.var.isFull');
+          var titleFilter = mc.getProperty('uri.var.titleFilter');
+          var pipelineFilter = mc.getProperty('uri.var.pipelineFilter');
+          var colorFilter = mc.getProperty('uri.var.colorFilter');
+          var urlQuery = "";
+          if (sortField != null && sortField != "") {
+             urlQuery += "sort=" + sortField + '&';
+          }
+          if (page != null && page != "") {
+             urlQuery += "page=" + page + '&';
+          }
+          if (sortDirection != null && sortDirection != "") {
+             urlQuery += "sort_direction=" + sortDirection + '&';
+          }
+          if (isFull != null && isFull != "") {
+             urlQuery += "full=" + isFull + '&';
+          }
+          if (titleFilter != null && titleFilter != "") {
+             urlQuery += "filters[title]=" + titleFilter + '&';
+          }
+          if (pipelineFilter != null && pipelineFilter != "") {
+             urlQuery += "filters[pipeline]=" + pipelineFilter + '&';
+          }
+          if (colorFilter != null && colorFilter != "") {
+             urlQuery += "filters[color]=" + colorFilter + '&';
+          }
+          if (urlQuery != "") {
+             urlQuery = '&' + urlQuery.substring(0, urlQuery.length - 1);
+             mc.setProperty('uri.var.urlQuery', urlQuery);
+          } 
+        ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}deal_stage_list{+uri.var.queryParams}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Powered-By" scope="transport" action="remove" />
+      <header name="Pragma" scope="transport" action="remove" />
+      <header name="Cache-control" scope="transport" action="remove" />
+   </sequence>
+</template>
