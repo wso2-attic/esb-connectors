@@ -39,7 +39,7 @@ STEPS:
    vi)       routeDriverIdentifier                       - The username obtained under Step 3 iii).
    vii)      routeEnableEstimations                      - Use any boolean value.
    viii)     routeDispatchesUpdated                      - Dispatch id obtained under Step 3 v). For the second route.
-   ix)       routeStartTimeUpdate                        - Time at which the route started. Use the valu given in 4 iv) in following date format (2015-09-15).
+   ix)       routeStartTimeUpdate                        - Time at which the route started. Use the value given in 4 iv) in following date format (2015-09-15).
    x)        routeEndTimeUpdate                          - Time at which the route ended. Use following date format (2015-09-15).
 
  5. Make sure that beetrack is specified as a module in ESB Connector Parent pom.
