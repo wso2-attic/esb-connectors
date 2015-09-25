@@ -114,7 +114,7 @@ Steps to follow in setting integration test.
    
    Special Notes: 
       1)  Make sure to close the registry created in Step 7 xxxii) before each execution.
-      2)  Change the value in 6 ii) before each execution.
+      2)  Change the value in 7 ii) before each execution.
       3)  Add following resources to the ESB registry.
             
             i)    /_system/governance/connectors/Vend/apiUrl         -  Use following value 'https://{domain}.vendhq.com'
