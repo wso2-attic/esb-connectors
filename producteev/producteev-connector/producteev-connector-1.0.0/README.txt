@@ -27,7 +27,16 @@ Steps to follow in setting integration test.
         <messageBuilder contentType="text/html" 
             class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
- 4. Using the URL "https://www.producteev.com/signup" create a Producteev trial account and obtain the access token. Follow the instruction using the URL "https://www.producteev.com/api/doc/" to obtain the access token.
+ 4. Using the URL "https://www.producteev.com/signup" create a Producteev trial account and login to it.
+    i) Navigate to "https://www.producteev.com/settings/apps" and create new application, Obtain the 'Client Id', 'Client Secret' and 'Redirect URI'.
+    ii) Go to following URL "https://www.producteev.com/api/doc/#AuthenticationOAuth20Flows" and follow the "Authentication: OAuth 2.0 Flows" to obtain "access_token" and "refresh_token".
+    iii) Add following resources to the ESB registry.
+        i)    /_system/governance/connectors/Producteev/apiUrl         -  Use following value 'https://www.producteev.com'
+        ii)   /_system/governance/connectors/Producteev/accessToken    -  Use the access_token obtained in Step 4 ii). 
+        iii)  /_system/governance/connectors/Producteev/clientId       -  Use the Client Id obtained in Step 4 i). 
+        iv)   /_system/governance/connectors/Producteev/clientSecret   -  Use the Client Secret obtained in Step 4 i).
+        v)    /_system/governance/connectors/Producteev/redirectUrl    -  Use the Redirect URI obtained in Step 4 i).
+        vi)   /_system/governance/connectors/Producteev/refreshToken   -  Use the refresh_token obtained in Step 4 ii). 
 
  5. Prerequisites for Producteev Connector Integration Testing.
     i)      Create a network by navigating to Networks > New Network and keep the network ID (id displays in the URL when the network is selected) for further reference.
@@ -70,27 +79,26 @@ Steps to follow in setting integration test.
  
  9. Update the Producteev properties file at location "<PRODUCTEEV_CONNECTOR_HOME>/producteev-connector/producteev-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
-    i)      apiUrl                      - The API URL specific to the domain of the created account (e.g.: https://www.producteev.com).
-    ii)     accessToken                 - Use the access token obtained under step 4.
-    iii)    networkId                   - Use the network ID created under step 5 i).
-    iv)     projectId                   - Use the project ID created under step 5 ii).
-    v)      userId                      - Use the user ID created under step 5 iii).
-    vi)     taskTitleMandatory          - Text to be used as 'title' while creating a task with mandatory parameters.	
-    vii)    taskTitleOptional           - Text to be used as 'title' while creating a task with optional parameters.
-    viii)   endDate                     - Date to be used as 'deadline' while creating a task with optional parameters. e.g.: 2015-09-15T00:00:00+0000.
-    ix)     endDateTimeZone             - Standard time zone code to be used as "deadline_timezone" while creating a task with optional parameters (e.g.: GST).
-     x)     updateTaskTitle             - Text to be used as 'title' while updating a task with optional parameters (Note: This parameter  value must be different than the "taskTitleOptional" parameter value. ). 
-    xi)     updateTaskEndDate           - Date to be used as 'deadline' while updating a task with optional parameters (Note: This parameter  value must be different than the "endDate" parameter value.). e.g.: 2015-09-20T00:00:00+0000.
-    xii)    updateTaskEndDateTimeZone   - Standard time zone code to be used as "deadline_timezone" while updating a task with optional parameters (Note: This parameter  value must be different than the "endDateTimeZone" parameter value.). e.g.: GMT.
-    xiii)   noteMessageMand             - Text to be used as 'message' while creating a note with mandatory parameters.
-    xiv)    noteMessageOpt              - Text to be used as 'message' while creating a note with optional parameters.
-    xv)     taskIdWithFileNote          - Use the task ID created under step 5 iv).
-    xvi)    invitationType              - Type of the network invitation ( Possible values are "member" and "admin").
-    xvii)   invitationEmail             - Email address of the person to be used as invite user to the network with mandatory parameters.
-    xviii)  labelId                     - Use the label ID created under step 5 vi).
-    xix)    labelTitle                  - Use a valid string. The value should be different from the title of label created in step 5 vi).
-    xx)     foregroundColor             - Use a hexadecimal colour code as the value (The initial value should be different from '#e8cdde').
-    xxi)    backgroundColor             - Use a hexadecimal colour code as the value (The initial value should be different from '#9f3879').
+    i)     apiUrl                      - The API URL specific to the domain of the created account (e.g.: https://www.producteev.com).
+    ii)    networkId                   - Use the network ID created under step 5 i).
+    iii)   projectId                   - Use the project ID created under step 5 ii).
+    iv)    userId                      - Use the user ID created under step 5 iii).
+    v)     taskTitleMandatory          - Text to be used as 'title' while creating a task with mandatory parameters.	
+    vi)    taskTitleOptional           - Text to be used as 'title' while creating a task with optional parameters.
+    vii)   endDate                     - Date to be used as 'deadline' while creating a task with optional parameters. e.g.: 2015-09-15T00:00:00+0000.
+    vii)   endDateTimeZone             - Standard time zone code to be used as "deadline_timezone" while creating a task with optional parameters (e.g.: GST).
+    ix)   updateTaskTitle             - Text to be used as 'title' while updating a task with optional parameters (Note: This parameter  value must be different than the "taskTitleOptional" parameter value. ). 
+    x)    updateTaskEndDate           - Date to be used as 'deadline' while updating a task with optional parameters (Note: This parameter  value must be different than the "endDate" parameter value.). e.g.: 2015-09-20T00:00:00+0000.
+    xi)   updateTaskEndDateTimeZone   - Standard time zone code to be used as "deadline_timezone" while updating a task with optional parameters (Note: This parameter  value must be different than the "endDateTimeZone" parameter value.). e.g.: GMT.
+    xii)  noteMessageMand             - Text to be used as 'message' while creating a note with mandatory parameters.
+    xiii) noteMessageOpt              - Text to be used as 'message' while creating a note with optional parameters.
+    xiv)  taskIdWithFileNote          - Use the task ID created under step 5 iv).
+    xv)   invitationType              - Type of the network invitation ( Possible values are "member" and "admin").
+    xvi)  invitationEmail             - Email address of the person to be used as invite user to the network with mandatory parameters.
+    xvii) labelId                     - Use the label ID created under step 5 vi).
+    xvii) labelTitle                  - Use a valid string. The value should be different from the title of label created in step 5 vi).
+    xix)  foregroundColor             - Use a hexadecimal colour code as the value (The initial value should be different from '#e8cdde').
+    xx)   backgroundColor             - Use a hexadecimal colour code as the value (The initial value should be different from '#9f3879').
 		
     NOTE: The property values of taskTitleMandatory, taskTitleOptional, invitationEmail, labelId, labelTitle, foregroundColor, backgroundColor should be changed to unique different values for each integration execution.  
 
