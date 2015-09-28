@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="createPost" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="topicId" description="The unique identifier of a topic." />
+   <parameter name="forumId" description="The unique identifier of a forum." />
+   <parameter name="categoryId" description="The unique identifier of a category." />
+   <parameter name="bodyHtml" description="The body of the post." />
+
+   <sequence>
+      <property name="uri.var.topicId" expression="$func:topicId" />
+      <property name="uri.var.forumId" expression="$func:forumId" />
+      <property name="uri.var.categoryId" expression="$func:categoryId" />
+      <property name="uri.var.bodyHtml" expression="$func:bodyHtml" />
+
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "post":{
+                  "body_html":"$1"
+               }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.bodyHtml')" />
+         </args>
+      </payloadFactory>
+
+      <call>
+         <endpoint>
+            <http method="post"
+               uri-template="{uri.var.apiUrl}/posts.{uri.var.format}?forum_id={uri.var.forumId}&amp;category_id={uri.var.categoryId}&amp;topic_id={uri.var.topicId}" />
+         </endpoint>
+      </call>
+
+      <!-- Remove response custom header information -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="X-Powered-By" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+
+   </sequence>
+</template>

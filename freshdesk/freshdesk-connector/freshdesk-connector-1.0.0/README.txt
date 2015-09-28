@@ -11,10 +11,10 @@ Product: Integration tests for WSO2 ESB Fresh Desk connector
 
     - Microsoft WINDOWS V-7
     - Ubuntu 13.04
-    - WSO2 ESB 4.8.1
+    - WSO2 ESB 4.9.0 -BETA-SNAPSHOT
  
 Steps to follow in setting integration test.
- 1.  Download ESB 4.8.1 from official website.
+ 1.  Download ESB 4.9.0 from official website.
  2.  Deploy relevant patches, if applicable.
 
 STEPS:
@@ -42,15 +42,15 @@ STEPS:
 03)	Follow the below mentioned steps to add valid certificate to access Freshdesk API over https.
 
     i) Extract the certificate from browser by navigating to 'https://<domain>.freshdesk.com' and place the certificate file in following location. Domain is the name used in Step 02)-(i)
-       "{FRESHDESK_HOME}/freshdesk-connector/freshdesk-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/"
+       "{FRESHDESK_HOME}/freshdesk-connector/freshdesk-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/"
 	  
-    ii) Navigate to "{FRESHDESK_HOME}/freshdesk-connector/freshdesk-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME" in command line to import freshdesk certificate in to keystore. Give "wso2carbon" as password.
+    ii) Navigate to "{FRESHDESK_HOME}/freshdesk-connector/freshdesk-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME" in command line to import freshdesk certificate in to keystore. Give "wso2carbon" as password.
         NOTE : CERT_FILE_NAME is the certificate file name which was extracted from freshdesk.
                CERT_NAME is name of the certificate. (e.g. freshdesk)
 			   
-04) Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{FRESHDESK_HOME}/freshdesk-connector/freshdesk-connector-2.0.0/org.wso2.carbon.connector/repository/".
+04) Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{FRESHDESK_HOME}/freshdesk-connector/freshdesk-connector-1.0.0/org.wso2.carbon.connector/repository/".
 	
-05)	Update the property file freshdesk.properties found in {FRESHDESK_HOME}/freshdesk-connector/freshdesk-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config as follows:
+05)	Update the property file freshdesk.properties found in {FRESHDESK_HOME}/freshdesk-connector/freshdesk-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config as follows:
 	
     i)     apiUrl             -  API endpoint to which the service calls are made. e.g. https://virtusaabc.freshdesk.com
     ii)    apiKey             -  Use the API key obtained in Step 02)-(iv)
@@ -70,8 +70,8 @@ STEPS:
     xvi)   private            -  Indicate whether or not the note should be privet/public. Use false.
     xvii)  forumId            -  An existing forum id in the current account.
     xviii) categoryId         -  An existing category id in the current account.
-06) Make sure that the freshbook connector is set as a module in esb-connectors parent pom.
+06) Make sure that the freshdesk connector is set as a module in esb-connectors parent pom.
         	<module>freshdesk/freshdesk-connector/freshdesk-connector-1.0.0/org.wso2.carbon.connector</module>
-07) Navigate to "{FRESHDESK_HOME}/freshdesk-connector/freshdesk-connector-2.0.0/org.wso2.carbon.connector/" and run the following command.
+07) Navigate to "{FRESHDESK_HOME}/freshdesk-connector/freshdesk-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       $ mvn clean install
 	  

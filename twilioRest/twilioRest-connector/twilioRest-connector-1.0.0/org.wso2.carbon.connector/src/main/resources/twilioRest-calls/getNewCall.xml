@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Documentation URL -   http://www.twilio.com/docs/api/rest/making-calls -->
+<template name="getNewCall" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="to" description="Only shows messages to the specified phone number"/>
+    <parameter name="from" description=" Only shows messages from the specified phone number." />
+    <parameter name="url" description=" The fully qualified URL that should be consulted when the call connects. This property is ignored if you specify an applicationSid." />
+    <parameter name="applicationSid" description="The 34-character string that uniquely identifies the application that defines the properties to use for making the call. If you use this property,
+                                                    the following voice properties will be ignored, because they are already defined by the application: url, method, fallbackUrl, fallbackMethod, statusCallback, and statusCallbackMethod. " />
+    <parameter name="method" description=" The HTTP method, GET or POST, to use when connecting to the URL. Defaults to POST. This property is ignored if you specify an applicationSid." />
+    <parameter name="fallbackUrl" description=" A URL that Twilio will request if an error occurs when requests are made to the URL.This property is ignored if you specify an applicationSid." />
+    <parameter name="fallbackMethod" description=" The HTTP method, either GET or POST, that should be used to request the fallback URL. Defaults to POST. This property is ignored if you specify an applicationSid" />
+    <parameter name="statusCallback" description="The URL that Twilio will request when the call ends to notify your application. This property is ignored if you specify an applicationSid." />
+    <parameter name="statusCallbackMethod" description=" The HTTP method, either GET or POST, that should be used to request the status callback URL. Defaults to POST. This property is ignored if you specify an applicationSid." />
+    <parameter name="sendDigits" description=" " />
+    <parameter name="ifMachine" description="Specifies whether Twilio should try to determine whether a machine or a human has answered the call. Possible values are Continue and Hangup " />
+    <parameter name="timeout" description="The integer number of seconds that Twilio should allow the phone to ring before assuming there is no answer. Default is 60 seconds, the maximum is 999 seconds.
+                                            Note, you could set this to a low value, such as 15, to hangup before reaching an answering machine or voicemail. " />
+    <parameter name="record" description=" Specifies whether to record the call. If true, the entire call is recorded, and the recording URL is sent to the status callback URL. Defaults to false. " />
+
+    <sequence>
+        <property name="uri.var.to" expression="$func:to" />
+        <property name="uri.var.from" expression="$func:from" />
+        <property name="uri.var.url" expression="$func:url" />
+        <property name="uri.var.applicationSid" expression="$func:applicationSid" />
+        <property name="uri.var.method" expression="$func:method" />
+        <property name="uri.var.fallbackUrl" expression="$func:fallbackUrl" />
+        <property name="uri.var.fallbackMethod" expression="$func:fallbackMethod" />
+        <property name="uri.var.statusCallback" expression="$func:statusCallback" />
+        <property name="uri.var.statusCallbackMethod" expression="$func:statusCallbackMethod" />
+        <property name="uri.var.sendDigits" expression="$func:sendDigits" />
+        <property name="uri.var.ifMachine" expression="$func:ifMachine" />
+        <property name="uri.var.timeout" expression="$func:timeout" />
+        <property name="uri.var.record" expression="$func:record" />
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "To":"$1",
+                "From":"$2",
+                "Url":"$3"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.to')"/>
+                <arg expression="get-property('uri.var.from')"/>
+                <arg expression="get-property('uri.var.url')"/>
+            </args>
+        </payloadFactory>
+        <script language="js">
+            <![CDATA[
+                //request body param variables
+                var applicationSid = mc.getProperty('uri.var.applicationSid');
+                var method = mc.getProperty('uri.var.method');
+                var fallbackUrl = mc.getProperty('uri.var.fallbackUrl');
+                var fallbackMethod = mc.getProperty('uri.var.fallbackMethod');
+                var statusCallback = mc.getProperty('uri.var.statusCallback');
+                var statusCallbackMethod = mc.getProperty('uri.var.statusCallbackMethod');
+                var sendDigits = mc.getProperty('uri.var.sendDigits');
+                var ifMachine = mc.getProperty('uri.var.ifMachine');
+                var timeout = mc.getProperty('uri.var.timeout');
+                var record = mc.getProperty('uri.var.record');
+
+                //Get the existing payload
+                var payload = mc.getPayloadJSON();
+                if (applicationSid != null && applicationSid != "") {
+                   payload["ApplicationSid"]=applicationSid;
+                }
+
+                if(method != null && method != ""){
+                    payload["Method"]=method;
+                }
+
+                if(fallbackUrl != null && fallbackUrl != ""){
+                    payload["FallbackUrl"]=fallbackUrl;
+                }
+
+                if(fallbackMethod != null && fallbackMethod != ""){
+                    payload["FallbackMethod"]=fallbackMethod;
+                }
+
+                if(statusCallback != null && statusCallback != ""){
+                    payload["StatusCallback"]=statusCallback;
+                }
+
+                if(statusCallbackMethod != null && statusCallbackMethod != ""){
+                    payload["StatusCallbackMethod"]=statusCallbackMethod;
+                }
+
+                if(sendDigits != null && sendDigits != ""){
+                    payload["SendDigits"]=sendDigits;
+                }
+
+                if(ifMachine != null && ifMachine != ""){
+                    payload["IfMachine"]=ifMachine;
+                }
+
+                if(timeout != null && timeout != ""){
+                    payload["Timeout"]=timeout;
+                }
+
+                if(record != null && record != ""){
+                    payload["Record"]=record;
+                }
+                //Set the newly constructed payload
+                mc.setPayloadJSON(payload);
+            ]]>
+        </script>
+
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/Accounts/{uri.var.accountSid}/Calls.json" />
+
+            </endpoint>
+        </call>
+        <!--Removing custom headers from the Response. -->
+        <header name="X-Frame-Options" action="remove" scope="transport" />
+        <header name="Vary" action="remove" scope="transport" />
+        <header name="X-XSS-Protection" action="remove" scope="transport" />
+        <header name="X-Content-Type-Options" action="remove" scope="transport" />
+        <header name="Strict-Transport-Security" action="remove" scope="transport" />
+        <header name="X-RateLimit-Remaining" action="remove" scope="transport" />
+        <header name="X-RateLimit-Limit" action="remove" scope="transport" />
+        <header name="X-RateLimit-Reset" action="remove" scope="transport" />
+    </sequence>
+</template>

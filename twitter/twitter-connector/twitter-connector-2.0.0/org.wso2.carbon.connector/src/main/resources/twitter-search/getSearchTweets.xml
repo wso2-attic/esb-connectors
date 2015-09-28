@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template xmlns="http://ws.apache.org/ns/synapse" name="getSearchTweets">
+    <parameter name="q"
+               description="A UTF-8, URL-encoded search query of 500 characters maximum, including operators. Queries may additionally be limited by complexity."/>
+    <parameter name="lang"
+               description="Restricts tweets to the given language, given by an ISO 639-1 code. Language detection is best-effort."/>
+    <parameter name="resultType"
+               description="Specifies what type of search results you would prefer to receive. The current default is “mixed.” Valid values include.the values can be mixed,recent or popular"/>
+    <parameter name="geocode" description="Returns tweets by users located within a given radius of the given latitude/longitude. The location is preferentially taking from the Geotagging API, but will fall back to their Twitter profile.
+        The parameter value is specified by latitude,longitude,radius"/>
+    <parameter name="locale"
+               description="Restricts tweets to the given language, given by an ISO 639-1 code. Language detection is best-effort."/>
+    <parameter name="count"
+               description="The number of tweets to return per page, up to a maximum of 100. Defaults to 15. This was formerly the “rpp” parameter in the old Search API."/>
+    <parameter name="until"
+               description="Returns tweets created before the given date. Date should be formatted as YYYY-MM-DD. Keep in mind that the search index has a 7-day limit. In other words, no tweets will be found for a date older than one week."/>
+    <parameter name="sinceId" description="Returns results with an ID greater than (that is, more recent than) the specified ID. There are limits to the number of Tweets which can be accessed through the API.
+               If the limit of Tweets has occurred since the since_id, the since_id will be forced to the oldest ID available."/>
+    <parameter name="maxId"
+               description="Returns results with an ID less than (that is, older than) or equal to the specified ID."/>
+    <parameter name="includeEntities" description="The entities node will be disincluded when set to false."/>
+    <parameter name="callback"
+               description="If supplied, the response will use the JSONP format with a callback of the given name. The usefulness of this parameter is somewhat diminished by the requirement of authentication for requests to this endpoint."/>
+    <sequence>
+
+        <class name="org.wso2.carbon.connector.twitter.RemoveTwitterContext"/>
+
+        <property name="uri.var.q" expression="$func:q"/>
+        <property name="uri.var.lang" expression="$func:lang"/>
+        <property name="uri.var.resultType" expression="$func:resultType"/>
+        <property name="uri.var.geocode" expression="$func:geocode"/>
+        <property name="uri.var.locale" expression="$func:locale"/>
+        <property name="uri.var.count" expression="$func:count"/>
+        <property name="uri.var.until" expression="$func:until"/>
+        <property name="uri.var.sinceId" expression="$func:sinceId"/>
+        <property name="uri.var.maxId" expression="$func:maxId"/>
+        <property name="uri.var.includeEntities" expression="$func:includeEntities"/>
+        <property name="uri.var.callback" expression="$func:callback"/>
+
+        <script language="js">
+            <![CDATA[
+
+                // optional url param variables
+				var q = mc.getProperty('uri.var.q');
+				var lang = mc.getProperty('uri.var.lang');
+				var resultType  = mc.getProperty('uri.var.resultType');
+				var geocode = mc.getProperty('uri.var.geocode');
+				var locale = mc.getProperty('uri.var.locale');
+				var count  = mc.getProperty('uri.var.count');
+				var until = mc.getProperty('uri.var.until');
+				var sinceId = mc.getProperty('uri.var.sinceId');
+				var maxId  = mc.getProperty('uri.var.maxId');
+				var includeEntities = mc.getProperty('uri.var.includeEntities');
+				var callback = mc.getProperty('uri.var.callback');
+
+				var uriParams = '';
+
+				uriParams += 'q=' + encodeURIComponent(q) + '&';
+				q='q=' + encodeURIComponent(q);
+				mc.setProperty('uri.var.q',q)
+
+                if (lang != null && lang != "") {
+					uriParams += 'lang=' + encodeURIComponent(lang) + '&';
+					lang = 'lang=' + encodeURIComponent(lang);
+					mc.setProperty('uri.var.lang', lang)
+				}
+
+				if (resultType != null && resultType != "") {
+					uriParams += 'result_type=' + encodeURIComponent(resultType) + '&';
+					resultType = 'result_type=' + encodeURIComponent(resultType);
+					mc.setProperty('uri.var.resultType', resultType)
+				}
+
+				if (geocode != null && geocode != "") {
+					uriParams += 'geocode=' + encodeURIComponent(geocode) + '&';
+					geocode = 'geocode=' + encodeURIComponent(geocode);
+					mc.setProperty('uri.var.geocode', geocode)
+				}
+
+				if (locale != null && locale != "") {
+					uriParams += 'locale=' + encodeURIComponent(locale) + '&';
+					locale = 'locale=' + encodeURIComponent(locale);
+					mc.setProperty('uri.var.locale', locale)
+				}
+
+				if (count != null && count != "") {
+					uriParams += 'count=' + encodeURIComponent(count) + '&';
+					count = 'count=' + encodeURIComponent(count);
+					mc.setProperty('uri.var.count', count)
+				}
+
+				if (until != null && until != "") {
+					uriParams += 'until=' + encodeURIComponent(until) + '&';
+					until = 'until=' + encodeURIComponent(until);
+					mc.setProperty('uri.var.until', until)
+				}
+
+				if (sinceId != null && sinceId != "") {
+					uriParams += 'since_id=' + encodeURIComponent(sinceId) + '&';
+					sinceId = 'since_id=' + encodeURIComponent(sinceId);
+					mc.setProperty('uri.var.sinceId', sinceId)
+				}
+
+				if (maxId != null && maxId != "") {
+					uriParams += 'max_id=' + encodeURIComponent(maxId) + '&';
+					maxId = 'max_id=' + encodeURIComponent(maxId);
+					mc.setProperty('uri.var.maxId', maxId)
+				}
+
+				if (includeEntities != null && includeEntities != "") {
+					uriParams += 'include_entities=' + encodeURIComponent(includeEntities) + '&';
+					includeEntities = 'include_entities=' + encodeURIComponent(includeEntities);
+					mc.setProperty('uri.var.includeEntities', includeEntities)
+				}
+
+				if (callback != null && callback != "") {
+					uriParams += 'callback=' + encodeURIComponent(callback) + '&';
+					callback = 'callback=' + encodeURIComponent(callback);
+					mc.setProperty('uri.var.callback', callback)
+				}
+
+				if(uriParams != ''){
+					mc.setProperty('uri.var.uriParams' , uriParams.substring(0, uriParams.length-1));
+				}
+			]]>
+        </script>
+
+        <property name="uri.var.apiUrl.final"
+                  expression="fn:concat(get-property('uri.var.apiUrl'),'/1.1/search/tweets.json')"/>
+
+        <property name="uri.var.httpMethod"
+                  value="GET"/>
+
+        <class name="org.wso2.carbon.connector.twitter.TwitterSignatureGeneration"/>
+
+        <header name="Authorization" expression="get-property('uri.var.signature')"
+                scope="transport"/>
+
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="legacy-encoding:{uri.var.apiUrl}/1.1/search/tweets.json?{uri.var.uriParams}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom header information in response -->
+        <header name="x-access-level" scope="transport" action="remove"/>
+        <header name="x-twitter-response-tags" scope="transport" action="remove"/>
+        <header name="x-transaction" scope="transport" action="remove"/>
+        <header name="x-response-time" scope="transport" action="remove"/>
+        <header name="x-connection-hash" scope="transport" action="remove"/>
+        <header name="x-content-type-options" scope="transport" action="remove"/>
+        <header name="x-frame-options" scope="transport" action="remove"/>
+        <header name="x-rate-limit-limit" scope="transport" action="remove"/>
+        <header name="x-rate-limit-remaining" scope="transport" action="remove"/>
+        <header name="x-rate-limit-reset" scope="transport" action="remove"/>
+        <header name="x-xss-protection" scope="transport" action="remove"/>
+
+    </sequence>
+</template>
+
+
+
+
+
+
+
+
+
+
+
+
+

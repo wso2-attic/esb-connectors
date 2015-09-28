@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.printavo.com/api/doc -->
+<template name="createOrder" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="userId" description="The unique identifier of the user."/>
+   <parameter name="customerId" description="The unique identifier of the customer."/>
+   <parameter name="orderstatusId" description="The unique identifier of the order status."/>
+   <parameter name="formattedDueDate" description="Formatted(dd/mm/yyyy) due date of the order."/>
+   <parameter name="salesTax" description="SalesTax of the order."/>
+   <parameter name="discountAsPercentage" description="Determines if the discount is of a percentage or not (Values: True or False)."/>
+   <parameter name="discount" description="Amount/Percentage of discount for the order."/>
+   <parameter name="productionNotes" description="ProductionNotes of the order."/>
+   <parameter name="orderNickname" description="Nickname of the order."/>
+   <parameter name="isApproved" description="Indicates if the order is approved or not."/>
+   <parameter name="approverName" description="Name of the person who approved the order."/>
+   <parameter name="notes" description="Notes of the order."/>
+   <sequence>
+      <property name="uri.var.userId" expression="$func:userId"/>
+      <property name="uri.var.customerId" expression="$func:customerId"/>
+      <property name="uri.var.orderstatusId" expression="$func:orderstatusId"/>
+      <property name="uri.var.formattedDueDate" expression="$func:formattedDueDate"/>
+      <property name="uri.var.salesTax" expression="$func:salesTax"/>
+      <property name="uri.var.discountAsPercentage" expression="$func:discountAsPercentage"/>
+      <property name="uri.var.discount" expression="$func:discount"/>
+      <property name="uri.var.productionNotes" expression="$func:productionNotes"/>
+      <property name="uri.var.orderNickname" expression="$func:orderNickname"/>
+      <property name="uri.var.isApproved" expression="$func:isApproved"/>
+      <property name="uri.var.approverName" expression="$func:approverName"/>
+      <property name="uri.var.notes" expression="$func:notes"/>
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "user_id": "$1",
+                "orderstatus_id": "$2",
+                "customer_id": "$3",
+                "formatted_due_date": "$4"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.userId')"/>
+            <arg expression="get-property('uri.var.orderstatusId')"/>
+            <arg expression="get-property('uri.var.customerId')"/>
+            <arg expression="get-property('uri.var.formattedDueDate')"/>
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var productionNotes = mc.getProperty('uri.var.productionNotes');
+            var discountAsPercentage = mc.getProperty('uri.var.discountAsPercentage');
+            var isApproved = mc.getProperty('uri.var.isApproved');
+            var notes = mc.getProperty('uri.var.notes');
+            var approverName = mc.getProperty('uri.var.approverName');
+            var discount = mc.getProperty('uri.var.discount');
+            var orderNickname = mc.getProperty('uri.var.orderNickname');
+            var salesTax = mc.getProperty('uri.var.salesTax');
+            var jsonPayload = mc.getPayloadJSON();
+            if (salesTax != null && salesTax != ""){
+               jsonPayload.sales_tax = salesTax;
+            }
+            if (discountAsPercentage != null && discountAsPercentage != ""){
+               jsonPayload.discount_as_percentage = discountAsPercentage;
+            }
+            if (discount != null && discount != ""){
+               jsonPayload.discount = discount;
+            }
+            if (productionNotes != null && productionNotes != ""){
+               jsonPayload.production_notes = productionNotes;
+            }
+            if (orderNickname != null && orderNickname != ""){
+               jsonPayload.order_nickname = orderNickname;
+            }
+            if (isApproved != null && isApproved != ""){
+               jsonPayload.approved = isApproved;
+            }
+            if (approverName != null && approverName != ""){
+               jsonPayload.approved_name = approverName;
+            }
+            if (notes != null && notes != ""){
+               jsonPayload.notes = notes;
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/orders{+uri.var.authString}"/>
+         </endpoint>
+      </call>
+      <!-- Remove unwanted headers -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="X-Ua-Compatible" scope="transport" action="remove" />
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="X-Rack-Cache" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="Strict-Transport-Security" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="Etag" scope="transport" action="remove" />
+      <header name="Via" scope="transport" action="remove" />
+   </sequence>
+</template>

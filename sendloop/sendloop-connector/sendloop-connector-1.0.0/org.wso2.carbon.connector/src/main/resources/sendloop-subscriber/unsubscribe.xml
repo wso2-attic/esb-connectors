@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://sendloop.com/help/api-006/subscriber-management#subscriber_unsubscribe -->
+<template name="unsubscribe" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="emailAddress" description="Unsubscribe an email address from your lists." />
+   <parameter name="listId" description="ID of the list from where tp unsubscribe the email address." />
+   <parameter name="unsubscriptionIP" description="IP of the machine from which the email was unsubscribed." />
+   <sequence>
+      <property name="uri.var.emailAddress" expression="$func:emailAddress" />
+      <property name="uri.var.listId" expression="$func:listId" />
+      <property name="uri.var.unsubscriptionIP" expression="$func:unsubscriptionIP" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "APIKey": "$1",
+                "ListID": "$2",
+                "UnsubscriptionIP": "$3",
+                "EmailAddress": "$4"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.apiKey')" />
+            <arg expression="get-property('uri.var.listId')" />
+            <arg expression="get-property('uri.var.unsubscriptionIP')" />
+            <arg expression="get-property('uri.var.emailAddress')" />
+         </args>
+      </payloadFactory>
+      <!-- Set the axis2 property 'messageType' to application/x-www-form-urlencoded -->
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/Subscriber.Unsubscribe/{+uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="Server" action="remove" scope="transport" />
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Transfer-Encoding" action="remove" scope="transport" />
+   </sequence>
+</template>
