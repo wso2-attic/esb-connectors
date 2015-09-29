@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-update.html#docs-update -->
+<template name="updateDocument" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="indexName" description="Name of the index inside which the type is."/>
+   <parameter name="type" description="The type inside which the ID is."/>
+   <parameter name="id" description="Key of the index to be updated."/>
+   <parameter name="script" description="Script used for the update method."/>
+   <parameter name="params" description="List of parameters to update the document."/>
+   <parameter name="timeout" description="The primary shard assigned to perform the index operation might not be available when the index operation is executed."/>
+   <parameter name="consistency" description="Control if the operation will be allowed to execute based on the number of active shards within that partition (replication group). The values allowed are one, quorum, and all."/>
+   <parameter name="parentId" description="ID of the parent document inside which the child document will be tagged."/>
+   <parameter name="routing" description="When indexing using the ability to control the routing, in order to get a document, the routing value should also be provided."/>
+   <parameter name="refresh" description="The refresh parameter can be set to true in order to refresh the relevant shard before the get operation and make it searchable."/>
+   <parameter name="fields" description="The get operation allows specifying a set of stored fields that will be returned by passing the fields parameter."/>
+   <parameter name="version" description="Each indexed document is given a version number. The index API optionally allows for optimistic concurrency control when the version parameter is specified. This will control the version of the document the operation is intended to be executed against."/>
+   <parameter name="versionType" description="Type of the versioning used when inserting index."/>
+   <parameter name="retryOnConflict" description="In between the get and indexing phases of the update, it is possible that another process might have already updated the same document. This value controls how many times to retry the update before finally throwing an exception."/>
+   <parameter name="detectNoop" description="Specifying detect_noop as true will cause Elasticsearch to check if there are changes and, if there aren't, turn the update request into a noop."/>
+   <parameter name="upsert" description="If the document does not already exist, the contents of the upsert element will be inserted as a new document. If the document does exist, then the script will be executed instead."/>
+   <parameter name="scriptedUpsert" description="If you would like your script to run regardless of whether the document exists or not i.e. the script handles initializing the document instead of the upsert element, then set scripted_upsert to true."/>
+   <parameter name="docAsUpsert" description="Instead of sending a partial doc plus an upsert doc, setting doc_as_upsert to true will use the contents of doc as the upsert value."/>
+   <parameter name="doc" description="The document to update with."/>
+   <sequence>
+      <property name="uri.var.indexName" expression="$func:indexName"/>
+      <property name="uri.var.type" expression="$func:type"/>
+      <property name="uri.var.id" expression="$func:id"/>
+      <property name="uri.var.script" expression="$func:script"/>
+      <property name="uri.var.params" expression="$func:params"/>
+      <property name="uri.var.timeout" expression="$func:timeout"/>
+      <property name="uri.var.consistency" expression="$func:consistency"/>
+      <property name="uri.var.parentId" expression="$func:parentId"/>
+      <property name="uri.var.routing" expression="$func:routing"/>
+      <property name="uri.var.refresh" expression="$func:refresh"/>
+      <property name="uri.var.fields" expression="$func:fields"/>
+      <property name="uri.var.version" expression="$func:version"/>
+      <property name="uri.var.versionType" expression="$func:versionType"/>
+      <property name="uri.var.retryOnConflict" expression="$func:retryOnConflict"/>
+      <property name="uri.var.detectNoop" expression="$func:detectNoop"/>
+      <property name="uri.var.upsert" expression="$func:upsert"/>
+      <property name="uri.var.scriptedUpsert" expression="$func:scriptedUpsert"/>
+      <property name="uri.var.docAsUpsert" expression="$func:docAsUpsert"/>
+      <property name="uri.var.doc" expression="$func:doc"/>
+      <script language="js">
+         <![CDATA[
+            var versionType = mc.getProperty('uri.var.versionType');
+            var detectNoop = mc.getProperty('uri.var.detectNoop');
+            var upsert = mc.getProperty('uri.var.upsert');
+            var refresh = mc.getProperty('uri.var.refresh');
+            var params = mc.getProperty('uri.var.params');
+            var consistency = mc.getProperty('uri.var.consistency');
+            var version = mc.getProperty('uri.var.version');
+            var script = mc.getProperty('uri.var.script');
+            var timeout = mc.getProperty('uri.var.timeout');
+            var parentId = mc.getProperty('uri.var.parentId');
+            var docAsUpsert = mc.getProperty('uri.var.docAsUpsert');
+            var routing = mc.getProperty('uri.var.routing');
+            var scriptedUpsert = mc.getProperty('uri.var.scriptedUpsert');
+            var doc = mc.getProperty('uri.var.doc');
+            var retryOnConflict = mc.getProperty('uri.var.retryOnConflict');
+            var fields = mc.getProperty('uri.var.fields');
+            var commonQueryParams = mc.getProperty('uri.var.commonQueryParams');
+            var jsonPayload = {};
+            var urlQuery = '';
+            if (commonQueryParams != null && commonQueryParams != "") {
+               urlQuery +=  commonQueryParams;
+            }
+            if (timeout != null && timeout != "") {
+               urlQuery += 'timeout=' + timeout + '&';
+            }
+            if (consistency != null && consistency != "") {
+               urlQuery += 'consistency=' + consistency + '&';
+            }
+            if (parentId != null && parentId != "") {
+               urlQuery += 'parent=' + parentId + '&';
+            }
+            if (routing != null && routing != "") {
+               urlQuery += 'routing=' + routing + '&';
+            }
+            if (refresh != null && refresh != "") {
+               urlQuery += 'refresh=' + refresh + '&';
+            }
+            if (fields != null && fields != "") {
+               urlQuery += 'fields=' + fields + '&';
+            }
+            if (retryOnConflict != null && retryOnConflict != "") {
+               urlQuery += 'retry_on_conflict=' + retryOnConflict + '&';
+            }
+            if (version != null && version != ""){
+               urlQuery += 'version=' + version + '&';
+            }
+            if (versionType != null && versionType != ""){
+               urlQuery += 'version_type=' + versionType + '&';
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+            if (script != null && script != ""){
+               jsonPayload.script = script;
+            }
+            if (params != null && params != ""){
+               jsonPayload.params = eval("(" + params + ")");
+            }
+            if (detectNoop != null && detectNoop != ""){
+               jsonPayload.detect_noop = detectNoop;
+            }
+            if (upsert != null && upsert != ""){
+               jsonPayload.upsert = eval("(" + upsert + ")");
+            }
+            if (scriptedUpsert != null && scriptedUpsert != ""){
+               jsonPayload.scripted_upsert = scriptedUpsert;
+            }
+            if (docAsUpsert != null && docAsUpsert != ""){
+               jsonPayload.doc_as_upsert = docAsUpsert;
+            }
+            if (doc != null && doc != ""){
+               jsonPayload.doc = eval("(" + doc + ")");
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.indexName}/{uri.var.type}/{uri.var.id}/_update{+uri.var.urlQuery}"/>
+         </endpoint>
+      </call>
+   </sequence>
+</template>
