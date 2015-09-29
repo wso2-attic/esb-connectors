@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: http://www.activecampaign.com/api/example.php?call=deal_stage_add -->
+<template name="createDealStage" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="title" description="The title of the new deal." />
+   <parameter name="pipeline" description="The ID of the new deal stage's pipeline." />
+   <parameter name="color" description="The HEX value of header color of the new deal stage." />
+   <sequence>
+      <property name="uri.var.title" expression="$func:title" />
+      <property name="uri.var.color" expression="$func:color" />
+      <property name="uri.var.pipeline" expression="$func:pipeline" />
+      <script language="js">
+      <![CDATA[
+          var title = mc.getProperty("uri.var.title");
+          var color = mc.getProperty("uri.var.color");
+          var pipeline = mc.getProperty("uri.var.pipeline");
+          var payload = new Object();
+          payload.title = title; 
+          if(color != null && color != ""){
+            payload.color = color;           
+          }
+          if(pipeline != null && pipeline != ""){
+            payload.pipeline = pipeline;           
+          }
+          mc.setPayloadJSON(payload);    
+      ]]>
+      </script>
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}deal_stage_add{+uri.var.queryParams}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Powered-By" scope="transport" action="remove" />
+      <header name="Pragma" scope="transport" action="remove" />
+      <header name="Cache-control" scope="transport" action="remove" />
+   </sequence>
+</template>

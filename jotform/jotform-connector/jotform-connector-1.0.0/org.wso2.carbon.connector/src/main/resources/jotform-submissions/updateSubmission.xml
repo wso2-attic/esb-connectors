@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: http://api.jotform.com/docs/#post-submission-id -->
+<template name="updateSubmission" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="submissionId" description="The ID of the submission." />
+   <parameter name="submissionNew" description="The boolean flag to indicate whether the submission is read." />
+   <parameter name="submissionFlag" description="The boolean flag to indicate whether the submission is flagged." />
+   <parameter name="submissionAnswers" description="The array of objects which contain the submission questionIds, answers and field names. Used to map the answers to the questions in relevant fields. " />
+   <sequence>
+      <property name="uri.var.submissionId" expression="$func:submissionId" />
+      <property name="uri.var.submissionNew" expression="$func:submissionNew" />
+      <property name="uri.var.submissionFlag" expression="$func:submissionFlag" />
+      <property name="uri.var.submissionAnswers" expression="$func:submissionAnswers" />
+      <script language="js">
+         <![CDATA[
+            // Generate payload with optional parameters
+            var submissionNew = mc.getProperty('uri.var.submissionNew');
+            var submissionFlag = mc.getProperty('uri.var.submissionFlag');
+            var submissionAnswers = mc.getProperty('uri.var.submissionAnswers');
+            // Retrieve payload to set properties
+            payload = mc.getPayloadJSON();
+            if (submissionNew != null && submissionNew != "") {
+               var submissionNewKey = "submission[new]";
+               payload[submissionNewKey] = submissionNew;
+            }
+            if (submissionFlag != null && submissionFlag != "") {
+               var submissionFlagKey = "submission[flag]";
+               payload[submissionFlagKey] = submissionFlag;
+            }
+            //Setting the submission questions and relevant answers to the payload
+            if (submissionAnswers != null && submissionAnswers != "") {
+               var submissionAnswersArray = eval("(" + submissionAnswers + ")");
+               for (var i=0; i < submissionAnswersArray.length; i++){
+                  var submissionAnswer = submissionAnswersArray[i];
+                  var questionId = submissionAnswer["questionId"];
+                  var field = submissionAnswer["field"];
+                  var answer = submissionAnswer["answer"];
+                  var key ='';
+                  if (questionId != null && questionId != "") {
+                     if(field != null && field != "") {
+                        key = "submission[" + questionId + "][" + field + "]";
+                        payload[key] = answer;
+                     }
+                     else {
+                        key = "submission[" + questionId + "]";
+                        payload[key] = answer;
+                     }
+                  }
+               }
+            }
+            mc.setPayloadJSON(payload);
+         ]]>
+      </script>
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/submission/{uri.var.submissionId}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Last-Modified" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+      <header name="P3P" action="remove" scope="transport" />
+      <header name="X-Form-Cache" action="remove" scope="transport" />
+      <header name="CF-RAY" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Methods" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+   </sequence>
+</template>

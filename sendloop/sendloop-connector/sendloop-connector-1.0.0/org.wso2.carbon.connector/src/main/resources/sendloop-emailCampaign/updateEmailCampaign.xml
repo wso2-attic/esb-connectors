@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://sendloop.com/help/api-004/email-campaign-management#campaign_update -->
+<template name="updateEmailCampaign" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="campaignName" description="Name of your campaign." />
+   <parameter name="fromName" description="The name which will in 'from' email header." />
+   <parameter name="fromEmail" description="Sender email address of the campaign." />
+   <parameter name="replyToName" description="The name which will shown in 'reply-to' email header." />
+   <parameter name="replyToEmail" description="Email address to receive replies." />
+   <parameter name="targetListIds" description="ID numbers of recipient lists. This parameter should be sent in array format." />
+   <parameter name="targetSegmentIds" description="ID numbers of recipient segments. This parameter should be sent in array format." />
+   <parameter name="customerIds"
+      description="ID numbers of customer accounts you want to give access for reporting. This parameter should be sent in array format." />
+   <parameter name="subject" description="Subject of the email campaign." />
+   <parameter name="campaignId" description="ID of the email campaign to update." />
+   <sequence>
+      <property name="uri.var.campaignName" expression="$func:campaignName" />
+      <property name="uri.var.fromName" expression="$func:fromName" />
+      <property name="uri.var.fromEmail" expression="$func:fromEmail" />
+      <property name="uri.var.replyToName" expression="$func:replyToName" />
+      <property name="uri.var.replyToEmail" expression="$func:replyToEmail" />
+      <property name="uri.var.targetListIds" expression="$func:targetListIds" />
+      <property name="uri.var.targetSegmentIds" expression="$func:targetSegmentIds" />
+      <property name="uri.var.customerIds" expression="$func:customerIds" />
+      <property name="uri.var.subject" expression="$func:subject" />
+      <property name="uri.var.campaignId" expression="$func:campaignId" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "APIKey": "$1",
+                "CampaignID": "$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.apiKey')" />
+            <arg expression="get-property('uri.var.campaignId')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var targetListIds = mc.getProperty('uri.var.targetListIds');
+            var subject = mc.getProperty('uri.var.subject');
+            var fromName = mc.getProperty('uri.var.fromName');
+            var replyToName = mc.getProperty('uri.var.replyToName');
+            var customerIds = mc.getProperty('uri.var.customerIds');
+            var campaignName = mc.getProperty('uri.var.campaignName');
+            var targetSegmentIds = mc.getProperty('uri.var.targetSegmentIds');
+            var replyToEmail = mc.getProperty('uri.var.replyToEmail');
+            var fromEmail = mc.getProperty('uri.var.fromEmail');
+            var jsonPayload = mc.getPayloadJSON();
+            if (campaignName != null && campaignName != ""){
+               jsonPayload.CampaignName = campaignName;
+            }
+            if (fromName != null && fromName != ""){
+               jsonPayload.FromName = fromName;
+            }
+            if (fromEmail != null && fromEmail != ""){
+               jsonPayload.FromEmail = fromEmail;
+            }
+            if (replyToName != null && replyToName != ""){
+               jsonPayload.ReplyToName = replyToName;
+            }
+            if (replyToEmail != null && replyToEmail != ""){
+               jsonPayload.ReplyToEmail = replyToEmail;
+            }
+            if (targetListIds != null && targetListIds != ""){
+			   targetListIds = eval("(" + targetListIds + ")");
+			   if(targetListIds.length > 0){
+			      for(var i=0; i<targetListIds.length; i++){
+				     jsonPayload["TargetListIDs[" + i + "]"] = targetListIds[i];
+				  }
+			   }
+            }
+            if (targetSegmentIds != null && targetSegmentIds != ""){
+			   targetSegmentIds = eval("(" + targetSegmentIds + ")");
+			   if(targetSegmentIds.length > 0){
+			      for(var i=0; i<targetSegmentIds.length; i++){
+				     jsonPayload["TargetSegmentIDs[" + i + "]"] = targetSegmentIds[i];
+				  }
+			   }
+            }
+            if (customerIds != null && customerIds != ""){
+			   customerIds = eval("(" + customerIds + ")");
+			   if(customerIds.length > 0){
+			      for(var i=0; i<customerIds.length; i++){
+				     jsonPayload["CustomerIDs[" + i + "]"] = customerIds[i];
+				  }
+			   }
+            }
+            if (subject != null && subject != ""){
+               jsonPayload.Subject = subject;
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <!-- Set the axis2 property 'messageType' to application/x-www-form-urlencoded -->
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/Campaign.Update/{+uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="Server" action="remove" scope="transport" />
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Transfer-Encoding" action="remove" scope="transport" />
+   </sequence>
+</template>

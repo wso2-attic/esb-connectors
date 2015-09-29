@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Documentation URL -   https://www.twilio.com/docs/api/rest/recording#list -->
+<template name="getRecordingList" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="callSid" description=" Only get recordings made during the call given by this SID." />
+    <parameter name="dateCreated" description="Only get recordings created on this date, given as YYYY-MM-DD." />
+
+    <sequence>
+        <property name="uri.var.callSid" expression="$func:callSid" />
+        <property name="uri.var.dateCreated" expression="$func:dateCreated" />
+        <property name="uri.var.optionalParameters" value=""/>
+        <filter xpath="(not(get-property('uri.var.callSid') = '' or (not(string(get-property('uri.var.callSid'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;CallSid=',get-property('uri.var.callSid'))"/>
+            </then>
+        </filter>
+
+        <filter xpath="(not(get-property('uri.var.dateCreated') = '' or (not(string(get-property('uri.var.dateCreated'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;DateCreated=',get-property('uri.var.dateCreated'))"/>
+            </then>
+        </filter>
+
+        <call>
+            <endpoint>
+                <http method="get" uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/Accounts/{uri.var.accountSid}/Recordings.json?{+uri.var.optionalParameters}" />
+            </endpoint>
+        </call>
+        <!--Removing custom headers from the Response. -->
+        <header name="X-Frame-Options" action="remove" scope="transport" />
+        <header name="Vary" action="remove" scope="transport" />
+        <header name="X-XSS-Protection" action="remove" scope="transport" />
+        <header name="X-Content-Type-Options" action="remove" scope="transport" />
+        <header name="Strict-Transport-Security" action="remove" scope="transport" />
+        <header name="X-RateLimit-Remaining" action="remove" scope="transport" />
+        <header name="X-RateLimit-Limit" action="remove" scope="transport" />
+        <header name="X-RateLimit-Reset" action="remove" scope="transport" />
+    </sequence>
+</template>

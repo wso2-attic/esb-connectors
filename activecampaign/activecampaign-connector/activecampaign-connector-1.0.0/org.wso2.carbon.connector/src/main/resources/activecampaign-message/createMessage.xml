@@ -16,7 +16,7 @@
    specific language governing permissions and limitations
    under the License.
 -->
-
+<!-- API Doc: http://www.activecampaign.com/api/example.php?call=message_add -->
 <template name="createMessage" xmlns="http://ws.apache.org/ns/synapse">
    <parameter name="format" description="The format of the message." />
    <parameter name="subject" description="The subject of the message." />
@@ -35,7 +35,6 @@
    <parameter name="textFetch" description="If textConstructor is external give the URL where to fetch the body from." />
    <parameter name="textFetchWhen" description="If textConstructor is external give give when to fetch the email." />
    <parameter name="listIds" description="The list of list IDs." />
-
    <sequence>
       <property name="uri.var.format" expression="$func:format" />
       <property name="uri.var.subject" expression="$func:subject" />
@@ -54,14 +53,11 @@
       <property name="uri.var.textFetch" expression="$func:textFetch" />
       <property name="uri.var.textFetchWhen" expression="$func:textFetchWhen" />
       <property name="uri.var.listIds" expression="$func:listIds" />
-
       <!-- Creating JSON payload -->
       <script language="js">
          <![CDATA[
-
             var payload = mc.getPayloadJSON();
             payload = new Object();
-
             var listIds = eval('('+mc.getProperty('uri.var.listIds')+')')
             var format = mc.getProperty('uri.var.format');
             var subject = mc.getProperty('uri.var.subject');
@@ -79,7 +75,6 @@
             var text = mc.getProperty('uri.var.text');
             var textFetch = mc.getProperty('uri.var.textFetch');
             var textFetchWhen = mc.getProperty('uri.var.textFetchWhen');
-
             /*
                Since some parameter keys are not supported through JSON path,
                Need to set them directly to the payload. e.g. p[1],p[2]         
@@ -87,68 +82,48 @@
             if (listIds != null && listIds != "") {
                payload = listIds; 
             }
-
             // mandatory parameters are set to the payload without null check
             payload.format = format;
-
             payload.subject = subject;
-
             payload.fromemail = fromEmail;
-
             payload.fromname = fromName;
-
             payload.reply2 = replyTo;
-
             payload.priority = priority;
-
             payload.charset = charset;
-
             payload.encoding = encoding;
-
             payload.htmlconstructor = htmlConstructor;
-
             if (html != null && html != "") {
                payload.html = mc.getProperty('uri.var.html');
             }
-
             if (htmlFetch != null && htmlFetch != "") {
                payload.htmlfetch = htmlFetch;
             }
-
             if (htmlFetchWhen != null && htmlFetchWhen != "") {
                payload.htmlfetchwhen = htmlFetchWhen;
             }
-
             payload.textconstructor = textConstructor;
-
             if (text != null && text != "") {
                payload.text = mc.getProperty('uri.var.text');
             }
-
             if (textFetch != null && textFetch != "") {
                payload.textfetch = textFetch;
             }
-
             if (textFetchWhen != null && textFetchWhen != "") {
                payload.textfetchwhen = textFetchWhen;
             }
-
             mc.setPayloadJSON(payload);
-
          ]]>
       </script>
-
       <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
       <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
-
       <call>
          <endpoint>
             <http method="post" uri-template="{uri.var.apiUrl}message_add{+uri.var.queryParams}" />
          </endpoint>
       </call>
-
       <!-- Remove response custom header information -->
       <header name="X-Powered-By" scope="transport" action="remove" />
-
+      <header name="Pragma" scope="transport" action="remove" />
+      <header name="Cache-control" scope="transport" action="remove" />
    </sequence>
 </template>

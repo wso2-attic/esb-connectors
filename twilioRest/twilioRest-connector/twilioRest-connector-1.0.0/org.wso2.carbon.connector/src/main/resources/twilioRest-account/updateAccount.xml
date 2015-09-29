@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Documentation URL - https://www.twilio.com/docs/api/rest/account -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="updateAccount">
+    <parameter name="subAccountSid" description="The ID of the account."/>
+    <parameter name="friendlyName" description="The human-readable account name. Only accounts whose name exactly match this string are returned." />
+    <parameter name="status" description="The status of accounts to return: active, suspended, or closed. Only accounts with this status are returned." />
+    <sequence>
+        <property name="uri.var.subAccountSid" expression="$func:subAccountSid"/>
+        <property name="uri.var.friendlyName" expression="$func:friendlyName"/>
+        <property name="uri.var.status" expression="$func:status"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                    "sid": "$1",
+                    "friendly_name": "$2",
+                    "status": "$3"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.subAccountSid')"/>
+                <arg expression="get-property('uri.var.friendlyName')"/>
+                <arg expression="get-property('uri.var.status')"/>
+            </args>
+        </payloadFactory>
+        <script language="js">
+            <![CDATA[
+                //request body param variables
+                var friendlyName = mc.getProperty('uri.var.friendlyName');
+                var status = mc.getProperty('uri.var.status');
+
+                //Get the existing payload
+                var payload = mc.getPayloadJSON();
+                if (friendlyName != null && friendlyName != "") {
+                   payload["FriendlyName"]=friendlyName;
+                }
+                if(status != null && status != ""){
+                    payload["Status"]=status;
+                }
+                //Set the newly constructed payload
+                mc.setPayloadJSON(payload);
+            ]]>
+        </script>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/Accounts/{uri.var.subAccountSid}.json" />
+            </endpoint>
+        </call>
+        <!-- Remove custom header information in response -->
+        <header name="ETag" action="remove" scope="transport"/>
+        <header name="P3P" action="remove" scope="transport"/>
+        <header name="X-Canvas-Meta" action="remove" scope="transport"/>
+        <header name="X-Canvas-User-Id" action="remove" scope="transport"/>
+        <header name="X-Frame-Options" action="remove" scope="transport"/>
+        <header name="X-Rack-Cache" action="remove" scope="transport"/>
+        <header name="X-Request-Context-Id" action="remove" scope="transport"/>
+        <header name="X-Runtime" action="remove" scope="transport"/>
+        <header name="X-Session-Id" action="remove" scope="transport"/>
+        <header name="X-UA-Compatible" action="remove" scope="transport"/>
+        <header name="WWW-Authenticate" action="remove" scope="transport"/>
+        <header name="Via" action="remove" scope="transport"/>
+    </sequence>
+</template>

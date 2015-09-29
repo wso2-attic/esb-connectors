@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://sendloop.com/help/api-004/email-campaign-management#campaign_getlistbystatus -->
+<template name="listEmailCampaignsByStatus" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="campaignStatus" description="Set the target campaign status. Available values: 'Draft', 'Scheduled', 'Outbox', 'Sent'." />
+   <parameter name="limit" description="Number of records to return." />
+   <parameter name="page" description="Set the page to return." />
+   <parameter name="orderByField" description="Target field to sort rows. Available values: 'CampaignID', 'CampaignName', 'SendTime'." />
+   <parameter name="orderBySort" description="Sorting type. Available values: 'ASC' for ascending, 'DESC' for descending." />
+   <parameter name="targetListId" description="If you provide a list ID, only campaigns sent to the target list will be returned." />
+   <sequence>
+      <property name="uri.var.campaignStatus" expression="$func:campaignStatus" />
+      <property name="uri.var.limit" expression="$func:limit" />
+      <property name="uri.var.page" expression="$func:page" />
+      <property name="uri.var.orderByField" expression="$func:orderByField" />
+      <property name="uri.var.orderBySort" expression="$func:orderBySort" />
+      <property name="uri.var.targetListId" expression="$func:targetListId" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "APIKey": "$1",
+                "CampaignStatus": "$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.apiKey')" />
+            <arg expression="get-property('uri.var.campaignStatus')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var orderByField = mc.getProperty('uri.var.orderByField');
+            var targetListId = mc.getProperty('uri.var.targetListId');
+            var orderBySort = mc.getProperty('uri.var.orderBySort');
+            var limit = mc.getProperty('uri.var.limit');
+            var page = mc.getProperty('uri.var.page');
+            var jsonPayload = mc.getPayloadJSON();
+            if (limit != null && limit != ""){
+               jsonPayload.Limit = limit;
+            }
+            if (page != null && page != ""){
+               jsonPayload.Page = page;
+            }
+            if (orderByField != null && orderByField != ""){
+               jsonPayload.OrderByField = orderByField;
+            }
+            if (orderBySort != null && orderBySort != ""){
+               jsonPayload.OrderBySort = orderBySort;
+            }
+            if (targetListId != null && targetListId != ""){
+               jsonPayload.TargetListID = targetListId;
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <!-- Set the axis2 property 'messageType' to application/x-www-form-urlencoded -->
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/Campaign.GetListByStatus/{+uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="Server" action="remove" scope="transport" />
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Transfer-Encoding" action="remove" scope="transport" />
+   </sequence>
+</template>
