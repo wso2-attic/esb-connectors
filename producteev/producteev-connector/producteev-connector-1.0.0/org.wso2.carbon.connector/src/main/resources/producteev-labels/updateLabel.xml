@@ -12,21 +12,21 @@
    Unless required by applicable law or agreed to in writing,
    software distributed under the License is distributed on an
    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-   KIND, either express or implied.  See the License for the
+   KIND, either express or implied. See the License for the
    specific language governing permissions and limitations
    under the License.
 -->
 <!-- Method Documentation URL: https://www.producteev.com/api/doc/#Update a label -->
 <template name="updateLabel" xmlns="http://ws.apache.org/ns/synapse">
-   <parameter name="labelId" description="ID of the label."/>
-   <parameter name="title" description="Title of the label."/>
-   <parameter name="foregroundColor" description="Text Color of the label."/>
-   <parameter name="backgroundColor" description="Background Text Color of the label."/>
+   <parameter name="labelId" description="ID of the label." />
+   <parameter name="title" description="Title of the label." />
+   <parameter name="foregroundColor" description="Text Color of the label." />
+   <parameter name="backgroundColor" description="Background Text Color of the label." />
    <sequence>
-      <property name="uri.var.labelId" expression="$func:labelId"/>
-      <property name="uri.var.title" expression="$func:title"/>
-      <property name="uri.var.foregroundColor" expression="$func:foregroundColor"/>
-      <property name="uri.var.backgroundColor" expression="$func:backgroundColor"/>
+      <property name="uri.var.labelId" expression="$func:labelId" />
+      <property name="uri.var.title" expression="$func:title" />
+      <property name="uri.var.foregroundColor" expression="$func:foregroundColor" />
+      <property name="uri.var.backgroundColor" expression="$func:backgroundColor" />
       <script language="js">
          <![CDATA[
             var title = mc.getProperty('uri.var.title');
@@ -49,11 +49,22 @@
       </script>
       <call>
          <endpoint>
-            <http method="put" uri-template="{+uri.var.apiUrl}/labels/{+uri.var.labelId}"/>
+            <http method="put" uri-template="{+uri.var.apiUrl}/api/labels/{+uri.var.labelId}" />
          </endpoint>
       </call>
+      <property name="uri.var.statusCode" expression="$axis2:HTTP_SC" />
+      <!-- If the call fails with 401 Unauthorized, then get a new access token by calling getAccessTokenFromRefreshToken
+         method. -->
+      <filter xpath="get-property('uri.var.statusCode') = 401 and get-property('uri.var.refreshTokenNegotiated') = 'false'">
+         <then>
+            <producteev.getAccessTokenFromRefreshToken />
+            <header name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))"
+               scope="transport" />
+            <producteev.updateLabel />
+         </then>
+      </filter>
       <!--Removing custom headers from the Response. -->
-	  <header name="Vary" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
       <header name="X-Powered-By" action="remove" scope="transport" />
       <header name="Cache-Control" action="remove" scope="transport" />
       <header name="WWW-Authenticate" action="remove" scope="transport" />

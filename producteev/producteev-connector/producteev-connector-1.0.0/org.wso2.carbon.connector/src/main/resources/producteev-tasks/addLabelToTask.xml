@@ -25,12 +25,25 @@
       <property name="uri.var.labelId" expression="$func:labelId" />
       <call>
          <endpoint>
-            <http method="put" uri-template="{+uri.var.apiUrl}/tasks/{+uri.var.taskId}/labels/{+uri.var.labelId}" />
+            <http method="put" uri-template="{+uri.var.apiUrl}/api/tasks/{+uri.var.taskId}/labels/{+uri.var.labelId}" />
          </endpoint>
       </call>
+      <property name="uri.var.statusCode" expression="$axis2:HTTP_SC" />
+      <!-- If the call fails with 401 Unauthorized, then get a new access token by calling getAccessTokenFromRefreshToken
+         method. -->
+      <filter xpath="get-property('uri.var.statusCode') = 401 and get-property('uri.var.refreshTokenNegotiated') = 'false'">
+         <then>
+            <producteev.getAccessTokenFromRefreshToken />
+            <header name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))"
+               scope="transport" />
+            <producteev.addLabelToTask />
+         </then>
+      </filter>
       <!--Removing custom headers from the Response. -->
-	  <header name="Vary" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
       <header name="X-Powered-By" action="remove" scope="transport" />
       <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="WWW-Authenticate" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
    </sequence>
 </template>
