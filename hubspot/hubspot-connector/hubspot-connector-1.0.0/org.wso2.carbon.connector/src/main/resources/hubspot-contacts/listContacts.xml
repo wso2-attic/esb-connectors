@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Document: http://developers.hubspot.com/docs/methods/contacts/get_contacts -->
+<template name="listContacts" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="vidOffset"
+      description="Used to page through the contacts. Every call to this endpoint will return a vid-offset value. This value is used in the vidOffset parameter of the next call to get the next page of contacts." />
+   <parameter name="properties"
+      description="If you include the 'property' parameter, then the properties in the 'contact' object in the returned data will only include the property or properties that you request." />
+   <parameter name="propertyMode"
+      description="One of 'value_only' or 'value_and_history' to specify if the current value for a property should be fetched, or the value and all the historical values for that property. Default is 'value_only'." />
+   <parameter name="formSubmissionMode"
+      description="One of 'all', 'none', 'newest', 'oldest' to specify which form submissions should be fetched. Default is 'newest'." />
+   <parameter name="showListMemberships"
+      description="Boolean 'true' or 'false' to indicate whether current list memberships should be fetched for the contact. Default is false." />
+   <parameter name="count"
+      description="This parameter lets you specify the amount of contacts to return in your API call. The default for this parameter (if it isn't specified) is 20 contacts. Maximum value is 100." />
+   <sequence>
+      <property name="uri.var.vidOffset" expression="$func:vidOffset" />
+      <property name="uri.var.properties" expression="$func:properties" />
+      <property name="uri.var.propertyMode" expression="$func:propertyMode" />
+      <property name="uri.var.formSubmissionMode" expression="$func:formSubmissionMode" />
+      <property name="uri.var.showListMemberships" expression="$func:showListMemberships" />
+      <property name="uri.var.count" expression="$func:count" />
+      <script language="js">
+         <![CDATA[
+            var vidOffset = mc.getProperty('uri.var.vidOffset');
+            var properties = mc.getProperty('uri.var.properties');
+            var propertyMode = mc.getProperty('uri.var.propertyMode');
+            var formSubmissionMode = mc.getProperty('uri.var.formSubmissionMode');
+            var showListMemberships = mc.getProperty('uri.var.showListMemberships');
+            var count = mc.getProperty('uri.var.count');
+            var urlQuery = mc.getProperty('uri.var.apiKey')+ '&';
+            if (vidOffset != null && vidOffset != ""){
+               urlQuery += 'vidOffset=' + vidOffset + '&';
+            }
+            if (properties != null && properties != ""){
+               if(properties.charCodeAt(0) == '91'){
+                  var propertiesArray = eval("(" + properties + ")");
+                  for(var i = 0; i < propertiesArray.length ; i++){
+                     urlQuery += 'property=' + propertiesArray[i] + '&';
+                  }
+               }else{
+                  urlQuery += 'property=' + properties + '&';
+               }
+            }
+            if (propertyMode != null && propertyMode != ""){
+               urlQuery += 'propertyMode=' + propertyMode + '&';
+            }
+            if (formSubmissionMode != null && formSubmissionMode != ""){
+               urlQuery += 'formSubmissionMode=' + formSubmissionMode + '&';
+            }
+            if (showListMemberships != null && showListMemberships != ""){
+               urlQuery += 'showListMemberships=' + showListMemberships + '&';
+            }
+            if (count != null && count != ""){
+               urlQuery += 'count=' + count + '&';
+            }
+            // Remove the trailing '&'
+            urlQuery = urlQuery.substring(0, urlQuery.length - 1);
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/contacts/v1/lists/all/contacts/all{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="Access-Control-Allow-Credentials" scope="transport" action="remove" />
+      <header name="X-HubSpot-NotFound" scope="transport" action="remove" />
+   </sequence>
+</template>
