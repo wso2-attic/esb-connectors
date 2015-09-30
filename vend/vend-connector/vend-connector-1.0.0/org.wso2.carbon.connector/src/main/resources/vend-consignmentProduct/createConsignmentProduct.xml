@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developers.vendhq.com/documentation/api/0.x/consignments.html#post-api-consignment-product -->
+<template name="createConsignmentProduct" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="consignmentId" description="ID of the consignment inside which the consignment product should be put in." />
+   <parameter name="productId" description="ID of the product from which the consignment product will be created." />
+   <parameter name="count" description="Number of products to order." />
+   <parameter name="received" description="Indicate whether the consignment product is received or not." />
+   <parameter name="cost" description="Cost of the consignment product." />
+   <parameter name="sequenceNumber" description="Sequence number of the consignment product." />
+   <sequence>
+      <property name="uri.var.consignmentId" expression="$func:consignmentId" />
+      <property name="uri.var.productId" expression="$func:productId" />
+      <property name="uri.var.count" expression="$func:count" />
+      <property name="uri.var.received" expression="$func:received" />
+      <property name="uri.var.cost" expression="$func:cost" />
+      <property name="uri.var.sequenceNumber" expression="$func:sequenceNumber" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "product_id": "$1",
+               "consignment_id": "$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.productId')" />
+            <arg expression="get-property('uri.var.consignmentId')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var sequenceNumber = mc.getProperty('uri.var.sequenceNumber');
+            var cost = mc.getProperty('uri.var.cost');
+            var count = mc.getProperty('uri.var.count');
+            var received = mc.getProperty('uri.var.received');
+            var jsonPayload = mc.getPayloadJSON();
+            if (count != null && count != ""){
+               jsonPayload.count = count;
+            }
+            if (received != null && received != ""){
+               jsonPayload.received = received;
+            }
+            if (cost != null && cost != ""){
+               jsonPayload.cost = cost;
+            }
+            if (sequenceNumber != null && sequenceNumber != ""){
+               jsonPayload.sequence_number = sequenceNumber;
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/consignment_product" />
+         </endpoint>
+      </call>
+      <property name="uri.var.statusCode" expression="$axis2:HTTP_SC" />
+      <!-- If the call fails with 401 Unauthorized, then get a new access token by calling getAccessToken method. -->
+      <filter xpath="get-property('uri.var.statusCode') = 401 and get-property('uri.var.refreshTokenNegotiated') = 'false'">
+         <then>
+            <vend.getAccessTokenFromRefreshToken />
+            <header name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))" scope="transport" />
+            <vend.createConsignmentProduct />
+         </then>
+      </filter>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Vend-Request-Id" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Set-Cookie" action="remove" scope="transport" />
+      <header name="X-Hue" action="remove" scope="transport" />
+   </sequence>
+</template>

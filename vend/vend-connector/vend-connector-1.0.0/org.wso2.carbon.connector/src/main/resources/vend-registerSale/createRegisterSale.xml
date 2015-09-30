@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developers.vendhq.com/documentation/api/0.x/register-sales.html#post-api-register-sales -->
+<template name="createRegisterSale" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="registerId" description="ID of the register into which the sale would be recorded." />
+   <parameter name="customerId" description="ID of the customer associated with the sale." />
+   <parameter name="saleDate" description="Date of the sales." />
+   <parameter name="userName" description="Name of the user cordinating the sale." />
+   <parameter name="totalPrice" description="Total price of the sale." />
+   <parameter name="totalTax" description="Total tax applicable for the sale." />
+   <parameter name="taxName" description="Name of the tax to apply to the sale." />
+   <parameter name="status" description="Status of the Sale. Possible values are OPEN, CLOSED, SAVED, LAYBY, LAYBY_CLOSED, ONACCOUNT, ONACCOUNT_CLOSED, VOIDED." />
+   <parameter name="invoiceNumber" description="Number of the invoice associated with the sale." />
+   <parameter name="invoiceSequence" description="Sequence number of the invoice associated with the sale." />
+   <parameter name="note" description="Notes related to the sale." />
+   <parameter name="registerSaleProducts" description="Products to be added to the sale." />
+   <parameter name="registerSalePayments" description="Payment methods for the sale." />
+   <parameter name="shortCode" description="Short code of the register sale." />
+   <parameter name="returnFor" description="What the regitster sale is returned for." />
+   <sequence>
+      <property name="uri.var.registerId" expression="$func:registerId" />
+      <property name="uri.var.customerId" expression="$func:customerId" />
+      <property name="uri.var.saleDate" expression="$func:saleDate" />
+      <property name="uri.var.userName" expression="$func:userName" />
+      <property name="uri.var.totalPrice" expression="$func:totalPrice" />
+      <property name="uri.var.totalTax" expression="$func:totalTax" />
+      <property name="uri.var.taxName" expression="$func:taxName" />
+      <property name="uri.var.status" expression="$func:status" />
+      <property name="uri.var.invoiceNumber" expression="$func:invoiceNumber" />
+      <property name="uri.var.invoiceSequence" expression="$func:invoiceSequence" />
+      <property name="uri.var.note" expression="$func:note" />
+      <property name="uri.var.registerSaleProducts" expression="$func:registerSaleProducts" />
+      <property name="uri.var.registerSalePayments" expression="$func:registerSalePayments" />
+      <property name="uri.var.shortCode" expression="$func:shortCode" />
+      <property name="uri.var.returnFor" expression="$func:returnFor" />
+      <script language="js">
+         <![CDATA[
+            var note = mc.getProperty('uri.var.note');
+            var registerSalePayments = mc.getProperty('uri.var.registerSalePayments');
+            var totalPrice = mc.getProperty('uri.var.totalPrice');
+            var saleDate = mc.getProperty('uri.var.saleDate');
+            var userName = mc.getProperty('uri.var.userName');
+            var taxName = mc.getProperty('uri.var.taxName');
+            var totalTax = mc.getProperty('uri.var.totalTax');
+            var registerId = mc.getProperty('uri.var.registerId');
+            var customerId = mc.getProperty('uri.var.customerId');
+            var invoiceNumber = mc.getProperty('uri.var.invoiceNumber');
+            var registerSaleProducts = mc.getProperty('uri.var.registerSaleProducts');
+            var returnFor = mc.getProperty('uri.var.returnFor');
+            var invoiceSequence = mc.getProperty('uri.var.invoiceSequence');
+            var shortCode = mc.getProperty('uri.var.shortCode');
+            var status = mc.getProperty('uri.var.status');
+            var jsonPayload = {};
+            if (registerId != null && registerId != ""){
+               jsonPayload.register_id = registerId;
+            }
+            if (customerId != null && customerId != ""){
+               jsonPayload.customer_id = customerId;
+            }
+            if (saleDate != null && saleDate != ""){
+               jsonPayload.sale_date = saleDate;
+            }
+            if (userName != null && userName != ""){
+               jsonPayload.user_name = userName;
+            }
+            if (totalPrice != null && totalPrice != ""){
+               jsonPayload.total_price = totalPrice;
+            }
+            if (totalTax != null && totalTax != ""){
+               jsonPayload.total_tax = totalTax;
+            }
+            if (taxName != null && taxName != ""){
+               jsonPayload.tax_name = taxName;
+            }
+            if (status != null && status != ""){
+               jsonPayload.status = status;
+            }
+            if (invoiceNumber != null && invoiceNumber != ""){
+               jsonPayload.invoice_number = invoiceNumber;
+            }
+            if (invoiceSequence != null && invoiceSequence != ""){
+               jsonPayload.invoice_sequence = invoiceSequence;
+            }
+            if (note != null && note != ""){
+               jsonPayload.note = note;
+            }
+            if (registerSaleProducts != null && registerSaleProducts != ""){
+               jsonPayload.register_sale_products = eval("(" + registerSaleProducts + ")");
+            }
+            if (registerSalePayments != null && registerSalePayments != ""){
+               jsonPayload.register_sale_payments = eval("(" + registerSalePayments + ")");
+            }
+            if (shortCode != null && shortCode != ""){
+               jsonPayload.short_code = shortCode;
+            }
+            if (returnFor != null && returnFor != ""){
+               jsonPayload.return_for = returnFor;
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/register_sales" />
+         </endpoint>
+      </call>
+      <property name="uri.var.statusCode" expression="$axis2:HTTP_SC" />
+      <!-- If the call fails with 401 Unauthorized, then get a new access token by calling getAccessToken method. -->
+      <filter xpath="get-property('uri.var.statusCode') = 401 and get-property('uri.var.refreshTokenNegotiated') = 'false'">
+         <then>
+            <vend.getAccessTokenFromRefreshToken />
+            <header name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))" scope="transport" />
+            <vend.createRegisterSale />
+         </then>
+      </filter>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Vend-Request-Id" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Set-Cookie" action="remove" scope="transport" />
+      <header name="X-Hue" action="remove" scope="transport" />
+   </sequence>
+</template>
