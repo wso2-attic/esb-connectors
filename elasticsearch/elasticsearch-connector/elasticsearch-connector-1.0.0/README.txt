@@ -57,8 +57,8 @@ Steps to follow in setting integration test.
    v)     terminateAfter               -  The maximum number of documents to collect for each shard, upon reaching which the query execution will terminate early. Provide an integer as the value.
    vi)    indexName                    -  Use the name of the index created in step 5)i.
    vii)   type                         -  The type inside which the ID would be considered. Provide any string value.
-   viii)  updateDocValueMandatory      -  Updated value of the document. Provide a text as the value.
-   ix)    updateDocValueOptional       -  Updated value of the document. Provide a text as the value.
+   viii)  updateDocValueMandatory      -  Updated value of the document(provide any value).
+   ix)    updateDocValueOptional       -  Updated value of the document(provide any value).
    x)     routing                      -  A string name of the shard base to which the document would be routed.
    xi)    routingMessageMandatory      -  A string message to set as routing message for the document routing mandatory case.
    xii)   routingMessageOptional       -  A string message to set as routing message for the document routing optional case.
