@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_batches_create.htm -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="addBatch">
+   <parameter name="objects" description="The group of records to be processed." />
+   <parameter name="jobId" description="The unique identifier of the Job." />
+   <sequence>
+      <property name="uri.var.objects" expression="$func:objects" />
+      <property name="uri.var.jobId" expression="$func:jobId" />
+      <property name="messageType" value="application/xml" scope="axis2"/>
+      <script language="js">
+      <![CDATA[
+            var objects = new XML(mc.getProperty('uri.var.objects'));
+            var payload = new XML('<sObjects xmlns="http://www.force.com/2009/06/asyncapi/dataload">'+objects.values.* +'</sObjects>');
+			mc.setPayloadXML(payload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/job/{+uri.var.jobId}/batch" />
+         </endpoint>
+      </call>
+      <property name="uri.var.statusCode" expression="$axis2:HTTP_SC" />
+      <property name="uri.var.exceptionCode" expression="//*[local-name()='exceptionCode']/text()"/>
+      <!-- If the call fails with 400 Bad Request and the exception code is 'InvalidSessionId,', then get a new access token by calling getAccessToken method. -->
+      <filter xpath="get-property('uri.var.statusCode') = 400 and get-property('uri.var.exceptionCode')='InvalidSessionId' and get-property('uri.var.refreshTokenNegotiated') = 'false'">
+         <then>
+            <salesforcebulk.getAccessTokenByRefreshToken />
+            <header name="X-SFDC-Session" expression="get-property('uri.var.accessToken')" scope="transport" />
+            <salesforcebulk.addBatch />
+         </then>
+      </filter>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Cache-Control" action="remove" scope="transport" />
+   </sequence>
+</template>
