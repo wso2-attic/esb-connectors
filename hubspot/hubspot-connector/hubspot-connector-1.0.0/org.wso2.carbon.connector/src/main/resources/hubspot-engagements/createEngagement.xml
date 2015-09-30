@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Document: http://developers.hubspot.com/docs/methods/engagements/create_engagement -->
+<template name="createEngagement" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="engagementType" description="The engagement type.One of: EMAIL, CALL, MEETING, TASK, NOTE." />
+   <parameter name="ownerId" description="The Id of engagement owner." />
+   <parameter name="timestamp" description="Timestamp of the engagement." />
+   <parameter name="uid" description="Unique identifier for the Engagement." />
+   <parameter name="portalId" description="Hub ID of the target portal." />
+   <parameter name="contactIds" description="Contact ids needs to be associate with engagement as JSON array." />
+   <parameter name="companyIds" description="Company ids needs to be associate with engagement as JSON array." />
+   <parameter name="dealIds" description="Deal ids needs to be associate with engagement as JSON array." />
+   <parameter name="ownerIds" description="Owner ids needs to be associate with engagement as JSON array." />
+   <parameter name="metadataBody" description="The text value for metadata." />
+   <sequence>
+      <property name="uri.var.engagementType" expression="$func:engagementType" />
+      <property name="uri.var.ownerId" expression="$func:ownerId" />
+      <property name="uri.var.timestamp" expression="$func:timestamp" />
+      <property name="uri.var.uid" expression="$func:uid" />
+      <property name="uri.var.portalId" expression="$func:portalId" />
+      <property name="uri.var.contactIds" expression="$func:contactIds" />
+      <property name="uri.var.companyIds" expression="$func:companyIds" />
+      <property name="uri.var.dealIds" expression="$func:dealIds" />
+      <property name="uri.var.ownerIds" expression="$func:ownerIds" />
+      <property name="uri.var.metadataBody" expression="$func:metadataBody" />
+      <filter source="boolean(get-property('uri.var.contactIds'))" regex="false">
+         <then>
+            <property name="uri.var.contactIds" value="[]" />
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.companyIds'))" regex="false">
+         <then>
+            <property name="uri.var.companyIds" value="[]" />
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.dealIds'))" regex="false">
+         <then>
+            <property name="uri.var.dealIds" value="[]" />
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.ownerIds'))" regex="false">
+         <then>
+            <property name="uri.var.ownerIds" value="[]" />
+         </then>
+      </filter>
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "engagement": {
+               "type": "$1"
+            },
+            "associations": {
+               "contactIds": $2,
+               "companyIds": $3,
+               "dealIds": $4,
+               "ownerIds": $5
+            }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.engagementType')" />
+            <arg expression="get-property('uri.var.contactIds')" />
+            <arg expression="get-property('uri.var.companyIds')" />
+            <arg expression="get-property('uri.var.dealIds')" />
+            <arg expression="get-property('uri.var.ownerIds')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+      <![CDATA[
+         var payload = mc.getPayloadJSON();
+         var ownerId = mc.getProperty('uri.var.ownerId');
+         var timestamp = mc.getProperty('uri.var.timestamp');
+         var uid = mc.getProperty('uri.var.uid');
+         var portalId = mc.getProperty('uri.var.portalId');
+         var contactIds = mc.getProperty('uri.var.contactIds');
+         var companyIds = mc.getProperty('uri.var.companyIds');
+         var dealIds = mc.getProperty('uri.var.dealIds');
+         var ownerIds = mc.getProperty('uri.var.ownerIds');
+         var metadataBody = mc.getProperty('uri.var.metadataBody');
+         var urlQuery = mc.getProperty('uri.var.apiKey')+ '&';
+         if (metadataBody != null && metadataBody != ""){
+            var metadata = {};
+            metadata.body = metadataBody;
+            payload.metadata = metadata;
+         }
+         if (ownerId != null && ownerId != ""){
+             payload.engagement.ownerId = ownerId;
+         }
+         if (timestamp != null && timestamp != ""){
+             payload.engagement.timestamp = timestamp;
+         }
+         if (uid != null && uid != ""){
+             payload.engagement.uid = uid;
+         }
+         if (portalId != null && portalId != ""){
+             urlQuery += 'portalId=' + portalId + '&';
+         }
+         if (contactIds == "[]"){
+             delete payload.associations.contactIds;
+         }
+         if (companyIds == "[]"){
+             delete payload.associations.companyIds;
+         }
+         if (dealIds == "[]"){
+             delete payload.associations.dealIds;
+         }
+         if (ownerIds == "[]"){
+             delete payload.associations.ownerIds;
+         }
+         // Remove the associations object from payload if non of the values associated.
+         var isAssociationsExist = false;
+         for(var prop in payload.associations) {
+            if(payload.associations.hasOwnProperty(prop)) {
+              isAssociationsExist = true;
+              break;
+            }
+         }
+         if(!isAssociationsExist){
+            delete payload.associations;
+         }
+         mc.setPayloadJSON(payload);
+         // Remove the trailing '&'
+         urlQuery = urlQuery.substring(0, urlQuery.length - 1);
+         mc.setProperty('uri.var.urlQuery', urlQuery);
+      ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/engagements/v1/engagements{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Trace" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Credentials" scope="transport" action="remove" />
+   </sequence>
+</template>

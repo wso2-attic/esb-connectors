@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.printavo.com/api/doc -->
+<template name="updateExpense" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="transactionDate" description="Transaction date of the expense."/>
+   <parameter name="name" description="Name of the expense."/>
+   <parameter name="amount" description="Amount of the expense."/>
+   <parameter name="orderId" description="Unique identifier of the order."/>
+   <parameter name="expenseId" description="ID of the expense to update."/>
+   <sequence>
+      <property name="uri.var.transactionDate" expression="$func:transactionDate"/>
+      <property name="uri.var.name" expression="$func:name"/>
+      <property name="uri.var.amount" expression="$func:amount"/>
+      <property name="uri.var.orderId" expression="$func:orderId"/>
+      <property name="uri.var.expenseId" expression="$func:expenseId"/>
+      <script language="js">
+         <![CDATA[
+            var amount = mc.getProperty('uri.var.amount');
+            var orderId = mc.getProperty('uri.var.orderId');
+            var name = mc.getProperty('uri.var.name');
+            var transactionDate = mc.getProperty('uri.var.transactionDate');
+            var jsonPayload = {};
+            if (transactionDate != null && transactionDate != ""){
+               jsonPayload.transaction_date = transactionDate;
+            }
+            if (name != null && name != ""){
+               jsonPayload.name = name;
+            }
+            if (amount != null && amount != ""){
+               jsonPayload.amount = amount;
+            }
+            if (orderId != null && orderId != ""){
+               jsonPayload.order_id = orderId;
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="put" uri-template="{+uri.var.apiUrl}/expenses/{+uri.var.expenseId}{+uri.var.authString}"/>
+         </endpoint>
+      </call>
+      <!-- Remove unwanted headers -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="X-Ua-Compatible" scope="transport" action="remove" />
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="X-Rack-Cache" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="Strict-Transport-Security" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="Etag" scope="transport" action="remove" />
+      <header name="Via" scope="transport" action="remove" />
+   </sequence>
+</template>

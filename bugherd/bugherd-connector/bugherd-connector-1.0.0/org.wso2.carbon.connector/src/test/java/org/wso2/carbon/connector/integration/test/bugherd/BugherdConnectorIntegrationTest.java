@@ -47,7 +47,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
      */
     @BeforeClass(alwaysRun = true)
     public void setEnvironment() throws Exception {
-    
+        
         init("bugherd-connector-1.0.0");
         
         String authorizationString = connectorProperties.getProperty("apiKey") + ":x";
@@ -76,12 +76,11 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, description = "Bugherd {listProjects} integration test with optional parameters.")
     public void testListProjectsWithMandatoryParameters() throws IOException, JSONException, NumberFormatException,
             InterruptedException {
-    
+        
         Thread.sleep(timout);
         esbRequestHeadersMap.put("Action", "urn:listProjects");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listProjects_mandatory.json");
-        
         String apiEndpoint = connectorProperties.getProperty("apiUrl") + "/api_v2/projects.json";
         Thread.sleep(timout);
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
@@ -103,7 +102,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, description = "Bugherd {listProjects} integration test with optional parameters.")
     public void testListProjectsWithOptionalParameters() throws IOException, JSONException, NumberFormatException,
             InterruptedException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:listProjects");
         Thread.sleep(timout);
         RestResponse<JSONObject> esbRestResponse =
@@ -130,7 +129,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, description = "bugherd {createProjectTask} integration test with mandatory parameters.")
     public void testCreateProjectTaskWithMandatoryParameters() throws NumberFormatException, InterruptedException,
             IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:createProjectTask");
         Thread.sleep(timout);
         RestResponse<JSONObject> esbRestResponse =
@@ -164,7 +163,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, description = "bugherd {createProjectTask} integration test with optional parameters.")
     public void testCreateProjectTaskWithOptionalParameters() throws NumberFormatException, InterruptedException,
             IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:createProjectTask");
         
         Thread.sleep(timout);
@@ -196,7 +195,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, description = "bugherd {createProjectTask} integration test with negative case.")
     public void testCreateProjectTaskWithNegativeCase() throws NumberFormatException, InterruptedException,
             IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:createProjectTask");
         Thread.sleep(timout);
         RestResponse<JSONObject> esbRestResponse =
@@ -222,7 +221,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(dependsOnMethods = { "testCreateProjectTaskWithMandatoryParameters" }, description = "bugherd {updateProjectTask} integration test with mandatory parameters.")
     public void testUpdateProjectTaskWithMandatoryParameters() throws NumberFormatException, InterruptedException,
             IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:updateProjectTask");
         Thread.sleep(timout);
         RestResponse<JSONObject> esbRestResponse =
@@ -254,7 +253,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(dependsOnMethods = { "testCreateProjectTaskWithMandatoryParameters" }, description = "bugherd {updateProjectTask} integration test with optional parameters.")
     public void testUpdateProjectTaskWithOptionalParameters() throws NumberFormatException, InterruptedException,
             IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:updateProjectTask");
         Thread.sleep(timout);
         RestResponse<JSONObject> esbRestResponse =
@@ -286,7 +285,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(description = "bugherd {updateProjectTask} integration test with negative case.")
     public void testUpdateProjectTaskWithNegativeParameters() throws NumberFormatException, InterruptedException,
             IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:updateProjectTask");
         Thread.sleep(timout);
         RestResponse<JSONObject> esbRestResponse =
@@ -312,7 +311,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, dependsOnMethods = { "testCreateProjectTaskWithMandatoryParameters" }, description = "bugherd {listProjectTasks} integration test with mandatory parameters.")
     public void testListProjectTasksWithMandatoryParameters() throws NumberFormatException, InterruptedException,
             IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:listProjectTasks");
         Thread.sleep(timout);
         RestResponse<JSONObject> esbRestResponse =
@@ -344,7 +343,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, description = "bugherd {listProjectTasks} integration test with negative case.")
     public void testListProjectTasksWithNegativeCase() throws NumberFormatException, InterruptedException, IOException,
             JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:listProjectTasks");
         Thread.sleep(timout);
         RestResponse<JSONObject> esbRestResponse =
@@ -369,7 +368,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, dependsOnMethods = { "testCreateProjectTaskWithMandatoryParameters" }, description = "bugherd {addTaskComment} integration test with mandatory parameters.")
     public void testAddTaskCommentWithMandatoryParameters() throws NumberFormatException, InterruptedException,
             IOException, JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:addTaskComment");
         Thread.sleep(timout);
         RestResponse<JSONObject> esbRestResponse =
@@ -383,19 +382,14 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
         
         int listLength = apiRestResponse.getBody().getJSONArray("comments").length();
-        Assert.assertEquals(
-                apiRestResponse.getBody().getJSONArray("comments").getJSONObject(listLength - 1).getString("id"),
-                esbRestResponse.getBody().getJSONObject("comment").getString("id"));
-        Assert.assertEquals(
-                apiRestResponse.getBody().getJSONArray("comments").getJSONObject(listLength - 1)
-                        .getString("created_at"),
-                esbRestResponse.getBody().getJSONObject("comment").getString("created_at"));
-        Assert.assertEquals(
-                apiRestResponse.getBody().getJSONArray("comments").getJSONObject(listLength - 1).getString("text"),
-                esbRestResponse.getBody().getJSONObject("comment").getString("text"));
-        Assert.assertEquals(
-                apiRestResponse.getBody().getJSONArray("comments").getJSONObject(listLength - 1).getString("user_id"),
-                esbRestResponse.getBody().getJSONObject("comment").getJSONObject("user").getString("id"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("comments").getJSONObject(listLength - 1).getString(
+                "id"), esbRestResponse.getBody().getJSONObject("comment").getString("id"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("comments").getJSONObject(listLength - 1).getString(
+                "created_at"), esbRestResponse.getBody().getJSONObject("comment").getString("created_at"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("comments").getJSONObject(listLength - 1).getString(
+                "text"), esbRestResponse.getBody().getJSONObject("comment").getString("text"));
+        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("comments").getJSONObject(listLength - 1).getString(
+                "user_id"), esbRestResponse.getBody().getJSONObject("comment").getJSONObject("user").getString("id"));
     }
     
     /**
@@ -409,7 +403,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, description = "bugherd {addTaskComment} integration test with negative case.")
     public void testAddTaskCommentWithNegativeCase() throws NumberFormatException, InterruptedException, IOException,
             JSONException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:addTaskComment");
         Thread.sleep(timout);
         RestResponse<JSONObject> esbRestResponse =
@@ -438,7 +432,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, dependsOnMethods = { "testAddTaskCommentWithMandatoryParameters" }, description = "Bugherd {listTaskComments} integration test with optional parameters.")
     public void testListTaskCommentsWithMandatoryParameters() throws IOException, JSONException, XMLStreamException,
             InterruptedException {
-    
+        
         Thread.sleep(timout);
         esbRequestHeadersMap.put("Action", "urn:listTaskComments");
         RestResponse<JSONObject> esbRestResponse =
@@ -469,7 +463,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, dependsOnMethods = { "testAddTaskCommentWithMandatoryParameters" }, description = "Bugherd {listTaskComments} integration test with optional parameters.")
     public void testListTaskCommentsWithOptionalParameters() throws IOException, JSONException, XMLStreamException,
             InterruptedException {
-    
+        
         Thread.sleep(timout);
         esbRequestHeadersMap.put("Action", "urn:listTaskComments");
         RestResponse<JSONObject> esbRestResponse =
@@ -500,7 +494,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, description = "Bugherd {listTaskComments} integration test with negative case.")
     public void testListTaskCommentsWithNegativeCase() throws IOException, JSONException, NumberFormatException,
             InterruptedException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:listTaskComments");
         Thread.sleep(timout);
         RestResponse<JSONObject> esbRestResponse =
@@ -527,7 +521,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, dependsOnMethods = { "testCreateProjectTaskWithMandatoryParameters" }, description = "Bugherd {uploadTaskAttachment} integration test with mandatory parameters.")
     public void testUploadTaskAttachmentWithMandatoryParameters() throws IOException, JSONException,
             NumberFormatException, InterruptedException {
-    
+        
         Thread.sleep(timout);
         esbRequestHeadersMap.put("Action", "urn:uploadTaskAttachment");
         
@@ -579,7 +573,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, dependsOnMethods = { "testCreateProjectTaskWithMandatoryParameters" }, description = "Bugherd {uploadTaskAttachment} integration test with optional parameters.")
     public void testUploadTaskAttachmentWithOptionalParameters() throws IOException, JSONException,
             NumberFormatException, InterruptedException {
-    
+        
         Thread.sleep(timout);
         esbRequestHeadersMap.put("Action", "urn:uploadTaskAttachment");
         
@@ -631,7 +625,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, description = "Bugherd {uploadTaskAttachment} integration test with negative case.")
     public void testUploadTaskAttachmentWithNegativeCase() throws IOException, JSONException, NumberFormatException,
             InterruptedException {
-    
+        
         Thread.sleep(timout);
         esbRequestHeadersMap.put("Action", "urn:uploadTaskAttachment");
         
@@ -679,7 +673,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
             "testUploadTaskAttachmentWithOptionalParameters" }, description = "Bugherd {listTaskAttachments} integration test with optional parameters.")
     public void testListTaskAttachmentsWithMandatoryParameters() throws IOException, JSONException,
             NumberFormatException, InterruptedException {
-    
+        
         Thread.sleep(timout);
         esbRequestHeadersMap.put("Action", "urn:listTaskAttachments");
         RestResponse<JSONObject> esbRestResponse =
@@ -711,7 +705,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
             "testUploadTaskAttachmentWithOptionalParameters" }, description = "Bugherd {listTaskAttachments} integration test with optional parameters.")
     public void testListTaskAttachmentsWithOptionalParameters() throws IOException, JSONException,
             NumberFormatException, InterruptedException {
-    
+        
         Thread.sleep(timout);
         esbRequestHeadersMap.put("Action", "urn:listTaskAttachments");
         RestResponse<JSONObject> esbRestResponse =
@@ -742,7 +736,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, description = "Bugherd {listTaskAttachments} integration test with negative case.")
     public void testListTaskAttachmentsWithNegativeCase() throws IOException, JSONException, NumberFormatException,
             InterruptedException {
-    
+        
         Thread.sleep(timout);
         esbRequestHeadersMap.put("Action", "urn:listTaskAttachments");
         RestResponse<JSONObject> esbRestResponse =
@@ -769,7 +763,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, dependsOnMethods = { "testListTaskAttachmentsWithMandatoryParameters" }, description = "Bugherd {deleteTaskAttachment} integration test with optional parameters.")
     public void testDeleteTaskAttachmentWithMandatoryParameters() throws IOException, JSONException,
             NumberFormatException, InterruptedException {
-    
+        
         Thread.sleep(timout);
         esbRequestHeadersMap.put("Action", "urn:deleteTaskAttachment");
         RestResponse<JSONObject> esbRestResponse =
@@ -798,7 +792,7 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
     @Test(priority = 1, description = "Bugherd {deleteTaskAttachment} integration test with negative case.")
     public void testDeleteTaskAttachmentWithNegativeCase() throws IOException, JSONException, XMLStreamException,
             InterruptedException {
-    
+        
         esbRequestHeadersMap.put("Action", "urn:deleteTaskAttachment");
         Thread.sleep(timout);
         RestResponse<JSONObject> esbRestResponse =
@@ -812,6 +806,134 @@ public class BugherdConnectorIntegrationTest extends ConnectorIntegrationTestBas
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "DELETE", apiRequestHeadersMap);
         
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(), esbRestResponse.getHttpStatusCode());
+        Assert.assertEquals(esbRestResponse.getBody().get("error"), apiRestResponse.getBody().get("error"));
+    }
+    
+    /**
+     *   Test case: testCreateProjectWithMandatoryParameters.      
+     *   Status: Skipped.       
+     *   Reason :  No mandatory parameter(s) to assert.      
+     */
+    
+    /**
+     * Positive test case for createProject method with optional parameters.
+     * 
+     * @throws InterruptedException
+     * @throws NumberFormatException
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(priority = 1, description = "Bugherd {createProject} integration test with optional parameters.")
+    public void testCreateProjectWithOptionalParameters() throws IOException, JSONException, NumberFormatException,
+            InterruptedException {
+        
+        Thread.sleep(timout);
+        
+        esbRequestHeadersMap.put("Action", "urn:createProject");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createProject_optional.json");
+        
+        String projectId = esbRestResponse.getBody().getJSONObject("project").getString("id");
+        
+        String apiEndpoint = connectorProperties.getProperty("apiUrl") + "/api_v2/projects/" + projectId + ".json";
+        
+        Thread.sleep(timout);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(connectorProperties.getProperty("projectDevurl"), apiRestResponse
+                .getBody().getJSONObject("project").getString("devurl"));
+        Assert.assertEquals(connectorProperties.getProperty("projectName"), apiRestResponse
+                .getBody().getJSONObject("project").getString("name"));
+        Assert.assertEquals(connectorProperties.getProperty("isActive"), apiRestResponse
+                .getBody().getJSONObject("project").getString("is_active"));
+        Assert.assertEquals(connectorProperties.getProperty("isPublic"), apiRestResponse
+                .getBody().getJSONObject("project").getString("is_public"));
+    }
+    
+    /**
+     *  Test case: testCreateProjectWithNegativeCase.       
+     *  Status: Skipped.       
+     *  Reason : Unable to generate a negative result for the method.      
+     */
+    
+    /**
+     * Positive test case for showProjectTask method with mandatory parameters.
+     * 
+     * @throws InterruptedException
+     * @throws NumberFormatException
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(priority = 1, description = "Bugherd {showProjectTask} integration test with optional parameters.")
+    public void testShowProjectTaskWithMandatoryParameters() throws IOException, JSONException, NumberFormatException,
+            InterruptedException {
+        
+        Thread.sleep(timout);
+        
+        esbRequestHeadersMap.put("Action", "urn:showProjectTask");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_showProjectTask_mandatory.json");
+        
+        String projectId = connectorProperties.getProperty("projectId");
+        String taskId = connectorProperties.getProperty("taskId");
+        String apiEndpoint =
+                connectorProperties.getProperty("apiUrl") + "/api_v2/projects/" + projectId + "/tasks/" + taskId
+                        + ".json";
+        
+        Thread.sleep(timout);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("task").getString("id"), apiRestResponse.getBody()
+                .getJSONObject("task").getString("id"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("task").getString("priority_id"), apiRestResponse
+                .getBody().getJSONObject("task").getString("priority_id"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("task").getString("project_id"), apiRestResponse
+                .getBody().getJSONObject("task").getString("project_id"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("task").getString("description"), apiRestResponse
+                .getBody().getJSONObject("task").getString("description"));
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("task").getJSONArray("attachments")
+                .getJSONObject(0).getString("id"), apiRestResponse.getBody().getJSONObject("task").getJSONArray(
+                "attachments").getJSONObject(0).getString("id"));
+    }
+    
+    
+    /**
+     *  Test case: testShowProjectTaskWithOptionalParameters.       
+     *  Status: Skipped.       
+     *  Reason : No optional parameter(s) to assert.      
+     */
+    
+    
+    /**
+     * Negative test case for showProjectTask method.
+     * 
+     * @throws InterruptedException
+     * @throws NumberFormatException
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(priority = 1, description = "Bugherd {showProjectTask} integration test with negative case.")
+    public void testShowProjectTaskWithNegativeCase() throws IOException, JSONException, NumberFormatException,
+            InterruptedException {
+        
+        Thread.sleep(timout);
+        
+        esbRequestHeadersMap.put("Action", "urn:showProjectTask");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_showProjectTask_negative.json");
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 404);
+        String projectId = connectorProperties.getProperty("projectId");
+        String taskId = "1234";
+        String apiEndpoint =
+                connectorProperties.getProperty("apiUrl") + "/api_v2/projects/" + projectId + "/tasks/" + taskId
+                        + ".json";
+        
+        Thread.sleep(timout);
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 404);
         Assert.assertEquals(esbRestResponse.getBody().get("error"), apiRestResponse.getBody().get("error"));
     }
     
