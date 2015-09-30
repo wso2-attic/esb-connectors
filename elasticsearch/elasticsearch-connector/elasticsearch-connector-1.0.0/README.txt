@@ -34,11 +34,12 @@ Steps to follow in setting integration test.
         <messageBuilder contentType="application/javascript"
                          class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
 
-
  4. Follow the steps in below mentioned URL to download and setup an instance of the latest version of Elasticsearch.
       https://www.elastic.co/guide/en/elasticsearch/reference/current/setup.html
 
  5. Prerequisites for Elasticsearch Connector Integration Testing.
+		i) Create an index using a method call to Elasticsearch API using the following URL.
+				PUT 'http://{IP_ADDRESS_OF_THE_MACHINE}:{PORT_NUMBER}/{INDEX_NAME}/'
  
  6. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<ESB_CONNECTOR_HOME>/repository/".
  
@@ -54,15 +55,15 @@ Steps to follow in setting integration test.
    iii)   size                         -  The number of hits to return.
    iv)    scroll                       -  Specify a time duration according to the following format. (format : {TIME_DURATION}{TIME_UNIT} , e.g. 1m).
    v)     terminateAfter               -  The maximum number of documents to collect for each shard, upon reaching which the query execution will terminate early. Provide an integer as the value.
-   vi)    indexName                    -  Name of the index inside which the type would be created.
-   vii)   type                         -  The type inside which the ID would be considered.
-   viii)  updateDocValueMandatory      -  Updated value of the document.
-   ix)    updateDocValueOptional       -  Updated value of the document.
-   x)     routing                      -  A sting Name of the shard base to which the document would be routed.
-   xi)    routingMessageMandatory      -  A string message to set as routing message for  the  document routing mandatory case.
-   xii)   routingMessageOptional       -  A string message to set as routing message for  the  document routing optional case.
-   xiii)  messageMandatory             -  A string message to create create automatic ID mandatory case.  
-   xiv)   messageOptional              -  A string message to create create automatic ID optional case.  
+   vi)    indexName                    -  Use the name of the index created in step 5)i.
+   vii)   type                         -  The type inside which the ID would be considered. Provide any string value.
+   viii)  updateDocValueMandatory      -  Updated value of the document. Provide a text as the value.
+   ix)    updateDocValueOptional       -  Updated value of the document. Provide a text as the value.
+   x)     routing                      -  A string name of the shard base to which the document would be routed.
+   xi)    routingMessageMandatory      -  A string message to set as routing message for the document routing mandatory case.
+   xii)   routingMessageOptional       -  A string message to set as routing message for the document routing optional case.
+   xiii)  messageMandatory             -  A string message to create automatic ID mandatory case.  
+   xiv)   messageOptional              -  A string message to create automatic ID optional case.  
    xv)    tagValue                     -  A string value to add as a tag for index child document. 
    xvi)   postDate                     -  Date when the index should be inserted (The date formate should be like yyyy-MM-ddTHH:mm:ss).
    xvii)  userName                     -  A string value to set as user Name to create document.
