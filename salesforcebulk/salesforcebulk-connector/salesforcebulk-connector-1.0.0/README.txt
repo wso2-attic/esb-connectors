@@ -50,21 +50,24 @@ Steps to follow in setting integration test.
  6. Create a salesforcebulk trial account and derive the API Token.
    i)    Using the URL "https://www.salesforce.com/" create a salesforcebulk trial account.
    ii)   Using the URL "https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_understanding_authentication.htm"  Obtain the 'Access Token','client id','client secret' and 'Refresh Token'.
+   iii)  Create a job which has 'CSV' content type and object value should be 'Contact' by using the URL "https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/binary_create_job.htm".
+   iv)   Create a .txt file by referring the URL "https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/binary_create_job.htm". 
+   v)    Create a .csv file by referring the URL "https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/datafiles_csv_sample_file.htm". 
    
  7. Update the salesforcebulk properties file at location "<SALESFORCEBULK_CONNECTOR_HOME>/salesforcebulk-connector/salesforcebulk-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
    
    i)       apiUrl                -  Use following value 'https://{instance_name}.salesforce.com'
-   ii)      accessToken           -  Use the API Key obtained in step 6.
+   ii)      accessToken           -  Use the API Key obtained in step 6 ii).
    iii)     apiVersion            -  Use 34.0 or above version.
-   iv)      timeout               -  Salesforcebulk API is take some time to proceed the uploaded file. Keep a suitable time gap between create and retrieve calls.
+   iv)      timeOut               -  Salesforcebulk API is take some time to proceed the uploaded file. Keep a suitable time gap between create and retrieve calls.
    
-   v)       jobFileName           -  Name of the file which is going to upload to create job.
+   v)       jobFileName           -  Name of the file created in step 6 iv).
    vi)      jobContentType        -  Content type of the job which is going to create by uploading file.
  
-   vii)     batchFileName         -  Name of the file which is going to upload to create batch.
-   viii)    CSVJobId              -  Id of a job which has 'CSV' content type.
+   vii)     batchFileName         -  Name of the file created in step 6 v).
+   viii)    CSVJobId              -  Id of a job created in step 6 iii).
    
-   ix)      description1     	    -  The description of first object of batch.
+   ix)      description1          -  The description of first object of batch.
    x)       name1                 -  The name of first object of batch.
    xi)      description2          -  The description of second object of batch.
    xii)     name2                 -  The name of second object of batch.
