@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: http://www.billomat.com/en/api/delivery-notes -->
+<template name="createDeliveryNote" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="clientId" description="ID of the client."/>
+   <parameter name="contactId" description="ID of the contact."/>
+   <parameter name="address" description="Delivery address of the client."/>
+   <parameter name="numberPre" description="Prefix for the number of the delivery note."/>
+   <parameter name="number" description="Sequential number of the delivery note."/>
+   <parameter name="numberLength" description="Minimum length of the delivery note."/>
+   <parameter name="date" description="Date of the delivery note."/>
+   <parameter name="title" description="Title of the delivery note."/>
+   <parameter name="label" description="Label to describe the delivery note."/>
+   <parameter name="introduction" description="Introduction of the delivery note."/>
+   <parameter name="note" description="Explanatory note for the delivery note."/>
+   <parameter name="offerId" description="Offer Id of the delivery note."/>
+   <parameter name="confirmationId" description="The ID of the confirmation, if the delivery note was created from a confirmation."/>
+   <parameter name="invoiceId" description="The ID of the invoice, if the delivery note was created from an invoice."/>
+   <parameter name="deliveryNoteItems" description="An array of items to be delivered."/>
+   <sequence>
+      <property name="uri.var.clientId" expression="$func:clientId"/>
+      <property name="uri.var.contactId" expression="$func:contactId"/>
+      <property name="uri.var.address" expression="$func:address"/>
+      <property name="uri.var.numberPre" expression="$func:numberPre"/>
+      <property name="uri.var.number" expression="$func:number"/>
+      <property name="uri.var.numberLength" expression="$func:numberLength"/>
+      <property name="uri.var.date" expression="$func:date"/>
+      <property name="uri.var.title" expression="$func:title"/>
+      <property name="uri.var.label" expression="$func:label"/>
+      <property name="uri.var.introduction" expression="$func:introduction"/>
+      <property name="uri.var.note" expression="$func:note"/>
+      <property name="uri.var.offerId" expression="$func:offerId"/>
+      <property name="uri.var.confirmationId" expression="$func:confirmationId"/>
+      <property name="uri.var.invoiceId" expression="$func:invoiceId"/>
+      <property name="uri.var.deliveryNoteItems" expression="$func:deliveryNoteItems"/>
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "delivery-note":
+                  {
+                     "client_id": "$1"
+                  }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.clientId')"/>
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var note = mc.getProperty('uri.var.note');
+            var address = mc.getProperty('uri.var.address');
+            var contactId = mc.getProperty('uri.var.contactId');
+            var deliveryNoteItems = mc.getProperty('uri.var.deliveryNoteItems');
+            var date = mc.getProperty('uri.var.date');
+            var label = mc.getProperty('uri.var.label');
+            var title = mc.getProperty('uri.var.title');
+            var numberPre = mc.getProperty('uri.var.numberPre');
+            var numberLength = mc.getProperty('uri.var.numberLength');
+            var number = mc.getProperty('uri.var.number');
+            var offerId = mc.getProperty('uri.var.offerId');
+            var invoiceId = mc.getProperty('uri.var.invoiceId');
+            var confirmationId = mc.getProperty('uri.var.confirmationId');
+            var introduction = mc.getProperty('uri.var.introduction');
+            var jsonPayload = mc.getPayloadJSON();            
+            var deliveryNote = jsonPayload["delivery-note"];
+            if (contactId != null && contactId != ""){
+               deliveryNote.contact_id = contactId;
+            }
+            if (address != null && address != ""){
+               deliveryNote.address = address;
+            }
+            if (numberPre != null && numberPre != ""){
+               deliveryNote.number_pre = numberPre;
+            }
+            if (number != null && number != ""){
+               deliveryNote.number = number;
+            }
+            if (numberLength != null && numberLength != ""){
+               deliveryNote.number_length = numberLength;
+            }
+            if (title != null && title != ""){
+               deliveryNote.title = title;
+            }
+            if (date != null && date != ""){
+               deliveryNote.date = date;
+            }
+            if (label != null && label != ""){
+               deliveryNote.label = label;
+            }
+            if (introduction != null && introduction != ""){
+               deliveryNote.intro = introduction;
+            }
+            if (note != null && note != ""){
+               deliveryNote.note = note;
+            }
+            if (offerId != null && offerId != ""){
+               deliveryNote.offer_id = offerId;
+            }
+            if (confirmationId != null && confirmationId != ""){
+               deliveryNote.confirmation_id = confirmationId;
+            }
+            if (invoiceId != null && invoiceId != ""){
+               deliveryNote.invoice_id = invoiceId;
+            }
+            if (deliveryNoteItems != null && deliveryNoteItems != ""){
+               deliveryNote["delivery-note-items"] = eval("(" + deliveryNoteItems + ")");
+            }
+            jsonPayload["delivery-note"] = deliveryNote;
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/delivery-notes?api_key={+uri.var.apiKey}"/>
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="X-Rate-Limit-Reset" action="remove" scope="transport" />
+      <header name="X-Rate-Limit-Remaining" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Headers" action="remove" scope="transport" />
+      <header name="Access-Control-Max-Age" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Methods" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+   </sequence>
+</template>
