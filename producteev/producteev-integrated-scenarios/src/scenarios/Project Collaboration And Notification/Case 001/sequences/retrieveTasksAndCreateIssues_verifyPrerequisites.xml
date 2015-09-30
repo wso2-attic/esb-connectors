@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This sequence extracts details of projects and users, and stores them as JSON objects. -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="retrieveTasksAndCreateIssues_verifyPrerequisites">
+   <property name="uri.var.apiUrl" expression="get-property('bugherd.apiUrl')" />
+   <property name="uri.var.apiKey" expression="get-property('bugherd.apiKey')" />
+   
+   <!-- List active projects in Bugherd -->
+   <bugherd.init>
+      <apiUrl>{$ctx:bugherd.apiUrl}</apiUrl>
+      <apiKey>{$ctx:bugherd.apiKey}</apiKey>
+   </bugherd.init>
+   <bugherd.listProjects>
+      <isActive>true</isActive>
+   </bugherd.listProjects>
+   
+   <!-- Removing unused headers. -->
+   <sequence key="removeResponseHeaders" />
+   
+   <property name="bugherd.projects" expression="json-eval($.projects)" />
+   
+   <!-- START of Filter: Proceed to extract project details, only if project exists in Bugherd. -->
+   <filter source="boolean(get-property('bugherd.projects'))" regex="true">
+      <then>
+         <!-- Construct a JSON object by extracting project details from the project list and set it to payload. -->
+         <script language="js">
+			 <![CDATA[
+				var projectDetails = {};
+				var projects = mc.getProperty('bugherd.projects');
+				var projectId;
+				if(projects != null && projects != ''){
+					projects = eval("(" + projects + ")");
+					// Iterate through the projects and pick the project name and id.
+					for(var i=0; i<projects.length; i++){
+						projectId=''+projects[i].id;
+						projectId=projectId.split(".")[0];
+						projectDetails[projects[i].name] = projectId;
+					}
+				}	
+				mc.setPayloadJSON(projectDetails);
+			 ]]>
+		 </script>
+         <property name="bugherd.projectDetails" expression="json-eval($)" scope="operation" />
+      </then>
+      <else>
+         <loopback />
+      </else>
+   </filter><!-- END of Filter: Proceed to extract project details, only if project exist in Bugherd. -->
+   
+   <!-- Setting the Authorization header. -->
+   <header name="Authorization" expression="fn:concat('Basic ', base64Encode(fn:concat(get-property('uri.var.apiKey'), ':x')))" scope="transport" />
+   <header name="Content-Type" value="application/xml" scope="transport" />
+   <header name="Accept" value="application/xml" scope="transport" />
+   
+   <!-- Listing down all the users in Bugherd. -->
+   <call>
+      <endpoint>
+         <http method="get" uri-template="{uri.var.apiUrl}/api_v2/users.json" />
+      </endpoint>
+   </call>
+   
+   <property name="bugherd.users" expression="json-eval($.users)" />
+   
+   <!-- START of Filter: Proceed to extract user details, only if users exist in Bugherd. -->
+   <filter source="boolean(get-property('bugherd.users'))" regex="true">
+      <then>
+         <!-- Extract the user email and userId from project list. -->
+         <script language="js">
+			 <![CDATA[
+			    //Construct a JSON object by extracting user email and id from the user list and set it to payload.
+				var userDetails = {};
+				var users = mc.getProperty('bugherd.users');
+				var userId;
+				if(users != null && users != ''){
+					users = eval("(" + users + ")");
+					// Iterate through the users and pick the project name and id.
+					for(var i=0; i<users.length; i++){
+						userId=''+users[i].id;
+						userId=userId.split(".")[0];
+						userDetails[users[i].email] = userId;
+					}
+				}		
+				mc.setPayloadJSON(userDetails);
+			 ]]>
+		 </script>
+         <property name="bugherd.userDetails" expression="json-eval($)" scope="operation" />
+      </then>
+      <else>
+         <loopback />
+      </else>
+   </filter><!-- END of Filter: Proceed to extract user details, only if users exist in Bugherd. -->
+</sequence>

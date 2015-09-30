@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This proxy is used to retrieve active tasks from Producteev and create them either as bugs in Bugherd or incidents in PagerDuty. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="producteev_retrieveTasksAndCreateIssues" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+	  
+         <!-- Bugherd properties -->
+         <property name="bugherd.apiUrl" value="https://www.bugherd.com" />
+         <property name="bugherd.apiKey" expression="json-eval($.bugherd.apiKey)" />
+		 
+         <!-- Producteev properties -->
+         <property name="producteev.apiUrl" value="https://www.producteev.com" />
+         <property name="producteev.accessToken" expression="json-eval($.producteev.accessToken)" />
+         <property name="producteev.networkId" expression="json-eval($.producteev.networkId)" />
+		 
+         <!-- PagerDuty properties -->
+         <property name="pagerduty.apiUrl" expression="json-eval($.pagerduty.apiUrl)" />
+         <property name="pagerduty.apiToken" expression="json-eval($.pagerduty.apiToken)" />
+         <property name="pagerduty.serviceKey" expression="json-eval($.pagerduty.serviceKey)" />
+         <property name="pagerduty.serviceId" expression="json-eval($.pagerduty.serviceId)" />
+         <property name="pagerduty.requesterId" expression="json-eval($.pagerduty.modifierId)" />
+		 
+         <!-- ZohoCRM properties -->
+         <property name="zohocrm.apiUrl" value="https://crm.zoho.com" />
+         <property name="zohocrm.accessToken" expression="json-eval($.zohocrm.accessToken)" />
+         <property name="id.empty" value="{}" />
+		 
+		 <!-- Call the sequence to extract all projects and users from Bugherd. -->
+         <sequence key="retrieveTasksAndCreateIssues_verifyPrerequisites" />
+		 
+         <script language="js">
+			 <![CDATA[
+				  //Set networkId as a json array.
+				  var networkId = mc.getProperty('producteev.networkId');
+				  var networkIdArray = [networkId];
+				  mc.setPayloadJSON(networkIdArray);
+			 ]]>
+		 </script>
+         <property name="producteev.networkId" expression="json-eval($)" />
+		 
+         <!-- List all active tasks in Producteev. -->
+         <producteev.init>
+            <accessToken>{$ctx:producteev.accessToken}</accessToken>
+            <apiUrl>{$ctx:producteev.apiUrl}</apiUrl>
+         </producteev.init>
+         <producteev.listTasks>
+            <sort>created_at</sort>
+            <alias>active</alias>
+            <order>asc</order>
+            <networksCriteria>{$ctx:producteev.networkId}</networksCriteria>
+         </producteev.listTasks>
+		 
+         <!-- Removing unused headers. -->
+         <sequence key="removeResponseHeaders" />
+		 
+         <property name="producteev.tasks" expression="json-eval($.tasks)" />
+		 
+         <!-- START of Filter: Proceed to process the tasks only if the listTasks call is successful. -->
+         <filter source="boolean(get-property('producteev.tasks'))" regex="false">
+            <then>
+               <property name="errorResponse" expression="json-eval($)" />
+               <!-- Failure case: Append an error message to be sent to the user. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="producteev_listTasks" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:errorResponse}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <property name="producteev.taskCount" expression="count(//jsonObject/tasks)" />
+               <property name="producteev.taskIndex" expression="0" scope="operation" />
+               <property name="createdTaskCount" expression="0" scope="operation" />
+			   
+               <!-- START of Filter: Proceed to process the tasks if there are any. -->
+               <filter source="get-property('producteev.taskCount')" regex="0.0">
+                  <then>
+                     <!-- Failure case: Append an error message to be sent to the user. -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="producteev_retrieveTasksAndCreateIssues" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="There are no new tasks in Producteev to process." />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+				  
+                     <!-- FOR EACH tasks: BEGIN -->
+                     <iterate id="submissionsIterator" expression="//tasks" sequential="true" continueParent="false">
+                        <target>
+                           <sequence>
+                              <property name="producteev.labelTitle" expression="//tasks/labels[1]/title" />
+                              <property name="producteev.taskTitle" expression="json-eval($.tasks.title)" />
+                              <property name="producteev.taskId" expression="json-eval($.tasks.id)" />
+                              <property name="producteev.taskPriority" expression="json-eval($.tasks.priority)" />
+                              <property name="producteev.assigneeName" expression="json-eval($.tasks.responsibles.firstname)" />
+                              <property name="producteev.assigneeEmail" expression="json-eval($.tasks.responsibles.email)" />
+                              <property name="producteev.projectId" expression="json-eval($.tasks.project.id)" />
+                              <property name="producteev.projectTitle" expression="json-eval($.tasks.project.title)" />
+                             
+							 <!-- Call the template to extract notes of a task of Producteev. -->
+							 <call-template target="retrieveTaskDetailsFromNotes">
+                                 <with-param name="producteev.apiUrl" value="{$ctx:producteev.apiUrl}" />
+                                 <with-param name="producteev.accessToken" value="{$ctx:producteev.accessToken}" />
+                                 <with-param name="producteev.taskId" value="{$ctx:producteev.taskId}" />
+                              </call-template>
+							  
+							<!-- START of Filter: Proceed only if ZohoCRM taskIs exists. -->
+                            <filter source="boolean(get-property('zohocrm.caseId'))" regex="true">
+                               <then>
+							 
+                              <!-- START of Filter: Proceed if task is not already created in PagerDuty or Bugherd for the produteev task. -->
+                              <filter source="boolean(get-property('issueId'))" regex="false">
+                                 <then>
+                                    <script language="js">
+										<![CDATA[
+											//5s timeout is added to keep the iterations sequential.
+											java.lang.Thread.sleep(5000);
+										]]>
+									</script>
+									
+                                    <!-- Get the details of the case. -->
+                                    <zohocrm.init>
+                                       <scope>crmapi</scope>
+                                       <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+                                       <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+                                    </zohocrm.init>
+                                    <zohocrm.getRecordsById>
+                                       <id>{$ctx:zohocrm.caseId}</id>
+                                       <newFormat>1</newFormat>
+                                       <version>1</version>
+                                       <moduleType>Cases</moduleType>
+                                    </zohocrm.getRecordsById>
+									
+                                    <!-- Removing unused headers. -->
+                                    <sequence key="removeResponseHeaders" />
+									
+                                    <property name="caseResponse" expression="json-eval($.response.result.Cases.row.FL)" />
+                                   
+								   <script language="js">
+										<![CDATA[
+											 //Extract client email from response.
+											 var caseResponse = eval("(" + mc.getProperty("caseResponse") + ")");
+											 for (var i = 0; i < caseResponse.length ; i++) {
+												 if(caseResponse[i].val =="Email"){
+												 mc.setProperty('clientEmail', caseResponse[i].content);
+												 }							
+											 }
+										]]>
+									</script>
+									
+									<!-- Proceed if the task label either 'Bug' or 'Production-Issue'. -->
+									<switch source="get-property('producteev.labelTitle')">
+										<case regex="Bug">
+										  <property name="createdTaskCount" expression="get-property('operation', 'createdTaskCount') + 1" scope="operation" />
+										  <!-- Call the sequence to create a bug in Bugherd. -->
+										  <sequence key="createBug" />
+										</case>
+										<case regex="Production-Issue">
+										  <property name="createdTaskCount" expression="get-property('operation', 'createdTaskCount') + 1" scope="operation" />
+										  <!-- Call the sequence to create a incident in PagerDuty. -->
+										  <sequence key="createIncident" />
+										</case>
+									</switch>
+									
+                                    <!-- START of Filter: Proceed only if either task or incident is created.-->
+                                    <filter source="boolean(get-property('append.taskId'))" regex="true">
+                                       <then>
+                                          <property name="note" expression="fn:concat('Issue ID:', get-property('append.taskId'))" />
+                                          
+										  <!-- Remove property for prevent the setting status value for payload. -->
+										  <property name="uri.var.status" action="remove" />
+                                         
+										 <!-- Create a not for the task by adding bug or incident id. -->
+                                          <producteev.init>
+                                             <accessToken>{$ctx:producteev.accessToken}</accessToken>
+                                             <apiUrl>{$ctx:producteev.apiUrl}</apiUrl>
+                                          </producteev.init>
+                                          <producteev.createNote>
+                                             <message>{$ctx:note}</message>
+                                             <taskId>{$ctx:producteev.taskId}</taskId>
+                                          </producteev.createNote>
+                                          
+										  <!-- Removing unused headers. -->
+                                          <sequence key="removeResponseHeaders" />
+                                          
+										  <property name="response.noteId" expression="json-eval($.note.id)" />
+                                          
+										  <!-- START of Filter: Set message to be send to user according to the status of adding note.-->
+                                          <filter source="boolean(get-property('response.noteId'))" regex="false">
+                                             <then>
+                                                <property name="id" expression="fn:concat('producteev_taskId:', get-property('producteev.taskId'))" />
+                                                <property name="errorResponse" expression="fn:concat('Could not add a note to the task due to an error.')" />
+                                                <!-- Append error message to be sent to the user. -->
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="producteev_createNote" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Error" />
+                                                   <with-param name="message" value="{$ctx:errorResponse}" />
+                                                </call-template>
+                                             </then>
+                                          </filter><!-- END of Filter: Set message to be send to user according to the status of adding note.-->
+                                       </then>
+                                    </filter><!-- END of Filter: Proceed only if either task or incident is created. -->
+                                 </then>
+                              </filter><!-- END of Filter: Proceed if task is not already created in pagerdury or Bugherd for the produteev task. -->
+                                
+							 </then>
+                             </filter><!-- END of Filter: Proceed if task is not already created in pagerdury or Bugherd for the produteev task. -->
+                             
+
+							 <property name="producteev.taskIndex" expression="get-property('operation', 'producteev.taskIndex') + 1" scope="operation" />
+                             
+							 <!-- START of Filter: Move to outSequence when all the iterations are done. -->
+                              <filter xpath="get-property('producteev.taskCount') = get-property('operation', 'producteev.taskIndex')">
+                                 <then>
+                                    <filter xpath="get-property('operation', 'createdTaskCount') = 0">
+                                       <then>
+                                          <!-- Append skipped message to be sent to the user. -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="producteev_retrieveTasksAndCreateIssues" />
+                                             <with-param name="id" value="{$ctx:id.empty}" />
+                                             <with-param name="status" value="Skipped" />
+                                             <with-param name="message" value="There are no new tasks in Producteev to process." />
+                                          </call-template>
+                                       </then>
+                                    </filter>
+                                    <loopback />
+                                 </then>
+                              </filter><!-- END of Filter: Move to outSequence when all the iterations are done. -->
+                           </sequence>
+                        </target>
+                     </iterate><!-- FOR EACH tasks: END. -->
+                  </else>
+               </filter><!-- END of Filter: Proceed to process the task if there are any. -->
+            </else>
+         </filter><!-- END of Filter: Proceed to process the tasks only if the listTasks call is successful. -->
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>{
+                  "Response":{ 
+                     "process":"producteev_retrieveTasksAndCreateIssues",
+                     "activityResponse":[$1]
+                  }
+               }</format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+</proxy>
