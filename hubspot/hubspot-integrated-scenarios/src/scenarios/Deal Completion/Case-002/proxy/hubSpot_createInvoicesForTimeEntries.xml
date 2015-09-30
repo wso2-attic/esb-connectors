@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Retrieve time entries for a requested period from the TSheets API and create invoices in the Billiving API for book 
+   keeping purposes. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="hubSpot_createInvoicesForTimeEntries" transports="https http"
+   startOnLoad="true" trace="disable">
+   <target>
+      <inSequence>
+         <!--Hubspot Properties -->
+         <property name="hubspot.apiUrl" value="https://api.hubapi.com" />
+         <property name="hubspot.apiKey" expression="json-eval($.hubSpot.apiKey)" />
+
+         <!-- Billiving -->
+         <property name="billiving.apiUrl" value="https://www.billiving.com" />
+         <property name="billiving.accessToken" expression="json-eval($.billiving.accessToken)" />
+
+         <!-- Tsheets -->
+         <property name="tsheets.apiUrl" expression="json-eval($.tSheets.apiUrl)" />
+         <property name="tsheets.accessToken" expression="json-eval($.tSheets.accessToken)" />
+         <property name="tsheets.timeSheetStartDate" expression="json-eval($.tSheets.startDate)" />
+         <property name="tsheets.timeSheetEndDate" expression="json-eval($.tSheets.endDate)" />
+         <!--Common Properties -->
+         <property name="responseString" value="" scope="operation" />
+
+         <!-- List Billiving clients -->
+         <billiving.init>
+            <apiUrl>{$ctx:billiving.apiUrl}</apiUrl>
+            <accessToken>{$ctx:billiving.accessToken}</accessToken>
+         </billiving.init>
+         <billiving.listClients>
+         </billiving.listClients>
+
+         <property name="billiving.clients" expression="json-eval($.)" />
+         <header name="Content-Encoding" action="remove" scope="transport" />
+
+         <!-- List Tsheets jobcodes and create array of jobcodes which has child jobcodes and shortcode -->
+         <tsheets.init>
+            <apiUrl>{$ctx:tsheets.apiUrl}</apiUrl>
+            <accessToken>{$ctx:tsheets.accessToken}</accessToken>
+         </tsheets.init>
+         <tsheets.listJobCodes>
+            <parentIds>0</parentIds>
+         </tsheets.listJobCodes>
+         <!-- Filter and create jobCode list which has mapping with Billiving clients. -->
+         <script language="js">
+            <![CDATA[
+               var payload = mc.getPayloadJSON();
+               var clients = eval("(" + mc.getProperty('billiving.clients') + ")");
+               var _jobCodes = payload.results.jobcodes;
+               var jobCodes = [];
+               for(var i = 0; i < clients.length ; i++){
+                  var clientId = clients[i].Id;
+                  for(var key in _jobCodes){
+                     var _jobCodeObject = _jobCodes[key];
+                     var shortCode = _jobCodeObject.short_code;
+                     if(clientId == shortCode){
+                        var jobCodeObject = {};
+                        jobCodeObject.jobCode = ''+_jobCodeObject.id;
+                        jobCodeObject.clientId = clientId;
+                        jobCodes.push(jobCodeObject);
+                        break;
+                     }
+                  }
+               }
+               payload = {};
+               payload.jobCodes = jobCodes;
+               mc.setPayloadJSON(payload);
+                                 
+            ]]>
+         </script>
+
+         <property name="jobCodesCount" expression="count(//jobCodes)" scope="operation" />
+         <property name="jobCodeIndex" value="0" scope="operation" />
+         <iterate continueParent="true" id="clients" expression="//jobCodes" sequential="true">
+            <target>
+               <sequence>
+                  <property name="tsheets.jobCodeObject" expression="json-eval($.)" />
+                  <property name="tsheets.parentJobCode" expression="json-eval($.jobCodes.jobCode)" />
+                  <property name="billiving.clientId" expression="json-eval($.jobCodes.clientId)" />
+
+                  <tsheets.init>
+                     <apiUrl>{$ctx:tsheets.apiUrl}</apiUrl>
+                     <accessToken>{$ctx:tsheets.accessToken}</accessToken>
+                  </tsheets.init>
+                  <tsheets.listTimeSheets>
+                     <startDate>{$ctx:tsheets.timeSheetStartDate}</startDate>
+                     <endDate>{$ctx:tsheets.timeSheetEndDate}</endDate>
+                     <jobCodeIds>{$ctx:tsheets.parentJobCode}</jobCodeIds>
+                  </tsheets.listTimeSheets>
+                  <property name="timesheetsCount" expression="count(//results/timesheets)" />
+                  <filter xpath="get-property('timesheetsCount') != 0">
+                     <then>
+                        <!-- Calculate time entries and create Billiving items to create invoices. -->
+                        <script language="js">
+                        <![CDATA[
+                           var timeSheetResult = mc.getPayloadJSON();
+                           var timeSheets = timeSheetResult.results.timesheets;
+                           var suplimentData_jobCodes = timeSheetResult.supplemental_data.jobcodes;
+                           var jobCodeObject = eval("(" + mc.getProperty('tsheets.jobCodeObject') + ")");
+                           var parentJobCode =  mc.getProperty('tsheets.parentJobCode');
+                           var childJobCodes = {};
+                           for(var key in timeSheets){
+                              var timeSheet = timeSheets[key];
+                              var jobCode = timeSheet.jobcode_id;
+                              var _jobCode = 'cjc_'+jobCode;
+                              if(!childJobCodes.hasOwnProperty(_jobCode)){
+                                 childJobCodes[_jobCode] = {};
+                                 childJobCodes[_jobCode]['ItemId'] = suplimentData_jobCodes[jobCode].id;
+                                 childJobCodes[_jobCode]['ItemDescription'] = suplimentData_jobCodes[jobCode].name + ' (From - '+mc.getProperty('tsheets.timeSheetStartDate')+' To - '+mc.getProperty('tsheets.timeSheetEndDate')+')';
+                                 childJobCodes[_jobCode]['ItemPrice'] = suplimentData_jobCodes[jobCode].billable_rate;
+                                 childJobCodes[_jobCode]['ItemQuantity'] = timeSheet.duration/3600;
+                                 
+                              }else{
+                                 childJobCodes[_jobCode]['ItemQuantity'] = childJobCodes[_jobCode]['ItemQuantity'] + timeSheet.duration/3600;
+                              }
+                              
+                           }
+                           var docItems = [];
+                           for(var key in childJobCodes){
+                              var docItem = childJobCodes[key];
+                              docItems.push(docItem);
+                           }
+                           
+                           mc.setPayloadJSON(docItems);
+                                              
+                        ]]>
+                        </script>
+
+                        <property name="billiving.docItems" expression="json-eval($.)" />
+                        <!-- Create Billing Invoice -->
+                        <billiving.init>
+                           <apiUrl>{$ctx:billiving.apiUrl}</apiUrl>
+                           <accessToken>{$ctx:billiving.accessToken}</accessToken>
+                        </billiving.init>
+                        <billiving.createInvoice>
+                           <clientId>{$ctx:billiving.clientId}</clientId>
+                           <docItems>{$ctx:billiving.docItems}</docItems>
+                        </billiving.createInvoice>
+                        <header name="Content-Encoding" action="remove" scope="transport" />
+                        <filter source="$axis2:HTTP_SC" regex="200">
+                           <then>
+                              <property name="uri.var.billiving.invoiceId" expression="json-eval($.Id)" />
+                              <property name="invoiceIdObject"
+                                 expression="fn:concat('tSheets_jobCode:',get-property('tsheets.parentJobCode'),',billiving_invoiceId:',get-property('uri.var.billiving.invoiceId'))" />
+                              <property name="status" value="success" />
+                              <property name="message" value="Invoice has been successfully created." />
+                           </then>
+                           <else>
+                              <property name="invoiceIdObject"
+                                 expression="fn:concat('tSheets_jobCode:',get-property('tsheets.parentJobCode'))" />
+                              <property name="status" value="error" />
+                              <property name="message" expression="json-eval($.)" />
+                           </else>
+                        </filter>
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="id" value="{$ctx:invoiceIdObject}" />
+                           <with-param name="activity" value="billiving_createInvoice" />
+                           <with-param name="status" value="{$ctx:status}" />
+                           <with-param name="message" value="{$ctx:message}" />
+                        </call-template>
+                     </then>
+                  </filter>
+                  <property name="jobCodeIndex" expression="get-property('operation','jobCodeIndex') + 1"
+                     scope="operation" />
+                  <filter xpath="get-property('operation','jobCodesCount') = get-property('operation','jobCodeIndex') ">
+                     <then>
+                        <loopback />
+                     </then>
+                  </filter>
+               </sequence>
+            </target>
+         </iterate>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>
+                     {
+                     "Response": {
+                     "process": "hubSpot_createInvoicesForTimeEntries",
+                     "activityResponse": [
+                     {
+                     "activity":"tSheets_retrieveTimeSheets",
+                     "status":"skipped",
+                     "message":"Couldn't find timesheets to be processed."
+                     }
+                     ]
+                     }
+                     }
+                  </format>
+               </payloadFactory>
+            </then>
+            <else>
+               <payloadFactory media-type="json">
+                  <format>
+                     {
+                     "Response":
+                     {
+                     "process":"hubSpot_createInvoicesForTimeEntries",
+                     "activityResponse":[$1]
+                     }
+                     }
+                  </format>
+                  <args>
+                     <arg expression="get-property('operation', 'responseString')" />
+                  </args>
+               </payloadFactory>
+            </else>
+         </filter>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

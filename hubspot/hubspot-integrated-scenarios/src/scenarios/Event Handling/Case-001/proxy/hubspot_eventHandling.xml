@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="hubSpot_eventHandling" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <property name="hubspot.apiUrl" value="https://api.hubapi.com" />
+         <property name="hubspot.apiKey" expression="json-eval($.hubSpot.apiKey)" />
+         <property name="hubspot.meetingStartDateProperty" value="meeting_start_date" />
+         <property name="hubspot.meetingEndDateProperty" value="meeting_end_date" />
+         <property name="hubspot.meetingStartTimeProperty" value="meeting_start_time_hh_mm_ss_" />
+         <property name="hubspot.meetingEndTimeProperty" value="meeting_end_time_hh_mm_ss_" />
+         <property name="hubspot.meetingCreatedProperty" value="meeting" />
+         <property name="dealCount" value="100" />
+         <property name="engagementType" value="MEETING" />
+
+         <property name="google.apiUrl" expression="json-eval($.googleCalendar.apiUrl)" />
+         <property name="google.accessToken" expression="json-eval($.googleCalendar.accessToken)" />
+         <property name="google.calendarId" expression="json-eval($.googleCalendar.calendarId)" />
+         <property name="google.timeZone" expression="json-eval($.googleCalendar.timeZone)" />
+
+         <!-- Common properties -->
+         <property name="dealIndex" value="0" scope="operation" />
+         <property name="emptyID" value="{}" />
+         <property name="noOfscheduledMeetings" value="0.0" scope="operation" />
+
+         <hubspot.init>
+            <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+            <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+         </hubspot.init>
+         <hubspot.getRecentlyModifiedDeals>
+            <count>{$ctx:dealCount}</count>
+         </hubspot.getRecentlyModifiedDeals>
+
+         <property name="noOfDealIds" expression="count(//results)" scope="operation" />
+
+         <filter xpath="get-property('operation','noOfDealIds') > '0'">
+            <else>
+               <filter source="$axis2:HTTP_SC" regex="200">
+                  <then>
+                     <property name="message" value="Deals have not been found." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:emptyID}" />
+                        <with-param name="status" value="skipped" />
+                        <with-param name="activity" value="hubSpot_getRecentlyModifiedDeals" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                  </then>
+                  <else>
+                     <property name="message" expression="json-eval($.)" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:emptyID}" />
+                        <with-param name="status" value="error" />
+                        <with-param name="activity" value="hubSpot_getRecentlyModifiedDeals" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                  </else>
+               </filter>
+               <loopback />
+            </else>
+            <then>
+               <!-- START: Iterates over recently modified deals to extract information and proceed with event creation -->
+               <iterate id="dealIterator" expression="//results" continueParent="false" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="dealId" expression="json-eval($.results.dealId)" type="INTEGER" />
+                        <property name="dealName" expression="json-eval($.results.properties.dealname.value)" />
+                        <property name="dealProperties" expression="json-eval($.results.properties)" />
+
+                        <script language="js">
+                           <![CDATA[
+                              var dealProperties = eval('(' + mc.getProperty('dealProperties') + ')');
+                              var meetingCreatedProperty = mc.getProperty('hubspot.meetingCreatedProperty');  
+                              var meetingCreatedValue = '';
+                              var dealStage = '';
+                              if(dealProperties[meetingCreatedProperty] != undefined){
+                                 meetingCreatedValue = dealProperties[meetingCreatedProperty].value;
+                              }  
+                              if(dealProperties['dealstage'] != undefined){
+                                 dealStage = dealProperties['dealstage'].value;
+                              }             
+                              mc.setProperty('meetingCreatedValue', meetingCreatedValue);
+                              mc.setProperty('dealStage', dealStage);                                                                                    
+                           ]]>
+                        </script>
+
+                        <filter xpath="get-property('dealStage') = 'presentationscheduled'">
+                           <then>
+                              <filter source="get-property('meetingCreatedValue') = 'Created'" regex="false">
+                                 <then>
+
+                                    <property name="contactId" expression="json-eval($.results.associations.associatedVids)" type="INTEGER" />
+                                    <property name="deal" expression="json-eval($.results)" />
+
+                                    <script language="js">
+                                       <![CDATA[
+                                          var dealProperties = eval('(' + mc.getProperty('dealProperties') + ')');                             
+                                          var meetingStartDateProperty = mc.getProperty('hubspot.meetingStartDateProperty');                                                         
+                                          var meetingStartTimeProperty = mc.getProperty('hubspot.meetingStartTimeProperty');
+                                          var meetingStartDateTimestamp = dealProperties[meetingStartDateProperty].value;
+                                          var meetingStartTime = dealProperties[meetingStartTimeProperty].value;                              
+                                 
+                                          var meetingStartDateObj = new java.util.Date (parseInt(meetingStartDateTimestamp));
+                                          var meetingStartDate = new java.text.SimpleDateFormat("yyyy-MM-dd").format(meetingStartDateObj);
+                                          
+                                          var meetingStart = meetingStartDate.concat(' '+meetingStartTime);
+                                                                                   
+                                          var meetingDateTime = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(meetingStart);
+                                          var meetingTimestamp = meetingDateTime.getTime();
+                                          var meetingMetaBody = mc.getProperty('dealName')+' meeting';
+      
+                                          mc.setProperty('enagagementTimestamp', ''+meetingTimestamp);
+                                          mc.setProperty('contactIds', '['+mc.getProperty('contactId')+']');
+                                          mc.setProperty('dealIds', '['+mc.getProperty('dealId')+']');
+                                          mc.setProperty('meetingMetaBody', meetingMetaBody);
+                                                                           
+                                          var meetingEndDateProperty = mc.getProperty('hubspot.meetingEndDateProperty');
+                                          var meetingEndTimeProperty = mc.getProperty('hubspot.meetingEndTimeProperty');
+                                          var meetingEndDateTimestamp = dealProperties[meetingEndDateProperty].value;
+                                          var meetingEndTime = dealProperties[meetingEndTimeProperty].value;
+                                          
+                                          var meetingEndDateObj = new java.util.Date (parseInt(meetingEndDateTimestamp));
+                                          var meetingEndDate = new java.text.SimpleDateFormat("yyyy-MM-dd").format(meetingEndDateObj);
+                                          
+                                          var meetingEnd = meetingEndDate.concat(' '+meetingEndTime);
+                                          var calenderEnd = meetingEnd.replace(" ", "T");
+                                          var calenderStart = meetingStart.replace(" ", "T");
+                                           
+                                          mc.setProperty('calenderEnd', calenderEnd);
+                                          mc.setProperty('calenderStart', calenderStart); 
+                                          mc.setProperty('calenderSummery', meetingMetaBody);    
+                           
+                                       ]]>
+                                    </script>
+
+                                    <hubspot.init>
+                                       <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                       <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                                    </hubspot.init>
+                                    <hubspot.createEngagement>
+                                       <engagementType>{$ctx:engagementType}</engagementType>
+                                       <timestamp>{$ctx:enagagementTimestamp}</timestamp>
+                                       <contactIds>{$ctx:contactIds}</contactIds>
+                                       <dealIds>{$ctx:dealIds}</dealIds>
+                                       <metadataBody>{$ctx:meetingMetaBody}</metadataBody>
+                                    </hubspot.createEngagement>
+
+                                    <filter source="$axis2:HTTP_SC" regex="200">
+                                       <else>
+                                          <property name="id" expression="fn:concat('hubSpot_dealId:', get-property('dealId'))" />
+                                          <property name="engagementError" expression="json-eval($.)" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="error" />
+                                             <with-param name="activity" value="hubSpot_createEngagement" />
+                                             <with-param name="message" value="{$ctx:engagementError}" />
+                                          </call-template>
+                                       </else>
+                                       <then>
+                                          <property name="id" expression="fn:concat('hubSpot_dealId:', get-property('dealId'))" />
+                                          <property name="message" value="Meeting has been successfully created." />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="success" />
+                                             <with-param name="activity" value="hubSpot_createEngagement" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+
+                                          <property name="formSubmissionMode" value="all" />
+                                          <hubspot.init>
+                                             <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                             <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                                          </hubspot.init>
+                                          <hubspot.getContactById>
+                                             <contactId>{$ctx:contactId}</contactId>
+                                             <formSubmissionMode>{$ctx:formSubmissionMode}</formSubmissionMode>
+                                          </hubspot.getContactById>
+
+                                          <filter source="$axis2:HTTP_SC" regex="200">
+                                             <else>
+                                                <property name="id" expression="fn:concat('hubSpot_contactId:', get-property('contactId'))" />
+                                                <property name="contactError" expression="json-eval($.)" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="error" />
+                                                   <with-param name="activity" value="hubSpot_getContactById" />
+                                                   <with-param name="message" value="{$ctx:contactError}" />
+                                                </call-template>
+                                             </else>
+                                             <then>
+                                                <property name="contactEmail" expression="json-eval($.properties.email.value)" />
+                                                <script language="js">
+                                             <![CDATA[
+                                                
+                                                var eventStart = mc.getProperty('calenderStart');
+                                                var eventEnd = mc.getProperty('calenderEnd');
+                                                var timeZone = mc.getProperty('google.timeZone');
+                                                var contactEmail = mc.getProperty('contactEmail');
+                                                
+                                                
+                                                var emailList = [];
+                                                var emailObj;
+                                                emailObj = '{"email":"' + contactEmail + '"}';                                               
+                                                emailList.push(emailObj);
+                                                  
+                                                mc.setProperty('attendeeEmails', '[' + emailList + ']');
+                                                var payload = {};
+                                                payload.start = {};
+                                                payload.start.dateTime = eventStart;
+                                                payload.start.timeZone = timeZone;
+                                                
+                                                payload.end = {};
+                                                payload.end.dateTime = eventEnd;
+                                                payload.end.timeZone = timeZone;
+                                                mc.setPayloadJSON(payload);
+                                             ]]>
+                                                </script>
+
+                                                <property name="startDateTime" expression="json-eval($.start)" />
+                                                <property name="endDateTime" expression="json-eval($.end)" />
+                                                <property name="sendNotifications" value="true" />
+                                                <property name="id" value="" />
+                                                <property name="anyoneCanAddSelf" value="true" />
+                                                <property name="guestsCanInviteOthers" value="true" />
+                                                <property name="guestsCanSeeOtherGuests" value="true" />
+
+                                                <googlecalendar.init>
+                                                   <apiUrl>{$ctx:google.apiUrl}</apiUrl>
+                                                   <accessToken>{$ctx:google.accessToken}</accessToken>
+                                                </googlecalendar.init>
+                                                <googlecalendar.createEvent>
+                                                   <calendarId>{$ctx:google.calendarId}</calendarId>
+                                                   <end>{$ctx:endDateTime}</end>
+                                                   <start>{$ctx:startDateTime}</start>
+                                                   <attendees>{$ctx:attendeeEmails}</attendees>
+                                                   <id>{$ctx:id}</id>
+                                                   <sendNotifications>{$ctx:sendNotifications}</sendNotifications>
+                                                   <summary>{$ctx:calenderSummery}</summary>
+                                                   <anyoneCanAddSelf>{$ctx:anyoneCanAddSelf}</anyoneCanAddSelf>
+                                                   <guestsCanInviteOthers>{$ctx:guestsCanInviteOthers}</guestsCanInviteOthers>
+                                                   <guestsCanSeeOtherGuests>{$ctx:guestsCanSeeOtherGuests}</guestsCanSeeOtherGuests>
+                                                </googlecalendar.createEvent>
+
+                                                <filter source="$axis2:HTTP_SC" regex="200">
+                                                   <else>
+                                                      <property name="id" expression="fn:concat('hubSpot_dealId:', get-property('dealId'))" />
+                                                      <property name="googleError" expression="json-eval($.)" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="error" />
+                                                         <with-param name="activity" value="googleCalendar_createEvent" />
+                                                         <with-param name="message" value="{$ctx:googleError}" />
+                                                      </call-template>
+                                                   </else>
+                                                   <then>
+                                                      <property name="eventId" expression="json-eval($.id)" />
+                                                      <property name="id" expression="fn:concat('hubSpot_dealId:', get-property('dealId'),',googleCalendar_eventId:',get-property('eventId'))" />
+                                                      <property name="message" value="Calendar event has been successfully created." />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="success" />
+                                                         <with-param name="activity" value="googleCalendar_createEvent" />
+                                                         <with-param name="message" value="{$ctx:message}" />
+                                                      </call-template>
+
+
+                                                      <script language="js">
+                                                         <![CDATA[
+                                          
+                                                            var meetingCreatedProperty = mc.getProperty('hubspot.meetingCreatedProperty');
+                                                               
+                                                            var propertyList = [];
+                                                            var propertyObj = {};  
+                                                            propertyObj.name = meetingCreatedProperty;
+                                                            propertyObj.value = 'Created';                                       
+                                                            propertyList.push(propertyObj);
+                                                                
+                                                            var payload = {};
+                                                            payload.properties = propertyList;
+                                                            mc.setPayloadJSON(payload);
+                                                
+                                                            ]]>
+                                                      </script>
+
+                                                      <property name="properties" expression="json-eval($.properties)" />
+                                                      <hubspot.init>
+                                                         <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                                         <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                                                      </hubspot.init>
+                                                      <hubspot.updateDeal>
+                                                         <dealId>{$ctx:dealId}</dealId>
+                                                         <properties>{$ctx:properties}</properties>
+                                                      </hubspot.updateDeal>
+
+                                                   </then>
+                                                </filter>
+                                             </then>
+                                          </filter>
+                                       </then>
+                                    </filter>
+                                 </then>
+                                 <else>
+                                    <property name="noOfscheduledMeetings" expression="get-property('operation','noOfscheduledMeetings') + 1" scope="operation" />
+                                 </else>
+                              </filter>
+                           </then>
+                           <else>
+                              <property name="noOfscheduledMeetings" expression="get-property('operation','noOfscheduledMeetings') + 1" scope="operation" />
+                           </else>
+
+                        </filter>
+
+
+                        <property name="dealIndex" expression="get-property('operation','dealIndex') + 1" scope="operation" />
+                        <filter xpath="get-property('operation', 'dealIndex') = get-property('operation', 'noOfDealIds')">
+                           <then>
+                              <filter xpath="get-property('operation', 'noOfscheduledMeetings') = get-property('operation', 'noOfDealIds')">
+                                 <then>
+                                    <property name="message" value="Thare are no suitable deals to schedule meetings." />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:emptyID}" />
+                                       <with-param name="status" value="skipped" />
+                                       <with-param name="activity" value="hubSpot_createEngagement" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </then>
+                              </filter>
+                              <loopback />
+                           </then>
+                        </filter>
+                     </sequence>
+                  </target>
+               </iterate>
+            </then>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+
+         <!-- Generate the chained response of all the API calls in ideaInitiation -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"hubSpot_eventHandling",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>       
