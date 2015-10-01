@@ -1,5 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
-   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 
    WSO2 Inc. licenses this file to you under the Apache License,
    Version 2.0 (the "License"); you may not use this file except
@@ -15,85 +16,76 @@
    specific language governing permissions and limitations
    under the License.
 -->
-
 <template name="getProfile" xmlns="http://ws.apache.org/ns/synapse">
-	<parameter name="memberId"
-		description="Id of the member of whose profile fields are requested to be retrived" />
-	<parameter name="publicUrl" description="public url of the requested profile" />
-	<parameter name="fieldSelectors" description="To retrieve the specific fields." />
-	<parameter name="secureUrls"
-		description="Indicate that response to be HTTPS.Default value is false" />
-
-	<sequence>
-		<property name="uri.var.memberId" expression="$func:memberId" />
-		<property name="uri.var.publicUrl" expression="$func:publicUrl" />
-		<property name="uri.var.fieldSelectors" expression="$func:fieldSelectors" />
-		<property name="uri.var.secureUrls" expression="$func:secureUrls" />
-
-		<filter
-			xpath="get-property('uri.var.fieldSelectors') = '' or not(string(get-property('uri.var.fieldSelectors')))">
-			<then>
-				<property name="uri.var.fieldSelectors" value="" />
-			</then>
-			<else>
-				<property name="uri.var.fieldSelectors"
-					expression="fn:concat(':(', get-property('uri.var.fieldSelectors'), ')')" />
-			</else>
-		</filter>
-
-		<filter
-			xpath="(get-property('uri.var.memberId') = '' and not(string(get-property('uri.var.memberId')))) 
+    <parameter name="memberId"
+               description="Id of the member of whose profile fields are requested to be retrived"/>
+    <parameter name="publicUrl" description="public url of the requested profile"/>
+    <parameter name="fieldSelectors" description="To retrieve the specific fields."/>
+    <parameter name="secureUrls"
+               description="Indicate that response to be HTTPS.Default value is false"/>
+    <sequence>
+        <property name="uri.var.memberId" expression="$func:memberId"/>
+        <property name="uri.var.publicUrl" expression="$func:publicUrl"/>
+        <property name="uri.var.fieldSelectors" expression="$func:fieldSelectors"/>
+        <property name="uri.var.secureUrls" expression="$func:secureUrls"/>
+        <filter
+                xpath="get-property('uri.var.fieldSelectors') = '' or not(string(get-property('uri.var.fieldSelectors')))">
+            <then>
+                <property name="uri.var.fieldSelectors" value=""/>
+            </then>
+            <else>
+                <property name="uri.var.fieldSelectors"
+                          expression="fn:concat(':(', get-property('uri.var.fieldSelectors'), ')')"/>
+            </else>
+        </filter>
+        <filter
+                xpath="(get-property('uri.var.memberId') = '' and not(string(get-property('uri.var.memberId'))))
 			and (get-property('uri.var.publicUrl') = '' and not(string(get-property('uri.var.publicUrl'))))">
-			<then>
-				<!-- id and publicUrl both are null -->
-
-				<call>
-					<endpoint>
-						<http method="get"
-							uri-template="{uri.var.apiUrl}/v1/people/~{uri.var.fieldSelectors}?oauth2_access_token={uri.var.accessToken}&amp;format=json&amp;secure-urls={uri.var.secureUrls}" />
-					</endpoint>
-				</call>
-
-			</then>
-			<else>
-				<filter
-					xpath="not(get-property('uri.var.memberId') = '') and string(get-property('uri.var.memberId'))">
-					<then>
-						<!-- id is not null and publicUrl is null -->
-
-						<call>
-							<endpoint>
-								<http method="get"
-									uri-template="{uri.var.apiUrl}/v1/people/id={uri.var.memberId}{uri.var.fieldSelectors}?oauth2_access_token={uri.var.accessToken}&amp;format=json&amp;secure-urls={uri.var.secureUrls}" />
-							</endpoint>
-						</call>
-
-					</then>
-					<else>
-						<!-- publicUrl is not null and id is null -->
-						<script language="js">
-						<![CDATA[ 
+            <then>
+                <!-- id and publicUrl both are null -->
+                <call>
+                    <endpoint>
+                        <http method="get"
+                              uri-template="{uri.var.apiUrl}/v1/people/~{uri.var.fieldSelectors}?oauth2_access_token={uri.var.accessToken}&amp;format=json&amp;secure-urls={uri.var.secureUrls}"/>
+                    </endpoint>
+                </call>
+            </then>
+            <else>
+                <filter
+                        xpath="not(get-property('uri.var.memberId') = '') and string(get-property('uri.var.memberId'))">
+                    <then>
+                        <!-- id is not null and publicUrl is null -->
+                        <call>
+                            <endpoint>
+                                <http method="get"
+                                      uri-template="{uri.var.apiUrl}/v1/people/id={uri.var.memberId}{uri.var.fieldSelectors}?oauth2_access_token={uri.var.accessToken}&amp;format=json&amp;secure-urls={uri.var.secureUrls}"/>
+                            </endpoint>
+                        </call>
+                    </then>
+                    <else>
+                        <!-- publicUrl is not null and id is null -->
+                        <script language="js">
+                            <![CDATA[
 							var encoded_publicUrl = encodeURIComponent(mc.getProperty('uri.var.publicUrl'));
 			
 							mc.setProperty('uri.var.publicUrl', encoded_publicUrl); 
 						]]></script>
-						<call>
-							<endpoint>
-								<http method="get"
-									uri-template="{uri.var.apiUrl}/v1/people/url={uri.var.publicUrl}{uri.var.fieldSelectors}?oauth2_access_token={uri.var.accessToken}&amp;format=json&amp;secure-urls={uri.var.secureUrls}" />
-							</endpoint>
-						</call>
-
-					</else>
-				</filter>
-			</else>
-		</filter>
-		<!-- Remove response custom header information -->
-		<header name="x-li-format" scope="transport" action="remove" />
-		<header name="X-LI-UUID" scope="transport" action="remove" />
-		<header name="X-Li-Pop" scope="transport" action="remove" />
-		<header name="X-Li-Fabric" scope="transport" action="remove" />
-		<header name="x-li-request-id" scope="transport" action="remove" />
-		<header name="Set-Cookie" scope="transport" action="remove" />
-	</sequence>
+                        <call>
+                            <endpoint>
+                                <http method="get"
+                                      uri-template="{uri.var.apiUrl}/v1/people/url={uri.var.publicUrl}{uri.var.fieldSelectors}?oauth2_access_token={uri.var.accessToken}&amp;format=json&amp;secure-urls={uri.var.secureUrls}"/>
+                            </endpoint>
+                        </call>
+                    </else>
+                </filter>
+            </else>
+        </filter>
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+        <header name="Set-Cookie" scope="transport" action="remove"/>
+    </sequence>
 </template>
