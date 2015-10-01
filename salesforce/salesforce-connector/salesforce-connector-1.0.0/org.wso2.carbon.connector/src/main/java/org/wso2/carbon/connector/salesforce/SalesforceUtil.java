@@ -90,15 +90,26 @@ public final class SalesforceUtil {
 						newElement.addChild(tmpElement);
 					}
 					// Add the fields
-					Iterator<OMElement> sObjectFields = currentElement.getChildElements();
-					while (sObjectFields.hasNext()) {
-						OMElement sObjectField = sObjectFields.next();
-						tmpElement = fac.createOMElement(sObjectField.getLocalName(), omNsurn1);
-						tmpElement.addChild(fac.createOMText(sObjectField.getText()));
-						newElement.addChild(tmpElement);
-					}
-
-					bodyElement.addChild(newElement);
+                    Iterator<OMElement> sObjectFields = currentElement.getChildElements();
+                    while (sObjectFields.hasNext()) {
+                        OMElement sObjectField = sObjectFields.next();
+                        tmpElement = fac.createOMElement(sObjectField.getLocalName(), omNsurn1);;
+                        Iterator<OMElement> sNestedObjects = sObjectField.getChildElements();
+                        // Support nested sObjects
+                        if (sNestedObjects.hasNext()) {
+                            while (sNestedObjects.hasNext()) {
+                                OMElement sNestedObjectField = sNestedObjects.next();
+                                OMElement newChildElement = fac.createOMElement(sNestedObjectField.getLocalName(),
+                                        omNsurn1);
+                                newChildElement.addChild(fac.createOMText(sNestedObjectField.getText()));
+                                tmpElement.addChild(newChildElement);
+                            }
+                        } else {
+                            tmpElement.addChild(fac.createOMText(sObjectField.getText()));
+                        }
+                        newElement.addChild(tmpElement);
+                    }
+                    bodyElement.addChild(newElement);
 				}
 			} catch (Exception e) {
 				synLog.error("Saleforce adaptor - error injecting sObjects to payload : " + e);
