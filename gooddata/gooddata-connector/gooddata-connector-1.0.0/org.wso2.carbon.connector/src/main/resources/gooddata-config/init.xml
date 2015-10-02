@@ -1,95 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ ~  Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ ~
+ ~  WSO2 Inc. licenses this file to you under the Apache License,
+ ~  Version 2.0 (the "License"); you may not use this file except
+ ~  in compliance with the License.
+ ~  You may obtain a copy of the License at
+ ~
+ ~    http://www.apache.org/licenses/LICENSE-2.0
+ ~
+ ~  Unless required by applicable law or agreed to in writing,
+ ~  software distributed under the License is distributed on an
+ ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ ~  KIND, either express or implied.  See the License for the
+ ~  specific language governing permissions and limitations
+ ~  under the License.
+-->
 <template name="init" xmlns="http://ws.apache.org/ns/synapse">
-	<parameter name="username" description="The username of the account" />
-	<parameter name="password" description="The password of the account" />
-	<parameter name="remember" description="Remember the user login or not" />
-	<parameter name="apiUrl" description="URL endpoint of the API" />
-	<sequence>
-		<property name="uri.var.username" expression="$func:username" />
-		<property name="uri.var.password" expression="$func:password" />
-		<property name="uri.var.remember" expression="$func:remember" />
-		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
-		
-		<!-- Calling the login method to derive the SST token -->
-		<payloadFactory media-type="json">
-			<format>
-				{
-				    "postUserLogin":{
-				        "login":"$1",
-				        "password":"$2",
-				        "remember":$3
-				    }
-				}
-			</format>
-			<args>
-				<arg expression="get-property('uri.var.username')" />
-				<arg expression="get-property('uri.var.password')" />
-				<arg expression="get-property('uri.var.remember')" />
-			</args>
-		</payloadFactory>
-	
-		<property name="DISABLE_CHUNKING" value="true" scope="axis2" />
-		<call>
-			<endpoint>
-				<http method="post" uri-template="{uri.var.apiUrl}/gdc/account/login" />
-			</endpoint>
-		</call>
-
-		<header name="X-GDC-REQUEST" scope="transport" action="remove" />
-		<header name="X-Varnish" scope="transport" action="remove" />
-		<header name="P3P" scope="transport" action="remove" />
-		<header name="Accept-Ranges" scope="transport" action="remove" />
-		<header name="Pragma" scope="transport" action="remove" />
-		<header name="Age" scope="transport" action="remove" />
-		<header name="Via" scope="transport" action="remove" />
-		<header name="Expires" scope="transport" action="remove" />
-		<header name="WWW-Authenticate" scope="transport" action="remove" />
-		
-		<!-- Extracting and saving the SST token  -->
-		<class name="org.wso2.carbon.connector.auth.GoodDataAuthentication" />
-		
-		<!-- Removing response headers before calling the get token method -->
-		<header name="Server" scope="transport" action="remove" />
-		<header name="Cache-Control" scope="transport" action="remove" />
-		<header name="Set-Cookie" scope="transport" action="remove" />
-		<header name="Transfer-Encoding" scope="transport" action="remove" />
-		<header name="Content-Type" scope="transport" action="remove" />
-		<header name="Date" scope="transport" action="remove" />
-		
-		<payloadFactory media-type="json">
-			<format>
-				{}
-			</format>
-		</payloadFactory>
-		
-		<header name="Cookie" scope="transport" expression="get-property('uri.var.superSecureToken')"/>
-		
-		<call>
-			<endpoint>
-				<http method="get" uri-template="{uri.var.apiUrl}/gdc/account/token" />
-			</endpoint>
-		</call>
-		
-		<property name="uri.var.temporyToken" expression="get-property('transport','Set-Cookie')" />		
-		
-		<!-- Removing response headers before calling the corresponding method -->
-		<header name="X-GDC-REQUEST" scope="transport" action="remove" />
-		<header name="Server" scope="transport" action="remove" />
-		<header name="Expires" scope="transport" action="remove" />
-		<header name="Cache-Control" scope="transport" action="remove" />
-		<header name="Pragma" scope="transport" action="remove" />
-		<header name="P3P" scope="transport" action="remove" />
-		<header name="Set-Cookie" scope="transport" action="remove" />
-		<header name="Content-Length" scope="transport" action="remove" />
-		<header name="Content-Type" scope="transport" action="remove" />
-		<header name="Accept-Ranges" scope="transport" action="remove" />
-		<header name="Date" scope="transport" action="remove" />
-		<header name="X-Varnish" scope="transport" action="remove" />
-		<header name="Age" scope="transport" action="remove" />
-		<header name="Via" scope="transport" action="remove" />
-
-		<!-- Setting the cookie header and the accept header to call the corresponding method -->
-		<header name="Cookie" scope="transport" expression="get-property('uri.var.temporyToken')"/>
-		<header name="Accept" scope="transport" value="application/json"/>
-		
-	</sequence>
+    <parameter name="username" description="The username of the account"/>
+    <parameter name="password" description="The password of the account"/>
+    <parameter name="remember" description="Remember the user login or not"/>
+    <parameter name="apiUrl" description="URL endpoint of the API"/>
+    <sequence>
+        <property name="uri.var.username" expression="$func:username"/>
+        <property name="uri.var.password" expression="$func:password"/>
+        <property name="uri.var.remember" expression="$func:remember"/>
+        <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
+        <!-- Calling the login method to derive the SST token -->
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "postUserLogin":{
+                "login":"$1",
+                "password":"$2",
+                "remember":$3
+                }
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.username')"/>
+                <arg expression="get-property('uri.var.password')"/>
+                <arg expression="get-property('uri.var.remember')"/>
+            </args>
+        </payloadFactory>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/gdc/account/login"/>
+            </endpoint>
+        </call>
+        <header name="X-GDC-REQUEST" scope="transport" action="remove"/>
+        <header name="X-Varnish" scope="transport" action="remove"/>
+        <header name="P3P" scope="transport" action="remove"/>
+        <header name="Accept-Ranges" scope="transport" action="remove"/>
+        <header name="Pragma" scope="transport" action="remove"/>
+        <header name="Age" scope="transport" action="remove"/>
+        <header name="Via" scope="transport" action="remove"/>
+        <header name="Expires" scope="transport" action="remove"/>
+        <header name="WWW-Authenticate" scope="transport" action="remove"/>
+        <!-- Extracting and saving the SST token  -->
+        <class name="org.wso2.carbon.connector.auth.GoodDataAuthentication"/>
+        <!-- Removing response headers before calling the get token method -->
+        <header name="Server" scope="transport" action="remove"/>
+        <header name="Cache-Control" scope="transport" action="remove"/>
+        <header name="Set-Cookie" scope="transport" action="remove"/>
+        <header name="Transfer-Encoding" scope="transport" action="remove"/>
+        <header name="Content-Type" scope="transport" action="remove"/>
+        <header name="Date" scope="transport" action="remove"/>
+        <payloadFactory media-type="json">
+            <format>
+                {}
+            </format>
+        </payloadFactory>
+        <header name="Cookie" scope="transport" expression="get-property('uri.var.superSecureToken')"/>
+        <call>
+            <endpoint>
+                <http method="get" uri-template="{uri.var.apiUrl}/gdc/account/token"/>
+            </endpoint>
+        </call>
+        <property name="uri.var.temporyToken" expression="get-property('transport','Set-Cookie')"/>
+        <!-- Removing response headers before calling the corresponding method -->
+        <header name="X-GDC-REQUEST" scope="transport" action="remove"/>
+        <header name="Server" scope="transport" action="remove"/>
+        <header name="Expires" scope="transport" action="remove"/>
+        <header name="Cache-Control" scope="transport" action="remove"/>
+        <header name="Pragma" scope="transport" action="remove"/>
+        <header name="P3P" scope="transport" action="remove"/>
+        <header name="Set-Cookie" scope="transport" action="remove"/>
+        <header name="Content-Length" scope="transport" action="remove"/>
+        <header name="Content-Type" scope="transport" action="remove"/>
+        <header name="Accept-Ranges" scope="transport" action="remove"/>
+        <header name="Date" scope="transport" action="remove"/>
+        <header name="X-Varnish" scope="transport" action="remove"/>
+        <header name="Age" scope="transport" action="remove"/>
+        <header name="Via" scope="transport" action="remove"/>
+        <!-- Setting the cookie header and the accept header to call the corresponding method -->
+        <header name="Cookie" scope="transport" expression="get-property('uri.var.temporyToken')"/>
+        <header name="Accept" scope="transport" value="application/json"/>
+    </sequence>
 </template>
