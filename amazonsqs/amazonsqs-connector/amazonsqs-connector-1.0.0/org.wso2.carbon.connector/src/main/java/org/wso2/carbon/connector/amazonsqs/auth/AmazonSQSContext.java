@@ -24,6 +24,7 @@ import org.apache.synapse.MessageContext;
 import org.apache.synapse.SynapseException;
 import org.wso2.carbon.connector.core.AbstractConnector;
 import org.wso2.carbon.connector.core.ConnectException;
+import org.wso2.carbon.connector.amazonsqs.constants.AmazonSQSConstants;
 
 public class AmazonSQSContext extends AbstractConnector {
 
@@ -47,13 +48,13 @@ public class AmazonSQSContext extends AbstractConnector {
         log.debug("Removing the unneeded properties of the already run methods");
         Object[] keys = messageContext.getPropertyKeySet().toArray();
         for (Object key : keys) {
-            if ((key).toString().startsWith("uri.var.") && !(key).toString().startsWith("uri.var.apiUrl")
-                    && !(key).toString().startsWith("uri.var.accessKeyId") && !(key).toString().startsWith("uri.var.secretAccessKey")
-                    && !(key).toString().startsWith("uri.var.contentType") && !(key).toString().startsWith("uri.var.service")
-                    && !(key).toString().startsWith("uri.var.signatureVersion") && !(key).toString().startsWith("uri.var.signatureMethod")
-                    && !(key).toString().startsWith("uri.var.version") && !(key).toString().startsWith("uri.var.terminationString")
-                    && !(key).toString().startsWith("uri.var.region") && !(key).toString().startsWith("uri.var.hostName")
-                    && !(key).toString().startsWith("uri.var.httpMethod")) {
+            if ((key).toString().startsWith(AmazonSQSConstants.URI_VAR_PREFIX) && !(key).toString().startsWith(AmazonSQSConstants.API_URL)
+                    && !(key).toString().startsWith(AmazonSQSConstants.ACCESS_KEY_ID) && !(key).toString().startsWith(AmazonSQSConstants.SECRET_ACCESS_KEY)
+                    && !(key).toString().startsWith(AmazonSQSConstants.CONTENT_TYPE) && !(key).toString().startsWith(AmazonSQSConstants.SERVICE)
+                    && !(key).toString().startsWith(AmazonSQSConstants.SIGNATURE_VERSION) && !(key).toString().startsWith(AmazonSQSConstants.SIGNATURE_METHOD)
+                    && !(key).toString().startsWith(AmazonSQSConstants.VERSION) && !(key).toString().startsWith(AmazonSQSConstants.TERMINATION_STRING)
+                    && !(key).toString().startsWith(AmazonSQSConstants.REGION) && !(key).toString().startsWith(AmazonSQSConstants.HOST)
+                    && !(key).toString().startsWith(AmazonSQSConstants.HTTP_METHOD)) {
                 messageContext.getPropertyKeySet().remove(key);
             }
         }
