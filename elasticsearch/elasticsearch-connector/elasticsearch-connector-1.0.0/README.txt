@@ -38,8 +38,14 @@ Steps to follow in setting integration test.
       https://www.elastic.co/guide/en/elasticsearch/reference/current/setup.html
 
  5. Prerequisites for Elasticsearch Connector Integration Testing.
-		i) Create an index using a method call to Elasticsearch API using the following URL.
-				PUT 'http://{IP_ADDRESS_OF_THE_MACHINE}:{PORT_NUMBER}/{INDEX_NAME}/'
+      i) Make sure to enable ElasticSearch dynamic Groovy scripts by modifying the file "<ELASTICSEARCH_INSTANCE_HOME>/config/elasticsearch.yml" and add the following setting to that file.
+            
+            script.groovy.sandbox.enabled: true
+            
+            Use the URL "https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-scripting.html#_groovy_sandboxing" for more information to enable ElasticSearch dynamic Groovy scripts.
+            
+      ii) Create an index using a method call to Elasticsearch API using the following URL.
+            PUT 'http://{IP_ADDRESS_OF_THE_MACHINE}:{PORT_NUMBER}/{INDEX_NAME}/'
  
  6. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<ESB_CONNECTOR_HOME>/repository/".
  
@@ -55,7 +61,7 @@ Steps to follow in setting integration test.
    iii)   size                         -  The number of hits to return.
    iv)    scroll                       -  Specify a time duration according to the following format. (format : {TIME_DURATION}{TIME_UNIT} , e.g. 1m).
    v)     terminateAfter               -  The maximum number of documents to collect for each shard, upon reaching which the query execution will terminate early. Provide an integer as the value.
-   vi)    indexName                    -  Use the name of the index created in step 5)i.
+   vi)    indexName                    -  Use the name of the index created in step 5)ii.
    vii)   type                         -  The type inside which the ID would be considered. Provide any string value.
    viii)  updateDocValueMandatory      -  Updated value of the document(provide any value).
    ix)    updateDocValueOptional       -  Updated value of the document(provide any value).
