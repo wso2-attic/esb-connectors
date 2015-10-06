@@ -39,7 +39,6 @@ import org.apache.synapse.MessageContext;
 import org.apache.synapse.SynapseConstants;
 import org.wso2.carbon.connector.amazonsqs.constants.AmazonSQSConstants;
 import org.wso2.carbon.connector.core.AbstractConnector;
-import org.apache.synapse.core.axis2.Axis2MessageContext;
 
 /**
  * Class AmazonSQSAuthConnector which helps to generate authentication signature for Amazon SQS WSO2 ESB
@@ -332,17 +331,8 @@ public class AmazonSQSAuthConnector extends AbstractConnector {
             final String key = headerKeys[index];
             // builds the parameter map only if provided by the user
             if (messageContext.getProperty(key) != null && !("").equals((String) messageContext.getProperty(key))) {
-                Axis2MessageContext axisMsgContext = (Axis2MessageContext) messageContext;
-                org.apache.axis2.context.MessageContext axis2MsgContext = axisMsgContext
-                        .getAxis2MessageContext();
-                String cType = axis2MsgContext.getProperty(AmazonSQSConstants.CONTENT_TYPE).toString();
-                if(key.equals(AmazonSQSConstants.CONTENT_TYPE)) {
-                    parametersMap.put(namesMap.get(key).toLowerCase(), cType.trim()
-                            .replaceAll(AmazonSQSConstants.TRIM_SPACE_REGEX, AmazonSQSConstants.SPACE));
-                } else {
-                    parametersMap.put(namesMap.get(key).toLowerCase(), messageContext.getProperty(key).toString().trim()
-                            .replaceAll(AmazonSQSConstants.TRIM_SPACE_REGEX, AmazonSQSConstants.SPACE));
-                }
+                parametersMap.put(namesMap.get(key).toLowerCase(), messageContext.getProperty(key).toString().trim()
+                        .replaceAll(AmazonSQSConstants.TRIM_SPACE_REGEX, AmazonSQSConstants.SPACE));
             }
         }
         return parametersMap;
