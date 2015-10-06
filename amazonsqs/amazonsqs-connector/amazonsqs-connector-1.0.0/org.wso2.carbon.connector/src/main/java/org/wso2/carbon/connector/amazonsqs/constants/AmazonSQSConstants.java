@@ -406,7 +406,7 @@ public class AmazonSQSConstants {
     /**
      * Constant for Content type.
      */
-    public static final String CONTENT_TYPE = "ContentType";
+    public static final String CONTENT_TYPE = "uri.var.contentType";
     
     /**
      * Constant for API Content Type variable.
