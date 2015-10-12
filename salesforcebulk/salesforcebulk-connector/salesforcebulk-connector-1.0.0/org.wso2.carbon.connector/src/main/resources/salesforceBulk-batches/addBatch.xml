@@ -20,10 +20,12 @@
 <template xmlns="http://ws.apache.org/ns/synapse" name="addBatch">
    <parameter name="objects" description="The group of records to be processed." />
    <parameter name="jobId" description="The unique identifier of the Job." />
+   <parameter name="contentType" description="The content type to add batch. Content type must be compatible with the job content type. The accepted content types are application/xml and text/csv." />
    <sequence>
       <property name="uri.var.objects" expression="$func:objects" />
       <property name="uri.var.jobId" expression="$func:jobId" />
-      <property name="messageType" value="application/xml" scope="axis2"/>
+      <property name="uri.var.contentType" expression="$func:contentType" />
+      <property name="messageType" value="application/xml" scope="axis2" />
       <script language="js">
       <![CDATA[
             var objects = new XML(mc.getProperty('uri.var.objects'));
@@ -31,13 +33,18 @@
 			mc.setPayloadXML(payload);
          ]]>
       </script>
+      <filter source="boolean(get-property('uri.var.contentType'))" regex="true">
+         <then>
+            <property name="ContentType" expression="get-property('uri.var.contentType')" scope="axis2" />
+         </then>
+      </filter>
       <call>
          <endpoint>
             <http method="post" uri-template="{+uri.var.apiUrl}/job/{+uri.var.jobId}/batch" />
          </endpoint>
       </call>
       <property name="uri.var.statusCode" expression="$axis2:HTTP_SC" />
-      <property name="uri.var.exceptionCode" expression="//*[local-name()='exceptionCode']/text()"/>
+      <property name="uri.var.exceptionCode" expression="//*[local-name()='exceptionCode']/text()" />
       <!-- If the call fails with 400 Bad Request and the exception code is 'InvalidSessionId,', then get a new access token by calling getAccessToken method. -->
       <filter xpath="get-property('uri.var.statusCode') = 400 and get-property('uri.var.exceptionCode')='InvalidSessionId' and get-property('uri.var.refreshTokenNegotiated') = 'false'">
          <then>
