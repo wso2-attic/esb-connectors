@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-delete.html#docs-delete -->
+<template name="deleteDocument" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="indexName" description="Name of the index inside which the type is."/>
+   <parameter name="type" description="The type inside which the ID is."/>
+   <parameter name="id" description="Key of the index to be deleted."/>
+   <parameter name="version" description="Version parameter can be used to get only the specific version."/>
+   <parameter name="routing" description="When indexing using the ability to control the routing, in order to get a document, the routing value should also be provided."/>
+   <parameter name="refresh" description="The refresh parameter can be set to true in order to refresh the relevant shard before the get operation and make it searchable."/>
+   <parameter name="parentId" description="ID of the parent document inside which the child document will be tagged."/>
+   <parameter name="consistency" description="Control if the operation will be allowed to execute based on the number of active shards within that partition (replication group). The values allowed are one, quorum, and all. The parameter to set it is consistency, and it defaults to the node level setting of action.write_consistency which in turn defaults to quorum."/>
+   <parameter name="timeout" description="The primary shard assigned to perform the index operation might not be available when the index operation is executed."/>
+   <sequence>
+      <property name="uri.var.indexName" expression="$func:indexName"/>
+      <property name="uri.var.type" expression="$func:type"/>
+      <property name="uri.var.id" expression="$func:id"/>
+      <property name="uri.var.version" expression="$func:version"/>
+      <property name="uri.var.routing" expression="$func:routing"/>
+      <property name="uri.var.refresh" expression="$func:refresh"/>
+      <property name="uri.var.parentId" expression="$func:parentId"/>
+      <property name="uri.var.consistency" expression="$func:consistency"/>
+      <property name="uri.var.timeout" expression="$func:timeout"/>
+      <script language="js">
+         <![CDATA[
+            var routing = mc.getProperty('uri.var.routing');
+            var refresh = mc.getProperty('uri.var.refresh');
+            var version = mc.getProperty('uri.var.version');
+            var consistency = mc.getProperty('uri.var.consistency');
+            var parentId = mc.getProperty('uri.var.parentId');
+            var timeout = mc.getProperty('uri.var.timeout');
+            var commonQueryParams = mc.getProperty('uri.var.commonQueryParams');
+            var urlQuery = '';
+            if (commonQueryParams != null && commonQueryParams != "") {
+               urlQuery +=  commonQueryParams;
+            }
+            if (version != null && version != "") {
+               urlQuery += 'version=' + version + '&';
+            }
+            if (routing != null && routing != "") {
+               urlQuery += 'routing=' + routing + '&';
+            }
+            if (refresh != null && refresh != "") {
+               urlQuery += 'refresh=' + refresh + '&';
+            }
+            if (parentId != null && parentId != "") {
+               urlQuery += 'parent=' + parentId + '&';
+            }
+            if (consistency != null && consistency != "") {
+               urlQuery += 'consistency=' + consistency + '&';
+            }
+            if (timeout != null && timeout != "") {
+               urlQuery += 'timeout=' + timeout + '&';
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="delete" uri-template="{uri.var.apiUrl}/{uri.var.indexName}/{uri.var.type}/{uri.var.id}{+uri.var.urlQuery}"/>
+         </endpoint>
+      </call>
+   </sequence>
+</template>

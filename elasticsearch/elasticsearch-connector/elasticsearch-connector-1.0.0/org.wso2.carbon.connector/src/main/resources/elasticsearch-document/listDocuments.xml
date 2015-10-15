@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-multi-get.html#docs-multi-get -->
+<template name="listDocuments" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="indexName" description="Name of the index." />
+   <parameter name="routing" description="When indexing using the ability to control the routing, in order to get a document, the routing value should also be provided." />
+   <parameter name="refresh" description="The refresh parameter can be set to true in order to refresh the relevant shard before the get operation and make it searchable." />
+   <parameter name="realtime" description="By default, the get API is realtime, and is not affected by the refresh rate of the index (when data will become visible for search)." />
+   <parameter name="fields" description="The get operation allows specifying a set of stored fields that will be returned by passing the fields parameter." />
+   <parameter name="source" description="By default, the get operation returns the contents of the _source field unless you have used the fields parameter or if the _source field is disabled. You can turn off _source retrieval by using the _source parameter." />
+   <parameter name="docs" description="Documents to be retrieved." />
+   <parameter name="ids" description="List of document IDs to be retrieved." />
+   <parameter name="type" description="Set it to _all or leave it empty in order to fetch the first document matching the id across all types." />
+   <parameter name="sourceExclude" description="The _source_exclude parameter can be used to omit the unwanted parts from complete _source." />
+   <parameter name="sourceInclude" description="The _source_include parameter can be used to filter out only one or two fields from the complete _source." />
+   <sequence>
+      <property name="uri.var.indexName" expression="$func:indexName" />
+      <property name="uri.var.routing" expression="$func:routing" />
+      <property name="uri.var.refresh" expression="$func:refresh" />
+      <property name="uri.var.realtime" expression="$func:realtime" />
+      <property name="uri.var.fields" expression="$func:fields" />
+      <property name="uri.var.source" expression="$func:source" />
+      <property name="uri.var.docs" expression="$func:docs" />
+      <property name="uri.var.ids" expression="$func:ids" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.sourceExclude" expression="$func:sourceExclude" />
+      <property name="uri.var.sourceInclude" expression="$func:sourceInclude" />
+      <script language="js">
+         <![CDATA[
+            var routing = mc.getProperty('uri.var.routing');
+            var sourceInclude = mc.getProperty('uri.var.sourceInclude');
+            var realtime = mc.getProperty('uri.var.realtime');
+            var docs = mc.getProperty('uri.var.docs');
+            var refresh = mc.getProperty('uri.var.refresh');
+            var ids = mc.getProperty('uri.var.ids');
+            var source = mc.getProperty('uri.var.source');
+            var fields = mc.getProperty('uri.var.fields');
+            var sourceExclude = mc.getProperty('uri.var.sourceExclude');
+            var jsonPayload = {};
+            var urlQuery = '';
+            var commonQueryParams = mc.getProperty('uri.var.commonQueryParams');
+            if (commonQueryParams != null && commonQueryParams != "") {
+               urlQuery +=  commonQueryParams;
+            }
+            if (routing != null && routing != "") {
+               urlQuery += 'routing=' + routing + '&';
+            }
+            if (refresh != null && refresh != "") {
+               urlQuery += 'refresh=' + refresh + '&';
+            }
+            if (realtime != null && realtime != "") {
+               urlQuery += 'realtime=' + realtime + '&';
+            }
+            if (fields != null && fields != "") {
+               urlQuery += 'fields=' + fields + '&';
+            }
+            if (source != null && source != "") {
+               urlQuery += '_source=' + source + '&';
+            }
+            if (sourceExclude != null && sourceExclude != "") {
+               urlQuery += '_source_exclude=' + sourceExclude + '&';
+            }
+            if (sourceInclude != null && sourceInclude != "") {
+               urlQuery += '_source_include=' + sourceInclude + '&';
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+            if (docs != null && docs != "") {
+               jsonPayload.docs = eval("(" + docs + ")");
+            }
+            if (ids != null && ids != "") {
+               jsonPayload.ids = eval("(" + ids + ")");
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+     <!-- Creating different end points according to the parameters in the JSON request. -->
+      <filter source="boolean(get-property('uri.var.indexName'))" regex="true">
+         <then>
+            <property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/', get-property('uri.var.indexName'))" />
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.type'))" regex="true">
+         <then>
+            <property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/', get-property('uri.var.type'))" />
+         </then>
+      </filter>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/_mget{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+   </sequence>
+</template>
