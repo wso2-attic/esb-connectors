@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://developer.pagerduty.com/documentation/rest/incidents/update -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="updateIncident">
+   <parameter name="requesterId" description="The unique identifier of the incident. This can be incident ID or incident number." />
+   <parameter name="incidents" description="An array of incidents, including the parameters to update." />
+   <sequence>
+      <property name="uri.var.requesterId" expression="$func:requesterId" />
+      <property name="uri.var.incidents" expression="$func:incidents" />
+      <payloadFactory media-type="json">
+         <format>{
+               "requester_id": "$1"
+            }</format>
+         <args>
+            <arg expression="get-property('uri.var.requesterId')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+	  <![CDATA[
+			var incidents = mc.getProperty('uri.var.incidents'); 
+			var payload=mc.getPayloadJSON();
+			if (incidents != null && incidents != ""){
+               payload["incidents"] = eval ("(" + incidents + ")");
+            } 
+		  mc.setPayloadJSON(payload);
+		  ]]>
+	  </script>
+      <call>
+         <endpoint>
+            <http method="put" uri-template="{uri.var.apiUrl}/incidents" />
+         </endpoint>
+      </call>
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="X-UA-Compatible" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Headers" scope="transport" action="remove" />
+      <header name="Access-Control-Max-Age" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Methods" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+	  <header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+	  <header name="Cache-Control" scope="transport" action="remove" />
+   </sequence>
+</template>
