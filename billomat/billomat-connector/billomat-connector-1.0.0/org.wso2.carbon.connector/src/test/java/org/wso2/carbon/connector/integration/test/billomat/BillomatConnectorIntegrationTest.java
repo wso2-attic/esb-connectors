@@ -1166,4 +1166,237 @@ public class BillomatConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 .getJSONObject("errors").get("error"));
     }
     
+    /**
+     * Positive test case for createDeliveryNote method with mandatory parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "billomat {createDeliveryNote} integration test with mandatory parameters.",
+            dependsOnMethods = { "testCreateClientWithMandatoryParameters" })
+    public void testCreateDeliveryNoteWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createDeliveryNote");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createDeliveryNote_mandatory.json");
+        
+        final JSONObject esbResponse = esbRestResponse.getBody().getJSONObject("delivery-note");
+        
+        final String deliveryNoteId = esbResponse.getString("id");
+        connectorProperties.put("deliveryNoteId", deliveryNoteId);
+        
+        final String apiEndpoint =
+                apiEndpointUrl + "/delivery-notes/" + connectorProperties.getProperty("deliveryNoteId") + authString;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+        
+        final JSONObject apiResponse = apiRestResponse.getBody().getJSONObject("delivery-note");
+        
+        Assert.assertEquals(connectorProperties.getProperty("clientId"), apiResponse.getString("client_id"));
+        Assert.assertEquals(esbResponse.getString("created"), apiResponse.getString("created"));
+        Assert.assertEquals(esbResponse.getString("status"), apiResponse.getString("status"));
+        Assert.assertEquals(esbResponse.getString("delivery_note_number"), apiResponse.getString("delivery_note_number"));
+        Assert.assertEquals(esbResponse.getString("date"), apiResponse.getString("date"));
+    }
+    
+    /**
+     * Positive test case for createDeliveryNote method with optional parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "billomat {createDeliveryNote} integration test with optional parameters.",
+            dependsOnMethods = { "testCreateClientWithMandatoryParameters","testCreateContactWithMandatoryParameters" })
+    public void testCreateDeliveryNoteWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createDeliveryNote");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createDeliveryNote_optional.json");
+        
+        final JSONObject esbResponse = esbRestResponse.getBody().getJSONObject("delivery-note");
+        
+        final String deliveryNoteId = esbResponse.getString("id");
+        final String deliveryNoteNumber = esbResponse.getString("delivery_note_number");
+        connectorProperties.put("deliveryNoteId", deliveryNoteId);
+        connectorProperties.put("deliveryNoteFullNumber", deliveryNoteNumber);
+        
+        final String apiEndpoint =
+                apiEndpointUrl + "/delivery-notes/" + connectorProperties.getProperty("deliveryNoteId") + authString;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+        
+        final JSONObject apiResponse = apiRestResponse.getBody().getJSONObject("delivery-note");
+        
+        Assert.assertEquals(connectorProperties.getProperty("contactId"), apiResponse.getString("contact_id"));
+        Assert.assertEquals(connectorProperties.getProperty("deliveryNoteNumberPrefix"), apiResponse.getString("number_pre"));
+        Assert.assertEquals(connectorProperties.getProperty("deliveryNoteNumber"), apiResponse.getString("number"));
+        Assert.assertEquals(connectorProperties.getProperty("deliveryNoteTitle"), apiResponse.getString("title"));
+        Assert.assertEquals(connectorProperties.getProperty("deliveryNoteDate"), apiResponse.getString("date"));
+    }
+    
+    /**
+     * Negative test case for createDeliveryNote method.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "billomat {createDeliveryNote} integration test with negative case.",
+            dependsOnMethods = { "testCreateClientWithMandatoryParameters" })
+    public void testCreateDeliveryNoteWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:createDeliveryNote");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createDeliveryNote_negative.json");
+        final String apiEndPoint = apiEndpointUrl + "/delivery-notes/" + authString;
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_createDeliveryNote_negative.json");
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("errors").get("error"), apiRestResponse.getBody()
+                .getJSONObject("errors").get("error"));
+    }
+    
+    /**
+     * Positive test case for getDeliveryNote method with mandatory parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "billomat {getDeliveryNote} integration test with mandatory parameters.",
+            dependsOnMethods = { "testCreateDeliveryNoteWithMandatoryParameters" })
+    public void testGetDeliveryNoteWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:getDeliveryNote");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getDeliveryNote_mandatory.json");
+        
+        final JSONObject esbResponse = esbRestResponse.getBody().getJSONObject("delivery-note");
+
+        final String apiEndpoint =
+                apiEndpointUrl + "/delivery-notes/" + connectorProperties.getProperty("deliveryNoteId") + authString;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+        
+        final JSONObject apiResponse = apiRestResponse.getBody().getJSONObject("delivery-note");
+        
+        Assert.assertEquals(esbResponse.getString("client_id"), apiResponse.getString("client_id"));
+        Assert.assertEquals(esbResponse.getString("created"), apiResponse.getString("created"));
+        Assert.assertEquals(esbResponse.getString("status"), apiResponse.getString("status"));
+        Assert.assertEquals(esbResponse.getString("delivery_note_number"), apiResponse.getString("delivery_note_number"));
+        Assert.assertEquals(esbResponse.getString("date"), apiResponse.getString("date"));
+    }
+    
+    /**
+     * Method name: getDeliveryNote
+     * Test scenario: Optional
+     * Reason to skip: In getDeliveryNote method there is only one paramter which is a mandatory one.
+     */
+    
+    /**
+     * Negative case for getDeliveryNote method.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "billomat {getDeliveryNote} integration test with negative case.")
+    public void testGetDeliveryNoteWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:getDeliveryNote");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getDeliveryNote_negative.json");
+        final String apiEndpoint = apiEndpointUrl + "/delivery-notes/invalid" + authString;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 404);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 404);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("errors").get("error"), apiRestResponse.getBody()
+                .getJSONObject("errors").get("error"));
+    }
+    
+    /**
+     * Positive test case for listDeliveryNotes method with mandatory parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "billomat {listDeliveryNotes} integration test with mandatory parameters.",
+            dependsOnMethods = { "testCreateDeliveryNoteWithMandatoryParameters", "testCreateDeliveryNoteWithOptionalParameters"})
+    public void testListDeliveryNotesWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:listDeliveryNotes");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listDeliveryNotes_mandatory.json");
+        
+        final JSONObject esbResponse =
+                esbRestResponse.getBody().getJSONObject("delivery-notes").getJSONArray("delivery-note").getJSONObject(0);
+        
+        final String apiEndpoint = apiEndpointUrl + "/delivery-notes/" + authString;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+        
+        final JSONObject apiResponse =
+                apiRestResponse.getBody().getJSONObject("delivery-notes").getJSONArray("delivery-note").getJSONObject(0);
+        
+        Assert.assertEquals(esbResponse.getString("client_id"), apiResponse.getString("client_id"));
+        Assert.assertEquals(esbResponse.getString("created"), apiResponse.getString("created"));
+        Assert.assertEquals(esbResponse.getString("status"), apiResponse.getString("status"));
+        Assert.assertEquals(esbResponse.getString("delivery_note_number"), apiResponse.getString("delivery_note_number"));
+        Assert.assertEquals(esbResponse.getString("date"), apiResponse.getString("date"));
+    }
+    
+    /**
+     * Positive test case for listDeliveryNotes method with optional parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "billomat {listDeliveryNotes} integration test with mandatory parameters.",
+            dependsOnMethods = { "testCreateDeliveryNoteWithMandatoryParameters", "testCreateDeliveryNoteWithOptionalParameters"})
+    public void testListDeliveryNotesWithOptionalParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:listDeliveryNotes");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listDeliveryNotes_optional.json");
+        
+        final JSONObject esbResponse =
+                esbRestResponse.getBody().getJSONObject("delivery-notes").getJSONObject("delivery-note");
+        
+        final String apiEndpoint =
+                apiEndpointUrl + "/delivery-notes/" + authString + "&client_id="
+                        + connectorProperties.getProperty("clientId") + "&delivery_note_number="
+                        + connectorProperties.getProperty("deliveryNoteFullNumber") + "&from="
+                        + connectorProperties.getProperty("deliveryNoteDate") + "&contact_id="
+                        + connectorProperties.getProperty("contactId") + "&status="
+                        + connectorProperties.getProperty("deliveryNoteStatus");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+        
+        final JSONObject apiResponse = apiRestResponse.getBody().getJSONObject("delivery-notes").getJSONObject("delivery-note");
+        
+        Assert.assertEquals(connectorProperties.getProperty("contactId"), apiResponse.getString("contact_id"));
+        Assert.assertEquals(connectorProperties.getProperty("clientId"), apiResponse.getString("client_id"));
+        Assert.assertEquals(connectorProperties.getProperty("deliveryNoteStatus"), apiResponse.getString("status"));
+        Assert.assertEquals(connectorProperties.getProperty("deliveryNoteFullNumber"), apiResponse.getString("delivery_note_number"));
+
+    }
+    
+    /**
+     * Negative test case for listDeliveryNotes method.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "billomat {listDeliveryNotes} integration test with negative case.")
+    public void testListDeliveryNotesWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:listDeliveryNotes");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listDeliveryNotes_negative.json");
+        
+        final String apiEndpoint = apiEndpointUrl + "/delivery-notes" + authString + "&status=invalid";
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("errors").get("error"), apiRestResponse.getBody()
+                .getJSONObject("errors").get("error"));
+    }
+    
 }
