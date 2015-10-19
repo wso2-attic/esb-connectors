@@ -69,7 +69,7 @@ Steps to follow in setting integration test.
    xxv)     invoiceDate                -  Text to be used as 'date' while creating an invoice with optional parameters in the format of 'yyyy-mm-dd' (e.g. 2015-05-30). (Make sure to use a future date.)
    xxvi)    invoiceNumber              -  Numerical value to be used as 'number' while creating an invoice with optional parameters.
    xxvii)   invoiceNumberPre           -  Text to be used as 'number_pre' while creating an invoice with optional parameters.
-   xxviii)  invoiceStatus              -  Text to be used as 'status' while creating an invoice with optional parameters.(Make sure to use the value 'DRAFT' as the status).
+   xxviii)  invoiceStatus              -  Text to be used as 'status' while creating an invoice with optional parameters.(Make sure to use the value 'OPEN' as the status).
    xxix     invoiceDiscountDate        -  Text to be used as 'discount_date' while creating an invoice with optional parameters in the format of 'yyyy-mm-dd' (e.g. 2015-05-30).(Make sure to use a future date.)
    
    xxx)     invoiceItemTitle           -  Text to be used as 'title' while creating an invoice item with optional parameters.
