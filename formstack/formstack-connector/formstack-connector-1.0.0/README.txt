@@ -42,6 +42,7 @@ Steps to follow in setting integration test.
    iv)   Create a new form inside the folder created in 3. iii)
          - When creating a form, it should have at least 3 text fields (onto which data has to be entered when submitting).
          - A form can also be created from an existing template but please make sure that there are at least 3 text fields in the form.
+         - All the fields which are going to get created should not be 'hidden', 'required' or 'readonly'.
    v)    Form created in 3. iv) should have at least 2 submissions before executing the test suite.
          - Data should be entered into all the text field of the form when making a submission.
    vi)   Create a sample form which will be deleted when the integration test is executing. (click on 'New Form' in Forms section).
@@ -90,6 +91,12 @@ Steps to follow in setting integration test.
    37)   updateConfirmationDelay          - Date of delay to be used as 'delay' while updating confirmation.
    
    38)   deleteFormId                     - ID of the form created in 4. vi).
+   
+   39)   updateFieldValue                 - Text to be used as 'default_value' of the form field.
+   40)   updateFieldHidden                - Boolean value to set to indicate whether the field should be hidden or not(Make sure to use the value as '1').
+   41)   updateFieldReadOnly              - Boolean value to set to indicate whether the field should be readonly or not(Make sure to use the value as '1').
+   42)   upateFieldRequired               - Boolean value to set to indicate whether the field should be required or not(Make sure to use the value as '1').
+   43)   updateFieldDescription           - Text to be used as the 'description' of the field.
    
    Note: i)  Except for properties 4. 03) and 4. 04), test suite can be executed without making any changes to the provided property file.
          ii) For each execution, repeatedly follow steps 4. iii) , 4. iv), 4. v) and 4. vi) .
