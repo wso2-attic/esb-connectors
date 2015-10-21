@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://cloud.google.com/bigquery/authentication -->
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="apiUrl" description="Base endpoint URL of BigQuery API." />
+   <parameter name="accessToken" description="OAuth Token for BigQuery API." />
+   <parameter name="apiKey" description="API key. Required unless you provide an OAuth 2.0 token." />
+   <parameter name="callback" description="Name of the JavaScript callback function that handles the response. Used in JavaScript JSON-P requests." />
+   <parameter name="prettyPrint" description="Returns response with indentations and line breaks. Returns the response in a human-readable format if true." />
+   <parameter name="quotaUser"
+      description="Alternative to userIp. Lets you enforce per-user quotas from a server-side application even in cases when the user's IP address is unknown." />
+   <parameter name="userIp"
+      description="IP address of the end user for whom the API call is being made. Lets you enforce per-user quotas when calling the API from a server-side application." />
+   <parameter name="fields" description="List of fields to be returned in the response." />
+   <parameter name="ifNoneMatch" description="Etag value to use for returning a page of list values if the values have changed." />
+   <parameter name="ifMatch" description="Etag value to use for returning a page of list values if the values have not changed." />
+   <sequence>
+      <property name="uri.var.apiUrl" expression="$func:apiUrl" />
+      <property name="uri.var.accessToken" expression="$func:accessToken" />
+      <property name="uri.var.apiKey" expression="$func:apiKey" />
+      <property name="uri.var.callback" expression="$func:callback" />
+      <property name="uri.var.prettyPrint" expression="$func:prettyPrint" />
+      <property name="uri.var.quotaUser" expression="$func:quotaUser" />
+      <property name="uri.var.userIp" expression="$func:userIp" />
+      <property name="uri.var.fields" expression="$func:fields" />
+      <property name="uri.var.ifMatch" expression="$func:ifMatch" />
+      <property name="uri.var.ifNoneMatch" expression="$func:ifNoneMatch" />
+      <property name="uri.var.commonQueryParams" value="" />
+      <!-- Boolean flag to keep track of whether the getAccessToken method is already called or not. -->
+      <property name="uri.var.refreshTokenNegotiated" value="false" />
+      <filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+         <then>
+            <property name="uri.var.apiUrl" expression="get-property('registry', 'connectors/BigQuery/apiUrl')" />
+         </then>
+      </filter>
+      <!-- If the API key is sent with the request, then proceed with key query parameter.Else process with OAuth flow. -->
+      <filter source="boolean(get-property('uri.var.apiKey'))" regex="true">
+         <then>
+            <property name="uri.var.commonQueryParams" expression="fn:concat('key=',get-property('uri.var.apiKey'),'&amp;')" />
+         </then>
+         <else>
+            <!-- If the access token is not sent with the request, then get it from the registry. -->
+            <filter source="boolean(get-property('uri.var.accessToken'))" regex="false">
+               <then>
+                  <property name="uri.var.accessToken" expression="get-property('registry', 'connectors/BigQuery/accessToken')" />
+                  <!-- If the access token is not in the registry, then get a new access token by calling getAccessTokenFromRefreshToken
+                     method. -->
+                  <filter
+                     xpath="not(boolean(get-property('uri.var.accessToken'))) and get-property('uri.var.refreshTokenNegotiated') = 'false'">
+                     <then>
+                        <bigquery.getAccessTokenFromRefreshToken />
+                     </then>
+                  </filter>
+               </then>
+            </filter>
+            <header name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))"
+               scope="transport" />
+         </else>
+      </filter>
+      <filter source="boolean(get-property('uri.var.ifNoneMatch'))" regex="true">
+         <then>
+            <property name="uri.var.ifNoneMatch" expression="fn:concat('&quot;',get-property('uri.var.ifNoneMatch'),'&quot;')" />
+            <header name="If-None-Match" expression="get-property('uri.var.ifNoneMatch')" scope="transport" />
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.ifMatch'))" regex="true">
+         <then>
+            <property name="uri.var.ifMatch" expression="fn:concat('&quot;',get-property('uri.var.ifMatch'),'&quot;')" />
+            <header name="If-Match" expression="get-property('uri.var.ifMatch')" scope="transport" />
+         </then>
+      </filter>
+      <script language="js">
+         <![CDATA[
+            var quotaUser = mc.getProperty('uri.var.quotaUser');
+            var prettyPrint = mc.getProperty('uri.var.prettyPrint');
+            var callback = mc.getProperty('uri.var.callback');
+            var userIp = mc.getProperty('uri.var.userIp');
+            var fields = mc.getProperty('uri.var.fields');
+            var commonQueryParams = mc.getProperty('uri.var.commonQueryParams');
+            if (fields != null && fields != "") {
+               commonQueryParams += 'fields=' + fields + '&';
+            }
+            if (callback != null && callback != "") {
+               commonQueryParams += 'callback=' + callback + '&';
+            }
+            if (prettyPrint != null && prettyPrint != "") {
+               commonQueryParams += 'prettyPrint=' + prettyPrint + '&';
+            }
+            if (quotaUser != null && quotaUser != "") {
+               commonQueryParams += 'quotaUser=' + quotaUser + '&';
+            }
+            if (userIp != null && userIp != "") {
+               commonQueryParams += 'userIp=' + userIp + '&';
+            }
+            if (commonQueryParams != "") {
+               mc.setProperty('uri.var.commonQueryParams', commonQueryParams);
+            }
+         ]]>
+      </script>
+   </sequence>
+</template>
