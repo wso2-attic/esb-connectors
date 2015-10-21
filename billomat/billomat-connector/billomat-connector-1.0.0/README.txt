@@ -11,14 +11,14 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.9.0-BETA-SNAPSHOT
+ - WSO2 ESB 4.9.0
  - Java 1.7
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.9.0-BETA-SNAPSHOT by following the URL: http://svn.wso2.org/repos/wso2/people/malaka/ESB/beta/
+ 1. Download WSO2 ESB 4.9.0 from official website.
 
- 2.   Deploy relevant patches, if applicable. Place the patch files into location <ESB_HOME>/repository/components/patches.
+ 2. Deploy relevant patches, if applicable. Place the patch files into location <ESB_HOME>/repository/components/patches.
  
  3. Navigate to location "<ESB_HOME>/repository/conf/axis2" and add/uncomment following lines in "axis2.xml". 
  
@@ -28,7 +28,7 @@ Steps to follow in setting integration test.
       <messageFormatter contentType="application/pdf" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
       <messageBuilder contentType="application/pdf" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
  
- 4. Compress modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file in to location "{ESB_CONNECTOR_HOME}/repository/".
+ 4. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{ESB_CONNECTOR_HOME}/repository/".
  
  5. Make sure that Billomat is specified as a module in ESB Connector Parent pom.
         <module>billomat/billomat-connector/billomat-connector-1.0.0/org.wso2.carbon.connector</module>
@@ -84,7 +84,7 @@ Steps to follow in setting integration test.
    xxxvii)  deliveryNoteTitle          -  Text to be used as 'title' while creating a delivery note with optional parameters.
    xxxviii) deliveryNoteDate           -  Text to be used as 'date' while creating a  delivery note with optional parameters in the format of 'yyyy-mm-dd' (e.g. 2015-05-30).
    xxxix)   deliveryNoteNumber         -  Numerical value to be used as 'number' while creating a delivery note with optional parameters.
-   xL)      deliveryNoteNumberPre      -  Text to be used as 'number_pre' while creating a delivery note with optional parameters.
+   xL)      deliveryNoteNumberPrefix   -  Text to be used as 'number_pre' while creating a delivery note with optional parameters.
    xLi)     deliveryNoteStatus         -  Text to be used as 'status' while creating a delivery note with optional parameters.(Make sure to use the value 'DRAFT' as the status).
    
    
