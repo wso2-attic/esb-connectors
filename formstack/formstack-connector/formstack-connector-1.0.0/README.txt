@@ -21,7 +21,7 @@ Steps to follow in setting integration test.
 
  3. Follow the below mentioned steps for adding valid certificate to access formstack API over https.
 
-    i)  Extract the certificate from browser(Mozilla Firefox) by navigating to https://www.formstack.com
+    i)   Extract the certificate from browser(Mozilla Firefox) by navigating to https://www.formstack.com
     ii)  Go to new ESB 4.9.0 folder and place the downloaded certificate in both "<ESB_HOME>/repository/resources/security/" and "{FORMSTACK_CONNECTOR_HOME}/formstack-connector/formstack-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" folders.
     iii) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" in command line to import formstack certificate in to keystore.
          Give "wso2carbon" as password. Press "Y" to complete certificate import process.
@@ -34,6 +34,8 @@ Steps to follow in setting integration test.
 
         NOTE : CERT_FILE_NAME is the file name which was extracted from formstack, change it accordingly. (e.g. *.formstack.com)
                CERT_NAME is an arbitrary name for the certificate. (e.g. formstack)
+    
+    v) Compress modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file in to location "{ESB_CONNECTOR_HOME}/repository/".
 
  4. Create a formstack trial account and derive the API Token.
    i)    Using the URL "https://www.formstack.com/" create an formstack trial account.
@@ -43,9 +45,10 @@ Steps to follow in setting integration test.
          - When creating a form, it should have at least 3 text fields (onto which data has to be entered when submitting).
          - A form can also be created from an existing template but please make sure that there are at least 3 text fields in the form.
          - All the fields which are going to get created should not be 'hidden', 'required' or 'readonly'.
-   v)    Form created in 3. iv) should have at least 2 submissions before executing the test suite.
+   v)    Form created in 4. iv) should have at least 2 submissions before executing the test suite.
          - Data should be entered into all the text field of the form when making a submission.
    vi)   Create a sample form which will be deleted when the integration test is executing. (click on 'New Form' in Forms section).
+   
  5. Update the formstack properties file at location "<FORMSTACK_CONNECTOR_HOME>/formstack-connector/formstack-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
    01)   apiUrl                           -  Base endpoint URL of the API. Use https://www.formstack.com.
@@ -98,11 +101,14 @@ Steps to follow in setting integration test.
    42)   upateFieldRequired               - Boolean value to set to indicate whether the field should be required or not(Make sure to use the value as '1').
    43)   updateFieldDescription           - Text to be used as the 'description' of the field.
    
-   Note: i)  Except for properties 4. 03) and 4. 04), test suite can be executed without making any changes to the provided property file.
+   Note: i)  Except for properties 5. 03) , 5. 04) and 5. 38)  test suite can be executed without making any changes to the provided property file.
          ii) For each execution, repeatedly follow steps 4. iii) , 4. iv), 4. v) and 4. vi) .
       
- 6. Make sure that Formstack is specified as a module in ESB Connector Parent pom and run the following command.
+ 6. Make sure that Formstack is specified as a module in ESB Connector Parent pom.
           <module>formstack/formstack-connector/formstack-connector-1.0.0/org.wso2.carbon.connector</module>
+          
+ 7. Navigate to "{ESB_Connector_Home}/" and run the following command.
+         $ mvn clean install
 
     Note:- Formstack trial account expires within 14 days.
 
