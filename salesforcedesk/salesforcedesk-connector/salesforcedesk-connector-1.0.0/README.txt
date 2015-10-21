@@ -40,7 +40,7 @@ Steps to follow in setting integration test.
       iv) Create an article with attachment and obtain the article ID and attachment ID from browser URLs by clicking article and attachment. Use the following URL to get instructions to create an article with attachment.
           https://support.desk.com/customer/portal/articles/1572-creating-multi-channel-knowledge-base-articles.
       
-      v) Navigate to 'https://wso2con.desk.com/agent#' to create a new email type case with attachment, anding with values for 'to', 'cc' or 'bcc' parameters. And obtain the ID of the case.
+      v) Navigate to 'https://{DOMAIN_NAME}.desk.com/agent#' to create a new email type case with attachment, anding with values for 'to', 'cc' or 'bcc' parameters. And obtain the ID of the case.
          To obtain the attachment ID, mouse-over the attachment file and obtain form pop-up navigating URL.
 
  6. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<ESB_CONNECTOR_HOME>/repository/".
