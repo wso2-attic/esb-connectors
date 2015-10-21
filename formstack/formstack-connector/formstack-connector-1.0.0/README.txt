@@ -11,11 +11,11 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 14.04
- - WSO2 ESB 4.9.0-BETA
+ - WSO2 ESB 4.9.0
 
 Steps to follow in setting integration test.
 
- 1. Download WSO2 ESB 4.9.0-BETA from official website.
+ 1. Download WSO2 ESB 4.9.0 from official website.
 
  2. Deploy relevant patches, if applicable and the ESB should be configured as below.
 
@@ -35,7 +35,7 @@ Steps to follow in setting integration test.
         NOTE : CERT_FILE_NAME is the file name which was extracted from formstack, change it accordingly. (e.g. *.formstack.com)
                CERT_NAME is an arbitrary name for the certificate. (e.g. formstack)
     
-    v) Compress modified ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file in to location "{ESB_CONNECTOR_HOME}/repository/".
+    v) Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{ESB_CONNECTOR_HOME}/repository/".
 
  4. Create a formstack trial account and derive the API Token.
    i)    Using the URL "https://www.formstack.com/" create an formstack trial account.
