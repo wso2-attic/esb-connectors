@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This scenario creates and sends surveys to customers whose goods are shipped using Beetrack. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="vend_createAndSendSurveyForDeliveredSales" transports="https http" startOnLoad="true" trace="disable">
+   <target>
+      <inSequence>
+         <!-- Formstack Properties -->
+         <property name="formstack.apiUrl" expression="get-property('registry', 'connectors/Formstack/apiUrl')" />
+         <property name="formstack.accessToken" expression="get-property('registry', 'connectors/Formstack/accessToken')" />
+         <property name="formstack.templateFormId" expression="json-eval($.formstack.templateFormId)" />
+         <property name="formstack.saleId" expression="json-eval($.formstack.saleIdLabel)" />
+         <property name="formstack.userEmail" expression="json-eval($.formstack.userNameLabel)" />
+         <property name="formstack.productDetails" expression="json-eval($.formstack.productDetailsLabel)" />
+         
+         <!-- Beetrack Properties -->
+         <property name="beetrack.apiUrl" expression="get-property('registry', 'connectors/Beetrack/apiUrl')" />
+         <property name="beetrack.accessToken" expression="get-property('registry', 'connectors/Beetrack/accessToken')" />
+         
+         <!-- Mandrill Properties -->
+         <property name="mandrill.apiUrl" expression="get-property('registry', 'connectors/Mandrill/apiUrl')" />
+         <property name="mandrill.apiKey" expression="get-property('registry', 'connectors/Mandrill/apiKey')" />
+         <property name="mandrill.fromName" expression="json-eval($.mandrill.fromName)" />
+         <property name="mandrill.fromEmail" expression="json-eval($.mandrill.fromEmail)" />
+         
+         <!--Get the current date mid night time to retrieve routes for the current day-->
+         <script language="js">
+            <![CDATA[
+               mc.setProperty('beetrack.currentDate', new java.text.SimpleDateFormat('yyyy-MM-dd').format(new java.util.Date()));
+            ]]>
+         </script>
+         
+         <!--Call beetrack connector listRoutes method to list routes-->
+         <beetrack.init>
+            <apiUrl>{$ctx:beetrack.apiUrl}</apiUrl>
+            <accessToken>{$ctx:beetrack.accessToken}</accessToken>
+         </beetrack.init>
+         <beetrack.listRoutes>
+            <date>{$ctx:beetrack.currentDate}</date>
+         </beetrack.listRoutes>
+         <property name="beetrack.routeStatus" expression="json-eval($.status)" />
+         
+         <!-- START: Proceed only if the routes are retrieved successfully -->
+         <filter xpath="get-property('beetrack.routeStatus') !='ok'">
+            <then>
+               <property name="id" value="{}" />
+               <property name="status" value="skipped" />
+               <property name="message" value="Routes have not been retrieved successfully." />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="beetrack_listRoutes" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <property name="beetrack.routeIndex" expression="0" scope="operation" />
+               <property name="beetrack.routeCount" expression="count(//routes)" />
+             
+               <!-- START: Proceed only if there are routes -->
+               <filter xpath="get-property('beetrack.routeCount') = 0.0">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="status" value="skipped" />
+                     <property name="message" value="There are no routes for the day." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="beetrack_listRoutes" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <!--BEGIN : FOR EACH route-->
+                     <iterate continueParent="false" id="sales" expression="//routes" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="beetrack.routeId" expression="json-eval($.routes.id)" />
+                              <property name="beetrack.identifier" expression="json-eval($.routes.truck_identifier)" />
+                              <property name="beetrack.dispatchStatus" expression="json-eval($.routes.dispatches.status)" />
+                              <property name="beetrack.dispatchEmail" expression="json-eval($.routes.dispatches.contact_email)" />
+                              <property name="beetrack.dispatchName" expression="json-eval($.routes.dispatches.contact_name)" />
+                              <property name="beetrack.tags" expression="json-eval($.routes.dispatches.tags)" />
+                              <property name="beetrack.items" expression="json-eval($.routes.dispatches.items)" />
+                           
+                              <!-- START: Proceed only if the route is delivered -->
+                              <filter xpath="get-property('beetrack.dispatchStatus') != 'delivered'">
+                                 <then>
+                                    <property name="id" expression="fn:concat('beetrack_routeId:',get-property('beetrack.routeId'))" />
+                                    <property name="status" value="skipped" />
+                                    <property name="message" value="Dispatch is not delivered yet." />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="activity" value="beetrack_listRoutes" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                 
+                                    <!--Call formstack connector copyForm method to clone the form-->
+                                    <formstack.init>
+                                       <accessToken>{$ctx:formstack.accessToken}</accessToken>
+                                       <format>json</format>
+                                       <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+                                    </formstack.init>
+                                    <formstack.copyForm>
+                                       <formId>{$ctx:formstack.templateFormId}</formId>
+                                    </formstack.copyForm>
+                                    <property name="formstack.formId" expression="json-eval($.id)" />
+                                    <property name="formstack.fieldsArray" expression="json-eval($.fields)" />
+                                    <property name="formstack.formUrl" expression="json-eval($.url)" />
+
+                                    <!-- START: Proceed only the cloning the form is successful -->
+                                    <filter source="boolean(get-property('formstack.formId'))" regex="false">
+                                       <then>
+                                          <property name="id" value="" />
+                                          <property name="status" value="error" />
+                                          <property name="message" expression="json-eval($.)" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="activity" value="formstack_cloneForm" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <!--Extract the values in the dispatch and the IDs of the required fields in the form-->
+                                          <script language="js">
+                                             <![CDATA[
+                                                var tags = eval("(" +mc.getProperty('beetrack.tags')+ ")");
+                                                var items = mc.getProperty('beetrack.items');
+                                                var itemArray = [];
+                                                var vendSaleId;
+                                                var vendUserName;
+                                                var vendSaleDate;
+                                                var itemString='';
+                                                
+                                                if(items.charCodeAt(0) != '91'&& items.charCodeAt(items.length-1) != '93') {
+                                                   items ='['+items+']';
+                                                   itemArray = eval("(" + items + ")");
+                                                } 
+                                                else {
+                                                    itemArray = eval("(" + items + ")");
+                                                }
+                                                
+                                                for(var i =0;i<tags.length;i++) {
+                                                   var name = tags[i].name;
+                                                   if(name == 'vend_saleId'){
+                                                      vendSaleId = ''+tags[i].value;
+                                                      mc.setProperty("vend.salesId",vendSaleId);
+                                                   }
+                                                   if(name == 'vend_userName'){
+                                                      vendUserName = tags[i].value;
+                                                      mc.setProperty("vend.userName",vendUserName);
+                                                   }
+                                                   if(name == 'vend_saleDate'){
+                                                      vendSaleDate = tags[i].value;
+                                                      vendSaleDate = vendSaleDate.split(" ")[0];
+                                                      mc.setProperty("vend.saleDate",vendSaleDate);
+                                                   }
+                                                }
+                                                for(var i =0;i<itemArray.length;i++) {
+                                                      var itemDesc = itemArray[i].description;
+                                                      var itemQuantity = itemArray[i].quantity;
+                                                      var itemFull = itemQuantity+" X " +itemDesc;
+                                                      itemString = itemString + itemFull+"\\n";
+                                                }
+                                                mc.setProperty("formstack.products",itemString);
+                                                
+                                                var vendSaleIdName = mc.getProperty('formstack.saleId').toLowerCase();																		
+                                                var userEmailName = mc.getProperty('formstack.userEmail').toLowerCase();																		
+                                                var productDetailsName = mc.getProperty('formstack.productDetails').toLowerCase();																	
+                                                var fieldsArray = mc.getProperty('formstack.fieldsArray');
+                                                
+                                                var salesId = '';
+                                                var userEmail = '';
+                                                var productDetails = '';
+                                                
+                                                if(fieldsArray != null && fieldsArray != ''){
+                                                   fieldsArray = eval("(" + fieldsArray + ")");
+                                                   for(var i=0; i<fieldsArray.length; i++){
+                                                      var labelName = fieldsArray[i].label.toLowerCase();
+                                                      if(labelName == vendSaleIdName){
+                                                         salesId = '' + fieldsArray[i].id;
+                                                      } else if(labelName == userEmailName){
+                                                          userEmail = '' + fieldsArray[i].id;
+                                                      } else if(labelName == productDetailsName){
+                                                         productDetails = '' + fieldsArray[i].id;
+                                                      }
+                                                      
+                                                      if(salesId != '' && userEmail != '' && productDetails != ''){
+                                                         break;
+                                                      }
+                                                   }
+                                                }
+                                                mc.setProperty('formstack.saleFieldId', salesId);
+                                                mc.setProperty('formstack.userNameFieldId', userEmail);
+                                                mc.setProperty('formstack.productDetailsId', productDetails);
+                                             ]]>
+                                          </script>
+                                          
+                                          <!-- If ID of the vend sales ID field could be found, update the content of the field with the sales ID. -->
+                                          <filter source="boolean(get-property('formstack.saleFieldId'))" regex="true">
+                                             <then>
+                                                <call-template target="formstack_updateFieldContent">
+                                                   <with-param name="apiUrl" value="{$ctx:formstack.apiUrl}" />
+                                                   <with-param name="accessToken" value="{$ctx:formstack.accessToken}" />
+                                                   <with-param name="fieldId" value="{$ctx:formstack.saleFieldId}" />
+                                                   <with-param name="content" value="{$ctx:vend.salesId}" />
+                                                </call-template>
+                                             </then>
+                                          </filter>
+                                          
+                                          <!-- If the user name field could be found, update the content of the field with the username of user of the vend sale. -->
+                                          <filter source="boolean(get-property('formstack.userNameFieldId'))" regex="true">
+                                             <then>
+                                                <call-template target="formstack_updateFieldContent">
+                                                   <with-param name="apiUrl" value="{$ctx:formstack.apiUrl}" />
+                                                   <with-param name="accessToken" value="{$ctx:formstack.accessToken}" />
+                                                   <with-param name="fieldId" value="{$ctx:formstack.userNameFieldId}" />
+                                                   <with-param name="content" value="{$ctx:vend.userName}" />
+                                                </call-template>
+                                             </then>
+                                          </filter>
+                                          
+                                          <!-- If product field could be found, update the content of the field with the products delivered -->
+                                          <filter source="boolean(get-property('formstack.productDetailsId'))" regex="true">
+                                             <then>
+                                                <call-template target="formstack_updateFieldContent">
+                                                   <with-param name="apiUrl" value="{$ctx:formstack.apiUrl}" />
+                                                   <with-param name="accessToken" value="{$ctx:formstack.accessToken}" />
+                                                   <with-param name="fieldId" value="{$ctx:formstack.productDetailsId}" />
+                                                   <with-param name="content" value="{$ctx:formstack.products}" />
+                                                </call-template>
+                                             </then>
+                                          </filter>
+                                          
+                                          <!--Construct the email to send to the customers-->
+                                          <script language="js">
+                                             <![CDATA[
+                                                var requesterEmail = mc.getProperty('beetrack.dispatchEmail');								  
+                                                var requesterName = mc.getProperty('beetrack.dispatchName');									  
+                                                var fromName = mc.getProperty('mandrill.fromName');									  
+                                                var saleDate = mc.getProperty('vend.saleDate');									  
+                                                var products = mc.getProperty('mandrill.products');									  
+                                                var reportedTime = mc.getProperty('supportbee.ticket.createdTime');								  
+                                                var ticketSubject = mc.getProperty('supportbee.ticket.subject');							  
+                                                var ticketContent = mc.getProperty('supportbee.ticket.content');							  
+                                                var resolution = mc.getProperty('ticket.resolution');								  
+                                                var formUrl = mc.getProperty('formstack.formUrl');		
+                                                
+                                                var mailHTML = "<h3>Dear " + requesterName + ",</h3><p>We are happy to inform you that, we have delivered the order you made on " + saleDate + ".</p><p>We would like you to complete this survey to give us feedback on how you felt about our service and how we could improve it in future.</p><p><u><a href='" + formUrl + "'>Click here to complete the survey</a></u></p> <p></p><p> </p><p> </p><p>This is an auto-generated email. Please do not reply.</p><p>Thank you,</p><p>"+fromName+"</p>";
+
+                                                mc.setProperty('mandrill.html', mailHTML);																		
+                                                mc.setProperty('mandrill.subject', 'Help us improve our customer service - '+fromName);																		
+                                                var mailTo = '[{"email": "' + requesterEmail + '", "name": "' + requesterName + '", "type": "to"}]';
+                                                mc.setProperty('mandrill.to', mailTo);
+                                             ]]>
+                                          </script>
+                                          <property name="mandrill.html" expression="fn:concat('&lt;html&gt;', get-property('mandrill.html'), '&lt;/html&gt;')" />
+                                          
+                                          <!-- Call mandril sendMessage to Send survey to requester. -->
+                                          <mandrill.init>
+                                             <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                             <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                             <format>json</format>
+                                          </mandrill.init>
+                                          <mandrill.sendMessage>
+                                             <html>{$ctx:mandrill.html}</html>
+                                             <subject>{$ctx:mandrill.subject}</subject>
+                                             <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+                                             <fromName>{$ctx:mandrill.fromName}</fromName>
+                                             <important>false</important>
+                                             <autoHtml>true</autoHtml>
+                                             <urlStripQs>false</urlStripQs>
+                                             <preserveRecipients>true</preserveRecipients>
+                                             <viewContentLink>true</viewContentLink>
+                                             <to>{$ctx:mandrill.to}</to>
+                                          </mandrill.sendMessage>
+                                          <property name="mandrill.mailId" expression="json-eval($[0]._id)" />
+                                         
+                                          <!-- START: Append a message to be sent to the user regarding the status of the send email operation. -->
+                                          <filter source="boolean(get-property('mandrill.mailId'))" regex="true">
+                                             <then>
+                                                <property name="id" expression="fn:concat('formstack_formId:', get-property('formstack.formId'), ',vend_saleId:', get-property('vend.salesId'),',beetrack_routeId:', get-property('beetrack.routeId'))" />
+                                                <property name="status" value="success" />
+                                                <property name="message" value="Survey has been successfully sent to the customer." />
+                                             </then>
+                                             <else>
+                                                <property name="id" expression="fn:concat('formstack_formId:', get-property('formstack.formId'))" />
+                                                <property name="status" value="error" />
+                                                <property name="message" expression="json-eval($)" />
+                                             </else>
+                                          </filter>
+                                          <!-- END: Append a message to be sent to the user regarding the status of the send email operation. -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="mandrill_sendSurveyViaEmail" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                    </filter>
+                                    <!-- END: Proceed only the clonning the form is successful -->
+                                 </else>
+                              </filter>
+                              <!-- END: Proceed only if the route is delivered -->
+                              <property name="beetrack.routeIndex" expression="get-property('operation','beetrack.routeIndex') + 1" scope="operation" />
+                              <filter xpath="get-property('operation','beetrack.routeIndex') = get-property('beetrack.routeCount')">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>
+                  </else>
+               </filter>
+               <!-- END: Proceed only if there are routes -->
+            </else>
+         </filter>
+         <!-- END: Proceed only if the routes are retrieved successfully -->
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>{
+            "Response":{
+               "process":"vend_createAndSendSurveyForDeliveredSales",
+               "activityResponse":[$1]
+            }
+         }</format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

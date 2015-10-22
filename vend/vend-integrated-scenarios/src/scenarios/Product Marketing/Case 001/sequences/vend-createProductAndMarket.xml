@@ -1,0 +1,488 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This sequence does eMarketing for the product identified by the ID stored in the property 'vend.productId'. -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="vend-createProductAndMarket">
+   <script language="js">
+      <![CDATA[
+         var productHandle = mc.getProperty('vend.productHandle');
+         if(new java.lang.String(productHandle).toLowerCase().startsWith('shopify')){
+            mc.setProperty('action', 'update');
+            mc.setProperty('shopify.productId', productHandle.split('-')[1]);
+         } else {
+            mc.setProperty('action', 'create');
+         }
+      ]]>
+   </script>
+
+   <property name="vend.productVariantOneName" expression="//products/variant_option_one_name/text()" />
+   <property name="vend.productVariantOneValue" expression="//products/variant_option_one_value/text()" />
+   <property name="vend.productVariantTwoName" expression="//products/variant_option_two_name/text()" />
+   <property name="vend.productVariantTwoValue" expression="//products/variant_option_two_value/text()" />
+   <property name="vend.productVariantThreeName" expression="//products/variant_option_three_name/text()" />
+   <property name="vend.productVariantThreeValue" expression="//products/variant_option_three_value/text()" />
+
+   <!-- Construct the product object to create the Shopify product. -->
+   <payloadFactory media-type="json">
+      <format>
+         {
+         "product": {
+         "title": "$1",
+         "vendor": "$2",
+         "product_type": "$3",
+         "metafields": [{
+         "key": "Vend Product ID",
+         "value": "$4",
+         "value_type": "string",
+         "namespace": "global"
+         }],
+         "handle" : "$4",
+         "published_scope" : "global",
+         "tags" : "$5",
+         "published": true,
+         "images": [{
+         "src": "$6"
+         }]
+         }
+         }
+      </format>
+      <args>
+         <arg expression="get-property('vend.productBaseName')" />
+         <arg expression="get-property('vend.productSupplierName')" />
+         <arg expression="get-property('vend.productType')" />
+         <arg expression="get-property('vend.productId')" />
+         <arg expression="get-property('vend.productTags')" />
+         <arg expression="get-property('vend.productImage')" />
+      </args>
+   </payloadFactory>
+
+   <!-- START: Create or Update product based on whether it is already created or not. -->
+   <switch source="get-property('action')">
+      <!-- Create a new product in Shopify. -->
+      <case regex="create">
+         <property name="eMarketingProducts" expression="get-property('operation', 'eMarketingProducts') + 1" scope="operation" />
+
+         <script language="js">
+            <![CDATA[
+               var productVariantOneName = mc.getProperty('vend.productVariantOneName');
+               var productVariantOneValue = mc.getProperty('vend.productVariantOneValue');
+               var productVariantTwoName = mc.getProperty('vend.productVariantTwoName');
+               var productVariantTwoValue = mc.getProperty('vend.productVariantTwoValue');
+               var productVariantThreeName = mc.getProperty('vend.productVariantThreeName');
+               var productVariantThreeValue = mc.getProperty('vend.productVariantThreeValue');
+               var productPrice = mc.getProperty('vend.productPrice');
+               var productTaxRate = mc.getProperty('"vend.productTaxRate"');
+               var productId = mc.getProperty('vend.productId');
+               var productBaseName = mc.getProperty('vend.productBaseName');
+               var productHasVariant = mc.getProperty('vend.productHasVariant');
+               var productDescription = mc.getProperty('vend.productDescription');                                          
+               
+               var payload = mc.getPayloadJSON();
+               payload.product.description = productDescription;
+               payload.product.body_html = productDescription;
+               if(new java.lang.String(productDescription).startsWith('<')){
+                  var length = new java.lang.String(productDescription).length();
+                  mc.setProperty('vend.productDescription', new java.lang.String(productDescription).substring(3, length-4));
+               }                                                
+               
+               var variants = [];
+               
+               if(productHasVariant == 'true' || productHasVariant == true){
+                  if(productVariantOneName != '' && productVariantOneValue != ''){
+                     var variant1 = {};
+                     variant1.option1 = productVariantOneValue;
+                     variant1.title = productBaseName + ' ' + productVariantOneValue;
+                     variant1.price = productPrice;
+                     variant1.sku = productVariantOneName + '-' + productVariantOneValue + '-' + productId;
+                     if(productTaxRate > 0){
+                        variant1.taxable = true;
+                     } else {
+                        variant1.taxable = false;
+                     }
+                     variants[variants.length] = variant1;
+                  }
+                  if(productVariantTwoName != '' && productVariantTwoValue != ''){
+                     var variant2 = {};
+                     variant2.option1 = productVariantTwoValue;
+                     variant2.title = productBaseName + ' ' + productVariantTwoValue;
+                     variant2.price = productPrice;
+                     variant2.sku = productVariantTwoName + '-' + productVariantTwoValue + '-' + productId;
+                     if(productTaxRate > 0){
+                        variant2.taxable = true;
+                     } else {
+                        variant2.taxable = false;
+                     }
+                     variants[variants.length] = variant2;
+                  }
+                  if(productVariantThreeName != '' && productVariantThreeValue != ''){
+                     var variant3 = {};
+                     variant3.option1 = productVariantThreeValue;
+                     variant3.title = productBaseName + ' ' + productVariantThreeValue;
+                     variant3.price = productPrice;
+                     variant3.sku = productVariantThreeName + '-' + productVariantThreeValue + '-' + productId;
+                     if(productTaxRate > 0){
+                        variant3.taxable = true;
+                     } else {
+                        variant3.taxable = false;
+                     }
+                     variants[variants.length] = variant3;
+                  }
+               } else {
+                  var variant1 = {};
+                  variant1.option1 = productBaseName;
+                  variant1.title = productBaseName;
+                  variant1.price = productPrice;
+                  variant1.sku = productId;
+                  if(productTaxRate > 0){
+                     variant1.taxable = true;
+                  } else {
+                     variant1.taxable = false;
+                  }
+                  variants[0] = variant1;
+               }
+               payload.product.variants = variants;
+               mc.setPayloadJSON(payload);
+            ]]>
+         </script>
+
+         <property name="shopify.product" expression="json-eval($.product)" />
+
+         <!-- Create the product in Shopify account. -->
+         <shopify.init>
+            <accessToken>{$ctx:shopify.accessToken}</accessToken>
+            <apiUrl>{$ctx:shopify.apiUrl}</apiUrl>
+            <format>json</format>
+         </shopify.init>
+         <shopify.createProduct>
+            <product>{$ctx:shopify.product}</product>
+         </shopify.createProduct>
+         <sequence key="removeResponseHeaders" />
+         <property name="shopify.productId" expression="json-eval($.product.id)" />
+
+         <!-- START: Proceed with marketing the product only if it is created successfully in Shopify. -->
+         <filter source="boolean(get-property('shopify.productId'))" regex="true">
+            <then>
+               <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'), ',shopify_productId:', get-property('shopify.productId'))" />
+               <!-- Append an success message to be sent to the user regarding createProduct method call. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="shopify_createProduct" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="success" />
+                  <with-param name="message" value="The product has been successfully created." />
+               </call-template>
+
+               <property name="vend.productHandle" expression="fn:concat('shopify-', get-property('shopify.productId'))" />
+               <vend.init>
+                  <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                  <accessToken>{$ctx:vend.accessToken}</accessToken>
+               </vend.init>
+               <vend.updateProduct>
+                  <handle>{$ctx:vend.productHandle}</handle>
+                  <productId>{$ctx:vend.productId}</productId>
+               </vend.updateProduct>
+               <sequence key="removeResponseHeaders" />
+
+               <property name="vend.updatedProductId" expression="json-eval($.product.id)" />
+               <property name="vend.productHandle" expression="json-eval($.product.handle)" />
+
+               <!-- START: Send an error message to the user only if the update operation failed. -->
+               <filter source="boolean(get-property('vend.updatedProductId'))" regex="false">
+                  <then>
+                     <!-- Failure case: Append an error message to be sent to the user. -->
+                     <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'), ',shopify_productId:', get-property('shopify.productId'))" />
+                     <property name="errorResponse" expression="json-eval($)" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="vend_updateProduct" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="error" />
+                        <with-param name="message" value="{$ctx:errorResponse}" />
+                     </call-template>
+                  </then>
+               </filter>
+               <!-- END: Send an error message to the user only if the update operation failed. -->
+
+               <!-- Get the ID of the subscriber list using the provided list name. It is cumbersome for the user to obtain the list ID in Mailchimp,
+                  as it cannot be done through the web application. Therefore the user is expected to provide the list name so the respective list ID can be obtained via the following call. -->
+               <mailchimp.init>
+                  <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                  <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                  <format>json</format>
+               </mailchimp.init>
+               <mailchimp.listSubscriberLists>
+                  <listName>{$ctx:mailchimp.listName}</listName>
+               </mailchimp.listSubscriberLists>
+               <sequence key="removeResponseHeaders" />
+
+               <property name="mailchimp.listId" expression="json-eval($.data[0].id)" />
+
+               <!-- START: Proceed to create the plan only if the subscriber list ID could be retrieved using the name.
+                  When there are no lists matching the provided name, an empty array ([]) is returned by the Mailchimp API. -->
+               <filter source="boolean(get-property('mailchimp.listId'))" regex="false">
+                  <then>
+                     <!-- Failure case: Append an error message to be sent to the user. -->
+                     <property name="id" expression="fn:concat('mailchimp_listName:', get-property('mailchimp.listName'))" />
+                     <property name="errorResponse" expression="json-eval($)" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="stripe_getListIdFromListName" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="error" />
+                        <with-param name="message" value="{$ctx:errorResponse}" />
+                     </call-template>
+                  </then>
+                  <else>
+                     <!-- Construct the mailchimp 'options' parameter -->
+                     <payloadFactory media-type="json">
+                        <format>
+                           {
+                           "options":{
+                           "list_id": "$1",
+                           "subject": "$2",
+                           "from_email": "$3",
+                           "from_name": "$4",
+                           "to_name": "Subscriber",
+                           "template_id": "$5",
+                           "tracking":{
+                           "opens": true,
+                           "html_clicks": true,
+                           "text_clicks": true
+                           }
+                           }
+                           }
+                        </format>
+                        <args>
+                           <arg expression="get-property('mailchimp.listId')" />
+                           <arg expression="get-property('vend.productBaseName')" />
+                           <arg expression="get-property('mailchimp.fromEmail')" />
+                           <arg expression="get-property('mailchimp.fromName')" />
+                           <arg expression="get-property('mailchimp.templateId')" />
+                        </args>
+                     </payloadFactory>
+
+                     <property name="mailchimp.options" expression="json-eval($.options)" />
+
+                     <!-- Construct the mailchimp 'content' parameter where the HTML campaign parameters are specified. -->
+                     <payloadFactory media-type="json">
+                        <format>
+                           {
+                           "content":{
+                           "sections": {
+                           "productName": "$1",
+                           "productDetail":"$2",
+                           "productPrice":"$3",
+                           "productLink":"$4",
+                           "companyName":"$5"
+                           }
+                           }
+                           }
+                        </format>
+                        <args>
+                           <arg expression="get-property('vend.productBaseName')" />
+                           <arg expression="get-property('vend.productDescription')" />
+                           <arg expression="get-property('vend.productPrice')" />
+                           <arg expression="fn:concat(get-property('shopify.apiUrl'), '/products/', get-property('vend.productId'))" />
+                           <arg expression="get-property('mailchimp.fromName')" />
+                        </args>
+                     </payloadFactory>
+
+                     <property name="mailchimp.content" expression="json-eval($.content)" />
+
+                     <!-- Create a draft campaign for the subscription plan. -->
+                     <mailchimp.init>
+                        <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                        <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                        <format>json</format>
+                     </mailchimp.init>
+                     <mailchimp.createDraftCampaign>
+                        <options>{$ctx:mailchimp.options}</options>
+                        <content>{$ctx:mailchimp.content}</content>
+                        <type>regular</type>
+                     </mailchimp.createDraftCampaign>
+                     <sequence key="removeResponseHeaders" />
+
+                     <property name="mailchimp.campaignId" expression="json-eval($.id)" />
+
+                     <!-- START: Proceed send the campaign only if it is created successfully. -->
+                     <filter source="boolean(get-property('mailchimp.campaignId'))" regex="false">
+                        <then>
+                           <!-- Failure case: Append an error message to be sent to the user. -->
+                           <property name="id" value="{}" />
+                           <property name="errorResponse" expression="json-eval($)" />
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="mailchimp_createDraftCampaign" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="error" />
+                              <with-param name="message" value="{$ctx:errorResponse}" />
+                           </call-template>
+                        </then>
+                        <else>
+                           <!-- Success case: Append a message to be sent to the user saying that the campaign was successfully created. -->
+                           <property name="id" expression="fn:concat('mailchimp_campaignId:', get-property('mailchimp.campaignId'))" />
+
+                           <!-- Send the draft campaign. -->
+                           <mailchimp.init>
+                              <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                              <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                              <format>json</format>
+                           </mailchimp.init>
+                           <mailchimp.sendCampaign>
+                              <campaignId>{$ctx:mailchimp.campaignId}</campaignId>
+                           </mailchimp.sendCampaign>
+                           <sequence key="removeResponseHeaders" />
+
+                           <property name="mailchimp.complete" expression="json-eval($.complete)" />
+
+                           <property name="id" expression="fn:concat('mailchimp_campaignId:', get-property('mailchimp.campaignId'))" />
+                           <!-- START: Build the response based on whether the campaign is successfully sent or not -->
+                           <filter source="get-property('mailchimp.complete')" regex="true">
+                              <then>
+                                 <property name="status" value="success" />
+                                 <property name="message" value="The campaign has been successfully created and sent to the subscribers." />
+                              </then>
+                              <else>
+                                 <property name="status" value="error" />
+                                 <property name="message" value="The campaign has been successfully created. Apparently an error occured, while sending the campaign." />
+                              </else>
+                           </filter>
+                           <!-- END: Build the response based on whether the campaign is successfully sent or not -->
+
+                           <!-- Success case: Append an error message to be sent to the user. -->
+                           <call-template target="responseHandlerTemplate">
+                              <with-param name="activity" value="mailchimp_createAndSendCampaign" />
+                              <with-param name="id" value="{$ctx:id}" />
+                              <with-param name="status" value="{$ctx:status}" />
+                              <with-param name="message" value="{$ctx:message}" />
+                           </call-template>
+                        </else>
+                     </filter>
+                     <!-- END: Proceed send the campaign only if it is created successfully. -->
+                  </else>
+               </filter>
+               <!-- END: Proceed to create the plan only if the subscriber list ID could be retrieved using the name.
+                  When there are no lists matching the provided name, an empty array ([]) is returned by the Mailchimp API. -->
+            </then>
+            <else>
+               <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'))" />
+               <property name="errorMessage" expression="json-eval($)" />
+               <!-- Append an error message to be sent to the user regarding listRegisterSales method call. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="shopify_createProduct" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="error" />
+                  <with-param name="message" value="{$ctx:errorMessage}" />
+               </call-template>
+            </else>
+         </filter>
+         <!-- START: Proceed with marketing the product only if it is created successfully in Shopify. -->
+
+      </case>
+
+      <!-- Update the product in Shopify. -->
+      <case regex="update">
+
+         <property name="shopify.product" expression="json-eval($)" />
+
+         <!-- Get the corresponding Shopify product by ID. -->
+         <shopify.init>
+            <apiUrl>{$ctx:shopify.apiUrl}</apiUrl>
+            <accessToken>{$ctx:shopify.accessToken}</accessToken>
+            <format>json</format>
+         </shopify.init>
+         <shopify.getProductById>
+            <productId>{$ctx:shopify.productId}</productId>
+         </shopify.getProductById>
+         <sequence key="removeResponseHeaders" />
+
+         <property name="shopify.productUpdateAt" expression="json-eval($.product.updated_at)" />
+
+         <script language="js">
+            <![CDATA[
+               var shopifyProdutUpdatedTime = mc.getPayloadJSON().product.updated_at;
+               var vendProdutUpdatedTime = mc.getProperty('vend.productUpdateAt');
+               var variants = mc.getPayloadJSON().product.variants;
+               var vendProdutPrice = mc.getProperty('vend.productPrice');
+               var shopifyProdutId = mc.getProperty('shopify.productId');
+               
+               // Proceed only if the Vend product was last updated after the last updated date-time of the corresponding shoppify product.
+               if(new java.text.SimpleDateFormat('yyyy-MM-dd hh:mm:ss X').parse(vendProdutUpdatedTime + ' +00:00').getTime() >
+                     new java.text.SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss").parse(shopifyProdutUpdatedTime).getTime()){
+                  mc.setProperty('proceed', true);
+                  
+                  var payload = eval("(" + mc.getProperty('shopify.product') + ")");
+                  if(variants.length > 0){
+                     var variantsArray = [];
+                     for(var i=0; i<variants.length; i++){
+                        var variant = {};
+                        variant.id = new java.lang.String(variants[i].id);
+                        variant.price = vendProdutPrice;
+                        variantsArray[variantsArray.length] = variant;
+                     }
+                     payload.product.variants = variantsArray;
+                  }
+                  payload.product.metafields = [];
+                  payload.product.id = shopifyProdutId;
+                  mc.setPayloadJSON(payload);
+               } else {
+                  mc.setProperty('proceed', false);
+               }
+            ]]>
+         </script>
+
+         <!-- START: Proceed to update the product only if it requried. -->
+         <filter source="get-property('proceed')" regex="true">
+            <then>
+               <property name="eMarketingProducts" expression="get-property('operation', 'eMarketingProducts') + 1" scope="operation" />
+               <header name="X-Shopify-Access-Token" expression="get-property('shopify.accessToken')" scope="transport" />
+               <property name="uri.var.apiUrl" expression="get-property('shopify.apiUrl')" />
+               <property name="uri.var.shopify.productId" expression="get-property('shopify.productId')" />
+               <call>
+                  <endpoint>
+                     <http method="put" uri-template="{+uri.var.apiUrl}/admin/products/{+uri.var.shopify.productId}.json" />
+                  </endpoint>
+               </call>
+               <sequence key="shopify-removeResponseHeaders" />
+
+               <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'), ',shopify_productId:', get-property('shopify.productId'))" />
+               <property name="shopify.productId" expression="json-eval($.product.id)" />
+               <!-- START: Build the response based on whether the updation is successful or not. -->
+               <filter source="boolean(get-property('shopify.productId'))" regex="true">
+                  <then>
+                     <property name="status" value="success" />
+                     <property name="message" value="The product has been successfully updated in Shopify." />
+                  </then>
+                  <else>
+                     <property name="status" value="error" />
+                     <property name="message" expression="json-eval($)" />
+                  </else>
+               </filter>
+               <!-- END: Build the response based on whether the updation is successful or not. -->
+
+               <!-- Success case: Append an error message to be sent to the user. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="shopify_updateProduct" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+            </then>
+         </filter>
+         <!-- START: Proceed to update the product only if it requried. -->
+
+      </case>
+   </switch>
+   <!-- END: Create or Update product based on whether it is already created or not. -->
+</sequence>

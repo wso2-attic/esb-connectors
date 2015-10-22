@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!--Construct the item arrays to create invoices, delivery-note and routes -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="vend-setItemArray">
+   <script language="js">
+      <![CDATA[
+         var products = mc.getProperty('vend.salesProducts');
+         var productArray = [];
+         var billomatItemArray = [];
+         var beetrackItemArray = [];
+         var deliveryItemArray = [];
+         
+         if(products.charCodeAt(0) != '91'&& products.charCodeAt(products.length-1) != '93') {
+            products ='['+products+']';
+            productArray = eval("(" + products + ")");
+         } 
+         else {
+             productArray = eval("(" + products + ")");
+         }
+         print("products length+++    "+productArray.length);  
+         
+         for(var i =0;i<productArray.length;i++) {
+            var billomatItemObj = {};
+            var beetrackItemObj = {};
+            var deliveryItemObj = {};
+            billomatItemObj.quantity = productArray[i].quantity;
+            billomatItemObj.unit_price = productArray[i].price;
+            billomatItemObj.title= productArray[i].name;
+            billomatItemObj.unit= 'Piece';
+            billomatItemArray.push(billomatItemObj);
+            
+            beetrackItemObj.quantity= productArray[i].quantity;
+            beetrackItemObj.description= productArray[i].name;
+            beetrackItemArray.push(beetrackItemObj);
+            
+            deliveryItemObj.unit_price = productArray[i].price;
+            deliveryItemObj.title= productArray[i].name;
+            deliveryItemObj.unit= 'Piece';
+            deliveryItemArray.push(deliveryItemObj);
+            
+         }
+         var payload = {};
+         var billomat={};
+         var deliveryNotes={};
+         billomat["invoice-item"] = billomatItemArray;
+         deliveryNotes["delivery-note-item"] = deliveryItemArray;
+         payload["beetrack"] = beetrackItemArray;
+         payload["billomat"] = billomat;
+         payload["deliveryNotes"] = deliveryNotes;
+         print("before setting payload");
+         mc.setPayloadJSON(payload);
+         
+      ]]>
+   </script>
+</sequence>
