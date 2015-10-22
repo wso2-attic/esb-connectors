@@ -40,14 +40,12 @@ Steps to follow in setting integration test.
       /_system/governance/connectors/BigQuery/redirectUrl
       /_system/governance/connectors/BigQuery/refreshToken
 
-
- 4. Run the ESB 4.9.0.
  
- 5. Make sure that Bigquery is specified as a module in ESB Connector Parent pom.
+ 4. Make sure that Bigquery is specified as a module in ESB Connector Parent pom.
 
-    <module>BigQuery\bigquery-connector\bigquery-connector-1.0.0\org.wso2.carbon.connector</module>
+    <module>bigquery\bigquery-connector\bigquery-connector-1.0.0\org.wso2.carbon.connector</module>
  
- 6. Update the Bigquery properties file at location "<BIGQUERY_CONNECTOR_HOME>/bigquery-connector/bigquery-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 5. Update the Bigquery properties file at location "<BIGQUERY_CONNECTOR_HOME>/bigquery-connector/bigquery-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
    i)   apiUrl             -  The API URL of Bigquery(e.g. https://www.googleapis.com) .
    ii)  projectId          -  A valid Project ID.
@@ -56,6 +54,8 @@ Steps to follow in setting integration test.
    v)   query              -  A query string, following the BigQuery query syntax, of the query to execute(This should be always 'SELECT count(*) FROM [publicdata:samples.github_nested]').   
    vi)  defaultDatasetId   -  A unique ID for the dataset, without the project name. The ID must contain only letters (a-z, A-Z), numbers (0-9), or underscores (_). The maximum length is 1,024 characters.
    vii) runQueryProjectId  -  Id of the project noted in above step 3(v). 
+
+ 6. Make sure ESB is up and running. 
 
  7. Navigate to "<ESB_CONNECTOR_HOME>/" and run the following command.
      $ mvn clean install
