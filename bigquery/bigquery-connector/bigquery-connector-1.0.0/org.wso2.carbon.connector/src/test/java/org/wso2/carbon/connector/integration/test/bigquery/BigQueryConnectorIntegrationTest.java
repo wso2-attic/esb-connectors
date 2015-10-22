@@ -345,7 +345,7 @@ public class BigQueryConnectorIntegrationTest extends ConnectorIntegrationTestBa
     * @throws IOException
     * @throws JSONException
     */
-   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "bigquery {getTable} integration test with mandatory parameters.")
+   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "BigQuery {getTable} integration test with mandatory parameters.")
    public void testGetTableWithMandatoryParameters() throws IOException, JSONException {
 
       esbRequestHeadersMap.put("Action", "urn:getTable");
@@ -378,7 +378,7 @@ public class BigQueryConnectorIntegrationTest extends ConnectorIntegrationTestBa
     * @throws IOException
     * @throws JSONException
     */
-   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "bigquery {getTable} integration test with optional parameters.")
+   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "BigQuery {getTable} integration test with optional parameters.")
    public void testGetTableWithOptionalParameters() throws IOException, JSONException {
 
       esbRequestHeadersMap.put("Action", "urn:getTable");
@@ -417,7 +417,7 @@ public class BigQueryConnectorIntegrationTest extends ConnectorIntegrationTestBa
     * @throws IOException
     * @throws JSONException
     */
-   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "bigquery {getTable} integration test with negative case.")
+   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "BigQuery {getTable} integration test with negative case.")
    public void testGetTableWithNegativeCase() throws IOException, JSONException {
 
       esbRequestHeadersMap.put("Action", "urn:getTable");
@@ -451,7 +451,7 @@ public class BigQueryConnectorIntegrationTest extends ConnectorIntegrationTestBa
     * @throws IOException
     * @throws JSONException
     */
-   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "bigquery {listTables} integration test with mandatory parameters.")
+   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "BigQuery {listTables} integration test with mandatory parameters.")
    public void testListTablesWithMandatoryParameters() throws IOException, JSONException {
 
       esbRequestHeadersMap.put("Action", "urn:listTables");
@@ -479,7 +479,7 @@ public class BigQueryConnectorIntegrationTest extends ConnectorIntegrationTestBa
     * @throws IOException
     * @throws JSONException
     */
-   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "bigquery {listTables} integration test with optional parameters.")
+   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "BigQuery {listTables} integration test with optional parameters.")
    public void testListTablesWithOptionalParameters() throws IOException, JSONException {
 
       esbRequestHeadersMap.put("Action", "urn:listTables");
@@ -511,7 +511,7 @@ public class BigQueryConnectorIntegrationTest extends ConnectorIntegrationTestBa
     * @throws IOException
     * @throws JSONException
     */
-   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "bigquery {listTables} integration test with negative case.")
+   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "BigQuery {listTables} integration test with negative case.")
    public void testListTablesWithNegativeCase() throws IOException, JSONException {
 
       esbRequestHeadersMap.put("Action", "urn:listTables");
@@ -544,7 +544,7 @@ public class BigQueryConnectorIntegrationTest extends ConnectorIntegrationTestBa
     * @throws IOException
     * @throws JSONException
     */
-   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "bigquery {runQuery} integration test with mandatory parameters.")
+   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "BigQuery {runQuery} integration test with mandatory parameters.")
    public void testRunQueryWithMandatoryParameters() throws IOException, JSONException {
 
       esbRequestHeadersMap.put("Action", "urn:runQuery");
@@ -579,7 +579,7 @@ public class BigQueryConnectorIntegrationTest extends ConnectorIntegrationTestBa
     * @throws IOException
     * @throws JSONException
     */
-   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "bigquery {runQuery} integration test with optional parameters.")
+   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "BigQuery {runQuery} integration test with optional parameters.")
    public void testRunQueryWithOptionalParameters() throws IOException, JSONException {
 
       esbRequestHeadersMap.put("Action", "urn:runQuery");
@@ -614,7 +614,7 @@ public class BigQueryConnectorIntegrationTest extends ConnectorIntegrationTestBa
     * @throws IOException
     * @throws JSONException
     */
-   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "bigquery {runQuery} integration test with negative case.")
+   @Test(groups = { "wso2.esb.bigquery" }, dependsOnMethods = { "testGetAccessTokenFromRefreshToken" }, description = "BigQuery {runQuery} integration test with negative case.")
    public void testRunQueryWithNegativeCase() throws IOException, JSONException {
 
       esbRequestHeadersMap.put("Action", "urn:runQuery");
