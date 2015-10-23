@@ -28,19 +28,19 @@ Steps to follow in setting integration test.
     and wso2carbon.jks located in "<SALESFORCEDESK_CONNECTOR_HOME>/salesforcedesk-connector/salesforcedesk-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products".
       
  5. Prerequisites for SalesforceDesk Connector Integration Testing.
-      i) Create a new custom field for Customers by navigating to the following link.
-         https://{DOMAIN_NAME}.desk.com/admin/case-management/customer-settings/custom-fields.
+      i) Create a new custom field as 'employer_id' for companies by navigating to the following link.
+         https://{DOMAIN_NAME}.desk.com/admin/case-management/company-settings/custom-fields
 
       ii) Add at least two users for the account by navigating to the following link.
-          https://{DOMAIN_NAME}.desk.com/admin/team/users
+         https://{DOMAIN_NAME}.desk.com/admin/team/users
    
       iii) Navigate to the following link and add at least two new email cases by providing a customer and a company for the case. Obtain the customer ID and the company ID.
-           https://{DOMAIN_NAME}.desk.com/agent
+         https://{DOMAIN_NAME}.desk.com/agent
       
       iv) Create an article with attachment and obtain the article ID and attachment ID from browser URLs by clicking article and attachment. Use the following URL to get instructions to create an article with attachment.
-          https://support.desk.com/customer/portal/articles/1572-creating-multi-channel-knowledge-base-articles.
+         https://support.desk.com/customer/portal/articles/1572-creating-multi-channel-knowledge-base-articles.
       
-      v) Navigate to 'https://{DOMAIN_NAME}.desk.com/agent#' to create a new email type case with attachment, anding with values for 'to', 'cc' or 'bcc' parameters. And obtain the ID of the case.
+      v) Navigate to 'https://{DOMAIN_NAME}.desk.com/agent#' to create a new email type case with attachment, adding with values for 'to', 'cc' or 'bcc' parameters. And obtain the ID of the case.
          To obtain the attachment ID, mouse-over the attachment file and obtain form pop-up navigating URL.
 
  6. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "<ESB_CONNECTOR_HOME>/repository/".
@@ -96,7 +96,7 @@ Steps to follow in setting integration test.
    xliv)   custLockedUntil          -  Date value to set customer locked until date (Format should be in yyyy-MM-ddThh:mm:ssZ).
    xlv)    custAccessPrivatePortal  -  Boolean value to set to access customer private portal.
                             
-    NOTE: The property values of 'articleQuickCodeOpt', 'caseExternalId', 'companyNameMand' and 'companyNameOpt' should be changed to unique different values for each integration execution.  
+   NOTE: The property values of 'articleQuickCodeOpt', 'caseExternalId', 'companyNameMand' and 'companyNameOpt' should be changed to unique different values for each integration execution.  
 
  9. Navigate to "<ESB_CONNECTOR_HOME>/" and run the following command.
      $ mvn clean install
