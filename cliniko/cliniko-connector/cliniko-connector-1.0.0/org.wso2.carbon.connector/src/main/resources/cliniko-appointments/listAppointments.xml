@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://github.com/redguava/cliniko-api/blob/master/sections/appointments.md#get-appointments -->
+<template name="listAppointments" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="practitionerId" description="ID of the practitioner whose appointments would be retrieved." />
+   <parameter name="businessId" description="ID of the business whose associated appointments would be retrieved." />
+   <parameter name="patientId" description="ID of the patient whose appointments would be retrieved." />
+   <parameter name="page" description="Index of the page to return when the responses are paginated." />
+   <parameter name="perPage" description="No. of entries to return in a page when responses are paginated." />
+   <parameter name="sort" description="Name of the property by which the responses will be sorted." />
+   <parameter name="order" description="Ascending or descending order in which the responses will be sorted." />
+   <sequence>
+      <property name="uri.var.practitionerId" expression="$func:practitionerId" />
+      <property name="uri.var.businessId" expression="$func:businessId" />
+      <property name="uri.var.patientId" expression="$func:patientId" />
+      <property name="uri.var.page" expression="$func:page" />
+      <property name="uri.var.perPage" expression="$func:perPage" />
+      <property name="uri.var.sort" expression="$func:sort" />
+      <property name="uri.var.order" expression="$func:order" />
+      <script language="js">
+         <![CDATA[
+            var practitionerId = mc.getProperty('uri.var.practitionerId');
+            var businessId = mc.getProperty('uri.var.businessId');
+            var patientId = mc.getProperty('uri.var.patientId');
+            var perPage = mc.getProperty('uri.var.perPage');
+            var page = mc.getProperty('uri.var.page');
+            var sort = mc.getProperty('uri.var.sort');
+            var order = mc.getProperty('uri.var.order');
+            var urlQuery = '';
+            if (page != null && page != "") {
+               urlQuery += 'page=' + page + '&';
+            }
+            if (perPage != null && perPage != "") {
+               urlQuery += 'per_page=' + perPage + '&';
+            }
+            if (sort != null && sort != "") {
+               urlQuery += 'sort=' + sort + '&';
+            }
+            if (order != null && order != "") {
+               urlQuery += 'order=' + order + '&';
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+            // Set the endpoint based on the parameters provided by the user
+            if (patientId != null && patientId != "") {
+               mc.setProperty('uri.var.endpoint', '/patients/' + patientId);
+            } else if (practitionerId != null && practitionerId != "") {
+               mc.setProperty('uri.var.endpoint', '/practitioners/' + practitionerId);
+            } else if (businessId != null && businessId != "") {
+               mc.setProperty('uri.var.endpoint', '/businesses/' + businessId);
+            }
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}{+uri.var.endpoint}/appointments{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Status" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-Xss-Protection" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Etag" action="remove" scope="transport" />
+      <header name="Last-Modified" action="remove" scope="transport" />
+      <header name="Location" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="X-Runtime" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Via" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+   </sequence>
+</template>
