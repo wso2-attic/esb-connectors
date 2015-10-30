@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#docs-index_ -->
+<template name="createDocumentWithIndex" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="indexName" description="Name of the index inside which the type would be created." />
+   <parameter name="type" description="The type inside which the ID would be considered." />
+   <parameter name="id" description="Key of the index being inserted." />
+   <parameter name="user" description="Name of the user performing the operation." />
+   <parameter name="postDate" description="Date when the index should be inserted. Will be defaulted to the processing date if not explicitly specified." />
+   <parameter name="message" description="Message associated with the insertion operation." />
+   <parameter name="version" description="Each indexed document is given a version number. The index API optionally allows for optimistic concurrency control when the version parameter is specified. This will control the version of the document the operation is intended to be executed against." />
+   <parameter name="versionType" description="Type of the versioning used when inserting index." />
+   <parameter name="operationType" description="The index operation also accepts an op_type that can be used to force a create operation, allowing for 'put-if-absent' behaviour. When create is used, the index operation will fail if a document by that id already exists in the index." />
+   <parameter name="timeStamp" description="A document can be indexed with a timestamp associated with it. If the timestamp value is not provided externally or in the _source, the timestamp will be automatically set to the date the document was processed by the indexing chain." />
+   <parameter name="timeToLive" description="A document can be indexed with a ttl (time to live) associated with it. Expired documents will be expunged automatically. The expiration date that will be set for a document with a provided ttl is relative to the timestamp of the document, meaning it can be based on the time of indexing or on any time provided." />
+   <parameter name="timeout" description="The primary shard assigned to perform the index operation might not be available when the index operation is executed." />
+   <parameter name="refresh" description="To refresh the shard (not the whole index) immediately after the operation occurs, so that the document appears in search results immediately, the refresh parameter can be set to true. Setting this option to true should ONLY be done after careful thought and verification that it does not lead to poor performance, both from an indexing and a search standpoint. Note, getting a document using the get API is completely realtime." />
+   <parameter name="consistency" description="To prevent writes from taking place on the wrong side of a network partition. Accepted values: one, quorum, and all. "/>
+   <sequence>
+      <property name="uri.var.indexName" expression="$func:indexName" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.id" expression="$func:id" />
+      <property name="uri.var.user" expression="$func:user" />
+      <property name="uri.var.postDate" expression="$func:postDate" />
+      <property name="uri.var.message" expression="$func:message" />
+      <property name="uri.var.version" expression="$func:version" />
+      <property name="uri.var.versionType" expression="$func:versionType" />
+      <property name="uri.var.operationType" expression="$func:operationType" />
+      <property name="uri.var.timeStamp" expression="$func:timeStamp" />
+      <property name="uri.var.timeToLive" expression="$func:timeToLive" />
+      <property name="uri.var.timeout" expression="$func:timeout" />
+      <property name="uri.var.refresh" expression="$func:refresh" />
+      <property name="uri.var.consistency" expression="$func:consistency" />
+      <script language="js">
+         <![CDATA[
+            var versionType = mc.getProperty('uri.var.versionType');
+            var timeStamp = mc.getProperty('uri.var.timeStamp');
+            var timeToLive = mc.getProperty('uri.var.timeToLive');
+            var postDate = mc.getProperty('uri.var.postDate');
+            var refresh = mc.getProperty('uri.var.refresh');
+            var operationType = mc.getProperty('uri.var.operationType');
+            var message = mc.getProperty('uri.var.message');
+            var user = mc.getProperty('uri.var.user');
+            var version = mc.getProperty('uri.var.version');
+            var timeout = mc.getProperty('uri.var.timeout');
+            var consistency = mc.getProperty('uri.var.consistency');
+            var jsonPayload = {};
+            var commonQueryParams = mc.getProperty('uri.var.commonQueryParams');
+            var urlQuery = '';
+            if (commonQueryParams != null && commonQueryParams != "") {
+               urlQuery +=  commonQueryParams;
+            }
+            if (versionType != null && versionType != ""){
+               urlQuery += 'version_type=' + versionType + '&';
+            }
+            if (version != null && version != ""){
+               urlQuery += 'version=' + version + '&';
+            }
+            if (timeStamp != null && timeStamp != ""){
+               urlQuery += 'timestamp=' + timeStamp + '&';
+            }
+            if (timeToLive != null && timeToLive != ""){
+               urlQuery += 'ttl=' + timeToLive + '&';
+            }
+            if (refresh != null && refresh != ""){
+               urlQuery += 'refresh=' + refresh + '&';
+            }
+            if (operationType != null && operationType != ""){
+               urlQuery += 'op_type=' + operationType + '&';
+            }
+            if (timeout != null && timeout != ""){
+               urlQuery += 'timeout=' + timeout + '&';
+            }
+            if (consistency != null && consistency != ""){
+               urlQuery += 'consistency=' + consistency + '&';
+            }
+            if (postDate != null && postDate != ""){
+               jsonPayload.post_date = postDate;
+            }  
+            if (user != null && user != ""){
+               jsonPayload.user = user;
+            }
+            if (message != null && message != ""){
+               jsonPayload.message = message;
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="put" uri-template="{uri.var.apiUrl}/{uri.var.indexName}/{uri.var.type}/{uri.var.id}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+   </sequence>
+</template>

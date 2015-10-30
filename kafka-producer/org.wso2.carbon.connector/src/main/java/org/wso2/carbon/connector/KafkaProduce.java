@@ -42,7 +42,11 @@ public class KafkaProduce extends AbstractConnector {
         String key = this.getKey(messageContext);
         try {
             String message = this.getMessage(messageContext);
-            send(producer, topic, key, message);
+            if (producer != null) {
+                send(producer, topic, key, message);
+            } else {
+                log.error("The producer not created");
+            }
         } catch (Exception e) {
             log.error("Kafka producer connector : Error sending the message to broker lists ");
             throw new ConnectException(e);

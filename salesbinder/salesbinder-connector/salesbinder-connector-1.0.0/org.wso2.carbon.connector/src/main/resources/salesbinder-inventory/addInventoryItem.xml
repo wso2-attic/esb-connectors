@@ -18,49 +18,51 @@
 -->
 <!-- API Documentation URL - http://www.salesbinder.com/kb/api-functions/add-new-item -->
 <template name="addInventoryItem" xmlns="http://ws.apache.org/ns/synapse">
-    <parameter name="name" description="Name of the item."/>
-    <parameter name="description" description="Optional description of item."/>
-    <parameter name="serialNumber" description="Item Serial Number (for unique items)."/>
-    <parameter name="sku" description="Stock Keeping Unit."/>
-    <parameter name="multiple" description="0 = Unique Item, 1 = Quantity Item."/>
-    <parameter name="threshold" description="Low Quantity Threshold."/>
-    <parameter name="cost" description="Item/Unit Cost."/>
-    <parameter name="price" description="Selling price of item/unit."/>
-    <parameter name="quantity" description="Items in stock (unique items should have 1)."/>
-    <parameter name="locationId" description="The location ID."/>
-    <parameter name="categoryId" description="The category ID."/>
-    <parameter name="unitOfMeasureId" description="Unit of Measure ID."/>
-    <sequence>
-        <property name="uri.var.name" expression="$func:name"/>
-        <property name="uri.var.description" expression="$func:description"/>
-        <property name="uri.var.serialNumber" expression="$func:serialNumber"/>
-        <property name="uri.var.sku" expression="$func:sku"/>
-        <property name="uri.var.multiple" expression="$func:multiple"/>
-        <property name="uri.var.threshold" expression="$func:threshold"/>
-        <property name="uri.var.cost" expression="$func:cost"/>
-        <property name="uri.var.price" expression="$func:price"/>
-        <property name="uri.var.quantity" expression="$func:quantity"/>
-        <property name="uri.var.locationId" expression="$func:locationId"/>
-        <property name="uri.var.categoryId" expression="$func:categoryId"/>
-        <property name="uri.var.unitOfMeasureId" expression="$func:unitOfMeasureId"/>
-        <payloadFactory media-type="json">
-            <format>
-                {
-                "Item":{
-                "name":"$1",
-                "multiple":"$2",
-                "cost":"$3"
-                }
-                }
-            </format>
-            <args>
-                <arg expression="get-property('uri.var.name')"/>
-                <arg expression="get-property('uri.var.multiple')"/>
-                <arg expression="get-property('uri.var.cost')"/>
-            </args>
-        </payloadFactory>
-        <script language="js">
-            <![CDATA[
+   <parameter name="name" description="Name of the item." />
+   <parameter name="description" description="Optional description of item." />
+   <parameter name="serialNumber" description="Item Serial Number (for unique items)." />
+   <parameter name="sku" description="Stock Keeping Unit." />
+   <parameter name="multiple" description="0 = Unique Item, 1 = Quantity Item." />
+   <parameter name="threshold" description="Low Quantity Threshold." />
+   <parameter name="cost" description="Item/Unit Cost." />
+   <parameter name="price" description="Selling price of item/unit." />
+   <parameter name="quantity" description="Items in stock (unique items should have 1)." />
+   <parameter name="locationId" description="The location ID." />
+   <parameter name="categoryId" description="The category ID." />
+   <parameter name="unitOfMeasureId" description="Unit of Measure ID." />
+   <parameter name="customFields" description="Custom fields to set for inventory item." />
+   <sequence>
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.serialNumber" expression="$func:serialNumber" />
+      <property name="uri.var.sku" expression="$func:sku" />
+      <property name="uri.var.multiple" expression="$func:multiple" />
+      <property name="uri.var.threshold" expression="$func:threshold" />
+      <property name="uri.var.cost" expression="$func:cost" />
+      <property name="uri.var.price" expression="$func:price" />
+      <property name="uri.var.quantity" expression="$func:quantity" />
+      <property name="uri.var.locationId" expression="$func:locationId" />
+      <property name="uri.var.categoryId" expression="$func:categoryId" />
+      <property name="uri.var.unitOfMeasureId" expression="$func:unitOfMeasureId" />
+      <property name="uri.var.customFields" expression="$func:customFields" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "Item":{
+                  "name":"$1",
+                  "multiple":"$2",
+                  "cost":"$3"
+               }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.name')" />
+            <arg expression="get-property('uri.var.multiple')" />
+            <arg expression="get-property('uri.var.cost')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
             var description = mc.getProperty('uri.var.description');
             var serialNumber = mc.getProperty('uri.var.serialNumber');
             var sku = mc.getProperty('uri.var.sku');
@@ -70,6 +72,7 @@
             var locationId = mc.getProperty('uri.var.locationId');
             var categoryId = mc.getProperty('uri.var.categoryId');
             var unitOfMeasureId = mc.getProperty('uri.var.unitOfMeasureId');
+            var customFields = mc.getProperty('uri.var.customFields');
                 
             payload = mc.getPayloadJSON();
 
@@ -100,18 +103,33 @@
             if (unitOfMeasureId != null && unitOfMeasureId!= ""){
                payload.Item.unit_of_measure_id = unitOfMeasureId;
             }
+            if (customFields != null && customFields!= ""){
+               payload.ItemDetail = eval("(" + customFields + ")");
+            }
             mc.setPayloadJSON(payload);     
           ]]>
-        </script>
-        <call>
-            <endpoint>
-                <http method="post" uri-template="{uri.var.apiUrl}/items.json"/>
-            </endpoint>
-        </call>
-        <!-- Remove custom Headers from the API Response -->
-        <header name="X-Powered-By" action="remove" scope="transport"/>
-        <header name="P3P" action="remove" scope="transport"/>
-        <header name="Via" action="remove" scope="transport"/>
-        <header name="Server" action="remove" scope="transport"/>
-    </sequence>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/items.json" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="P3P" action="remove" scope="transport" />
+      <header name="Via" action="remove" scope="transport" />
+      <header name="Server" action="remove" scope="transport" />
+      <!-- If Location header is returned in the response, fetch the object pointed by Location header. -->
+      <property name="location" expression="$trp:Location" />
+      <header name="Location" action="remove" scope="transport" />
+      <filter source="boolean(get-property('location'))" regex="true" >
+         <then>
+            <salesbinder.fetchObjectFromLocation>
+               <location>{$ctx:location}</location>
+            </salesbinder.fetchObjectFromLocation>
+         </then>
+      </filter>
+   </sequence>
 </template>

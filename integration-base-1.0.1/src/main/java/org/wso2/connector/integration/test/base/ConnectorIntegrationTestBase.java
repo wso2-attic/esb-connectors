@@ -223,7 +223,19 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
         
     }
     
-        
+    /**
+     * Method to upload sequences if required from a given path.
+     * 
+     * @throws XMLStreamException
+     * @throws IOException
+     * @throws SequenceEditorException
+     * @throws MalformedURLException
+     */
+    public void uploadSequences() throws MalformedURLException, SequenceEditorException, IOException,
+            XMLStreamException {
+    
+    }
+    
     /**
      * Clean up the ESB.
      * 
@@ -1414,6 +1426,265 @@ public abstract class ConnectorIntegrationTestBase extends ESBIntegrationTest {
         
         return xpath.evaluate(element);
     }
+    
+    /**
+     * Send HTTP request using {@link HttpURLConnection} in JSON format.
+     * 
+     * @param endPoint String End point URL.
+     * @param httpMethod String HTTP method type (POST, PUT)
+     * @param headersMap Map<String, String> Headers need to send to the end point.
+     * @param fileName File name of the attachment to set as binary content.
+     * @return RestResponse object.
+     * @throws JSONException
+     * @throws IOException
+     */
+    protected RestResponse<JSONObject> sendBinaryContentForJsonResponse(String endPoint, String httpMethod,
+            Map<String, String> headersMap, String fileName)
+            throws IOException, JSONException {
+    
+        HttpURLConnection httpConnection =
+                writeRequest(endPoint, httpMethod, RestResponse.JSON_TYPE, headersMap, fileName, true);
+        
+        String responseString = readResponse(httpConnection);
+        
+        RestResponse<JSONObject> restResponse = new RestResponse<JSONObject>();
+        restResponse.setHttpStatusCode(httpConnection.getResponseCode());
+        restResponse.setHeadersMap(httpConnection.getHeaderFields());
+        
+        if (responseString != null) {
+            JSONObject jsonObject = null;
+            if (isValidJSON(responseString)) {
+                jsonObject = new JSONObject(responseString);
+            } else {
+                jsonObject = new JSONObject();
+                jsonObject.put("output", responseString);
+            }
+            
+            restResponse.setBody(jsonObject);
+        }
+        
+        return restResponse;
+    }
+    
+    /**
+     * Send HTTP request using {@link HttpURLConnection} in XML format.
+     * 
+     * @param endPoint String End point URL.
+     * @param httpMethod String HTTP method type (POST, PUT)
+     * @param headersMap Map<String, String> Headers need to send to the end point.
+     * @param fileName File name of the attachment to set as binary content.
+     * @return RestResponse object.
+     * @throws IOException
+     * @throws XMLStreamException 
+     */
+    protected RestResponse<OMElement> sendBinaryContentForXmlResponse(String endPoint, String httpMethod,
+            Map<String, String> headersMap, String fileName)
+            throws IOException, XMLStreamException {
+    
+        HttpURLConnection httpConnection =
+                writeRequest(endPoint, httpMethod, RestResponse.XML_TYPE, headersMap, fileName, true);
+      
+        String responseString = readResponse(httpConnection);
+        
+        RestResponse<OMElement> restResponse = new RestResponse<OMElement>();
+        restResponse.setHttpStatusCode(httpConnection.getResponseCode());
+        restResponse.setHeadersMap(httpConnection.getHeaderFields());
+        
+        if (responseString != null) {
+    	  restResponse.setBody(AXIOMUtil.stringToOM(responseString));
+      	}
+        
+        return restResponse;
+    }
+    
+    /**
+     * Write REST request to {@link HttpURLConnection}.
+     * 
+     * @param endPoint String End point URL.
+     * @param httpMethod String HTTP method type (POST, PUT)
+     * @param headersMap Map<String, String> Headers need to send to the end point.
+     * @param fileName String File name of the attachment to set as binary content.
+     * @return {@link HttpURLConnection} object.
+     * @throws IOException
+     */
+    private HttpURLConnection writeRequest(String endPoint, String httpMethod, byte responseType,
+            Map<String, String> headersMap, String fileName, boolean isBinaryContent)
+            throws IOException {
+    
+        
+        OutputStream output = null;
+        
+        URL url = new URL(endPoint);
+        HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
+        // Disable automatic redirects
+        httpConnection.setInstanceFollowRedirects(false);
+        httpConnection.setRequestMethod(httpMethod);
+        
+        //Create byte array to send binary attachment
+      	FileInputStream fileInputStream=null;
+        File file = new File(pathToResourcesDirectory,fileName);
+        byte[] byteArray = new byte[(int) file.length()];
+	    fileInputStream = new FileInputStream(file);
+	    fileInputStream.read(byteArray);
+	    fileInputStream.close();
+        
+        for (String key : headersMap.keySet()) {
+            httpConnection.setRequestProperty(key, headersMap.get(key));
+        }
+        
+        if (httpMethod.equalsIgnoreCase("POST") || httpMethod.equalsIgnoreCase("PUT")) {
+            httpConnection.setDoOutput(true);
+            try {
+                
+                output = httpConnection.getOutputStream();
+                output.write(byteArray);
+                
+            } finally {
+                
+                if (output != null) {
+                    try {
+                        output.close();
+                    } catch (IOException logOrIgnore) {
+                        log.error("Error while closing the connection");
+                    }
+                }
+                
+            }
+        }
+        
+        return httpConnection;
+    }
+        
+    /**
+     * Send HTTPS request using {@link HttpsURLConnection} in JSON format.
+     * 
+     * @param endPoint String End point URL.
+     * @param httpsMethod String HTTPS method type (POST, PUT)
+     * @param headersMap Map<String, String> Headers need to send to the end point.
+     * @param fileName File name of the attachment to set as binary content.
+     * @return RestResponse object.
+     * @throws JSONException
+     * @throws IOException
+     */
+    protected RestResponse<JSONObject> sendBinaryContentForJsonResponseHTTPS(String endPoint, String httpMethod,
+            Map<String, String> headersMap, String fileName)
+            throws IOException, JSONException {
+    
+        HttpsURLConnection httpsConnection =
+                writeRequestHTTPS(endPoint, httpMethod, RestResponse.JSON_TYPE, headersMap, fileName, true);
+        
+        String responseString = readResponse(httpsConnection);
+        
+        RestResponse<JSONObject> restResponse = new RestResponse<JSONObject>();
+        restResponse.setHttpStatusCode(httpsConnection.getResponseCode());
+        restResponse.setHeadersMap(httpsConnection.getHeaderFields());
+        
+        if (responseString != null) {
+            JSONObject jsonObject = null;
+            if (isValidJSON(responseString)) {
+                jsonObject = new JSONObject(responseString);
+            } else {
+                jsonObject = new JSONObject();
+                jsonObject.put("output", responseString);
+            }
+            
+            restResponse.setBody(jsonObject);
+        }
+        
+        return restResponse;
+    }
+    
+    /**
+     * Send HTTPS request using {@link HttpsURLConnection} in XML format.
+     * 
+     * @param endPoint String End point URL.
+     * @param httpMethod String HTTPS method type (POST, PUT)
+     * @param headersMap Map<String, String> Headers need to send to the end point.
+     * @param fileName File name of the attachment to set as binary content.
+     * @return RestResponse object.
+     * @throws IOException
+     * @throws XMLStreamException 
+     */
+    protected RestResponse<OMElement> sendBinaryContentForXmlResponseHTTPS(String endPoint, String httpMethod,
+            Map<String, String> headersMap, String fileName)
+            throws IOException, XMLStreamException {
+    
+        HttpsURLConnection httpsConnection =
+                writeRequestHTTPS(endPoint, httpMethod, RestResponse.XML_TYPE, headersMap, fileName, true);
+      
+        String responseString = readResponse(httpsConnection);
+        
+        RestResponse<OMElement> restResponse = new RestResponse<OMElement>();
+        restResponse.setHttpStatusCode(httpsConnection.getResponseCode());
+        restResponse.setHeadersMap(httpsConnection.getHeaderFields());
+        
+        if (responseString != null) {
+    	  restResponse.setBody(AXIOMUtil.stringToOM(responseString));
+      	}
+        
+        return restResponse;
+    }
+    
+    /**
+     * Write REST request to {@link HttpsURLConnection}.
+     * 
+     * @param endPoint String End point URL.
+     * @param httpsMethod String HTTP method type (POST, PUT)
+     * @param headersMap Map<String, String> Headers need to send to the end point.
+     * @param fileName String File name of the attachment to set as binary content.
+     * @return {@link HttpsURLConnection} object.
+     * @throws IOException
+     */
+    private HttpsURLConnection writeRequestHTTPS(String endPoint, String httpMethod, byte responseType,
+            Map<String, String> headersMap, String fileName, boolean isBinaryContent)
+            throws IOException {
+    
+        
+        OutputStream output = null;
+        
+        URL url = new URL(endPoint);
+        HttpsURLConnection httpsConnection = (HttpsURLConnection) url.openConnection();
+        // Disable automatic redirects
+        httpsConnection.setInstanceFollowRedirects(false);
+        httpsConnection.setRequestMethod(httpMethod);
+        
+        //Create byte array to send binary attachment
+      	FileInputStream fileInputStream=null;
+        File file = new File(pathToResourcesDirectory,fileName);
+        byte[] byteArray = new byte[(int) file.length()];
+	    fileInputStream = new FileInputStream(file);
+	    fileInputStream.read(byteArray);
+	    fileInputStream.close();
+        
+        for (String key : headersMap.keySet()) {
+            httpsConnection.setRequestProperty(key, headersMap.get(key));
+        }
+        
+        if (httpMethod.equalsIgnoreCase("POST") || httpMethod.equalsIgnoreCase("PUT")) {
+            httpsConnection.setDoOutput(true);
+            try {
+                
+                output = httpsConnection.getOutputStream();
+                output.write(byteArray);
+                
+            } finally {
+                
+                if (output != null) {
+                    try {
+                        output.close();
+                    } catch (IOException logOrIgnore) {
+                        log.error("Error while closing the connection");
+                    }
+                }
+                
+            }
+        }
+        
+        return httpsConnection;
+    }
+    
+   
+    
     
     /**
      * Inner class to handle Multipart data

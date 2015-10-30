@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#parent-children -->
+<template name="indexChildDocument" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="childId" description="ID of the child document to be indexed." />
+   <parameter name="indexName" description="Name of the index inside which the type would be created." />
+   <parameter name="type" description="The type inside which the ID would be considered." />
+   <parameter name="parentType" description="Name of the type which consider as parent." />
+   <parameter name="parentId" description="ID of the parent document inside which the child document will be tagged." />
+   <parameter name="tagValue" description="Value of the tag to be added to the child document." />
+   <sequence>
+      <property name="uri.var.childId" expression="$func:childId" />
+      <property name="uri.var.indexName" expression="$func:indexName" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.parentId" expression="$func:parentId" />
+      <property name="uri.var.tagValue" expression="$func:tagValue" />
+      <property name="uri.var.parentType" expression="$func:parentType" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "$1":{
+            "_parent": {"type": "$2"}
+            }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.type')" />
+            <arg expression="get-property('uri.var.parentType')" />
+         </args>
+      </payloadFactory>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.indexName}/{uri.var.type}/_mapping" />
+         </endpoint>
+      </call>
+      <property name="uri.var.acknowledged" expression="json-eval($.acknowledged)" />
+      <!-- process only if child type is mapped to parent type. -->
+      <filter source="get-property('uri.var.acknowledged')" regex="true">
+         <then>
+            <script language="js">
+               <![CDATA[
+                  var tagValue = mc.getProperty('uri.var.tagValue');
+                  var parentId = mc.getProperty('uri.var.parentId');
+                  var jsonPayload = {};
+                  var commonQueryParams = mc.getProperty('uri.var.commonQueryParams');
+                  var urlQuery = '';
+                  if (tagValue != null && tagValue != ""){
+                     jsonPayload.tag = tagValue;
+                  }
+                  mc.setPayloadJSON(jsonPayload);
+                  if (commonQueryParams != null && commonQueryParams != "") {
+                     urlQuery +=  commonQueryParams;  
+                  }
+                  // Add a leading '&' and remove the trailing '&'
+                  if (urlQuery != "") {
+                     urlQuery = '&' + urlQuery.substring(0, urlQuery.length - 1);
+                     mc.setProperty('uri.var.urlQuery', urlQuery);
+                  }
+               ]]>
+            </script>
+            <call>
+               <endpoint>
+                  <http method="put" uri-template="{uri.var.apiUrl}/{uri.var.indexName}/{uri.var.type}/{uri.var.childId}?parent={uri.var.parentId}{+uri.var.urlQuery}" />
+               </endpoint>
+            </call>
+         </then>
+      </filter>
+   </sequence>
+</template>

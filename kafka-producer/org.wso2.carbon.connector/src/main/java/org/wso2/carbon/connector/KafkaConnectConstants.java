@@ -39,8 +39,29 @@ public class KafkaConnectConstants {
     public static final String REQUEST_TIMEOUT = "request.timeout.ms";
     public static final String ENQUEUE_TIMEOUT = "queue.enqueue.timeout.ms";
     public static final String CLIENT_ID = "client.id";
+
     // Configuration properties parameter
     public static final String PARAM_TOPIC = "topic";
     public static final String PARAM_KEY = "key";
+
+    // Configuration parameters for kafka connector
+    public static final String KAFKA_BROKER_LIST = "kafka.brokerList";
+    public static final String KAFKA_SERIALIZATION_CLASS = "kafka.serializationClass";
+    public static final String KAFKA_REQUIRED_ACK = "kafka.requiredAck";
+    public static final String KAFKA_PRODUCER_TYPE = "kafka.producerType";
+    public static final String KAFKA_KEY_SERIALIZER_CLASS = "kafka.keySerializerClass";
+    public static final String KAFKA_PARTITION_CLASS = "kafka.partitionClass";
+    public static final String KAFKA_COMPRESSION_TYPE = "kafka.compressionCodec";
+    public static final String KAFKA_COMPRESSED_TOPIC = "kafka.compressedTopics";
+    public static final String KAFKA_MESSAGE_SEND_MAX_RETRIES = "kafka.messageSendMaxRetries";
+    public static final String KAFKA_TIME_REFRESH_METADATA = "kafka.retryBackOff";
+    public static final String KAFKA_TIME_REFRESH_METADATA_AFTER_TOPIC = "kafka.refreshInterval";
+    public static final String KAFKA_BUFFER_MAX_TIME = "kafka.bufferingMaxTime";
+    public static final String KAFKA_BUFFER_MAX_MESSAGES = "kafka.bufferingMaxMessages";
+    public static final String KAFKA_NO_MESSAGE_BATCHED_PRODUCER = "kafka.batchNoMessages";
+    public static final String KAFKA_BUFFER_SIZE = "kafka.sendBufferSize";
+    public static final String KAFKA_REQUEST_TIMEOUT = "kafka.requestTimeout";
+    public static final String KAFKA_ENQUEUE_TIMEOUT = "kafka.enqueueTimeout";
+    public static final String KAFKA_CLIENT_ID = "kafka.clientId";
 
 }

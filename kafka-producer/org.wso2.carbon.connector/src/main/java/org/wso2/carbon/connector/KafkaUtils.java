@@ -54,43 +54,41 @@ public class KafkaUtils {
 
         Axis2MessageContext axis2mc = (Axis2MessageContext) messageContext;
         String brokers = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.brokerList");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_BROKER_LIST);
         String serializationClass = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.serializationClass");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_SERIALIZATION_CLASS);
         String requiredAck = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.requiredAck");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_REQUIRED_ACK);
         String producerType = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.producerType");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_PRODUCER_TYPE);
         String compressionCodec = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.compressionCodec");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_COMPRESSION_TYPE);
         String keySerializerClass = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.keySerializerClass");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_SERIALIZATION_CLASS);
         String partitionClass = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.partitionClass");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_PARTITION_CLASS);
         String compressedTopics = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.compressedTopics");
-        String messageSendMaxRetries = (String) axis2mc
-                .getAxis2MessageContext().getOperationContext()
-                .getProperty("kafka.messageSendMaxRetries");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_COMPRESSED_TOPIC);
+        String messageSendMaxRetries = (String) axis2mc.getAxis2MessageContext().getOperationContext()
+                .getProperty(KafkaConnectConstants.KAFKA_MESSAGE_SEND_MAX_RETRIES);
         String retryBackOff = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.retryBackOff");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_TIME_REFRESH_METADATA);
         String refreshInterval = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.refreshInterval");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_TIME_REFRESH_METADATA_AFTER_TOPIC);
         String bufferingMaxMessages = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext()
-                .getProperty("kafka.bufferingMaxMessages");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_BUFFER_MAX_MESSAGES);
         String batchNoMessages = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.batchNoMessages");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_NO_MESSAGE_BATCHED_PRODUCER);
         String sendBufferSize = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.sendBufferSize");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_BUFFER_SIZE);
         String requestTimeout = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.requestTimeout");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_REQUEST_TIMEOUT);
         String bufferingMaxTime = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.bufferingMaxTime");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_BUFFER_MAX_TIME);
         String enqueueTimeout = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.enqueueTimeout");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_ENQUEUE_TIMEOUT);
         String clientId = (String) axis2mc.getAxis2MessageContext()
-                .getOperationContext().getProperty("kafka.clientId");
+                .getOperationContext().getProperty(KafkaConnectConstants.KAFKA_CLIENT_ID);
 
         Properties producerConfigProperties = new Properties();
         producerConfigProperties.put(KafkaConnectConstants.BROKER_LIST, brokers);
@@ -125,7 +123,8 @@ public class KafkaUtils {
     public static String formatMessage(
             org.apache.axis2.context.MessageContext messageContext) throws AxisFault {
         OMOutputFormat format = BaseUtils.getOMOutputFormat(messageContext);
-        MessageFormatter messageFormatter = MessageProcessorSelector.getMessageFormatter(messageContext);         ;
+        MessageFormatter messageFormatter = MessageProcessorSelector.getMessageFormatter(messageContext);
+        ;
         StringWriter stringWriter = new StringWriter();
         OutputStream out = new WriterOutputStream(stringWriter, format.getCharSetEncoding());
         try {
@@ -133,12 +132,12 @@ public class KafkaUtils {
                 messageFormatter.writeTo(messageContext, format, out, true);
             }
         } catch (IOException e) {
-            throw new AxisFault("The Error occurs while formatting the message",e);
+            throw new AxisFault("The Error occurs while formatting the message", e);
         } finally {
             try {
                 out.close();
-            }catch (Exception e) {
-                throw new AxisFault("The Error occurs while closing the output stream",e);
+            } catch (Exception e) {
+                throw new AxisFault("The Error occurs while closing the output stream", e);
             }
         }
 

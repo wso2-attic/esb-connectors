@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developers.vendhq.com/documentation/api/0.x/consignments.html#post-api-consignment -->
+<template name="createConsignment" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="name" description="Name of the consignment." />
+   <parameter name="type" description="Type of the consignment. Possible values are STOCKTAKE, SUPPLIER, OUTLET." />
+   <parameter name="date" description="Date of the consignment." />
+   <parameter name="dueAt" description="Due at of the consignment." />
+   <parameter name="outletId" description="Outlet ID of the consignment." />
+   <parameter name="supplierId" description="Supplier ID of the consignment." />
+   <parameter name="sourceOutletId" description="Source outlet ID of the consignment." />
+   <parameter name="status" description="Status of the consignment." />
+   <sequence>
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.date" expression="$func:date" />
+      <property name="uri.var.dueAt" expression="$func:dueAt" />
+      <property name="uri.var.outletId" expression="$func:outletId" />
+      <property name="uri.var.supplierId" expression="$func:supplierId" />
+      <property name="uri.var.sourceOutletId" expression="$func:sourceOutletId" />
+      <property name="uri.var.status" expression="$func:status" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "outlet_id": "$1",
+                "type": "$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.outletId')" />
+            <arg expression="get-property('uri.var.type')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var date = mc.getProperty('uri.var.date');
+            var dueAt = mc.getProperty('uri.var.dueAt');
+            var supplierId = mc.getProperty('uri.var.supplierId');
+            var name = mc.getProperty('uri.var.name');
+            var sourceOutletId = mc.getProperty('uri.var.sourceOutletId');
+            var status = mc.getProperty('uri.var.status');
+            var jsonPayload = mc.getPayloadJSON();
+            if (name != null && name != ""){
+               jsonPayload.name = name;
+            }
+            if (date != null && date != ""){
+               jsonPayload.date = date;
+            }
+            if (dueAt != null && dueAt != ""){
+               jsonPayload.due_at = dueAt;
+            }
+            if (supplierId != null && supplierId != ""){
+               jsonPayload.supplier_id = supplierId;
+            }
+            if (sourceOutletId != null && sourceOutletId != ""){
+               jsonPayload.source_outlet_id = sourceOutletId;
+            }
+            if (status != null && status != ""){
+               jsonPayload.status = status;
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/consignment" />
+         </endpoint>
+      </call>
+      <property name="uri.var.statusCode" expression="$axis2:HTTP_SC" />
+      <!-- If the call fails with 401 Unauthorized, then get a new access token by calling getAccessToken method. -->
+      <filter xpath="get-property('uri.var.statusCode') = 401 and get-property('uri.var.refreshTokenNegotiated') = 'false'">
+         <then>
+            <vend.getAccessTokenFromRefreshToken />
+            <header name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))" scope="transport" />
+            <vend.createConsignment />
+         </then>
+      </filter>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Vend-Request-Id" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Set-Cookie" action="remove" scope="transport" />
+      <header name="X-Hue" action="remove" scope="transport" />
+   </sequence>
+</template>
