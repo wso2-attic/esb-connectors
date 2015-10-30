@@ -18,25 +18,25 @@
 -->
 <!-- API Documentation URL - http://www.salesbinder.com/kb/api-functions/create-new-contact -->
 <template name="createContact" xmlns="http://ws.apache.org/ns/synapse">
-    <parameter name="firstName" description="First name of the contact."/>
-    <parameter name="lastName" description="Last name of the contact."/>
-    <parameter name="jobTitle" description="Job title of the contact."/>
-    <parameter name="phone" description="Phone number of the contact."/>
-    <parameter name="cell" description="Cell number of the contact."/>
-    <parameter name="fax" description="Fax number of the contact."/>
-    <parameter name="email1" description="Email of the contact."/>
-    <parameter name="email2" description="Secondary email of the contact."/>
-    <sequence>
-        <property name="uri.var.firstName" expression="$func:firstName"/>
-        <property name="uri.var.lastName" expression="$func:lastName"/>
-        <property name="uri.var.jobTitle" expression="$func:jobTitle"/>
-        <property name="uri.var.phone" expression="$func:phone"/>
-        <property name="uri.var.cell" expression="$func:cell"/>
-        <property name="uri.var.fax" expression="$func:fax"/>
-        <property name="uri.var.email1" expression="$func:email1"/>
-        <property name="uri.var.email2" expression="$func:email2"/>
-        <script language="js">
-            <![CDATA[
+   <parameter name="firstName" description="First name of the contact." />
+   <parameter name="lastName" description="Last name of the contact." />
+   <parameter name="jobTitle" description="Job title of the contact." />
+   <parameter name="phone" description="Phone number of the contact." />
+   <parameter name="cell" description="Cell number of the contact." />
+   <parameter name="fax" description="Fax number of the contact." />
+   <parameter name="email1" description="Email of the contact." />
+   <parameter name="email2" description="Secondary email of the contact." />
+   <sequence>
+      <property name="uri.var.firstName" expression="$func:firstName" />
+      <property name="uri.var.lastName" expression="$func:lastName" />
+      <property name="uri.var.jobTitle" expression="$func:jobTitle" />
+      <property name="uri.var.phone" expression="$func:phone" />
+      <property name="uri.var.cell" expression="$func:cell" />
+      <property name="uri.var.fax" expression="$func:fax" />
+      <property name="uri.var.email1" expression="$func:email1" />
+      <property name="uri.var.email2" expression="$func:email2" />
+      <script language="js">
+	     <![CDATA[
             var firstName=mc.getProperty("uri.var.firstName");
             var lastName=mc.getProperty("uri.var.lastName");
             var jobTitle=mc.getProperty("uri.var.jobTitle");
@@ -76,16 +76,28 @@
             payload.Contact=contact;
             mc.setPayloadJSON(payload);	
 	     ]]>
-        </script>
-        <call>
-            <endpoint>
-                <http method="post" uri-template="{uri.var.apiUrl}/contacts.json"/>
-            </endpoint>
-        </call>
-        <!-- Remove custom Headers from the API Response -->
-        <header name="X-Powered-By" action="remove" scope="transport"/>
-        <header name="P3P" action="remove" scope="transport"/>
-        <header name="Via" action="remove" scope="transport"/>
-        <header name="Server" action="remove" scope="transport"/>
-    </sequence>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/contacts.json" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="P3P" action="remove" scope="transport" />
+      <header name="Via" action="remove" scope="transport" />
+      <header name="Server" action="remove" scope="transport" />
+      <!-- If Location header is returned in the response, fetch the object pointed by Location header. -->
+      <property name="location" expression="$trp:Location" />
+      <header name="Location" action="remove" scope="transport" />
+      <filter source="boolean(get-property('location'))" regex="true" >
+         <then>
+            <salesbinder.fetchObjectFromLocation>
+               <location>{$ctx:location}</location>
+            </salesbinder.fetchObjectFromLocation>
+         </then>
+      </filter>      
+   </sequence>
 </template>

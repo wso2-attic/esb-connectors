@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template used to get the task additional details by retrieving task notes to given task ID. -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="retrieveTaskDetailsFromNotes">
+   <parameter name="producteev.apiUrl" description="The Producteev API URL." />
+   <parameter name="producteev.accessToken" description="Authentication token of the Producteev API." />
+   <parameter name="producteev.taskId" description="Task ID of the Producteev" />
+   <sequence>
+      <property name="producteev.apiUrl" expression="$func:producteev.apiUrl" />
+      <property name="producteev.accessToken" expression="$func:producteev.accessToken" />
+      <property name="producteev.taskId" expression="$func:producteev.taskId" />
+
+      <!-- Retrieving all notes associated to the task ID. -->
+      <producteev.init>
+         <apiUrl>{$ctx:producteev.apiUrl}</apiUrl>
+         <accessToken>{$ctx:producteev.accessToken}</accessToken>
+      </producteev.init>
+      <producteev.listTaskNotes>
+         <taskId>{$ctx:producteev.taskId}</taskId>
+      </producteev.listTaskNotes>
+
+      <property name="producteev.notesCount" expression="count(//notes)" />
+      <filter xpath="get-property('producteev.notesCount')!=0">
+         <then>
+            <property name="notes" expression="json-eval($.notes)" />
+            <script language="js">
+               <![CDATA[
+                  var notes=eval ("(" + mc.getProperty('notes') + ")");
+                  for(var key in notes){
+                  
+                       var message = notes[key].message;
+                       
+                       if(message.indexOf("Task Resolution:")!=-1){
+                         var noteStringArray = message.split('Task Resolution:');
+                          mc.setProperty('taskResolution',noteStringArray[1]);
+                       }
+                       else if(message.indexOf("Issue ID:")!=-1){
+                          var noteStringArray = message.split('Issue ID:');
+                          mc.setProperty('issueId',noteStringArray[1]);
+                       }
+                       else if(message.indexOf("ZohoCRM CaseID:")!=-1){
+                          var noteStringArray = message.split('ZohoCRM CaseID:');
+                          mc.setProperty('zohoCaseId',noteStringArray[1]);
+                       }
+                       else if(message.indexOf("Task Description:")!=-1){
+                          var noteStringArray = message.split('Task Description:');
+                          mc.setProperty('taskDescription',noteStringArray[1]);
+                       }
+                  }                 
+               ]]>
+            </script>
+            <!-- Set Producteev task description -->
+            <filter source="boolean(get-property('taskDescription'))" regex="true">
+               <then>
+                  <property name="producteev.taskDescription" expression="get-property('taskDescription')"/>
+               </then>
+            </filter>
+            <!-- Set Producteev task resolution -->
+            <filter source="boolean(get-property('taskResolution'))" regex="true">
+               <then>
+                  <property name="producteev.taskResolution" expression="get-property('taskResolution')"/>
+               </then>
+            </filter>
+            <!-- Set issue ID -->
+            <filter source="boolean(get-property('issueId'))" regex="true">
+               <then>
+                  <property name="issueId" expression="get-property('issueId')"/>
+               </then>
+            </filter>
+            <!-- Set ZohoCRM case ID-->
+            <filter source="boolean(get-property('zohoCaseId'))" regex="true">
+               <then>
+                  <property name="zohocrm.caseId" expression="get-property('zohoCaseId')"/>
+               </then>
+            </filter>
+         </then>
+      </filter>
+   </sequence>
+</template>

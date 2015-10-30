@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://beetrack.com/apidoc/#api-Route-UpdateRoute -->
+<template name="updateRoute" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="dispatches" description="Array with dispatch guides asociated to the route that is being created."/>
+   <parameter name="routeId" description="Id of the route that you want to modify (add dispatches)."/>
+   <parameter name="startedAt" description="Time at which the route started."/>
+   <parameter name="endedAt" description="Time at which the route ended."/>
+   <sequence>
+      <property name="uri.var.dispatches" expression="$func:dispatches"/>
+      <property name="uri.var.routeId" expression="$func:routeId"/>
+      <property name="uri.var.startedAt" expression="$func:startedAt"/>
+      <property name="uri.var.endedAt" expression="$func:endedAt"/>
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "dispatches": $1
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.dispatches')"/>
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var payload = mc.getPayloadJSON(); 
+            var startedAt = mc.getProperty('uri.var.startedAt');
+            var endedAt = mc.getProperty('uri.var.endedAt');
+            if (startedAt != null && startedAt != "") {
+               payload.started_at = startedAt;
+            }
+            if (endedAt != null && endedAt != "") {
+               payload.ended_at = endedAt;
+            }
+            mc.setPayloadJSON(payload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="put" uri-template="{+uri.var.apiUrl}/routes/{+uri.var.routeId}"/>
+         </endpoint>
+      </call>
+      <!-- Remove unwanted headers -->
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="X-XSS-Protection" scope="transport" action="remove" />
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+      <header name="X-Content-Type-Options" scope="transport" action="remove" />
+      <header name="X-Frame-Options" scope="transport" action="remove" />
+      <header name="Via" scope="transport" action="remove" />
+   </sequence>
+</template>
