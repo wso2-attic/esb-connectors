@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://github.com/redguava/cliniko-api/blob/master/sections/patients.md#get-patients -->
+<template name="listPatients" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="page" description="Index of the page to return when the responses are paginated."/>
+   <parameter name="perPage" description="No. of entries to return in a page when responses are paginated."/>
+   <parameter name="sort" description="Name of the property by which the responses will be sorted."/>
+   <parameter name="order" description="Ascending or descending order in which the responses will be sorted."/>
+   <parameter name="deleted" description="Indicate whether to retrieve only the deleted patients or not."/>
+   <parameter name="archived" description="Indicate whether to retrieve only the archived patients or not." />
+   <sequence>
+      <property name="uri.var.page" expression="$func:page"/>
+      <property name="uri.var.perPage" expression="$func:perPage"/>
+      <property name="uri.var.sort" expression="$func:sort"/>
+      <property name="uri.var.order" expression="$func:order"/>
+      <property name="uri.var.deleted" expression="$func:deleted"/>
+      <property name="uri.var.archived" expression="$func:archived"/>
+      <script language="js">
+         <![CDATA[
+            var deleted = mc.getProperty('uri.var.deleted');
+            var archived = mc.getProperty('uri.var.archived');
+            var perPage = mc.getProperty('uri.var.perPage');
+            var page = mc.getProperty('uri.var.page');
+            var sort = mc.getProperty('uri.var.sort');
+            var order = mc.getProperty('uri.var.order');
+            var urlQuery = '';
+            if (page != null && page != "") {
+               urlQuery += 'page=' + page + '&';
+            }
+            if (perPage != null && perPage != "") {
+               urlQuery += 'per_page=' + perPage + '&';
+            }
+            if (sort != null && sort != "") {
+               urlQuery += 'sort=' + sort + '&';
+            }
+            if (order != null && order != "") {
+               urlQuery += 'order=' + order + '&';
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+            // Set the endpoint leaf based on whether the user wants to retrieve only the deleted patients or archived patients or all.
+            if (deleted == 'true' || deleted == 1) {
+               mc.setProperty('uri.var.endpointLeaf', '/patients/deleted');
+            } else if (archived == 'true' || archived == 1) {
+               mc.setProperty('uri.var.endpointLeaf', '/patients/archived');
+            } else {
+               mc.setProperty('uri.var.endpointLeaf', '/patients');
+            }
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}{+uri.var.endpointLeaf}{+uri.var.urlQuery}"/>
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Status" action="remove" scope="transport"/>
+      <header name="X-Frame-Options" action="remove" scope="transport"/>
+      <header name="X-Xss-Protection" action="remove" scope="transport"/>
+      <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+      <header name="Etag" action="remove" scope="transport"/>
+      <header name="Last-Modified" action="remove" scope="transport"/>
+      <header name="Location" action="remove" scope="transport"/>
+      <header name="Cache-Control" action="remove" scope="transport"/>
+      <header name="X-Request-Id" action="remove" scope="transport"/>
+      <header name="X-Runtime" action="remove" scope="transport"/>
+      <header name="Strict-Transport-Security" action="remove" scope="transport"/>
+      <header name="Vary" action="remove" scope="transport"/>
+      <header name="Via" action="remove" scope="transport"/>
+      <header name="Strict-Transport-Security" action="remove" scope="transport"/>
+   </sequence>
+</template>
