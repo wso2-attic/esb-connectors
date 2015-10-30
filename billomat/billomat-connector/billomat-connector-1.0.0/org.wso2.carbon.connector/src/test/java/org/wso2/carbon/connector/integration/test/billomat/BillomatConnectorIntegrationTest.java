@@ -643,6 +643,7 @@ public class BillomatConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createInvoice_optional.json");
         
         final String invoiceId = esbRestResponse.getBody().getJSONObject("invoice").getString("id");
+        connectorProperties.put("invoiceIdOpt", invoiceId);
         
         final String apiEndpoint = apiEndpointUrl + "/invoices/" + invoiceId + authString;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
@@ -873,6 +874,119 @@ public class BillomatConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 apiEndpointUrl + "/invoices/" + connectorProperties.getProperty("invoiceId") + authString;
         RestResponse<JSONObject> apiRestResponse =
                 sendJsonRestRequest(apiEndPoint, "PUT", apiRequestHeadersMap, "api_updateInvoice_negative.json");
+        
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 400);
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("errors").get("error"), apiRestResponse.getBody()
+                .getJSONObject("errors").get("error"));
+    }
+    
+    /**
+     * Positive test case for completeInvoice method with mandatory parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "billomat {completeInvoice} integration test with mandatory parameters.",
+            dependsOnMethods = { "testCreateInvoiceWithOptionalParameters" })
+    public void testCompleteInvoiceWithMandatoryParameters() throws IOException, JSONException {
+    
+        final String apiEndPoint =
+                apiEndpointUrl + "/invoices/" + connectorProperties.getProperty("invoiceIdOpt") + authString;
+        RestResponse<JSONObject> apiRestResponseBefore = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        final JSONObject apiResponseBefore = apiRestResponseBefore.getBody().getJSONObject("invoice");
+        
+        esbRequestHeadersMap.put("Action", "urn:completeInvoice");
+        sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_completeInvoice_mandatory.json");
+
+        RestResponse<JSONObject> apiRestResponseAfter = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        final JSONObject apiResponseAfter = apiRestResponseAfter.getBody().getJSONObject("invoice");
+        
+        Assert.assertNotEquals(apiResponseBefore.getString("status"), apiResponseAfter.getString("status"));
+        
+        Assert.assertEquals(connectorProperties.getProperty("invoiceStatus"),apiResponseAfter.getString("status"));
+    }
+    
+    /**
+     * Method name: completeInvoice
+     * Test scenario: Optional
+     * Reason to skip: There are no optional parameters to process.
+     */
+    
+    /**
+     * Negative test case for completeInvoice method.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "billomat {completeInvoice} integration test with negative case.",
+            dependsOnMethods = { "testCreateInvoiceWithMandatoryParameters" })
+    public void testCompleteInvoiceWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:completeInvoice");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_completeInvoice_negative.json");
+        final String apiEndPoint =
+                apiEndpointUrl + "/invoices/" + connectorProperties.getProperty("invoiceId") +"/complete"+ authString;
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "PUT", apiRequestHeadersMap, "api_completeInvoice_negative.json");
+       
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 404);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 404);
+        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("errors").get("error"), apiRestResponse.getBody()
+                .getJSONObject("errors").get("error"));
+    }
+    
+    /**
+     * Positive test case for sendInvoice method with mandatory parameters.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "billomat {sendInvoice} integration test with mandatory parameters.",
+            dependsOnMethods = { "testCompleteInvoiceWithMandatoryParameters" })
+    public void testSendInvoiceWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:sendInvoice");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_sendInvoice_mandatory.json");
+        
+        final String apiEndPoint =
+                apiEndpointUrl + "/invoices/" + connectorProperties.getProperty("invoiceIdOpt") +"/email"+ authString;
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_sendInvoice_mandatory.json");
+        
+        //Only the status code is being asserted because no response is given
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        
+    }
+    
+    /**
+     * Method name: sendInvoice
+     * Test scenario: Optional
+     * Reason to skip: The optional test case is also same as the mandatory test case since no response is given.
+     */
+    
+    /**
+     * Negative test case for sendInvoice method.
+     * 
+     * @throws JSONException
+     * @throws IOException
+     */
+    @Test(groups = { "wso2.esb" }, description = "billomat {sendInvoice} integration test with negative case.",
+            dependsOnMethods = { "testSendInvoiceWithMandatoryParameters" })
+    public void testSendInvoiceWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:sendInvoice");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_sendInvoice_negative.json");
+        
+        final String apiEndPoint =
+                apiEndpointUrl + "/invoices/" + connectorProperties.getProperty("invoiceIdOpt") +"/email"+ authString;
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_sendInvoice_negative.json");
         
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 400);
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 400);
