@@ -72,8 +72,6 @@ public class TwitterStreamData extends GenericPollingConsumer {
 
     private String injectingSeq;
 
-    private boolean isPolled = false;
-
     public TwitterStreamData(Properties twitterProperties, String name,
                              SynapseEnvironment synapseEnvironment, long scanInterval,
                              String injectingSeq, String onErrorSeq, boolean coordination,
@@ -122,25 +120,24 @@ public class TwitterStreamData extends GenericPollingConsumer {
                 locationPair[i] = locationParam.split(",")[i];
             }
         }
-        if (locationPair != null) {
+        if(locationPair!=null) {
             locations = new double[locationPair.length][2];
             for (int j = 0; j < locationPair.length; j++) {
-                locations[j][0] = Double.parseDouble(locationPair[j].split(":")[0]);
-                locations[j][1] = Double.parseDouble(locationPair[j].split(":")[1]);
+                locations[j][0] = Double.parseDouble((String) locationPair[j].split(":")[0]);
+                locations[j][1] = Double.parseDouble((String) locationPair[j].split(":")[1]);
             }
+        }
+
+        // Establishing connection with twitter streaming api
+        try {
+            setupConnection();
+            log.info("Twitter connection setup successfully created.");
+        } catch (TwitterException te) {
+            handleException("Error while setup the twitter connection.", te);
         }
     }
 
     public Object poll() {
-        // Establishing connection with twitter streaming api
-        try {
-            if (!isPolled) {
-                setupConnection();
-                isPolled = true;
-            }
-        } catch (TwitterException te) {
-            handleException("Error while setup the twitter connection.", te);
-        }
         return null;
     }
 
@@ -309,12 +306,12 @@ public class TwitterStreamData extends GenericPollingConsumer {
                 .equals(TwitterConstant.USER_STREAM_OPERATION)) {
             if (tracks != null) {
                 twitterStream.user(tracks);
-            } else {
+            }else {
                 twitterStream.user();
             }
         }
         /*
-         * Link Streams provide asynchronously retrieves all statuses containing 'http:' and 'https:'.
+		 * Link Streams provide asynchronously retrieves all statuses containing 'http:' and 'https:'.
 		 */
         if ((properties.getProperty(TwitterConstant.TWITTER_OPERATION))
                 .equals(TwitterConstant.LINK_STREAM_OPERATION)) {
@@ -322,8 +319,8 @@ public class TwitterStreamData extends GenericPollingConsumer {
                 twitterStream.links(count);
             }
         }
-        /*
-         * User Streams provide a stream of data and events specific to the
+		/*
+		 * User Streams provide a stream of data and events specific to the
 		 * authenticated user.This provides to access the Streams messages for a
 		 * single user.
 		 */
@@ -331,8 +328,8 @@ public class TwitterStreamData extends GenericPollingConsumer {
                 .equals(TwitterConstant.RETWEET_STREAM_OPERATION)) {
             twitterStream.retweet();
         }
-        /*
-         * Site Streams allows services, such as web sites or mobile push
+		/*
+		 * Site Streams allows services, such as web sites or mobile push
 		 * services, to receive real-time updates for a large number of users.
 		 * Events may be streamed for any user who has granted OAuth access to
 		 * your application. Desktop applications or applications with few users
