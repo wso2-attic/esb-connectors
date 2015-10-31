@@ -23,20 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.SynapseException;
 import org.apache.synapse.core.SynapseEnvironment;
 import org.wso2.carbon.inbound.endpoint.protocol.generic.GenericPollingConsumer;
-import twitter4j.Status;
-import twitter4j.StatusListener;
-import twitter4j.User;
-import twitter4j.UserStreamListener;
-import twitter4j.conf.ConfigurationBuilder;
-import twitter4j.UserList;
-import twitter4j.TwitterException;
-import twitter4j.DirectMessage;
-import twitter4j.StallWarning;
-import twitter4j.StatusDeletionNotice;
-import twitter4j.SiteStreamsListener;
-import twitter4j.TwitterStream;
-import twitter4j.FilterQuery;
-import twitter4j.TwitterStreamFactory;
+import twitter4j.*;
 import twitter4j.conf.ConfigurationBuilder;
 
 import java.util.Properties;
@@ -69,6 +56,8 @@ public class TwitterStreamData extends GenericPollingConsumer {
     private String filterLevel;
     private double[][] locations;
     private String[] locationPair;
+
+    private boolean isPolled = false;
 
     private String injectingSeq;
 
@@ -127,17 +116,18 @@ public class TwitterStreamData extends GenericPollingConsumer {
                 locations[j][1] = Double.parseDouble((String) locationPair[j].split(":")[1]);
             }
         }
-
-        // Establishing connection with twitter streaming api
-        try {
-            setupConnection();
-            log.info("Twitter connection setup successfully created.");
-        } catch (TwitterException te) {
-            handleException("Error while setup the twitter connection.", te);
-        }
     }
 
     public Object poll() {
+        //Establishing connection with twitter streaming api
+        try {
+            if (!isPolled) {
+                setupConnection();
+                isPolled = true;
+            }
+        } catch (TwitterException te) {
+            handleException("Error while setup the twitter connection.", te);
+        }
         return null;
     }
 
