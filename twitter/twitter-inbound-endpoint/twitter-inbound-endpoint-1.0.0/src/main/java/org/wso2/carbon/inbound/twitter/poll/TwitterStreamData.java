@@ -70,6 +70,8 @@ public class TwitterStreamData extends GenericPollingConsumer {
     private double[][] locations;
     private String[] locationPair;
 
+    private boolean isPolled = false;
+
     private String injectingSeq;
 
     public TwitterStreamData(Properties twitterProperties, String name,
@@ -127,17 +129,18 @@ public class TwitterStreamData extends GenericPollingConsumer {
                 locations[j][1] = Double.parseDouble((String) locationPair[j].split(":")[1]);
             }
         }
-
-        // Establishing connection with twitter streaming api
-        try {
-            setupConnection();
-            log.info("Twitter connection setup successfully created.");
-        } catch (TwitterException te) {
-            handleException("Error while setup the twitter connection.", te);
-        }
     }
 
     public Object poll() {
+        //Establishing connection with twitter streaming api
+        try {
+            if (!isPolled) {
+                setupConnection();
+                isPolled = true;
+            }
+        } catch (TwitterException te) {
+            handleException("Error while setup the twitter connection.", te);
+        }
         return null;
     }
 
