@@ -37,7 +37,7 @@ import twitter4j.SiteStreamsListener;
 import twitter4j.TwitterStream;
 import twitter4j.FilterQuery;
 import twitter4j.TwitterStreamFactory;
-import twitter4j.conf.ConfigurationBuilder;
+import twitter4j.TwitterObjectFactory;
 
 import java.util.Properties;
 
@@ -201,9 +201,9 @@ public class TwitterStreamData extends GenericPollingConsumer {
      *
      * @param status the twitter response status
      */
-    public void injectTwitterMessage(Status status) {
+    public void injectTwitterMessage(String status) {
         if (injectingSeq != null) {
-            injectMessage(status.toString(), TwitterConstant.CONTENT_TYPE);
+            injectMessage(status, TwitterConstant.CONTENT_TYPE);
             if (log.isDebugEnabled()) {
                 log.debug("injecting twitter message to the sequence : "
                         + injectingSeq);
@@ -225,6 +225,7 @@ public class TwitterStreamData extends GenericPollingConsumer {
         }
         ConfigurationBuilder configurationBuilder = new ConfigurationBuilder();
         configurationBuilder.setDebugEnabled(true)
+                .setJSONStoreEnabled(true)
                 .setOAuthConsumerKey(consumerKey)
                 .setOAuthConsumerSecret(consumerSecret)
                 .setOAuthAccessToken(accessToken)
@@ -351,7 +352,7 @@ public class TwitterStreamData extends GenericPollingConsumer {
      */
     class StatusListenerImpl implements StatusListener {
         public void onStatus(Status status) {
-            injectTwitterMessage(status);
+            injectTwitterMessage(TwitterObjectFactory.getRawJSON(status));
         }
 
         public void onException(Exception ex) {
@@ -385,7 +386,7 @@ public class TwitterStreamData extends GenericPollingConsumer {
     class siteStreamsListenerImpl implements SiteStreamsListener {
 
         public void onStatus(long forUser, Status status) {
-            injectTwitterMessage(status);
+            injectTwitterMessage(TwitterObjectFactory.getRawJSON(status));
         }
 
         public void onDeletionNotice(long forUser,
@@ -554,7 +555,7 @@ public class TwitterStreamData extends GenericPollingConsumer {
     class UserStreamListenerImpl implements UserStreamListener {
 
         public void onStatus(Status status) {
-            injectTwitterMessage(status);
+            injectTwitterMessage(TwitterObjectFactory.getRawJSON(status));
         }
 
         public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) {
