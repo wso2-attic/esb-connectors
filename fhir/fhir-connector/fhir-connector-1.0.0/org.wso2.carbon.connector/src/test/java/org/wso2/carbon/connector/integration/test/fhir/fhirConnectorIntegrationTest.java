@@ -58,7 +58,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {readResource} integration test with mandatory parameters.")
     public void readResourceWithMandatoryParameters() throws IOException, JSONException {
-
         String methodName = "readResource";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "readResourceMandatory.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type");
@@ -72,7 +71,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {readResource} integration test with optional parameters.")
     public void readResourceWithOptionalParameters() throws IOException, JSONException {
-
         String methodName = "readResource";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "readResourceOptional.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "?_format=" + connectorProperties.getProperty("format");
@@ -88,7 +86,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {readResource} integration test in negative case.")
     public void readResourceWithNegativeCase() throws IOException, JSONException {
-
         String methodName = "readResource";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "readResourceNegative.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("wrongType") + "?_format=" + connectorProperties.getProperty("format");
@@ -103,7 +100,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {getConformance} integration test with mandatory parameters.")
     public void getConformanceWithMandatoryParameters() throws IOException, JSONException {
-
         String methodName = "getConformance";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "getConformanceMandatory.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/metadata";
@@ -117,7 +113,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {getConformance} integration test with optional parameters.")
     public void getConformanceWithOptionalParameters() throws IOException, JSONException {
-
         String methodName = "getConformance";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "getConformanceOptional.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/metadata" + "?_format=" + connectorProperties.getProperty("format");
@@ -131,7 +126,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {readSpecificResourceById} integration test with optional parameters.")
     public void readSpecificResourceByIdWithOptionalParameters() throws IOException, JSONException {
-
         String methodName = "readSpecificResourceById";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "readSpecificResourceByIdOptional.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "/" + connectorProperties.getProperty("id") + "?_format=" + connectorProperties.getProperty("format");
@@ -147,7 +141,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {readSpecificResourceById} integration test for negative parameters.")
     public void readSpecificResourceByIdWithNegativeParameters() throws IOException, JSONException {
-
         String methodName = "readSpecificResourceById";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "readSpecificResourceByIdNegative.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "/" + connectorProperties.getProperty("wrongId") + "?_format=" + connectorProperties.getProperty("format");
@@ -161,7 +154,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {vReadResource} integration test with mandatory parameters.")
     public void vReadResourceWithMandatoryParameters() throws IOException, JSONException {
-
         String methodName = "vReadResource";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "vReadResourceMandatory.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "/" + connectorProperties.getProperty("logicalId") + "/_history/" + connectorProperties.getProperty("versionId");
@@ -175,7 +167,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {vReadResource} integration test with optional parameters.")
     public void vReadResourceWithOptionalParameters() throws IOException, JSONException {
-
         String methodName = "vReadResource";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "vReadResourceOptional.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "/" + connectorProperties.getProperty("logicalId") + "/_history/" + connectorProperties.getProperty("versionId") + "?_format=" + connectorProperties.getProperty("format");
@@ -191,7 +182,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {vReadResource} integration test for negative parameters.")
     public void vReadResourceWithNegativeParameters() throws IOException, JSONException {
-
         String methodName = "vReadResource";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "vReadResourceNegative.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "/" + connectorProperties.getProperty("logicalId") + "/_history/" + connectorProperties.getProperty("wrongVersionId") + "?_format=" + connectorProperties.getProperty("format");
@@ -205,7 +195,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {search} integration test with mandatory parameters.")
     public void searchWithMandatoryParameters() throws IOException, JSONException {
-
         String methodName = "search";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "searchMandatory.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type");
@@ -219,7 +208,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {search} integration test with optional parameters.")
     public void searchWithOptionalParameters() throws IOException, JSONException {
-
         String methodName = "search";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "searchOptional.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "?_format=" + connectorProperties.getProperty("format");
@@ -233,7 +221,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {search} integration test for negative parameters.")
     public void searchWithNegativeParameters() throws IOException, JSONException {
-
         String methodName = "search";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "searchNegative.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("wrongType") + "?_format=" + connectorProperties.getProperty("format");
@@ -248,7 +235,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {searchPost} integration test with mandatory parameters.")
     public void searchPostWithMandatoryParameters() throws IOException, JSONException {
-
         String methodName = "searchPost";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "searchMandatory.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "/_search";
@@ -262,7 +248,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {searchPost} integration test with optional parameters.")
     public void searchPostWithOptionalParameters() throws IOException, JSONException {
-
         String methodName = "searchPost";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "searchOptional.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "/_search?_format=" + connectorProperties.getProperty("format");
@@ -276,7 +261,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {searchPost} integration test for negative parameters.")
     public void searchPostWithNegativeParameters() throws IOException, JSONException {
-
         String methodName = "searchPost";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "searchNegative.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("wrongType") + "/_search?_format=" + connectorProperties.getProperty("format");
@@ -291,7 +275,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {history} integration test with mandatory parameters.")
     public void historyWithMandatoryParameters() throws IOException, JSONException {
-
         String methodName = "history";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "historyMandatory.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "/" + connectorProperties.getProperty("idForHistory") + "/_history";
@@ -305,7 +288,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {history} integration test with optional parameters.")
     public void historyWithOptionalParameters() throws IOException, JSONException {
-
         String methodName = "history";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "historyOptional.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "/" + connectorProperties.getProperty("idForHistory") + "/_history?_format=" + connectorProperties.getProperty("format");
@@ -321,7 +303,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {history} integration test for negative parameters.")
     public void historyWithNegativeParameters() throws IOException, JSONException {
-
         String methodName = "history";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "historyNegative.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "/" + connectorProperties.getProperty("wrongId") + "/_history?_format=" + connectorProperties.getProperty("format");
@@ -335,7 +316,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {historyAll} integration test with mandatory parameters.")
     public void historyAllWithMandatoryParameters() throws IOException, JSONException {
-
         String methodName = "historyAll";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "historyAllMandatory.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/_history";
@@ -349,7 +329,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {historyAll} integration test with optional parameters.")
     public void historyAllWithOptionalParameters() throws IOException, JSONException {
-
         String methodName = "historyAll";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "historyAllOptional.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/_history?_format=" + connectorProperties.getProperty("format");
@@ -365,7 +344,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {historyType} integration test with mandatory parameters.")
     public void historyTypeWithMandatoryParameters() throws IOException, JSONException {
-
         String methodName = "historyType";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "historyTypeMandatory.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "/_history";
@@ -379,7 +357,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {historyType} integration test with optional parameters.")
     public void historyTypeWithOptionalParameters() throws IOException, JSONException {
-
         String methodName = "historyType";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "historyTypeOptional.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("type") + "/_history?_format=" + connectorProperties.getProperty("format");
@@ -395,7 +372,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
      */
     @Test(enabled = true, description = "fhir {historyType} integration test for negative parameters.")
     public void historyTypeWithNegativeParameters() throws IOException, JSONException {
-
         String methodName = "historyType";
         RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "historyTypeNegative.json");
         final String apiEndPoint = connectorProperties.getProperty("base") + "/" + connectorProperties.getProperty("wrongType") + "/_history?_format=" + connectorProperties.getProperty("format");
