@@ -360,7 +360,6 @@ public class fhirConnectorIntegrationTest extends ConnectorIntegrationTestBase {
                 apiRestResponse.getBody().getJSONArray("entry").getJSONObject(0).getString("title"));
     }
 
-
     /**
      * Positive test case for historyType method with mandatory parameters.
      */
