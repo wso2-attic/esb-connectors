@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!-- The scenario retrieves products from Vend and creates the products that are marked as 'eMarketing' in Shopify.
+   Further it also does preferential marketing for the products if required (marked with 'preferential-marketing'). -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="vend_createProductsAndMarket" transports="http,https" startOnLoad="true" trace="disable">
+   <description />
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Vend Properties -->
+         <property name="vend.considerSince" expression="json-eval($.vend.considerSince)" />
+         <property name="vend.priceBookName" expression="json-eval($.vend.priceBookName)" />
+
+         <!-- Shopify Properties -->
+         <property name="shopify.apiUrl" expression="get-property('registry', 'connectors/Shopify/apiUrl')" />
+         <property name="shopify.accessToken" expression="get-property('registry', 'connectors/Shopify/accessToken')" />
+
+         <!-- Nexmo Properties -->
+         <property name="nexmo.apiUrl" expression="get-property('registry', 'connectors/Nexmo/apiUrl')" />
+         <property name="nexmo.apiSecret" expression="get-property('registry', 'connectors/Nexmo/apiSecret')" />
+         <property name="nexmo.apiKey" expression="get-property('registry', 'connectors/Nexmo/apiKey')" />
+
+         <!-- MailChimp Properties -->
+         <property name="mailchimp.apiUrl" expression="get-property('registry', 'connectors/Mailchimp/apiUrl')" />
+         <property name="mailchimp.apiKey" expression="get-property('registry', 'connectors/Mailchimp/apiKey')" />
+         <property name="mailchimp.listName" expression="json-eval($.mailchimp.listName)" />
+         <property name="mailchimp.templateId" expression="json-eval($.mailchimp.templateId)" />
+         <property name="mailchimp.fromName" expression="json-eval($.mailchimp.fromName)" />
+         <property name="mailchimp.fromEmail" expression="json-eval($.mailchimp.fromEmail)" />
+
+         <property name="id.empty" value="{}" />
+         <property name="customerProductMap" value="{}" scope="operation" />
+         <property name="eMarketingProducts" expression="0" scope="operation" />
+         <property name="preferentialMarketingProducts" expression="0" scope="operation" />
+         <property name="preferentialCustomers" expression="0" scope="operation" />
+
+         <!-- If the user has not provided the 'vend.considerSince' date, use the 00:00:00 am of the current day. -->
+         <filter source="boolean(get-property('vend.considerSince'))" regex="false">
+            <then>
+               <script language="js">
+                  <![CDATA[
+                     var sinceDate = new java.text.SimpleDateFormat('yyyy-MM-dd').format(new java.util.Date());
+                     sinceDate += ' 00:00:00';
+                     mc.setProperty('vend.considerSince', sinceDate);
+                  ]]>
+               </script>
+            </then>
+         </filter>
+
+         <!-- Retrieve all the active products that were created/modified since the provided date. -->
+         <vend.init />
+         <vend.listProducts>
+            <orderBy>updated_at</orderBy>
+            <orderDirection>DESC</orderDirection>
+            <since>{$ctx:vend.considerSince}</since>
+            <active>1</active>
+         </vend.listProducts>
+         <sequence key="removeResponseHeaders" />
+
+         <property name="vend.apiUrl" expression="get-property('registry', 'connectors/Vend/apiUrl')" />
+         <property name="vend.accessToken" expression="get-property('registry', 'connectors/Vend/accessToken')" />
+
+         <property name="listProducts.statusCode" expression="$axis2:HTTP_SC" />
+
+         <!-- START: Proceed only if the listProducts call is successful. -->
+         <filter xpath="get-property('listProducts.statusCode') != 200">
+            <then>
+               <property name="errorMessage" expression="json-eval($)" />
+               <!-- Append an error message to be sent to the user regarding listProducts method call. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="vend_listProducts" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="error" />
+                  <with-param name="message" value="{$ctx:errorMessage}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <property name="productCount" expression="count(//products)" />
+               <!-- START: Proceed only if there are any products created/modified since the given date. -->
+               <filter source="get-property('productCount')" regex="0.0">
+                  <then>
+                     <property name="skipMessage" expression="fn:concat('There are no products created/modified since ', get-property('vend.considerSince'), '.')" />
+                     <!-- Append a skip message to be sent to the user if there aren't any products to be processed. -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="vend_listProducts" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="skipped" />
+                        <with-param name="message" value="{$ctx:skipMessage}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <property name="productIndex" expression="0" scope="operation" />
+                     <property name="saleCount" expression="0" scope="operation" />
+                     <property name="saleIndex" expression="0" scope="operation" />
+
+                     <!-- FOR EACH Product: BEGIN -->
+                     <iterate continueParent="false" id="products" expression="//products" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="vend.productId" expression="//products/id/text()" />
+                              <property name="vend.productTags" expression="//products/tags/text()" />
+
+                              <property name="vend.productBaseName" expression="//products/base_name/text()" />
+                              <property name="vend.productDescription" expression="//products/description/text()" />
+                              <property name="vend.productSupplierName" expression="//supplier_name/text()" />
+                              <property name="vend.productType" expression="//products/type/text()" />
+                              <property name="vend.productPrice" expression="//products/price/text()" />
+                              <property name="vend.productTaxRate" expression="//products/tax_rate/text()" />
+                              <property name="vend.productHasVariant" expression="//products/has_variants/text()" />
+                              <property name="vend.productImage" expression="//products/image/text()" />
+                              <property name="vend.productHandle" expression="//products/handle/text()" />
+                              <property name="vend.productUpdateAt" expression="//products/updated_at/text()" />
+                              <property name="vend.productPriceBookEntries" expression="json-eval($.products.price_book_entries)" />
+
+                              <script language="js">
+                                 <![CDATA[
+                                    // Check whether the product has any discounts. If so set it as the price for all variants of the products.
+                                    var priceBooks = eval("(" + mc.getProperty('vend.productPriceBookEntries') + ")");
+                                    var requiredPriceBook = mc.getProperty('vend.priceBookName');
+                                     
+                                    if(priceBooks.length > 0){
+                                      for(var i=0; i<priceBooks.length; i++){
+                                         if(priceBooks[i].price_book_name.toLowerCase() == requiredPriceBook.toLowerCase()){                                 
+                                            var startTime = priceBooks[i].valid_from;
+                                            var endTime = priceBooks[i].valid_to;
+                                            var timeFormat = 'yyyy-MM-dd hh:mm:ss';
+                                             
+                                            // Proceed only if the discount offer is valid at the time of execution of the scenario.
+                                            if((new java.text.SimpleDateFormat(timeFormat).parse(startTime).getTime() < java.util.Date().getTime()) &&
+                                                  (new java.text.SimpleDateFormat(timeFormat).parse(endTime).getTime() > java.util.Date().getTime())){
+                                               mc.setProperty('vend.productPrice', priceBooks[i].price);
+                                            }
+                                            break;
+                                         }
+                                      }
+                                    }
+                                  
+                                    // Check whether 'eMarketing' and/or 'preferential-marketing' is required for the product.
+                                    var productTags = mc.getProperty('vend.productTags');
+                                    // Verify tag for 'eMarketing'.
+                                    if(new java.lang.String(productTags).toLowerCase().contains('emarketing')){
+                                       mc.setProperty('emarketing.required', true);
+                                    } else {
+                                       mc.setProperty('emarketing.required', false);
+                                    }
+                                    
+                                    // Verify tag for 'preferential-marketing'.
+                                    if(new java.lang.String(productTags).toLowerCase().contains('preferential-marketing')){
+                                       mc.setProperty('preferentialMarketing.required', true);
+                                       
+                                       // Verify tag for preferential marketing.
+                                       if(productTags.indexOf(',') > 0){
+                                          var tags = productTags.split(', ');
+                                          for(var i=0; i<tags.length; i++){
+                                             if(new java.lang.String(tags[i]).startsWith('@')){
+                                                mc.setProperty('preferentialMarketing.tag', tags[i]);
+                                                break;
+                                             }
+                                          }                                          
+                                       } else {
+                                          if(new java.lang.String(productTags).startsWith('@')){
+                                             mc.setProperty('preferentialMarketing.tag', productTags);
+                                          }
+                                       }                                       
+                                    } else {
+                                       mc.setProperty('preferentialMarketing.required', false);
+                                    }
+                                 ]]>
+                              </script>
+
+                              <!-- START: Proceed to create/update product in Shopify only if the product is tagged with 'eMarketing' -->
+                              <filter source="get-property('emarketing.required')" regex="true">
+                                 <then>
+                                    <sequence key="vend-createProductAndMarket" />
+                                 </then>
+                              </filter>
+                              <!-- END: Proceed to create/update product in Shopify only if the product is tagged with 'eMarketing' -->
+
+                              <!-- START: Proceed with preferential marketing if required. -->
+                              <filter xpath="(get-property('preferentialMarketing.required') = 'true') and boolean(get-property('preferentialMarketing.tag'))">
+                                 <then>
+                                    <sequence key="vend-doPreferentialMarketing" />
+                                 </then>
+                                 <else>
+                                    <!--Increment the productIndex by 1 -->
+                                    <property name="productIndex" expression="get-property('operation', 'productIndex') + 1" scope="operation" />
+                                 </else>
+                              </filter>
+                              <!-- END: Proceed with preferential marketing if required. -->
+
+                              <filter xpath="(get-property('productCount') = get-property('operation', 'productIndex')) and
+                                       (get-property('operation', 'saleCount') = get-property('operation', 'saleIndex'))">
+                                 <then>
+                                    <!-- Append a skip message to be sent to the user if there are no products with eMarketing tag. -->
+                                    <filter source="get-property('operation', 'eMarketingProducts')" regex="0.0">
+                                       <then>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="vend_processEMarketingProducts" />
+                                             <with-param name="id" value="{$ctx:id.empty}" />
+                                             <with-param name="status" value="skipped" />
+                                             <with-param name="message" value="All the products that are designated for emarketing have already been created/updated." />
+                                          </call-template>
+                                       </then>
+                                    </filter>
+
+                                    <!-- Append a skip message to be sent to the user if there are no products with preferential marketing tag. -->
+                                    <filter source="get-property('operation', 'preferentialMarketingProducts')" regex="0.0">
+                                       <then>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="vend_processPreferentialMarketingProducts" />
+                                             <with-param name="id" value="{$ctx:id.empty}" />
+                                             <with-param name="status" value="skipped" />
+                                             <with-param name="message" value="There are no products designated for preferential marketing." />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <!-- Proceed only if at least one customer is sent an SMS. -->
+                                          <filter xpath="get-property('operation', 'preferentialCustomers') > 0">
+                                             <then>
+                                                <property name="message" expression="fn:concat(fn:substring-before(get-property('operation', 'preferentialCustomers'), '.'), ' customer(s) have been sent promotional messages.')" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="vend_processPreferentialMarketingProducts" />
+                                                   <with-param name="id" value="{$ctx:id.empty}" />
+                                                   <with-param name="status" value="success" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </then>
+                                          </filter>
+                                       </else>
+                                    </filter>
+
+                                    <loopback />
+                                 </then>
+                              </filter>
+
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!-- FOR EACH Product: END -->
+
+                  </else>
+               </filter>
+               <!-- END: Proceed only if there are any products created/modified since the given date. -->
+
+            </else>
+         </filter>
+         <!-- END: Proceed only if the listProducts call is successful. -->
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"vend_createProductsAndMarket",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+</proxy>

@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This sequence does preferential marketing for the product identified by the ID stored in the property 'vend.productId'. -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="vend-doPreferentialMarketing">
+   <property name="preferentialMarketingProducts" expression="get-property('operation', 'preferentialMarketingProducts') + 1" scope="operation" />
+   <!-- Set the createdSince date to one month (30 days) before the current date and time. -->
+   <script language="js">
+      <![CDATA[
+         // 2592000000 - 30 days in milliseconds
+         mc.setProperty('vend.salesSince', new java.text.SimpleDateFormat('yyyy-MM-dd hh:mm:ss').format(java.util.Date(new java.util.Date().getTime() - 2592000000)));
+      ]]>
+   </script>
+   <property name="vend.statuses" value="[&quot;CLOSED&quot;]" />
+
+   <!-- Retrieve all the closed sales, within the last one month, involving the product that requires preferential marketing. -->
+   <vend.init>
+      <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+      <accessToken>{$ctx:vend.accessToken}</accessToken>
+   </vend.init>
+   <vend.listRegisterSales>
+      <since>{$ctx:vend.salesSince}</since>
+      <tag>{$ctx:preferentialMarketing.tag}</tag>
+      <statuses>{$ctx:vend.statuses}</statuses>
+   </vend.listRegisterSales>
+         <sequence key="removeResponseHeaders" />
+
+   <property name="listRegisterSales.statusCode" expression="$axis2:HTTP_SC" />
+
+   <!-- START: Proceed only if the listRegisterSales call is successful. -->
+   <filter xpath="get-property('listRegisterSales.statusCode') != 200">
+      <then>
+         <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'))" />
+         <property name="errorMessage" expression="json-eval($)" />
+         <!-- Append an error message to be sent to the user regarding listRegisterSales method call. -->
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="vend_listRegisterSales" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="error" />
+            <with-param name="message" value="{$ctx:errorMessage}" />
+         </call-template>
+         <!--Increment the productIndex by 1 -->
+         <property name="productIndex" expression="get-property('operation', 'productIndex') + 1" scope="operation" />
+      </then>
+      <else>
+         <property name="vend.salesCount" expression="count(//register_sales)" />
+         <!-- START: Proceed only if there are any sales for the product since the given date. -->
+         <filter source="get-property('vend.salesCount')" regex="0.0">
+            <then>
+               <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'))" />
+               <property name="skipMessage" expression="fn:concat('There are no sales since ', get-property('vend.salesSince'), ' for the product.')" />
+               <!-- Append a skip message to be sent to the user if there aren't any products to be processed. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="vend_listRegisterSales" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="message" value="{$ctx:skipMessage}" />
+               </call-template>
+               <!--Increment the productIndex by 1 -->
+               <property name="productIndex" expression="get-property('operation', 'productIndex') + 1" scope="operation" />
+            </then>
+            <else>
+               <!-- Increment the saleCount by the number of sales listed for the current product. -->
+               <property name="saleCount" expression="get-property('operation','saleCount') + get-property('vend.salesCount')" scope="operation" />
+
+               <!--Increment the productIndex by 1 -->
+               <property name="productIndex" expression="get-property('operation', 'productIndex') + 1" scope="operation" />
+
+               <property name="messageType" value="application/xml" scope="axis2" />
+
+               <!--FOR EACH Sale : BEGIN -->
+               <iterate continueParent="false" id="sales" expression="//register_sales" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="vend.salesId" expression="//id/text()" />
+                        <property name="vend.salesCustomerId" expression="//customer_id/text()" />
+                        <property name="customerProductMap" expression="get-property('operation', 'customerProductMap')" />
+
+                        <!-- Check whether the customer is already sent a marketing email for the current product. -->
+                        <script language="js">
+                           <![CDATA[
+                              var productId = mc.getProperty('vend.productId');
+                              var customerId = mc.getProperty('vend.salesCustomerId');
+                              var customerProductMap = eval("(" + mc.getProperty('customerProductMap') + ")");                              
+                              var proceed = true;
+                              
+                              if(customerProductMap.hasOwnProperty(customerId)){
+                                 var customerProducts = customerProductMap[customerId];
+                                 for(var i=0; i<customerProducts.length; i++){
+                                    if(customerProducts[i] == productId){
+                                       proceed = false;
+                                       break;
+                                    }
+                                 }
+                                 
+                                 if(proceed == true){
+                                    customerProducts[customerProducts.length] = productId;
+                                    customerProductMap[customerId] = customerProducts;
+                                 }
+                              } else {
+                                 var productArrays = [];
+                                 productArrays[0] = productId;
+                                 customerProductMap[customerId] = productArrays;
+                              }
+                              
+                              mc.setProperty('proceed', proceed);
+                              mc.setPayloadJSON(customerProductMap);                                                               
+                           ]]>
+                        </script>
+                        <property name="customerProductMap" expression="json-eval($)" scope="operation" />
+
+                        <!-- START: Proceed to send the preferential marketing message only if it is not already sent. -->
+                        <filter source="get-property('proceed')" regex="true">
+                           <then>
+                              <!-- Get the contact details of the customer. -->
+                              <vend.init>
+                                 <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                                 <accessToken>{$ctx:vend.accessToken}</accessToken>
+                              </vend.init>
+                              <vend.listCustomers>
+                                 <id>{$ctx:vend.salesCustomerId}</id>
+                              </vend.listCustomers>
+                              <sequence key="removeResponseHeaders" />
+                              <property name="vend.customerMobile" expression="json-eval($.customers[0].mobile)" />
+                              <property name="vend.customerFirstName" expression="json-eval($.customers[0].first_name)" />
+
+                              <!-- START: Promotional message can be sent only if the customer's mobile number is stored in the system. -->
+                              <filter source="boolean(get-property('vend.customerMobile'))" regex="false">
+                                 <then>
+                                    <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'), ',vend_customerId:', get-property('vend.salesCustomerId'))" />
+                                    <!-- Append a skip message to be sent to the user if there aren't any products to be processed. -->
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="vend_sendPromotionalMessage" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="skipped" />
+                                       <with-param name="message" value="Promotional message has not been sent since the customer's mobile number could not be found in the system." />
+                                    </call-template>
+                                 </then>
+                                 <else>
+
+                                    <!-- If the product is in shopify give the link in the SMS. Provide an alternate string otherwise. -->
+                                    <script language="js">
+                                       <![CDATA[
+                                          var productHandle = mc.getProperty('vend.productHandle');
+                                          var shopifyApiUrl = mc.getProperty('shopify.apiUrl');
+                                          var productId = mc.getProperty('vend.productId');
+                                          var fromName = mc.getProperty('mailchimp.fromName');
+                                          
+                                          if(new java.lang.String(productHandle).toLowerCase().startsWith('shopify')){
+                                             mc.setProperty('nexmo.text', 'Visit ' + shopifyApiUrl + '/products/' + productId);
+                                          } else {
+                                             mc.setProperty('nexmo.text', 'Visit your nearest ' + fromName + ' outlet');
+                                          }
+                                       ]]>
+                                    </script>
+                                    <property name="nexmo.text" expression="fn:concat('Hi ', get-property('vend.customerFirstName'), ', Do you want to get your hands on the whole new  ', get-property('vend.productBaseName'), ' that we just introduced? ', get-property('nexmo.text'), ' and grab it for just ', get-property('vend.productPrice'), ' USD..! Thank you - ', get-property('mailchimp.fromName'))" />
+
+                                    <!-- Send promotional SMS. -->
+                                    <nexmo.init>
+                                       <responseType>json</responseType>
+                                       <apiUrl>{$ctx:nexmo.apiUrl}</apiUrl>
+                                       <apiSecret>{$ctx:nexmo.apiSecret}</apiSecret>
+                                       <apiKey>{$ctx:nexmo.apiKey}</apiKey>
+                                    </nexmo.init>
+                                    <nexmo.sendMessage>
+                                       <to>{$ctx:vend.customerMobile}</to>
+                                       <text>{$ctx:nexmo.text}</text>
+                                       <from>{$ctx:mailchimp.fromName}</from>
+                                       <type>text</type>
+                                    </nexmo.sendMessage>
+                                    <sequence key="removeResponseHeaders" />
+                                    <property name="sendMessage.errorMessage" expression="json-eval($.messages[0].error-text)" />
+
+                                    <!-- START: Append a message to be sent to the user regarding the response of sendMessage. -->
+                                    <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'), ',vend_customerId:', get-property('vend.salesCustomerId'))" />
+                                    <filter source="boolean(get-property('sendMessage.errorMessage'))" regex="false">
+                                       <then>
+                                          <property name="preferentialCustomers" expression="get-property('operation', 'preferentialCustomers') + 1" scope="operation" />
+
+                                          <script language="js">
+                                             <![CDATA[
+                                                var productTags = mc.getProperty('vend.productTags');
+                                                
+                                                if(new java.lang.String(productTags).startsWith('preferential-marketing')){
+                                                   mc.setProperty('vend.productTags', new java.lang.String(productTags).replace('preferential-marketing', ''));
+                                                } else {
+                                                   mc.setProperty('vend.productTags', new java.lang.String(productTags).replace(', preferential-marketing', ''));
+                                                }
+                                             ]]>
+                                          </script>
+
+                                          <vend.init>
+                                             <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                                             <accessToken>{$ctx:vend.accessToken}</accessToken>
+                                          </vend.init>
+                                          <vend.updateProduct>
+                                             <tags>{$ctx:vend.productTags}</tags>
+                                             <productId>{$ctx:vend.productId}</productId>
+                                          </vend.updateProduct>
+                                          <sequence key="removeResponseHeaders" />
+                                          <property name="vend.updatedProductId" expression="json-eval($.product.id)" />
+
+                                          <!-- START: Send an error message to the user only if the update operation failed. -->
+                                          <filter source="boolean(get-property('vend.updatedProductId'))" regex="false">
+                                             <then>
+                                                <!-- Failure case: Append an error message to be sent to the user. -->
+                                                <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'))" />
+                                                <property name="errorResponse" expression="json-eval($)" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="vend_updateProduct" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="error" />
+                                                   <with-param name="message" value="{$ctx:errorResponse}" />
+                                                </call-template>
+                                             </then>
+                                          </filter>
+                                          <!-- END: Send an error message to the user only if the update operation failed. -->
+
+                                       </then>
+                                       <else>
+                                          <property name="errorMessage" expression="json-eval($)" />
+                                          <!-- Append a skip message to be sent to the user if there aren't any products to be processed. -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="vend_sendPromotionalMessage" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="error" />
+                                             <with-param name="message" value="{$ctx:errorMessage}" />
+                                          </call-template>
+                                       </else>
+                                    </filter>
+                                    <!-- END: Append a message to be sent to the user regarding the response of sendMessage. -->
+
+                                 </else>
+                              </filter>
+                              <!-- END: Promotional message can be sent only if the customer's mobile number is stored in the system. -->
+
+                           </then>
+                        </filter>
+                        <!-- END: Proceed to send the preferential marketing message only if it is not already sent. -->
+
+                        <!--Increment the saleIndex by 1 -->
+                        <property name="saleIndex" expression="get-property('operation','saleIndex') + 1" scope="operation" />
+
+                        <!-- START: Loopback if all iterations are done. -->
+                        <filter xpath="(get-property('operation', 'productCount') = get-property('operation', 'productIndex')) and
+                                                                           (get-property('operation', 'saleCount') = get-property('operation', 'saleIndex'))">
+                           <then>
+                              <!-- Append a skip message to be sent to the user if there are no products with eMarketing tag. -->
+                              <filter source="get-property('operation', 'eMarketingProducts')" regex="0.0">
+                                 <then>
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="vend_processEMarketingProducts" />
+                                       <with-param name="id" value="{$ctx:id.empty}" />
+                                       <with-param name="status" value="skipped" />
+                                       <with-param name="message" value="There are no products designated for eMarketing." />
+                                    </call-template>
+                                 </then>
+                              </filter>
+
+                              <!-- Append a skip message to be sent to the user if there are no products with preferential marketing tag. -->
+                              <filter source="get-property('operation', 'preferentialMarketingProducts')" regex="0.0">
+                                 <then>
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="vend_processPreferentialMarketingProducts" />
+                                       <with-param name="id" value="{$ctx:id.empty}" />
+                                       <with-param name="status" value="skipped" />
+                                       <with-param name="message" value="There are no products designated for preferential marketing." />
+                                    </call-template>
+                                 </then>
+                              </filter>
+                              <loopback />
+                           </then>
+                        </filter>
+                        <!-- END: Loopback if all iterations are done. -->
+
+                     </sequence>
+                  </target>
+               </iterate>
+               <!--FOR EACH Sale : END -->
+
+            </else>
+         </filter>
+         <!-- END: Proceed only if there are any sales for the product since the given date. -->
+
+      </else>
+   </filter>
+   <!-- END: Proceed only if the listRegisterSales call is successful. -->
+
+</sequence>

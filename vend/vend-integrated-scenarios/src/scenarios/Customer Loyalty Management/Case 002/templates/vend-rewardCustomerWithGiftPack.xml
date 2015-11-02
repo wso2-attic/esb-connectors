@@ -1,0 +1,427 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template creates a gift pack for the specified customer, creates a delivery route for the gift pack and notifies them via email and SMS. -->
+<template name="vend-rewardCustomerWithGiftPack" xmlns="http://ws.apache.org/ns/synapse">
+   <!-- Vend properties -->
+   <parameter name="vend.apiUrl" description="Base endpoint URL of Vend API." />
+   <parameter name="vend.accessToken" description="Access Token to read and manipulate data of Vend account." />
+   <parameter name="vend.fullProducts" description="Array of product objects." />
+   <parameter name="vend.products" description="Array of products to include in the gift pack." />
+   <parameter name="vend.customerId" description="ID of the customer who is entitled to the reward." />
+   <parameter name="vend.paymentTypeId" description="ID payment type to be used for the gift pack." />
+   <parameter name="vend.registerId" description="ID of the register in which the sale for the gift pack will be recorded." />
+   <parameter name="vend.fromName" description="From name to be used for email and SMS." />
+   <parameter name="vend.fromEmail" description="From email to be used for emails." />
+   <parameter name="vend.salesSince" description="Since date to retrieve sales." />
+   <parameter name="vend.salesAmount" description="Amount of the sales done by the customer." />
+   <parameter name="vend.customerPosition" description="Position of the customer." />
+
+   <!-- Nexmo properties -->
+   <parameter name="nexmo.apiUrl" description="The url to access the Nexmo API." />
+   <parameter name="nexmo.apiKey" description="The apiKey of a valid Nexmo account." />
+   <parameter name="nexmo.apiSecret" description="The apiSecret of a valid Nexmo account." />
+
+   <!-- Mandrill properties -->
+   <parameter name="mandrill.apiKey" description="API Key to access data of Mandrill account." />
+   <parameter name="mandrill.apiUrl" description="Base endpoint URL of Mandrill API." />
+
+   <!-- Beetrack properties -->
+   <parameter name="beetrack.apiUrl" description="Base endpoint URL of Beetrack API." />
+   <parameter name="beetrack.accessToken" description="Access Token to read and manipulate data of Beetrack account." />
+   <parameter name="beetrack.vehicleId" description="ID of the vehicle using which the delivery would be made." />
+   <sequence>
+      <property name="vend.apiUrl" expression="$func:vend.apiUrl" />
+      <property name="vend.accessToken" expression="$func:vend.accessToken" />
+      <property name="vend.fullProducts" expression="$func:vend.fullProducts" />
+      <property name="vend.products" expression="$func:vend.products" />
+      <property name="vend.customerId" expression="$func:vend.customerId" />
+      <property name="vend.paymentTypeId" expression="$func:vend.paymentTypeId" />
+      <property name="vend.registerId" expression="$func:vend.registerId" />
+      <property name="vend.fromName" expression="$func:vend.fromName" />
+      <property name="vend.fromEmail" expression="$func:vend.fromEmail" />
+      <property name="vend.salesSince" expression="$func:vend.salesSince" />
+      <property name="vend.salesAmount" expression="$func:vend.salesAmount" />
+      <property name="vend.customerPosition" expression="$func:vend.customerPosition" />
+
+      <property name="nexmo.apiUrl" expression="$func:nexmo.apiUrl" />
+      <property name="nexmo.apiKey" expression="$func:nexmo.apiKey" />
+      <property name="nexmo.apiSecret" expression="$func:nexmo.apiSecret" />
+
+      <property name="mandrill.apiKey" expression="$func:mandrill.apiKey" />
+      <property name="mandrill.apiUrl" expression="$func:mandrill.apiUrl" />
+
+      <property name="beetrack.apiUrl" expression="$func:beetrack.apiUrl" />
+      <property name="beetrack.accessToken" expression="$func:beetrack.accessToken" />
+      <property name="beetrack.vehicleId" expression="$func:beetrack.vehicleId" />
+
+      <!-- Get the details of the customer (by ID). -->
+      <vend.init>
+         <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+         <accessToken>{$ctx:vend.accessToken}</accessToken>
+      </vend.init>
+      <vend.listCustomers>
+         <id>{$ctx:vend.customerId}</id>
+      </vend.listCustomers>
+      <sequence key="removeResponseHeaders" />
+
+      <!-- Verify whether the customer has already been rewarded within the given time range. Ignore the customer if already rewarded. -->
+      <script language="js">
+         <![CDATA[
+            var lastRewardedDate = mc.getPayloadJSON().customers[0].custom_field_2;
+            var salesSince = mc.getProperty('vend.salesSince');
+            var dateFormat = 'yyyy-MM-dd hh:mm:ss';
+            
+            // Proceed if 'custom_field_2' of the customer is empty.
+            if(lastRewardedDate != ''){
+               // Proceed only if the customer was not rewarded before, within the given time range.
+               if(new java.text.SimpleDateFormat(dateFormat).parse(lastRewardedDate).getTime()
+                     > new java.text.SimpleDateFormat(dateFormat).parse(salesSince).getTime()){
+                  mc.setProperty('proceed', false);
+                  mc.setProperty('timeRange', '(' + salesSince + ' - ' + new java.text.SimpleDateFormat(dateFormat).format(new java.util.Date()) + ')');
+               } else {
+                  mc.setProperty('proceed', true);
+               }
+            } else {
+               mc.setProperty('proceed', true);
+            }        
+            mc.setProperty('vend.salesAmount', new java.lang.Double(mc.getProperty('vend.salesAmount')));    
+         ]]>
+      </script>
+
+      <!-- START: Proceed only if the customer was not rewarded before, within the given time range. -->
+      <filter source="get-property('proceed')" regex="false">
+         <then>
+            <!-- Append a skip message to be sent to the user. -->
+            <property name="id" expression="fn:concat('vend_customerId:', get-property('vend.customerId'))" />
+            <property name="message" expression="fn:concat('The customer has already been rewarded for the specified time period ', get-property('timeRange'), '.')" />
+            <call-template target="responseHandlerTemplate">
+               <with-param name="activity" value="vend_createAndSendGiftPack" />
+               <with-param name="id" value="{$ctx:id}" />
+               <with-param name="status" value="skipped" />
+               <with-param name="message" value="{$ctx:message}" />
+            </call-template>
+         </then>
+         <else>
+            <!-- Iterate over the products and create the products array in order to create the register sale. -->
+            <script language="js">
+               <![CDATA[
+                  var fullProducts = eval("(" + mc.getProperty('vend.fullProducts') + ")");
+                  var products = eval("(" + mc.getProperty('vend.products') + ")");
+                  var productsArray = [];
+                  
+                  if(products.length > 0){
+                     for(var i=0; i<products.length; i++){
+                        var product = {};
+                        product.product_id = products[i].id;
+                        product.quantity = products[i].quantity;
+                        productsArray[i] = product;
+                     }
+                  }
+                  
+                  var jsonPayload = {};
+                  jsonPayload.products = productsArray;
+                  mc.setPayloadJSON(jsonPayload);       
+                  
+                  mc.setProperty('vend.lastRewardedDate', new java.text.SimpleDateFormat('yyyy-MM-dd hh:mm:ss').format(new java.util.Date()));                             
+               ]]>
+            </script>
+            <property name="vend.productsArray" expression="json-eval($.products)" />
+
+            <!-- START: Proceed only if the user has specified at least one product to be included in the gift pack. -->
+            <filter xpath="get-property('vend.productsArray') != '[]'">
+               <then>
+                  <!-- Create the payment object to be used for the 'createRegisterSale' method. -->
+                  <script language="js">
+                     <![CDATA[
+                        var paymentTypeId = mc.getProperty('vend.paymentTypeId');
+                        var orderDate = new java.text.SimpleDateFormat('yyyy-MM-dd hh:mm:ss').format(new java.util.Date());
+                        mc.setProperty('vend.orderDate', orderDate);
+                        
+                        var paymentObject = {};
+                        paymentObject.retailer_payment_type_id = paymentTypeId;
+                        paymentObject.payment_date = orderDate;
+                        mc.setPayloadJSON(paymentObject);
+                     ]]>
+                  </script>
+                  <property name="vend.registerSalePayments" expression="json-eval($)" />
+
+                  <property name="vend.registerSalePayments" expression="fn:concat('[', get-property('vend.registerSalePayments'), ']')" />
+                  <property name="vend.saleNote" value="The sale was created with the products that are to be sent to the customer in a gift pack." />
+
+                  <!-- Create a register sale for the gift pack. -->
+                  <vend.init>
+                     <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                     <accessToken>{$ctx:vend.accessToken}</accessToken>
+                  </vend.init>
+                  <vend.createRegisterSale>
+                     <registerId>{$ctx:vend.registerId}</registerId>
+                     <customerId>{$ctx:vend.customerId}</customerId>
+                     <saleDate>{$ctx:vend.orderDate}</saleDate>
+                     <userName>admin</userName>
+                     <status>ONACCOUNT_CLOSED</status>
+                     <note>{$ctx:vend.saleNote}</note>
+                     <registerSaleProducts>{$ctx:vend.productsArray}</registerSaleProducts>
+                     <registerSalePayments>{$ctx:vend.registerSalePayments}</registerSalePayments>
+                  </vend.createRegisterSale>
+                  <sequence key="removeResponseHeaders" />
+
+                  <property name="vend.registerSaleId" expression="json-eval($.register_sale.id)" />
+
+                  <!-- START: Proceed to create the route only if the gift pack was successfully created. -->
+                  <filter source="boolean(get-property('vend.registerSaleId'))" regex="false">
+                     <then>
+                        <property name="id" expression="fn:concat('vend_customerId:', get-property('vend.customerId'))" />
+                        <property name="errorResponse" expression="json-eval($)" />
+                        <!-- Append a error message to be sent to the user if createRegisterSale method failed. -->
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="activity" value="vend_createRegisterSale" />
+                           <with-param name="id" value="{$ctx:id}" />
+                           <with-param name="status" value="error" />
+                           <with-param name="message" value="{$ctx:errorResponse}" />
+                        </call-template>
+                     </then>
+                     <else>
+                        <!-- Get the details of the particular customer. -->
+                        <vend.init>
+                           <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                           <accessToken>{$ctx:vend.accessToken}</accessToken>
+                        </vend.init>
+                        <vend.listCustomers>
+                           <id>{$ctx:vend.customerId}</id>
+                        </vend.listCustomers>
+                        <sequence key="removeResponseHeaders" />
+
+                        <!-- Construct the dispatch object to create the route. -->
+                        <script language="js">
+                           <![CDATA[
+                              var fullProducts = eval("(" + mc.getProperty('vend.fullProducts') + ")");
+                              var products = eval("(" + mc.getProperty('vend.products') + ")");
+                              
+                              var customer = mc.getPayloadJSON().customers[0];
+                              var dispatchObject = {};
+                              dispatchObject.identifier = customer.customer_code;
+                              var customerName = customer.first_name + ' ' + customer.last_name;
+                              dispatchObject.contact_name = customerName;
+                              mc.setProperty('vend.customerName', customerName);
+                              mc.setProperty('vend.customerFirstName', customer.first_name);
+                              
+                              dispatchObject.contact_address = customer.postal_address1 + ' ' + customer.postal_address2 + ' ' + customer.postal_city + ' ' + customer.postal_state + ' ' + customer.postal_postcode + ' ' + customer.postal_country_id;
+                              dispatchObject.contact_phone = customer.mobile;
+                              mc.setProperty('vend.customerPhone', customer.mobile);
+                              
+                              dispatchObject.contact_id = customer.id;
+                              dispatchObject.contact_email = customer.email;
+                              mc.setProperty('vend.customerEmail', customer.email);
+                              
+                              dispatchObject.slot = 0;
+                              mc.setProperty('beetrack.estimatedDate', new java.text.SimpleDateFormat('yyyy-MM-dd hh:mm:ss').format(java.util.Date(new java.util.Date().getTime() + 259200000)));
+                              
+                              var items = [];
+                              for(var i=0; i<products.length; i++){
+                                 var item = {};
+                                 var fullItem = fullProducts[products[i].id];
+                                 item.code = fullItem.sku;
+                                 if(new java.lang.String(fullItem.description).startsWith('<')){
+                                    var length = new java.lang.String(fullItem.description).length();
+                                    item.description = new java.lang.String(fullItem.description).substring(3, length-4);
+                                 } 
+                                 item.quantity = products[i].quantity;
+                                 items[i] = item;
+                              }
+                              
+                              dispatchObject.items = items;
+                              mc.setPayloadJSON(dispatchObject);
+                           ]]>
+                        </script>
+
+                        <property name="beetrack.dispatchObject" expression="json-eval($)" />
+                        <property name="beetrack.dispatchObject" expression="fn:concat('[', get-property('beetrack.dispatchObject'), ']')" />
+
+                        <!-- Create the route in Beetrack. -->
+                        <beetrack.init>
+                           <apiUrl>{$ctx:beetrack.apiUrl}</apiUrl>
+                           <accessToken>{$ctx:beetrack.accessToken}</accessToken>
+                        </beetrack.init>
+                        <beetrack.createRoute>
+                           <truckIdentifier>{$ctx:beetrack.vehicleId}</truckIdentifier>
+                           <date>{$ctx:beetrack.estimatedDate}</date>
+                           <dispatches>{$ctx:beetrack.dispatchObject}</dispatches>
+                           <enableEstimations>false</enableEstimations>
+                        </beetrack.createRoute>
+                        <sequence key="removeResponseHeaders" />
+
+                        <property name="beetrack.routId" expression="$axis2:HTTP_SC" />
+
+                        <!-- START: Proceed to notify the customer only if the route was created successfully. -->
+                        <filter source="boolean(get-property('beetrack.routId'))" regex="false">
+                           <then>
+                              <!-- Append a success message to be sent to the user if the sale was successfully created. -->
+                              <property name="id" expression="fn:concat('vend_customerId:', get-property('vend.customerId'), ',vend_registerSaleId:', get-property('vend.registerSaleId'))" />
+                              <property name="errorResponse" expression="json-eval($)" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="vend_createAndSendGiftPack" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="error" />
+                                 <with-param name="message" value="Gift pack has been successfully created but an error occured while creating a delivery route for it." />
+                              </call-template>
+                           </then>
+                           <else>
+                              <!-- Append a success message to be sent to the user if the route was successfully created. -->
+                              <property name="id" expression="fn:concat('vend_customerId:', get-property('vend.customerId'), ',vend_registerSaleId:', get-property('vend.registerSaleId'), ',beetrack_routeId:', get-property('beetrack.routId'))" />
+                              <property name="message" expression="fn:concat('Gift pack has been successfully created (position: ', get-property('vend.customerPosition'), ', sales: USD ', get-property('vend.salesAmount'), ') and arranged for delivery.')" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="vend_createAndSendGiftPack" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="success" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+
+                              <property name="uri.var.note" action="remove" />
+
+                              <!-- Update the custom field of the customer so that he is not mistakenly considered again. -->
+                              <vend.init>
+                                 <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                                 <accessToken>{$ctx:vend.accessToken}</accessToken>
+                              </vend.init>
+                              <vend.updateCustomer>
+                                 <customField2>{$ctx:vend.lastRewardedDate}</customField2>
+                                 <customerId>{$ctx:vend.customerId}</customerId>
+                              </vend.updateCustomer>
+                              <sequence key="removeResponseHeaders" />
+
+                              <!-- Construct the email to notify the customer. -->
+                              <script language="js">
+                                 <![CDATA[
+                                    var customerEmail = mc.getProperty('vend.customerEmail');                      
+                                    var customerFirstName = mc.getProperty('vend.customerFirstName'); 
+                                    
+                                    var mailHTMLUser = '<h3>Dear ' + customerFirstName + ",</h3><p><strong>Congratulations!</strong></p><p>We are delighted to inform you that you have been chosen as one of our most valued customers. As a token of gratitude for your transactions with us, we have sent you a surprise gift pack... to your home of course!</p><p>We would also like to take this opportunity to thank you for the continuous trust you have placed on us and we are going to be delighted to strengthen our relationship further. We're dedicated to serve you more and more and we humbly ask you to continue buying our products in future.</p><p><strong>Cheers and have Fun!</strong></p><p>`</p><p>Please do not hesitate to call our customer care agents in case you didn't recieve the gift pack within the next 3 business days.</p><p>This is an auto-generated email. Please do not reply.</p>";
+                                    mc.setProperty('mandrill.htmlUser', mailHTMLUser); 
+                                                                              
+                                    mc.setProperty('mandrill.subject', 'Congratulations! You have a gift pack waiting for you...!');
+                                    
+                                    var mailToUser = '[{"email": "' + customerEmail + '", "name": "' + customerFirstName + '", "type": "to"}]';
+                                    mc.setProperty('mandrill.toUser', mailToUser);
+                                 ]]>
+                              </script>
+
+                              <property name="mandrill.htmlUser" expression="fn:concat('&lt;html&gt;', get-property('mandrill.htmlUser'), '&lt;/html&gt;')" />
+
+                              <!-- Notify the customer about the gift pack via email. -->
+                              <mandrill.init>
+                                 <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                 <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                 <format>json</format>
+                              </mandrill.init>
+                              <mandrill.sendMessage>
+                                 <html>{$ctx:mandrill.htmlUser}</html>
+                                 <subject>{$ctx:mandrill.subject}</subject>
+                                 <fromEmail>{$ctx:vend.fromEmail}</fromEmail>
+                                 <fromName>{$ctx:vend.fromName}</fromName>
+                                 <to>{$ctx:mandrill.toUser}</to>
+                              </mandrill.sendMessage>
+                              <sequence key="removeResponseHeaders" />
+
+                              <property name="mandrill.mailIdUser" expression="json-eval($[0]._id)" />
+                              <property name="mandrill.errorMessage" expression="json-eval($[0].reject_reason)" />
+
+                              <property name="nexmo.text" expression="fn:concat('Hi ', get-property('vend.customerFirstName'), ', Congratulations! You have won a gift pack for being one of our premium customers. Await a gift at your doorstep within the next 3 days...! Check your mail inbox for more information.')" />
+
+                              <!-- Notify customer about the gift pack via SMS. -->
+                              <nexmo.init>
+                                 <responseType>json</responseType>
+                                 <apiUrl>{$ctx:nexmo.apiUrl}</apiUrl>
+                                 <apiSecret>{$ctx:nexmo.apiSecret}</apiSecret>
+                                 <apiKey>{$ctx:nexmo.apiKey}</apiKey>
+                              </nexmo.init>
+                              <nexmo.sendMessage>
+                                 <to>{$ctx:vend.customerPhone}</to>
+                                 <text>{$ctx:nexmo.text}</text>
+                                 <from>{$ctx:vend.fromName}</from>
+                                 <type>text</type>
+                              </nexmo.sendMessage>
+                              <sequence key="removeResponseHeaders" />
+
+                              <property name="sendMessage.errorMessage" expression="json-eval($.messages[0].error-text)" />
+
+                              <property name="id" expression="fn:concat('vend_customerId:', get-property('vend.customerId'), ',vend_registerSaleId:', get-property('vend.registerSaleId'))" />
+
+                              <!-- START: Append a message to be sent to the user regarding the status of the send email and send sms operation. -->
+                              <filter source="boolean(get-property('mandrill.mailIdUser'))" regex="true">
+                                 <then>
+                                    <filter source="boolean(get-property('sendMessage.errorMessage'))" regex="false">
+                                       <then>
+                                          <property name="status" value="success" />
+                                          <property name="message" value="Customer has been notified about the gift pack." />
+                                       </then>
+                                       <else>
+                                          <property name="status" value="error" />
+                                          <property name="message" expression="fn:concat('Customer has been notified about the gift pack via email, but an error occured while sending SMS (', get-property('sendMessage.errorMessage'), ').')" />
+                                       </else>
+                                    </filter>
+                                 </then>
+                                 <else>
+                                    <filter source="boolean(get-property('sendMessage.errorMessage'))" regex="false">
+                                       <then>
+                                          <property name="status" value="error" />
+                                          <property name="message" expression="fn:concat('Customer has been notified about the gift pack via SMS, but an error occured while sending email (', get-property('mandrill.errorMessage'), ').')" />
+                                       </then>
+                                       <else>
+                                          <property name="status" value="error" />
+                                          <property name="message" expression="fn:concat('Unknown error occured while notifying the customer about the gift pack via email (', get-property('mandrill.errorMessage'), ') and SMS (', get-property('sendMessage.errorMessage'), ').')" />
+                                       </else>
+                                    </filter>
+                                 </else>
+                              </filter>
+                              <!-- END: Append a message to be sent to the user regarding the status of the send email and send sms operation. -->
+
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="vend_notifyCustomer" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </else>
+                        </filter>
+                        <!-- END: Proceed to notify the customer only if the route was created successfully. -->
+
+                     </else>
+                  </filter>
+                  <!-- END: Proceed to create the route only if the gift pack was successfully created. -->
+
+               </then>
+               <else>
+                  <!-- Append a skip message to be sent to the user. -->
+                  <property name="id" expression="fn:concat('vend_customerId:', get-property('vend.customerId'))" />
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="activity" value="vend_createAndSendGiftPack" />
+                     <with-param name="id" value="{$ctx:id}" />
+                     <with-param name="status" value="skipped" />
+                     <with-param name="message" value="No products have been specified to reward the customer." />
+                  </call-template>
+               </else>
+            </filter>
+            <!-- END: Proceed only if the user has specified at least one product to be included in the gift pack. -->
+
+         </else>
+      </filter>
+      <!-- END: Proceed only if the customer was not rewarded before, within the given time range. -->
+
+   </sequence>
+</template>

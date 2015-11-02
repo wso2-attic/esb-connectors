@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--This scenario will create consignment for products in Vend which require stock refilling and notify the the supplier about it. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="vend_createConsignmentAndNotifySuppliers" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Mandrill parameters. -->
+         <property name="mandrill.apiKey" expression="get-property('registry', 'connectors/Mandrill/apiKey')" />
+         <property name="mandrill.apiUrl" expression="get-property('registry', 'connectors/Mandrill/apiUrl')" />
+         <property name="mandrill.fromEmail" expression="json-eval($.mandrill.fromEmail)" />
+         <property name="mandrill.fromName" expression="json-eval($.mandrill.fromName)" />
+
+         <!-- Nexmo Properties -->
+         <property name="nexmo.apiUrl" expression="get-property('registry', 'connectors/Nexmo/apiUrl')" />
+         <property name="nexmo.apiSecret" expression="get-property('registry', 'connectors/Nexmo/apiSecret')" />
+         <property name="nexmo.apiKey" expression="get-property('registry', 'connectors/Nexmo/apiKey')" />
+
+         <!-- Operation scoped properties -->
+         <property name="id.empty" value="{}" />
+         <property name="responseString" value="" scope="operation" />
+         <property name="noOfProcessedProducts" expression="0" scope="operation" />
+
+         <!-- List active products. -->
+         <vend.init />
+         <vend.listProducts>
+            <active>1</active>
+         </vend.listProducts>
+
+         <!-- apiUrl and accessToken extracted from the registry and stored for subsequent calls. -->
+         <property name="vend.apiUrl" expression="get-property('registry', 'connectors/Vend/apiUrl')" />
+         <property name="vend.accessToken" expression="get-property('registry', 'connectors/Vend/accessToken')" />
+
+         <property name="productsCount" expression="count(//products)" />
+
+         <!-- Get the response status. -->
+         <property name="responseStatus" expression="$axis2:HTTP_SC" />
+
+         <!-- START: Proceed only if the call is successful. -->
+         <filter xpath="get-property('responseStatus') != 200">
+            <then>
+               <!-- Append an error message to be sent to the user. -->
+               <property name="vend.errorResponse" expression="json-eval($)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="vend_listProducts" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="error" />
+                  <with-param name="message" value="{$ctx:vend.errorResponse}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- END: Proceed only if the call is successful. -->
+
+         <!-- START: Proceed only if there are any products to process. -->
+         <filter xpath="get-property('productsCount') = 0.0">
+            <then>
+               <!-- Append an skip message to be sent to the user. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="vend_listProducts" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="message" value="There are no products in the Vend account to process." />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- END: Proceed only if there are any products to process. -->
+
+         <property name="productIndex" expression="0" scope="operation" />
+
+         <!-- FOR EACH Product: BEGIN -->
+         <iterate continueParent="false" id="products" expression="//products" sequential="true">
+            <target>
+               <sequence>
+                  <property name="vend.productId" expression="//products/id/text()" />
+                  <property name="vend.inventoryCount" expression="//products/inventory/count/text()" />
+                  <property name="vend.inventoryReorderLevel" expression="//products/inventory/reorder_point/text()" />
+
+                  <!-- START: Proceed only if the inventory level is low for the product. -->
+                  <filter xpath="get-property('vend.inventoryCount') &lt; get-property('vend.inventoryReorderLevel') + 1">
+                     <then>
+                        <property name="noOfProcessedProducts" expression="get-property('operation', 'noOfProcessedProducts') + 1" scope="operation" />
+
+                        <property name="vend.supplierId" expression="//products/supplier_code/text()" />
+
+                        <!-- START: Proceed only if the product has a supplier associated with it. -->
+                        <filter source="boolean(get-property('vend.supplierId'))" regex="true">
+                           <then>
+                              <property name="vend.productName" expression="//products/name/text()" />
+                              <property name="vend.outletId" expression="//products/inventory/outlet_id/text()" />
+                              <property name="vend.amountToOrder" expression="//products/inventory/restock_level/text()" />
+
+                              <!-- List the consignments the product could already be part of. -->
+                              <vend.init>
+                                 <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                                 <accessToken>{$ctx:vend.accessToken}</accessToken>
+                              </vend.init>
+                              <vend.listConsignmentProducts>
+                                 <productId>{$ctx:vend.productId}</productId>
+                              </vend.listConsignmentProducts>
+
+                              <!-- Get the response status. -->
+                              <property name="responseStatus" expression="$axis2:HTTP_SC" />
+
+                              <!-- START: Proceed only if the call is successful. -->
+                              <filter xpath="get-property('responseStatus') != 200">
+                                 <then>
+                                    <!-- Append an error message to be sent to the user. -->
+                                    <property name="vend.errorResponse" expression="json-eval($)" />
+                                    <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'))" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="vend_listConsignmentProducts" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="error" />
+                                       <with-param name="message" value="{$ctx:vend.errorResponse}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                    <script language="js">
+                                       <![CDATA[
+                                          var consignments = mc.getPayloadJSON().consignment_products;
+                                          var proceed = true;
+                                          
+                                          if(consignments.length > 0){
+                                             for(var i=0; i<consignments.length; i++){
+                                                if(consignments[i].received == null || consignments[i].received == 'null'){
+                                                   mc.setProperty('vend.consignmentId', consignments[i].consignment_id);
+                                                   mc.setProperty('vend.consignmentProductId', consignments[i].id);
+                                                   proceed = false;
+                                                   break;
+                                                }
+                                             }
+                                          }
+
+                                          mc.setProperty('proceed', proceed);
+                                       ]]>
+                                    </script>
+
+                                    <!-- START: Check whether consignmentProduct is already created for the product. -->
+                                    <filter source="get-property('proceed')" regex="false">
+                                       <then>
+                                          <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'), ',vend_consignmentProductId:', get-property('vend.consignmentProductId'), ',vend_consignmentId:', get-property('vend.consignmentId'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="vend_listConsignmentProducts" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="skipped" />
+                                             <with-param name="message" value="Consignment has been already created for the product." />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <!-- Get details of the supplier of the product. -->
+                                          <vend.init>
+                                             <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                                             <accessToken>{$ctx:vend.accessToken}</accessToken>
+                                          </vend.init>
+                                          <vend.getSupplier>
+                                             <supplierId>{$ctx:vend.supplierId}</supplierId>
+                                          </vend.getSupplier>
+
+                                          <property name="vend.supplierEmail" expression="//contact/email/text()" />
+                                          <property name="vend.supplierFirstName" expression="//contact/first_name/text()" />
+                                          <property name="nexmo.to" expression="//contact/mobile/text()" />
+
+                                          <!-- Get the response status. -->
+                                          <property name="responseStatus" expression="$axis2:HTTP_SC" />
+
+                                          <!-- Check response status for all possible error responses in getSupplier. -->
+                                          <filter xpath="get-property('responseStatus') != 200">
+                                             <then>
+                                                <!-- Append an error message to be sent to the user. -->
+                                                <property name="vend.errorResponse" expression="json-eval($)" />
+                                                <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'))" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="vend_getSupplierDetails" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="error" />
+                                                   <with-param name="message" value="{$ctx:vend.errorResponse}" />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <property name="vend.consignmentName" expression="fn:concat('Consignment for ', get-property('vend.productName'))" />
+
+                                                <!-- Vend create consignment. -->
+                                                <vend.init>
+                                                   <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                                                   <accessToken>{$ctx:vend.accessToken}</accessToken>
+                                                </vend.init>
+                                                <vend.createConsignment>
+                                                   <name>{$ctx:vend.consignmentName}</name>
+                                                   <type>SUPPLIER</type>
+                                                   <outletId>{$ctx:vend.outletId}</outletId>
+                                                   <supplierId>{$ctx:vend.supplierId}</supplierId>
+                                                   <status>OPEN</status>
+                                                </vend.createConsignment>
+                                                <property name="vend.consignmentId" expression="//id/text()" />
+
+                                                <!-- START: Proceed only if the consignment was successfully created. -->
+                                                <filter source="boolean(get-property('vend.consignmentId'))" regex="false">
+                                                   <then>
+                                                      <!-- Append an error message to be sent to the user. -->
+                                                      <property name="vend.errorResponse" expression="json-eval($)" />
+                                                      <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'), ',vend_supplierId:', get-property('vend.supplierId'))" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="vend_createConsignment" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="skipped" />
+                                                         <with-param name="message" value="{$ctx:vend.errorResponse}" />
+                                                      </call-template>
+                                                   </then>
+                                                   <else>
+                                                      <!-- vend create consignment product. -->
+                                                      <vend.init>
+                                                         <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                                                         <accessToken>{$ctx:vend.accessToken}</accessToken>
+                                                      </vend.init>
+                                                      <vend.createConsignmentProduct>
+                                                         <consignmentId>{$ctx:vend.consignmentId}</consignmentId>
+                                                         <productId>{$ctx:vend.productId}</productId>
+                                                         <count>{$ctx:vend.amountToOrder}</count>
+                                                         <received>{$ctx:received}</received>
+                                                         <cost>{$ctx:cost}</cost>
+                                                         <sequenceNumber>{$ctx:sequenceNumber}</sequenceNumber>
+                                                      </vend.createConsignmentProduct>
+                                                      <property name="vend.consignmentProductId" expression="//id/text()" />
+
+                                                      <!-- START: Proceed only if the consignment product was successfully created. -->
+                                                      <filter source="boolean(get-property('vend.consignmentProductId'))" regex="false">
+                                                         <then>
+                                                            <!-- Append an error message to be sent to the user. -->
+                                                            <property name="vend.errorResponse" expression="json-eval($)" />
+                                                            <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'), ',vend_supplierId:', get-property('vend.supplierId'), ',vend_consignmentId:', get-property('vend.consignmentId'))" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="vend_createConsignmentProduct" />
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="status" value="Skipped" />
+                                                               <with-param name="message" value="{$ctx:vend.errorResponse}" />
+                                                            </call-template>
+                                                         </then>
+                                                         <else>
+                                                            <!-- Creating the mail body to be sent in Mandrill. -->
+                                                            <script language="js">
+                                                               <![CDATA[                                                                                               
+                                                                 var name = mc.getProperty('vend.supplierFirstName');
+                                                                 var email = mc.getProperty('vend.supplierEmail');
+                                                                 var amountToOrder = mc.getProperty('vend.amountToOrder'); 
+                                                                 var productName = mc.getProperty('vend.productName'); 
+                                                                 var fromName = mc.getProperty('mandrill.fromName'); 
+                                                                 
+                                                                 var mailTo = '[{"email":"' + email + '","name":"' + name + '","type": "to"}]'; 
+                                                                 mc.setProperty('mandrill.to', mailTo);                                                       
+                                                                  
+                                                                  var mailHTMLContent = '<h3>Dear ' + name + ',</h3><p>This is to notify that our stock of <strong>' + productName + '</strong> is low and would like to purchase <strong>' + amountToOrder + '</strong> units of the same.</p></p><p>Thank You!</p><p><strong>' + fromName + '</strong></p><p> </p><p> </p><p>This is an auto-generated email. Please do not hesitate to reply to this email for further enquiries.</p>';
+                                                                  mc.setProperty('mandrill.htmlContent', mailHTMLContent); 
+                                                               ]]>
+                                                            </script>
+
+                                                            <property name="mandrill.htmlBody" expression="fn:concat('&lt;html&gt;', get-property('mandrill.htmlContent'), '&lt;/html&gt;')" />
+
+                                                            <property name="mandrill.html" expression="json-eval($.html)" />
+                                                            <property name="mandrill.to" expression="get-property('mandrill.to')" />
+                                                            <property name="mandrill.subject" expression="fn:concat(get-property('mandrill.fromName'), ' - ', get-property('vend.productName'), ' Stock Requirement')" />
+
+                                                            <!-- START: Check whether the Mandrill apiKey is sent by the user. -->
+                                                            <filter source="boolean(get-property('mandrill.apiKey'))" regex="true">
+                                                               <then>
+                                                                  <!-- If Mandril apiKey is sent,send the estimation through Mandril. -->
+                                                                  <mandrill.init>
+                                                                     <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                                                     <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                                                     <format>json</format>
+                                                                  </mandrill.init>
+                                                                  <mandrill.sendMessage>
+                                                                     <html>{$ctx:mandrill.htmlBody}</html>
+                                                                     <subject>{$ctx:mandrill.subject}</subject>
+                                                                     <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+                                                                     <fromName>{$ctx:mandrill.fromName}</fromName>
+                                                                     <to>{$ctx:mandrill.to}</to>
+                                                                  </mandrill.sendMessage>
+
+                                                                  <!-- Get the response status. -->
+                                                                  <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                                                                  <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'), ',vend_supplierId:', get-property('vend.supplierId'), ',vend_consignmentId:', get-property('vend.consignmentId'))" />
+
+                                                                  <!-- Check response status for all possible error responses in sendMessage. -->
+                                                                  <filter xpath="get-property('responseStatus') != 200">
+                                                                     <then>
+                                                                        <!-- Append an error message to be sent to the user. -->
+                                                                        <property name="vend.errorResponse" expression="json-eval($)" />
+                                                                        <call-template target="responseHandlerTemplate">
+                                                                           <with-param name="activity" value="mandrill_sendMessage" />
+                                                                           <with-param name="id" value="{$ctx:id}" />
+                                                                           <with-param name="status" value="error" />
+                                                                           <with-param name="message" value="{$ctx:vend.errorResponse}" />
+                                                                        </call-template>
+                                                                     </then>
+                                                                     <else>
+                                                                        <!-- Check whether inventory level is critical -->
+                                                                        <filter xpath="get-property('vend.inventoryCount') &lt; get-property('vend.inventoryReorderLevel') div 2">
+                                                                           <then>
+                                                                              <!-- Text message body to be send -->
+                                                                              <property name="nexmo.text" expression="fn:concat('Hi ', get-property('vend.supplierFirstName'), ', This is to notify you that our stock of ', get-property('vend.productName'), ' is critically low. Please provide us a consignment of ', get-property('vend.amountToOrder'), ' units as soon as possible. Please check your mail inbox for more information.' )" />
+                                                                              <!-- Sending message through nexmo. -->
+                                                                              <nexmo.init>
+                                                                                 <responseType>json</responseType>
+                                                                                 <apiUrl>{$ctx:nexmo.apiUrl}</apiUrl>
+                                                                                 <apiSecret>{$ctx:nexmo.apiSecret}</apiSecret>
+                                                                                 <apiKey>{$ctx:nexmo.apiKey}</apiKey>
+                                                                              </nexmo.init>
+                                                                              <nexmo.sendMessage>
+                                                                                 <to>{$ctx:nexmo.to}</to>
+                                                                                 <text>{$ctx:nexmo.text}</text>
+                                                                                 <from>{$ctx:mandrill.fromName}</from>
+                                                                                 <type>text</type>
+                                                                              </nexmo.sendMessage>
+
+                                                                              <!-- Get the response status. -->
+                                                                              <property name="sendMessage.errorMessage" expression="json-eval($.messages[0].error-text)" />
+
+                                                                              <!-- Check response status for all possible error responses in sendMessage. -->
+                                                                              <filter source="boolean(get-property('sendMessage.errorMessage'))" regex="false">
+                                                                                 <then>
+                                                                                    <call-template target="responseHandlerTemplate">
+                                                                                       <with-param name="activity" value="vend_notifyImmediateStockRequirement" />
+                                                                                       <with-param name="status" value="success" />
+                                                                                       <with-param name="id" value="{$ctx:id}" />
+                                                                                       <with-param name="message" value="Supplier has been notified regarding the consignment via email and SMS." />
+                                                                                    </call-template>
+                                                                                 </then>
+                                                                                 <else>
+                                                                                    <call-template target="responseHandlerTemplate">
+                                                                                       <with-param name="activity" value="vend_notifyImmediateStockRequirement" />
+                                                                                       <with-param name="id" value="{$ctx:id}" />
+                                                                                       <with-param name="status" value="success" />
+                                                                                       <with-param name="message" value="Email has been sent to the supplier but an error occured while sending the SMS." />
+                                                                                    </call-template>
+                                                                                 </else>
+                                                                              </filter>
+                                                                              <!-- END: Check response status for all possible error responses in sendMessage. -->
+                                                                           </then>
+                                                                           <else>
+                                                                              <call-template target="responseHandlerTemplate">
+                                                                                 <with-param name="activity" value="vend_notifyStockRequirement" />
+                                                                                 <with-param name="status" value="success" />
+                                                                                 <with-param name="id" value="{$ctx:id}" />
+                                                                                 <with-param name="message" value="Supplier has been notified regarding the consignment via email." />
+                                                                              </call-template>
+                                                                           </else>
+                                                                        </filter>
+                                                                        <!-- END: Check whether inventory level is critical. -->
+
+                                                                     </else>
+                                                                  </filter>
+                                                                  <!-- END: Check response status for all possible error responses in sendMessage. -->
+
+                                                               </then>
+                                                               <else>
+                                                                  <call-template target="responseHandlerTemplate">
+                                                                     <with-param name="activity" value="mandrill_sendMessage" />
+                                                                     <with-param name="id" value="{$ctx:id.empty}" />
+                                                                     <with-param name="status" value="Error" />
+                                                                     <with-param name="message" value="Mandrill apiiKey is not provided." />
+                                                                  </call-template>
+                                                               </else>
+                                                            </filter>
+                                                            <!-- END: Check whether the Mandril apiKey is sent by the user. -->
+
+                                                         </else>
+                                                      </filter>
+                                                      <!-- END: Proceed only if the consignment product was successfully created. -->
+
+                                                   </else>
+                                                </filter>
+                                                <!-- END: Proceed only if the consignment was successfully created. -->
+
+                                             </else>
+                                          </filter>
+                                          <!--END of Filter: Check response status for all possible error responses in getSupplier. -->
+
+                                       </else>
+                                    </filter>
+                                    <!-- END: Check whether consignmentProduct is created for the product. -->
+
+                                 </else>
+                              </filter>
+                              <!-- END: Proceed only if the call is successful. -->
+                           </then>
+                           <else>
+                              <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'))" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="vend_getSupplierDetails" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="skipped" />
+                                 <with-param name="message" value="The product doesn't have a supplier associated with it." />
+                              </call-template>
+                           </else>
+                        </filter>
+                        <!-- END: Proceed only if the product has a supplier associated with it. -->
+                     </then>
+                  </filter>
+                  <!-- END: Proceed only if the inventory level is low for the product. -->
+
+                  <!--Increment the productIndex count for each iteration. -->
+                  <property name="productIndex" expression="get-property('operation','productIndex') + 1" scope="operation" />
+
+                  <!-- START: Check for all the iterations has completed. -->
+                  <filter xpath="get-property('operation', 'productIndex') = get-property('productsCount')">
+                     <then>
+                        <!-- Append a skip message to be sent to the user if there no consignments are created at all. -->
+                        <filter source="get-property('operation', 'noOfProcessedProducts')" regex="0.0">
+                           <then>
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="vend_createConsignmentAndNotifySuppliers" />
+                                 <with-param name="id" value="{$ctx:id.empty}" />
+                                 <with-param name="status" value="skipped" />
+                                 <with-param name="message" value="There are no products in the inventory which require refilling." />
+                              </call-template>
+                           </then>
+                        </filter>
+                        <loopback />
+                     </then>
+                  </filter>
+                  <!-- END: Check for all the iterations has completed. -->
+
+               </sequence>
+            </target>
+         </iterate>
+         <!-- FOR EACH Product: END -->
+      </inSequence>
+
+      <outSequence>
+         <!-- Send the constructed response to the user. -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response": {
+               "activity":"vend_createConsignmentAndNotifySuppliers",
+               "activityResponse": [$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+</proxy>

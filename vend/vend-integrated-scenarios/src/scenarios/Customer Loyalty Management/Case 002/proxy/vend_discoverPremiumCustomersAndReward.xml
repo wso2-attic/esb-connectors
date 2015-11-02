@@ -1,0 +1,572 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!-- This scenario finds the top customers for a given date range and creates rewards for them. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="vend_discoverPremiumCustomersAndReward" transports="http,https" startOnLoad="true" trace="disable">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Vend Properties -->
+         <property name="vend.salesSince" expression="json-eval($.vend.salesSince)" />
+         <property name="vend.minimumSalesAmount" expression="json-eval($.vend.minimumSalesAmount)" />
+         <property name="vend.fromName" expression="json-eval($.vend.fromName)" />
+         <property name="vend.fromEmail" expression="json-eval($.vend.fromEmail)" />
+         <property name="vend.registerId" expression="json-eval($.vend.registerId)" />
+         <property name="vend.productsForFirstCustomer" expression="json-eval($.vend.firstCustomer.products)" />
+         <property name="vend.minimumCustomersForFirst" expression="json-eval($.vend.firstCustomer.minimumCustomers)" />
+         <property name="vend.productsForSecondCustomer" expression="json-eval($.vend.secondCustomer.products)" />
+         <property name="vend.minimumCustomersForSecond" expression="json-eval($.vend.secondCustomer.minimumCustomers)" />
+         <property name="vend.productsForThirdCustomer" expression="json-eval($.vend.thirdCustomer.products)" />
+         <property name="vend.minimumCustomersForThird" expression="json-eval($.vend.thirdCustomer.minimumCustomers)" />
+
+         <!-- Beetrack Properties -->
+         <property name="beetrack.apiUrl" expression="get-property('registry', 'connectors/Beetrack/apiUrl')" />
+         <property name="beetrack.accessToken" expression="get-property('registry', 'connectors/Beetrack/accessToken')" />
+         <property name="beetrack.vehicleId" expression="json-eval($.beetrack.vehicleId)" />
+
+         <!-- Mandrill Properties -->
+         <property name="mandrill.apiUrl" expression="get-property('registry', 'connectors/Mandrill/apiUrl')" />
+         <property name="mandrill.apiKey" expression="get-property('registry', 'connectors/Mandrill/apiKey')" />
+
+         <!-- Nexmo Properties -->
+         <property name="nexmo.apiUrl" expression="get-property('registry', 'connectors/Nexmo/apiUrl')" />
+         <property name="nexmo.apiSecret" expression="get-property('registry', 'connectors/Nexmo/apiSecret')" />
+         <property name="nexmo.apiKey" expression="get-property('registry', 'connectors/Nexmo/apiKey')" />
+
+         <!-- Default value for 'vend.minimumCustomersForFirst' is 1 -->
+         <filter source="boolean(get-property('vend.minimumCustomersForFirst'))" regex="false">
+            <then>
+               <property name="vend.minimumCustomersForFirst" value="1" />
+            </then>
+         </filter>
+
+         <!-- Default value for 'vend.minimumCustomersForSecond' is 2 -->
+         <filter source="boolean(get-property('vend.minimumCustomersForSecond'))" regex="false">
+            <then>
+               <property name="vend.minimumCustomersForSecond" value="2" />
+            </then>
+         </filter>
+
+         <!-- Default value for 'vend.minimumCustomersForThird' is 3 -->
+         <filter source="boolean(get-property('vend.minimumCustomersForThird'))" regex="false">
+            <then>
+               <property name="vend.minimumCustomersForThird" value="3" />
+            </then>
+         </filter>
+
+         <!-- Default value for 'vend.minimumSalesAmount' is 0 -->
+         <filter source="boolean(get-property('vend.minimumSalesAmount'))" regex="false">
+            <then>
+               <property name="vend.minimumSalesAmount" value="0" />
+            </then>
+         </filter>
+
+         <property name="id.empty" value="{}" />
+         <property name="rewardedCustomers" expression="0" scope="operation" />
+
+         <vend.init />
+         <vend.listPaymentTypes />
+         <sequence key="removeResponseHeaders" />
+
+         <property name="vend.apiUrl" expression="get-property('registry', 'connectors/Vend/apiUrl')" />
+         <property name="vend.accessToken" expression="get-property('registry', 'connectors/Vend/accessToken')" />
+
+         <!-- Iterate over the payment types and extract the ID of the required type. -->
+         <script language="js">
+            <![CDATA[
+               var paymentTypes = mc.getPayloadJSON().payment_types;
+               var giftVoucherPaymentId = '';
+               
+               if(paymentTypes.length > 0){
+                  for(var i=0; i<paymentTypes.length; i++){
+                     if(paymentTypes[i].name.toLowerCase() == 'gift voucher'){
+                        giftVoucherPaymentId = paymentTypes[i].id;
+                        break;
+                     }
+                  }
+               }
+               
+               mc.setProperty('vend.giftVoucherPaymentId', giftVoucherPaymentId);               
+            ]]>
+         </script>
+
+         <!-- START: Terminate the scenario if a payment type called 'Gift Voucher'doesn't exist in Vend account. -->
+         <filter source="boolean(get-property('vend.giftVoucherPaymentId'))" regex="false">
+            <then>
+               <!-- Append an skip message to be sent to the user if 'Gift Voucher' payment type doesn't exist. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="vend_getPaymentTypeForGiftVouchers" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="message" value="A custom payment type called 'Gift Voucher' is not found in the system. Please create the payment type and try again." />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- END: Terminate the scenario if a payment type called 'Gift Voucher'doesn't exist in Vend account. -->
+
+         <!-- START: If the user has not provided the last modified date, use the 00:00:00 am of the current day. -->
+         <filter source="boolean(get-property('vend.salesSince'))" regex="false">
+            <then>
+               <script language="js">
+                  <![CDATA[
+                     // 2592000000 - 30 days in milliseconds.
+                     var salesSince = new java.text.SimpleDateFormat('yyyy-MM-dd hh:mm:ss').format(java.util.Date(new java.util.Date().getTime() - 2592000000));
+                     mc.setProperty('vend.salesSince', salesSince);                     
+                  ]]>
+               </script>
+            </then>
+         </filter>
+         <!-- END: If the user has not provided the last modified date, use the 00:00:00 am of the current day. -->
+
+         <!-- Combine all the 3 products array into one and set to payload for iterations. -->
+         <script language="js">
+            <![CDATA[
+               var products = [];
+            
+               var firstCustomerProducts = mc.getProperty('vend.productsForFirstCustomer');
+               if(firstCustomerProducts != null && firstCustomerProducts != ''){
+                  firstCustomerProducts = eval("(" + firstCustomerProducts + ")")
+                  mc.setProperty('noOfFirstCustomerProducts', firstCustomerProducts.length);
+                  if(firstCustomerProducts.length > 0){
+                     for(var i=0; i<firstCustomerProducts.length; i++){
+                        products.push(firstCustomerProducts[i]);
+                     }                     
+                  }
+               }
+               
+               var secondCustomerProducts = mc.getProperty('vend.productsForSecondCustomer');
+               if(secondCustomerProducts != null && secondCustomerProducts != ''){
+                  secondCustomerProducts = eval("(" + secondCustomerProducts + ")")
+                  mc.setProperty('noOfSecondCustomerProducts', secondCustomerProducts.length);
+                  if(secondCustomerProducts.length > 0){
+                     for(var i=0; i<secondCustomerProducts.length; i++){
+                        products.push(secondCustomerProducts[i]);
+                     }                     
+                  }
+               }
+               
+               var thirdCustomerProducts = mc.getProperty('vend.productsForThirdCustomer');
+               if(thirdCustomerProducts != null && thirdCustomerProducts != ''){
+                  thirdCustomerProducts = eval("(" + thirdCustomerProducts + ")")
+                  mc.setProperty('noOfThirdCustomerProducts', thirdCustomerProducts.length);
+                  if(thirdCustomerProducts.length > 0){
+                     for(var i=0; i<thirdCustomerProducts.length; i++){
+                        products.push(thirdCustomerProducts[i]);
+                     }                     
+                  }
+               }
+               
+               var productsObject = {};
+               productsObject.products = products;
+               mc.setPayloadJSON(productsObject);
+            ]]>
+         </script>
+
+         <property name="productCount" expression="count(//products)" />
+
+         <!-- START: Terminate the scenario if the user has not sent at least one gift product. -->
+         <filter source="get-property('productCount')" regex="0.0">
+            <then>
+               <!-- Append an skip message to be sent to the user if no gift products have been specified. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="vend_discoverPremiumCustomersAndReward" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="message" value="There has to be at least one gift product specified in the request." />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- END: Terminate the scenario if the user has not sent at least one gift product. -->
+
+         <property name="productIndex" expression="0" scope="operation" />
+         <property name="fullProducts" value="{}" scope="operation" />
+
+         <!-- FOR EACH Product : BEGIN -->
+         <iterate continueParent="false" id="products" expression="//products" sequential="true">
+            <target>
+               <sequence>
+                  <property name="vend.productId" expression="//id/text()" />
+                  <property name="fullProducts" expression="get-property('operation', 'fullProducts')" />
+
+                  <!-- Check whether the current product needs to be processed (if it is not already processed). -->
+                  <script language="js">
+                     <![CDATA[
+                        var productId = mc.getProperty('vend.productId');
+                        var fullProducts = eval("(" + mc.getProperty('fullProducts') + ")");
+                        
+                        if(fullProducts.hasOwnProperty(productId)){
+                           mc.setProperty('proceed', false);
+                        } else {
+                           mc.setProperty('proceed', true);
+                        }
+                     ]]>
+                  </script>
+                  <property name="fullProducts" action="remove" />
+
+                  <!-- START: Proceed only if the product is not already retrieved. -->
+                  <filter source="get-property('proceed')" regex="true">
+                     <then>
+                        <!-- Retrieve the details of the product y ID. -->
+                        <vend.init>
+                           <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                           <accessToken>{$ctx:vend.accessToken}</accessToken>
+                        </vend.init>
+                        <vend.getProduct>
+                           <productId>{$ctx:vend.productId}</productId>
+                        </vend.getProduct>
+                        <sequence key="removeResponseHeaders" />
+
+                        <property name="vend.retrievedProductId" expression="json-eval($.products[0].id)" />
+
+                        <!-- START: Proceed only if the product could be retrieved, else terminate the scenario. -->
+                        <filter xpath="get-property('vend.productId') != get-property('vend.retrievedProductId')">
+                           <then>
+                              <!-- Append a skip message to be sent to the user if any of the product IDs passed are invalid or references and invalid product. -->
+                              <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'))" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="vend_getGiftProductDetails" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="skipped" />
+                                 <with-param name="message" value="No such product exists in Vend." />
+                              </call-template>
+                              <loopback />
+                           </then>
+                           <else>
+                              <property name="fullProducts" expression="get-property('operation', 'fullProducts')" />
+                              <!-- Extract the required details from the product and create a new simple object. -->
+                              <script language="js">
+                                 <![CDATA[
+                                    var product = mc.getPayloadJSON().products[0];
+                                    var fullProducts = eval("(" + mc.getProperty('fullProducts') + ")");
+                                    
+                                    var newProduct = {};
+                                    newProduct.sku = product.sku;
+                                    newProduct.description = product.description;
+                                    fullProducts[product.id] = newProduct;
+                                    mc.setPayloadJSON(fullProducts);
+                                 ]]>
+                              </script>
+
+                              <property name="fullProducts" expression="json-eval($)" scope="operation" />
+                           </else>
+                        </filter>
+                        <!-- END: Proceed only if the product could be retrieved, else terminate the scenario. -->
+                     </then>
+                  </filter>
+                  <!-- END: Proceed only if the product is not already retrieved. -->
+
+                  <!--Increment the productIndex count by 1 -->
+                  <property name="productIndex" expression="get-property('operation','productIndex') + 1" scope="operation" />
+
+                  <!-- START: Proceed with the remainder of the scenarios once all the gift products are processed. -->
+                  <filter xpath="get-property('productCount') = get-property('operation', 'productIndex')">
+                     <then>
+                        <!-- Retrieve all the outlets in Vend. -->
+                        <vend.init>
+                           <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                           <accessToken>{$ctx:vend.accessToken}</accessToken>
+                        </vend.init>
+                        <vend.listOutlets />
+                        <sequence key="removeResponseHeaders" />
+
+                        <property name="listOutlets.statusCode" expression="$axis2:HTTP_SC" />
+
+                        <!-- START: Proceed only if the listOutlets call is successful. -->
+                        <filter xpath="get-property('listOrders.statusCode') != 200">
+                           <then>
+                              <property name="errorMessage" expression="json-eval($)" />
+                              <!-- Append an error message to be sent to the user regarding listOutlets method call. -->
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="vend_listOutlets" />
+                                 <with-param name="id" value="{$ctx:id.empty}" />
+                                 <with-param name="status" value="error" />
+                                 <with-param name="message" value="{$ctx:errorMessage}" />
+                              </call-template>
+                              <loopback />
+                           </then>
+                           <else>
+                              <property name="outletCount" expression="count(//outlets)" />
+
+                              <!-- START: Proceed only if there are any outlets available in Vend. -->
+                              <filter source="get-property('outletCount')" regex="0.0">
+                                 <then>
+                                    <!-- Append a skip message to be sent to the user if there aren't any orders to be processed. -->
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="vend_listOutlets" />
+                                       <with-param name="id" value="{$ctx:id.empty}" />
+                                       <with-param name="status" value="skipped" />
+                                       <with-param name="message" value="There are no outlets in Vend." />
+                                    </call-template>
+                                    <loopback />
+                                 </then>
+                                 <else>
+                                    <property name="outletIndex" expression="0" scope="operation" />
+
+                                    <!-- FOR EACH Outlet: BEGIN -->
+                                    <iterate continueParent="false" id="outlets" expression="//outlets" sequential="true">
+                                       <target>
+                                          <sequence>
+                                             <property name="vend.outletId" expression="//outlets/id/text()" />
+                                             <property name="statuses" value="[&quot;CLOSED&quot;]" />
+
+                                             <!-- List all the register sales for the outlet since the given date. -->
+                                             <vend.init>
+                                                <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                                                <accessToken>{$ctx:vend.accessToken}</accessToken>
+                                             </vend.init>
+                                             <vend.listRegisterSales>
+                                                <since>{$ctx:vend.salesSince}</since>
+                                                <outletId>{$ctx:vend.outletId}</outletId>
+                                                <statuses>statuses</statuses>
+                                             </vend.listRegisterSales>
+                                             <sequence key="removeResponseHeaders" />
+
+                                             <!-- Iterate over the registers and extract the ID of the required register. -->
+                                             <script language="js">
+                                                <![CDATA[
+                                                   var outletId = mc.getProperty('vend.outletId');
+                                                   var salesSince = mc.getProperty('vend.salesSince');
+                                                   var registerSales = mc.getPayloadJSON().register_sales;
+                                                   var giftVoucherPaymentId = '';
+                                                   
+                                                   if(registerSales.length > 0){
+                                                      var customerSaleObject = {};
+                                                      
+                                                      var firstCustomerId = '';
+                                                      var firstCustomerAmount = 0;
+                                                      var secondCustomerId = '';
+                                                      var secondCustomerAmount = 0;
+                                                      var thirdCustomerId = '';
+                                                      var thirdCustomerAmount = 0;
+                                                      var noOfCustomers = 0;
+                                                      
+                                                      // Iterate over all the sales and construct a JSON object with customer IDs as key and their total purchase amount as value.
+                                                      for(var i=0; i<registerSales.length; i++){
+                                                         var customerId = registerSales[i].customer_id;
+                                                         var totalPrice = registerSales[i].total_price;
+                                                         var customerEmail = registerSales[i].customer.email;
+                                                         
+                                                         // Consider only the sales which have a customer associated with it.
+                                                         if(customerEmail != null && customerEmail != '' && totalPrice > 0){
+                                                            if(customerSaleObject.hasOwnProperty(customerId)){
+                                                               customerSaleObject[customerId] = customerSaleObject[customerId] + totalPrice;
+                                                            } else {
+                                                               noOfCustomers++;
+                                                               customerSaleObject[customerId] = totalPrice;
+                                                            }
+                                                            
+                                                            // Set the first, second and third customer
+                                                            if(customerSaleObject[customerId] > firstCustomerAmount){
+                                                               if(firstCustomerId != customerId){
+                                                                  thirdCustomerId = secondCustomerId;
+                                                                  thirdCustomerAmount = secondCustomerAmount;
+                                                                  secondCustomerId = firstCustomerId;
+                                                                  secondCustomerAmount = firstCustomerAmount;                                               
+                                                                  firstCustomerId = customerId;
+                                                               }
+                                                               firstCustomerAmount = customerSaleObject[customerId];
+                                                            } else if(customerSaleObject[customerId] > secondCustomerAmount){
+                                                               if(secondCustomerId != customerId){
+                                                                  thirdCustomerId = secondCustomerId;
+                                                                  thirdCustomerAmount = secondCustomerAmount;
+                                                                  secondCustomerId = customerId;
+                                                               }                                                
+                                                               secondCustomerAmount = customerSaleObject[customerId];
+                                                            } else if(customerSaleObject[customerId] > thirdCustomerAmount){
+                                                               thirdCustomerId = customerId;
+                                                               thirdCustomerAmount = customerSaleObject[customerId];
+                                                            }
+                                                            
+                                                         }                                       
+                                                      }                                                 
+                                                      
+                                                      mc.setProperty('firstCustomerId', firstCustomerId); 
+                                                      mc.setProperty('firstCustomerAmount', firstCustomerAmount); 
+                                                      mc.setProperty('secondCustomerId', secondCustomerId); 
+                                                      mc.setProperty('secondCustomerAmount', secondCustomerAmount); 
+                                                      mc.setProperty('thirdCustomerId', thirdCustomerId); 
+                                                      mc.setProperty('thirdCustomerAmount', thirdCustomerAmount); 
+                                                      mc.setProperty('vend.noOfCustomers', noOfCustomers);
+                                                      
+                                                      mc.setPayloadJSON(customerSaleObject);
+                                                   }       
+                                                ]]>
+                                             </script>
+
+                                             <property name="fullProducts" expression="get-property('operation', 'fullProducts')" />
+                                             
+                                             <!-- START: Proceed to reward the first customer only if the requirements are met. -->
+                                             <filter xpath="(get-property('noOfFirstCustomerProducts') > 0) and
+                                                            (get-property('firstCustomerAmount') > 0.0) and
+                                                            (get-property('firstCustomerAmount') >= get-property('vend.minimumSalesAmount')) and
+                                                            (get-property('vend.noOfCustomers') >= get-property('vend.minimumCustomersForFirst'))">
+                                                <then>
+                                                   <property name="rewardedCustomers" expression="get-property('operation', 'rewardedCustomers') + 1" scope="operation" />
+                                                   <call-template target="vend-rewardCustomerWithGiftPack">
+                                                      <with-param name="vend.apiUrl" value="{$ctx:vend.apiUrl}" />
+                                                      <with-param name="vend.accessToken" value="{$ctx:vend.accessToken}" />
+                                                      <with-param name="vend.fullProducts" value="{$ctx:fullProducts}" />
+                                                      <with-param name="vend.products" value="{$ctx:vend.productsForFirstCustomer}" />
+                                                      <with-param name="vend.customerId" value="{$ctx:firstCustomerId}" />
+                                                      <with-param name="vend.paymentTypeId" value="{$ctx:vend.giftVoucherPaymentId}" />
+                                                      <with-param name="vend.registerId" value="{$ctx:vend.registerId}" />
+                                                      <with-param name="vend.fromName" value="{$ctx:vend.fromName}" />
+                                                      <with-param name="vend.fromEmail" value="{$ctx:vend.fromEmail}" />
+                                                      <with-param name="vend.salesSince" value="{$ctx:vend.salesSince}" />
+                                                      <with-param name="vend.salesAmount" value="{$ctx:firstCustomerAmount}" />
+                                                      <with-param name="vend.customerPosition" value="First" />
+                                                      <with-param name="nexmo.apiUrl" value="{$ctx:nexmo.apiUrl}" />
+                                                      <with-param name="nexmo.apiKey" value="{$ctx:nexmo.apiKey}" />
+                                                      <with-param name="nexmo.apiSecret" value="{$ctx:nexmo.apiSecret}" />
+                                                      <with-param name="mandrill.apiKey" value="{$ctx:mandrill.apiKey}" />
+                                                      <with-param name="mandrill.apiUrl" value="{$ctx:mandrill.apiUrl}" />
+                                                      <with-param name="beetrack.apiUrl" value="{$ctx:beetrack.apiUrl}" />
+                                                      <with-param name="beetrack.accessToken" value="{$ctx:beetrack.accessToken}" />
+                                                      <with-param name="beetrack.vehicleId" value="{$ctx:beetrack.vehicleId}" />
+                                                   </call-template>
+
+
+                                                </then>
+                                             </filter>
+                                             <!-- END: Proceed to reward the first customer only if the requirements are met. -->
+                                             
+                                             <!-- START: Proceed to reward the second customer only if the requirements are met. -->
+                                             <filter xpath="(get-property('noOfSecondCustomerProducts') > 0) and
+                                                            (get-property('secondCustomerAmount') > 0) and
+                                                            (get-property('secondCustomerAmount') >= get-property('vend.minimumSalesAmount')) and
+                                                            (get-property('vend.noOfCustomers') >= get-property('vend.minimumCustomersForSecond'))">
+                                                <then>
+                                                   <property name="rewardedCustomers" expression="get-property('operation', 'rewardedCustomers') + 1" scope="operation" />
+                                                   <call-template target="vend-rewardCustomerWithGiftPack">
+                                                      <with-param name="vend.apiUrl" value="{$ctx:vend.apiUrl}" />
+                                                      <with-param name="vend.accessToken" value="{$ctx:vend.accessToken}" />
+                                                      <with-param name="vend.fullProducts" value="{$ctx:fullProducts}" />
+                                                      <with-param name="vend.products" value="{$ctx:vend.productsForSecondCustomer}" />
+                                                      <with-param name="vend.customerId" value="{$ctx:secondCustomerId}" />
+                                                      <with-param name="vend.paymentTypeId" value="{$ctx:vend.giftVoucherPaymentId}" />
+                                                      <with-param name="vend.registerId" value="{$ctx:vend.registerId}" />
+                                                      <with-param name="vend.fromName" value="{$ctx:vend.fromName}" />
+                                                      <with-param name="vend.fromEmail" value="{$ctx:vend.fromEmail}" />
+                                                      <with-param name="vend.salesSince" value="{$ctx:vend.salesSince}" />
+                                                      <with-param name="vend.salesAmount" value="{$ctx:secondCustomerAmount}" />
+                                                      <with-param name="vend.customerPosition" value="Second" />
+                                                      <with-param name="nexmo.apiUrl" value="{$ctx:nexmo.apiUrl}" />
+                                                      <with-param name="nexmo.apiKey" value="{$ctx:nexmo.apiKey}" />
+                                                      <with-param name="nexmo.apiSecret" value="{$ctx:nexmo.apiSecret}" />
+                                                      <with-param name="mandrill.apiKey" value="{$ctx:mandrill.apiKey}" />
+                                                      <with-param name="mandrill.apiUrl" value="{$ctx:mandrill.apiUrl}" />
+                                                      <with-param name="beetrack.apiUrl" value="{$ctx:beetrack.apiUrl}" />
+                                                      <with-param name="beetrack.accessToken" value="{$ctx:beetrack.accessToken}" />
+                                                      <with-param name="beetrack.vehicleId" value="{$ctx:beetrack.vehicleId}" />
+                                                   </call-template>
+
+                                                </then>
+                                             </filter>
+                                             <!-- END: Proceed to reward the second customer only if the requirements are met. -->
+                                             
+                                             <!-- START: Proceed to reward the third customer only if the requirements are met. -->
+                                             <filter xpath="(get-property('noOfThirdCustomerProducts') > 0) and
+                                                            (get-property('thirdCustomerAmount') > 0) and
+                                                            (get-property('thirdCustomerAmount') >= get-property('vend.minimumSalesAmount')) and
+                                                            (get-property('vend.noOfCustomers') >= get-property('vend.minimumCustomersForThird'))">
+                                                <then>
+                                                   <property name="rewardedCustomers" expression="get-property('operation', 'rewardedCustomers') + 1" scope="operation" />
+                                                   <call-template target="vend-rewardCustomerWithGiftPack">
+                                                      <with-param name="vend.apiUrl" value="{$ctx:vend.apiUrl}" />
+                                                      <with-param name="vend.accessToken" value="{$ctx:vend.accessToken}" />
+                                                      <with-param name="vend.fullProducts" value="{$ctx:fullProducts}" />
+                                                      <with-param name="vend.products" value="{$ctx:vend.productsForThirdCustomer}" />
+                                                      <with-param name="vend.customerId" value="{$ctx:thirdCustomerId}" />
+                                                      <with-param name="vend.paymentTypeId" value="{$ctx:vend.giftVoucherPaymentId}" />
+                                                      <with-param name="vend.registerId" value="{$ctx:vend.registerId}" />
+                                                      <with-param name="vend.fromName" value="{$ctx:vend.fromName}" />
+                                                      <with-param name="vend.fromEmail" value="{$ctx:vend.fromEmail}" />
+                                                      <with-param name="vend.salesSince" value="{$ctx:vend.salesSince}" />
+                                                      <with-param name="vend.salesAmount" value="{$ctx:thirdCustomerAmount}" />
+                                                      <with-param name="vend.customerPosition" value="Third" />
+                                                      <with-param name="nexmo.apiUrl" value="{$ctx:nexmo.apiUrl}" />
+                                                      <with-param name="nexmo.apiKey" value="{$ctx:nexmo.apiKey}" />
+                                                      <with-param name="nexmo.apiSecret" value="{$ctx:nexmo.apiSecret}" />
+                                                      <with-param name="mandrill.apiKey" value="{$ctx:mandrill.apiKey}" />
+                                                      <with-param name="mandrill.apiUrl" value="{$ctx:mandrill.apiUrl}" />
+                                                      <with-param name="beetrack.apiUrl" value="{$ctx:beetrack.apiUrl}" />
+                                                      <with-param name="beetrack.accessToken" value="{$ctx:beetrack.accessToken}" />
+                                                      <with-param name="beetrack.vehicleId" value="{$ctx:beetrack.vehicleId}" />
+                                                   </call-template>
+                                                </then>
+                                             </filter>
+                                             <!-- END: Proceed to reward the first customer only if the requirements are met. -->
+
+                                             <property name="outletIndex" expression="get-property('operation', 'outletIndex') + 1" scope="operation" />
+
+                                             <filter xpath="get-property('outletCount') = get-property('operation', 'outletIndex')">
+                                                <then>
+                                                   <!-- Append a skip message to be sent to the user if there are no new orders to process. -->
+                                                   <filter source="get-property('operation', 'rewardedCustomers')" regex="0.0">
+                                                      <then>
+                                                         <call-template target="responseHandlerTemplate">
+                                                            <with-param name="activity" value="vend_discoverPremiumCustomersAndReward" />
+                                                            <with-param name="id" value="{$ctx:id.empty}" />
+                                                            <with-param name="status" value="skipped" />
+                                                            <with-param name="message" value="There aren't any eligible customers to be rewarded." />
+                                                         </call-template>
+                                                      </then>
+                                                   </filter>
+                                                   <loopback />
+                                                </then>
+                                             </filter>
+
+                                          </sequence>
+                                       </target>
+                                    </iterate>
+                                    <!-- FOR EACH Outlet: END -->
+                                 </else>
+                              </filter>
+                              <!-- END: Proceed only if there are any outlets available in Vend. -->
+                           </else>
+                        </filter>
+                        <!-- END: Proceed only if the listOutlets call is successful. -->
+                     </then>
+                  </filter>
+                  <!-- END: Proceed with the remainder of the scenarios once all the gift products are processed. -->
+               </sequence>
+            </target>
+         </iterate>
+         <!--FOR EACH Product : END -->
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"vend_discoverPremiumCustomersAndReward",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+</proxy>

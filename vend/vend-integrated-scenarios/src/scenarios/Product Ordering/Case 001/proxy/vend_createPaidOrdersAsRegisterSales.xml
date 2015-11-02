@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!-- This scenario retrieves daily paid orders from Shopify and create them as register sales in Vend. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="vend_createPaidOrdersAsRegisterSales" transports="http,https" startOnLoad="true" trace="disable">
+   <description />
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Shopify Properties -->
+         <property name="shopify.considerSince" expression="json-eval($.shopify.considerSince)" />
+         <property name="shopify.apiUrl" expression="get-property('registry', 'connectors/Shopify/apiUrl')" />
+         <property name="shopify.accessToken" expression="get-property('registry', 'connectors/Shopify/accessToken')" />
+
+         <property name="id.empty" value="{}" />
+         <property name="processedOrders" expression="0" scope="operation" />
+
+         <!-- List registers to extract the ID of 'Shopify Register'. -->
+         <vend.init />
+         <vend.listRegisters />
+         <sequence key="removeResponseHeaders" />
+
+         <property name="vend.apiUrl" expression="get-property('registry', 'connectors/Vend/apiUrl')" />
+         <property name="vend.accessToken" expression="get-property('registry', 'connectors/Vend/accessToken')" />
+
+         <!-- Iterate over the registers and extract the ID of the required register. -->
+         <script language="js">
+            <![CDATA[
+               var registers = mc.getPayloadJSON().registers;
+               var shopifyRegisterId = '';
+               
+               if(registers.length > 0){
+                  for(var i=0; i<registers.length; i++){
+                     if(registers[i].name.toLowerCase() == 'shopify register'){
+                        shopifyRegisterId = registers[i].id;
+                        break;
+                     }
+                  }
+               }
+               
+               mc.setProperty('vend.shopifyRegisterId', shopifyRegisterId);               
+            ]]>
+         </script>
+
+         <!-- START: Terminate the scenario if a register called 'Shopify Register'doesn't exist in Vend account. -->
+         <filter source="boolean(get-property('vend.shopifyRegisterId'))" regex="false">
+            <then>
+               <!-- Append an skip message to be sent to the user if 'Shopify Register' doesn't exist. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="vend_getRegisterForShopifyOrders" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="message" value="A custom register called 'Shopify Register' is not found in the system. Please create the register and try again." />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!-- Open the 'Shopify Register' for transactions. -->
+               <vend.init>
+                  <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                  <accessToken>{$ctx:vend.accessToken}</accessToken>
+               </vend.init>
+               <vend.openRegister>
+                  <registerId>{$ctx:vend.shopifyRegisterId}</registerId>
+               </vend.openRegister>
+               <sequence key="removeResponseHeaders" />
+            </else>
+         </filter>
+         <!-- END: Terminate the scenario if a register called 'Shopify Register'doesn't exist in Vend account. -->
+
+         <!-- If the user has not provided the last modified date, use the 00:00:00 am of the current day. -->
+         <filter source="boolean(get-property('shopify.considerSince'))" regex="false">
+            <then>
+               <script language="js">
+                  <![CDATA[
+                     var sinceDate = new java.text.SimpleDateFormat('yyyy-MM-dd').format(new java.util.Date());
+                     sinceDate += ' 00:00:00';
+                     mc.setProperty('shopify.considerSince', sinceDate);
+                  ]]>
+               </script>
+            </then>
+         </filter>
+
+         <!-- Retrieve all the paid orders on a daily basis -->
+         <shopify.init>
+            <accessToken>{$ctx:shopify.accessToken}</accessToken>
+            <apiUrl>{$ctx:shopify.apiUrl}</apiUrl>
+            <format>json</format>
+         </shopify.init>
+         <shopify.listOrders>
+            <limit>250</limit>
+            <createdAfter>{$ctx:shopify.considerSince}</createdAfter>
+            <status>any</status>
+            <page>1</page>
+            <financialStatus>paid</financialStatus>
+         </shopify.listOrders>
+         <sequence key="removeResponseHeaders" />
+
+         <property name="listOrders.statusCode" expression="$axis2:HTTP_SC" />
+
+         <!-- START: Proceed only if the listOrders call is successful. -->
+         <filter xpath="get-property('listOrders.statusCode') != 200">
+            <then>
+               <property name="errorMessage" expression="json-eval($)" />
+               <!-- Append an error message to be sent to the user regarding listOrders method call. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="vend_createPaidOrdersAsRegisterSales" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="error" />
+                  <with-param name="message" value="{$ctx:errorMessage}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <property name="orderCount" expression="count(//orders)" />
+               <!-- START: Proceed only if there are any orders created since the given date. -->
+               <filter source="get-property('orderCount')" regex="0.0">
+                  <then>
+                     <property name="skipMessage" expression="fn:concat('There are no orders to process since ', get-property('shopify.considerSince'), '.')" />
+                     <!-- Append a skip message to be sent to the user if there aren't any orders to be processed. -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="vend_createPaidOrdersAsRegisterSales" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="skipped" />
+                        <with-param name="message" value="{$ctx:skipMessage}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <property name="orderIndex" expression="0" scope="operation" />
+
+                     <!-- FOR EACH Product: BEGIN -->
+                     <iterate continueParent="false" id="orders" expression="//orders" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="shopify.orderTags" expression="//orders/tags/text()" />
+                              
+                              <!-- Iterate over the orders and check whether it needs to be processed. -->
+                              <script language="js">
+                                 <![CDATA[
+                                    var orderTags = mc.getProperty('shopify.orderTags');
+                                    var proceed = 'true';
+                                    if(new java.lang.String(orderTags).contains('Vend-Product')){
+                                       proceed = 'false';
+                                    }
+                                    
+                                    mc.setProperty('proceed', proceed);                                    
+                                 ]]>
+                              </script>
+
+                              <!-- START: Proceed only if the order needs to be processed. -->
+                              <filter source="get-property('proceed')" regex="true">
+                                 <then>
+                                    <property name="processedOrders" expression="get-property('operation', 'processedOrders') + 1" scope="operation" />
+
+                                    <property name="shopify.orderId" expression="//orders/id/text()" />
+                                    <property name="shopify.orderCustomerId" expression="//orders/customer/id/text()" />
+                                    <property name="shopify.orderCustomerEmail" expression="//orders/customer/email/text()" />
+                                    <property name="shopify.orderCreatedAt" expression="//orders/created_at/text()" />
+                                    <property name="shopify.orderTotalPrice" expression="//orders/total_price/text()" />
+                                    <property name="shopify.orderTotalTax" expression="//orders/total_tax/text()" />
+                                    <property name="shopify.salesNote" expression="fn:concat('Shopify ID:', get-property('shopify.orderId'))" />
+                                    
+                                    <property name="messageType" value="application/json" scope="axis2" />
+                                    
+                                    
+                                    <property name="shopify.orderLineItems" expression="json-eval($.orders.line_items)" />
+
+                                    <!-- Iterate over the registers and extract the ID of the required register. -->
+                                    <script language="js">
+                                       <![CDATA[
+                                          var orderLineItems = eval("(" + mc.getProperty('shopify.orderLineItems') + ")");
+                                          var products = [];
+                                          
+                                          if(orderLineItems.length > 0){
+                                             for(var i=0; i<orderLineItems.length; i++){
+                                                var product = {};
+                                                product.product_id = orderLineItems[i].sku;
+                                                product.quantity = orderLineItems[i].quantity;
+                                                product.price = orderLineItems[i].price;
+                                                products[i] = product;
+                                             }
+                                          }
+                                          
+                                          var jsonPayload = {};
+                                          jsonPayload.products = products;
+                                          
+                                          mc.setPayloadJSON(jsonPayload);             
+                                       ]]>
+                                    </script>
+
+                                    <property name="vend.saleProducts" expression="json-eval($.products)" />
+
+                                    <!-- START: Proceed to create the customer in Vend only if a customer exists for the current order in Shopify. -->
+                                    <filter source="boolean(get-property('shopify.orderCustomerEmail'))" regex="true">
+                                       <then>
+                                          <!-- List and verify whether the customer already exists in Vend. -->
+                                          <vend.init>
+                                             <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                                             <accessToken>{$ctx:vend.accessToken}</accessToken>
+                                          </vend.init>
+                                          <vend.listCustomers>
+                                             <email>{$ctx:shopify.orderCustomerEmail}</email>
+                                          </vend.listCustomers>
+                                          <sequence key="removeResponseHeaders" />
+
+                                          <property name="customerCount" expression="count(//customers)" />
+
+                                          <!-- START: Create a customer if a customer with the same email address doesn't already exist. -->
+                                          <filter xpath="get-property('customerCount') &gt; 0">
+                                             <then>
+                                                <property name="vend.customerId" expression="//customers[1]/id/text()" />
+                                             </then>
+                                             <else>
+                                                <header name="X-Shopify-Access-Token" expression="get-property('shopify.accessToken')" scope="transport" />
+                                                <property name="uri.var.apiUrl" expression="get-property('shopify.apiUrl')" />
+                                                <property name="uri.var.shopify.customerId" expression="get-property('shopify.orderCustomerId')" />
+
+                                                <call>
+                                                   <endpoint>
+                                                      <http method="get" uri-template="{+uri.var.apiUrl}/admin/customers/{+uri.var.shopify.customerId}.json" />
+                                                   </endpoint>
+                                                </call>
+                                                <sequence key="shopify-removeResponseHeaders" />
+
+                                                <property name="shopify.orderCustomerFirstName" expression="json-eval($.customer.first_name)" />
+                                                <property name="shopify.orderCustomerLastName" expression="json-eval($.customer.last_name)" />
+                                                <property name="shopify.orderCustomerNote" expression="json-eval($.customer.note)" />
+                                                <property name="shopify.orderCustomerAddress1" expression="json-eval($.customer.default_address.address1)" />
+                                                <property name="shopify.orderCustomerAddress2" expression="json-eval($.customer.default_address.address2)" />
+                                                <property name="shopify.orderCustomerCity" expression="json-eval($.customer.default_address.city)" />
+                                                <property name="shopify.orderCustomerProvince" expression="json-eval($.customer.default_address.province)" />
+                                                <property name="shopify.orderCustomerCountry" expression="json-eval($.customer.default_address.country)" />
+                                                <property name="shopify.orderCustomerZip" expression="json-eval($.customer.default_address.zip)" />
+                                                <property name="shopify.orderCustomerPhone" expression="json-eval($.customer.default_address.phone)" />
+                                                <property name="shopify.orderCustomerCountryCode" expression="json-eval($.customer.default_address.country_code)" />
+                                                <property name="shopify.orderCustomerCompany" expression="json-eval($.customer.default_address.company)" />
+                                                <property name="customField3" expression="fn:concat('Shopify Customer ID - ', get-property('shopify.orderCustomerId'))" />
+                                                <property name="shopify.salesNote" expression="json-eval($.customer.note)" />
+
+                                                <!-- Create the customer in Vend. -->
+                                                <vend.init>
+                                                   <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                                                   <accessToken>{$ctx:vend.accessToken}</accessToken>
+                                                </vend.init>
+                                                <vend.createCustomer>
+                                                   <customerCode>{$ctx:shopify.orderCustomerId}</customerCode>
+                                                   <companyName>{$ctx:shopify.orderCustomerCompany}</companyName>
+                                                   <firstName>{$ctx:shopify.orderCustomerFirstName}</firstName>
+                                                   <lastName>{$ctx:shopify.orderCustomerLastName}</lastName>
+                                                   <phone>{$ctx:shopify.orderCustomerPhone}</phone>
+                                                   <email>{$ctx:shopify.orderCustomerEmail}</email>
+                                                   <physicalAddress1>{$ctx:shopify.orderCustomerAddress1}</physicalAddress1>
+                                                   <physicalAddress2>{$ctx:shopify.orderCustomerAddress2}</physicalAddress2>
+                                                   <physicalCity>{$ctx:shopify.orderCustomerCity}</physicalCity>
+                                                   <physicalPostcode>{$ctx:shopify.orderCustomerZip}</physicalPostcode>
+                                                   <physicalState>{$ctx:shopify.orderCustomerProvince}</physicalState>
+                                                   <physicalCountryId>{$ctx:shopify.orderCustomerCountryCode}</physicalCountryId>
+                                                   <postalAddress1>{$ctx:shopify.orderCustomerAddress1}</postalAddress1>
+                                                   <postalAddress2>{$ctx:shopify.orderCustomerAddress2}</postalAddress2>
+                                                   <postalCity>{$ctx:shopify.orderCustomerCity}</postalCity>
+                                                   <postalPostcode>{$ctx:shopify.orderCustomerZip}</postalPostcode>
+                                                   <postalState>{$ctx:shopify.orderCustomerProvince}</postalState>
+                                                   <postalCountryId>{$ctx:shopify.orderCustomerCountryCode}</postalCountryId>
+                                                   <enableLoyalty>1</enableLoyalty>
+                                                   <customField3>{$ctx:customField3}</customField3>
+                                                   <note>{$ctx:shopify.salesNote}</note>
+                                                </vend.createCustomer>
+                                                <sequence key="removeResponseHeaders" />
+
+                                                <property name="vend.customerId" expression="json-eval($.customer.id)" />
+
+                                                <property name="id" expression="fn:concat('shopify_customerId:', get-property('shopify.orderCustomerId'), ',vend_customerId:', get-property('vend.customerId'))" />
+                                                <!-- START: Build the response based on whether the customer creation is successful or not. -->
+                                                <filter source="boolean(get-property('vend.customerId'))" regex="true">
+                                                   <then>
+                                                      <property name="status" value="success" />
+                                                      <property name="message" value="The customer has been successfully created." />
+                                                   </then>
+                                                   <else>
+                                                      <property name="status" value="error" />
+                                                      <property name="message" expression="json-eval($)" />
+                                                   </else>
+                                                </filter>
+                                                <!-- END: Build the response based on whether the customer creation is successful or not. -->
+
+                                                <!-- Success case: Append an error message to be sent to the user. -->
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="vend_createCustomer" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </else>
+                                          </filter>
+                                          <!-- END: Create a customer if a customer with the same email address doesn't already exist. -->
+                                       </then>
+                                    </filter>
+                                    <!-- END: Proceed to create the customer in Vend only if a customer exists for the current order in Shopify. -->
+
+                                    <!-- Create a register sale for the order. -->
+                                    <vend.init>
+                                       <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                                       <accessToken>{$ctx:vend.accessToken}</accessToken>
+                                    </vend.init>
+                                    <vend.createRegisterSale>
+                                       <registerId>{$ctx:vend.shopifyRegisterId}</registerId>
+                                       <customerId>{$ctx:vend.customerId}</customerId>
+                                       <saleDate>{$ctx:shopify.orderCreatedAt}</saleDate>
+                                       <userName>admin</userName>
+                                       <totalPrice>{$ctx:shopify.orderTotalPrice}</totalPrice>
+                                       <totalTax>{$ctx:shopify.orderTotalTax}</totalTax>
+                                       <status>CLOSED</status>
+                                       <note>{$ctx:shopify.salesNote}</note>
+                                       <registerSaleProducts>{$ctx:vend.saleProducts}</registerSaleProducts>
+                                    </vend.createRegisterSale>
+                                    <sequence key="removeResponseHeaders" />
+
+                                    <property name="vend.registerSaleId" expression="json-eval($.register_sale.id)" />
+
+                                    <!-- START: Proceed to update the order only if the registerSale is successfully created in Vend. -->
+                                    <filter source="boolean(get-property('vend.registerSaleId'))" regex="false">
+                                       <then>
+                                          <property name="errorResponse" expression="json-eval($)" />
+                                          <!-- Append an skip message to be sent to the user if 'Shopify Register' doesn't exist. -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="vend_createRegisterSale" />
+                                             <with-param name="id" value="{$ctx:id.empty}" />
+                                             <with-param name="status" value="error" />
+                                             <with-param name="message" value="{$ctx:errorResponse}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <property name="id" expression="fn:concat('shopify_orderId:', get-property('shopify.orderId'), ',vend_registerSaleId:', get-property('vend.registerSaleId'))" />
+                                          <!-- Append a success message to be sent to the user if the sale was successfully created. -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="vend_createRegisterSale" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="success" />
+                                             <with-param name="message" value="Register sale has been successfully created." />
+                                          </call-template>
+
+                                          <payloadFactory media-type="json">
+                                             <format>
+                                                {
+                                                   "order": {
+                                                      "tags": "Vend-Product"
+                                                   }
+                                                }
+                                             </format>
+                                          </payloadFactory>
+
+                                          <header name="X-Shopify-Access-Token" expression="get-property('shopify.accessToken')" scope="transport" />
+                                          <property name="uri.var.apiUrl" expression="get-property('shopify.apiUrl')" />
+                                          <property name="uri.var.shopify.orderId" expression="get-property('shopify.orderId')" />
+
+                                          <call>
+                                             <endpoint>
+                                                <http method="put" uri-template="{+uri.var.apiUrl}/admin/orders/{+uri.var.shopify.orderId}.json" />
+                                             </endpoint>
+                                          </call>
+                                          <sequence key="shopify-removeResponseHeaders" />
+
+                                          <property name="shopify.updatedOrderId" expression="json-eval($.order.id)" />
+
+                                          <!-- START: Send an error message to the user only if the update operation failed. -->
+                                          <filter source="boolean(get-property('shopify.updatedOrderId'))" regex="false">
+                                             <then>
+                                                <!-- Failure case: Append an error message to be sent to the user. -->
+                                                <property name="id" expression="fn:concat('shopify_orderId:', get-property('shopify.orderId'))" />
+                                                <property name="errorResponse" expression="json-eval($)" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="shopify_updateOrder" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="error" />
+                                                   <with-param name="message" value="{$ctx:errorResponse}" />
+                                                </call-template>
+                                             </then>
+                                          </filter>
+                                          <!-- END: Send an error message to the user only if the update operation failed. -->
+
+                                       </else>
+                                    </filter>
+                                    <!-- END: Proceed to update the order only if the registerSale is successfully created in Vend. -->
+
+                                 </then>
+                              </filter>
+                              <!-- END: Proceed only if the order needs to be processed. -->
+
+                              <property name="orderIndex" expression="get-property('operation', 'orderIndex') + 1" scope="operation" />
+
+                              <filter xpath="get-property('orderCount') = get-property('operation', 'orderIndex')">
+                                 <then>
+                                    <!-- Open the 'Shopify Register' for transactions. -->
+                                    <vend.init>
+                                       <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+                                       <accessToken>{$ctx:vend.accessToken}</accessToken>
+                                    </vend.init>
+                                    <vend.closeRegister>
+                                       <registerId>{$ctx:vend.shopifyRegisterId}</registerId>
+                                    </vend.closeRegister>
+                                    <sequence key="removeResponseHeaders" />
+
+                                    <!-- Append a skip message to be sent to the user if there are no new orders to process. -->
+                                    <filter source="get-property('operation', 'processedOrders')" regex="0.0">
+                                       <then>
+                                          <property name="skipMessage" expression="fn:concat('There are no orders to process since ', get-property('shopify.considerSince'), '.')" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="vend_createPaidOrdersAsRegisterSales" />
+                                             <with-param name="id" value="{$ctx:id.empty}" />
+                                             <with-param name="status" value="skipped" />
+                                             <with-param name="message" value="{$ctx:skipMessage}" />
+                                          </call-template>
+                                       </then>
+                                    </filter>
+
+                                    <loopback />
+                                 </then>
+                              </filter>
+
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!-- FOR EACH Product: END -->
+                  </else>
+               </filter>
+               <!-- END: Proceed only if there are any order created since the given date. -->
+            </else>
+         </filter>
+         <!-- END: Proceed only if the listOrders call is successful. -->
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"vend_createPaidOrdersAsRegisterSales",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+</proxy>
