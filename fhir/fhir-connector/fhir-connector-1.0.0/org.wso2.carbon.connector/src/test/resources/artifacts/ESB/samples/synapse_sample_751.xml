@@ -24,23 +24,26 @@
     <proxy name="SplitAggregateProxy">
         <target>
             <inSequence>
-		<!--use iterate sequence template to split incoming request and send-->
+                <!--use iterate sequence template to split incoming request and send-->
                 <call-template target="iter_func">
-                        <with-param xmlns:m0="http://services.samples" name="iter_expr" value="{{//m0:getQuote/m0:request}}"/>
- 			<with-param xmlns:m0="http://services.samples" name="attach_path" value="{{//m0:getQuote}}"/>
-                </call-template>               
+                    <with-param xmlns:m0="http://services.samples" name="iter_expr"
+                                value="{{//m0:getQuote/m0:request}}"/>
+                    <with-param xmlns:m0="http://services.samples" name="attach_path"
+                                value="{{//m0:getQuote}}"/>
+                </call-template>
             </inSequence>
             <outSequence>
-		<!--use aggregate sequence template to combine the responses and send back-->
+                <!--use aggregate sequence template to combine the responses and send back-->
                 <call-template target="aggr_func">
-                        <with-param xmlns:m0="http://services.samples" name="aggr_expr" value="{{//m0:getQuoteResponse}}"/>                        
+                    <with-param xmlns:m0="http://services.samples" name="aggr_expr"
+                                value="{{//m0:getQuoteResponse}}"/>
                 </call-template>
             </outSequence>
         </target>
     </proxy>
-	
+
     <!--this sequence template will aggregate the responses , mergeback and send back to the client. Takes aggregate 
-	expression as an argument-->	
+	expression as an argument-->
     <template xmlns="http://ws.apache.org/ns/synapse" name="aggr_func">
         <parameter name="aggr_expr"/>
         <sequence>
@@ -50,26 +53,28 @@
                     <messageCount min="-1" max="-1"/>
                 </completeCondition>
                 <onComplete expression="$func:aggr_expr">
-                    <log level="full" />
+                    <log level="full"/>
                     <send/>
                 </onComplete>
             </aggregate>
         </sequence>
     </template>
-    
+
     <!--this sequence template will iterate through stock quote symbols ,split and send them to endpoints. Takes Iterate 
 	expression and soap attaach path as arguments -->
     <template xmlns="http://ws.apache.org/ns/synapse" name="iter_func">
         <parameter name="iter_expr"/>
         <parameter name="attach_path"/>
         <sequence>
-            
-            <iterate  xmlns:m0="http://services.samples" preservePayload="true" attachPath="$func:attach_path" expression="$func:iter_expr">
+
+            <iterate xmlns:m0="http://services.samples" preservePayload="true"
+                     attachPath="$func:attach_path" expression="$func:iter_expr">
                 <target>
                     <sequence>
                         <send>
                             <endpoint>
-                                <address uri="http://localhost:9000/services/SimpleStockQuoteService"/>
+                                <address
+                                        uri="http://localhost:9000/services/SimpleStockQuoteService"/>
                             </endpoint>
                         </send>
                     </sequence>

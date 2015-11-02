@@ -18,6 +18,7 @@ package org.wso2.carbon.connector.integration.test.fhir;
  *  under the License.
  * /
  */
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.testng.Assert;
