@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="translateCodeById" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="id" description="The particular Id of the resource"/>
+    <parameter name="code"
+               description="The code that is to be translated. If a code is provided, a system must be provided"/>
+    <parameter name="system" description="The system for the code that is to be translated"/>
+    <parameter name="version"
+               description="The version of the system, if one was provided in the source data"/>
+    <parameter name="valueSet"
+               description="Identifies the value set used when the concept (system/code pair) was chosen"/>
+    <parameter name="coding" description="A coding to translate"/>
+    <parameter name="codeableConcept"
+               description="A full codeableConcept to validate. The server can translate any of the coding values"/>
+    <parameter name="target"
+               description="Identifies the value set in which a translation is sought"/>
+    <parameter name="dependency"
+               description="Another element that may help produce the correct mapping"/>
+    <parameter name="dependency.element" description="The element for this dependency"/>
+    <parameter name="dependency.concept" description="The value for this dependency"/>
+    <sequence>
+        <property name="uri.var.id" expression="$func:id"/>
+        <property name="uri.var.code" expression="$func:code"/>
+        <property name="uri.var.system" expression="$func:system"/>
+        <property name="uri.var.version" expression="$func:version"/>
+        <property name="uri.var.valueSet" expression="$func:valueSet"/>
+        <property name="uri.var.coding" expression="$func:coding"/>
+        <property name="uri.var.codeableConcept" expression="$func:codeableConcept"/>
+        <property name="uri.var.target" expression="$func:target"/>
+        <property name="uri.var.dependency" expression="$func:dependency"/>
+        <property name="uri.var.dependency.element" expression="$func:dependency.element"/>
+        <property name="uri.var.dependency.concept" expression="$func:dependency.concept"/>
+        <script language="js">
+            <![CDATA[
+            var code = mc.getProperty('uri.var.code');
+            var system = mc.getProperty('uri.var.system');
+            var version = mc.getProperty('uri.var.version');
+            var valueSet = mc.getProperty('uri.var.valueSet');
+            var coding = mc.getProperty('uri.var.coding');
+            var codeableConcept = mc.getProperty('uri.var.codeableConcept');
+            var target = mc.getProperty('uri.var.target');
+            var dependency = mc.getProperty('uri.var.dependency');
+            var dependencyElement = mc.getProperty('uri.var.code');
+            var dependencyConcept = mc.getProperty('uri.var.code');
+            urlQuery = '';
+            if  (code != null && code != "") {
+                urlQuery += 'code=' + code + '&';
+            }
+            if  (system != null && system != "") {
+                urlQuery += 'system=' + system + '&';
+            }
+            if  (version != null && version != "") {
+                urlQuery += 'version=' + version + '&';
+            }
+            if  (valueSet != null && valueSet != "") {
+                urlQuery += 'valueSet=' + valueSet + '&';
+            }
+            if  (coding != null && coding != "") {
+                urlQuery += 'coding=' + coding + '&';
+            }
+            if  (codeableConcept != null && codeableConcept != "") {
+                urlQuery += 'codeableConcept=' + codeableConcept + '&';
+            }
+            if  (target != null && target != "") {
+                urlQuery += 'target=' + target + '&';
+            }
+            if  (dependency != null && dependency != "") {
+                urlQuery += 'dependency=' + dependency + '&';
+            }
+            if  (dependencyElement != null && dependencyElement != "") {
+                urlQuery += 'dependency.element=' + dependencyElement + '&';
+            }
+            if  (dependencyConcept != null && dependencyConcept != "") {
+                urlQuery += 'dependency.concept=' + dependencyConcept + '&';
+            }
+            if  (urlQuery != null && urlQuery != "") {
+                urlQuery = '?' + urlQuery.substring(0,urlQuery.length-1);
+            }
+            mc.setProperty('uri.var.urlQuery',urlQuery);
+            ]]>
+        </script>
+        <call>
+            <endpoint>
+                <http method="Get"
+                      uri-template="{uri.var.base}/ConceptMap/{uri.var.id}/$translate{+uri.var.urlQuery}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

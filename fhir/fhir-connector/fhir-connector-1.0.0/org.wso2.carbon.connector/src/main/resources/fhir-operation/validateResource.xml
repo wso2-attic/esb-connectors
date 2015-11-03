@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="validateResource" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="type" description="The name of a resource type"/>
+    <parameter name="resource"
+               description="The name of the resource and need to validate against the profile"/>
+    <parameter name="mode" description="General validation Default is 'no action'"/>
+    <parameter name="profile" description="The profile of the resource to validate"/>
+    <sequence>
+        <property name="uri.var.type" expression="$func:type"/>
+        <property name="uri.var.resource" expression="$func:resource"/>
+        <property name="uri.var.mode" expression="$func:mode"/>
+        <property name="uri.var.profile" expression="$func:profile"/>
+        <script language="js">
+            <![CDATA[
+            var resource = mc.getProperty('uri.var.resource');
+            var mode = mc.getProperty('uri.var.mode');
+            var profile = mc.getProperty('uri.var.profile');
+            urlQuery = '';
+            if  (resource != null && resource != "") {
+                urlQuery += 'resource=' + resource + '&';
+            }
+            if  (mode != null && mode != "") {
+                urlQuery += 'mode=' + mode + '&';
+            }
+            if  (profile != null && profile != "") {
+                urlQuery += 'profile=' + profile + '&';
+            }
+            if  (urlQuery != null && urlQuery != "") {
+                urlQuery = '?' + urlQuery.substring(0,urlQuery.length-1);
+            }
+            mc.setProperty('uri.var.urlQuery',urlQuery);
+            ]]>
+        </script>
+        <call>
+            <endpoint>
+                <http method="Post"
+                      uri-template="{uri.var.base}/{uri.var.type}/$validate{+url.var.urlQuery}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>
