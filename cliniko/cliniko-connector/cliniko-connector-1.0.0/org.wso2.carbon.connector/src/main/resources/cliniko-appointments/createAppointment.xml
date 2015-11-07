@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://github.com/redguava/cliniko-api/blob/master/sections/appointments.md#create-appointment -->
+<template name="createAppointment" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="appointmentEndTime" description="End date/time of the appointment." />
+   <parameter name="appointmentStartTime" description="Start date/time of the appointment." />
+   <parameter name="notes" description="Notes about the appointment." />
+   <parameter name="patientId" description="ID of the patient to whom the appointment is created." />
+   <parameter name="practitionerId" description="ID of the practitioner who will attend the appointment." />
+   <parameter name="appointmentTypeId" description="Type of the appointment being created." />
+   <parameter name="businessId" description="ID of the business in Cliniko that is offering the appointment." />
+   <parameter name="didNotArrive" description="Indicate whether the patient is not arrived." />
+   <parameter name="patientArrived" description="Indicate whether the patient is arrived." />
+   <sequence>
+      <property name="uri.var.appointmentEndTime" expression="$func:appointmentEndTime" />
+      <property name="uri.var.appointmentStartTime" expression="$func:appointmentStartTime" />
+      <property name="uri.var.notes" expression="$func:notes" />
+      <property name="uri.var.patientId" expression="$func:patientId" />
+      <property name="uri.var.practitionerId" expression="$func:practitionerId" />
+      <property name="uri.var.appointmentTypeId" expression="$func:appointmentTypeId" />
+      <property name="uri.var.businessId" expression="$func:businessId" />
+      <property name="uri.var.didNotArrive" expression="$func:didNotArrive" />
+      <property name="uri.var.patientArrived" expression="$func:patientArrived" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "appointment_end": "$1",
+                "practitioner_id": "$2",
+                "appointment_start": "$3",
+                "business_id": "$4"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.appointmentEndTime')" />
+            <arg expression="get-property('uri.var.practitionerId')" />
+            <arg expression="get-property('uri.var.appointmentStartTime')" />
+            <arg expression="get-property('uri.var.businessId')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var patientArrived = mc.getProperty('uri.var.patientArrived');
+            var notes = mc.getProperty('uri.var.notes');
+            var didNotArrive = mc.getProperty('uri.var.didNotArrive');
+            var patientId = mc.getProperty('uri.var.patientId');
+            var appointmentTypeId = mc.getProperty('uri.var.appointmentTypeId');
+            var jsonPayload = mc.getPayloadJSON();
+            if (notes != null && notes != ""){
+               jsonPayload.notes = notes;
+            }
+            if (patientId != null && patientId != ""){
+               jsonPayload.patient_id = patientId;
+            }
+            if (appointmentTypeId != null && appointmentTypeId != ""){
+               jsonPayload.appointment_type_id = appointmentTypeId;
+            }
+            if (didNotArrive != null && didNotArrive != ""){
+               jsonPayload.did_not_arrive = didNotArrive;
+            }
+            if (patientArrived != null && patientArrived != ""){
+               jsonPayload.patient_arrived = patientArrived;
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/appointments" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Status" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-Xss-Protection" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Etag" action="remove" scope="transport" />
+      <header name="Last-Modified" action="remove" scope="transport" />
+      <header name="Location" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="X-Runtime" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Via" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+   </sequence>
+</template>
