@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *  Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
@@ -292,7 +292,10 @@ public class FormstackConnectorIntegrationTest extends ConnectorIntegrationTestB
         final String apiEndPoint =
                 apiRequestUrl + "/submission/" + connectorProperties.getProperty("submissionId") + ".json";
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
+       
+        final String fieldId = esbRestResponse.getBody().getJSONArray("data").getJSONObject(0).getString("field");
+        connectorProperties.put("fieldId", fieldId);
+       
         Assert.assertEquals(esbRestResponse.getBody().getString("user_agent"), apiRestResponse.getBody().getString(
                 "user_agent"));
         Assert.assertEquals(esbRestResponse.getBody().getString("form"), apiRestResponse.getBody().getString("form"));
@@ -383,6 +386,54 @@ public class FormstackConnectorIntegrationTest extends ConnectorIntegrationTestB
         
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "PUT", apiRequestHeadersMap);
         
+        Assert.assertEquals(esbRestResponse.getBody().getString("status"), apiRestResponse.getBody()
+                .getString("status"));
+        Assert.assertEquals(esbRestResponse.getBody().getString("error"), apiRestResponse.getBody().getString("error"));
+    }
+    
+    /**
+     * Positive test case for updateFormField method with optional parameters.
+     */
+    @Test(groups = { "wso2.esb" }, description = "formstack {updateFormField} integration test with optional parameters.", dependsOnMethods = { "testGetSubmissionWithMandatoryParameters" })
+    public void testUpdateFormFieldWithOptionalParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:updateFormField");
+        
+        final String apiEndPoint =
+                apiRequestUrl + "/field/" + connectorProperties.getProperty("fieldId") + ".json";
+        RestResponse<JSONObject> apiRestResponseBefore = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        final JSONObject apiResponseBefore = apiRestResponseBefore.getBody();
+        sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateFormField_optional.json");
+        
+        RestResponse<JSONObject> apiRestResponseAfter = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        final JSONObject apiResponseAfter = apiRestResponseAfter.getBody();
+        
+        Assert.assertNotEquals(apiResponseBefore.getString("description"), apiResponseAfter.getString("description"));
+        Assert.assertNotEquals(apiResponseBefore.getString("required"), apiResponseAfter.getString("required"));
+        Assert.assertNotEquals(apiResponseBefore.getString("readonly"), apiResponseAfter.getString("readonly"));
+        Assert.assertNotEquals(apiResponseBefore.getString("hidden"), apiResponseAfter.getString("hidden"));
+
+        
+        Assert.assertEquals(connectorProperties.getProperty("updateFieldHidden"),
+                apiResponseAfter.getString("hidden"));
+        Assert.assertEquals(connectorProperties.getProperty("updateFieldReadOnly"),
+                apiResponseAfter.getString("readonly"));
+        Assert.assertEquals(connectorProperties.getProperty("upateFieldRequired"), apiResponseAfter.getString("required"));
+        Assert.assertEquals(connectorProperties.getProperty("updateFieldDescription"), apiResponseAfter.getString("description"));
+        
+    }
+    
+    /**
+     * Negative test case for updateFormField method.
+     */
+    @Test(groups = { "wso2.esb" }, description = "formstack {updateFormField} integration test with negative case.")
+    public void testUpdateFormFieldWithWithNegativeCase() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:updateFormField");
+        
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateFormField_negative.json");
+        final String apiEndPoint = apiRequestUrl + "/field/invalid.json";
+        
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "PUT", apiRequestHeadersMap);
         Assert.assertEquals(esbRestResponse.getBody().getString("status"), apiRestResponse.getBody()
                 .getString("status"));
         Assert.assertEquals(esbRestResponse.getBody().getString("error"), apiRestResponse.getBody().getString("error"));
