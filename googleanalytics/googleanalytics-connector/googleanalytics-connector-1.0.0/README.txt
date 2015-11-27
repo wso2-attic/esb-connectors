@@ -69,8 +69,8 @@ Steps to follow in setting integration test.
    vi)     prettyPrint                        -   Use 'true' or 'false' as the value for prettyPrint. (Make sure to use a boolean value).
    
    vii)    coreReportIds                      -   Use the view ID obtained under Step 6 i) c) and append it with 'ga'(E.g ga:123434) .  
-   viii)   coreReportStartDate                -   Text to be used as 'start-date' to fetch analytics data. A past date in the format as 'yyyy-MM-dd' should be used.
-   ix)     coreReportEndDate                  -   Text to be used as 'end-date' to fetch analytics data. A past date in the format as 'yyyy-MM-dd' should be used.
+   viii)   coreReportStartDate                -   Text to be used as 'start-date' to fetch analytics data. A past date in the format 'yyyy-MM-dd' should be used.
+   ix)     coreReportEndDate                  -   Text to be used as 'end-date' to fetch analytics data. A date in the format 'yyyy-MM-dd' should be used.
    x)      coreReportMetrics                  -   Comma separated string which contains set of metrics (E.g : ga:sessions,ga:bounces).
    xi)     coreReportMaxResults               -   Integer value to be used as 'max-results' while retrieving report data with optional parameters. (Make sure to use  '1' or '2').
    xii)    coreReportStartIndex               -   Integer value to be used as 'start-index' while retrieving report data with optional parameters. (Make sure to use  '1' or '2').
@@ -86,26 +86,26 @@ Steps to follow in setting integration test.
    xx)     linksMaxResults                    -   Integer value to be used as 'max-results' while retrieving user links with optional parameters. (Make sure to use '1').
    
    xxi)    dimensionName                      -   Text to be used as 'Name' which is a mandatory parameter while creating a Dimension.         
-   xxii)   dimensionScope                     -   Text to be used as 'Scope' which is a mandatory parameter while creating a Dimension.
-   xxiii)  dimensionActive                    -   Text to be used as 'Active' which is a mandatory parameter while creating a Dimension. (Make sure to use a boolean value).
+   xxii)   dimensionScope                     -   Text to be used as 'Scope' which is a mandatory parameter while creating a Dimension.(Make sure to use the one of these values as the scope :'HIT','SESSION','USER' or 'PRODUCT' ).
+   xxiii)  dimensionActive                    -   Text to be used as 'Active' which is a mandatory parameter while creating a Dimension.(Make sure to use a boolean value).
    xxiv)   updatedDimensionName               -   Text to be used as 'Name' while updating a Dimension with mandatory parameters.
-   xxv)    updatedDimensionScope              -   Text to be used as 'Scope' while updating a Dimension with mandatory parameters.
+   xxv)    updatedDimensionScope              -   Text to be used as 'Scope' while updating a Dimension with mandatory parameters.(Make sure to use the one of these values as the scope :'HIT','SESSION','USER' or 'PRODUCT').
    xxvi)   updatedDimensionActive             -   Text to be used as 'Active' while updating a Dimension with mandatory parameters.(Make sure to use a boolean value).
    xxvii)  patchDimensionName                 -   Text to be used as 'Name' while creating a patch with optional parameters. 
-   xxviii) patchDimensionScope                -   Text to be used as 'Scope' while creating a patch with optional parameters. 
+   xxviii) patchDimensionScope                -   Text to be used as 'Scope' while creating a patch with optional parameters.(Make sure to use the one of these value as the scope :'HIT','SESSION','USER' or 'PRODUCT').
    xxix)   patchDimensionActive               -   Text to be used as 'Active' while creating a patch with optional parameters. (Make sure to use a boolean value).
    
    xxx)    metricsName                        -   Text to be used as 'Name' which is a mandatory parameter while creating a Metrics.
-   xxxi)   metricsScope                       -   Text to be used as 'Scope' which is a mandatory parameter while creating a Metrics.  
+   xxxi)   metricsScope                       -   Text to be used as 'Scope' which is a mandatory parameter while creating a Metrics.(Make sure to use the value 'HIT' or 'PRODUCT' as the scope).  
    xxxii)  metricsActive                      -   Text to be used as 'Active' which is a mandatory parameter while creating a Metrics. (Make sure to use a boolean value).
-   xxxiii) metricsType                        -   Text to be used as 'Type' which is a mandatory parameter while creating a Metrics.
+   xxxiii) metricsType                        -   Text to be used as 'Type' which is a mandatory parameter while creating a Metrics.(Make sure to use the value 'INTEGER' or 'CURRENCY' as the Type).
    xxxiv)  updatedMetricsName                 -   Text to be used as 'Name' while updating a Metrics with mandatory parameters.
-   xxxv)   updatedMetricsScope                -   Text to be used as 'Scope' while updating a Metrics with mandatory parameters.
+   xxxv)   updatedMetricsScope                -   Text to be used as 'Scope' while updating a Metrics with mandatory parameters.(Make sure to use the value 'HIT' or 'PRODUCT' as the scope).
    xxxvi)  updatedMetricsActive               -   Text to be used as 'Active' while updating a Metrics with mandatory parameters.(Make sure to use a boolean value).
    
    xxxvii) multiChannelIds                    -   Use the view ID obtained under Step 6 i) c) and append it with 'ga'(E.g ga:123434). 
-   xxxviii)multiChannelStartDate              -   Text to be used as 'start-date' to fetch data. A past date in the format as 'yyyy-MM-dd' should be used.
-   xxxix)  multiChannelEndDate                -   Text to be used as 'end-date' to fetch data. A past date in the format as 'yyyy-MM-dd' should be used.
+   xxxviii)multiChannelStartDate              -   Text to be used as 'start-date' to fetch data. A past date in the format 'yyyy-MM-dd' should be used.
+   xxxix)  multiChannelEndDate                -   Text to be used as 'end-date' to fetch data. A date in the format 'yyyy-MM-dd' should be used.
    xL)     multiChannelMetrics                -   Comma separated string which contains set of metrics (E.g : ga:sessions,ga:bounces).
    xLi)    multiChannelMaxResults             -   Integer value to be used as 'max-results' while retrieving channel data  with optional parameters. (Make sure to use  '1' or '2'). 
    xLii)   multiChannelStartIndex             -   Integer value to be used as 'start-index' while retrieving channel data with optional parameters. (Make sure to use  '1' or '2').
@@ -125,14 +125,14 @@ Steps to follow in setting integration test.
    Li)     customDataSourceMaxResults         -   Integer value to be used as 'max-results' while listing a CustomDataSources with optional parameters.(Make sure to use  '1' or '2').
    Lii)    customDataSourceStartIndex         -   Integer value to be used as 'Start-index' while listing a CustomDataSources with optional parameters.(Make sure to use  '1' or '2').
    
-   Liii)   AdWordsLinkMaxResults              -   Integer value to be used as 'max-results' while listing a AdWordsLink with optional parameters.(Make sure to use  '1' or '2').
-   Liv)    AdWordsLinkStartIndex              -   Integer value to be used as 'Start-index' while listing a AdWordsLink with optional parameters.(Make sure to use  '1' or '2').
-   Lv)     AdWordsLinkName                    -   Text to be used as 'Name' which is a mandatory parameter while creating a AdWordsLink.
-   Lvi)    AdWordsLinkCustomerId              -   Use the customer ID obtained under Step 6 ii. 
+   Liii)   adWordsLinkMaxResults              -   Integer value to be used as 'max-results' while listing a AdWordsLink with optional parameters.(Make sure to use  '1' or '2').
+   Liv)    adWordsLinkStartIndex              -   Integer value to be used as 'Start-index' while listing a AdWordsLink with optional parameters.(Make sure to use  '1' or '2').
+   Lv)     adWordsLinkName                    -   Text to be used as 'Name' which is a mandatory parameter while creating a AdWordsLink.
+   Lvi)    adWordsLinkCustomerId              -   Use the customer ID obtained under Step 6 ii. 
    Lvii)   adWordsLinkUpdatedName             -   Text to be used as 'Name' while updating a AdWordsLink with mandatory parameters.
-   Lviii)  adWordsLinkautoTaggingEnabled      -   Text to be used as 'adWordsLinkautoTaggingEnabled' while updating a AdWordsLink with optional parameters. (Make sure to use a boolean value).
+   Lviii)  adWordsLinkAutoTaggingEnabled      -   Text to be used as 'adWordsLinkAutoTaggingEnabled' while updating a AdWordsLink with optional parameters. (Make sure to use a boolean value).
    Lix)    adWordsLinkPatchName               -   Text to be used as 'Name' while patch_updating a AdWordsLink with optional parameters.
-   Lx)     adWordsLinkpatchautoTaggingEnabled -   Text to be used as 'adWordsLinkautoTaggingEnabled' while patch_updating a AdWordsLink with optional parameters. (Make sure to use a boolean value).
+   Lx)     adWordsLinkPatchAutoTaggingEnabled -   Text to be used as 'adWordsLinkAutoTaggingEnabled' while patch_updating a AdWordsLink with optional parameters. (Make sure to use a boolean value).
    
    Lxi)    experimentMaxResults               -   Integer value to be used as 'max-results' while listing a Experiment with optional parameters.(Make sure to use  '1' or '2').
    Lxii)   experimentStartIndex               -   Integer value to be used as 'Start-index' while listing a Experiment with optional parameters.(Make sure to use  '1' or '2').
@@ -143,13 +143,13 @@ Steps to follow in setting integration test.
    Lxvii)  experimentVariationUrl1            -   Text to be used as 'VariationUrl1' which is a optional parameter while creating an experiment.
    Lxviii) experimentVariationName2           -   Text to be used as 'VariationName2' which is a mandatory parameter while creating an experiment.
    Lxix)   experimentVariationUrl2            -   Text to be used as 'VariationUrl2' which is a optional parameter while creating an experiment.
-   Lxx)    experimenteditableInGaUi           -   Text to be used as 'editableInGaUi' while updating an experiment with optional parameters.(Make sure to use a boolean value).
-   Lxxi)   experimentdescription              -   Text to be used as 'description' while updating an experiment with optional parameters.
+   Lxx)    experimentEditableInGaUi           -   Text to be used as 'editableInGaUi' while updating an experiment with optional parameters.(Make sure to use a boolean value).
+   Lxxi)   experimentDescription              -   Text to be used as 'description' while updating an experiment with optional parameters.
    Lxxii)  experimentUpdatedName              -   Text to be used as 'Name' while updating an experiment with mandatory parameters.
    Lxxiii) experimentUpdatedStatus            -   Text to be used as 'Status' while updating an experiment with mandatory parameters.(Make sure to use the value 'RUNNING' as the status).
-   Lxxiv)  experimentUpdateddescription       -   Text to be used as 'Description' while updating an experiment with mandatory parameters.
+   Lxxiv)  experimentUpdatedDescription       -   Text to be used as 'Description' while updating an experiment with mandatory parameters.
    Lxxv)   experimentUpdatedVariationName     -   Text to be used as 'VariationName' while updating an experiment with optional parameters.
-   Lxxvi)  experimentUpdatededitableInGaUi    -   Text to be used as 'editableInGaUi' while updating an experiment with optional parameters. (Make sure to use a boolean value).
+   Lxxvi)  experimentUpdatdEditableInGaUi    -    Text to be used as 'editableInGaUi' while updating an experiment with optional parameters. (Make sure to use a boolean value).
 
    Note  :  Make sure to delete the adWords link after each test execution.
 

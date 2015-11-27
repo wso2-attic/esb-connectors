@@ -65,7 +65,7 @@ public class GoogleanalyticsConnectorIntegrationTest extends ConnectorIntegratio
      * @throws JSONException
      * @throws IOException
      */
-    @Test(groups = { "wso2.esb.bigquery.oauth" }, description = "BigQuery {getAccessTokenFromRefreshToken} integration test with mandatory parameters.")
+    @Test(groups = { "wso2.esb" }, description = "googleanalytics {getAccessTokenFromRefreshToken} integration test with mandatory parameters.")
     public void testGetAccessTokenFromRefreshToken() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:getAccessTokenFromRefreshToken");
@@ -1272,8 +1272,8 @@ public class GoogleanalyticsConnectorIntegrationTest extends ConnectorIntegratio
         
         Assert.assertEquals(esbResponse.getString("kind"), apiResponse.getString("kind"));
         Assert.assertEquals(esbResponse.getString("id"), apiResponse.getString("id"));
-        Assert.assertEquals(connectorProperties.getProperty("AdWordsLinkName"), apiResponse.getString("name"));
-        Assert.assertEquals(connectorProperties.getProperty("AdWordsLinkCustomerId"),
+        Assert.assertEquals(connectorProperties.getProperty("adWordsLinkName"), apiResponse.getString("name"));
+        Assert.assertEquals(connectorProperties.getProperty("adWordsLinkCustomerId"),
                 apiResponse.getJSONArray("adWordsAccounts").getJSONObject(0).getString("customerId"));
         Assert.assertEquals(esbResponse.getString("selfLink"), apiResponse.getString("selfLink"));
     }
@@ -1464,15 +1464,15 @@ public class GoogleanalyticsConnectorIntegrationTest extends ConnectorIntegratio
         final String apiEndpoint =
                 apiEndpointUrl + "/management/accounts/" + connectorProperties.getProperty("accountId")
                         + "/webproperties/" + connectorProperties.getProperty("webPropertyId")
-                        + "/entityAdWordsLinks?max-results=" + connectorProperties.getProperty("AdWordsLinkMaxResults")
-                        + "&start-index=" + connectorProperties.getProperty("AdWordsLinkStartIndex");
+                        + "/entityAdWordsLinks?max-results=" + connectorProperties.getProperty("adWordsLinkMaxResults")
+                        + "&start-index=" + connectorProperties.getProperty("adWordsLinkStartIndex");
      
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
         final JSONObject apiResponse = apiRestResponse.getBody();
-        Assert.assertEquals(connectorProperties.getProperty("AdWordsLinkMaxResults"),
+        Assert.assertEquals(connectorProperties.getProperty("adWordsLinkMaxResults"),
                 apiResponse.getString("itemsPerPage"));
-        Assert.assertEquals(connectorProperties.getProperty("AdWordsLinkStartIndex"),
+        Assert.assertEquals(connectorProperties.getProperty("adWordsLinkStartIndex"),
                 apiResponse.getString("startIndex"));
         Assert.assertEquals(esbResponse.getString("kind"), apiResponse.getString("kind"));
         Assert.assertEquals(esbResponse.getString("totalResults"), apiResponse.getString("totalResults"));
@@ -2624,7 +2624,7 @@ public class GoogleanalyticsConnectorIntegrationTest extends ConnectorIntegratio
         Assert.assertEquals(esbResponse.getString("id"), apiResponse.getString("id"));
         Assert.assertEquals(connectorProperties.getProperty("experimentName"), apiResponse.getString("name"));
         Assert.assertEquals(connectorProperties.getProperty("experimentStatus"), apiResponse.getString("status"));
-        Assert.assertEquals(connectorProperties.getProperty("experimentdescription"),
+        Assert.assertEquals(connectorProperties.getProperty("experimentDescription"),
                 apiResponse.getString("description"));
         
     }
@@ -2928,9 +2928,9 @@ public class GoogleanalyticsConnectorIntegrationTest extends ConnectorIntegratio
         
         Assert.assertNotEquals(apiResponseBefore.getString("editableInGaUi"),
                 apiResponseAfter.getString("editableInGaUi"));
-        Assert.assertEquals(connectorProperties.getProperty("experimentUpdateddescription"),
+        Assert.assertEquals(connectorProperties.getProperty("experimentUpdatedDescription"),
                 apiResponseAfter.getString("description"));
-        Assert.assertEquals(connectorProperties.getProperty("experimentUpdatededitableInGaUi"),
+        Assert.assertEquals(connectorProperties.getProperty("experimentUpdatedEditableInGaUi"),
                 apiResponseAfter.getString("editableInGaUi"));
         
     }
