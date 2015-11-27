@@ -73,7 +73,7 @@ Steps to follow in setting integration test.
    xi)      nodeCustFieldLabel         - Use created custom field machine name in step 5 v).
    xii)     nodeCustFieldValue         - String value to set node custom field.
    xiii)    nodeComment                - Use 1 or 0 to enable node comments.
-   xiv)     nodebodyValueUpdate        - String value to update node body value (This value must be different than  the property viii) value).
+   xiv)     nodeBodyValueUpdate        - String value to update node body value (This value must be different than  the property viii) value).
    xv)      nodeTitleUpdate            - String value to update node tile (This value must be different than  the property vi) value).
    xvi)     nodeCustFieldValue         - String value to update node custom field (This value must be different than  the property xii) value).
    xvii)    nodeCommentUpdate          - Set 1 or 0 as the value (This value must be different than  the property xiii) value).

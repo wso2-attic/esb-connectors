@@ -303,7 +303,7 @@ public class DrupalConnectorIntegrationTest extends ConnectorIntegrationTestBase
         Assert.assertEquals(apiRestResponseAfterUpdate.getBody().getString("title"), connectorProperties.getProperty("nodeTitleUpdate"));
         Assert.assertEquals(apiRestResponseAfterUpdate.getBody().getString("comment"), connectorProperties.getProperty("nodeCommentUpdate"));
         Assert.assertEquals(apiRestResponseAfterUpdate.getBody().getJSONObject("body").getJSONArray("und").getJSONObject(0).getString("value"), 
-        		connectorProperties.getProperty("nodebodyValueUpdate"));
+        		connectorProperties.getProperty("nodeBodyValueUpdate"));
         Assert.assertEquals(apiRestResponseAfterUpdate.getBody().getJSONObject(connectorProperties.getProperty("nodeCustFieldLabel")).getJSONArray("und").getJSONObject(0).getString("value"), 
         		connectorProperties.getProperty("nodeCustFieldValueUpdate"));              
     }
