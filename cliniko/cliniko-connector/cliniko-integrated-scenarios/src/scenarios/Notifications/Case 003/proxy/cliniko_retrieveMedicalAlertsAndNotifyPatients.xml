@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This scenario notify the medical alerts to the patients -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="cliniko_retrieveMedicalAlertsAndNotifyPatients" transports="https http" startOnLoad="true" trace="disable">
+   <target>
+      <inSequence>
+         <!-- Cliniko Properties -->
+         <property name="cliniko.apiUrl" expression="get-property('registry', 'connectors/Cliniko/apiUrl')" />
+         <property name="cliniko.apiKey" expression="get-property('registry', 'connectors/Cliniko/apiKey')" />
+         
+         <!-- Nexmo Properties -->
+         <property name="nexmo.apiUrl" expression="get-property('registry', 'connectors/Nexmo/apiUrl')" />
+         <property name="nexmo.apiSecret" expression="get-property('registry', 'connectors/Nexmo/apiSecret')" />
+         <property name="nexmo.apiKey" expression="get-property('registry', 'connectors/Nexmo/apiKey')" />
+         <property name="responseString" value="" scope="operation" />
+         
+         <!--Extract cliniko_getSettingsSeq to get details of cliniko -->
+         <sequence key="cliniko_getSettingsSeq" />
+         
+         <!--Call cliniko connector listMedicalAlerts method to list all the medical alerts. -->
+         <cliniko.init>
+            <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+            <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+         </cliniko.init>
+         <cliniko.listMedicalAlerts />
+         
+         <!-- START: Proceed only if the listMedicalAlerts method is successful. -->
+         <filter source="$axis2:HTTP_SC" regex="200">
+            <then>
+               <property name="alertIndex" expression="0" scope="operation" />
+               <property name="alertsCount" expression="count(//medical_alerts)" />
+               
+               <!-- START: Proceed only if there is at least one medical alert. -->
+               <filter xpath="get-property('alertsCount') = 0.0">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="status" value="skipped" />
+                     <property name="message" value="There are no medical alerts to proceed." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="cliniko_retrieveMedicalAlerts" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <!--BEGIN : FOR EACH alert -->
+                     <iterate continueParent="false" id="alert" expression="//medical_alerts" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="cliniko.alertId" expression="json-eval($.medical_alerts.id)" />
+                              <property name="cliniko.alertName" expression="json-eval($.medical_alerts.name)" />
+                              <property name="cliniko.patient" expression="json-eval($.medical_alerts.patient.links.self)" />
+                              <!-- Extract the alert name and check whether it is to be notified to the patient .-->
+                              <script language="js">
+                                 <![CDATA[
+                                    var alertName = ''+mc.getProperty('cliniko.alertName');
+                                    var patientUrl = ''+mc.getProperty('cliniko.patient');
+                                  
+                                    if(new java.lang.String(alertName).toLowerCase().startsWith('notify to patient'))
+                                    {
+                                       var alert = alertName.split(':')[1];
+                                       mc.setProperty("cliniko.alert",alert);
+                                       
+                                       var patient=patientUrl.substring(patientUrl.lastIndexOf('/') + 1);
+                                       mc.setProperty('cliniko.patientId',patient);
+                                    }
+                                 ]]>
+                              </script>
+                              
+                              <!-- START: Proceed only if  the alert to be notified -->
+                              <filter source="boolean(get-property('cliniko.alert'))" regex="true">
+                                 <then>
+                                    
+                                    <!--Call cliniko connector getPatient method to get details of a patient .-->
+                                    <cliniko.init>
+                                       <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+                                       <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+                                    </cliniko.init>
+                                    <cliniko.getPatient>
+                                       <patientId>{$ctx:cliniko.patientId}</patientId>
+                                    </cliniko.getPatient>
+                                    <property name="cliniko.patientFirstName" expression="json-eval($.first_name)" />
+                                    <property name="cliniko.patientId" expression="json-eval($.id)" />
+                                    <property name="cliniko.patientPhoneNumber" expression="json-eval($.patient_phone_numbers)" />
+                                    <!--Get the patient Mobile Number-->
+                                    <script language="js">
+                                       <![CDATA[
+                                          var patientName = mc.getProperty('cliniko.patientFirstName');
+                                         var alert = mc.getProperty('cliniko.alert');
+                                         var phoneNumbers = eval("(" + mc.getProperty('cliniko.patientPhoneNumber') + ")");
+                                         
+                                         var accountName = mc.getProperty('cliniko.accountName');
+                                         
+                                         var phoneNumberString =mc.getProperty('cliniko.patientPhoneNumber');
+                                         if(phoneNumberString != "") 
+                                         {
+                                            var mobile='';
+                                            var type;
+                                            if(phoneNumberString.charCodeAt(0) != '91' && phoneNumberString.charCodeAt(phoneNumberString.length-1) != '93')
+                                            {
+                                              type = phoneNumbers.type;
+                                              if(type == 'Mobile'){
+                                                mobile =''+phoneNumbers.number;
+                                                mc.setProperty('nexmo.toMobile', mobile);
+                                              }
+                                            } else{
+                                                 for(var i=0;i<phoneNumbers.length;i++) {
+                                                   type = phoneNumbers[i].phone_type;
+                                                   if(type == 'Mobile') {
+                                                      mobile =''+phoneNumbers[i].number;
+                                                      mc.setProperty('nexmo.toMobile', mobile);
+                                                      break;
+                                                   }
+                                                 }
+                                             }
+                                         }
+                                         var message = 'Hi ' + patientName + ', This is a reminder for you - '+alert+'. Thank you - ' + accountName + '.';
+                                         mc.setProperty('nexmo.message', message);
+                                        ]]>
+                                    </script>
+                                    <!-- START:Proceed only if the mobile Numbers are retrieved successfully.-->
+                                    <filter source="boolean(get-property('nexmo.toMobile'))" regex="true">
+                                       <then>
+                                          <!--Call nexmo connector sendMessage method to send a sms to the patient -->
+                                          <nexmo.init>
+                                             <responseType>json</responseType>
+                                             <apiUrl>{$ctx:nexmo.apiUrl}</apiUrl>
+                                             <apiSecret>{$ctx:nexmo.apiSecret}</apiSecret>
+                                             <apiKey>{$ctx:nexmo.apiKey}</apiKey>
+                                          </nexmo.init>
+                                          <nexmo.sendMessage>
+                                             <to>{$ctx:nexmo.toMobile}</to>
+                                             <text>{$ctx:nexmo.message}</text>
+                                             <from>{$ctx:cliniko.accountName}</from>
+                                             <type>text</type>
+                                          </nexmo.sendMessage>
+                                          <sequence key="removeResponseHeaders" />
+                                          <property name="sendMessage.messageId" expression="json-eval($.messages[0].error-text)" />
+                                          <!-- START: Append the response according to the status of the sendMessage call-->
+                                          <filter source="boolean(get-property('sendMessage.messageId'))" regex="true">
+                                             <then>
+                                                <property name="id" expression="fn:concat('cliniko_patientId:',get-property('cliniko.patientId'))" />
+                                                <property name="status" value="error" />
+                                                <property name="message" expression="json-eval($)" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="nexmo_notifyPatient" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <property name="id" expression="fn:concat('cliniko_patientId:',get-property('cliniko.patientId'),',cliniko_medicalAlertId:',get-property('cliniko.alertId'))" />
+                                                <property name="status" value="success" />
+                                                <property name="message" value="The alert has been successfully notified to the patient." />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="nexmo_notifyPatient" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                                <!--Call cliniko connector updateMedicalAlert method to update the medical alert -->
+                                                <cliniko.init>
+                                                   <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+                                                   <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+                                                </cliniko.init>
+                                                <cliniko.updateMedicalAlert>
+                                                   <medicalAlertId>{$ctx:cliniko.alertId}</medicalAlertId>
+                                                   <name>{$ctx:cliniko.alert}</name>
+                                                </cliniko.updateMedicalAlert>
+                                                <property name="cliniko.updateAlertId" expression="json-eval($.id)" />
+                                                <!-- START: Append the response according to the status of the updateMedicalAlert call-->
+                                                <filter source="boolean(get-property('cliniko.updateAlertId'))" regex="false">
+                                                   <then>
+                                                      <property name="id" expression="fn:concat('cliniko_patientId:',get-property('cliniko.patientId'),',cliniko_medicalAlertId:',get-property('cliniko.alertId'))" />
+                                                      <property name="status" value="error" />
+                                                      <property name="message" expression="json-eval($)" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="Cliniko_updateMedicalAlert" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="{$ctx:status}" />
+                                                         <with-param name="message" value="{$ctx:message}" />
+                                                      </call-template>
+                                                   </then>
+                                                </filter>
+                                                <!-- END: Append the response according to the status of the updateMedicalAlert call-->
+                                             </else>
+                                          </filter>
+                                          <!-- END: Append the response according to the status of the sendMessage call-->
+                                       </then>
+                                       <else>
+                                          <property name="id" expression="fn:concat('cliniko_patientId:',get-property('cliniko.patientId'),',cliniko_medicalAlertId:',get-property('cliniko.alertId'))" />
+                                          <property name="status" value="skipped" />
+                                          <property name="message" value="The mobile number of the patient is not found." />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="nexmo_notifyPatient" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                    </filter>
+                                    <!-- END:Proceed only if the mobile Numbers are retrieved successfully.-->
+                                 </then>
+                              </filter>
+                              <!-- END: Proceed only if  the alert to be notified -->
+                              <property name="alertIndex" expression="get-property('operation','alertIndex') + 1" scope="operation" />
+                              <filter xpath="get-property('operation','alertIndex') = get-property('alertsCount')">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!--END : FOR EACH alert -->
+                  </else>
+               </filter>
+               <!-- END: Proceed only if there is at least one medical alert -->
+            </then>
+            <else>
+               <property name="id" value="{}" />
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($.)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="cliniko_retrieveMedicalAlerts" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+         <!-- END: Proceed only if the listMedicalAlerts method is successful -->
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>{
+                     "Response":{
+                        "process":"cliniko_retrieveMedicalAlertsAndNotifyPatients",
+                        "activityResponse":"There are not medical alerts to be notified to the patient."
+                     }
+                  }</format>
+               </payloadFactory>
+            </then>
+            <else>
+               <payloadFactory media-type="json">
+                  <format>{
+						"Response":{
+							"process":"cliniko_retrieveMedicalAlertsAndNotifyPatients",
+							"activityResponse":[$1]
+						}
+					}</format>
+                  <args>
+                     <arg expression="get-property('operation', 'responseString')" />
+                  </args>
+               </payloadFactory>
+            </else>
+         </filter>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- send Birthday Wish to the Cliniko Patient. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="cliniko_sendBirthdayWishes" transports="https,http" startOnLoad="true" trace="disable">
+	<target>
+		<inSequence>
+			<!-- Cliniko Properties -->
+			<property name="cliniko.apiUrl" expression="get-property('registry', 'connectors/Cliniko/apiUrl')" />
+			<property name="cliniko.apiKey" expression="get-property('registry', 'connectors/Cliniko/apiKey')" />
+						
+			<!-- Nexmo Properties -->
+			<property name="nexmo.apiUrl" expression="get-property('registry', 'connectors/Nexmo/apiUrl')" />
+			<property name="nexmo.apiKey" expression="get-property('registry', 'connectors/Nexmo/apiKey')" />
+			<property name="nexmo.apiSecret" expression="get-property('registry', 'connectors/Nexmo/apiSecret')" />
+			
+			<!-- Common properties -->
+			<property name="responseString" value="" scope="operation" />
+			
+			<!--Call cliniko_getSettingsSeq sequence to get Account Name. -->
+			<sequence key="cliniko_getSettingsSeq" />
+			
+			<!--Call cliniko connector listPatients method to List cliniko patients . -->
+			<cliniko.init>
+				<apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+				<apiKey>{$ctx:cliniko.apiKey}</apiKey>
+			</cliniko.init>
+			<cliniko.listPatients/>
+			
+			<property name="patientCount" expression="count(//patients)"/>
+			<property name="patientIndex" value="0" scope="operation" />
+		
+			<!-- START: Proceed only if there is at least one patient -->
+			<filter xpath="get-property('patientCount') = 0">
+				<then>
+					<property name="id" value="{}" />
+					<call-template target="responseHandlerTemplate">
+						<with-param name="id" value="{$ctx:id}" />
+						<with-param name="activity" value="cliniko_listPatients" />
+						<with-param name="status" value="skipped" />
+						<with-param name="message" value="No Patient to process." />
+					</call-template>
+					<loopback />
+				</then>
+				<else>
+					<!--FOR EACH Patient : BEGIN -->
+					<iterate continueParent="false" id="patients" expression="//patients" sequential="true">
+						<target>
+							<sequence>
+								<property name="cliniko.patientId" expression="json-eval($.patients.id)" />
+								<property name="cliniko.patientBirthDay" expression="json-eval($.patients.date_of_birth)" />
+								<property name="cliniko.patientFirstName" expression="json-eval($.patients.first_name)" />
+								<property name="cliniko.patientPhoneNumber" expression="json-eval($.patients.patient_phone_numbers)" />
+								
+								<!-- Verify the Patient Birth date match with current date and Get the patient 'Mobile' Number. -->
+								<script language="js">
+									<![CDATA[
+										var birthdate = mc.getProperty('cliniko.patientBirthDay');
+										var currentdate = ''+new java.text.SimpleDateFormat('yyyy-MM-dd').format(new java.util.Date());
+ 
+ 										var spiltbirthdate = birthdate.split('-')[2]+birthdate.split('-')[1]; 
+										var newbirthday = spiltbirthdate.toString();  	
+										var spiltcurrntdate = currentdate.split('-')[2]+currentdate.split('-')[1];
+										
+										if(spiltcurrntdate == newbirthday) 
+                              {
+											var phoneNumberString =mc.getProperty('cliniko.patientPhoneNumber');
+											if(phoneNumberString != "")
+                                 {
+											   var phoneNumbers = eval("(" + mc.getProperty('cliniko.patientPhoneNumber') + ")");
+                                    var mobile='';
+                                    var type;
+                                    if(phoneNumberString.charCodeAt(0) != '91' && phoneNumberString.charCodeAt(phoneNumberString.length-1) != '93')
+                                    {
+                                         type = phoneNumbers.phone_type;
+                                       if(type == 'Mobile'){
+                                          mobile =''+phoneNumbers.number;
+                                          mc.setProperty('nexmo.toMobile', mobile);
+                                       } 
+                                    } 
+                                    else{
+                                       for(var i=0;i<phoneNumbers.length;i++) {
+													type = phoneNumbers[i].phone_type;
+                                          if(type == 'Mobile') {
+                                            mobile =''+phoneNumbers[i].number;
+                                                         mc.setProperty('nexmo.toMobile', mobile);
+                                                         break;
+                                          }
+                                       }
+                                        }
+											}
+											
+											var patientFirstName = mc.getProperty('cliniko.patientFirstName');
+											var accountName = mc.getProperty('cliniko.accountName');
+											
+											var text ='Hi ' + patientFirstName + ', Many Happy Returns of the day!!'+'May you be blessed with Health,Wealth and Prosperity in your life. '+'*'+accountName +'*';
+											mc.setProperty('nexmo.text', text);
+											mc.setProperty('nexmo.from', accountName);
+											mc.setProperty('nexmo.to', mobile); 
+										}
+									]]>
+								</script>
+								
+								<sequence key="removeResponseHeaders" />
+								
+								<!-- START:Proceed only if the mobile Numbers are retrieved successfully.-->
+								<filter source="boolean(get-property('nexmo.toMobile'))" regex="true">
+									<then>
+										<!--Call nexmo connector sendMessage method. -->
+										<nexmo.init>
+											<responseType>json</responseType>
+											<apiUrl>{$ctx:nexmo.apiUrl}</apiUrl>
+											<apiSecret>{$ctx:nexmo.apiSecret}</apiSecret>
+											<apiKey>{$ctx:nexmo.apiKey}</apiKey>
+										</nexmo.init>
+										<nexmo.sendMessage>
+											<to>{$ctx:nexmo.to}</to>
+											<text>{$ctx:nexmo.text}</text>
+											<from>{$ctx:nexmo.from}</from>
+											<type>text</type>
+										</nexmo.sendMessage>
+									
+								<property name="sendMessage.messageId" expression="json-eval($.messages[0].error-text)" />
+								
+								<!-- START: Append a message to be sent to the user regarding the status of the send Message operation. -->
+								<filter source="boolean(get-property('sendMessage.messageId'))" regex="true">
+									<then>
+										<property name="id" expression="fn:concat('cliniko_patientId:',get-property('cliniko.patientId'))" />
+										<property name="status" value="error" />
+										<property name="message" expression="json-eval($.)" />
+									</then>
+									<else>
+										<property name="id" expression="fn:concat('cliniko_patientId:',get-property('cliniko.patientId'))" />
+										<property name="status" value="success" />
+										<property name="message" value="A birthday wish has been successfully sent." />
+									</else>
+								</filter>
+								<!-- END: Append a message to be sent to the user regarding the status of the send Message operation. -->
+								<call-template target="responseHandlerTemplate">
+									<with-param name="activity" value="nexmo_notifyPatient" />
+									<with-param name="id" value="{$ctx:id}" />
+									<with-param name="status" value="{$ctx:status}" />
+									<with-param name="message" value="{$ctx:message}" />
+								</call-template>
+									</then>
+								</filter>
+								<!-- END:Proceed only if the mobile Numbers are retrieved successfully.-->
+								
+									<property name="patientIndex" expression="get-property('operation','patientIndex') + 1" scope="operation" />
+									<property name="index" expression="get-property('operation','patientIndex')" />
+										
+								<filter xpath="get-property('operation','patientIndex') = get-property('patientCount')">
+									<then>
+										<loopback />
+									</then>
+								</filter>
+							</sequence>
+						</target>
+					</iterate>
+					<!--FOR EACH Patient end : END-->
+				</else>
+			</filter>
+			<!-- END: Proceed only if there is at least one patient -->
+		</inSequence>
+		<outSequence>
+		<!-- Send the constructed response to the user. -->
+		<property name="messageType" value="application/json" scope="axis2" />
+		 <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>{
+                     "Response":{
+						"process":"cliniko_sendBirthdayWishes",
+						"activityResponse":"There are no Birthday Wishes for Today"
+                     }
+                  }</format>
+               </payloadFactory>
+            </then>
+            <else>
+               <payloadFactory media-type="json">
+                  <format>{
+						"Response":{
+							"process":"cliniko_sendBirthdayWishes",
+							"activityResponse":[$1]
+						}
+					}</format>
+                  <args>
+                     <arg expression="get-property('operation', 'responseString')" />
+                  </args>
+               </payloadFactory>
+            </else>
+         </filter>
+
+         <send />
+      </outSequence>
+	</target>
+</proxy>

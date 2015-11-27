@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This proxy will list the patient and their cancelled Appointments.Then notify to the Patient about appointment cancellation . -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="cliniko_notifyAppointmentCancellation" transports="https,http" startOnLoad="true" trace="disable">
+    <target>
+        <inSequence>
+            <!-- Cliniko Properties -->
+            <property name="cliniko.apiUrl" expression="get-property('registry', 'connectors/Cliniko/apiUrl')" />
+            <property name="cliniko.apiKey" expression="get-property('registry', 'connectors/Cliniko/apiKey')" />
+			
+            <!-- Nexmo Properties -->
+            <property name="nexmo.apiUrl" expression="get-property('registry', 'connectors/Nexmo/apiUrl')" />
+            <property name="nexmo.apiKey" expression="get-property('registry', 'connectors/Nexmo/apiKey')" />
+            <property name="nexmo.apiSecret" expression="get-property('registry', 'connectors/Nexmo/apiSecret')" />
+			
+            <!-- Common properties -->
+            <property name="responseString" value="" scope="operation" />
+			
+            <!--Call cliniko_getSettingsSeq sequence to get Account Name. -->
+            <sequence key="cliniko_getSettingsSeq" />
+			
+            <!--Call cliniko connector listCancelledAppointments method to List cancelled Appointments. -->
+            <cliniko.init>
+                <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+                <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+            </cliniko.init>
+            <cliniko.listCancelledAppointments>
+                <practitionerId>{$ctx:practitionerId}</practitionerId>
+                <businessId>{$ctx:businessId}</businessId>
+                <patientId>{$ctx:patientId}</patientId>
+            </cliniko.listCancelledAppointments>
+			
+            <property name="cancelledAppointmentsCount" expression="count(//appointments)" />
+            <property name="cancelledAppointmentsIndex" value="0" scope="operation" />
+			
+            <!-- START :Proceed only if there is at least one cancelled Appointment. -->
+            <filter xpath="get-property('cancelledAppointmentsCount') = 0">
+                <then>
+                    <property name="id" value="{}" />
+                    <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="cliniko_listCancelledAppointments" />
+                        <with-param name="status" value="skipped" />
+                        <with-param name="message" value="No cancelledAppointments to process." />
+                    </call-template>
+                    <loopback />
+                </then>
+                <else>
+                    <!--FOR EACH Cancelled Appointments : BEGIN -->
+                    <iterate continueParent="false" id="appointments" expression="//appointments" sequential="true">
+                        <target>
+                            <sequence>
+                                <property name="cliniko.appointmentId" expression="json-eval($.appointments.id)" />
+                                <property name="cliniko.cancellationNote" expression="json-eval($.appointments.cancellation_note)" />
+                                <property name="cliniko.appointmentStart" expression="json-eval($.appointments.appointment_start)" />
+                                <property name="cliniko.cancellationTime" expression="json-eval($.appointments.cancellation_time)" />
+                                <property name="cliniko.patient" expression="json-eval($.appointments.patient)" />
+								
+								<!-- Verify the appointment start date greater than with current date and Get the patient_Id. -->
+                                <script language="js">
+                                    <![CDATA[
+												var patientUrl =mc.getProperty('cliniko.patient');	
+												var patientId=patientUrl.substring(patientUrl.lastIndexOf('/') + 1);
+												mc.setProperty('cliniko.patientId', patientId);
+												
+												var appointmentStart =mc.getProperty('cliniko.appointmentStart');
+												var newStartDate = ''+appointmentStart.split('T')[0]; 
+											
+												var cancellationDate =mc.getProperty('cliniko.cancellationTime');
+												var newCancellDate = ''+cancellationDate.split('T')[0];
+												var currentdate =''+new java.text.SimpleDateFormat('yyyy-MM-dd').format(new java.util.Date());
+												
+												
+												if(newCancellDate == currentdate){
+													if(newStartDate > currentdate) {
+														mc.setProperty('cliniko.notify',newStartDate);
+													}
+												}
+												]]>
+                                </script>
+                                <sequence key="removeResponseHeaders" />
+								
+                                <!-- START: Proceed only if the cliniko.notify Property is retrieved successfully. -->
+                                <filter source="boolean(get-property('cliniko.notify'))" regex="true">
+									<!-- Call cliniko connector getPatient method to Get Patient Details. -->
+                                    <then>
+                                        <cliniko.init>
+                                            <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+                                            <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+                                        </cliniko.init>
+                                        <cliniko.getPatient>
+                                            <patientId>{$ctx:cliniko.patientId}</patientId>
+                                        </cliniko.getPatient>
+										
+                                        <property name="cliniko.patientId" expression="json-eval($.id)" />
+                                        <property name="cliniko.patientFirstName" expression="json-eval($.first_name)" />
+                                        <property name="cliniko.patientPhoneNumber" expression="json-eval($.patient_phone_numbers)" />
+										
+                                        <!-- Get the Patient 'Mobile' Number. -->
+                                        <script language="js">
+                                            <![CDATA[	
+                                             var appDate =mc.getProperty('cliniko.notify');
+                                             var phoneNumberString =mc.getProperty('cliniko.patientPhoneNumber');
+                                             if(phoneNumberString != "") {
+                                                var phoneNumbers = eval("(" + mc.getProperty('cliniko.patientPhoneNumber') + ")");
+                                                var mobile='';
+                                                var type='';
+                                                if(phoneNumberString.charCodeAt(0) != '91' && phoneNumberString.charCodeAt(phoneNumberString.length-1) != '93')
+                                                {
+                                                   type = phoneNumbers.phone_type;
+                                                   if(type == 'Mobile'){
+                                                      mobile =''+phoneNumbers.number;
+                                                      mc.setProperty('nexmo.toMobile', mobile);
+                                                   }
+                                                } 
+                                                else{
+                                                   for(var i=0;i<phoneNumbers.length;i++) {
+                                                      type = phoneNumbers[i].phone_type;
+                                                        if(type == 'Mobile') {
+                                                           mobile = '' + phoneNumbers[i].number;
+                                                           mc.setProperty('nexmo.toMobile', mobile);
+                                                           break;
+                                                       }
+                                                   }
+                                                }
+                                             }
+                                             var patientFirstName =mc.getProperty('cliniko.patientFirstName');
+                                             var accountName =mc.getProperty('cliniko.accountName');
+                                             var text ='Hi ' + patientFirstName + ', Your appointment which is sheduled for '+appDate+ ' has been cancelled. Sorry for the inconvenience caused. Thank you - '+accountName;
+                                             mc.setProperty('nexmo.text', text);
+                                          ]]>
+                                        </script>
+										
+										<!-- START:Proceed only if the mobile Numbers are retrieved successfully.-->
+                                        <filter source="boolean(get-property('nexmo.toMobile'))" regex="true">
+                                            <then>
+                                                <!--Call nexmo connector sendMessage method. -->
+                                                <nexmo.init>
+                                                    <responseType>json</responseType>
+                                                    <apiUrl>{$ctx:nexmo.apiUrl}</apiUrl>
+                                                    <apiSecret>{$ctx:nexmo.apiSecret}</apiSecret>
+                                                    <apiKey>{$ctx:nexmo.apiKey}</apiKey>
+                                                </nexmo.init>
+                                                <nexmo.sendMessage>
+                                                    <to>{$ctx:nexmo.toMobile}</to>
+                                                    <text>{$ctx:nexmo.text}</text>
+                                                    <from>{$ctx:cliniko.accountName}</from>
+                                                    <type>text</type>
+                                                </nexmo.sendMessage>
+												
+                                                <property name="sendMessage.messageId" expression="json-eval($.messages[0].error-text)" />
+												
+												<!-- START: Append a message to be sent to the user regarding the status of the send Message operation. -->
+                                                <filter source="boolean(get-property('sendMessage.messageId'))" regex="true">
+                                                    <then>
+                                                        <property name="id" expression="fn:concat('cliniko_patientId:',get-property('cliniko.patientId'),',cliniko_appointmentId:',get-property('cliniko.appointmentId'))" />
+                                                        <property name="status" value="error" />
+                                                        <property name="message" expression="json-eval($.)" />
+                                                        <call-template target="responseHandlerTemplate">
+                                                            <with-param name="activity" value="nexmo_notifyPatient" />
+                                                            <with-param name="id" value="{$ctx:id}" />
+                                                            <with-param name="status" value="{$ctx:status}" />
+                                                            <with-param name="message" value="{$ctx:message}" />
+                                                        </call-template>
+                                                    </then>
+                                                    <else>
+                                                        <property name="id" expression="fn:concat('cliniko_patientId:',get-property('cliniko.patientId'),',cliniko_appointmentId:',get-property('cliniko.appointmentId'))" />
+                                                        <property name="status" value="success" />
+                                                        <property name="message" value="The appointment cancellation has been successfully notified." />
+                                                        <call-template target="responseHandlerTemplate">
+                                                            <with-param name="activity" value="nexmo_notifyPatient" />
+                                                            <with-param name="id" value="{$ctx:id}" />
+                                                            <with-param name="status" value="{$ctx:status}" />
+                                                            <with-param name="message" value="{$ctx:message}" />
+                                                        </call-template>
+                                                    </else>
+                                                </filter>
+												<!-- END: Append a message to be sent to the user regarding the status of the send Message operation. -->
+												
+                                                <script language="js">
+                                                    <![CDATA[
+														var cancellationNote =mc.getProperty('cliniko.cancellationNote');
+														var medicalAlert = 'Cancelled Appointment :' + cancellationNote;
+														mc.setProperty('cliniko.name', medicalAlert);
+													]]>
+                                                </script>
+												
+                                                <!--Call cliniko connector createMedicalAlert method to create medical alert. -->
+                                                <cliniko.init>
+                                                    <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+                                                    <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+                                                </cliniko.init>
+                                                <cliniko.createMedicalAlert>
+                                                    <name>{$ctx:cliniko.name}</name>
+                                                    <patientId>{$ctx:cliniko.patientId}</patientId>
+                                                </cliniko.createMedicalAlert>
+												
+                                                <property name="createMedicalAlert.medicalAlertId" expression="json-eval($.id)" />
+                                                <property name="cliniko.medicalAlertId" expression="json-eval($.id)" />
+												
+                                                <!-- START: Proceed only if medicalAlerts are created successfully -->
+                                                <filter source="boolean(get-property('createMedicalAlert.medicalAlertId'))" regex="false">
+                                                    <then>
+                                                        <property name="id" expression="fn:concat('cliniko_patientId:',get-property('cliniko.patientId'),',cliniko_appointmentId:',get-property('cliniko.appointmentId'),',cliniko_medicalAlertId:',get-property('cliniko.medicalAlertId'))" />
+                                                        <property name="status" value="error" />
+                                                        <property name="message" expression="json-eval($.)" />
+                                                        <call-template target="responseHandlerTemplate">
+                                                            <with-param name="activity" value="cliniko_createMedicalAlert" />
+                                                            <with-param name="id" value="{$ctx:id}" />
+                                                            <with-param name="status" value="{$ctx:status}" />
+                                                            <with-param name="message" value="{$ctx:message}" />
+                                                        </call-template>
+                                                    </then>
+                                                    <else>
+                                                        <property name="id" expression="fn:concat('cliniko_patientId:',get-property('cliniko.patientId'),',cliniko_appointmentId:',get-property('cliniko.appointmentId'),',cliniko_medicalAlertId:',get-property('cliniko.medicalAlertId'))" />
+                                                        <property name="status" value="success" />
+                                                        <property name="message" value="The medical alert has been successfully created." />
+                                                        <!--Call the responseHandler template-->
+                                                        <call-template target="responseHandlerTemplate">
+                                                            <with-param name="activity" value="cliniko_createMedicalAlert" />
+                                                            <with-param name="id" value="{$ctx:id}" />
+                                                            <with-param name="status" value="{$ctx:status}" />
+                                                            <with-param name="message" value="{$ctx:message}" />
+                                                        </call-template>
+                                                    </else>
+                                                </filter>
+                                            </then>
+											<else>
+                                                <property name="id" expression="fn:concat('cliniko_patientId:',get-property('cliniko.patientId'),',cliniko_appointmentId:',get-property('cliniko.appointmentId'))" />
+                                                <property name="status" value="skipped" />
+                                                <property name="message" value="The patient, phone number has been not found " />
+                                                <call-template target="responseHandlerTemplate">
+                                                    <with-param name="activity" value="nexmo_notifyPatient" />
+                                                    <with-param name="id" value="{$ctx:id}" />
+                                                    <with-param name="status" value="{$ctx:status}" />
+                                                    <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                            </else>
+                                        </filter>
+										<!-- END:Proceed only if the mobile Numbers are retrieved successfully.-->
+                                    </then>
+                                </filter>
+								<!-- END: Proceed only if the cliniko.notify Property  is retrieved successfully. -->
+								
+                                <property name="cancelledAppointmentsIndex" expression="get-property('operation','cancelledAppointmentsIndex') + 1" scope="operation" />
+                                <property name="index" expression="get-property('operation','cancelledAppointmentsIndex')" />
+								
+                                <filter xpath="get-property('operation','cancelledAppointmentsIndex') = get-property('cancelledAppointmentsCount')">
+                                    <then>
+                                        <loopback />
+                                    </then>
+                                </filter>
+                            </sequence>
+                        </target>
+                    </iterate>
+                    <!--FOR EACH Cancelled Appointments : END -->
+                </else>
+            </filter>
+			<!-- END :Proceed only if there is at least one cancelled Appointment. -->
+        </inSequence>
+        <outSequence>
+            <!-- Send the constructed response to the user. -->
+            <property name="messageType" value="application/json" scope="axis2" />
+            <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+                <then>
+                    <payloadFactory media-type="json">
+                        <format>{
+								 "Response":{
+									"process":"cliniko_cancelledAppointment",
+									"activityResponse":"There are no cancelled Appointments for Today"
+											}
+								}
+						</format>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <payloadFactory media-type="json">
+                        <format>{
+									"Response":{
+										"process":"cliniko_cancelledAppointment",
+										"activityResponse":[$1]
+									}
+								}
+						</format>
+                        <args>
+                            <arg expression="get-property('operation', 'responseString')" />
+                        </args>
+                    </payloadFactory>
+                </else>
+            </filter>
+            <send />
+        </outSequence>
+    </target>
+</proxy>
+
+
