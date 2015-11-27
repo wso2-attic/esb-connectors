@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developers.google.com/analytics/devguides/config/mgmt/v3/mgmtReference/management/accountSummaries/list -->
+<template name="listAccountSummaries" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="maxResults" description="The maximum number of account summaries to include in this response, where the largest acceptable value is 1000."/>
+   <parameter name="startIndex" description="An index of the first entity to retrieve. Use this parameter as a pagination mechanism along with the max-results parameter."/>
+   <parameter name="fields" description="The fields which the response should show."/>
+   <parameter name="callback" description="Name of the JavaScript callback function that handles the response."/>
+   <parameter name="prettyPrint" description="Returns response with indentations and line breaks."/>
+   <parameter name="quotaUser" description="Alternative to userIp."/>
+   <parameter name="userIp" description="IP address of the end user for whom the API call is being made."/>
+   <sequence>
+      <property name="uri.var.maxResults" expression="$func:maxResults"/>
+      <property name="uri.var.startIndex" expression="$func:startIndex"/>
+      <property name="uri.var.fields" expression="$func:fields"/>
+      <property name="uri.var.callback" expression="$func:callback"/>
+      <property name="uri.var.prettyPrint" expression="$func:prettyPrint"/>
+      <property name="uri.var.quotaUser" expression="$func:quotaUser"/>
+      <property name="uri.var.userIp" expression="$func:userIp"/>
+      <script language="js">
+         <![CDATA[
+            var quotaUser = mc.getProperty('uri.var.quotaUser');
+            var startIndex = mc.getProperty('uri.var.startIndex');
+            var prettyPrint = mc.getProperty('uri.var.prettyPrint');
+            var maxResults = mc.getProperty('uri.var.maxResults');
+            var callback = mc.getProperty('uri.var.callback');
+            var userIp = mc.getProperty('uri.var.userIp');
+            var fields = mc.getProperty('uri.var.fields');
+            var urlQuery = '';
+            if (maxResults != null && maxResults != "") {
+               urlQuery += 'max-results=' + maxResults + '&';
+            }
+            if (startIndex != null && startIndex != "") {
+               urlQuery += 'start-index=' + startIndex + '&';
+            }
+            if (fields != null && fields != "") {
+               urlQuery += 'fields=' + fields + '&';
+            }
+            if (callback != null && callback != "") {
+               urlQuery += 'callback=' + callback + '&';
+            }
+            if (prettyPrint != null && prettyPrint != "") {
+               urlQuery += 'prettyPrint=' + prettyPrint + '&';
+            }
+            if (quotaUser != null && quotaUser != "") {
+               urlQuery += 'quotaUser=' + quotaUser + '&';
+            }
+            if (userIp != null && userIp != "") {
+               urlQuery += 'userIp=' + userIp + '&';
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/analytics/v3/management/accountSummaries{+uri.var.urlQuery}"/>
+         </endpoint>
+      </call>
+      <property name="uri.var.statusCode" expression="$axis2:HTTP_SC" />
+      <!-- If the call fails with 401 Unauthorized, then get a new access token by calling getAccessTokenFromRefreshToken
+         method. -->
+      <filter xpath="get-property('uri.var.statusCode') = 401 and get-property('uri.var.refreshTokenNegotiated') = 'false'">
+         <then>
+            <googleanalytics.getAccessTokenFromRefreshToken />
+            <header name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))"
+               scope="transport" />
+            <googleanalytics.listAccountSummaries />
+         </then>
+      </filter>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Frame-Options" action="remove" scope="transport"/>
+      <header name="Expires" action="remove" scope="transport"/>
+      <header name="X-XSS-Protection" action="remove" scope="transport"/>
+      <header name="Alternate-Protocol" action="remove" scope="transport"/>
+      <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+      <header name="Alt-Svc" action="remove" scope="transport"/>
+      <header name="Cache-Control" action="remove" scope="transport"/>
+      <header name="Pragma" action="remove" scope="transport"/>
+   </sequence>
+</template>

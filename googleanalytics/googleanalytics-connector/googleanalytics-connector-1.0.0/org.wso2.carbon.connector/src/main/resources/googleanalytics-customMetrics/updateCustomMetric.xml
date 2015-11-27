@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developers.google.com/analytics/devguides/config/mgmt/v3/mgmtReference/management/customMetrics/update -->
+<template name="updateCustomMetric" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="accountId" description="Account ID for the custom metrics to create." />
+   <parameter name="webPropertyId" description="Web property ID for the custom metrics to create." />
+   <parameter name="userIp" description="IP address of the end user for whom the API call is being made." />
+   <parameter name="quotaUser" description="Alternative to userIp." />
+   <parameter name="prettyPrint" description="Returns response with indentations and line breaks." />
+   <parameter name="callback" description="Name of the JavaScript callback function that handles the response." />
+   <parameter name="fields" description="The fields which the response should show." />
+   <parameter name="active" description="Boolean indicating whether the custom metric is active." />
+   <parameter name="scope" description="Scope of the custom metric: HIT or PRODUCT." />
+   <parameter name="name" description="Name of the custom metrics." />
+   <parameter name="type" description="Data type of custom metric." />
+   <parameter name="customMetricsId" description="ID of the customMetrics to update." />
+   <parameter name="ignoreCustomDataSourceLinks"
+      description="Force the update and ignore any warnings related to the custom dimension being linked to a custom data source / data set." />
+   <parameter name="minValue" description="Max value of custom metric." />
+   <parameter name="maxValue" description="Min value of custom metric." />
+   <sequence>
+      <property name="uri.var.accountId" expression="$func:accountId" />
+      <property name="uri.var.webPropertyId" expression="$func:webPropertyId" />
+      <property name="uri.var.userIp" expression="$func:userIp" />
+      <property name="uri.var.quotaUser" expression="$func:quotaUser" />
+      <property name="uri.var.prettyPrint" expression="$func:prettyPrint" />
+      <property name="uri.var.callback" expression="$func:callback" />
+      <property name="uri.var.fields" expression="$func:fields" />
+      <property name="uri.var.active" expression="$func:active" />
+      <property name="uri.var.scope" expression="$func:scope" />
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.customMetricsId" expression="$func:customMetricsId" />
+      <property name="uri.var.ignoreCustomDataSourceLinks" expression="$func:ignoreCustomDataSourceLinks" />
+      <property name="uri.var.minValue" expression="$func:minValue" />
+      <property name="uri.var.maxValue" expression="$func:maxValue" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "scope": "$1",
+            "name": "$2",
+            "active": "$3",
+            "type": "$4"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.scope')" />
+            <arg expression="get-property('uri.var.name')" />
+            <arg expression="get-property('uri.var.active')" />
+            <arg expression="get-property('uri.var.type')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var quotaUser = mc.getProperty('uri.var.quotaUser');
+            var prettyPrint = mc.getProperty('uri.var.prettyPrint');
+            var userIp = mc.getProperty('uri.var.userIp');
+            var callback = mc.getProperty('uri.var.callback');
+            var fields = mc.getProperty('uri.var.fields');
+            var ignoreCustomDataSourceLinks = mc.getProperty('uri.var.ignoreCustomDataSourceLinks');
+            var minValue = mc.getProperty('uri.var.minValue');
+            var maxValue = mc.getProperty('uri.var.maxValue');
+            var jsonPayload = mc.getPayloadJSON();
+            var urlQuery = '';
+            if (userIp != null && userIp != "") {
+               urlQuery += 'userIp=' + userIp + '&';
+            }
+            if (quotaUser != null && quotaUser != "") {
+               urlQuery += 'quotaUser=' + quotaUser + '&';
+            }
+            if (prettyPrint != null && prettyPrint != "") {
+               urlQuery += 'prettyPrint=' + prettyPrint + '&';
+            }
+            if (callback != null && callback != "") {
+               urlQuery += 'callback=' + callback + '&';
+            }
+            if (fields != null && fields != "") {
+               urlQuery += 'fields=' + fields + '&';
+            }
+            if (ignoreCustomDataSourceLinks != null && ignoreCustomDataSourceLinks != "") {
+               urlQuery += 'ignoreCustomDataSourceLinks=' + ignoreCustomDataSourceLinks + '&';
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+            if (minValue != null && minValue != ""){
+               jsonPayload.min_value = minValue;
+            }
+            if (maxValue != null && maxValue != ""){
+               jsonPayload.max_value = maxValue;
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="put"
+               uri-template="{+uri.var.apiUrl}/analytics/v3/management/accounts/{+uri.var.accountId}/webproperties/{+uri.var.webPropertyId}/customMetrics/{+uri.var.customMetricsId}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <property name="uri.var.statusCode" expression="$axis2:HTTP_SC" />
+      <!-- If the call fails with 401 Unauthorized, then get a new access token by calling getAccessTokenFromRefreshToken
+         method. -->
+      <filter xpath="get-property('uri.var.statusCode') = 401 and get-property('uri.var.refreshTokenNegotiated') = 'false'">
+         <then>
+            <googleanalytics.getAccessTokenFromRefreshToken />
+            <header name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))"
+               scope="transport" />
+            <googleanalytics.updateCustomMetrics />
+         </then>
+      </filter>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="Alternate-Protocol" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Alt-Svc" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+   </sequence>
+</template>
