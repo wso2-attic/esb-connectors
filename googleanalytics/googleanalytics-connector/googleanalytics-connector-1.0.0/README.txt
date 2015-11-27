@@ -19,8 +19,15 @@ Steps to follow in setting integration test.
  1. Download ESB 4.9.0 by navigating to the following URL: http://wso2.com/products/enterprise-service-bus/#
  
  2. Deploy relevant patches, if applicable. Place the patch files into location <ESB_HOME>/repository/components/patches.
+     If required add the X.509 certificate from http://www.google.com/analytics/ to the client-truststore.jks of the ESB located in <ESB_HOME>/repository/resources/security folder
+      and wso2carbon.jks located in <GOOGLEANALYTICS_CONNECTOR_HOME>/googleanalytics-connector/googleanalytics-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products.
 
- 3. Set authorization details:
+ 3. Navigate to location "<ESB_HOME>/repository/conf/axis2" and add/uncomment following lines in "axis2.xml". 
+ 
+      <messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+      <messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+
+ 4. Set authorization details:
    i)   Using the URL "https://analytics.google.com/analytics/web/provision?et=&authuser=#provision/SignUp/" create a Google Analytics account.
    ii)  Go to "https://developers.google.com/oauthplayground/".
    iii) Authorize GoogleAnalytics API from "Select & authorize APIs" by selecting all the scopes available.
@@ -29,7 +36,7 @@ Steps to follow in setting integration test.
    vi)  Enable GoogleAnalytics API by navigating to the "APIs" tab which is under "APIs & auth" tab.
    vii) Go to "Credentials" tab which is under "APIs & auth" tab and add credentials by selecting OAuth 2.0 client ID option.( Configure consent screen and then create client ID for 'Web application' type of applications. Note down the redirect uri for future use.)
    viii)Note down the client ID and client secret for future use.
-   ix)  Get the authorization code by sending a GET request using url, https://accounts.google.com/o/oauth2/auth?redirect_uri=<redirect_uri>&response_type=code&client_id=<client_ID>&scope=https://www.googleapis.com/auth/bigquery&approval_prompt=force&access_type=offline (Replace <redirect_uri> and <client_ID> with the redirect uri and client ID values noted in step vii and viii. Note down the authorization code for future use.)
+   ix)  Get the authorization code by sending a GET request using url, https://accounts.google.com/o/oauth2/auth?redirect_uri=<redirect_uri>&response_type=code&client_id=<client_ID>&scope=https://www.googleapis.com/auth/analytics https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/analytics.provision https://www.googleapis.com/auth/analytics.manage.users https://www.googleapis.com/auth/analytics.edit https://www.googleapis.com/auth/analytics.manage.users.readonly&approval_prompt=force&access_type=offline (Replace <redirect_uri> and <client_ID> with the redirect uri and client ID values noted in step vii and viii. Note down the authorization code for future use.)
    x)   Get the access token and refresh token by sending a POST request to the url https://www.googleapis.com/oauth2/v3/token with x-www-form-urlencoded body with code,client_id,client_secret,redirect_uri values noted before and with grant_type value "authorization_code" (Note down the access token and refresh token for future use.).
    xi)  Add following resources to the ESB registry with the noted values before.
 
@@ -41,14 +48,10 @@ Steps to follow in setting integration test.
       /_system/governance/connectors/GoogleAnalytics/refreshToken
 
  
- 4. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{ESB_CONNECTOR_HOME}/repository/".
+ 5. Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{ESB_CONNECTOR_HOME}/repository/".
  
- 5. Make sure that GoogleAnalytics is specified as a module in ESB Connector Parent pom.
-
-    <module>googleanalytics/googleanalytics-connector/googleanalytics-connector-1.0.0/org.wso2.carbon.connector</module>
-    
  6. Pre-requisites to follow.
-   i)    Navigate to the 'Admin' section of the account created in 3 i) 
+   i)    Navigate to the 'Admin' section of the account created in 4 i) 
             a) Go to the 'Account Settings' tab of the selected account and obtain the account ID.
             b) Navigate to the 'PROPERTY' section ->Tracking Info->Tracking Code and obtain the Tracking ID.
             c) Navigate to the 'VIEW' section ->View Settings and obtain the view ID.
@@ -149,6 +152,10 @@ Steps to follow in setting integration test.
    Lxxvi)  experimentUpdatededitableInGaUi    -   Text to be used as 'editableInGaUi' while updating an experiment with optional parameters. (Make sure to use a boolean value).
 
    Note  :  Make sure to delete the adWords link after each test execution.
-   
- 7. Navigate to "<ESB_CONNECTOR_HOME>/" and run the following command.
+
+ 7. Make sure that GoogleAnalytics is specified as a module in ESB Connector Parent pom.
+
+    <module>googleanalytics/googleanalytics-connector/googleanalytics-connector-1.0.0/org.wso2.carbon.connector</module>   
+ 
+ 8. Navigate to "<ESB_CONNECTOR_HOME>/" and run the following command.
      $ mvn clean install
