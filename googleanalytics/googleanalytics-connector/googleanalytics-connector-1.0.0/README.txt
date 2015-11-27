@@ -153,9 +153,9 @@ Steps to follow in setting integration test.
 
    Note  :  Make sure to delete the adWords link after each test execution.
 
- 7. Make sure that GoogleAnalytics is specified as a module in ESB Connector Parent pom.
+ 8. Make sure that GoogleAnalytics is specified as a module in ESB Connector Parent pom.
 
     <module>googleanalytics/googleanalytics-connector/googleanalytics-connector-1.0.0/org.wso2.carbon.connector</module>   
  
- 8. Navigate to "<ESB_CONNECTOR_HOME>/" and run the following command.
+ 9. Navigate to "<ESB_CONNECTOR_HOME>/" and run the following command.
      $ mvn clean install
