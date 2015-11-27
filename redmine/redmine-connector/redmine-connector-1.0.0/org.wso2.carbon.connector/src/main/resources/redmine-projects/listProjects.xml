@@ -17,20 +17,45 @@
 ~ under the License.
 -->
 <template name="listProjects" xmlns="http://ws.apache.org/ns/synapse">
+
+    <!--Optional parameters -->
+    <parameter name="redminelimit" description="number of projects to return" />
+    <parameter name="redmineoffset" description="index of the first project to return" />
+
+
     <sequence>
+        <property name="uri.var.redmineoffset" expression="$func:redmineoffset" />
+        <property name="uri.var.redminelimit" expression="$func:redminelimit" />
+
+        <filter
+            xpath="(not(get-property('uri.var.redminelimit') = '' or (not(string(get-property('uri.var.redminelimit'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                    expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;limit=',get-property('uri.var.redminelimit'))" />
+            </then>
+        </filter>
+        <filter
+            xpath="(not(get-property('uri.var.redmineoffset') = '' or (not(string(get-property('uri.var.redmineoffset'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                    expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;offset=',get-property('uri.var.redmineoffset'))" />
+            </then>
+        </filter>
+
         <call>
             <endpoint>
-                <http method="get" uri-template="{+uri.var.apiUrl}/projects.{+uri.var.responseType}"/>
+                <http method="get"
+                    uri-template="{+uri.var.apiUrl}/projects.{+uri.var.responseType}?{+uri.var.apiParameters}" />
             </endpoint>
         </call>
         <!-- Remove response custom header information -->
-        <header name="X-Runtime" scope="transport" action="remove"/>
-        <header name="X-UA-Compatible" scope="transport" action="remove"/>
-        <header name="WWW-Authenticate" scope="transport" action="remove"/>
-        <header name="Via" scope="transport" action="remove"/>
-        <header name="ETag" scope="transport" action="remove"/>
-        <header name="Set-Cookie" scope="transport" action="remove"/>
-        <header name="X-Request-Id" scope="transport" action="remove"/>
-        <header name="X-Rack-Cache" scope="transport" action="remove"/>
+        <header name="X-Runtime" scope="transport" action="remove" />
+        <header name="X-UA-Compatible" scope="transport" action="remove" />
+        <header name="WWW-Authenticate" scope="transport" action="remove" />
+        <header name="Via" scope="transport" action="remove" />
+        <header name="ETag" scope="transport" action="remove" />
+        <header name="Set-Cookie" scope="transport" action="remove" />
+        <header name="X-Request-Id" scope="transport" action="remove" />
+        <header name="X-Rack-Cache" scope="transport" action="remove" />
     </sequence>
 </template>
