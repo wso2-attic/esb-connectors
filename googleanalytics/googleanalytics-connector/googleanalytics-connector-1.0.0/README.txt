@@ -113,29 +113,29 @@ Steps to follow in setting integration test.
    xLiii)  reportType                         -   Text to be used as report-type of the meta data API (E.g : ga).
    xLiv)   configFields                       -   Fields which need to be there in the  listConfigurationData response as a comma separated string. Make sure to include 'kind','etag','items' and 'attributeNames' and not to include 'totalResults' in the string.
    
-   xLv)    accountSumMaxResults               -   Integer value to be used as 'max-results' while listing a AccountSummaries with optional parameters. (Make sure to use  '1' or '2').
-   xLvi)   accountSumStartIndex               -   Integer value to be used as 'Start-index' while listing a AccountSummaries with optional parameters. (Make sure to use  '1' or '2').
+   xLv)    accountSumMaxResults               -   Integer value to be used as 'max-results' while listing accountSummaries with optional parameters. (Make sure to use  '1' or '2').
+   xLvi)   accountSumStartIndex               -   Integer value to be used as 'Start-index' while listing accountSummaries with optional parameters. (Make sure to use  '1' or '2').
    
-   xLvii)  accountMaxResults                  -   Integer value to be used as 'max-results' while listing a Accounts with optional parameters.(Make sure to use  '1' or '2'). 
-   xLviii) accountStartIndex                  -   Integer value to be used as 'Start-index' while listing a Accounts with optional parameters.(Make sure to use  '1' or '2').
+   xLvii)  accountMaxResults                  -   Integer value to be used as 'max-results' while listing accounts with optional parameters.(Make sure to use  '1' or '2'). 
+   xLviii) accountStartIndex                  -   Integer value to be used as 'Start-index' while listing accounts with optional parameters.(Make sure to use  '1' or '2').
    
-   xLix)   segmentMaxResults                  -   Integer value to be used as 'max-results' while listing a Segments with optional parameters. (Make sure to use  '1' or '2').
-   L)      segmentStartIndex                  -   Integer value to be used as 'Start-index' while listing a Segments with optional parameters.(Make sure to use  '1' or '2').
+   xLix)   segmentMaxResults                  -   Integer value to be used as 'max-results' while listing segments with optional parameters. (Make sure to use  '1' or '2').
+   L)      segmentStartIndex                  -   Integer value to be used as 'Start-index' while listing segments with optional parameters.(Make sure to use  '1' or '2').
    
-   Li)     customDataSourceMaxResults         -   Integer value to be used as 'max-results' while listing a CustomDataSources with optional parameters.(Make sure to use  '1' or '2').
-   Lii)    customDataSourceStartIndex         -   Integer value to be used as 'Start-index' while listing a CustomDataSources with optional parameters.(Make sure to use  '1' or '2').
+   Li)     customDataSourceMaxResults         -   Integer value to be used as 'max-results' while listing customDataSources with optional parameters.(Make sure to use  '1' or '2').
+   Lii)    customDataSourceStartIndex         -   Integer value to be used as 'Start-index' while listing customDataSources with optional parameters.(Make sure to use  '1' or '2').
    
-   Liii)   adWordsLinkMaxResults              -   Integer value to be used as 'max-results' while listing a AdWordsLink with optional parameters.(Make sure to use  '1' or '2').
-   Liv)    adWordsLinkStartIndex              -   Integer value to be used as 'Start-index' while listing a AdWordsLink with optional parameters.(Make sure to use  '1' or '2').
-   Lv)     adWordsLinkName                    -   Text to be used as 'Name' which is a mandatory parameter while creating a AdWordsLink.
+   Liii)   adWordsLinkMaxResults              -   Integer value to be used as 'max-results' while listing adWordsLinks with optional parameters.(Make sure to use  '1' or '2').
+   Liv)    adWordsLinkStartIndex              -   Integer value to be used as 'Start-index' while listing adWordsLinks with optional parameters.(Make sure to use  '1' or '2').
+   Lv)     adWordsLinkName                    -   Text to be used as 'Name' which is a mandatory parameter while creating an adWordsLink.
    Lvi)    adWordsLinkCustomerId              -   Use the customer ID obtained under Step 6 ii. 
-   Lvii)   adWordsLinkUpdatedName             -   Text to be used as 'Name' while updating a AdWordsLink with mandatory parameters.
-   Lviii)  adWordsLinkAutoTaggingEnabled      -   Text to be used as 'adWordsLinkAutoTaggingEnabled' while updating a AdWordsLink with optional parameters. (Make sure to use a boolean value).
-   Lix)    adWordsLinkPatchName               -   Text to be used as 'Name' while patch_updating a AdWordsLink with optional parameters.
-   Lx)     adWordsLinkPatchAutoTaggingEnabled -   Text to be used as 'adWordsLinkAutoTaggingEnabled' while patch_updating a AdWordsLink with optional parameters. (Make sure to use a boolean value).
+   Lvii)   adWordsLinkUpdatedName             -   Text to be used as 'Name' while updating an adWordsLink with mandatory parameters.
+   Lviii)  adWordsLinkAutoTaggingEnabled      -   Text to be used as 'adWordsLinkAutoTaggingEnabled' while updating an adWordsLink with optional parameters. (Make sure to use a boolean value).
+   Lix)    adWordsLinkPatchName               -   Text to be used as 'Name' while patch_updating an adWordsLink with optional parameters.
+   Lx)     adWordsLinkPatchAutoTaggingEnabled -   Text to be used as 'adWordsLinkAutoTaggingEnabled' while patch_updating an adWordsLink with optional parameters. (Make sure to use a boolean value).
    
-   Lxi)    experimentMaxResults               -   Integer value to be used as 'max-results' while listing a Experiment with optional parameters.(Make sure to use  '1' or '2').
-   Lxii)   experimentStartIndex               -   Integer value to be used as 'Start-index' while listing a Experiment with optional parameters.(Make sure to use  '1' or '2').
+   Lxi)    experimentMaxResults               -   Integer value to be used as 'max-results' while listing experiments with optional parameters.(Make sure to use  '1' or '2').
+   Lxii)   experimentStartIndex               -   Integer value to be used as 'Start-index' while listing experiments with optional parameters.(Make sure to use  '1' or '2').
    lxiii)  experimentProfileId                -   Use the view ID obtained under Step 6 i) c).
    Lxiv)   experimentName                     -   Text to be used as 'Name' which is a mandatory parameter while creating an experiment.
    Lxv)    experimentStatus                   -   Text to be used as 'Status' which is a mandatory parameter while creating an Experiment.(Make sure to use the value 'DRAFT' as the status).
