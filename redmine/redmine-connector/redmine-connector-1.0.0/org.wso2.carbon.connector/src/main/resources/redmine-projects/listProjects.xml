@@ -17,31 +17,35 @@
 ~ under the License.
 -->
 <template name="listProjects" xmlns="http://ws.apache.org/ns/synapse">
-
     <!--Optional parameters -->
-    <parameter name="redminelimit" description="number of projects to return" />
-    <parameter name="redmineoffset" description="index of the first project to return" />
-
-
+    <parameter name="redmineLimit" description="number of projects to return" />
+    <parameter name="redmineOffset" description="index of the first project to return" />
+    <parameter name="include" description="To fetch associated data." />
     <sequence>
-        <property name="uri.var.redmineoffset" expression="$func:redmineoffset" />
-        <property name="uri.var.redminelimit" expression="$func:redminelimit" />
-
+        <property name="uri.var.redmineOffset" expression="$func:redmineOffset" />
+        <property name="uri.var.redmineLimit" expression="$func:redmineLimit" />
+        <property name="uri.var.include" expression="$func:include" />
         <filter
-            xpath="(not(get-property('uri.var.redminelimit') = '' or (not(string(get-property('uri.var.redminelimit'))))))">
+            xpath="(not(get-property('uri.var.redmineLimit') = '' or (not(string(get-property('uri.var.redmineLimit'))))))">
             <then>
                 <property name="uri.var.apiParameters"
-                    expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;limit=',get-property('uri.var.redminelimit'))" />
+                    expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;limit=',get-property('uri.var.redmineLimit'))" />
             </then>
         </filter>
         <filter
-            xpath="(not(get-property('uri.var.redmineoffset') = '' or (not(string(get-property('uri.var.redmineoffset'))))))">
+            xpath="(not(get-property('uri.var.redmineOffset') = '' or (not(string(get-property('uri.var.redmineOffset'))))))">
             <then>
                 <property name="uri.var.apiParameters"
-                    expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;offset=',get-property('uri.var.redmineoffset'))" />
+                    expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;offset=',get-property('uri.var.redmineOffset'))" />
             </then>
         </filter>
-
+        <filter
+            xpath="(string(get-property('uri.var.include'))) or get-property('uri.var.include') != ''">
+            <then>
+                <property name="uri.var.queryString"
+                    expression="fn:concat('?include=', get-property('uri.var.include'))" />
+            </then>
+        </filter>
         <call>
             <endpoint>
                 <http method="get"
