@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!--Create and send survey to the patients -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="formstack_createAndSendSurveySeq">
+   
+   <sequence key="removeResponseHeaders" />
+   
+   <!--Call formstack connector copyForm method to clone the form-->
+   <formstack.init>
+      <accessToken>{$ctx:formstack.accessToken}</accessToken>
+      <format>json</format>
+      <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+   </formstack.init>
+   <formstack.copyForm>
+      <formId>{$ctx:formstack.templateFormId}</formId>
+   </formstack.copyForm>
+   <property name="formstack.formId" expression="json-eval($.id)" />
+   <property name="formstack.fieldsArray" expression="json-eval($.fields)" />
+   <property name="formstack.formUrl" expression="json-eval($.url)" />
+
+   <!-- START: Proceed only the cloning the form is successful -->
+   <filter source="boolean(get-property('formstack.formId'))" regex="false">
+      <then>
+         <property name="id" value="" />
+         <property name="status" value="error" />
+         <property name="message" expression="json-eval($.)" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="activity" value="formstack_cloneForm" />
+            <with-param name="status" value="{$ctx:status}" />
+            <with-param name="message" value="{$ctx:message}" />
+         </call-template>
+      </then>
+      <else>
+         <!--Extract cliniko_getSettingsSeq to get details of cliniko -->
+         <sequence key="cliniko_getSettingsSeq" />
+      
+         <!--Extract the Ids of the fields which contain the invoice ID and the admin email-->
+         <script language="js">
+            <![CDATA[
+               
+               var invoiceIdLabelName = mc.getProperty('formstack.invoiceId').toLowerCase();
+               var adminEmailLabel = mc.getProperty('formstack.adminEmail').toLowerCase();
+               var productDetailsName = mc.getProperty('formstack.productDetails').toLowerCase();
+               var fieldsArray = mc.getProperty('formstack.fieldsArray');
+               
+               var invoiceId = '';
+               var adminEmailId = '';
+               var productDetails = '';
+               
+               if(fieldsArray != null && fieldsArray != ''){
+                  fieldsArray = eval("(" + fieldsArray + ")");
+                  for(var i=0; i<fieldsArray.length; i++){
+                     var labelName = fieldsArray[i].label.toLowerCase();
+                     if(labelName == invoiceIdLabelName){
+                        invoiceId = '' + fieldsArray[i].id;
+                     } else if(labelName == adminEmailLabel){
+                         adminEmailId = '' + fieldsArray[i].id;
+                     } 
+                     
+                     if(invoiceId != '' && adminEmailId != ''){
+                        break;
+                     }
+                  }
+               }
+               mc.setProperty('formstack.invoiceFieldId', invoiceId);
+               mc.setProperty('formstack.adminEmailFieldId', adminEmailId
+               );
+            ]]>
+         </script>
+         
+         <!-- If ID of the cliniko invoice ID field could be found, update the content of the field with the invoice ID. -->
+         <filter source="boolean(get-property('formstack.invoiceFieldId'))" regex="true">
+            <then>
+               <call-template target="formstack_updateFieldContent">
+                  <with-param name="apiUrl" value="{$ctx:formstack.apiUrl}" />
+                  <with-param name="accessToken" value="{$ctx:formstack.accessToken}" />
+                  <with-param name="fieldId" value="{$ctx:formstack.invoiceFieldId}" />
+                  <with-param name="content" value="{$ctx:cliniko.invoiceId}" />
+               </call-template>
+            </then>
+         </filter>
+         
+         <!-- If the user name field could be found, update the content of the field with the admin email of the cliniko admin -->
+         <filter source="boolean(get-property('formstack.adminEmailFieldId'))" regex="true">
+            <then>
+               <call-template target="formstack_updateFieldContent">
+                  <with-param name="apiUrl" value="{$ctx:formstack.apiUrl}" />
+                  <with-param name="accessToken" value="{$ctx:formstack.accessToken}" />
+                  <with-param name="fieldId" value="{$ctx:formstack.adminEmailFieldId}" />
+                  <with-param name="content" value="{$ctx:cliniko.adminEmail}" />
+               </call-template>
+            </then>
+         </filter>
+
+         <!--Construct the email to send to the patient-->
+         <script language="js">
+            <![CDATA[
+               var requesterEmail = mc.getProperty('cliniko.patientEmail');								  
+               var requesterName = mc.getProperty('cliniko.patientFirstName');									  
+               var fromName = mc.getProperty('cliniko.accountName');									  
+               var invoiceDate = mc.getProperty('cliniko.currentDate');									  
+               var products = mc.getProperty('mandrill.products');									  
+               var reportedTime = mc.getProperty('supportbee.ticket.createdTime');								  
+               var resolution = mc.getProperty('ticket.resolution');								  
+               var formUrl = mc.getProperty('formstack.formUrl');		
+               
+               var mailHTML = "<h3>Dear " + requesterName + ",</h3><p>Thanks for visting '" + fromName + "'.We hope that we have given you a good service.</p><p>We would like you to complete this survey to give us feedback on how you felt about our service and how we could improve it in future.</p><p><u><a href='" + formUrl + "'>Click here to complete the survey</a></u></p> <p></p><p> </p><p> </p><p>This is an auto-generated email. Please do not reply.</p><p>Thank you,</p><p>"+fromName+"</p>";
+
+               mc.setProperty('mandrill.html', mailHTML);																		
+               mc.setProperty('mandrill.subject', 'Help us improve our service - '+fromName);																		
+               var mailTo = '[{"email": "' + requesterEmail + '", "name": "' + requesterName + '", "type": "to"}]';
+               mc.setProperty('mandrill.to', mailTo);
+            ]]>
+         </script>
+         <property name="mandrill.html" expression="fn:concat('&lt;html&gt;', get-property('mandrill.html'), '&lt;/html&gt;')" />
+         
+         <!-- Call mandril sendMessage to Send survey to requester. -->
+         <mandrill.init>
+            <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+            <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+            <format>json</format>
+         </mandrill.init>
+         <mandrill.sendMessage>
+            <html>{$ctx:mandrill.html}</html>
+            <subject>{$ctx:mandrill.subject}</subject>
+            <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+            <fromName>{$ctx:cliniko.accountName}</fromName>
+            <important>false</important>
+            <autoHtml>true</autoHtml>
+            <urlStripQs>false</urlStripQs>
+            <preserveRecipients>true</preserveRecipients>
+            <viewContentLink>true</viewContentLink>
+            <to>{$ctx:mandrill.to}</to>
+         </mandrill.sendMessage>
+         <property name="mandrill.mailId" expression="json-eval($[0]._id)" />
+        
+         <!-- START: Append a message to be sent to the user regarding the status of the send email operation. -->
+         <filter source="boolean(get-property('mandrill.mailId'))" regex="true">
+            <then>
+               <property name="id" expression="fn:concat('formstack_formId:', get-property('formstack.formId'), ',cliniko_invoiceId:', get-property('cliniko.invoiceId'))" />
+               <property name="status" value="success" />
+               <property name="message" value="The survey has been successfully sent." />
+            </then>
+            <else>
+               <property name="id" expression="fn:concat('formstack_formId:', get-property('formstack.formId'))" />
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($)" />
+            </else>
+         </filter>
+         <!-- END: Append a message to be sent to the user regarding the status of the send email operation. -->
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="mandrill_sendSurvey" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="{$ctx:status}" />
+            <with-param name="message" value="{$ctx:message}" />
+         </call-template>
+      </else>
+   </filter>
+</sequence>
