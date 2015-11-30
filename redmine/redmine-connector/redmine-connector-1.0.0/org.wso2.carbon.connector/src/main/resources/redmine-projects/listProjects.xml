@@ -17,20 +17,49 @@
 ~ under the License.
 -->
 <template name="listProjects" xmlns="http://ws.apache.org/ns/synapse">
+    <!--Optional parameters -->
+    <parameter name="redmineLimit" description="number of projects to return" />
+    <parameter name="redmineOffset" description="index of the first project to return" />
+    <parameter name="include" description="comma separated fields to fetch associated data" />
     <sequence>
+        <property name="uri.var.redmineOffset" expression="$func:redmineOffset" />
+        <property name="uri.var.redmineLimit" expression="$func:redmineLimit" />
+        <property name="uri.var.include" expression="$func:include" />
+        <filter
+            xpath="(not(get-property('uri.var.redmineLimit') = '' or (not(string(get-property('uri.var.redmineLimit'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                    expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;limit=',get-property('uri.var.redmineLimit'))" />
+            </then>
+        </filter>
+        <filter
+            xpath="(not(get-property('uri.var.redmineOffset') = '' or (not(string(get-property('uri.var.redmineOffset'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                    expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;offset=',get-property('uri.var.redmineOffset'))" />
+            </then>
+        </filter>
+        <filter
+            xpath="(string(get-property('uri.var.include'))) or get-property('uri.var.include') != ''">
+            <then>
+                <property name="uri.var.queryString"
+                    expression="fn:concat('?include=', get-property('uri.var.include'))" />
+            </then>
+        </filter>
         <call>
             <endpoint>
-                <http method="get" uri-template="{+uri.var.apiUrl}/projects.{+uri.var.responseType}"/>
+                <http method="get"
+                    uri-template="{+uri.var.apiUrl}/projects.{+uri.var.responseType}?{+uri.var.apiParameters}" />
             </endpoint>
         </call>
         <!-- Remove response custom header information -->
-        <header name="X-Runtime" scope="transport" action="remove"/>
-        <header name="X-UA-Compatible" scope="transport" action="remove"/>
-        <header name="WWW-Authenticate" scope="transport" action="remove"/>
-        <header name="Via" scope="transport" action="remove"/>
-        <header name="ETag" scope="transport" action="remove"/>
-        <header name="Set-Cookie" scope="transport" action="remove"/>
-        <header name="X-Request-Id" scope="transport" action="remove"/>
-        <header name="X-Rack-Cache" scope="transport" action="remove"/>
+        <header name="X-Runtime" scope="transport" action="remove" />
+        <header name="X-UA-Compatible" scope="transport" action="remove" />
+        <header name="WWW-Authenticate" scope="transport" action="remove" />
+        <header name="Via" scope="transport" action="remove" />
+        <header name="ETag" scope="transport" action="remove" />
+        <header name="Set-Cookie" scope="transport" action="remove" />
+        <header name="X-Request-Id" scope="transport" action="remove" />
+        <header name="X-Rack-Cache" scope="transport" action="remove" />
     </sequence>
 </template>
