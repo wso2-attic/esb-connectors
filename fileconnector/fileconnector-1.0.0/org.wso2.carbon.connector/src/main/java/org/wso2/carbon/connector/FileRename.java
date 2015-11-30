@@ -74,7 +74,7 @@ public class FileRename extends AbstractConnector implements Connector {
 		try {
 			resultStatus = renameFile(fileLocation, filename, newFileName, filebeforepprocess);
 		} catch (FileSystemException e) {
-			handleException("Error while renaming a file",e, messageContext);
+			handleException("Error while renaming a file", e, messageContext);
 		}
 
 		generateResult(messageContext, resultStatus);

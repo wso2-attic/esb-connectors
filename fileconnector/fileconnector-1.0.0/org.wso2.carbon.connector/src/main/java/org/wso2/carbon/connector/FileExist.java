@@ -63,7 +63,7 @@ public class FileExist extends AbstractConnector implements Connector {
 		try {
 			isFileExist = isFileExist(fileLocation, filename, content);
 		} catch (FileSystemException e) {
-			handleException(e.getMessage(),e, messageContext);
+			handleException("Error while checking a file: " + e.getMessage(), e, messageContext);
 		}
 
 		generateResults(messageContext, isFileExist);
