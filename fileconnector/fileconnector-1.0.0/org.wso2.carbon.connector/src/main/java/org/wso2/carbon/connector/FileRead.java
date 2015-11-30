@@ -86,7 +86,7 @@ public class FileRead extends AbstractConnector implements Connector {
             }
             ResultPayloadCreater.buildFile(fileObj, messageContext, contentType, streaming);
         } catch (Exception e) {
-            handleException(e.getMessage(), messageContext);
+            handleException(e.getMessage(),e, messageContext);
         } finally {
             try {
                 // Close the File system if it is not already closed by the finally block of processFile method

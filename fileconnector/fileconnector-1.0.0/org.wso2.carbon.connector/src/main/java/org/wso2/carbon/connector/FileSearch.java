@@ -76,7 +76,7 @@ public class FileSearch extends AbstractConnector implements Connector {
 			try {
 				readFilesUsingFileSystem(fileLocation, filepattern, dirpattern, sb);
 			} catch (FileSystemException e) {
-				handleException(e.getMessage(), messageContext);
+				handleException(e.getMessage(),e, messageContext);
 			}
 
 			generateOutput(messageContext, sb);

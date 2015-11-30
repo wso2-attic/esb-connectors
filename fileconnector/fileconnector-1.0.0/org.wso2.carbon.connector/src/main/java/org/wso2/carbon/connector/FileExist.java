@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  * 
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -63,7 +63,7 @@ public class FileExist extends AbstractConnector implements Connector {
 		try {
 			isFileExist = isFileExist(fileLocation, filename, content);
 		} catch (FileSystemException e) {
-			handleException(e.getMessage(), messageContext);
+			handleException(e.getMessage(),e, messageContext);
 		}
 
 		generateResults(messageContext, isFileExist);

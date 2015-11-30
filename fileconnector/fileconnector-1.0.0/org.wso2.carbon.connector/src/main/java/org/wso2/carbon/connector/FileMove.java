@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  * 
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -40,7 +40,7 @@ import org.wso2.carbon.connector.util.ResultPayloadCreater;
 
 public class FileMove extends AbstractConnector implements Connector {
 
-	private static Log log = LogFactory.getLog(FileCreate.class);
+	private static Log log = LogFactory.getLog(FileMove.class);
 
 	public void connect(MessageContext messageContext) throws ConnectException {
 		System.out.println("File deletion started...");
@@ -76,7 +76,7 @@ public class FileMove extends AbstractConnector implements Connector {
 			               moveFile(fileLocation, filename, filebeforepprocess, fileafterprocess,
 			                        newFileLocation);
 		} catch (FileSystemException e) {
-			handleException(e.getMessage(), messageContext);
+			handleException("Unable to move a file/folder.", e, messageContext);
 		}
 
 		generateResults(messageContext, resultStatus);
