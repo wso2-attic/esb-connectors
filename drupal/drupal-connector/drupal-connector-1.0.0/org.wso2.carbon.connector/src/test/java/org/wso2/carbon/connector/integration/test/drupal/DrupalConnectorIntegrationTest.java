@@ -344,7 +344,7 @@ public class DrupalConnectorIntegrationTest extends ConnectorIntegrationTestBase
     }
     
     /**
-     * Test case: testListNodeAttachmentsWithMandatoryParameters. 
+     * Test case: testListNodeAttachmentsWithOptionalParameters. 
      * Status: Skipped.
      * Reason : There is no any optional case to assert.
      */
