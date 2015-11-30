@@ -49,14 +49,14 @@ import org.codehaus.jettison.json.JSONException;
 public class ResultPayloadCreater {
 
     private static final Log log = LogFactory.getLog(ResultPayloadCreater.class);
-    
-	/**
-	 * Prepare pay load
-	 * 
-	 * @param messageContext
-	 * @param element
-	 */
-	public void preparePayload(MessageContext messageContext, OMElement element) {
+
+    /**
+     * Prepare pay load
+     *
+     * @param messageContext
+     * @param element
+     */
+    public void preparePayload(MessageContext messageContext, OMElement element) {
         SOAPBody soapBody = messageContext.getEnvelope().getBody();
         for (Iterator itr = soapBody.getChildElements(); itr.hasNext(); ) {
             OMElement child = (OMElement) itr.next();
@@ -66,47 +66,45 @@ public class ResultPayloadCreater {
             OMElement child = (OMElement) itr.next();
             soapBody.addChild(child);
         }
-	}
+    }
 
-	/**
-	 * Create a OMElement
-	 * 
-	 * @param output
-	 * @return
-	 * @throws XMLStreamException
-	 * @throws IOException
-	 * @throws JSONException
-	 */
-	public OMElement performSearchMessages(String output) throws XMLStreamException,
+    /**
+     * Create a OMElement
+     *
+     * @param output
+     * @return
+     * @throws XMLStreamException
+     * @throws IOException
+     * @throws JSONException
+     */
+    public OMElement performSearchMessages(String output) throws XMLStreamException,
+            IOException, JSONException {
+        OMElement resultElement;
+        if (!output.equals("")) {
+            resultElement = AXIOMUtil.stringToOM(output);
+        } else {
+            resultElement = AXIOMUtil.stringToOM("<result></></result>");
+        }
 
-	IOException, JSONException {
-		OMElement resultElement;
-		if (!output.equals("")) {
-			resultElement = AXIOMUtil.stringToOM(output);
-		} else {
-			resultElement = AXIOMUtil.stringToOM("<result></></result>");
-		}
+        return resultElement;
 
-		return resultElement;
+    }
 
-	}
+    /**
+     * Send error status
+     *
+     * @param ctxt
+     * @param e
+     */
 
-	/**
-	 * Send error status
-	 * 
-	 * @param ctxt
-	 * @param e
-	 */
-
-	public static void sendErrorStatus(MessageContext ctxt, Exception e) {
-		ctxt.setProperty(SynapseConstants.ERROR_EXCEPTION, e);
-		ctxt.setProperty(SynapseConstants.ERROR_MESSAGE, e.getMessage());
-	}
+    public static void sendErrorStatus(MessageContext ctxt, Exception e) {
+        ctxt.setProperty(SynapseConstants.ERROR_EXCEPTION, e);
+        ctxt.setProperty(SynapseConstants.ERROR_MESSAGE, e.getMessage());
+    }
 
 
     public static boolean buildFile(FileObject file, MessageContext msgCtx, String contentType, String streaming)
             throws SynapseException {
-
         ManagedDataSource dataSource = null;
         try {
             if (contentType == null || contentType.trim().equals("")) {
@@ -169,10 +167,10 @@ public class ResultPayloadCreater {
                 documentElement = ((DataSourceMessageBuilder) builder).processDocument(dataSource, contentType,
                         axis2MsgCtx);
             }
-            
+
             //We need this to build the complete message before closing the stream
             documentElement.toString();
-            
+
             msgCtx.setEnvelope(TransportUtils.createSOAPEnvelope(documentElement));
 
         } catch (SynapseException se) {
@@ -187,5 +185,4 @@ public class ResultPayloadCreater {
         }
         return true;
     }
-	
 }
