@@ -28,7 +28,7 @@ import org.wso2.carbon.connector.core.ConnectException;
 /**
  * Edit Existing Feed By ID
  */
-public class EditFeed extends AbstractConnector {
+public class FeedUpdation extends AbstractConnector {
     private static Document<Entry> doc;
 
     @Override

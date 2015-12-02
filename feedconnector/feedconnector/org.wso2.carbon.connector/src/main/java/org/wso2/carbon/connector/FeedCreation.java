@@ -30,7 +30,7 @@ import java.util.Date;
 /**
  * Create the Feeds
  */
-public class CreateFeed extends AbstractConnector {
+public class FeedCreation extends AbstractConnector {
 
     public void connect(MessageContext messageContext) throws ConnectException {
         String hostAddress = (String) getParameter(messageContext, FeedConstant.hostAddress);

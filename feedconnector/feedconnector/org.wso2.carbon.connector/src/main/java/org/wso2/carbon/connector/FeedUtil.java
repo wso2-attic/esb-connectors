@@ -39,12 +39,12 @@ public class FeedUtil {
         messageContext.getEnvelope().getBody().addChild(result);
     }
 
-    public  static  Factory getFactory(){
+    public static Factory getFactory() {
         Abdera abdera = new Abdera();
         return abdera.getFactory();
     }
 
-    public  static AbderaClient getAbderaClient(){
+    public static AbderaClient getAbderaClient() {
         Abdera abdera = new Abdera();
         return new AbderaClient(abdera);
     }

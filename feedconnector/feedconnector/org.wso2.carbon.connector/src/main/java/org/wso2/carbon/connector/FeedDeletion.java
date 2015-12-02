@@ -26,7 +26,7 @@ import org.wso2.carbon.connector.core.ConnectException;
 /**
  * Delete the Existing feed by ID
  */
-public class DeleteFeed extends AbstractConnector {
+public class FeedDeletion extends AbstractConnector {
     @Override
     public void connect(MessageContext messageContext) throws ConnectException {
         String entryID = (String) getParameter(messageContext, FeedConstant.entryID);
