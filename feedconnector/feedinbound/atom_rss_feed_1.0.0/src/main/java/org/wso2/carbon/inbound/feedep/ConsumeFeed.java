@@ -56,9 +56,9 @@ public class ConsumeFeed {
     private FeedRegistryHandler feedRegistryHandler;
     private String pathName;
     private String dateFormat;
-    DateFormat format;
-    Parser parser;
-    ParserOptions opts;
+    private DateFormat format;
+    private Parser parser;
+    private ParserOptions opts;
     public ConsumeFeed(RssInject rssInject, long scanInterval, String host, String feedType,
                        FeedRegistryHandler feedRegistryHandler, String name, String dateFormat) {
         this.host = host;
