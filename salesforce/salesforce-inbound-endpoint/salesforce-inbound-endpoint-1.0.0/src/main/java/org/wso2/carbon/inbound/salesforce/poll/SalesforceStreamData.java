@@ -18,10 +18,13 @@
 
 package org.wso2.carbon.inbound.salesforce.poll;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.SynapseException;
 import org.apache.synapse.core.SynapseEnvironment;
+import org.wso2.carbon.inbound.endpoint.protocol.generic.GenericPollingConsumer;
+
 import org.cometd.bayeux.Channel;
 import org.cometd.bayeux.Message;
 import org.cometd.bayeux.client.ClientSessionChannel;
@@ -31,8 +34,9 @@ import org.cometd.client.transport.ClientTransport;
 import org.cometd.client.transport.LongPollingTransport;
 import org.eclipse.jetty.client.ContentExchange;
 import org.eclipse.jetty.client.HttpClient;
-import org.wso2.carbon.inbound.endpoint.protocol.generic.GenericPollingConsumer;
 
+
+import java.lang.Exception;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -40,153 +44,135 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Salesforce streaming api Inbound
+ * Salesforce streaming api Inbound.
  */
 public class SalesforceStreamData extends GenericPollingConsumer {
 
     private static final Log log = LogFactory.getLog(SalesforceStreamData.class);
 
-    // Mandatory parameters
+    // Mandatory parameters.
     private static final boolean version = false;
     private static final boolean useCookies = version;
     protected static String loginEndpoint;
-    private static String userName;
-    private static String password;
-    private static String salesforceObject;
-    private static String channel;
-    private static String packageVersion;
-    private static String packageName;
-    private static String streamingEndpointUri;
+
+    private String userName;
+    private String password;
+    private String salesforceObject;
+    private String channel;
+    private String packageVersion;
+    private String packageName;
+    private String streamingEndpointUri;
     private String injectingSeq;
 
-    // optional parameters
+    // optional parameters.
     private static int connectionTimeout;
     private static int readTimeout;
     private static int waitTime;
-    BayeuxClient client = null;
-    HttpClient httpClient;
+
+
+    private BayeuxClient client = null;
+    private HttpClient httpClient;
+
+    private boolean isPolled = false;
+
     public SalesforceStreamData(Properties salesforceProperties, String name,
-                                 SynapseEnvironment synapseEnvironment, long scanInterval,
-                                 String injectingSeq, String onErrorSeq, boolean coordination,
-                                 boolean sequential) {
+                                SynapseEnvironment synapseEnvironment, long scanInterval,
+                                String injectingSeq, String onErrorSeq, boolean coordination,
+                                boolean sequential) {
         super(salesforceProperties, name, synapseEnvironment, scanInterval,
                 injectingSeq, onErrorSeq, coordination, sequential);
-        log.info("Initialized the Saleforce Streaming consumer");
         loadMandatoryParameters(salesforceProperties);
         loadOptionalParameters(salesforceProperties);
         streamingEndpointUri = version ? "/" + packageName : "/" + packageName + "/" + packageVersion;
-        channel = "/topic/" + salesforceObject;
+        channel = version ? "/" + salesforceObject : "/topic/" + salesforceObject;
         this.injectingSeq = injectingSeq;
         httpClient = new HttpClient();
-
-        // Establishing connection with salesforce streaming api
-        try {
-            log.info("Running streaming client example....");
-            makeConnect();
-
-
-        } catch (Exception e) {
-            handleException("Error while setup the salesforce connection.", e);
-        }
     }
 
-
-
     private void makeConnect() {
-        try{
+        try {
             client = makeClient();
-            client.getChannel(Channel.META_HANDSHAKE).addListener
-                    (new ClientSessionChannel.MessageListener() {
-                        public void onMessage(ClientSessionChannel channel, Message message) {
-                            log.info("[CHANNEL:META_HANDSHAKE]: " + message);
-                            boolean success = message.isSuccessful();
-                            if (!success) {
-                                String error = (String) message.get("error");
-                                if (error != null) {
-                                    log.error("Error during HANDSHAKE: " + error);
-                                }
-
-                                Exception exception = (Exception) message.get("exception");
-                                if (exception != null) {
-                                    handleException("Exception during HANDSHAKE: ", exception);
-                                }
-                            }
-                        }
-                    });
-
-            client.getChannel(Channel.META_CONNECT).addListener(
-                    new ClientSessionChannel.MessageListener() {
-                        public void onMessage(ClientSessionChannel channel, Message message) {
-                            log.info("[CHANNEL:META_CONNECT]: " + message);
-                            boolean success = message.isSuccessful();
-
-                            if (!success) {
-                                client.disconnect();
-                                makeConnect();
-                                String error = (String) message.get("error");
-                                if (error != null) {
-                                    //log.error("Error during CONNECT: " + error);
-                                }
-                            }
-                        }
-
-                    });
-
-            client.getChannel(Channel.META_SUBSCRIBE).addListener(
-                    new ClientSessionChannel.MessageListener() {
-                        public void onMessage(ClientSessionChannel channel, Message message) {
-                            log.info("[CHANNEL:META_SUBSCRIBE]: " + message);
-                            boolean success = message.isSuccessful();
-                            if (!success) {
-                                String error = (String) message.get("error");
-                                if (error != null) {
-                                    makeConnect();
-                                    log.error("Error during SUBSCRIBE: " + error);
-                                }
-                            }
-                        }
-                    });
-            client.handshake();
-            log.info("Waiting for handshake");
-            boolean handshaken = client.waitFor(waitTime, BayeuxClient.State.CONNECTED);
-            if (!handshaken) {
-                log.error("Failed to handshake: " + client);
-            }
-            log.info("Subscribing for channel: " + channel);
-            client.getChannel(channel).subscribe(new MessageListener() {
-                public void onMessage(ClientSessionChannel channel, Message message) {
-                    injectSalesforceMessage(message);
+        } catch (Exception e) {
+            handleException(e.getMessage());
+        }
+        client.getChannel(Channel.META_HANDSHAKE).addListener(new ClientSessionChannel.MessageListener() {
+            public void onMessage(ClientSessionChannel channel, Message message) {
+                log.info("[CHANNEL:META_HANDSHAKE]: " + message);
+                boolean success = message.isSuccessful();
+                if (!success) {
+                    String error = (String) message.get("error");
+                    if (error != null) {
+                        handleException("Error during HANDSHAKE: " + error);
+                    }
+                    Exception exception = (Exception) message.get("exception");
+                    if (exception != null) {
+                        handleException("Exception during HANDSHAKE: ", exception);
+                    }
                 }
-            });
-            log.info("Waiting for streamed data from your organization ...");
-        }catch (Exception e) {
-            handleException("Error while setup the salesforce connection.", e);
+            }
+        });
+
+        client.getChannel(Channel.META_CONNECT).addListener(new ClientSessionChannel.MessageListener() {
+            public void onMessage(ClientSessionChannel channel, Message message) {
+                log.info("[CHANNEL:META_CONNECT]: " + message);
+                boolean success = message.isSuccessful();
+                if (!success) {
+                    client.disconnect();
+                    log.info("Waiting to Connect with Salesforce Streaming API......");
+                    makeConnect();
+                    String error = (String) message.get("error");
+                    if (error != null) {
+                        handleException("Error during CONNECT: " + error);
+                    }
+                }
+            }
+        });
+
+        client.getChannel(Channel.META_SUBSCRIBE).addListener(new ClientSessionChannel.MessageListener() {
+            public void onMessage(ClientSessionChannel channel, Message message) {
+                log.info("[CHANNEL:META_SUBSCRIBE]: " + message);
+                boolean success = message.isSuccessful();
+                if (!success) {
+                    String error = (String) message.get("error");
+                    if (error != null) {
+                        handleException("Error during SUBSCRIBE: " + error);
+                    }
+                }
+            }
+        });
+
+        client.handshake();
+        boolean handshaken = client.waitFor(waitTime, BayeuxClient.State.CONNECTED);
+        if (!handshaken) {
+            handleException("Failed to handshake: " + client);
         }
 
+        client.getChannel(channel).subscribe(new MessageListener() {
+            public void onMessage(ClientSessionChannel channel, Message message) {
+                injectSalesforceMessage(message);
+            }
+        });
     }
 
     /**
-     * Create a http client
+     * Create a http client.
      *
      * @return
      * @throws Exception
      */
     private BayeuxClient makeClient() throws Exception {
-
         httpClient.setConnectTimeout(connectionTimeout);
-        httpClient.setTimeout(readTimeout);//TODO optional parameters
+        httpClient.setTimeout(readTimeout);
         httpClient.start();
 
         SoapLoginUtil.login(httpClient, userName, password);
         final String sessionId = SoapLoginUtil.getSessionId();
         String endpoint = SoapLoginUtil.getEndpoint();
-        System.out.println("Login successful!\nEndpoint: " + endpoint
-                + "\nSessionid=" + sessionId);
+        log.info("Login successful! to Salesforce Streaming Endpoint: " + endpoint);
 
         Map<String, Object> options = new HashMap<String, Object>();
         options.put(ClientTransport.TIMEOUT_OPTION, readTimeout);
-        LongPollingTransport transport = new LongPollingTransport(
-                options, httpClient) {
+        LongPollingTransport transport = new LongPollingTransport(options, httpClient) {
 
             @Override
             protected void customize(ContentExchange exchange) {
@@ -195,26 +181,23 @@ public class SalesforceStreamData extends GenericPollingConsumer {
             }
         };
 
-        BayeuxClient client = new BayeuxClient(salesforceStreamingEndpoint(
-                endpoint), transport);
+        BayeuxClient client = new BayeuxClient(salesforceStreamingEndpoint(endpoint), transport);
         if (useCookies) establishCookies(client, userName, sessionId);
         return client;
     }
 
-    private static String salesforceStreamingEndpoint(String endpoint)
-            throws MalformedURLException {
+    private String salesforceStreamingEndpoint(String endpoint) throws MalformedURLException {
         return new URL(endpoint + streamingEndpointUri).toExternalForm();
     }
 
     /**
-     * establish the Cookies fot the http client
+     * establish the Cookies fot the http client.
      *
      * @param client
      * @param user
      * @param sid
      */
-    private static void establishCookies(BayeuxClient client, String user,
-                                         String sid) {
+    private static void establishCookies(BayeuxClient client, String user, String sid) {
         client.setCookie("com.salesforce.LocaleInfo", "us", waitTime);
         client.setCookie("login", user, waitTime);
         client.setCookie("sid", sid, waitTime);
@@ -222,7 +205,7 @@ public class SalesforceStreamData extends GenericPollingConsumer {
     }
 
     /**
-     * load essential property for salesforce inbound endpoint
+     * load essential property for salesforce inbound endpoint.
      *
      * @param properties
      */
@@ -238,11 +221,10 @@ public class SalesforceStreamData extends GenericPollingConsumer {
         packageName = properties.getProperty(SalesforceConstant.PACKAGE_NAME);
         packageVersion = properties.getProperty(SalesforceConstant.PACKAGE_VERSION);
 
-        if (log.isDebugEnabled()) {
-            log.debug("Loaded the salesforce userName : " + userName
-                    + ",password : " + password + ",LoginEndpoint : "
-                    + loginEndpoint + "securityToken" + "Loading the object"
-                    + salesforceObject);
+        if (StringUtils.isEmpty(userName) && StringUtils.isEmpty(salesforceObject) &&
+                StringUtils.isEmpty(password) && StringUtils.isEmpty(loginEndpoint) &&
+                StringUtils.isEmpty(packageName) && StringUtils.isEmpty(packageVersion)) {
+            handleException("Mandatory Parameters can't be Empty...");
         }
     }
 
@@ -275,17 +257,26 @@ public class SalesforceStreamData extends GenericPollingConsumer {
     }
 
     public Object poll() {
+        //Establishing connection with Salesforce streaming api
+        try {
+            if (!isPolled) {
+                makeConnect();
+                isPolled = true;
+            }
+        } catch (Exception se) {
+            handleException("Error while setup the Salesforce connection.", se);
+        }
         return null;
     }
 
     /**
-     * Injecting the salesforce Stream messages to the ESB sequence
+     * Injecting the salesforce Stream messages to the ESB sequence.
      *
      * @param message the salesforce response status
      */
     private void injectSalesforceMessage(Message message) {
         if (injectingSeq != null) {
-            injectMessage(message.toString(), SalesforceConstant.CONTENT_TYPE);
+            injectMessage(message.getJSON(), SalesforceConstant.CONTENT_TYPE);
             if (log.isDebugEnabled()) {
                 log.debug("injecting salesforce message to the sequence : "
                         + injectingSeq);

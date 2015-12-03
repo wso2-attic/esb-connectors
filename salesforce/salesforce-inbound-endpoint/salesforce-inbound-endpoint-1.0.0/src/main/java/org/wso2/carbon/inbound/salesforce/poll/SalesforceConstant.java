@@ -24,23 +24,27 @@ public class SalesforceConstant {
     public static final String USER_NAME = "connection.salesforce.userName";
     public static final String PASSWORD = "connection.salesforce.password";
     public static final String LOGIN_ENDPOINT = "connection.salesforce.loginEndpoint";
-    public static final String PACKAGE_NAME="connection.salesforce.packageName";
-    public static final String PACKAGE_VERSION="connection.salesforce.packageVersion";
+    public static final String PACKAGE_NAME = "connection.salesforce.packageName";
+    public static final String PACKAGE_VERSION = "connection.salesforce.packageVersion";
+    public static final String SOAP_API_VERSION = "connection.salesforce.soapApiVersion";
 
     //object for the salesforce inbound endpoint
     public static final String SOBJECT = "connection.salesforce.salesforceObject";
 
     //defaultt parameters for the salesforce inbound endpoint
     public static final String CONNECTION_TIMEOUT = "connection.salesforce.connectionTimeout";
-    public static final int CONNECTION_TIMEOUT_DEFAULT = 10*1000;
+    public static final int CONNECTION_TIMEOUT_DEFAULT = 10 * 1000;
 
     public static final String READ_TIMEOUT = "connection.salesforce.readTimeout";
-    public static final int READ_TIMEOUT_DEFAULT = 10*1000;
+    public static final int READ_TIMEOUT_DEFAULT = 10 * 1000;
 
-    public static final String WAIT_TIME="connection.salesforce.waitTime";
-    public static final int WAIT_TIME_DEFAULT= 24 * 60 * 60 * 1000;
+    public static final String WAIT_TIME = "connection.salesforce.waitTime";
+    public static final int WAIT_TIME_DEFAULT = 24 * 60 * 60 * 1000;
 
 
     //content type of the message
     public static final String CONTENT_TYPE = "application/json";
+
+    public static final String COOKIE_LANGUAGE_KEY="language";
+    public static final String COOKIE_LANGUAGE_DEFAULT_VALUE="en_US";
 }
