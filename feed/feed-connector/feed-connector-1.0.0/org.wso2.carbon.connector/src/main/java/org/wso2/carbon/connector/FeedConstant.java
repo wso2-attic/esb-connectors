@@ -16,15 +16,15 @@
 package org.wso2.carbon.connector;
 
 public class FeedConstant {
-    public static final String hostAddress = "HostAddress";
-    public static final String title = "Title";
-    public static final String content = "Content";
-    public static final String author = "Author";
-    public static final String feedID = "FeedID";
-    public static final String contentType = "application/atom+xml;type=entry";
-    public static final String Result = "Result";
-    public static final String Status = "status";
-    public static final String result = "result";
-    public static final String entryID = "EntryID";
-    public static final String ns = "ns";
+    public static final String HOST_ADDRESS = "HostAddress";
+    public static final String TITLE = "Title";
+    public static final String CONTENT = "Content";
+    public static final String AUTHOR = "Author";
+    public static final String FEED_ID = "FeedID";
+    public static final String CONTENT_TYPE = "application/atom+xml;type=entry";
+    public static final String RESULT = "Result";
+    public static final String STATUS = "status";
+    public static final String FINAL_RESULT = "result";
+    public static final String ENTRY_ID = "EntryID";
+    public static final String NS = "ns";
 }

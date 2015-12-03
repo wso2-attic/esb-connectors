@@ -29,8 +29,8 @@ import org.wso2.carbon.connector.core.ConnectException;
 public class FeedDeletion extends AbstractConnector {
     @Override
     public void connect(MessageContext messageContext) throws ConnectException {
-        String entryID = (String) getParameter(messageContext, FeedConstant.entryID);
-        String hostAddress = (String) getParameter(messageContext, FeedConstant.hostAddress);
+        String entryID = (String) getParameter(messageContext, FeedConstant.ENTRY_ID);
+        String hostAddress = (String) getParameter(messageContext, FeedConstant.HOST_ADDRESS);
 
         if (StringUtils.isEmpty(entryID) || StringUtils.isEmpty(hostAddress)) {
             handleException("Entry ID and host address can not be null or empty", messageContext);

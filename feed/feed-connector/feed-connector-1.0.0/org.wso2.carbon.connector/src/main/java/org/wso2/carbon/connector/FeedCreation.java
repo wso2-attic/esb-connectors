@@ -33,11 +33,11 @@ import java.util.Date;
 public class FeedCreation extends AbstractConnector {
 
     public void connect(MessageContext messageContext) throws ConnectException {
-        String hostAddress = (String) getParameter(messageContext, FeedConstant.hostAddress);
-        String title = (String) getParameter(messageContext, FeedConstant.title);
-        String content = (String) getParameter(messageContext, FeedConstant.content);
-        String author = (String) getParameter(messageContext, FeedConstant.author);
-        String feedID = (String) getParameter(messageContext, FeedConstant.feedID);
+        String hostAddress = (String) getParameter(messageContext, FeedConstant.HOST_ADDRESS);
+        String title = (String) getParameter(messageContext, FeedConstant.TITLE);
+        String content = (String) getParameter(messageContext, FeedConstant.CONTENT);
+        String author = (String) getParameter(messageContext, FeedConstant.AUTHOR);
+        String feedID = (String) getParameter(messageContext, FeedConstant.FEED_ID);
 
         if (StringUtils.isEmpty(hostAddress)) {
             handleException("host address can not be null or empty", messageContext);
@@ -53,7 +53,7 @@ public class FeedCreation extends AbstractConnector {
         entry.setContent(content);
 
         RequestOptions opts = new RequestOptions();
-        opts.setContentType(FeedConstant.contentType);
+        opts.setContentType(FeedConstant.CONTENT_TYPE);
         FeedUtil response = new FeedUtil();
         ClientResponse resp;
         try {

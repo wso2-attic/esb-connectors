@@ -33,11 +33,11 @@ public class FeedUpdation extends AbstractConnector {
 
     @Override
     public void connect(MessageContext messageContext) throws ConnectException {
-        String entryID = getParameter(messageContext, FeedConstant.entryID).toString();
-        String hostAddress = getParameter(messageContext, FeedConstant.hostAddress).toString();
-        String title = getParameter(messageContext, FeedConstant.title).toString();
-        String content = getParameter(messageContext, FeedConstant.content).toString();
-        String author = getParameter(messageContext, FeedConstant.author).toString();
+        String entryID = getParameter(messageContext, FeedConstant.ENTRY_ID).toString();
+        String hostAddress = getParameter(messageContext, FeedConstant.HOST_ADDRESS).toString();
+        String title = getParameter(messageContext, FeedConstant.TITLE).toString();
+        String content = getParameter(messageContext, FeedConstant.CONTENT).toString();
+        String author = getParameter(messageContext, FeedConstant.AUTHOR).toString();
 
         if (StringUtils.isEmpty(entryID) || StringUtils.isEmpty(hostAddress)) {
             handleException("Entry ID and host address can not be null or empty", messageContext);
@@ -59,7 +59,7 @@ public class FeedUpdation extends AbstractConnector {
             doc.getRoot().getAuthor().setText(author);
         }
         RequestOptions opts = new RequestOptions();
-        opts.setContentType(FeedConstant.contentType);
+        opts.setContentType(FeedConstant.CONTENT_TYPE);
         ClientResponse resp;
         try {
             resp = abderaClient.put(entryUri, doc.getRoot(), opts);

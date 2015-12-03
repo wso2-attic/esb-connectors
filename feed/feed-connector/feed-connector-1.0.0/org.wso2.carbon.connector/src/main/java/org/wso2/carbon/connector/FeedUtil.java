@@ -31,9 +31,9 @@ public class FeedUtil {
 
     public void InjectMessage(MessageContext messageContext, String text) {
         OMFactory omFactory = OMAbstractFactory.getOMFactory();
-        OMNamespace ns = omFactory.createOMNamespace(FeedConstant.Status, FeedConstant.ns);
-        OMElement result = omFactory.createOMElement(FeedConstant.result, ns);
-        OMElement messageElement = omFactory.createOMElement(FeedConstant.Result, ns);
+        OMNamespace ns = omFactory.createOMNamespace(FeedConstant.STATUS, FeedConstant.NS);
+        OMElement result = omFactory.createOMElement(FeedConstant.FINAL_RESULT, ns);
+        OMElement messageElement = omFactory.createOMElement(FeedConstant.RESULT, ns);
         messageElement.setText(text);
         result.addChild(messageElement);
         messageContext.getEnvelope().getBody().addChild(result);
