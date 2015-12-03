@@ -59,6 +59,7 @@ public class ConsumeFeed {
     private DateFormat format;
     private Parser parser;
     private ParserOptions opts;
+
     public ConsumeFeed(RssInject rssInject, long scanInterval, String host, String feedType,
                        FeedRegistryHandler feedRegistryHandler, String name, String dateFormat) {
         this.host = host;
@@ -122,7 +123,11 @@ public class ConsumeFeed {
         InputStream input;
         input = new URL(host).openStream();
         Document<Feed> doc;
-        doc = parser.parse(input, "", opts);
+        try {
+            doc = parser.parse(input, "", opts);
+        } finally {
+            input.close();
+        }
         if (doc.getRoot() == null) {
             log.error("Please check host address or feed type");
             return;
@@ -132,18 +137,18 @@ public class ConsumeFeed {
             Factory factory = Abdera.getNewFactory();
             feed = factory.newFeed();
             OMElement item = (OMElement) doc.getRoot();
-            Iterator values1 = item.getFirstElement().getChildrenWithName(FeedEPConstant.FEED_ITEM);
+            Iterator itemValue = item.getFirstElement().getChildrenWithName(FeedEPConstant.FEED_ITEM);
 
-            while (values1.hasNext()) {
+            while (itemValue.hasNext()) {
                 Entry entry = feed.insertEntry();
-                OMElement omElement = (OMElement) values1.next();
+                OMElement omElement = (OMElement) itemValue.next();
 
-                Iterator values2 = omElement.getChildrenWithName(FeedEPConstant.FEED_TITLE);
-                OMElement Title = (OMElement) values2.next();
+                Iterator titleValue = omElement.getChildrenWithName(FeedEPConstant.FEED_TITLE);
+                OMElement Title = (OMElement) titleValue.next();
                 entry.setTitle(Title.getText());
 
-                Iterator values3 = omElement.getChildrenWithName(FeedEPConstant.FEED_PUBDATE);
-                OMElement Updated = (OMElement) values3.next();
+                Iterator dateValue = omElement.getChildrenWithName(FeedEPConstant.FEED_PUBDATE);
+                OMElement Updated = (OMElement) dateValue.next();
                 Date date;
                 try {
                     date = format.parse(Updated.getText());
@@ -159,12 +164,12 @@ public class ConsumeFeed {
                         return;
                     }
                 }
-                Iterator values5 = omElement.getChildrenWithName(FeedEPConstant.FEED_GUID);
-                OMElement guid1 = (OMElement) values5.next();
-                entry.setId(guid1.getText());
+                Iterator idValue = omElement.getChildrenWithName(FeedEPConstant.FEED_GUID);
+                OMElement guid = (OMElement) idValue.next();
+                entry.setId(guid.getText());
 
-                Iterator values6 = omElement.getChildrenWithName(FeedEPConstant.FEED_LINK);
-                OMElement link = (OMElement) values6.next();
+                Iterator linkValue = omElement.getChildrenWithName(FeedEPConstant.FEED_LINK);
+                OMElement link = (OMElement) linkValue.next();
                 entry.setBaseUri(link.getText());
             }
         } else if (feedType.equalsIgnoreCase(FeedEPConstant.FEED_TYPE_ATOM)) {
@@ -191,6 +196,6 @@ public class ConsumeFeed {
             feedRegistryHandler.writeToRegistry(pathName, newUpdated);
             scanInterval = scanIntervalDefined;
         }
-        input.close();
+
     }
 }
