@@ -106,7 +106,8 @@ public class ConsumeFeed {
                 }
                 consume();
             } else if (log.isDebugEnabled()) {
-                log.debug("Skip cycle since concurrent rate is higher than the scan interval : Feed Inbound EP " + pathName);
+                log.debug("Skip cycle since concurrent rate is higher than the scan interval :" +
+                        " Feed Inbound EP " + pathName);
             } else if (scanInterval < 999999999) {
                 scanInterval = scanInterval + 1000;
             }
@@ -155,8 +156,7 @@ public class ConsumeFeed {
                     entry.setUpdated(date);
                 } catch (ParseException e) {
                     if (dateFormat != null) {
-                        format =
-                                new SimpleDateFormat(dateFormat, Locale.ENGLISH);
+                        format = new SimpleDateFormat(dateFormat, Locale.ENGLISH);
                         date = format.parse(Updated.getText());
                         entry.setUpdated(date);
                     } else {
@@ -175,11 +175,11 @@ public class ConsumeFeed {
         } else if (feedType.equalsIgnoreCase(FeedEPConstant.FEED_TYPE_ATOM)) {
             feed = doc.getRoot();
         }
-
         if (log.isDebugEnabled()) {
             log.debug(lastUpdated + " : " + feed.getEntries().get(0).getUpdated());
         }
-        DateFormat formatLastUpdate = new SimpleDateFormat(FeedEPConstant.REGISTRY_TIME_FORMAT, Locale.ENGLISH);
+        DateFormat formatLastUpdate = new SimpleDateFormat(FeedEPConstant.REGISTRY_TIME_FORMAT,
+                Locale.ENGLISH);
         Date newUpdated = feed.getEntries().get(0).getUpdated();
         if (feedRegistryHandler.readFromRegistry(pathName) != null) {
             lastUpdated =

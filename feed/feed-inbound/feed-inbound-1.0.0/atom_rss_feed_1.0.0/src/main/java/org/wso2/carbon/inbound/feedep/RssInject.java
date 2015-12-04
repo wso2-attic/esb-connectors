@@ -120,7 +120,7 @@ public class RssInject implements InjectHandler {
     }
 
     /**
-     * Create the initial message context for feed
+     * Create the initial messageContext for feed
      */
     private org.apache.synapse.MessageContext createMessageContext() {
         org.apache.synapse.MessageContext msgCtx = synapseEnvironment.createMessageContext();

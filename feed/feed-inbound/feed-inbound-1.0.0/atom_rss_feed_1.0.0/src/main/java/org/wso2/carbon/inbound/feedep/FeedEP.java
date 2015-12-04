@@ -16,6 +16,7 @@
 
 package org.wso2.carbon.inbound.feedep;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.core.SynapseEnvironment;
@@ -50,9 +51,12 @@ public class FeedEP extends GenericPollingConsumer {
         this.host = properties.getProperty(FeedEPConstant.FEED_URL);
         this.feedType = properties.getProperty(FeedEPConstant.FEED_TYPE);
         log.info("URL : " + host + "Feed Type : " + feedType);
-        if (properties.getProperty(FeedEPConstant.FEED_TIMEFORMAT) != null) {
+        if (!StringUtils.isEmpty(properties.getProperty(FeedEPConstant.FEED_TIMEFORMAT))) {
             this.dateFormat = properties.getProperty(FeedEPConstant.FEED_TIMEFORMAT);
         }
+//        if (properties.getProperty(FeedEPConstant.FEED_TIMEFORMAT) != null) {
+//            this.dateFormat = properties.getProperty(FeedEPConstant.FEED_TIMEFORMAT);
+//        }
         this.sequential = sequential;
         this.coordination = true;
         this.coordination = coordination;
