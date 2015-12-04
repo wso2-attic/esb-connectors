@@ -11,11 +11,17 @@ Tested Platform:
  - UBUNTU 13.04
  - WSO2 ESB 4.9.0-BETA-SNAPSHOT
  - Java 1.7
-Create object and pushTopic:
+
+1. Create object and pushTopic:
 
 https://developer.salesforce.com/docs/atlas.en-us.api_streaming.meta/api_streaming/create_object.htm#create_object
 
-Configuration:
+2. Navigate to "<ESB_CONNECTOR_HOME>/salesforce/salesforce-inbound-endpoint/salesforce-inbound-endpoint-1.0.0/ " and run the following command.
+         $ mvn clean install
+
+3. To use the Salesforce inbound endpoint, you need to download the inbound org.apache.synapse.salesforce.poll.class-1.0.0.jar from https://storepreview.wso2.com/store/ and copy the jar to the <ESB_HOME>/repository/components/dropins directory.
+
+4. Configuration:
 
 <inboundEndpoint
         class="org.wso2.carbon.inbound.salesforce.poll.SalesforceStreamData"
@@ -37,7 +43,6 @@ Configuration:
         </parameters>
     </inboundEndpoint>
    
-  Navigate to "<ESB_CONNECTOR_HOME>/salesforce/salesforce-inbound-endpoint/salesforce-inbound-endpoint-1.0.0/ " and run the following command.
-         $ mvn clean install
+
 
 
