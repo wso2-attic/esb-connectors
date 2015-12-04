@@ -45,6 +45,10 @@ public class SalesforceConstant {
     //content type of the message
     public static final String CONTENT_TYPE = "application/json";
 
-    public static final String COOKIE_LANGUAGE_KEY="language";
-    public static final String COOKIE_LANGUAGE_DEFAULT_VALUE="en_US";
+    public static final String COOKIE_LANGUAGE_KEY = "language";
+    public static final String COOKIE_LANGUAGE_DEFAULT_VALUE = "en_US";
+    public static final String COOKIE_SESSION_ID_KEY = "sid";
+    public static final String COOKIE_LOGIN_KEY = "login";
+    public static final String COOKIE_LOCALEINFO_KEY = "com.salesforce.LocaleInfo";
+    public static final String COOKIE_LOCALEINFO_DEFAULT_VALUE = "us";
 }

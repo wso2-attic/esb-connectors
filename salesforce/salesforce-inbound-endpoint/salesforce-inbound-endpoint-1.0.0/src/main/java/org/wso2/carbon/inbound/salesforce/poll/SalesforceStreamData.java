@@ -198,10 +198,10 @@ public class SalesforceStreamData extends GenericPollingConsumer {
      * @param sid
      */
     private static void establishCookies(BayeuxClient client, String user, String sid) {
-        client.setCookie("com.salesforce.LocaleInfo", "us", waitTime);
-        client.setCookie("login", user, waitTime);
-        client.setCookie("sid", sid, waitTime);
-        client.setCookie("language", "en_US", waitTime);
+        client.setCookie(SalesforceConstant.COOKIE_LOCALEINFO_KEY, SalesforceConstant.COOKIE_LOCALEINFO_DEFAULT_VALUE, waitTime);
+        client.setCookie(SalesforceConstant.COOKIE_LOGIN_KEY, user, waitTime);
+        client.setCookie(SalesforceConstant.COOKIE_SESSION_ID_KEY, sid, waitTime);
+        client.setCookie(SalesforceConstant.COOKIE_LANGUAGE_KEY, SalesforceConstant.COOKIE_LANGUAGE_DEFAULT_VALUE, waitTime);
     }
 
     /**
@@ -257,7 +257,7 @@ public class SalesforceStreamData extends GenericPollingConsumer {
     }
 
     public Object poll() {
-        //Establishing connection with Salesforce streaming api
+        //Establishing connection with Salesforce streaming api.
         try {
             if (!isPolled) {
                 makeConnect();
