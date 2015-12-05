@@ -21,26 +21,24 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.core.SynapseEnvironment;
 import org.wso2.carbon.inbound.endpoint.protocol.generic.GenericPollingConsumer;
-
 import java.util.Properties;
 
-
-public class FeedEP extends GenericPollingConsumer {
-    private static final Log log = LogFactory.getLog(FeedEP.class.getName());
+public class FeedInbound extends GenericPollingConsumer {
+    private static final Log log = LogFactory.getLog(FeedInbound.class.getName());
     private String injectingSeq;
     private String onErrorSeq;
     private boolean sequential;
     private String host;
     private String feedType;
-    private ConsumeFeed consume;
+    private FeedRetrieval consume;
     private final FeedRegistryHandler registryHandler;
     private String dateFormat;
     private long scanInterval;
 
-    public FeedEP(Properties properties, String name,
-                  SynapseEnvironment synapseEnvironment, long scanInterval,
-                  String injectingSeq, String onErrorSeq, boolean coordination,
-                  boolean sequential) {
+    public FeedInbound(Properties properties, String name,
+                       SynapseEnvironment synapseEnvironment, long scanInterval,
+                       String injectingSeq, String onErrorSeq, boolean coordination,
+                       boolean sequential) {
         super(properties, name, synapseEnvironment, scanInterval,
                 injectingSeq, onErrorSeq, coordination, sequential);
         registryHandler = new FeedRegistryHandler();
@@ -51,12 +49,9 @@ public class FeedEP extends GenericPollingConsumer {
         this.host = properties.getProperty(FeedEPConstant.FEED_URL);
         this.feedType = properties.getProperty(FeedEPConstant.FEED_TYPE);
         log.info("URL : " + host + "Feed Type : " + feedType);
-        if (!StringUtils.isEmpty(properties.getProperty(FeedEPConstant.FEED_TIMEFORMAT))) {
-            this.dateFormat = properties.getProperty(FeedEPConstant.FEED_TIMEFORMAT);
+        if (!StringUtils.isEmpty(properties.getProperty(FeedEPConstant.FEED_TIME_FORMAT))) {
+            this.dateFormat = properties.getProperty(FeedEPConstant.FEED_TIME_FORMAT);
         }
-//        if (properties.getProperty(FeedEPConstant.FEED_TIMEFORMAT) != null) {
-//            this.dateFormat = properties.getProperty(FeedEPConstant.FEED_TIMEFORMAT);
-//        }
         this.sequential = sequential;
         this.coordination = true;
         this.coordination = coordination;
@@ -84,8 +79,8 @@ public class FeedEP extends GenericPollingConsumer {
     }
 
     private void init() {
-        RssInject rssInject = new RssInject(injectingSeq, onErrorSeq, sequential,
+        FeedInject rssInject = new FeedInject(injectingSeq, onErrorSeq, sequential,
                 synapseEnvironment, FeedEPConstant.FEED_FORMAT);
-        consume = new ConsumeFeed(rssInject, scanInterval, host, feedType, registryHandler, name, dateFormat);
+        consume = new FeedRetrieval(rssInject, scanInterval, host, feedType, registryHandler, name, dateFormat);
     }
 }

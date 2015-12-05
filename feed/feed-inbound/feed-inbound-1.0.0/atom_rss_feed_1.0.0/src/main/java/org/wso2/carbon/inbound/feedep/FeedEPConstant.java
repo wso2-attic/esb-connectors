@@ -20,7 +20,7 @@ import javax.xml.namespace.QName;
 class FeedEPConstant {
     public static final String FEED_URL = "feed.url";
     public static final String FEED_TYPE = "feed.type";
-    public static final String FEED_TIMEFORMAT = "TimeFormat";
+    public static final String FEED_TIME_FORMAT = "TimeFormat";
     public static final String FEED_FORMAT = "TEXT";
     public static final String FEED_TYPE_RSS = "RSS";
     public static final String FEED_TYPE_ATOM = "Atom";

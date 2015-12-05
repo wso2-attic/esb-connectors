@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+/**Read/Write operations with registry*/
 public class FeedRegistryHandler {
     private static final Log log = LogFactory.getLog(FeedRegistryHandler.class.getName());
     private Resource resource;
@@ -39,7 +40,7 @@ public class FeedRegistryHandler {
         try {
             registry = ServiceReferenceHolder.getInstance().getRegistry();
         } catch (RegistryException e) {
-            log.error(e.getMessage());
+            log.error("error while handle with registry", e);
         }
     }
 
@@ -48,56 +49,63 @@ public class FeedRegistryHandler {
             if (registry.resourceExists(resourcePath)) {
                 resource = registry.get(resourcePath);
                 byte[] content = (byte[]) resource.getContent();
-                try {
-                    obj = toObject(content);
-                } catch (ClassNotFoundException e) {
-                    log.error(e.getMessage());
-                } catch (IOException e) {
-                    log.error(e.getMessage());
-                }
+                obj = toObject(content);
             }
         } catch (RegistryException e) {
-            log.error(e.getMessage());
+            log.error("error while handle with registry", e);
         }
         return obj;
     }
 
-    private Object toObject(byte[] arrayDate) throws IOException, ClassNotFoundException {
+    private Object toObject(byte[] arrayDate) {
         ByteArrayInputStream bis = new ByteArrayInputStream(arrayDate);
-        ObjectInputStream in = new ObjectInputStream(bis);
-        return in.readObject();
+        ObjectInputStream in;
+        try {
+            in = new ObjectInputStream(bis);
+            in.close();
+            bis.close();
+            return in.readObject();
+        } catch (IOException e) {
+            log.error("Error while reading the registry", e);
+        } catch (ClassNotFoundException e) {
+            log.error("unable to access readObject method ", e);
+        }
+        return null;
     }
 
-    private byte[] toByteArray(Object date) throws IOException {
+    private byte[] toByteArray(Object date) {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(bos);
-        oos.writeObject(date);
-        oos.flush();
-        oos.close();
-        bos.close();
+        ObjectOutputStream oos;
+        try {
+            oos = new ObjectOutputStream(bos);
+            oos.writeObject(date);
+            oos.flush();
+            oos.close();
+            bos.close();
+        } catch (IOException e) {
+            log.error("Error while reading the registry", e);
+        }
         return bos.toByteArray();
     }
 
     public void writeToRegistry(String resourceID, Object date) {
         try {
             resource = registry.newResource();
-            try {
-                resource.setContent(toByteArray(date));
-            } catch (IOException e) {
-                log.error(e.getMessage());
-            }
+            resource.setContent(toByteArray(date));
             registry.put(resourceID, resource);
         } catch (RegistryException e) {
-            log.error(e.getMessage());
+            log.error("error while handle with registry", e);
         }
     }
 
     public void deleteFromRegistry(String resourcePath) {
         try {
             registry.delete(resourcePath);
-            log.debug(resourcePath + " Registry Deleted");
+            if ((log.isDebugEnabled())) {
+                log.debug(resourcePath + " Registry Deleted");
+            }
         } catch (RegistryException e) {
-            log.error(e.getMessage());
+            log.error("error while handle with registry", e);
         }
     }
 }

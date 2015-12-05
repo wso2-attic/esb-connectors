@@ -33,18 +33,18 @@ import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 /**
- * RssInject uses to mediate the received Feeds
+ * FeedInject uses to mediate the received Feeds
  */
-public class RssInject implements InjectHandler {
-    private static final Log log = LogFactory.getLog(RssInject.class);
+public class FeedInject implements InjectHandler {
+    private static final Log log = LogFactory.getLog(FeedInject.class);
     private final String injectingSeq;
     private final String onErrorSeq;
     private final boolean sequential;
     private final SynapseEnvironment synapseEnvironment;
     private final String contentType;
 
-    public RssInject(String injectingSeq, String onErrorSeq, boolean sequential,
-                     SynapseEnvironment synapseEnvironment, String contentType) {
+    public FeedInject(String injectingSeq, String onErrorSeq, boolean sequential,
+                      SynapseEnvironment synapseEnvironment, String contentType) {
         this.injectingSeq = injectingSeq;
         this.onErrorSeq = onErrorSeq;
         this.sequential = sequential;
@@ -58,64 +58,42 @@ public class RssInject implements InjectHandler {
      * inject the message to the sequence
      */
     public boolean invoke(Object object) {
-        org.apache.synapse.MessageContext msgCtx = null;
+        org.apache.synapse.MessageContext messageContext = null;
         try {
-            msgCtx = createMessageContext();
-        } catch (Exception e) {
-            log.error(e.getMessage());
-        }
-        MessageContext axis2MsgCtx = null;
-        try {
-            if (msgCtx != null) {
+            messageContext = createMessageContext();
+            MessageContext axis2MsgCtx = null;
+            if (messageContext != null) {
                 axis2MsgCtx =
-                        ((org.apache.synapse.core.axis2.Axis2MessageContext) msgCtx).getAxis2MessageContext();
+                        ((org.apache.synapse.core.axis2.Axis2MessageContext) messageContext).getAxis2MessageContext();
             }
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        }
-        // Determine the message builder to use
-        Builder builder = null;
-        try {
+            // Determine the message builder to use
+            Builder builder = null;
+
             if (axis2MsgCtx != null) {
                 builder = BuilderUtil.getBuilderFromSelector(contentType, axis2MsgCtx);
             }
-        } catch (AxisFault axisFault) {
-            log.error("Error while creating message builder :: " + axisFault.getMessage(),
-                    axisFault);
-        }
-        if (builder == null) {
-            if (log.isDebugEnabled()) {
-                log.info("No message builder found for type '" + contentType +
-                        "'. Falling back to SOAP.");
+            if (builder == null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("No message builder found for type '" + contentType +
+                            "'. Falling back to SOAP.");
+                }
             }
-        }
-        try {
             OMElement documentElement = (OMElement) object;
-            assert msgCtx != null;
-            msgCtx.setEnvelope(TransportUtils.createSOAPEnvelope(documentElement));
+            messageContext.setEnvelope(TransportUtils.createSOAPEnvelope(documentElement));
         } catch (AxisFault axisFault) {
-            log.error("Error while setting message to the message context :: " +
-                    axisFault.getMessage(), axisFault);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            log.error("Error while setting message to the message context :: " + axisFault.getMessage(), axisFault);
         }
         // Inject the message to the sequence.
         if (StringUtils.isEmpty(injectingSeq)) {
             log.error("Sequence name not specified. Sequence : " + injectingSeq);
             return false;
         }
-        SequenceMediator seq =
-                (SequenceMediator) synapseEnvironment.getSynapseConfiguration()
-                        .getSequence(injectingSeq);
-        try {
-            seq.setErrorHandler(onErrorSeq);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        }
+        SequenceMediator seq = (SequenceMediator) synapseEnvironment.getSynapseConfiguration().getSequence(injectingSeq);
+        seq.setErrorHandler(onErrorSeq);
         if (log.isDebugEnabled()) {
             log.debug("injecting message to sequence : " + injectingSeq);
         }
-        synapseEnvironment.injectInbound(msgCtx, seq, sequential);
+        synapseEnvironment.injectInbound(messageContext, seq, sequential);
         return true;
     }
 
@@ -123,15 +101,15 @@ public class RssInject implements InjectHandler {
      * Create the initial messageContext for feed
      */
     private org.apache.synapse.MessageContext createMessageContext() {
-        org.apache.synapse.MessageContext msgCtx = synapseEnvironment.createMessageContext();
+        org.apache.synapse.MessageContext messageContext = synapseEnvironment.createMessageContext();
         MessageContext axis2MsgCtx =
-                ((org.apache.synapse.core.axis2.Axis2MessageContext) msgCtx).getAxis2MessageContext();
+                ((org.apache.synapse.core.axis2.Axis2MessageContext) messageContext).getAxis2MessageContext();
         axis2MsgCtx.setServerSide(true);
         axis2MsgCtx.setMessageID(UUIDGenerator.getUUID());
-        msgCtx.setProperty(MessageContext.CLIENT_API_NON_BLOCKING, true);
+        messageContext.setProperty(MessageContext.CLIENT_API_NON_BLOCKING, true);
         PrivilegedCarbonContext carbonContext =
                 PrivilegedCarbonContext.getThreadLocalCarbonContext();
         axis2MsgCtx.setProperty(MultitenantConstants.TENANT_DOMAIN, carbonContext.getTenantDomain());
-        return msgCtx;
+        return messageContext;
     }
 }
