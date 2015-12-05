@@ -21,6 +21,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.core.SynapseEnvironment;
 import org.wso2.carbon.inbound.endpoint.protocol.generic.GenericPollingConsumer;
+
 import java.util.Properties;
 
 public class FeedInbound extends GenericPollingConsumer {
@@ -63,12 +64,8 @@ public class FeedInbound extends GenericPollingConsumer {
 
     @Override
     public void destroy() {
-        try {
-            if (registryHandler.readFromRegistry(name) != null) {
-                registryHandler.deleteFromRegistry(name);
-            }
-        } catch (Exception e) {
-            log.error(e.getMessage());
+        if (registryHandler.readFromRegistry(name) != null) {
+            registryHandler.deleteFromRegistry(name);
         }
         super.destroy();
     }

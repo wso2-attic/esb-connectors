@@ -27,6 +27,7 @@ import org.apache.axis2.transport.TransportUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.synapse.SynapseException;
 import org.apache.synapse.core.SynapseEnvironment;
 import org.apache.synapse.mediators.base.SequenceMediator;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
@@ -74,8 +75,7 @@ public class FeedInject implements InjectHandler {
             }
             if (builder == null) {
                 if (log.isDebugEnabled()) {
-                    log.debug("No message builder found for type '" + contentType +
-                            "'. Falling back to SOAP.");
+                    log.debug("No message builder found for type '" + contentType + "'. Falling back to SOAP.");
                 }
             }
             OMElement documentElement = (OMElement) object;
@@ -86,7 +86,7 @@ public class FeedInject implements InjectHandler {
         // Inject the message to the sequence.
         if (StringUtils.isEmpty(injectingSeq)) {
             log.error("Sequence name not specified. Sequence : " + injectingSeq);
-            return false;
+            throw new SynapseException("Sequence name not specified. Sequence : " + injectingSeq);
         }
         SequenceMediator seq = (SequenceMediator) synapseEnvironment.getSynapseConfiguration().getSequence(injectingSeq);
         seq.setErrorHandler(onErrorSeq);

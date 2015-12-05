@@ -29,7 +29,9 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-/**Read/Write operations with registry*/
+/**
+ * Read/Write operations with registry
+ */
 public class FeedRegistryHandler {
     private static final Log log = LogFactory.getLog(FeedRegistryHandler.class.getName());
     private Resource resource;
@@ -59,16 +61,21 @@ public class FeedRegistryHandler {
 
     private Object toObject(byte[] arrayDate) {
         ByteArrayInputStream bis = new ByteArrayInputStream(arrayDate);
-        ObjectInputStream in;
+        ObjectInputStream in = null;
         try {
             in = new ObjectInputStream(bis);
-            in.close();
-            bis.close();
             return in.readObject();
         } catch (IOException e) {
             log.error("Error while reading the registry", e);
         } catch (ClassNotFoundException e) {
             log.error("unable to access readObject method ", e);
+        } finally {
+            try {
+                in.close();
+                bis.close();
+            } catch (IOException e) {
+                log.error("Error while closing the registry stream", e);
+            }
         }
         return null;
     }

@@ -30,10 +30,8 @@ class FeedEPConstant {
     private static final String ITEM = "item";
     private static final String TITLE = "title";
     private static final String GUID = "guid";
-    private static final String DESCRIPTION = "description";
     private static final String PUBDATE = "pubDate";
     private static final String LINK = "link";
-    private static final String LASTBUILDDATE = "lastBuildDate";
 
     public static final String RSS_FEED_DATE_FORMAT = "EEE, d MMM yyyy HH:mm:ss Z";
     public static final String REGISTRY_TIME_FORMAT = "E MMM dd HH:mm:ss Z yyyy";

@@ -30,6 +30,7 @@ import org.apache.axiom.om.OMElement;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.synapse.SynapseException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -123,7 +124,7 @@ public class FeedRetrieval {
             doc = parser.parse(input, "", opts);
             if (doc.getRoot() == null) {
                 log.error("Please check host address or feed type");
-                return;
+                throw new SynapseException("Please check host address or feed type");
             }
             //convert RSS feeds as Atom
             if (feedType.equalsIgnoreCase(FeedEPConstant.FEED_TYPE_RSS)) {
@@ -141,7 +142,7 @@ public class FeedRetrieval {
 
                     Iterator dateValue = omElement.getChildrenWithName(FeedEPConstant.FEED_PUBDATE);
                     OMElement Updated = (OMElement) dateValue.next();
-                    Date date = null;
+                    Date date;
                     try {
                         date = format.parse(Updated.getText());
                         entry.setUpdated(date);
@@ -152,11 +153,12 @@ public class FeedRetrieval {
                                 date = format.parse(Updated.getText());
                             } catch (ParseException e1) {
                                 log.error("Error while parse date", e);
+                                throw new SynapseException("Error while parse date", e);
                             }
                             entry.setUpdated(date);
                         } else {
-                            log.error(e.getMessage(), e);
-                            return;
+                            log.error("please set correct date format to fix the issue", e);
+                            throw new SynapseException("please set correct date format to fix the issue", e);
                         }
                     }
                     Iterator idValue = omElement.getChildrenWithName(FeedEPConstant.FEED_GUID);
@@ -193,7 +195,6 @@ public class FeedRetrieval {
         } catch (MalformedURLException e) {
             log.error("given url doesn't have feed ", e);
         } catch (IOException e) {
-            e.printStackTrace();
             log.error("error while read feed ", e);
         } finally {
             try {
