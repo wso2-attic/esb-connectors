@@ -82,7 +82,7 @@ public class FeedInject implements InjectHandler {
             OMElement documentElement = (OMElement) object;
             messageContext.setEnvelope(TransportUtils.createSOAPEnvelope(documentElement));
         } catch (AxisFault axisFault) {
-            log.error("Error while setting message to the message context :: " + axisFault.getMessage(), axisFault);
+            log.error("Error while setting message to the message context : " + axisFault.getMessage(), axisFault);
         }
         // Inject the message to the sequence.
         if (StringUtils.isEmpty(injectingSeq)) {
