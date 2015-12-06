@@ -29,6 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.SynapseException;
 import org.apache.synapse.core.SynapseEnvironment;
+import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.apache.synapse.mediators.base.SequenceMediator;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
@@ -61,11 +62,11 @@ public class FeedInject implements InjectHandler {
     public boolean invoke(Object object) {
         org.apache.synapse.MessageContext messageContext = null;
         try {
-            messageContext = createMessageContext();
+            messageContext = (org.apache.synapse.MessageContext) createMessageContext();
             MessageContext axis2MsgCtx = null;
             if (messageContext != null) {
                 axis2MsgCtx =
-                        ((org.apache.synapse.core.axis2.Axis2MessageContext) messageContext).getAxis2MessageContext();
+                        ((Axis2MessageContext) messageContext).getAxis2MessageContext();
             }
             // Determine the message builder to use
             Builder builder = null;
@@ -100,7 +101,7 @@ public class FeedInject implements InjectHandler {
     /**
      * Create the initial messageContext for feed
      */
-    private org.apache.synapse.MessageContext createMessageContext() {
+    private MessageContext createMessageContext() {
         org.apache.synapse.MessageContext messageContext = synapseEnvironment.createMessageContext();
         MessageContext axis2MsgCtx =
                 ((org.apache.synapse.core.axis2.Axis2MessageContext) messageContext).getAxis2MessageContext();
@@ -110,6 +111,6 @@ public class FeedInject implements InjectHandler {
         PrivilegedCarbonContext carbonContext =
                 PrivilegedCarbonContext.getThreadLocalCarbonContext();
         axis2MsgCtx.setProperty(MultitenantConstants.TENANT_DOMAIN, carbonContext.getTenantDomain());
-        return messageContext;
+        return (MessageContext) messageContext;
     }
 }

@@ -44,12 +44,10 @@ public class FeedInbound extends GenericPollingConsumer {
                 injectingSeq, onErrorSeq, coordination, sequential);
         registryHandler = new FeedRegistryHandler();
         this.name = name;
-        log.info("Scan Interval Passing " + scanInterval);
         this.scanInterval = scanInterval;
         this.sequential = true;
         this.host = properties.getProperty(FeedEPConstant.FEED_URL);
         this.feedType = properties.getProperty(FeedEPConstant.FEED_TYPE);
-        log.info("URL : " + host + "Feed Type : " + feedType);
         if (!StringUtils.isEmpty(properties.getProperty(FeedEPConstant.FEED_TIME_FORMAT))) {
             this.dateFormat = properties.getProperty(FeedEPConstant.FEED_TIME_FORMAT);
         }

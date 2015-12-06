@@ -98,7 +98,7 @@ public class FeedRetrieval {
         opts.setParseFilter(filter);
     }
 
-    //check time interval
+    /**check time interval and execute consume method */
     public void execute() {
         long currentTime = (new Date()).getTime();
         if (((lastRanTime + scanInterval) <= currentTime)) {
@@ -115,7 +115,7 @@ public class FeedRetrieval {
         }
     }
 
-    //consume feeds
+    /**consume feeds from feed url*/
     private void consume() {
         InputStream input = null;
         try {
@@ -152,8 +152,8 @@ public class FeedRetrieval {
                             try {
                                 date = format.parse(Updated.getText());
                             } catch (ParseException e1) {
-                                log.error("Error while parse date", e);
-                                throw new SynapseException("Error while parse date", e);
+                                log.error("Error while parse date", e1);
+                                throw new SynapseException("Error while parse date", e1);
                             }
                             entry.setUpdated(date);
                         } else {
