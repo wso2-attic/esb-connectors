@@ -481,8 +481,8 @@ public class JenkinsConnectorIntegrationTest extends ConnectorIntegrationTestBas
         
         final String apiEndpoint =
                 apiEndpointUrl + "/job/" + connectorProperties.getProperty("uploadJobName") + "/buildWithParameters?"
-                        + connectorProperties.getProperty("buildParam") + "="
-                        + connectorProperties.getProperty("buildParamValue");
+                        + connectorProperties.getProperty("buildParameter") + "="
+                        + connectorProperties.getProperty("buildParameterValue");
         RestResponse<OMElement> apiRestResponse = sendXmlRestRequest(apiEndpoint, "GET", apiRequestHeadersMap);
         
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 201);

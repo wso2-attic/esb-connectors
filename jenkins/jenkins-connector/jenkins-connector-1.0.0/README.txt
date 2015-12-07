@@ -33,7 +33,7 @@ Steps to follow in setting integration test.
    i)    StartUp Server using "http://localhost:8080" and click on the Credential Link on the top left corner and from the page .
    ii)   On the Credential page, select the option "Global credentials" and create the username , password for further use. 
    iii)  Create a new job by navigating to the section 'New Item'. Then build the created job.
-   iv)   Create two .xml files which contains the configuration details to create the job and to updated the job. Add the created files to the following location.
+   iv)   Create two .xml files which contain the configuration details to create the job and to update the job. Add the created files to the following location.
           <JENKINS_CONNECTOR_HOME>/jenkins-connector/jenkins-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/config/resources/jenkins.
          Note : Make sure to include 'id' as a parameter in the two .xml  files.
    
@@ -59,8 +59,8 @@ Steps to follow in setting integration test.
    xiii) buildValue                 -  Use a predefined end point value to get build details. (Make sure to use 'lastBuild' or 'lastCompleted').
    xiv)  responseType               -  Text to be used as the 'responseType' to determine the response format of 'getJob','getBuildDetails' and 'listJobs' methods.(Make sure to use the value 'xml' as the responseType).
    xv)   tree                       -  Text to be used as the value of the query parameter while retrieving the build details.(Make sure to use 'duration' as the value).
-   xvi)  buildParam                 -  Text to be used as the 'parameter' while building the job with parameters. (Make sure to use 'id' as the parameter).
-   xvii) buildParamValue            -  Text to be used as the value for the parameter 'id' while building the job with parameters.
+   xvi)  buildParameter             -  Text to be used as the 'parameter' while building the job with the parameters. (Make sure to use 'id' as the parameter).
+   xvii) buildParameterValue        -  Text to be used as the value for the parameter 'id' while building the job with parameters.
    
    
  9. Navigate to "{ESB_CONNECTOR_HOME}/" and run the following command.
