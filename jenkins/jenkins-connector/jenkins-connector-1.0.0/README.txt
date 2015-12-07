@@ -56,7 +56,7 @@ Steps to follow in setting integration test.
    x)    updatedJobDescription      -  Text to be used as 'description' while updating a job with mandatory parameters.
    xi)   updatedKeepDependencies    -  Text to be used as 'keepDependencies' while updating a job with mandatory parameters. (Make sure to use a boolean value).
    xii)  buildJobName               -  Use the name of the job which is created under step 5 iii).
-   xiii) buildValue                 -  Use a predefined end point value to get build details. (Make sure to use 'lastBuild' or 'lastCompleted').
+   xiii) buildValue                 -  Use a predefined end point value to get build details. (Make sure to use 'lastBuild' or 'lastCompletedBuild').
    xiv)  responseType               -  Text to be used as the 'responseType' to determine the response format of 'getJob','getBuildDetails' and 'listJobs' methods.(Make sure to use the value 'xml' as the responseType).
    xv)   tree                       -  Text to be used as the value of the query parameter while retrieving the build details.(Make sure to use 'duration' as the value).
    xvi)  buildParameter             -  Text to be used as the 'parameter' while building the job with the parameters. (Make sure to use 'id' as the parameter).
