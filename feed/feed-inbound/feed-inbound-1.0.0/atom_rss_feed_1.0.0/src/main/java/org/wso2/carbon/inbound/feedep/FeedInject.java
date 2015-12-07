@@ -104,7 +104,7 @@ public class FeedInject implements InjectHandler {
     private MessageContext createMessageContext() {
         org.apache.synapse.MessageContext messageContext = synapseEnvironment.createMessageContext();
         MessageContext axis2MsgCtx =
-                ((org.apache.synapse.core.axis2.Axis2MessageContext) messageContext).getAxis2MessageContext();
+                ((Axis2MessageContext) messageContext).getAxis2MessageContext();
         axis2MsgCtx.setServerSide(true);
         axis2MsgCtx.setMessageID(UUIDGenerator.getUUID());
         messageContext.setProperty(MessageContext.CLIENT_API_NON_BLOCKING, true);
