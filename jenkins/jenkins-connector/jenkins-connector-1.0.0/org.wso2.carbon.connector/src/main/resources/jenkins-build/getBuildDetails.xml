@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://jenkinsapi.readthedocs.org/en/latest/api.html -->
+<template name="getBuildDetails" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="jobName" description="Name of the job which is executing."/>
+   <parameter name="responseType" description="Response type of the getBuildDetails method."/>
+   <parameter name="buildValue" description="The particular build details to be retrieved."/>
+   <parameter name="tree" description="Query parameter to get build details."/>
+   <sequence>
+      <property name="uri.var.jobName" expression="$func:jobName"/>
+      <property name="uri.var.responseType" expression="$func:responseType"/>
+      <property name="uri.var.buildValue" expression="$func:buildValue"/>
+      <property name="uri.var.tree" expression="$func:tree"/>
+      <filter source="boolean(get-property('uri.var.tree'))" regex="true">
+         <then>
+            <property name="uri.var.urlQuery" expression="fn:concat('?tree=', get-property('uri.var.tree'))"/>
+         </then>
+      </filter>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/job/{+uri.var.jobName}/{+uri.var.buildValue}/api/{+uri.var.responseType}{+uri.var.urlQuery}"/>
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Jenkins-Session" action="remove" scope="transport"/>
+      <header name="X-Jenkins" action="remove" scope="transport"/>
+      <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+      <header name="Cache-Control" action="remove" scope="transport"/>
+   </sequence>
+</template>
