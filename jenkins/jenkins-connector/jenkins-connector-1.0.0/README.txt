@@ -37,12 +37,17 @@ Steps to follow in setting integration test.
           <JENKINS_CONNECTOR_HOME>/jenkins-connector/jenkins-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/config/resources/jenkins.
          Note : Make sure to include 'id' as a parameter in the two .xml  files.
    
- 6. Compress ESB as wso2esb-4.9.0-BETA-SNAPSHOT.zip and copy that zip file in to location "{ESB_CONNECTOR_HOME}/repository/".
+ 6. Navigate to location "<ESB_HOME>/repository/conf/axis2" and add/uncomment following lines in "axis2.xml". 
+ 
+      <messageFormatter contentType="text/html" class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
+      <messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+      
+ 7. Compress ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{ESB_CONNECTOR_HOME}/repository/".
 
- 7. Make sure that jenkins is specified as a module in ESB_Connector_Parent pom.
+ 8. Make sure that jenkins is specified as a module in ESB_Connector_Parent pom.
     <module>jenkins/jenkins-connector/jenkins-connector-1.0.0/org.wso2.carbon.connector</module>
 
- 8. Update the Jenkins properties file at location "<JENKINS_CONNECTOR_HOME>/jenkins-connector/jenkins-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 9. Update the Jenkins properties file at location "<JENKINS_CONNECTOR_HOME>/jenkins-connector/jenkins-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
       
    i)    apiUrl                     -  The API URL of Jenkins(e.g. http://localhost).
    ii)   username                   -  Use the username obtained under step 5 ii).
@@ -63,5 +68,5 @@ Steps to follow in setting integration test.
    xvii) buildParameterValue        -  Text to be used as the value for the parameter 'id' while building the job with parameters.
    
    
- 9. Navigate to "{ESB_CONNECTOR_HOME}/" and run the following command.
+ 10. Navigate to "{ESB_CONNECTOR_HOME}/" and run the following command.
       $ mvn clean install
