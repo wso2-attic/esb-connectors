@@ -6,11 +6,11 @@ Product: WSO2 ESB Connector for Facebook + Integration Tests
 
     Tested Platforms: 
 
-    - Microsoft WINDOWS V-7,UBUNTU 14.04
+    - UBUNTU 14.04, Mac OSX 10.9
     - Ubuntu 13.04
     - WSO2 ESB 4.9.0-ALPHA
     
- 1. Download ESB 4.9.0-BETA by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/
+ 1. Download ESB 4.9.0 by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/
 
  2. The ESB should be configured as below.
 
@@ -36,7 +36,7 @@ Product: WSO2 ESB Connector for Facebook + Integration Tests
 Steps to follow in setting integration test.
 
 
- 3.  Compress modified ESB as wso2esb-4.9.0-BETA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
+ 3.  Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
 
  4. Copy Property File, "facebook.properties" from location "facebook/integration-test/src/test/resources/artifacts/ESB/connector/config" to location "Integration_Test/products/esb/4.8.1/modules/integration/connectors/src/test/resources/artifacts/ESB/connector/config/"
      and edit using valid and relevant data.
