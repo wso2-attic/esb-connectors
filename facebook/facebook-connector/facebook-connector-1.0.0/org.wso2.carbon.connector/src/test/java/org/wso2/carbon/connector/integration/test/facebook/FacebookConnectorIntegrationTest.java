@@ -1,5 +1,5 @@
 /**
- *  Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *  Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
@@ -219,7 +219,6 @@ public class FacebookConnectorIntegrationTest extends ConnectorIntegrationTestBa
                 success = true;
                 break;
             }
-
         }
 
         Assert.assertTrue(success);
@@ -316,7 +315,7 @@ public class FacebookConnectorIntegrationTest extends ConnectorIntegrationTestBa
                     sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
                             "esb_createPostOnEventWall_mandatory.txt");
 
-            esbRestResponse.getBody().get("id").toString();
+            esbRestResponse.getBody().get("id");
 
             Thread.sleep(timeOut);
 
@@ -352,7 +351,7 @@ public class FacebookConnectorIntegrationTest extends ConnectorIntegrationTestBa
         RestResponse< JSONObject > esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createPostOnEventWall_optional.txt");
 
-        esbRestResponse.getBody().get("id").toString();
+        esbRestResponse.getBody().get("id");
 
         Thread.sleep(timeOut);
         String apiEndPoint =
