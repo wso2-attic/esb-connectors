@@ -1,17 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied.  See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
 <template name="addPageVideo" xmlns="http://ws.apache.org/ns/synapse">
-  <parameter name="apiUrl" description="The api url"/>
-  <parameter name="pageId" description="The id of the page"/>
-  <sequence>
-    <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
-    <property name="uri.var.pageId" expression="$func:pageId"/>
-    <call>
-      <endpoint>
-        <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.pageId}/videos"/>
-      </endpoint>
-    </call>
-        		<!-- Remove response custom header information -->
-		<header name="X-FB-Debug" scope="transport" action="remove" />
-		<header name="X-FB-Rev" scope="transport" action="remove" />
-		<header name="WWW-Authenticate" scope="transport" action="remove" />
-  </sequence>
+    <parameter name="apiUrl" description="The api url."/>
+    <parameter name="apiVersion" description="Version of Facebook API"/>
+    <parameter name="accessToken" description="accessToken"/>
+    <parameter name="pageId" description="The id of the page."/>
+    <parameter name="title" description="The title of the video."/>
+    <parameter name="description" description="The description of the video."/>
+    <parameter name="unpublishedContentType"
+               description="Type of unpublished content, such as scheduled, draft or ads_post."/>
+    <parameter name="fileUrl" description="Accessible URL of a video file."/>
+    <parameter name="uploadPhase" description="Type of chunked upload request."/>
+    <parameter name="fileSize" description="The size of the entire video file in bytes."/>
+    <parameter name="startOffset" description="Start byte position of the file chunk."/>
+    <parameter name="uploadSessionId" description="ID of the chunked upload session."/>
+    <parameter name="contentCategory" description="Content category of this video."/>
+    <parameter name="embeddable" description="Whether the video is embeddable."/>
+    <parameter name="backdatedPost" description="Settings to allow backdated video post"/>
+    <parameter name="callToAction" description="Call to action for someone viewing a video, such as Reply."/>
+    <parameter name="feedTargeting" description="Object that controls news feed targeting for this content."/>
+    <parameter name="published" description="Whether a post about this video is published."/>
+    <parameter name="scheduledPublishTime" description="Time when the page post about this video should go live"/>
+    <parameter name="targeting" description="Object that limits the audience for this content"/>
+    <parameter name="noStory" description="If set to true, this will suppress feed and timeline story."/>
+    <sequence>
+        <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
+        <property name="uri.var.apiVersion" expression="$func:apiVersion"/>
+        <property name="uri.var.accessToken" expression="$func:accessToken"/>
+        <property name="uri.var.pageId" expression="$func:pageId"/>
+        <property name="uri.var.title" expression="$func:title"/>
+        <property name="uri.var.description" expression="$func:description"/>
+        <property name="uri.var.unpublishedContentType" expression="$func:unpublishedContentType"/>
+        <property name="uri.var.fileUrl" expression="$func:fileUrl"/>
+        <property name="uri.var.uploadPhase" expression="$func:uploadPhase"/>
+        <property name="uri.var.fileSize" expression="$func:fileSize"/>
+        <property name="uri.var.startOffset" expression="$func:startOffset"/>
+        <property name="uri.var.uploadSessionId" expression="$func:uploadSessionId"/>
+        <property name="uri.var.contentCategory" expression="$func:contentCategory"/>
+        <property name="uri.var.embeddable" expression="$func:embeddable"/>
+        <property name="uri.var.backdatedPost" expression="$func:backdatedPost"/>
+        <property name="uri.var.callToAction" expression="$func:callToAction"/>
+        <property name="uri.var.feedTargeting" expression="$func:feedTargeting"/>
+        <property name="uri.var.published" expression="$func:published"/>
+        <property name="uri.var.scheduledPublishTime" expression="$func:scheduledPublishTime"/>
+        <property name="uri.var.targeting" expression="$func:targeting"/>
+        <property name="uri.var.noStory" expression="$func:noStory"/>
+        <property name="uri.var.params" value=""/>
+        <script language="js">
+            <![CDATA[
+            var params = mc.getProperty('uri.var.params');
+            var title = mc.getProperty('uri.var.title');
+            var description = mc.getProperty('uri.var.description');
+            var unpublishedContentType = mc.getProperty('uri.var.unpublishedContentType');
+            var fileUrl = mc.getProperty('uri.var.fileUrl');
+            var uploadPhase = mc.getProperty('uri.var.uploadPhase');
+            var fileSize = mc.getProperty('uri.var.fileSize');
+            var startOffset = mc.getProperty('uri.var.startOffset');
+            var uploadSessionId = mc.getProperty('uri.var.uploadSessionId');
+            var contentCategory = mc.getProperty('uri.var.fileUrl');
+            var embeddable = mc.getProperty('uri.var.embeddable');
+            var backdatedPost = mc.getProperty('uri.var.backdatedPost');
+            var callToAction = mc.getProperty('uri.var.callToAction');
+            var feedTargeting = mc.getProperty('uri.var.feedTargeting');
+            var published = mc.getProperty('uri.var.published');
+            var scheduledPublishTime = mc.getProperty('uri.var.scheduledPublishTime');
+            var targeting = mc.getProperty('uri.var.targeting');
+            var noStory = mc.getProperty('uri.var.noStory');
+
+            if (title != null && title != "") {
+                params += "&title=" + title;
+            }
+
+            if (description != null && description != "")
+            {
+                params += "&description=" + description;
+            }
+
+            if (unpublishedContentType != null && unpublishedContentType != "")
+            {
+                params += "&unpublished_content_type=" + unpublishedContentType;
+            }
+
+            if (fileUrl != null && fileUrl != "")
+            {
+                params += "&file_url=" + fileUrl;
+            }
+
+            if (uploadPhase != null && uploadPhase != "") {
+                params +="&upload_phase=" + uploadPhase;
+            }
+
+            if (fileSize != null && fileSize != "")
+            {
+                params += "&file_size=" + fileSize;
+            }
+
+            if (startOffset != null && startOffset != "")
+            {
+                params += "&start_offset=" + startOffset;
+            }
+
+            if (uploadSessionId != null && uploadSessionId != "")
+            {
+                params += "&upload_sessionId=" + uploadSessionId;
+            }
+
+            if (contentCategory != null && contentCategory != "")
+            {
+                params += "&content_category=" + contentCategory;
+            }
+
+            if (embeddable != null && embeddable != "") {
+                params +="&embeddable=" + embeddable;
+            }
+
+            if (backdatedPost != null && backdatedPost != "") {
+               var txt = '{"backdatedPost":'+backdatedPost+'}';
+               var query="";
+               var obj = eval ("(" + txt + ")");
+               for(var key in obj.backdatedPost){
+                  query += ',' + key + '=' + obj.backdatedPost[key];
+               }
+               params += "&backdated_post{" + query.substring(1, query.length) + "}";
+            }
+
+            if (callToAction != null && callToAction != "") {
+               var txt = '{"callToAction":'+callToAction+'}';
+               var query="";
+               var obj = eval ("(" + txt + ")");
+               for(var key in obj.callToAction){
+                  query += ',' + key + '=' + obj.callToAction[key];
+               }
+               params += "&call_to_action{" + query.substring(1, query.length) + "}";
+            }
+
+            if (feedTargeting != null && feedTargeting != "") {
+               var txt = '{"feedTargeting":'+feedTargeting+'}';
+               var query="";
+               var obj = eval ("(" + txt + ")");
+               for(var key in obj.feedTargeting){
+                  query += ',' + key + '=' + obj.feedTargeting[key];
+               }
+               params += "&feed_targeting{" + query.substring(1, query.length) + "}";
+            }
+
+            if (published != null && published != "")
+            {
+                params += "&published=" + published;
+            }
+
+            if (scheduledPublishTime != null && scheduledPublishTime != "")
+            {
+                params += "&scheduled_publish_time=" + scheduledPublishTime;
+            }
+
+            if (targeting != null && targeting != "") {
+                var txt = '{"targeting":'+targeting+'}';
+                var query="";
+                var obj = eval ("(" + txt + ")");
+                for(var key in obj.targeting){
+                    query += ',' + key + '=' + obj.targeting[key];
+                }
+                params += "&targeting{" + query.substring(1, query.length) + "}";
+            }
+
+            if (noStory != null && noStory != "")
+            {
+                params += "&no_story=" + noStory;
+            }
+
+            mc.setProperty('uri.var.params', params);
+
+           ]]>
+        </script>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="legacy-encoding:{uri.var.apiUrl}/{uri.var.apiVersion}/{uri.var.pageId}/videos?access_token={uri.var.accessToken}{uri.var.params}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-FB-Debug" scope="transport" action="remove"/>
+        <header name="X-FB-Rev" scope="transport" action="remove"/>
+        <header name="WWW-Authenticate" scope="transport" action="remove"/>
+    </sequence>
 </template>

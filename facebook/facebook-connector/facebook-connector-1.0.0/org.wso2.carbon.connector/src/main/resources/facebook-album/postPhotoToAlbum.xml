@@ -1,17 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied.  See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
 <template name="postPhotoToAlbum" xmlns="http://ws.apache.org/ns/synapse">
-  <parameter name="apiUrl" description="The api url"/>
-  <parameter name="albumId" description="The unique identifier of the album"/>
-  <sequence>
-    <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
-    <property name="uri.var.albumId" expression="$func:albumId"/>
-    <call>
-      <endpoint>
-        <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.albumId}/photos"/>
-      </endpoint>
-    </call>
-        		<!-- Remove response custom header information -->
-		<header name="X-FB-Debug" scope="transport" action="remove" />
-		<header name="X-FB-Rev" scope="transport" action="remove" />
-		<header name="WWW-Authenticate" scope="transport" action="remove" />
-  </sequence>
+    <parameter name="apiUrl" description="The api url"/>
+    <parameter name="apiVersion" description="Version of Facebook API"/>
+    <parameter name="accessToken" description="accessToken"/>
+    <parameter name="photoUrl" description="The URL of a photo that is already uploaded to the internet"/>
+    <parameter name="message" description="The description of the photo"/>
+    <parameter name="location" description="A text location of the album for non-page locations"/>
+    <parameter name="noStory" description="If set to true, this will suppress the feed story that is automatically
+                                        generated on a person's profile when they upload a photo using your app."/>
+    <parameter name="place" description="Page ID of a place associated with the Photo"/>
+    <parameter name="albumId" description="The unique identifier of the album"/>
+    <sequence>
+        <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
+        <property name="uri.var.apiVersion" expression="$func:apiVersion"/>
+        <property name="uri.var.albumId" expression="$func:albumId"/>
+        <property name="uri.var.accessToken" expression="$func:accessToken"/>
+        <property name="uri.var.photoUrl" expression="$func:photoUrl"/>
+        <property name="uri.var.message" expression="$func:message"/>
+        <property name="uri.var.location" expression="$func:location"/>
+        <property name="uri.var.noStory" expression="$func:noStory"/>
+        <property name="uri.var.place" expression="$func:place"/>
+        <property name="urlParameters" value=""/>
+        <filter xpath="(not(get-property('uri.var.photoUrl') = '' or (not(string(get-property('uri.var.photoUrl'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'url=',get-property('uri.var.photoUrl'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.message') = '' or (not(string(get-property('uri.var.message'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'message=',get-property('uri.var.message'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.location') = '' or (not(string(get-property('uri.var.location'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'location=',get-property('uri.var.location'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.noStory') = '' or (not(string(get-property('uri.var.noStory'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'no_story=',get-property('uri.var.noStory'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.place') = '' or (not(string(get-property('uri.var.place'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'place=',get-property('uri.var.place'),'&amp;')"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/{uri.var.albumId}/photos?{+uri.var.apiParameters}access_token={uri.var.accessToken}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-FB-Debug" scope="transport" action="remove"/>
+        <header name="X-FB-Rev" scope="transport" action="remove"/>
+        <header name="WWW-Authenticate" scope="transport" action="remove"/>
+    </sequence>
 </template>
