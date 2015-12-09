@@ -1,46 +1,36 @@
 <template name="publishNotification" xmlns="http://ws.apache.org/ns/synapse">
-
-	<parameter name="userId" description="The id of the User" />
-	<parameter name="href" description="The relative path that notification will be directed to" />
-	<parameter name="template" description="The message text of the notification" />
-
-	<sequence>
-
-		<property name="uri.var.userId" expression="$func:userId" />
-		<property name="uri.var.href" expression="$func:href" />
-		<property name="uri.var.template" expression="$func:template" />
-
-		<payloadFactory media-type="json">
-			<format>
-				{
-					"href":"$1",
-					"template":"$2"
-				
-				}
-			</format>
-			<args>
-				<arg expression="get-property('uri.var.href')" />
-				<arg expression="get-property('uri.var.template')" />
-			</args>
-
-		</payloadFactory>
-
-		<property name="messageType" value="application/x-www-form-urlencoded"
-			scope="axis2" />
-
-		<call>
-			<endpoint>
-				<http method="post" uri-template="{uri.var.apiUrl}/{uri.var.userId}/notifications?access_token={uri.var.accessToken}" />
-			</endpoint>
-		</call>
-		
-		<!-- Remove response custom header information -->
-
-		<header name="X-FB-Debug" scope="transport" action="remove" />
-		<header name="X-FB-Rev" scope="transport" action="remove" />
-		<header name="WWW-Authenticate" scope="transport" action="remove" />
-		
-
-	</sequence>
-
+    <parameter name="userId" description="The id of the User"/>
+    <parameter name="href" description="The relative path that notification will be directed to"/>
+    <parameter name="template" description="The message text of the notification"/>
+    <sequence>
+        <property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.href" expression="$func:href"/>
+        <property name="uri.var.template" expression="$func:template"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "access_token":"$1",
+                "href":"$2",
+                "template":"$3"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.accessToken')"/>
+                <arg expression="get-property('uri.var.href')"/>
+                <arg expression="get-property('uri.var.template')"/>
+            </args>
+        </payloadFactory>
+        <property name="messageType" value="application/x-www-form-urlencoded"
+                  scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/{uri.var.userId}/notifications"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-FB-Debug" scope="transport" action="remove"/>
+        <header name="X-FB-Rev" scope="transport" action="remove"/>
+        <header name="WWW-Authenticate" scope="transport" action="remove"/>
+    </sequence>
 </template>

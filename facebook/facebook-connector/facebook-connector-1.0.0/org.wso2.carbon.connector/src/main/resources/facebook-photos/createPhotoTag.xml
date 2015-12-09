@@ -1,42 +1,65 @@
 <template name="createPhotoTag" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="photoId" description="The id of the Photo"/>
+    <parameter name="tags" description="The array of tags Object"/>
+    <parameter name="tagUId" description="Tag UID"/>
+    <parameter name="tagText" description="Tag text"/>
+    <parameter name="offsetX" description="The x-axis offset for the tag"/>
+    <parameter name="offsetY" description="The y-axis offset for the tag"/>
+    <sequence>
+        <property name="uri.var.photoId" expression="$func:photoId"/>
+        <property name="uri.var.tags" expression="$func:tags"/>
+        <property name="uri.var.tagUId" expression="$func:tagUId"/>
+        <property name="uri.var.tagText" expression="$func:tagText"/>
+        <property name="uri.var.offsetX" expression="$func:offsetX"/>
+        <property name="uri.var.offsetY" expression="$func:offsetY"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "access_token":"$1",
+                "tags":"$2"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.accessToken')"/>
+                <arg expression="get-property('uri.var.tags')"/>
+            </args>
+        </payloadFactory>
+        <script language="js"><![CDATA[
+			var tagUId=mc.getProperty('uri.var.tagUId');
+			var tagText=mc.getProperty('uri.var.tagText');
+			var offsetX=mc.getProperty('uri.var.offsetX');
+			var offsetY=mc.getProperty('uri.var.offsetY');
 
-	<parameter name="photoId" description="The id of the Photo" />
+			payload = mc.getPayloadJSON();
 
-	<parameter name="tags" description="The array of tags Object" />
+			if(tagUId !=null && tagUId != ""){
+				payload.tag_uid=tagUId;
+			}
 
-	<sequence>
+			if(tagText !=null && tagText != ""){
+				payload.tag_text=tagText;
+			}
 
-		<property name="uri.var.photoId" expression="$func:photoId" />
-		<property name="uri.var.tags" expression="$func:tags" />
+			if(offsetX !=null && offsetX != ""){
+				payload.x=offsetX;
+			}
 
+            if(offsetY !=null && offsetY != ""){
+				payload.y=offsetY;
+			}
 
-		<payloadFactory media-type="json">
-			<format>
-				{
-				"tags":"$1"
-				}
-			</format>
-			<args>
-
-				<arg expression="get-property('uri.var.tags')" />
-
-			</args>
-		</payloadFactory>
-		<property name="messageType" value="application/x-www-form-urlencoded"
-			scope="axis2" />
-
-		<call>
-			<endpoint>
-				<http method="post" uri-template="{uri.var.apiUrl}/{uri.var.photoId}/tags?access_token={uri.var.accessToken}" />
-			</endpoint>
-		</call>
-
-		<!-- Remove response custom header information -->
-
-		<header name="X-FB-Debug" scope="transport" action="remove" />
-		<header name="X-FB-Rev" scope="transport" action="remove" />
-		<header name="WWW-Authenticate" scope="transport" action="remove" />
-
-
-	</sequence>
+           mc.setPayloadJSON(payload);
+         ]]></script>
+        <property name="messageType" value="application/x-www-form-urlencoded"
+                  scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/{uri.var.photoId}/tags"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-FB-Debug" scope="transport" action="remove"/>
+        <header name="X-FB-Rev" scope="transport" action="remove"/>
+        <header name="WWW-Authenticate" scope="transport" action="remove"/>
+    </sequence>
 </template>

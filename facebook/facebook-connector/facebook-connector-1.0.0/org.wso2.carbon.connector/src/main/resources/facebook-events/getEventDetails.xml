@@ -1,49 +1,39 @@
 <template name="getEventDetails" xmlns="http://ws.apache.org/ns/synapse">
-
-
-	<parameter name="eventId" description="The Id of the Event" />
-	<parameter name="userId" description="The Id of the User" />
-
-
-	<sequence>
-
-		<property name="uri.var.eventId" expression="$func:eventId" />
-		<property name="uri.var.userId" expression="$func:userId" />
-
-		<!-- Need to verify userId exsist and valid connection send by user. if 
-			not request will forward to default API call -->
-		<filter
-			xpath="not(get-property('uri.var.userId') = '') and string(get-property('uri.var.userId')) and
+    <parameter name="eventId" description="The Id of the Event"/>
+    <parameter name="userId" description="The Id of the User"/>
+    <parameter name="connection" description="The connection which belongs to an object"/>
+    <parameter name="fields" description="The fields which belongs to an object"/>
+    <sequence>
+        <property name="uri.var.eventId" expression="$func:eventId"/>
+        <property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <property name="uri.var.connection" expression="$func:connection"/>
+        <!-- Need to verify userId exsist and valid connection send by user. if
+            not request will forward to default API call -->
+        <filter
+                xpath="not(get-property('uri.var.userId') = '') and string(get-property('uri.var.userId')) and
 				not(get-property('uri.var.connection') = '') and string(get-property('uri.var.connection')) and
-				(get-property('uri.var.connection') = 'attending' or get-property('uri.var.connection') = 'maybe' or get-property('uri.var.connection') = 'declined' or get-property('uri.var.connection') = 'noreply' or get-property('uri.var.connection') = 'invited')
-			">
-			<then>
-				<call>
-					<endpoint>
-						<http method="get"
-							uri-template="{uri.var.apiUrl}/{uri.var.eventId}/{uri.var.connection}/{uri.var.userId}?access_token={uri.var.accessToken}&amp;fields={uri.var.fields}" />
-					</endpoint>
-				</call>
-			</then>
-			<else>
-				<call>
-					<endpoint>
-						<http method="get"
-							uri-template="{uri.var.apiUrl}/{uri.var.eventId}/{uri.var.connection}?access_token={uri.var.accessToken}&amp;fields={uri.var.fields}" />
-					</endpoint>
-				</call>
-			</else>
-		</filter>
-
-
-		<!-- Remove response custom header information -->
-
-		<header name="X-FB-Debug" scope="transport" action="remove" />
-		<header name="X-FB-Rev" scope="transport" action="remove" />
-		<header name="WWW-Authenticate" scope="transport" action="remove" />
-		
-
-
-	</sequence>
-
+				(get-property('uri.var.connection') = 'attending' or get-property('uri.var.connection') = 'maybe' or get-property('uri.var.connection') = 'declined' or get-property('uri.var.connection') = 'noreply' or get-property('uri.var.connection') = 'invited')">
+            <then>
+                <call>
+                    <endpoint>
+                        <http method="get"
+                              uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/{uri.var.eventId}/{+uri.var.connection}/{uri.var.userId}?access_token={uri.var.accessToken}&amp;fields={+uri.var.fields}"/>
+                    </endpoint>
+                </call>
+            </then>
+            <else>
+                <call>
+                    <endpoint>
+                        <http method="get"
+                              uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/{uri.var.eventId}/{+uri.var.connection}?access_token={uri.var.accessToken}&amp;fields={+uri.var.fields}"/>
+                    </endpoint>
+                </call>
+            </else>
+        </filter>
+        <!-- Remove response custom header information -->
+        <header name="X-FB-Debug" scope="transport" action="remove"/>
+        <header name="X-FB-Rev" scope="transport" action="remove"/>
+        <header name="WWW-Authenticate" scope="transport" action="remove"/>
+    </sequence>
 </template>

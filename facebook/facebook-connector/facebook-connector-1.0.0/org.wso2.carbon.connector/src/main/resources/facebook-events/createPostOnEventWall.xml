@@ -1,30 +1,35 @@
 <template name="createPostOnEventWall" xmlns="http://ws.apache.org/ns/synapse">
-
-	<parameter name="eventId" description="The id of the event" />
-	<parameter name="message" description="Post message." />
-	<parameter name="link" description="Post URL." />
-	<parameter name="picture"
-		description="Post thumbnail image (Only if link is specified)." />
-	<parameter name="name" description="Post name (Only if link is specified)." />
-	<parameter name="caption" description="Post caption (Only if link is specified)." />
-	<parameter name="description"
-		description="Post description (Only if link is specified)." />
-	<parameter name="actions"
-		description="Post actions.(array of objects containing name and link)" />
-
-	<sequence>
-
-		<property name="uri.var.eventId" expression="$func:eventId" />
-		<property name="uri.var.message" expression="$func:message" />
-		<property name="uri.var.link" expression="$func:link" />
-		<property name="uri.var.picture" expression="$func:picture" />
-		<property name="uri.var.name" expression="$func:name" />
-		<property name="uri.var.caption" expression="$func:caption" />
-		<property name="uri.var.description" expression="$func:description" />
-		<property name="uri.var.actions" expression="$func:actions" />
-
-
-		<script language="js"><![CDATA[
+    <parameter name="eventId" description="The id of the event"/>
+    <parameter name="message" description="Post message."/>
+    <parameter name="link" description="Post URL."/>
+    <parameter name="picture"
+               description="Post thumbnail image (Only if link is specified)."/>
+    <parameter name="name" description="Post name (Only if link is specified)."/>
+    <parameter name="caption" description="Post caption (Only if link is specified)."/>
+    <parameter name="description"
+               description="Post description (Only if link is specified)."/>
+    <parameter name="actions"
+               description="Post actions.(array of objects containing name and link)"/>
+    <sequence>
+        <property name="uri.var.eventId" expression="$func:eventId"/>
+        <property name="uri.var.message" expression="$func:message"/>
+        <property name="uri.var.link" expression="$func:link"/>
+        <property name="uri.var.picture" expression="$func:picture"/>
+        <property name="uri.var.name" expression="$func:name"/>
+        <property name="uri.var.caption" expression="$func:caption"/>
+        <property name="uri.var.description" expression="$func:description"/>
+        <property name="uri.var.actions" expression="$func:actions"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "access_token":"$1"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.accessToken')"/>
+            </args>
+        </payloadFactory>
+        <script language="js"><![CDATA[
 		
 			var message=mc.getProperty('uri.var.message');
 			var link=mc.getProperty('uri.var.link');
@@ -70,23 +75,16 @@
            
            mc.setPayloadJSON(payload);
          ]]></script>
-
-		<property name="messageType" value="application/x-www-form-urlencoded"
-			scope="axis2" />
-
-		<call>
-			<endpoint>
-				<http method="post" uri-template="{uri.var.apiUrl}/{uri.var.eventId}/feed?access_token={uri.var.accessToken}" />
-			</endpoint>
-		</call>
-
-		<!-- Remove response custom header information -->
-
-		<header name="X-FB-Debug" scope="transport" action="remove" />
-		<header name="X-FB-Rev" scope="transport" action="remove" />
-		<header name="WWW-Authenticate" scope="transport" action="remove" />
-
-
-	</sequence>
-
+        <property name="messageType" value="application/x-www-form-urlencoded"
+                  scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/{uri.var.eventId}/feed"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-FB-Debug" scope="transport" action="remove"/>
+        <header name="X-FB-Rev" scope="transport" action="remove"/>
+        <header name="WWW-Authenticate" scope="transport" action="remove"/>
+    </sequence>
 </template>

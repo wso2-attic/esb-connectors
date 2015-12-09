@@ -1,23 +1,25 @@
 <template name="inviteMemberToGroup" xmlns="http://ws.apache.org/ns/synapse">
-	<parameter name="groupId" description="Unique identifier of the group" />
-	<parameter name="userId" description="Unique identifier of the user" />
-	<parameter name="from"
-		description="The user ID of someone that can appear as the sender of the group invite" />
-	<sequence>
-		<property name="uri.var.groupId" expression="$func:groupId" />
-		<property name="uri.var.userId" expression="$func:userId" />
-		<property name="uri.var.from" expression="$func:from" />
-		<payloadFactory media-type="json">
-			<format>
-				{
-				"member":"$1"
-				}
-			</format>
-			<args>
-				<arg expression="get-property('uri.var.userId')" />
-			</args>
-		</payloadFactory>
-		<script language="js"><![CDATA[
+    <parameter name="groupId" description="Unique identifier of the group"/>
+    <parameter name="userId" description="Unique identifier of the user"/>
+    <parameter name="from"
+               description="The user ID of someone that can appear as the sender of the group invite"/>
+    <sequence>
+        <property name="uri.var.groupId" expression="$func:groupId"/>
+        <property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.from" expression="$func:from"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "access_token":"$1",
+                "member":"$2"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.accessToken')"/>
+                <arg expression="get-property('uri.var.userId')"/>
+            </args>
+        </payloadFactory>
+        <script language="js"><![CDATA[
 	    		
 			var from=mc.getProperty('uri.var.from');
 			
@@ -29,16 +31,16 @@
 			
 			mc.setPayloadJSON(payload);
          ]]></script>
-		<property name="messageType" value="application/x-www-form-urlencoded"
-			scope="axis2" />
-		<call>
-			<endpoint>
-				<http method="post" uri-template="{uri.var.apiUrl}/{uri.var.groupId}/members?access_token={uri.var.accessToken}" />
-			</endpoint>
-		</call>
-		<!-- Remove response custom header information -->
-		<header name="X-FB-Debug" scope="transport" action="remove" />
-		<header name="X-FB-Rev" scope="transport" action="remove" />
-		<header name="WWW-Authenticate" scope="transport" action="remove" />
-	</sequence>
+        <property name="messageType" value="application/x-www-form-urlencoded"
+                  scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/{uri.var.groupId}/members"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-FB-Debug" scope="transport" action="remove"/>
+        <header name="X-FB-Rev" scope="transport" action="remove"/>
+        <header name="WWW-Authenticate" scope="transport" action="remove"/>
+    </sequence>
 </template>

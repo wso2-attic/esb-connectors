@@ -1,17 +1,249 @@
 <template name="publishPhoto" xmlns="http://ws.apache.org/ns/synapse">
-  <parameter name="apiUrl" description="The api url"/>
-  <parameter name="userId" description="The id of the user"/>
-  <sequence>
-    <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
-    <property name="uri.var.userId" expression="$func:userId"/>
-    <call>
-      <endpoint>
-        <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.userId}/photos"/>
-      </endpoint>
-    </call>
-        		<!-- Remove response custom header information -->
-		<header name="X-FB-Debug" scope="transport" action="remove" />
-		<header name="X-FB-Rev" scope="transport" action="remove" />
-		<header name="WWW-Authenticate" scope="transport" action="remove" />
-  </sequence>
+    <parameter name="userId" description="The id of the user"/>
+    <parameter name="apiUrl" description="The api url"/>
+    <parameter name="apiVersion" description="Version of Facebook API"/>
+    <parameter name="accessToken" description="accessToken"/>
+    <parameter name="caption" description="The description of the photo"/>
+    <parameter name="photoUrl" description="The URL of a photo that is already uploaded to the Internet."/>
+    <parameter name="targetId" description="User id to post the photo to an object that's not the user in the access token. "/>
+    <parameter name="tags" description="Tags on this photo"/>
+    <parameter name="place" description="Page ID of a place associated with the photo"/>
+    <parameter name="isExplicitPlace" description="If set to true, the tag is a place, not a person"/>
+    <parameter name="isExplicitLocation" description="Is this an explicit location?"/>
+    <parameter name="ogActionTypeId" description="The Open Graph action type"/>
+    <parameter name="ogObjectId" description="The Open Graph object ID"/>
+    <parameter name="ogPhrase" description="The Open Graph phrase"/>
+    <parameter name="ogIconId" description="The Open Graph icon"/>
+    <parameter name="ogSuggestionMechanism" description="The Open Graph suggestion"/>
+    <parameter name="privacy" description="Determines the privacy settings of the photo"/>
+    <parameter name="targeting" description="Allows you to target posts to specific audiences."/>
+    <parameter name="feedTargeting" description="Object that controls news feed targeting for this post."/>
+    <parameter name="noStory" description="If set to true, this will suppress feed and timeline story."/>
+    <parameter name="published" description="Set to false if you don't want the photo to be published immediately"/>
+    <parameter name="offlineId" description="Offline ID"/>
+    <parameter name="backdatedTime" description="A user-specified creation time for this photo"/>
+    <parameter name="backdatedTimeGranularity" description="Granularity. Default value: none"/>
+    <parameter name="fullResIsComingLater" description="Full res is coming later"/>
+    <parameter name="composerSessionId" description="Composer session ID"/>
+    <parameter name="scheduledPublishTime" description="Time at which an unpublished post should be published."/>
+    <parameter name="manualPrivacy" description="Manual privacy"/>
+    <parameter name="audienceExp" description="Audience exp"/>
+    <parameter name="applicationId" description="iTunes App ID."/>
+    <sequence>
+        <property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
+        <property name="uri.var.apiVersion" expression="$func:apiVersion"/>
+        <property name="uri.var.accessToken" expression="$func:accessToken"/>
+        <property name="uri.var.caption" expression="$func:caption"/>
+        <property name="uri.var.targetId" expression="$func:targetId"/>
+        <property name="uri.var.tags" expression="$func:tags"/>
+        <property name="uri.var.place" expression="$func:place" />
+        <property name="uri.var.isExplicitPlace" expression="$func:isExplicitPlace" />
+        <property name="uri.var.isExplicitLocation" expression="$func:isExplicitLocation" />
+        <property name="uri.var.ogActionTypeId" expression="$func:ogActionTypeId"/>
+        <property name="uri.var.ogObjectId" expression="$func:ogObjectId"/>
+        <property name="uri.var.ogPhrase" expression="$func:ogPhrase"/>
+        <property name="uri.var.ogSuggestionMechanism" expression="$func:ogSuggestionMechanism" />
+        <property name="uri.var.ogIconId" expression="$func:ogIconId"/>
+        <property name="uri.var.privacy" expression="$func:privacy"/>
+        <property name="uri.var.targeting" expression="$func:targeting" />
+        <property name="uri.var.feedTargeting" expression="$func:feedTargeting"/>
+        <property name="uri.var.noStory" expression="$func:noStory"/>
+        <property name="uri.var.published" expression="$func:published"/>
+        <property name="uri.var.offlineId" expression="$func:offlineId" />
+        <property name="uri.var.backdatedTime" expression="$func:backdatedTime"/>
+        <property name="uri.var.backdatedTimeGranularity" expression="$func:backdatedTimeGranularity"/>
+        <property name="uri.var.fullResIsComingLater" expression="$func:fullResIsComingLater"/>
+        <property name="uri.var.manualPrivacy" expression="$func:manualPrivacy" />
+        <property name="uri.var.scheduledPublishTime" expression="$func:scheduledPublishTime"/>
+        <property name="uri.var.audienceExp" expression="$func:audienceExp"/>
+        <property name="uri.var.applicationId" expression="$func:applicationId" />
+        <property name="uri.var.composerSessionId" expression="$func:composerSessionId"/>
+        <property name="uri.var.params" value=""/>
+        <script language="js">
+            <![CDATA[
+	        var params = mc.getProperty('uri.var.params');
+	        var caption = mc.getProperty('uri.var.caption');
+	        var photoUrl = mc.getProperty('uri.var.photoUrl');
+	        var targetId = mc.getProperty('uri.var.targetId');
+	        var tags = mc.getProperty('uri.var.tags');
+	        var place = mc.getProperty('uri.var.place');
+	        var targeting = mc.getProperty('uri.var.targeting');
+	        var feedTargeting = mc.getProperty('uri.var.feedTargeting');
+	        var noStory = mc.getProperty('uri.var.noStory');
+	        var published = mc.getProperty('uri.var.published');
+	        var offlineId = mc.getProperty('uri.var.offlineId');
+	        var attempt = mc.getProperty('uri.var.attempt');
+	        var backdatedTime = mc.getProperty('uri.var.backdatedTime');
+	        var backdatedTimeGranularity = mc.getProperty('uri.var.backdatedTimeGranularity');
+	        var filterType = mc.getProperty('uri.var.filterType');
+	        var temporary = mc.getProperty('uri.var.temporary');
+	        var scheduledPublishTime = mc.getProperty('uri.var.scheduledPublishTime');
+	        var unpublishedContentType = mc.getProperty('uri.var.unpublishedContentType');
+            var nectarModule = mc.getProperty('uri.var.nectarModule');
+	        var ogActionTypeId = mc.getProperty('uri.var.ogActionTypeId');
+	        var ogObjectId = mc.getProperty('uri.var.ogObjectId');
+	        var ogPhrase = mc.getProperty('uri.var.ogPhrase');
+	        var ogSuggestionMechanism = mc.getProperty('uri.var.ogSuggestionMechanism');
+	        var ogIconId = mc.getProperty('uri.var.ogIconId');
+	        var composerSessionId = mc.getProperty('uri.var.composerSessionId');
+
+			if (caption != null && caption != "") {
+				params += "&caption=" + caption;
+			}
+
+			if (photoUrl != null && photoUrl != "")
+			{
+				params += "&url=" + photoUrl;
+			}
+
+			if (targetId != null && targetId != "")
+			{
+				params += "&target_id=" + targetId;
+			}
+
+			if (place != null && place != "")
+			{
+				params += "&place=" + place;
+			}
+
+            if (tags != null && tags != "") {
+               var txt = '{"tags":'+tags+'}';
+               var query="";
+               var obj = eval ("(" + txt + ")");
+               for(var key in obj.tags){
+                  query += ',' + key + '=' + obj.tags[key];
+               }
+               params += "&tags{" + query.substring(1, query.length) + "}";
+            }
+
+            if (isExplicitPlace != null && isExplicitPlace != "")
+			{
+				params += "&is_explicit_place=" + isExplicitPlace;
+			}
+
+			if (isExplicitLocation != null && isExplicitLocation != "")
+			{
+				params += "&is_explicit_location=" + isExplicitLocation;
+			}
+
+			if (ogActionTypeId != null && ogActionTypeId != "")
+			{
+				params += "&og_action_type_id=" + ogActionTypeId;
+			}
+
+			if (ogObjectId != null && ogObjectId != "")
+			{
+				params += "&og_object_id=" + ogObjectId;
+			}
+
+			if (ogPhrase != null && ogPhrase != "")
+			{
+				params += "&og_phrase=" + ogPhrase;
+			}
+
+            if (ogIconId != null && ogIconId != "")
+			{
+				params += "&og_icon_id=" + ogIconId;
+			}
+
+			if (ogSuggestionMechanism != null && ogSuggestionMechanism != "")
+			{
+				params += "&og_suggestion_mechanism=" + ogSuggestionMechanism;
+			}
+
+            if (privacy != null && privacy != "")
+			{
+				params += "&privacy=" + privacy;
+			}
+
+            if (feedTargeting != null && feedTargeting != "") {
+               var txt = '{"feedTargeting":'+feedTargeting+'}';
+               var query="";
+               var obj = eval ("(" + txt + ")");
+               for(var key in obj.feedTargeting){
+                  query += ',' + key + '=' + obj.feedTargeting[key];
+               }
+               params += "&feed_targeting{" + query.substring(1, query.length) + "}";
+            }
+
+            if (targeting != null && targeting != "") {
+                var txt = '{"targeting":'+targeting+'}';
+                var query="";
+                var obj = eval ("(" + txt + ")");
+                for(var key in obj.targeting){
+                    query += ',' + key + '=' + obj.targeting[key];
+                }
+                params += "&targeting{" + query.substring(1, query.length) + "}";
+            }
+
+            if (noStory != null && noStory != "")
+			{
+				params += "&no_story=" + noStory;
+			}
+
+			if (published != null && published != "")
+			{
+				params += "&published=" + published;
+			}
+
+			if (offlineId != null && offlineId != "")
+			{
+				params += "&offline_id=" + offlineId;
+			}
+
+            if (backdatedTime != null && backdatedTime != "")
+			{
+				params += "&backdated_time=" + backdatedTime;
+			}
+
+			if (backdatedTimeGranularity != null && backdatedTimeGranularity != "")
+			{
+				params += "&backdated_time_granularity=" + backdatedTimeGranularity;
+			}
+
+			if (fullResIsComingLater != null && fullResIsComingLater != "")
+			{
+				params += "&full_res_is_coming_later=" + fullResIsComingLater;
+			}
+
+			if (manualPrivacy != null && manualPrivacy != "")
+			{
+				params += "&manual_privacy=" + manualPrivacy;
+			}
+
+			if (audience_exp != null && audience_exp != "")
+			{
+				params += "&audienceExp=" + audience_exp;
+			}
+
+            if (scheduledPublishTime != null && scheduledPublishTime != "")
+			{
+				params += "&scheduled_publish_time=" + scheduledPublishTime;
+			}
+
+            if (applicationId != null && applicationId != "")
+			{
+				params += "&application_id=" + applicationId;
+			}
+
+			if (composerSessionId != null && composerSessionId != "")
+			{
+				params += "&composer_session_id=" + composerSessionId;
+			}
+
+			mc.setProperty('uri.var.params', params);
+
+	       ]]>
+        </script>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/{uri.var.userId}/photos?access_token={uri.var.accessToken}{+uri.var.params}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-FB-Debug" scope="transport" action="remove"/>
+        <header name="X-FB-Rev" scope="transport" action="remove"/>
+        <header name="WWW-Authenticate" scope="transport" action="remove"/>
+    </sequence>
 </template>
