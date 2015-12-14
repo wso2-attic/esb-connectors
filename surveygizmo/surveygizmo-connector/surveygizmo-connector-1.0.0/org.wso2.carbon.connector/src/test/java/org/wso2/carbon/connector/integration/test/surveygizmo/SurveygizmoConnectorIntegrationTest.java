@@ -34,11 +34,8 @@ import org.wso2.connector.integration.test.base.RestResponse;
 public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     
     private Map<String, String> esbRequestHeadersMap = new HashMap<String, String>();
-    
     private Map<String, String> apiRequestHeadersMap = new HashMap<String, String>();
-    
     private Map<String, String> parametersMap = new HashMap<String, String>();
-    
     private String authParam;
     
     /**
@@ -46,18 +43,13 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
      */
     @BeforeClass(alwaysRun = true)
     public void setEnvironment() throws Exception {
-    
         init("surveygizmo-connector-1.0.0");
-        
         esbRequestHeadersMap.put("Accept-Charset", "UTF-8");
         esbRequestHeadersMap.put("Content-Type", "application/json");
-        
         apiRequestHeadersMap.put("Content-Type", "application/x-www-form-urlencoded");
-        
         authParam =
                 "user:md5=" + connectorProperties.getProperty("userName") + ":"
                         + connectorProperties.getProperty("password");
-        
     }
     
     /**
@@ -65,22 +57,17 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
      */
     @Test(groups = { "wso2.esb" }, description = "surveygizmo {createSurvey} integration test with mandatory parameters.")
     public void testCreateSurveyWithMandatoryParameters() throws IOException, JSONException {
-    
         esbRequestHeadersMap.put("Action", "urn:createSurvey");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createSurvey_mandatory.json");
-        
         String surveyId = esbRestResponse.getBody().getJSONObject("data").getString("id");
         connectorProperties.put("surveyId", surveyId);
-        
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v4/survey/" + surveyId + "?" + authParam;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("title"),
                 connectorProperties.getProperty("surveyTitle"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("_type").toLowerCase(),
                 connectorProperties.getProperty("surveyType"));
-        
     }
     
     /**
@@ -92,13 +79,10 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
         esbRequestHeadersMap.put("Action", "urn:createSurvey");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createSurvey_optional.json");
-        
         String surveyId = esbRestResponse.getBody().getJSONObject("data").getString("id");
         connectorProperties.put("surveyIdOptional", surveyId);
-        
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v4/survey/" + surveyId + "?" + authParam;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("title"),
                 connectorProperties.getProperty("surveyTitle"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("_type").toLowerCase(),
@@ -109,7 +93,6 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
                 connectorProperties.getProperty("surveyTheme"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("status"),
                 connectorProperties.getProperty("surveyStatus"));
-        
     }
     
     /**
@@ -121,11 +104,9 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
         esbRequestHeadersMap.put("Action", "urn:createSurvey");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createSurvey_negative.json");
-        
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v4/survey?" + authParam;
         RestResponse<JSONObject> apiRestResponse =
                 sendJsonRestRequest(apiEndPoint, "PUT", apiRequestHeadersMap, "api_createSurvey_negative.json");
-        
         Assert.assertEquals(apiRestResponse.getBody().getString("result_ok"),
                 esbRestResponse.getBody().getString("result_ok"));
         Assert.assertEquals(apiRestResponse.getBody().getString("code"), esbRestResponse.getBody().getString("code"));
@@ -140,28 +121,20 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
     public void testUpdateSurveyWithMandatoryParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:updateSurvey");
-        
         String surveyId = connectorProperties.getProperty("surveyIdOptional");
-        
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v4/survey/" + surveyId + "?" + authParam;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         String originalInternalTitle = apiRestResponse.getBody().getJSONObject("data").getString("internal_title");
         String originalStatus = apiRestResponse.getBody().getJSONObject("data").getString("status");
         String originalTheme = apiRestResponse.getBody().getJSONObject("data").getString("theme");
-        
         sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateSurvey_optional.json");
-        
         apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         String updatedInternalTitle = apiRestResponse.getBody().getJSONObject("data").getString("internal_title");
         String updatedStatus = apiRestResponse.getBody().getJSONObject("data").getString("status");
         String updatedTheme = apiRestResponse.getBody().getJSONObject("data").getString("theme");
-        
         Assert.assertNotEquals(originalInternalTitle, updatedInternalTitle);
         Assert.assertNotEquals(originalStatus, updatedStatus);
         Assert.assertNotEquals(originalTheme, updatedTheme);
-        
     }
     
     /**
@@ -196,12 +169,10 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
         esbRequestHeadersMap.put("Action", "urn:getSurveyById");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getSurveyById_mandatory.json");
-        
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v4/survey/" + connectorProperties.getProperty("surveyId")
                         + "?" + authParam;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("id"), esbRestResponse.getBody()
                 .getJSONObject("data").getString("id"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("status"), esbRestResponse
@@ -222,12 +193,10 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
         esbRequestHeadersMap.put("Action", "urn:getSurveyById");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getSurveyById_optional.json");
-        
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v4/survey/" + connectorProperties.getProperty("surveyId")
                         + "?metaonly=true&" + authParam;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         Assert.assertEquals(apiRestResponse.getBody().has("pages"), esbRestResponse.getBody().has("pages"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("id"), esbRestResponse.getBody()
                 .getJSONObject("data").getString("id"));
@@ -237,7 +206,6 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
                 .getBody().getJSONObject("data").getString("title"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("created_on"), esbRestResponse
                 .getBody().getJSONObject("data").getString("created_on"));
-        
     }
     
     /**
@@ -250,13 +218,10 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
         esbRequestHeadersMap.put("Action", "urn:listSurveys");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listSurveys_mandatory.json");
-        
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v4/survey?" + authParam;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         JSONArray esbDataArray = esbRestResponse.getBody().getJSONArray("data");
         JSONArray apiDataArray = apiRestResponse.getBody().getJSONArray("data");
-        
         Assert.assertEquals(apiRestResponse.getBody().getString("total_count"),
                 esbRestResponse.getBody().getString("total_count"));
         Assert.assertEquals(apiDataArray.getJSONObject(0).getString("id"), esbDataArray.getJSONObject(0)
@@ -267,7 +232,6 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
                 esbDataArray.getJSONObject(0).getString("title"));
         Assert.assertEquals(apiDataArray.getJSONObject(0).getString("created_on"), esbDataArray.getJSONObject(0)
                 .getString("created_on"));
-        
     }
     
     /**
@@ -280,14 +244,11 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
         esbRequestHeadersMap.put("Action", "urn:listSurveys");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listSurveys_optional.json");
-        
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v4/survey?" + authParam + "&page=2&resultsperpage=1";
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         JSONArray esbDataArray = esbRestResponse.getBody().getJSONArray("data");
         JSONArray apiDataArray = apiRestResponse.getBody().getJSONArray("data");
-        
         Assert.assertEquals(apiRestResponse.getBody().getString("total_count"),
                 esbRestResponse.getBody().getString("total_count"));
         Assert.assertEquals(apiRestResponse.getBody().getString("page"), esbRestResponse.getBody().getString("page"));
@@ -297,7 +258,6 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
                 .getString("results_per_page"));
         Assert.assertEquals(apiDataArray.getJSONObject(0).getString("id"), esbDataArray.getJSONObject(0)
                 .getString("id"));
-        
     }
     
     /**
@@ -330,20 +290,16 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
         esbRequestHeadersMap.put("Action", "urn:createCampaign");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createCampaign_mandatory.json");
-        
         String esbCampaignId = esbRestResponse.getBody().getJSONObject("data").getString("id");
         connectorProperties.setProperty("campaignId", esbCampaignId);
-        
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v4/survey/" + connectorProperties.getProperty("surveyId")
                         + "/surveycampaign/" + esbCampaignId + "?" + authParam;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("_subtype"),
                 connectorProperties.getProperty("campaignType"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("name"),
                 connectorProperties.getProperty("campaignName"));
-        
     }
     
     /**
@@ -355,14 +311,11 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
         esbRequestHeadersMap.put("Action", "urn:createCampaign");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createCampaign_optional.json");
-        
         String esbCampaignId = esbRestResponse.getBody().getJSONObject("data").getString("id");
-        
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v4/survey/" + connectorProperties.getProperty("surveyId")
                         + "/surveycampaign/" + esbCampaignId + "?" + authParam;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("_subtype"),
                 connectorProperties.getProperty("campaignType"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("name"),
@@ -371,7 +324,6 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
                 connectorProperties.getProperty("campaignStatus"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("language"),
                 connectorProperties.getProperty("campaignLanguage"));
-        
     }
     
     /**
@@ -405,26 +357,18 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
     public void testUpdateCampaignWithOptionalParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:updateCampaign");
-        
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v4/survey/" + connectorProperties.getProperty("surveyId")
                         + "/surveycampaign/" + connectorProperties.getProperty("campaignId") + "?" + authParam;
-        
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         String orginalName = apiRestResponse.getBody().getJSONObject("data").getString("name");
         String orginalLanguage = apiRestResponse.getBody().getJSONObject("data").getString("language");
-        
         sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_updateCampaign_optional.json");
-        
         apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         String updatedName = apiRestResponse.getBody().getJSONObject("data").getString("name");
         String updatedLanguage = apiRestResponse.getBody().getJSONObject("data").getString("language");
-        
         Assert.assertNotEquals(orginalName, updatedName);
         Assert.assertNotEquals(orginalLanguage, updatedLanguage);
-        
     }
     
     /**
@@ -460,12 +404,10 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
         esbRequestHeadersMap.put("Action", "urn:getCampaignById");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getCampaignById_mandatory.json");
-        
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v4/survey/" + connectorProperties.getProperty("surveyId")
                         + "/surveycampaign/" + connectorProperties.getProperty("campaignId") + "?" + authParam;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         Assert.assertEquals(apiRestResponse.getBody().getString("result_ok"),
                 esbRestResponse.getBody().getString("result_ok"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("id"), esbRestResponse.getBody()
@@ -474,7 +416,6 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
                 .getBody().getJSONObject("data").getString("status"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("data").getString("name"), esbRestResponse
                 .getBody().getJSONObject("data").getString("name"));
-        
     }
     
     /**
@@ -487,15 +428,12 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
         esbRequestHeadersMap.put("Action", "urn:listCampaigns");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaigns_mandatory.json");
-        
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v4/survey/" + connectorProperties.getProperty("surveyId")
                         + "/surveycampaign?" + authParam;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         JSONArray esbDataArray = esbRestResponse.getBody().getJSONArray("data");
         JSONArray apiDataArray = apiRestResponse.getBody().getJSONArray("data");
-        
         Assert.assertEquals(apiRestResponse.getBody().getString("total_count"),
                 esbRestResponse.getBody().getString("total_count"));
         Assert.assertEquals(apiDataArray.getJSONObject(0).getString("id"), esbDataArray.getJSONObject(0)
@@ -506,7 +444,6 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
                 esbDataArray.getJSONObject(0).getString("name"));
         Assert.assertEquals(apiDataArray.getJSONObject(0).getString("datecreated"), esbDataArray.getJSONObject(0)
                 .getString("datecreated"));
-        
     }
     
     /**
@@ -546,21 +483,17 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
     @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testCreateCampaignWithMandatoryParameters",
             "testCreateCampaignWithOptionalParameters" }, description = "surveygizmo {listCampaigns} integration test with negative case.")
     public void testListCampaignsWithNegativeCase() throws IOException, JSONException {
-    
         esbRequestHeadersMap.put("Action", "urn:listCampaigns");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listCampaigns_negative.json");
-        
         String apiEndPoint =
                 connectorProperties.getProperty("apiUrl") + "/v4/survey/" + connectorProperties.getProperty("surveyId")
                         + "/surveycampaign?" + authParam + "&page=invalid";
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(), esbRestResponse.getHttpStatusCode());
         Assert.assertEquals(apiRestResponse.getBody().getString("code"), esbRestResponse.getBody().getString("code"));
         Assert.assertEquals(apiRestResponse.getBody().getString("message"),
                 esbRestResponse.getBody().getString("message"));
-        
     }
     
     /**
@@ -568,23 +501,19 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
      */
     @Test(groups = { "wso2.esb" }, description = "surveygizmo {listContactLists} integration test with mandatory parameters.")
     public void testListContactListsWithMandatoryParameters() throws IOException, JSONException {
-    
         esbRequestHeadersMap.put("Action", "urn:listContactLists");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listContactLists_mandatory.json");
-        
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v4/contactlist?"+authParam;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         connectorProperties.put("contactListId", apiRestResponse.getBody().getJSONObject("0").getString("iGroupID"));
-        
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("0").getString("iGroupID"), esbRestResponse.getBody()
                 .getJSONObject("0").getString("iGroupID"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("0").getString("dDateModifed"), esbRestResponse
                 .getBody().getJSONObject("0").getString("dDateModifed"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("0").getString("sGroupName"), esbRestResponse
                 .getBody().getJSONObject("0").getString("sGroupName"));
-         
+
     }
     
     /**
@@ -592,21 +521,17 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
      */
     @Test(groups = { "wso2.esb" }, description = "surveygizmo {listContactLists} integration test with optional parameters.")
     public void testListContactListsWithOptionalParameters() throws IOException, JSONException {
-    
         esbRequestHeadersMap.put("Action", "urn:listContactLists");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listContactLists_optional.json");
-        
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v4/contactlist?"+authParam+"&page=1&resultsperpage=2";
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("0").getString("iGroupID"), esbRestResponse.getBody()
                 .getJSONObject("0").getString("iGroupID"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("0").getString("dDateModifed"), esbRestResponse
                 .getBody().getJSONObject("0").getString("dDateModifed"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("0").getString("sGroupName"), esbRestResponse
                 .getBody().getJSONObject("0").getString("sGroupName"));
-         
     }
     
     /**
@@ -614,22 +539,17 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
      */
     @Test(groups = { "wso2.esb" },dependsOnMethods = { "testListContactListsWithMandatoryParameters"}, description = "surveygizmo {getContactListById} integration test with mandatory parameters.")
     public void testGetContactListByIdWithMandatoryParameters() throws IOException, JSONException {
-    
         esbRequestHeadersMap.put("Action", "urn:getContactListById");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_getContactListById_mandatory.json");
-        
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v4/contactlist/"+connectorProperties.getProperty("contactListId") +"?"+authParam;
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("0").getString("iCustomerID"), esbRestResponse.getBody()
                 .getJSONObject("0").getString("iCustomerID"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("0").getString("dDateAdded"), esbRestResponse
                 .getBody().getJSONObject("0").getString("dDateAdded"));
         Assert.assertEquals(apiRestResponse.getBody().getJSONObject("0").getString("eStatus"), esbRestResponse
                 .getBody().getJSONObject("0").getString("eStatus"));
-   
-         
     }
     
     /**
@@ -687,17 +607,13 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
      */
     @Test(groups = { "wso2.esb" }, description = "surveygizmo {listResponses} integration test with optional parameters.")
     public void testListResponsesWithOptionalParameters() throws IOException, JSONException {
-    
         esbRequestHeadersMap.put("Action", "urn:listResponses");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listResponses_optional.json");
-        
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v4/survey/"+connectorProperties.getProperty("surveyIdToListResponse")+"/surveyresponse?"+authParam+"&page=2&resultsperpage=1";
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         JSONArray esbDataArray = esbRestResponse.getBody().getJSONArray("data");
         JSONArray apiDataArray = apiRestResponse.getBody().getJSONArray("data");
-        
         Assert.assertEquals(apiRestResponse.getBody().getString("total_count"),
                 esbRestResponse.getBody().getString("total_count"));
         Assert.assertEquals(apiRestResponse.getBody().getString("page"), esbRestResponse.getBody().getString("page"));
@@ -707,8 +623,6 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
                 .getString("results_per_page"));
         Assert.assertEquals(apiDataArray.getJSONObject(0).getString("id"), esbDataArray.getJSONObject(0)
                 .getString("id"));
-        
-         
     }
     
     /**
@@ -720,19 +634,13 @@ public class SurveygizmoConnectorIntegrationTest extends ConnectorIntegrationTes
         esbRequestHeadersMap.put("Action", "urn:listResponses");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listResponses_negative.json");
-        
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/v4/survey/"+connectorProperties.getProperty("surveyIdToListResponse")+"/surveyresponse?"+authParam+"&page=invalid";
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-        
         Assert.assertEquals(apiRestResponse.getBody().getString("result_ok"),
                 esbRestResponse.getBody().getString("result_ok"));
         Assert.assertEquals(apiRestResponse.getBody().getString("code"), esbRestResponse.getBody().getString("code"));
         Assert.assertEquals(apiRestResponse.getBody().getString("message"),
                 esbRestResponse.getBody().getString("message"));
-        
-         
+
     }
-    
-    
-    
 }
