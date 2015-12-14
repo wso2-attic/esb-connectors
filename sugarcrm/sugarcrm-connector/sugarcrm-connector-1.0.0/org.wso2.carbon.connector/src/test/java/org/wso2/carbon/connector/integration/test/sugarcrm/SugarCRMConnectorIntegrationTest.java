@@ -28,37 +28,26 @@ import org.wso2.carbon.mediation.library.stub.upload.MediationLibraryUploaderStu
 public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
     
     private static final String CONNECTOR_NAME = "sugarcrm";
-    
     private MediationLibraryUploaderStub mediationLibUploadStub = null;
-    
     private MediationLibraryAdminServiceStub adminServiceStub = null;
-    
     private ProxyServiceAdminClient proxyAdmin;
-    
     private String repoLocation = null;
-    
     private String fileURLSeperator = null;
-    
     private String sugarCrmConnectorFileName = "sugarcrm-connector-1.0.0.zip";
-    
     private Properties sugarCrmConnectorProperties = null;
     
     @BeforeClass(alwaysRun = true)
     public void setEnvironment() throws Exception {
     
         super.init();
-        
         ConfigurationContextProvider configurationContextProvider = ConfigurationContextProvider.getInstance();
         ConfigurationContext cc = configurationContextProvider.getConfigurationContext();
         mediationLibUploadStub =
                 new MediationLibraryUploaderStub(cc, esbServer.getBackEndUrl() + "MediationLibraryUploader");
         AuthenticateStub.authenticateStub("admin", "admin", mediationLibUploadStub);
-        
         adminServiceStub =
                 new MediationLibraryAdminServiceStub(cc, esbServer.getBackEndUrl() + "MediationLibraryAdminService");
-        
         AuthenticateStub.authenticateStub("admin", "admin", adminServiceStub);
-        
         if (System.getProperty("os.name").toLowerCase().contains("windows")) {
             repoLocation = System.getProperty("connector_repo").replace("/", "\\");
             fileURLSeperator = "///";
@@ -66,21 +55,16 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
             repoLocation = System.getProperty("connector_repo").replace("/", "/");
             fileURLSeperator = "";
         }
-        
         proxyAdmin = new ProxyServiceAdminClient(esbServer.getBackEndUrl(), esbServer.getSessionCookie());
-        
         ConnectorIntegrationUtil.uploadConnector(repoLocation, mediationLibUploadStub, sugarCrmConnectorFileName);
         Thread.sleep(30000);
-        
         adminServiceStub.updateStatus("{org.wso2.carbon.connector}sugarcrm", "sugarcrm", "org.wso2.carbon.connector",
                 "enabled");
-        
         proxyAdmin.addProxyService(new DataHandler(new URL("file:" + fileURLSeperator + File.separator + File.separator
                 + ProductConstant.SYSTEM_TEST_RESOURCE_LOCATION + ConnectorIntegrationUtil.ESB_CONFIG_LOCATION
                 + File.separator + "proxies" + File.separator + CONNECTOR_NAME + File.separator + CONNECTOR_NAME
                 + ".xml")));
         sugarCrmConnectorProperties = ConnectorIntegrationUtil.getConnectorConfigProperties(CONNECTOR_NAME);
-        
     }
     
     @Override
@@ -92,10 +76,8 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * mandatory parameter test case for createAccount method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createAccount} Mandatory Parameters integration test.")
     public void testCreateAccountMandatoryParams() throws Exception {
-
         final String methodName = "createAccount";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -116,23 +98,18 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "</sug:method>\n"
                         + "           </root>\n" + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement createAccountMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(createAccountMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertNotEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
      * optional parameter test case for createAccount method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createAccount} Optional Parameters integration test.")
     public void testCreateAccountOptionalParams() throws Exception {
-
         final String methodName = "createAccount";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -158,23 +135,18 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testCreateAccountOptionalParams = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testCreateAccountOptionalParams, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertNotEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
      * Negative test case for createAccount method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createAccount} Negative case integration test.")
     public void testCreateAccountNegativeCase() throws Exception {
-
         final String methodName = "createAccount";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -195,23 +167,18 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testCreateAccountNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testCreateAccountNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
      * mandatory parameter test case for createCase method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createCase} Mandatory Parameters integration test.")
     public void testCreateCaseMandatoryParams() throws Exception {
-
         final String methodName = "createCase";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -235,24 +202,18 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement createCaseMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(createCaseMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
-
         Assert.assertNotEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
      * optional parameter test case for createCase method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createCase} Optional Parameters integration test.")
     public void testCreateCaseOptionalParams() throws Exception {
-
         final String methodName = "createCase";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -276,14 +237,11 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testCreateCaseOptionalParams = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testCreateCaseOptionalParams, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertNotEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
@@ -292,7 +250,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createCase} Negative case integration test.")
     public void testCreateCaseNegativeCase() throws Exception {
-
         final String methodName = "createCase";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -313,23 +270,18 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testCreateCaseNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient
                         .sendReceive(testCreateCaseNegativeCase, getProxyServiceURL(CONNECTOR_NAME), "mediate");
         Assert.assertEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
      * mandatory parameter test case for createLead method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createLead} Mandatory Parameters integration test.")
     public void testCreateLeadMandatoryParams() throws Exception {
-
         final String methodName = "createLead";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -355,23 +307,18 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement createLeadMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(createLeadMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertNotEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
      * optional parameter test case for createLead method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createLead} Optional Parameters integration test.")
     public void testCreateLeadOptionalParams() throws Exception {
-
         final String methodName = "createLead";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -396,14 +343,11 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "           </root>\n"
                         + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testCreateLeadOptionalParams = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testCreateLeadOptionalParams, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertNotEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
@@ -436,23 +380,18 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testCreateLeadNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient
                         .sendReceive(testCreateLeadNegativeCase, getProxyServiceURL(CONNECTOR_NAME), "mediate");
         Assert.assertEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
      * mandatory parameter test case for createOpportunity method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createOpportunity} Mandatory Parameters integration test.")
     public void testCreateOpportunityMandatoryParams() throws Exception {
-
         final String methodName = "createOpportunity";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -475,24 +414,18 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "</sug:method>\n"
                         + "           </root>\n" + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement createOpportunityMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(createOpportunityMandatoryParamRequest,
                         getProxyServiceURL(CONNECTOR_NAME), "mediate");
-
         Assert.assertNotEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
      * optional parameter test case for createOpportunity method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createOpportunity} Optional Parameters integration test.")
     public void testCreateOpportunityOptionalParams() throws Exception {
-
         final String methodName = "createOpportunity";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -517,23 +450,18 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testCreateOpportunityOptionalParams = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testCreateOpportunityOptionalParams, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertNotEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
      * Negative test case for createOpportunity method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createOpportunity} Negative case integration test.")
     public void testCreateOpportunityNegativeCase() throws Exception {
-
         final String methodName = "createOpportunity";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -555,14 +483,11 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "           </root>\n"
                         + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testCreateOpportunityNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testCreateOpportunityNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
@@ -571,7 +496,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createSession} Mandatory Parameters integration test.")
     public void testCreateSessionMandatoryParams() throws Exception {
-
         final String methodName = "createSession";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -592,15 +516,11 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "</sug:method>\n"
                         + "           </root>\n" + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement createSessionMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(createSessionMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
-
         Assert.assertEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "Success");
-
     }
 
     /**
@@ -609,7 +529,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createSession} Negative case integration test.")
     public void testCreateSessionNegativeCase() throws Exception {
-
         final String methodName = "createSession";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -630,14 +549,11 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testCreateSessionNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testCreateSessionNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "Failed");
-
     }
 
     /**
@@ -646,7 +562,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getDocumentRevision} Mandatory Parameters integration test.")
     public void testgetDocumentRevisionMandatoryParams() throws Exception {
-
         final String methodName = "getDocumentRevision";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -672,16 +587,12 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement getDocumentRevisionMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(getDocumentRevisionMandatoryParamRequest,
                         getProxyServiceURL(CONNECTOR_NAME), "mediate");
-
         Assert.assertNotEquals(((OMElement) (response.getFirstElement().getFirstElement()
                 .getChildrenWithLocalName("id").next())).getText(), "");
-
     }
 
     /**
@@ -690,7 +601,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getDocumentRevision} Negative case integration test.")
     public void testGetDocumentRevisionNegativeCase() throws Exception {
-
         final String methodName = "getDocumentRevision";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -716,16 +626,13 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testGetDocumentRevisionNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testGetDocumentRevisionNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (response.getChildrenWithLocalName("return")
                 .next())).getChildrenWithLocalName("error").next())).getChildrenWithLocalName("name").next()))
                 .getText(), "No Records");
-
     }
 
     /**
@@ -734,7 +641,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getEntryByID} Mandatory Parameters integration test.")
     public void testGetEntryByIdMandatoryParams() throws Exception {
-
         final String methodName = "getEntryByID";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -765,13 +671,10 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement getEntryByIdMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(getEntryByIdMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
-
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (((OMElement) (response
                 .getChildrenWithLocalName("return").next())).getChildrenWithLocalName("field_list").next()))
                 .getChildrenWithLocalName("item").next())).getChildrenWithLocalName("label").next())).getText(), "ID");
@@ -784,7 +687,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getEntryByID} Optional Parameters integration test.")
     public void testGetEntryByIdOptionalParams() throws Exception {
-
         final String methodName = "getEntryByID";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -814,16 +716,13 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "           </root>\n"
                         + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testGetEntryByIdOptionalParams = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testGetEntryByIdOptionalParams, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (((OMElement) (response
                 .getChildrenWithLocalName("return").next())).getChildrenWithLocalName("field_list").next()))
                 .getChildrenWithLocalName("item").next())).getChildrenWithLocalName("label").next())).getText(), "ID");
-
     }
 
     /**
@@ -832,7 +731,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getEntryByID} Negative case integration test.")
     public void testGetEntryByIdNegativeCase() throws Exception {
-
         final String methodName = "getEntryByID";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -859,25 +757,20 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "</sug:method>\n"
                         + "           </root>\n" + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testGetEntryByIdNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testGetEntryByIdNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (response.getChildrenWithLocalName("return")
                 .next())).getChildrenWithLocalName("error").next())).getChildrenWithLocalName("name").next()))
                 .getText(), "Module Does Not Exist");
-
     }
 
     /**
      * mandatory parameter test case for getEntryList method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getEntryList} Mandatory Parameters integration test.")
     public void testGetEntryListMandatoryParams() throws Exception {
-
         final String methodName = "getEntryList";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -912,25 +805,19 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement getEntryListMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(getEntryListMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
-
         Assert.assertNotEquals(((OMElement) (((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("result_count").next())).getText(), "0");
-
     }
 
     /**
      * optional parameter test case for getEntryList method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getEntryList} Optional Parameters integration test.")
     public void testGetEntryListOptionalParams() throws Exception {
-
         final String methodName = "getEntryList";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -965,24 +852,19 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testGetEntryListOptionalParams = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testGetEntryListOptionalParams, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertNotEquals(((OMElement) (((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("result_count").next())).getText(), "0");
-
     }
 
     /**
      * Negative test case for getEntryList method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getEntryList} Negative case integration test.")
     public void testGetEntryListNegativeCase() throws Exception {
-
         final String methodName = "getEntryList";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1017,25 +899,20 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testGetEntryListNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testGetEntryListNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (response.getChildrenWithLocalName("return")
                 .next())).getChildrenWithLocalName("error").next())).getChildrenWithLocalName("name").next()))
                 .getText(), "Access Denied");
-
     }
 
     /**
      * mandatory parameter test case for getModuleFields method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getModuleFields} Mandatory Parameters integration test.")
     public void testGetModuleFieldsMandatoryParams() throws Exception {
-
         final String methodName = "getModuleFields";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1061,17 +938,13 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement getModuleFieldsMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(getModuleFieldsMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
-
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (((OMElement) (response
                 .getChildrenWithLocalName("return").next())).getChildrenWithLocalName("module_fields").next()))
                 .getChildrenWithLocalName("item").next())).getChildrenWithLocalName("label").next())).getText(), "ID");
-
     }
 
     /**
@@ -1080,7 +953,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getModuleFields} Negative case invalid module name integration test.")
     public void testGetModuleFieldsNegativeCaseInvalidModuleName() throws Exception {
-
         final String methodName = "getModuleFields";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1106,25 +978,20 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testGetModuleFieldsNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testGetModuleFieldsNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (response.getChildrenWithLocalName("return")
                 .next())).getChildrenWithLocalName("error").next())).getChildrenWithLocalName("name").next()))
                 .getText(), "Module Does Not Exist");
-
     }
 
     /**
      * mandatory parameter test case for getMultipleEntriesByIDs method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getMultipleEntriesByIDs} Mandatory Parameters integration test.")
     public void testGetMultipleEntriesByIDsMandatoryParams() throws Exception {
-
         final String methodName = "getMultipleEntries";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1158,27 +1025,21 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement getMultipleEntriesByIDsMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(getMultipleEntriesByIDsMandatoryParamRequest,
                         getProxyServiceURL(CONNECTOR_NAME), "mediate");
-
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (((OMElement) (response
                 .getChildrenWithLocalName("return").next())).getChildrenWithLocalName("entry_list").next()))
                 .getChildrenWithLocalName("item").next())).getChildrenWithLocalName("module_name").next())).getText(),
                 "Accounts");
-
     }
 
     /**
      * optional parameter test case for getMultipleEntriesByIDs method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getMultipleEntriesByIDs} Optional Parameters integration test.")
     public void testGetMultipleEntriesByIDsOptionalParams() throws Exception {
-
         final String methodName = "getMultipleEntries";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1210,17 +1071,13 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "           </root>\n"
                         + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testGetMultipleEntriesByIDsOptionalParams = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testGetMultipleEntriesByIDsOptionalParams,
                         getProxyServiceURL(CONNECTOR_NAME), "mediate");
-
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (((OMElement) (response
                 .getChildrenWithLocalName("return").next())).getChildrenWithLocalName("field_list").next()))
                 .getChildrenWithLocalName("item").next())).getChildrenWithLocalName("label").next())).getText(), "ID");
-
     }
 
     /**
@@ -1229,7 +1086,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getMultipleEntriesByIDs} Negative case integration test.")
     public void testGetMultipleEntriesByIDsNegativeCase() throws Exception {
-
         final String methodName = "getMultipleEntries";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1261,16 +1117,13 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "</sug:method>\n"
                         + "           </root>\n" + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testGetMultipleEntriesByIDsNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testGetMultipleEntriesByIDsNegativeCase,
                         getProxyServiceURL(CONNECTOR_NAME), "mediate");
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (response.getChildrenWithLocalName("return")
                 .next())).getChildrenWithLocalName("error").next())).getChildrenWithLocalName("name").next()))
                 .getText(), "Module Does Not Exist");
-
     }
 
     /**
@@ -1279,7 +1132,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getNoteAttachment} Mandatory Parameters integration test.")
     public void testGetNoteAttachmentMandatoryParams() throws Exception {
-
         final String methodName = "getNoteAttachment";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1303,9 +1155,7 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "</sug:method>\n"
                         + "           </root>\n" + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement getNoteAttachmentMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(getNoteAttachmentMandatoryParamRequest,
                         getProxyServiceURL(CONNECTOR_NAME), "mediate");
@@ -1313,16 +1163,13 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
         Assert.assertNotEquals(((OMElement) (((OMElement) (((OMElement) (response.getChildrenWithLocalName("return")
                 .next())).getChildrenWithLocalName("note_attachment").next())).getChildrenWithLocalName("id").next()))
                 .getText(), "0");
-
     }
 
     /**
      * optional parameter test case for getNoteAttachment method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getNoteAttachment} optional Parameters integration test.")
     public void testGetNoteAttachmentOptionalParams() throws Exception {
-
         final String methodName = "getNoteAttachment";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1348,26 +1195,20 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement getNoteAttachmentMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(getNoteAttachmentMandatoryParamRequest,
                         getProxyServiceURL(CONNECTOR_NAME), "mediate");
-
         Assert.assertNotEquals(((OMElement) (((OMElement) (((OMElement) (response.getChildrenWithLocalName("return")
                 .next())).getChildrenWithLocalName("note_attachment").next())).getChildrenWithLocalName("id").next()))
                 .getText(), "0");
-
     }
 
     /**
      * mandatory parameter test case for getEntriesCount method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getEntriesCount} Mandatory Parameters integration test.")
     public void testGetEntriesCountMandatoryParams() throws Exception {
-
         final String methodName = "getEntriesCount";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1395,16 +1236,12 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement getEntriesCountMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(getEntriesCountMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
-
         Assert.assertNotEquals(((OMElement) (((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("result_count").next())).getText(), "0");
-
     }
 
     /**
@@ -1413,7 +1250,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getEntriesCount} Optional Parameters integration test.")
     public void testGetEntriesCountOptionalParams() throws Exception {
-
         final String methodName = "getEntriesCount";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1441,24 +1277,19 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testGetEntriesCountOptionalParams = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testGetEntriesCountOptionalParams, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertNotEquals(((OMElement) (((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("result_count").next())).getText(), "");
-
     }
 
     /**
      * Negative test case for getEntriesCount method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getEntriesCount} Negative case integration test.")
     public void testGetEntriesCountNegativeCase() throws Exception {
-
         final String methodName = "getEntriesCount";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1485,24 +1316,19 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "           </root>\n"
                         + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testGetEntriesCountNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testGetEntriesCountNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) ((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("result_count").next()).getText(), "-1");
-
     }
 
     /**
      * optional parameter test case for searchByModule method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {searchByModule} Optional Parameters integration test.")
     public void testSearchByModuleOptionalParams() throws Exception {
-
         final String methodName = "searchByModule";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1532,15 +1358,12 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testSearchByModuleOptionalParams = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testSearchByModuleOptionalParams, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertNotEquals(((OMElement) (((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("result_count").next())).getText(), "");
-
     }
 
     /**
@@ -1549,7 +1372,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {searchByModule} Negative case integration test.")
     public void testSearchByModuleNegativeCase() throws Exception {
-
         final String methodName = "searchByModule";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1575,25 +1397,20 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "</sug:method>\n"
                         + "           </root>\n" + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testSearchByModuleNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testSearchByModuleNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (response.getChildrenWithLocalName("return")
                 .next())).getChildrenWithLocalName("error").next())).getChildrenWithLocalName("name").next()))
                 .getText(), "Invalid Login");
-
     }
 
     /**
      * mandatory parameter test case for setEntryList method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {setEntryList} Mandatory Parameters integration test.")
     public void testSetEntryListMandatoryParams() throws Exception {
-
         final String methodName = "setEntryList";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1631,26 +1448,20 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "</sug:method>\n"
                         + "           </root>\n" + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement setEntryListMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(setEntryListMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
-
         Assert.assertNotEquals(((OMElement) (((OMElement) (((OMElement) (response.getChildrenWithLocalName("return")
                 .next())).getChildrenWithLocalName("ids").next())).getChildrenWithLocalName("item").next())).getText(),
                 "");
-
     }
 
     /**
      * optional parameter test case for setEntryList method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {setEntryList} Optional Parameters integration test.")
     public void testSetEntryListOptionalParams() throws Exception {
-
         final String methodName = "setEntryList";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1688,25 +1499,20 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "</sug:method>\n"
                         + "           </root>\n" + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testSetEntryListOptionalParams = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testSetEntryListOptionalParams, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertNotEquals(((OMElement) (((OMElement) (((OMElement) (response.getChildrenWithLocalName("return")
                 .next())).getChildrenWithLocalName("ids").next())).getChildrenWithLocalName("item").next())).getText(),
                 "");
-
     }
 
     /**
      * Negative test case for setEntryList method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {setEntryList} Negative case integration test.")
     public void testSetEntryListNegativeCase() throws Exception {
-
         final String methodName = "setEntryList";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1744,25 +1550,20 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "</sug:method>\n"
                         + "           </root>\n" + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testSetEntryListNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testSetEntryListNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (response.getChildrenWithLocalName("return")
                 .next())).getChildrenWithLocalName("error").next())).getChildrenWithLocalName("name").next()))
                 .getText(), "Module Does Not Exist");
-
     }
 
     /**
      * mandatory parameter test case for setEntry method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {setEntry} Mandatory Parameters integration test.")
     public void testSetEntryMandatoryParams() throws Exception {
-
         final String methodName = "setEntry";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1786,16 +1587,12 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "</sug:method>\n"
                         + "           </root>\n" + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement setEntryMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(setEntryMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
-
         Assert.assertNotEquals(((OMElement) (((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("id").next())).getText(), "");
-
     }
 
     /**
@@ -1804,7 +1601,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {setEntry} optional Parameters integration test.")
     public void testSetEntryOptionalParams() throws Exception {
-
         final String methodName = "setEntry";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1832,16 +1628,12 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "</sug:method>\n"
                         + "           </root>\n" + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement setEntryMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(setEntryMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
-
         Assert.assertNotEquals(((OMElement) (((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("id").next())).getText(), "");
-
     }
 
     /**
@@ -1850,7 +1642,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {setEntry} Negative case integration test.")
     public void testSetEntryNegativeCase() throws Exception {
-
         final String methodName = "setEntry";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1879,23 +1670,18 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "           </root>\n"
                         + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testSetEntryNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testSetEntryNegativeCase, getProxyServiceURL(CONNECTOR_NAME), "mediate");
         Assert.assertEquals(((OMElement) ((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("id").next()).getText(), "-1");
-
     }
 
     /**
      * mandatory parameter test case for getAvailableModules method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getAvailableModules} Mandatory Parameters integration test.")
     public void testGetAvailableModulesMandatoryParams() throws Exception {
-
         final String methodName = "getAvailableModules";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1919,17 +1705,13 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "           </root>\n"
                         + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement getAvailableModulesMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(getAvailableModulesMandatoryParamRequest,
                         getProxyServiceURL(CONNECTOR_NAME), "mediate");
-
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (response.getChildrenWithLocalName("return")
                 .next())).getChildrenWithLocalName("modules").next())).getChildrenWithLocalName("item").next()))
                 .getText(), "Calls");
-
     }
 
     /**
@@ -1938,7 +1720,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {getAvailableModules} Negative case integration test.")
     public void testGetAvailableModulesNegativeCase() throws Exception {
-
         final String methodName = "getAvailableModules";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -1961,25 +1742,20 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testGetAvailableModulesNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testGetAvailableModulesNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (((OMElement) (((OMElement) (response.getChildrenWithLocalName("return")
                 .next())).getChildrenWithLocalName("error").next())).getChildrenWithLocalName("name").next()))
                 .getText(), "Invalid Session ID");
-
     }
 
     /**
      * mandatory parameter test case for createContact method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createContact} Mandatory Parameters integration test.")
     public void testCreateContactMandatoryParams() throws Exception {
-
         final String methodName = "createContact";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -2006,15 +1782,11 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "           </root>\n"
                         + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement createContactMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(createContactMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
-
         Assert.assertNotEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
@@ -2023,7 +1795,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createContact} Optional Parameters integration test.")
     public void testCreateContactOptionalParams() throws Exception {
-
         final String methodName = "createContact";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -2051,14 +1822,11 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testCreateContactOptionalParams = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testCreateContactOptionalParams, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertNotEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
@@ -2067,7 +1835,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {createContact} Negative case integration test.")
     public void testCreateContactNegativeCase() throws Exception {
-
         final String methodName = "createContact";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -2092,23 +1859,18 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "           </root>\n"
                         + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testCreateContactNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testCreateContactNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (response.getChildrenWithLocalName("return").next())).getText(), "0");
-
     }
 
     /**
      * mandatory parameter test case for setRelationship method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {setRelationship} mandatory Parameters integration test.")
     public void testSetRelationshipMandatoryParams() throws Exception {
-
         final String methodName = "setRelationship";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -2135,25 +1897,19 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "</sug:method>\n"
                         + "           </root>\n" + "       </soapenv:Body>\n" + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement setRelationshipMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(setRelationshipMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
-
         Assert.assertEquals(((OMElement) (((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("number").next())).getText(), "0");
-
     }
 
     /**
      * optional parameter test case for setRelationship method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {setRelationship} optional Parameters integration test.")
     public void testSetRelationshipOptionalParams() throws Exception {
-
         final String methodName = "setRelationship";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -2182,25 +1938,19 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement setRelationshipMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(setRelationshipMandatoryParamRequest, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
-
         Assert.assertEquals(((OMElement) (((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("number").next())).getText(), "0");
-
     }
 
     /**
      * Negative test case for setRelationship method.
      */
-
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {setRelationship} Negative case invalid module name integration test.")
     public void testSetRelationshipNegativeCaseInvalidModuleName() throws Exception {
-
         final String methodName = "setRelationship";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -2229,20 +1979,16 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testSetRelationshipNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testSetRelationshipNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("name").next())).getText(), "Module Does Not Exist");
-
     }
 
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {setRelationship} Negative case invalid module id integration test.")
     public void testSetRelationshipNegativeCaseInvalidModuleId() throws Exception {
-
         final String methodName = "setRelationship";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -2271,24 +2017,19 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testSetRelationshipNegativeCase = AXIOMUtil.stringToOM(omString);
-
         OMElement response =
                 axisServiceClient.sendReceive(testSetRelationshipNegativeCase, getProxyServiceURL(CONNECTOR_NAME),
                         "mediate");
         Assert.assertEquals(((OMElement) (((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("number").next())).getText(), "0");
-
     }
     
     /**
      * mandatory parameter test case for setRelationships method.
      */
-    
     @Test(groups = { "wso2.esb" }, description = "Sugar CRM {setRelationships} Mandatory Parameters integration test.")
     public void testSetRelationshipsMandatoryParams() throws Exception {
-    
         final String methodName = "setRelationships";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -2327,14 +2068,11 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-        
         OMElement setRelationshipsMandatoryParamRequest = AXIOMUtil.stringToOM(omString);
-        
         OMElement response =
                 axisServiceClient.sendReceive(setRelationshipsMandatoryParamRequest,
                         getProxyServiceURL(CONNECTOR_NAME), "mediate");
         System.out.println("\n\n\n\n\n\n\n\n\n" + response.getText().toString() );
-        
         Assert.assertNotEquals(((OMElement) (((OMElement) (response.getChildrenWithLocalName("return").next()))
                 .getChildrenWithLocalName("created").next())).getText(), "0");
         System.out.println("\n\n\n\n\n\n\n\n" + ((OMElement) (((OMElement) (response.getChildrenWithLocalName("return").next()))
@@ -2347,7 +2085,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
 
     @Test(expectedExceptions = AxisFault.class, groups = { "wso2.esb" }, description = "Sugar CRM {setRelationships} Negative case integration test.")
     public void testSetRelationshipsNegativeCase() throws Exception {
-
         final String methodName = "setRelationships";
         final String omString =
                 "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sug=\"wso2.connector.sugarcrm\">\n"
@@ -2374,11 +2111,8 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
                         + "       </soapenv:Body>\n"
                         + " </soapenv:Envelope>";
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-
         OMElement testSetRelationshipsNegativeCase = AXIOMUtil.stringToOM(omString);
-
         axisServiceClient.sendReceive(testSetRelationshipsNegativeCase, getProxyServiceURL(CONNECTOR_NAME), "mediate");
-
     }
     
     /**
@@ -2388,7 +2122,6 @@ public class SugarCRMConnectorIntegrationTest extends ESBIntegrationTest {
      */
     @AfterClass(alwaysRun = true)
     public void cleanUpEsb() throws Exception {
-    
         proxyAdmin.deleteProxy(CONNECTOR_NAME);
     }
     
