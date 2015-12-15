@@ -19,8 +19,6 @@ Steps to follow in setting integration test.
  1. Download ESB 4.9.0 by navigating to the following URL: http://wso2.com/products/enterprise-service-bus/#
  
  2. Deploy relevant patches, if applicable. Place the patch files into location <ESB_HOME>/repository/components/patches.
-     If required add the X.509 certificate from http://www.google.com/analytics/ to the client-truststore.jks of the ESB located in <ESB_HOME>/repository/resources/security folder
-      and wso2carbon.jks located in <GOOGLEANALYTICS_CONNECTOR_HOME>/googleanalytics-connector/googleanalytics-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products.
 
  3. Navigate to location "<ESB_HOME>/repository/conf/axis2" and add/uncomment following lines in "axis2.xml". 
  
