@@ -15,7 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package org.wso2.carbon.inbound.salesforce.poll;
 
 import org.apache.commons.lang.StringUtils;
@@ -34,7 +33,6 @@ import org.cometd.client.transport.ClientTransport;
 import org.cometd.client.transport.LongPollingTransport;
 import org.eclipse.jetty.client.ContentExchange;
 import org.eclipse.jetty.client.HttpClient;
-
 
 import java.lang.Exception;
 import java.net.MalformedURLException;
@@ -69,7 +67,6 @@ public class SalesforceStreamData extends GenericPollingConsumer {
     private static int readTimeout;
     private static int waitTime;
 
-
     private BayeuxClient client = null;
     private HttpClient httpClient;
 
@@ -97,11 +94,11 @@ public class SalesforceStreamData extends GenericPollingConsumer {
         }
         client.getChannel(Channel.META_HANDSHAKE).addListener(new ClientSessionChannel.MessageListener() {
             public void onMessage(ClientSessionChannel channel, Message message) {
-                log.info("[CHANNEL:META_HANDSHAKE]: " + message);
+                log.info("[CHANNEL:META_HANDSHAKE with the Channel for Salesforce Streaming Endpoint]: " + message);
                 boolean success = message.isSuccessful();
                 if (!success) {
                     String error = (String) message.get("error");
-                    if (error != null) {
+                    if (StringUtils.isNotEmpty(error)) {
                         handleException("Error during HANDSHAKE: " + error);
                     }
                     Exception exception = (Exception) message.get("exception");
@@ -114,14 +111,15 @@ public class SalesforceStreamData extends GenericPollingConsumer {
 
         client.getChannel(Channel.META_CONNECT).addListener(new ClientSessionChannel.MessageListener() {
             public void onMessage(ClientSessionChannel channel, Message message) {
-                log.info("[CHANNEL:META_CONNECT]: " + message);
+                log.info("[CHANNEL:META_CONNECT with the Channel for Salesforce Streaming Endpoint]: " + message);
                 boolean success = message.isSuccessful();
                 if (!success) {
+                    channel.unsubscribe();
                     client.disconnect();
                     log.info("Waiting to Connect with Salesforce Streaming API......");
                     makeConnect();
                     String error = (String) message.get("error");
-                    if (error != null) {
+                    if (StringUtils.isNotEmpty(error)) {
                         handleException("Error during CONNECT: " + error);
                     }
                 }
@@ -130,11 +128,11 @@ public class SalesforceStreamData extends GenericPollingConsumer {
 
         client.getChannel(Channel.META_SUBSCRIBE).addListener(new ClientSessionChannel.MessageListener() {
             public void onMessage(ClientSessionChannel channel, Message message) {
-                log.info("[CHANNEL:META_SUBSCRIBE]: " + message);
+                log.info("[CHANNEL:META_SUBSCRIBE with the Channel for Salesforce Streaming Endpoint]: " + message);
                 boolean success = message.isSuccessful();
                 if (!success) {
                     String error = (String) message.get("error");
-                    if (error != null) {
+                    if (StringUtils.isNotEmpty(error)) {
                         handleException("Error during SUBSCRIBE: " + error);
                     }
                 }
@@ -163,27 +161,31 @@ public class SalesforceStreamData extends GenericPollingConsumer {
     private BayeuxClient makeClient() throws Exception {
         httpClient.setConnectTimeout(connectionTimeout);
         httpClient.setTimeout(readTimeout);
-        httpClient.start();
+        try {
+            httpClient.start();
+            SoapLoginUtil.login(httpClient, userName, password);
+            final String sessionId = SoapLoginUtil.getSessionId();
+            String endpoint = SoapLoginUtil.getEndpoint();
+            log.info("Login successful! to Salesforce Streaming Endpoint: " + endpoint);
+            Map<String, Object> options = new HashMap<String, Object>();
+            options.put(ClientTransport.TIMEOUT_OPTION, readTimeout);
+            LongPollingTransport transport = new LongPollingTransport(options, httpClient) {
 
-        SoapLoginUtil.login(httpClient, userName, password);
-        final String sessionId = SoapLoginUtil.getSessionId();
-        String endpoint = SoapLoginUtil.getEndpoint();
-        log.info("Login successful! to Salesforce Streaming Endpoint: " + endpoint);
+                @Override
+                protected void customize(ContentExchange exchange) {
+                    super.customize(exchange);
+                    exchange.addRequestHeader("Authorization", "OAuth " + sessionId);
+                }
+            };
 
-        Map<String, Object> options = new HashMap<String, Object>();
-        options.put(ClientTransport.TIMEOUT_OPTION, readTimeout);
-        LongPollingTransport transport = new LongPollingTransport(options, httpClient) {
+            BayeuxClient client = new BayeuxClient(salesforceStreamingEndpoint(endpoint), transport);
 
-            @Override
-            protected void customize(ContentExchange exchange) {
-                super.customize(exchange);
-                exchange.addRequestHeader("Authorization", "OAuth " + sessionId);
-            }
-        };
-
-        BayeuxClient client = new BayeuxClient(salesforceStreamingEndpoint(endpoint), transport);
-        if (useCookies) establishCookies(client, userName, sessionId);
-        return client;
+            if (useCookies) establishCookies(client, userName, sessionId);
+            return client;
+        } catch (MalformedURLException e) {
+            handleException("Error while building URL: " + e.getMessage(), e);
+        }
+        return null;
     }
 
     private String salesforceStreamingEndpoint(String endpoint) throws MalformedURLException {
@@ -240,19 +242,31 @@ public class SalesforceStreamData extends GenericPollingConsumer {
         if (properties.getProperty(SalesforceConstant.CONNECTION_TIMEOUT) == null) {
             connectionTimeout = SalesforceConstant.CONNECTION_TIMEOUT_DEFAULT;
         } else {
-            connectionTimeout = Integer.parseInt(properties.getProperty(SalesforceConstant.CONNECTION_TIMEOUT));
+            try {
+                connectionTimeout = Integer.parseInt(properties.getProperty(SalesforceConstant.CONNECTION_TIMEOUT));
+            } catch (NumberFormatException e) {
+                log.error("The Value should be in Number", e);
+            }
         }
 
         if (properties.getProperty(SalesforceConstant.READ_TIMEOUT) == null) {
             readTimeout = SalesforceConstant.READ_TIMEOUT_DEFAULT;
         } else {
-            readTimeout = Integer.parseInt(properties.getProperty(SalesforceConstant.READ_TIMEOUT));
+            try {
+                readTimeout = Integer.parseInt(properties.getProperty(SalesforceConstant.READ_TIMEOUT));
+            } catch (NumberFormatException e) {
+                log.error("The Value Should be in Number", e);
+            }
         }
 
         if (properties.getProperty(SalesforceConstant.WAIT_TIME) == null) {
             connectionTimeout = SalesforceConstant.WAIT_TIME_DEFAULT;
         } else {
-            waitTime = Integer.parseInt(properties.getProperty(SalesforceConstant.WAIT_TIME));
+            try {
+                waitTime = Integer.parseInt(properties.getProperty(SalesforceConstant.WAIT_TIME));
+            } catch (NumberFormatException e) {
+                log.error("The Value Should be in Number", e);
+            }
         }
     }
 
@@ -296,4 +310,17 @@ public class SalesforceStreamData extends GenericPollingConsumer {
         throw new SynapseException(msg);
     }
 
+    public void destroy() {
+        try {
+            if (client != null) {
+                client.disconnect();
+                if (log.isDebugEnabled()) {
+                    log.debug("The Salesforce stream has been shutdown !");
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error while shutdown the Salesforce stream" + e.getMessage(), e);
+        }
+        super.destroy();
+    }
 }

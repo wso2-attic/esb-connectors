@@ -15,7 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package org.wso2.carbon.inbound.salesforce.poll;
 
 public class SalesforceConstant {
@@ -31,7 +30,7 @@ public class SalesforceConstant {
     //object for the salesforce inbound endpoint
     public static final String SOBJECT = "connection.salesforce.salesforceObject";
 
-    //defaultt parameters for the salesforce inbound endpoint
+    //default parameters for the salesforce inbound endpoint
     public static final String CONNECTION_TIMEOUT = "connection.salesforce.connectionTimeout";
     public static final int CONNECTION_TIMEOUT_DEFAULT = 10 * 1000;
 

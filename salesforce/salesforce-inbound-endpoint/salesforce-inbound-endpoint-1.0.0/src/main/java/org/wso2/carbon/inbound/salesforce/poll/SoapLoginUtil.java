@@ -15,7 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package org.wso2.carbon.inbound.salesforce.poll;
 
 import org.apache.commons.logging.Log;
@@ -55,29 +54,32 @@ public final class SoapLoginUtil {
                 ENV_END).getBytes("UTF-8");
     }
 
-    public static void login(HttpClient client, String username, String password)
-            throws IOException, InterruptedException, SAXException,
+    public static void login(HttpClient client, String username, String password) throws IOException, InterruptedException, SAXException,
             ParserConfigurationException {
+        try {
+            ContentExchange exchange = new ContentExchange();
+            exchange.setMethod("POST");
+            exchange.setURL(getSoapURL());
+            exchange.setRequestContentSource(new ByteArrayInputStream(soapXmlForLogin(
+                    username, password)));
+            exchange.setRequestHeader("Content-Type", "text/xml");
+            exchange.setRequestHeader("SOAPAction", "''");
+            exchange.setRequestHeader("PrettyPrint", "Yes");
 
-        ContentExchange exchange = new ContentExchange();
-        exchange.setMethod("POST");
-        exchange.setURL(getSoapURL());
-        exchange.setRequestContentSource(new ByteArrayInputStream(soapXmlForLogin(
-                username, password)));
-        exchange.setRequestHeader("Content-Type", "text/xml");
-        exchange.setRequestHeader("SOAPAction", "''");
-        exchange.setRequestHeader("PrettyPrint", "Yes");
+            client.send(exchange);
+            exchange.waitForDone();
 
-        client.send(exchange);
-        exchange.waitForDone();
-
-        String response = exchange.getResponseContent();
-        String tagSession = "<sessionId>";
-        String tagserverUrl = "<serverUrl>";
-        String serverUrl = response.substring(response.indexOf(tagserverUrl) + tagserverUrl.length(), response.indexOf("</serverUrl>"));
-        sessionId = response.substring(response.indexOf(tagSession) + tagSession.length(), response.indexOf("</sessionId>"));
-        LoginUrl = serverUrl.substring(0, serverUrl.indexOf("/services"));
-
+            String response = exchange.getResponseContent();
+            String tagSession = "<sessionId>";
+            String tagServerUrl = "<serverUrl>";
+            String serverUrl = response.substring(response.indexOf(tagServerUrl) + tagServerUrl.length(), response.indexOf("</serverUrl>"));
+            sessionId = response.substring(response.indexOf(tagSession) + tagSession.length(), response.indexOf("</sessionId>"));
+            LoginUrl = serverUrl.substring(0, serverUrl.indexOf("/services"));
+        } catch (MalformedURLException e) {
+            log.error("Error while building URL", e);
+        } catch (InterruptedException e) {
+            log.error("Error in exchange the asynchronous message", e);
+        }
     }
 
     private static String getSoapURL() throws MalformedURLException {
