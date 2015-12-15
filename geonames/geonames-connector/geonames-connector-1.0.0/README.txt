@@ -40,7 +40,7 @@ Steps to follow in setting integration test.
  7. Update the Geonames properties file at location "<GEONAMES_CONNECTOR_HOME>/geonames-connector/geonames-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
       
    i)    apiUrl                     -  The API URL of Geonames(e.g. http://www.geonames.org/).
-   ii)   username                   -  Use the username obtained under step 3 ii).
+   ii)   username                   -  Use the username obtained under step 4 ii).
    iii)  query                      -  Text to be used as 'query' which is an optional parameter in search method.(e.g : Noank).
    iv)   name                       -  Text to be used as 'name' which is an optional parameter in search method. (e.g : Noank).
    v)    nameStartsWith             -  Text to be used as 'nameStartsWith' which is an optional parameter in search method. (e.g : N).

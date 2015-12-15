@@ -997,7 +997,7 @@ public class GeonamesConnectorIntegrationTest extends ConnectorIntegrationTestBa
 
       esbRequestHeadersMap.put("Action", "urn:listRecentEarthquakes");
       RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
-            "esb_listrecentearthquakes_optional.json");
+            "esb_listRecentEarthquakes_optional.json");
 
       Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
 
@@ -1034,7 +1034,7 @@ public class GeonamesConnectorIntegrationTest extends ConnectorIntegrationTestBa
 
       esbRequestHeadersMap.put("Action", "urn:listRecentEarthquakes");
       RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
-            "esb_listrecentearthquakes_negative.json");
+            "esb_listRecentEarthquakes_negative.json");
 
       Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 503);
 
