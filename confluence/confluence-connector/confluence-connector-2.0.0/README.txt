@@ -26,7 +26,7 @@ Steps to follow in setting integration test.
       https://confluence.atlassian.com/doc/confluence-installation-guide-135681.html
       
  4. If required add the X.509 certificate from "https://confluence.atlassian.com" to the client-truststore.jks of the ESB located in "<ESB_HOME>/repository/resources/security" directory
-    and wso2carbon.jks located in "<CONFLUENCE_CONNECTOR_HOME>/confluence-connector/confluence-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products".
+    and wso2carbon.jks located in "<CONFLUENCE_CONNECTOR_HOME>/confluence-connector/confluence-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products".
       
  5. Prerequisites for Confluence Connector Integration Testing.
       i) Add a new user to Confluence account by using the below URL instructions. Keep the username and password for further reference.
@@ -36,13 +36,13 @@ Steps to follow in setting integration test.
       
       iii) Click the 'Create' button and create a new page with page title to the same space created in step 5 ii). Keep the page title for further reference.
       
-      iv) Click the 'Create' button and create a new page with page title to the same space created in step 5 ii). Keep the page ID (content ID) title for further reference.
+      iv) Click the 'Create' button and create a new page with page title to the same space created in step 5 ii). Keep the page ID (content ID) and title for further reference.
       
-      v)  Click the 'Create' button and create a new page with page title to the same space created in step 5 ii). And add at least two child pages to the parent page. Keep the parent page ID (content ID) title for further reference.
+      v)  Click the 'Create' button and create a new page with page title to the same space created in step 5 ii). And add at least two child pages to the parent page. Keep the parent page ID (content ID) and title for further reference.
 
-      vi) Click the 'Create' button and create a new page with page title to the same space created in step 5 ii). And add at least two comments to created page. Keep the page ID (content ID) title for further reference.
+      vi) Click the 'Create' button and create a new page with page title to the same space created in step 5 ii). And add at least two comments to created page. Keep the page ID (content ID) and title for further reference.
  
-      vii) Click the 'Create' button and create a new page with page title and file attachment to the same space created in step 5 ii). And add at least two comments to created page. Keep the page ID (content ID) title for further reference.
+      vii) Click the 'Create' button and create a new page with page title and file attachment to the same space created in step 5 ii). And add at least two comments to created page. Keep the page ID (content ID) and title for further reference.
  
       NOTE: To obtian page ID (content ID), click page edit link and get page ID from browser URL.
  
@@ -52,7 +52,7 @@ Steps to follow in setting integration test.
 
     <module>confluence/confluence-connector/confluence-connector-2.0.0/org.wso2.carbon.connector</module>
  
- 8. Update the Confluence properties file at location "<CONFLUENCE_CONNECTOR_HOME>/confluence-connector/confluence-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 8. Update the Confluence properties file at location "<CONFLUENCE_CONNECTOR_HOME>/confluence-connector/confluence-connector-2.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
    i)    apiUrl                     - Confluence account hosted domain in step 3 (e.g.: http://{CONFLUENCE_HOSTED_DOMAIN}). 
    ii)   username                   - Use the created user's username in step 5 i).
