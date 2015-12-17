@@ -1,13 +1,13 @@
 /**
  * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
- * <p/>
+ * <p>
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
- * <p/>
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ * <p>
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -86,9 +86,11 @@ public class LocalFileOneTimePolling extends GenericPollingConsumer {
     @Override
     public Object poll() {
         if (!isPolled) {
-            if (StringUtils.isEmpty(processBeforeWatch) || processBeforeWatch.toUpperCase().equals(LocalFileConstants.YES)) {
+            if (StringUtils.isEmpty(processBeforeWatch)
+                    || processBeforeWatch.toUpperCase().equals(LocalFileConstants.YES)) {
                 setProcessAndWatch();
-            } else if (StringUtils.isNotEmpty(processBeforeWatch) && processBeforeWatch.toUpperCase().equals(LocalFileConstants.NO)) {
+            } else if (StringUtils.isNotEmpty(processBeforeWatch)
+                    && processBeforeWatch.toUpperCase().equals(LocalFileConstants.NO)) {
                 startWatch();
             }
             isPolled = true;
@@ -125,7 +127,8 @@ public class LocalFileOneTimePolling extends GenericPollingConsumer {
      * Start the ExecutorService for watchDirectory.
      */
     private void startWatch() {
-        ExecutorService executorService = Executors.newFixedThreadPool(LocalFileConstants.THREAD_SIZE);
+        ExecutorService executorService =
+                Executors.newFixedThreadPool(LocalFileConstants.THREAD_SIZE);
         executorService.execute(new Runnable() {
             public void run() {
                 try {
@@ -162,14 +165,16 @@ public class LocalFileOneTimePolling extends GenericPollingConsumer {
             }
             String readAllBytes = new String(Files.readAllBytes(path));
             injectFileContent(readAllBytes, contentType);
-            if (StringUtils.isNotEmpty(actionAfterProcess) && actionAfterProcess.toUpperCase().equals(LocalFileConstants.MOVE)) {
+            if (StringUtils.isNotEmpty(actionAfterProcess)
+                    && actionAfterProcess.toUpperCase().equals(LocalFileConstants.MOVE)) {
                 if (Files.exists(Paths.get(moveFileURI))) {
                     moveFile(path.toString(), moveFileURI);
                 } else {
                     Files.createDirectory(Paths.get(moveFileURI));
                     moveFile(path.toString(), moveFileURI);
                 }
-            } else if (StringUtils.isNotEmpty(actionAfterProcess) && actionAfterProcess.toUpperCase().equals(LocalFileConstants.DELETE)) {
+            } else if (StringUtils.isNotEmpty(actionAfterProcess)
+                    && actionAfterProcess.toUpperCase().equals(LocalFileConstants.DELETE)) {
                 Files.delete(path);
             }
         } catch (IOException e) {
@@ -227,7 +232,8 @@ public class LocalFileOneTimePolling extends GenericPollingConsumer {
         Path fromPath = Paths.get(source);
         Path toPath = Paths.get(destination);
         try {
-            Files.move(fromPath, toPath.resolve(fromPath.getFileName()), REPLACE_EXISTING, ATOMIC_MOVE);
+            Files.move(fromPath, toPath.resolve(fromPath.getFileName()),
+                    REPLACE_EXISTING, ATOMIC_MOVE);
         } catch (IOException ie) {
             log.error("Error while move file : " + ie.getMessage(), ie);
         }
