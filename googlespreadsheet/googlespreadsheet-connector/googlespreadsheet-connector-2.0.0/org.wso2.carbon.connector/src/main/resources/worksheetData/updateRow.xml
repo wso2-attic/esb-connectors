@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~   WSO2 Inc. licenses this file to you under the Apache License,
+  ~   Version 2.0 (the "License"); you may not use this file except
+  ~   in compliance with the License.
+  ~   You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing,
+  ~  software distributed under the License is distributed on an
+  ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~  KIND, either express or implied.  See the License for the
+  ~  specific language governing permissions and limitations
+  ~  under the License.
+  -->
+<template name="updateRow" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="key" description="Unique value of the spreadsheet"/>
+    <parameter name="worksheetId" description="The ID of the worksheet"/>
+    <parameter name="rowId" description="The ID of the row"/>
+    <parameter name="fieldValues"
+               description="A set of key/value pairs that you can update to a row"/>
+    <parameter name="rowVersion" description="The version of the row"/>
+    <sequence>
+        <property name="uri.var.key" expression="$func:key"/>
+        <property name="uri.var.worksheetId" expression="$func:worksheetId"/>
+        <property name="uri.var.rowId" expression="$func:rowId"/>
+        <property name="uri.var.rowVersion" expression="$func:rowVersion"/>
+        <property name="uri.var.fieldValues" expression="$func:fieldValues"/>
+        <property name="REQUEST_HOST_HEADER" scope="axis2" value="spreadsheets.google.com"/>
+        <payloadFactory media-type="xml">
+            <format>
+                <entry xmlns:gsx="http://schemas.google.com/spreadsheets/2006/extended"
+                       xmlns="http://www.w3.org/2005/Atom">
+                </entry>
+            </format>
+            <args></args>
+        </payloadFactory>
+        <script language="js"><![CDATA[
+         //request body param variables
+         var fieldValues=mc.getProperty('uri.var.fieldValues');
+         //Get the existing payload
+         var payload = mc.getPayloadXML();
+         if (fieldValues != null && fieldValues != "") {
+             var txt = '{"fieldValuesList":'+fieldValues+'}';
+             var query="";
+             var obj = eval ("(" + txt + ")");
+             for(var key in obj.fieldValuesList){
+                 var fieldValue=obj.fieldValuesList[key];
+                 var field=key;
+                 payload[key]+=<gsx:{field} xmlns:gsx="http://schemas.google.com/spreadsheets/2006/extended">{fieldValue}</gsx:{field}>
+             }
+         }
+         //Set the newly constructed payload
+         mc.setPayloadXML(payload);
+         ]]>
+        </script>
+        <property name="messageType" value="application/atom+xml" scope="axis2"/>
+        <property name="Content-Type" value="application/atom+xml" scope="axis2"/>
+        <header name="Content-Type" value="application/atom+xml" scope="transport"/>
+        <property action="remove" name="Accept-Encoding" scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="put"
+                      uri-template="{+uri.var.apiUrl}/feeds/list/{+uri.var.key}/{+uri.var.worksheetId}/private/full/{+uri.var.rowId}/{+uri.var.rowVersion}"/>
+            </endpoint>
+            <property name="messageType" value="application/atom+xml" scope="axis2"/>
+            <property name="Content-Type" value="application/atom+xml" scope="axis2"/>
+            <header name="Content-Type" value="application/atom+xml" scope="transport"/>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+    </sequence>
+</template>
