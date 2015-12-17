@@ -9,7 +9,7 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.9.0-BETA-SNAPSHOT
+ - wso2esb-4.10.0-M2-SNAPSHOT
  - Java 1.7
 
 1. Create object and pushTopic:

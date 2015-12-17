@@ -40,7 +40,6 @@ public class SalesforceConstant {
     public static final String WAIT_TIME = "connection.salesforce.waitTime";
     public static final int WAIT_TIME_DEFAULT = 24 * 60 * 60 * 1000;
 
-
     //content type of the message
     public static final String CONTENT_TYPE = "application/json";
 
