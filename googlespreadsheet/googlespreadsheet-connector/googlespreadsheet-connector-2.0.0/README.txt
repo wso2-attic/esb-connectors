@@ -3,7 +3,6 @@ Product: WSO2 ESB Connector for googlespreadsheet + Integration Tests
  Pre-requisites:
 
     - Maven 3.x
-    - Java 1.6 or above
     - The org.wso2.esb.integration.integration-base project is required. The test suite has been configured to download this project automatically. If the automatic download fails, download the following project and compile it using the mvn clean install command to update your local repository:
                  https://github.com/wso2/esb-connectors/tree/master/integration-base-1.0.1
 
