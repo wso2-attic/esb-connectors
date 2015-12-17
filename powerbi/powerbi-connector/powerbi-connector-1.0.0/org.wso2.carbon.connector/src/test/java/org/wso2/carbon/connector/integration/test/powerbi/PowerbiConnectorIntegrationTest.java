@@ -71,8 +71,8 @@ public class PowerbiConnectorIntegrationTest extends ConnectorIntegrationTestBas
             "esb_getAccessTokenFromAuthorizationCode_m.json");
 
       Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-      Assert.assertNotNull(esbRestResponse.getBody().getString("token_type"));
-      Assert.assertNotNull(esbRestResponse.getBody().getString("access_token"));
+      Assert.assertNotNull(esbRestResponse.getBody().getJSONObject("map").getString("token_type"));
+      Assert.assertNotNull(esbRestResponse.getBody().getJSONObject("map").getString("access_token"));
 
    }
 
@@ -90,13 +90,13 @@ public class PowerbiConnectorIntegrationTest extends ConnectorIntegrationTestBas
       RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
             "esb_getAccessTokenFromRefreshToken_m.json");
 
-      final String accessToken = esbRestResponse.getBody().getString("access_token");
+      final String accessToken = esbRestResponse.getBody().getJSONObject("map").getString("access_token");
       connectorProperties.put("accessToken", accessToken);
       apiRequestHeadersMap.put("Authorization", "Bearer " + accessToken);
 
       Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-      Assert.assertNotNull(esbRestResponse.getBody().getString("token_type"));
-      Assert.assertNotNull(esbRestResponse.getBody().getString("access_token"));
+      Assert.assertNotNull(esbRestResponse.getBody().getJSONObject("map").getString("token_type"));
+      Assert.assertNotNull(esbRestResponse.getBody().getJSONObject("map").getString("access_token"));
 
    }
 

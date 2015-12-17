@@ -26,33 +26,31 @@
       <property name="uri.var.clientSecret" expression="get-property('registry', 'connectors/PowerBI/clientSecret')" />
       <!-- Type of the grant used to get a new access token by negotiating the refresh token. -->
       <property name="uri.var.grantType" value="refresh_token" />
-      <payloadFactory media-type="json">
-         <format>
-            {
-            "refresh_token": "$1",
-            "grant_type": "$2",
-            "client_secret": "$3",
-            "client_id": "$4",
-            "resource":"$5"
-            }
-         </format>
-         <args>
-            <arg expression="get-property('uri.var.refreshToken')" />
-            <arg expression="get-property('uri.var.grantType')" />
-            <arg expression="get-property('uri.var.clientSecret')" />
-            <arg expression="get-property('uri.var.clientId')" />
-            <arg expression="get-property('uri.var.resource')" />
-         </args>
-      </payloadFactory>
-      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
-      <call>
-         <endpoint>
-            <http method="post" uri-template="https://login.microsoftonline.com/common/oauth2/token" />
-         </endpoint>
-      </call>
+      <script language="js">
+      <![CDATA[
+         var refreshToken = mc.getProperty('uri.var.refreshToken'); 
+         var grantType = mc.getProperty('uri.var.grantType');                             
+         var clientSecret = mc.getProperty('uri.var.clientSecret'); 
+         var clientId = mc.getProperty('uri.var.clientId'); 
+         var resource = mc.getProperty('uri.var.resource'); 
+         var requestQuery = "refresh_token=" + encodeURIComponent(refreshToken) + "&grant_type=" + encodeURIComponent(grantType) 
+            + "&client_secret=" + encodeURIComponent(clientSecret) + "&client_id=" + encodeURIComponent(clientId) + "&resource=" 
+            + encodeURIComponent(resource);
+         mc.setProperty('uri.var.requestQuery',requestQuery);                                                                           
+      ]]>
+      </script>
+      <property name="uri.var.requestQuery" expression="get-property('uri.var.requestQuery')" />
+      <property name="uri.var.authApiUrl" value="https://login.microsoftonline.com/common/oauth2/token" />
+      <!-- Calling java class to retrieve access token through refresh token. -->
+      <class name="org.wso2.carbon.connector.powerbi.auth.PowerBIAccessTokenGenerator" />
+      <script language="js">
+      <![CDATA[                 
+         mc.setPayloadJSON(mc.getProperty('uri.var.resultObject')); 
+      ]]>
+      </script>
       <!-- Setting the new access token to the property. -->
-      <property name="uri.var.accessToken" expression="json-eval($.access_token)" />
-      <property name="uri.var.refreshToken" expression="json-eval($.refresh_token)" />
+      <property name="uri.var.accessToken" expression="json-eval($.map.access_token)" />
+      <property name="uri.var.refreshToken" expression="json-eval($.map.refresh_token)" />
       <script language="js">
          <![CDATA[
              importPackage(Packages.org.apache.synapse.config);

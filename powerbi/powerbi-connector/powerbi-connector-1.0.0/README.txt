@@ -26,12 +26,20 @@ Steps to follow in setting integration test.
 
 
  3. Set authorization details:
-   i)   Navigate to the URL "https://msdn.microsoft.com/en-us/library/mt186542.aspx" and follow the steps to create an Azure Active Directory tenant. 
-   ii)  Navigate to the URL "https://msdn.microsoft.com/en-us/library/mt186467.aspx" and follow the steps to sign up for Power BI service.
-   iii) Navigate to the URL "https://msdn.microsoft.com/en-US/library/dn985955.aspx" and follow the steps to Register a web app.
-   iv)  Genarate the authorization code by sending a GET request using url "https://login.windows.net/common/oauth2/authorize?response_type=code&client_id=<client_ID>&resource=https://analysis.windows.net/powerbi/api&redirect_uri=http://localhost:13526/Redirect" 
-
-   v)  Add following resources to the ESB registry and add the values for clientId, clientSecret, apiUrl and redirectUrl.
+   i)   Create a Office 365 E3 trial account.
+   ii)  Navigate to the URL "https://login.microsoftonline.com/login.srf" and login with Microsoft account which is created in step 3.i .
+   iii) Navigate to the URL "https://powerbi.microsoft.com/en-us/" and signup for a Power Bi account using the previously created Microsoft account. 
+   iv)  Create a dataset and keep the dataset name for further use.
+   v)   Enable PowerBI pro by using the popup by selecting the "Create Group" option.
+   vi)  Create a group in PowerBI.
+   vii) Navigate to the URL "https://app.powerbi.com/apps" 
+            Step 1 - Login using Power BI account which used in step 3.ii .
+            Step 2 - Provide App Name, Redirect URL, App Type and Home Page URL and for App Type use "Server-side Web app". Note Redirect URL for further use.  
+            Step 3 - select all the check boxes to enable access for the api.
+            Step 4 - Click "Register App" and note client-id and client-secret that are returned for further use.
+   viii)Genarate the authorization code by sending a GET request using url "https://login.windows.net/common/oauth2/authorize?response_type=code&client_id=<client-id>&resource=https://analysis.windows.net/powerbi/api&redirect_uri=<Redirect URL>".
+   
+   ix)  Add following resources to the ESB registry and add the values for clientId, clientSecret, apiUrl and redirectUrl.
 
       /_system/governance/connectors/PowerBI/accessToken
       /_system/governance/connectors/PowerBI/apiUrl  
@@ -50,8 +58,8 @@ Steps to follow in setting integration test.
  6. Update the powerbi properties file at location "<POWERBI_CONNECTOR_HOME>/powerbi-connector/powerbi-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
    i)   apiUrl             -  The API URL of Power BI (e.g. https://api.powerbi.com)
-   ii)  authorizationCode  -  Authorization code for genarating the access token which is genarated in step (3. iv).
-   iii) datasetName        -  Valid dataset name.
+   ii)  authorizationCode  -  Authorization code for genarating the access token which is genarated in step (3. viii).
+   iii) datasetName        -  Dataset name which is created in step (3. iv).
 
  7. Navigate to "<ESB_CONNECTOR_HOME>/" and run the following command.
      $ mvn clean install
