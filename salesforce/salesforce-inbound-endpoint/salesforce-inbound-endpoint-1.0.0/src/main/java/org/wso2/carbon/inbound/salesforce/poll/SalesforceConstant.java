@@ -49,4 +49,14 @@ public class SalesforceConstant {
     public static final String COOKIE_LOGIN_KEY = "login";
     public static final String COOKIE_LOCALEINFO_KEY = "com.salesforce.LocaleInfo";
     public static final String COOKIE_LOCALEINFO_DEFAULT_VALUE = "us";
+
+    // The enterprise SOAP API endpoint used for the login call in this example.
+    public static final String SERVICES_SOAP_PARTNER_ENDPOINT = "/services/Soap/u/" + SOAP_API_VERSION;
+
+    public static final String ENV_START =
+            "<soapenv:Envelope xmlns:soapenv='http://schemas.xmlsoap.org/soap/envelope/' "
+                    + "xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' " +
+                    "xmlns:urn='urn:partner.soap.sforce.com'><soapenv:Body>";
+
+    public static final String ENV_END = "</soapenv:Body></soapenv:Envelope>";
 }

@@ -63,9 +63,9 @@ public class SalesforceStreamData extends GenericPollingConsumer {
     private String injectingSeq;
 
     // optional parameters.
-    private static int connectionTimeout;
-    private static int readTimeout;
-    private static int waitTime;
+    private int connectionTimeout;
+    private int readTimeout;
+    private int waitTime;
 
     private BayeuxClient client = null;
     private HttpClient httpClient;
@@ -96,7 +96,9 @@ public class SalesforceStreamData extends GenericPollingConsumer {
         if (client != null) {
             client.getChannel(Channel.META_HANDSHAKE).addListener(new ClientSessionChannel.MessageListener() {
                 public void onMessage(ClientSessionChannel channel, Message message) {
-                    log.info("[CHANNEL:META_HANDSHAKE with the Channel for Salesforce Streaming Endpoint]: " + message);
+                    if (log.isDebugEnabled()) {
+                        log.debug("META_HANDSHAKE with the Channel for Salesforce Streaming Endpoint" + message);
+                    }
                     boolean success = message.isSuccessful();
                     if (!success) {
                         String error = (String) message.get("error");
@@ -113,7 +115,7 @@ public class SalesforceStreamData extends GenericPollingConsumer {
 
             client.getChannel(Channel.META_CONNECT).addListener(new ClientSessionChannel.MessageListener() {
                 public void onMessage(ClientSessionChannel channel, Message message) {
-                    log.info("[CHANNEL:META_CONNECT with the Channel for Salesforce Streaming Endpoint]: " + message);
+                    log.info("META_CONNECT with the Channel for Salesforce Streaming Endpoint" + message);
                     boolean success = message.isSuccessful();
                     boolean clientConnection = client.isConnected();
                     if (!success && !clientConnection) {
@@ -131,7 +133,9 @@ public class SalesforceStreamData extends GenericPollingConsumer {
 
             client.getChannel(Channel.META_SUBSCRIBE).addListener(new ClientSessionChannel.MessageListener() {
                 public void onMessage(ClientSessionChannel channel, Message message) {
-                    log.info("[CHANNEL:META_SUBSCRIBE with the Channel for Salesforce Streaming Endpoint]: " + message);
+                    if (log.isDebugEnabled()) {
+                        log.debug("META_SUBSCRIBE with the Channel for Salesforce Streaming Endpoint" + message);
+                    }
                     boolean success = message.isSuccessful();
                     if (!success) {
                         String error = (String) message.get("error");
@@ -206,7 +210,7 @@ public class SalesforceStreamData extends GenericPollingConsumer {
      * @param user   The User Name of Salesforce.
      * @param sid    The session Id of Salesforce.
      */
-    private static void establishCookies(BayeuxClient client, String user, String sid) {
+    private void establishCookies(BayeuxClient client, String user, String sid) {
         client.setCookie(SalesforceConstant.COOKIE_LOCALEINFO_KEY, SalesforceConstant.COOKIE_LOCALEINFO_DEFAULT_VALUE, waitTime);
         client.setCookie(SalesforceConstant.COOKIE_LOGIN_KEY, user, waitTime);
         client.setCookie(SalesforceConstant.COOKIE_SESSION_ID_KEY, sid, waitTime);
@@ -246,26 +250,34 @@ public class SalesforceStreamData extends GenericPollingConsumer {
         if (log.isDebugEnabled()) {
             log.debug("Starting to load the salesforce credentials");
         }
-        try {
-            if (properties.getProperty(SalesforceConstant.CONNECTION_TIMEOUT) == null) {
-                connectionTimeout = SalesforceConstant.CONNECTION_TIMEOUT_DEFAULT;
-            } else {
+        if (properties.getProperty(SalesforceConstant.CONNECTION_TIMEOUT) == null) {
+            connectionTimeout = SalesforceConstant.CONNECTION_TIMEOUT_DEFAULT;
+        } else {
+            try {
                 connectionTimeout = Integer.parseInt(properties.getProperty(SalesforceConstant.CONNECTION_TIMEOUT));
+            } catch (NumberFormatException e) {
+                log.error("The Value should be in Number", e);
             }
+        }
 
-            if (properties.getProperty(SalesforceConstant.READ_TIMEOUT) == null) {
-                readTimeout = SalesforceConstant.READ_TIMEOUT_DEFAULT;
-            } else {
+        if (properties.getProperty(SalesforceConstant.READ_TIMEOUT) == null) {
+            readTimeout = SalesforceConstant.READ_TIMEOUT_DEFAULT;
+        } else {
+            try {
                 readTimeout = Integer.parseInt(properties.getProperty(SalesforceConstant.READ_TIMEOUT));
+            } catch (NumberFormatException e) {
+                log.error("The Value should be in Number", e);
             }
+        }
 
-            if (properties.getProperty(SalesforceConstant.WAIT_TIME) == null) {
-                connectionTimeout = SalesforceConstant.WAIT_TIME_DEFAULT;
-            } else {
+        if (properties.getProperty(SalesforceConstant.WAIT_TIME) == null) {
+            connectionTimeout = SalesforceConstant.WAIT_TIME_DEFAULT;
+        } else {
+            try {
                 waitTime = Integer.parseInt(properties.getProperty(SalesforceConstant.WAIT_TIME));
+            } catch (NumberFormatException e) {
+                log.error("The Value should be in Number", e);
             }
-        } catch (NumberFormatException e) {
-            log.error("The Value should be in Number", e);
         }
     }
 
