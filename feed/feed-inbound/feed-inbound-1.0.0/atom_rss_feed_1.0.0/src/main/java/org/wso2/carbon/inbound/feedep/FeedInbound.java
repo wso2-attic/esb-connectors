@@ -60,12 +60,10 @@ public class FeedInbound extends GenericPollingConsumer {
         init();
     }
 
-    @Override
     public void destroy() {
         if (registryHandler.readFromRegistry(name) != null) {
             registryHandler.deleteFromRegistry(name);
         }
-        super.destroy();
     }
 
     public Object poll() {
