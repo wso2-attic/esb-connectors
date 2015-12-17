@@ -34,6 +34,7 @@ import org.cometd.client.transport.LongPollingTransport;
 import org.eclipse.jetty.client.ContentExchange;
 import org.eclipse.jetty.client.HttpClient;
 
+import java.io.IOException;
 import java.lang.Exception;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -169,7 +170,7 @@ public class SalesforceStreamData extends GenericPollingConsumer {
      * @return
      * @throws Exception
      */
-    private BayeuxClient makeClient() throws Exception {
+    private BayeuxClient makeClient() {
         httpClient.setConnectTimeout(connectionTimeout);
         httpClient.setTimeout(readTimeout);
         try {
@@ -195,6 +196,10 @@ public class SalesforceStreamData extends GenericPollingConsumer {
             return client;
         } catch (MalformedURLException e) {
             handleException("Error while building URL: " + e.getMessage(), e);
+        } catch (IOException e) {
+            handleException("Error while login to Salesforce" + e.getMessage(), e);
+        } catch (Exception e) {
+            handleException("Error while starting the Http Client" + e.getMessage(), e);
         }
         return null;
     }
