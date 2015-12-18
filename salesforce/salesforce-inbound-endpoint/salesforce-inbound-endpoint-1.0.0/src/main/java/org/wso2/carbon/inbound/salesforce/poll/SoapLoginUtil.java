@@ -19,6 +19,7 @@ package org.wso2.carbon.inbound.salesforce.poll;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.synapse.SynapseException;
 import org.eclipse.jetty.client.ContentExchange;
 import org.eclipse.jetty.client.HttpClient;
 import org.xml.sax.SAXException;
@@ -59,17 +60,25 @@ public final class SoapLoginUtil {
 
             client.send(exchange);
             exchange.waitForDone();
-
-            String response = exchange.getResponseContent();
-            String tagSession = "<sessionId>";
-            String tagServerUrl = "<serverUrl>";
-            String serverUrl = response.substring(response.indexOf(tagServerUrl) + tagServerUrl.length(), response.indexOf("</serverUrl>"));
-            sessionId = response.substring(response.indexOf(tagSession) + tagSession.length(), response.indexOf("</sessionId>"));
-            LoginUrl = serverUrl.substring(0, serverUrl.indexOf("/services"));
+            try {
+                String response = exchange.getResponseContent();
+                String tagSession = "<sessionId>";
+                String tagServerUrl = "<serverUrl>";
+                String serverUrl = response.substring(response.indexOf(tagServerUrl) + tagServerUrl.length(), response.indexOf("</serverUrl>"));
+                sessionId = response.substring(response.indexOf(tagSession) + tagSession.length(), response.indexOf("</sessionId>"));
+                LoginUrl = serverUrl.substring(0, serverUrl.indexOf("/services"));
+            } catch (IndexOutOfBoundsException e) {
+                log.error("Login credentials of Salesforce is wrong....");
+                throw new SynapseException("Login credentials of Salesforce is wrong....", e);
+            }
         } catch (MalformedURLException e) {
             log.error("Error while building URL", e);
         } catch (InterruptedException e) {
             log.error("Error in exchange the asynchronous message", e);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            log.error("Error while login to Salesforce" + e.getMessage(), e);
         }
     }
 

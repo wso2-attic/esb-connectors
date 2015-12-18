@@ -87,7 +87,7 @@ public class SalesforceStreamData extends GenericPollingConsumer {
         httpClient = new HttpClient();
     }
 
-    private void makeConnect() {
+    private void makeConnect() throws IOException {
         try {
             client = makeClient();
         } catch (Exception e) {
@@ -123,7 +123,11 @@ public class SalesforceStreamData extends GenericPollingConsumer {
                         channel.unsubscribe();
                         client.disconnect();
                         log.info("Waiting to Connect with Salesforce Streaming API......");
-                        makeConnect();
+                        try {
+                            makeConnect();
+                        } catch (IOException e) {
+                            handleException("Error during make the client: " + e.getMessage(), e);
+                        }
                         String error = (String) message.get("error");
                         if (StringUtils.isNotEmpty(error)) {
                             handleException("Error during CONNECT: " + error);
@@ -170,7 +174,7 @@ public class SalesforceStreamData extends GenericPollingConsumer {
      * @return
      * @throws Exception
      */
-    private BayeuxClient makeClient() {
+    private BayeuxClient makeClient() throws MalformedURLException {
         httpClient.setConnectTimeout(connectionTimeout);
         httpClient.setTimeout(readTimeout);
         try {
@@ -178,7 +182,7 @@ public class SalesforceStreamData extends GenericPollingConsumer {
             SoapLoginUtil.login(httpClient, userName, password);
             final String sessionId = SoapLoginUtil.getSessionId();
             String endpoint = SoapLoginUtil.getEndpoint();
-            log.info("Login successful! to Salesforce Streaming Endpoint: " + endpoint);
+            log.info("Login to Salesforce Streaming Endpoint: " + endpoint);
             Map<String, Object> options = new HashMap<String, Object>();
             options.put(ClientTransport.TIMEOUT_OPTION, readTimeout);
             LongPollingTransport transport = new LongPollingTransport(options, httpClient) {
@@ -196,8 +200,6 @@ public class SalesforceStreamData extends GenericPollingConsumer {
             return client;
         } catch (MalformedURLException e) {
             handleException("Error while building URL: " + e.getMessage(), e);
-        } catch (IOException e) {
-            handleException("Error while login to Salesforce" + e.getMessage(), e);
         } catch (Exception e) {
             handleException("Error while starting the Http Client" + e.getMessage(), e);
         }
