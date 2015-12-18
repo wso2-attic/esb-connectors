@@ -1055,19 +1055,9 @@ public class GeonamesConnectorIntegrationTest extends ConnectorIntegrationTestBa
 
       RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
-      Assert.assertEquals(esbRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "ICAO"), apiRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString("ICAO"));
-      Assert.assertEquals(esbRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "observation"), apiRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "observation"));
-      Assert.assertEquals(esbRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "temperature"), apiRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "temperature"));
-      Assert.assertEquals(esbRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "stationName"), apiRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "stationName"));
-      Assert.assertEquals(esbRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "lat"), apiRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString("lat"));
+      Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+      Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+      Assert.assertEquals(esbRestResponse.getBody().has("weatherObservations"), apiRestResponse.getBody().has("weatherObservations"));
    }
 
    /**
@@ -1093,19 +1083,9 @@ public class GeonamesConnectorIntegrationTest extends ConnectorIntegrationTestBa
 
       RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
-      Assert.assertEquals(esbRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "ICAO"), apiRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString("ICAO"));
-      Assert.assertEquals(esbRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "observation"), apiRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "observation"));
-      Assert.assertEquals(esbRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "temperature"), apiRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "temperature"));
-      Assert.assertEquals(esbRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "stationName"), apiRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "stationName"));
-      Assert.assertEquals(esbRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString(
-            "lat"), apiRestResponse.getBody().getJSONArray("weatherObservations").getJSONObject(0).getString("lat"));
+      Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+      Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+      Assert.assertEquals(esbRestResponse.getBody().has("weatherObservations"), apiRestResponse.getBody().has("weatherObservations"));
 
    }
 
