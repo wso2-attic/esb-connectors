@@ -17,16 +17,50 @@
 -->
 
 <template xmlns="http://ws.apache.org/ns/synapse" name="updateStatus">
-    <parameter name="status" description="The status. Be sure to URL encode as necessary, and keep the message under 140 characters."/>
+    <parameter name="status"
+               description="The status. Be sure to URL encode as necessary, and keep the message under 140 characters."/>
+    <parameter name="inReplyToStatusId"
+               description="The ID of an existing status that the update is in reply."/>
+    <parameter name="possiblySensitive"
+               description="If you upload Tweet media that might be considered sensitive content such as nudity, violence, or medical procedures, you should set this value to true"/>
+    <parameter name="latitude"
+               description="The latitude of the location this tweet refers to."/>
+    <parameter name="longitude"
+               description="The longitude of the location this tweet refers to"/>
+    <parameter name="placeId"
+               description="A place in the world."/>
+    <parameter name="displayCoordinates"
+               description="Whether or not to put a pin on the exact coordinates a tweet has been sent from."/>
+    <parameter name="trimUser"
+               description="When set to either true, t or 1, each Tweet returned in a timeline will include a user object including only the status authors numerical ID"/>
+    <parameter name="mediaIds"
+               description="A list of media_ids to associate with the Tweet."/>
     <sequence>
 
         <class name="org.wso2.carbon.connector.twitter.RemoveTwitterContext"/>
 
-        <property name="uri.var.status" expression="$func:status" />
+        <property name="uri.var.status" expression="$func:status"/>
+        <property name="uri.var.inReplyToStatusId" expression="$func:inReplyToStatusId"/>
+        <property name="uri.var.possiblySensitive" expression="$func:possiblySensitive"/>
+        <property name="uri.var.latitude" expression="$func:latitude"/>
+        <property name="uri.var.longitude" expression="$func:longitude"/>
+        <property name="uri.var.placeId" expression="$func:placeId"/>
+        <property name="uri.var.displayCoordinates" expression="$func:displayCoordinates"/>
+        <property name="uri.var.trimUser" expression="$func:trimUser"/>
+        <property name="uri.var.mediaIds" expression="$func:mediaIds"/>
+
         <script language="js">
             <![CDATA[
                 // optional url param variables
                 var status  = mc.getProperty('uri.var.status');
+                var inReplyToStatusId  = mc.getProperty('uri.var.inReplyToStatusId');
+                var possiblySensitive  = mc.getProperty('uri.var.possiblySensitive');
+                var latitude  = mc.getProperty('uri.var.latitude');
+                var longitude  = mc.getProperty('uri.var.longitude');
+                var placeId  = mc.getProperty('uri.var.placeId');
+                var displayCoordinates  = mc.getProperty('uri.var.displayCoordinates');
+                var trimUser  = mc.getProperty('uri.var.trimUser');
+                var mediaIds  = mc.getProperty('uri.var.mediaIds');
 
                 var uriParams = '';
 
@@ -34,6 +68,46 @@
                     uriParams += 'status=' + status + '&';
                     status='status=' + encodeURIComponent(status);
                     mc.setProperty('uri.var.status',status)
+                }
+                if (inReplyToStatusId != null && inReplyToStatusId != "") {
+                    uriParams += 'in_reply_to_status_id=' + inReplyToStatusId + '&';
+                    inReplyToStatusId='in_reply_to_status_id=' + encodeURIComponent(inReplyToStatusId);
+                    mc.setProperty('uri.var.inReplyToStatusId',inReplyToStatusId)
+                }
+                if (possiblySensitive != null && possiblySensitive != "") {
+                    uriParams += 'possibly_sensitive=' +possiblySensitive + '&';
+                    possiblySensitive='possibly_sensitive=' + encodeURIComponent(possiblySensitive);
+                    mc.setProperty('uri.var.possiblySensitive',possiblySensitive)
+                }
+                if (latitude != null && latitude != "") {
+                    uriParams += 'lat='+latitude + '&';
+                    latitude='lat=' + encodeURIComponent(latitude);
+                    mc.setProperty('uri.var.latitude',latitude)
+                }
+                if (longitude != null && longitude != "") {
+                    uriParams +='long=' + longitude + '&';
+                    longitude='long=' + encodeURIComponent(longitude);
+                    mc.setProperty('uri.var.longitude',longitude)
+                }
+                if (placeId != null && placeId != "") {
+                    uriParams += 'place_id=' +placeId + '&';
+                    placeId='place_id=' + encodeURIComponent(placeId);
+                    mc.setProperty('uri.var.placeId',placeId)
+                }
+                if (displayCoordinates != null && displayCoordinates != "") {
+                    uriParams += 'display_coordinates=' +displayCoordinates + '&';
+                    displayCoordinates='display_coordinates=' + encodeURIComponent(displayCoordinates);
+                    mc.setProperty('uri.var.displayCoordinates',displayCoordinates)
+                }
+                if (trimUser != null && trimUser != "") {
+                    uriParams += 'trim_user=' + trimUser + '&';
+                    trimUser='trim_user=' + encodeURIComponent(trimUser);
+                    mc.setProperty('uri.var.trimUser',trimUser)
+                }
+                if (mediaIds != null && mediaIds != "") {
+                    uriParams += 'media_ids=' +mediaIds + '&';
+                    mediaIds='media_ids=' + encodeURIComponent(mediaIds);
+                    mc.setProperty('uri.var.mediaIds',mediaIds)
                 }
 
                 if(uriParams != ''){
@@ -56,7 +130,7 @@
         <call>
             <endpoint>
                 <http method="post"
-                      uri-template="legacy-encoding:{uri.var.apiUrl}/1.1/statuses/update.json?{uri.var.uriParams}"/>
+                      uri-template="{+uri.var.apiUrl}/1.1/statuses/update.json?{+uri.var.uriParams}"/>
             </endpoint>
         </call>
 
