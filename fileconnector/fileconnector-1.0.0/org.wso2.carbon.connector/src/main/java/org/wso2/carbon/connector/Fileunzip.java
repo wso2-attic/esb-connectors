@@ -53,7 +53,7 @@ public class Fileunzip extends AbstractConnector implements Connector {
         try {
             resultStatus = new FileUnzipUtil().unzip(fileLocation, newFileLocation, messageContext);
         } catch (Exception e) {
-            handleException(e.getMessage(), messageContext);
+            handleException("Error while unziping a file", e, messageContext);
             resultStatus = false;
         }
         generateResults(messageContext, resultStatus);

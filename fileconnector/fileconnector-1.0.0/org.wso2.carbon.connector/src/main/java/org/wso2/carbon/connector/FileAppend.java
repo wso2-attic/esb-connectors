@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  * 
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -90,7 +90,7 @@ public class FileAppend extends AbstractConnector implements Connector {
 			               appendFile(fileLocation, filename, content, encoding,
 			                          filebeforepprocess, fileafterprocsess, offset);
 		} catch (IOException e) {
-			handleException(e.getMessage(), messageContext);
+			handleException("Error while appending a file.", e, messageContext);
 		}
 
 		generateResult(messageContext, resultStatus);

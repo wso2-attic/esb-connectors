@@ -1,3 +1,19 @@
+/*
+* Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
 package org.wso2.carbon.connector.util;
 
 import java.io.IOException;
@@ -33,59 +49,62 @@ import org.codehaus.jettison.json.JSONException;
 public class ResultPayloadCreater {
 
     private static final Log log = LogFactory.getLog(ResultPayloadCreater.class);
-    
-	/**
-	 * Prepare pay load
-	 * 
-	 * @param messageContext
-	 * @param element
-	 */
-	public void preparePayload(MessageContext messageContext, OMElement element) {
 
-		SOAPBody soapBody = messageContext.getEnvelope().getBody();
-		soapBody.addChild(element);
+    /**
+     * Prepare pay load
+     *
+     * @param messageContext
+     * @param element
+     */
+    public void preparePayload(MessageContext messageContext, OMElement element) {
+        SOAPBody soapBody = messageContext.getEnvelope().getBody();
+        for (Iterator itr = soapBody.getChildElements(); itr.hasNext(); ) {
+            OMElement child = (OMElement) itr.next();
+            child.detach();
+        }
+        for (Iterator itr = element.getChildElements(); itr.hasNext(); ) {
+            OMElement child = (OMElement) itr.next();
+            soapBody.addChild(child);
+        }
+    }
 
-	}
+    /**
+     * Create a OMElement
+     *
+     * @param output
+     * @return
+     * @throws XMLStreamException
+     * @throws IOException
+     * @throws JSONException
+     */
+    public OMElement performSearchMessages(String output) throws XMLStreamException,
+            IOException, JSONException {
+        OMElement resultElement;
+        if (!output.equals("")) {
+            resultElement = AXIOMUtil.stringToOM(output);
+        } else {
+            resultElement = AXIOMUtil.stringToOM("<result></></result>");
+        }
 
-	/**
-	 * Create a OMElement
-	 * 
-	 * @param output
-	 * @return
-	 * @throws XMLStreamException
-	 * @throws IOException
-	 * @throws JSONException
-	 */
-	public OMElement performSearchMessages(String output) throws XMLStreamException,
+        return resultElement;
 
-	IOException, JSONException {
-		OMElement resultElement;
-		if (!output.equals("")) {
-			resultElement = AXIOMUtil.stringToOM(output);
-		} else {
-			resultElement = AXIOMUtil.stringToOM("<result></></result>");
-		}
+    }
 
-		return resultElement;
+    /**
+     * Send error status
+     *
+     * @param ctxt
+     * @param e
+     */
 
-	}
-
-	/**
-	 * Send error status
-	 * 
-	 * @param ctxt
-	 * @param e
-	 */
-
-	public static void sendErrorStatus(MessageContext ctxt, Exception e) {
-		ctxt.setProperty(SynapseConstants.ERROR_EXCEPTION, e);
-		ctxt.setProperty(SynapseConstants.ERROR_MESSAGE, e.getMessage());
-	}
+    public static void sendErrorStatus(MessageContext ctxt, Exception e) {
+        ctxt.setProperty(SynapseConstants.ERROR_EXCEPTION, e);
+        ctxt.setProperty(SynapseConstants.ERROR_MESSAGE, e.getMessage());
+    }
 
 
     public static boolean buildFile(FileObject file, MessageContext msgCtx, String contentType, String streaming)
             throws SynapseException {
-
         ManagedDataSource dataSource = null;
         try {
             if (contentType == null || contentType.trim().equals("")) {
@@ -148,10 +167,10 @@ public class ResultPayloadCreater {
                 documentElement = ((DataSourceMessageBuilder) builder).processDocument(dataSource, contentType,
                         axis2MsgCtx);
             }
-            
+
             //We need this to build the complete message before closing the stream
             documentElement.toString();
-            
+
             msgCtx.setEnvelope(TransportUtils.createSOAPEnvelope(documentElement));
 
         } catch (SynapseException se) {
@@ -166,5 +185,4 @@ public class ResultPayloadCreater {
         }
         return true;
     }
-	
 }

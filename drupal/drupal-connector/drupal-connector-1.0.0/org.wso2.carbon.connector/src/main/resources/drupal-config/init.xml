@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.drupal.org/project/rest_server -->
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="apiUrl" description="The API Url to access the endpoint." />
+   <parameter name="userName" description="User name of the Drupal account." />
+   <parameter name="password" description="Password of the Drupal account." />
+   <parameter name="responseType" description="Response type. Possible values are 'json' and 'xml'." />
+   <sequence>
+      <property name="uri.var.apiUrl" expression="$func:apiUrl" />
+      <property name="uri.var.userName" expression="$func:userName" />
+      <property name="uri.var.password" expression="$func:password" />
+      <property name="uri.var.responseType" expression="$func:responseType" />
+      <filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
+         <then>
+            <property name="uri.var.apiUrl" expression="get-property('registry', 'connectors/Drupal/apiUrl')" />
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.userName'))" regex="false">
+         <then>
+            <property name="uri.var.userName" expression="get-property('registry', 'connectors/Drupal/userName')" />
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.password'))" regex="false">
+         <then>
+            <property name="uri.var.password" expression="get-property('registry', 'connectors/Drupal/password')" />
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.responseType'))" regex="true">
+         <then>
+            <property name="uri.var.responseType" expression="fn:concat('.',get-property('uri.var.responseType'))" />
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.password'))">
+         <then>
+            <header name="Authorization" expression="fn:concat('Basic ', base64Encode(fn:concat(get-property('uri.var.userName'), ':',get-property('uri.var.password'))))" scope="transport" />
+         </then>
+      </filter>
+   </sequence>
+</template>
