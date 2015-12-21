@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: http://www.geonames.org/export/JSON-webservices.html#citiesJSON -->
+<template name="listCitiesAndPlaceNames" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="responseType" description="The response type of the method." />
+   <parameter name="north" description="The north coordinates of the bounding box." />
+   <parameter name="south" description="The south coordinates of the bounding box." />
+   <parameter name="east" description="The east coordinates of the bounding box." />
+   <parameter name="west" description="The west coordinates of the bounding box." />
+   <parameter name="callback" description="The name of javascript function." />
+   <parameter name="language" description="The language of placenames and wikipedia urls." />
+   <parameter name="maxRows" description="Max rows returned." />
+   <sequence>
+      <property name="uri.var.responseType" expression="$func:responseType" />
+      <property name="uri.var.north" expression="$func:north" />
+      <property name="uri.var.south" expression="$func:south" />
+      <property name="uri.var.east" expression="$func:east" />
+      <property name="uri.var.west" expression="$func:west" />
+      <property name="uri.var.callback" expression="$func:callback" />
+      <property name="uri.var.language" expression="$func:language" />
+      <property name="uri.var.maxRows" expression="$func:maxRows" />
+      <script language="js">
+	      <![CDATA[
+	         var north = mc.getProperty('uri.var.north');
+	         var south = mc.getProperty('uri.var.south');
+	         var east = mc.getProperty('uri.var.east');
+	         var west = mc.getProperty('uri.var.west');
+	         var maxRows = mc.getProperty('uri.var.maxRows');
+	         var callback = mc.getProperty('uri.var.callback');
+	         var language = mc.getProperty('uri.var.language');
+	         var responseType = mc.getProperty('uri.var.responseType');
+	         var urlQuery = mc.getProperty('uri.var.urlQuery');
+	         urlQuery += '&north=' + north + '&south=' + south + '&east=' + east +'&west=' + west;
+	         if (maxRows != null && maxRows != ""){
+	            urlQuery += '&' + 'maxRows=' + maxRows;
+	         }
+	         if (callback != null && callback != ""){
+	            urlQuery += '&' + 'callback=' + callback;
+	         }
+	         if (language != null && language != ""){
+	            urlQuery += '&' + 'lang=' + language;
+	         }
+	         if (responseType == null || responseType == ""){
+	            responseType='json'; 
+	         }
+	         mc.setProperty('uri.var.urlQuery',urlQuery); 
+	         if (responseType == 'json') {
+	            mc.setProperty('uri.var.endpoint', 'citiesJSON');
+	         } else if (responseType == 'xml'){
+	            mc.setProperty('uri.var.endpoint', 'cities');
+	         } else {
+	            mc.setProperty('uri.var.endpoint', 'cities' + responseType);
+	         }
+	      ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/{+uri.var.endpoint}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+      <header name="Via" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport"/>
+      <header name="Accept-Ranges" action="remove" scope="transport"/>
+   </sequence>
+</template>

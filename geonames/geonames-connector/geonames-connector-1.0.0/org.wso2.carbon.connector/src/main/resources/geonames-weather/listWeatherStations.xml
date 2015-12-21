@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ 
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+ 
+     http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<!-- Method Documentation URL: http://www.geonames.org/export/JSON-webservices.html#weatherJSON-->
+<template name="listWeatherStations" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="responseType" description="The responseType of the listWeatherStations method." />
+   <parameter name="east" description="The bounding box, only features within the box are returned." />
+   <parameter name="west" description="The bounding box, only features within the box are returned." />
+   <parameter name="north" description="The bounding box, only features within the box are returned." />
+   <parameter name="south" description="The bounding box, only features within the box are returned." />
+   <parameter name="callback" description="The name of the javascript function." />
+   <parameter name="maxRows" description="The maximal number of rows in the document returned by the service. Default is 10." />
+   <sequence>
+      <property name="uri.var.responseType" expression="$func:responseType" />
+      <property name="uri.var.north" expression="$func:north" />
+      <property name="uri.var.south" expression="$func:south" />
+      <property name="uri.var.east" expression="$func:east" />
+      <property name="uri.var.west" expression="$func:west" />
+      <property name="uri.var.callback" expression="$func:callback" />
+      <property name="uri.var.maxRows" expression="$func:maxRows" />
+      <script language="js">
+	      <![CDATA[
+	         var north = mc.getProperty('uri.var.north');
+	         var south = mc.getProperty('uri.var.south');
+	         var east = mc.getProperty('uri.var.east');
+	         var west = mc.getProperty('uri.var.west');
+	         var responseType = mc.getProperty('uri.var.responseType');
+	         var callback = mc.getProperty('uri.var.callback');
+	         var maxRows = mc.getProperty('uri.var.maxRows');
+	         var urlQuery = mc.getProperty('uri.var.urlQuery');
+	         urlQuery += '&north=' + north + '&south=' + south + '&east=' + east + '&west=' + west;
+	         if (callback != null && callback != ""){
+	            urlQuery += '&' + 'callback=' + callback;
+	         }
+	         if (maxRows != null && maxRows != ""){
+	            urlQuery += '&' + 'maxRows=' + maxRows;
+	         }
+	         if (responseType == null || responseType == ""){
+               responseType='json'; 
+             }
+             mc.setProperty('uri.var.urlQuery',urlQuery); 
+             if (responseType == 'json') {
+                mc.setProperty('uri.var.endpoint', 'weatherJSON');
+             } else if (responseType == 'xml'){
+                mc.setProperty('uri.var.endpoint', 'weather');
+             } else {
+                mc.setProperty('uri.var.endpoint', 'weather'+responseType);
+             }
+	      ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/{+uri.var.endpoint}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Cache-Control" action="remove" scope="transport"/>
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport"/>
+      <header name="Via" action="remove" scope="transport"/>
+      <header name="Vary" action="remove" scope="transport"/>
+      <header name="Accept-Ranges" action="remove" scope="transport"/>
+   </sequence>
+</template>
