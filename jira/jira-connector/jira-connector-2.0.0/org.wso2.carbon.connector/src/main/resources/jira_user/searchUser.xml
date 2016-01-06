@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="searchUser">
+   <parameter name="usernameForSearch" description="the username of the user for whom we require details" />
+   <parameter name="startAt" description="the index of the first user to return (0-based)" />
+   <parameter name="maxResults" desciption="the maximum number of users to return (defaults to 50). The maximum allowed value is 1000." />
+   <parameter name="includeActive" description="If true, then active users are included in the results (default true)" />
+   <parameter name="includeInactive" description="If true, then inactive users are included in the results (default false)" />
+   <sequence>
+      <property name="uri.var.jira.usernameForSearch" expression="$func:usernameForSearch" />
+      <property name="uri.var.jira.startAt" expression="$func:startAt" />
+      <property name="uri.var.jira.maxResults" expression="$func:maxResults" />
+      <property name="uri.var.jira.includeActive" expression="$func:includeActive" />
+      <property name="uri.var.jira.includeInactive" expression="$func:includeInactive" />
+      <property name="Accept-Encoding" action="remove" scope="transport" />
+      <script language="js">
+            <![CDATA[
+            var includeActive = mc.getProperty('uri.var.jira.includeActive');
+            var includeInactive = mc.getProperty('uri.var.jira.includeInactive');
+            var startAt = mc.getProperty('uri.var.jira.startAt');
+            var maxResults = mc.getProperty('uri.var.jira.maxResults');
+            var urlQuery = '';
+            if (includeActive != null && includeActive != ""){
+               urlQuery += 'includeActive=' + includeActive + '&';
+            }
+            if (startAt != null && startAt != ""){
+               urlQuery += 'startAt=' + startAt + '&';
+            }
+            if (includeInactive != null && includeInactive != ""){
+               urlQuery += 'includeInactive=' + includeInactive + '&';
+            }
+            if (maxResults != null && maxResults != ""){
+               urlQuery += 'maxResults=' + maxResults + '&';
+            }
+            if (urlQuery != null && urlQuery != ""){
+               urlQuery = '&' + urlQuery.substring(0, urlQuery.length - 1);
+            }
+            mc.setProperty('uri.var.jira.urlQuery',urlQuery);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.jira.url}/rest/api/2/user/search?username={uri.var.jira.usernameForSearch}{+uri.var.jira.urlQuery}" />
+         </endpoint>
+      </call>
+   </sequence>
+</template>

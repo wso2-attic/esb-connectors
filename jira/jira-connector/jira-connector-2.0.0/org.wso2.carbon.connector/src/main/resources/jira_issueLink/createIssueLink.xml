@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developer.atlassian.com/static/rest/jira/6.1.html#d2e1898 -->
+<template name="createIssueLink" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="typeName" description="Name of the issue type." />
+   <parameter name="inwardIssueKey" description="Key of the inward issue." />
+   <parameter name="outwardIssueKey" description="Key of the outward issue." />
+   <parameter name="commentBody" description="Body of the comment." />
+   <parameter name="commentVisibility" description="Visibility of the comment." />
+   <sequence>
+      <property name="uri.var.typeName" expression="$func:typeName" />
+      <property name="uri.var.inwardIssueKey" expression="$func:inwardIssueKey" />
+      <property name="uri.var.outwardIssueKey" expression="$func:outwardIssueKey" />
+      <property name="uri.var.commentBody" expression="$func:commentBody" />
+      <property name="uri.var.commentVisibility" expression="$func:commentVisibility" />
+      <script language="js">
+      	<![CDATA[
+        	var payload = {};
+            var typeName=mc.getProperty('uri.var.typeName');
+            var inwardIssueKey=mc.getProperty('uri.var.inwardIssueKey');
+            var outwardIssueKey=mc.getProperty('uri.var.outwardIssueKey');
+            var comment={};
+            var commentBody=mc.getProperty('uri.var.commentBody');
+            var commentVisibility=mc.getProperty('uri.var.commentVisibility');
+            if(typeName!=null && typeName!=""){
+               var type={};
+               type.name=typeName;
+               payload.type=type;
+            }
+            if(inwardIssueKey!=null && inwardIssueKey!=""){
+               var inwardIssue={};
+               inwardIssue.key=inwardIssueKey;
+               payload.inwardIssue=inwardIssue;
+            }
+            if(outwardIssueKey!=null && outwardIssueKey!=""){
+               var outwardIssue={};
+               outwardIssue.key=outwardIssueKey;
+               payload.outwardIssue=outwardIssue;
+            }
+            if(commentBody!=null && commentBody!=""){
+               comment.body=commentBody;
+            }
+            if(commentVisibility!=null && commentVisibility!=""){
+               comment.visibility=eval ("(" + commentVisibility + ")");
+            }
+            for(var prop in comment) {
+               if (comment.hasOwnProperty(prop)) {
+                  payload.comment = comment;
+                  break;
+               }
+            } 
+            mc.setPayloadJSON(payload);
+      	]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.jira.url}/rest/api/2/issueLink" />
+         </endpoint>
+      </call>
+      <!-- Remove custom headers from the API response -->
+      <header name="X-ASESSIONID" action="remove" scope="transport" />
+      <header name="X-AUSERNAME" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="X-ATENANT-ID" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-ASEN" action="remove" scope="transport" />
+      <header name="X-AREQUESTID" action="remove" scope="transport" />
+   </sequence>
+</template>
