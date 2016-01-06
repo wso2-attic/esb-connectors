@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://docs.atlassian.com/atlassian-confluence/REST/latest/#d3e889 -->
+<template name="updateContent" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="contentId" description="ID of the content to be updated." />
+   <parameter name="versionNumber" description="Integer number of the version to be updated." />
+   <parameter name="title" description="Title of the content." />
+   <parameter name="type" description="The type of the content." />
+   <parameter name="newStatus" description="New status value to be change content status. Posible values are 'current' and 'trashed'." />
+   <parameter name="contentBody" description="The body of the content." />
+   <parameter name="ancestors" description="To update a page and change its parent page, supply the ancestors property." />
+   <parameter name="existingStatus" description="The existing status of the content to be updated." />
+   <parameter name="conflictPolicy" description="The conflict policy of the content to be updated. Default value is 'abort'." />
+   <sequence>
+      <property name="uri.var.contentId" expression="$func:contentId" />
+      <property name="uri.var.versionNumber" expression="$func:versionNumber" />
+      <property name="uri.var.title" expression="$func:title" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.newStatus" expression="$func:newStatus" />
+      <property name="uri.var.contentBody" expression="$func:contentBody" />
+      <property name="uri.var.ancestors" expression="$func:ancestors" />
+      <property name="uri.var.existingStatus" expression="$func:existingStatus" />
+      <property name="uri.var.conflictPolicy" expression="$func:conflictPolicy" />
+      <script language="js">
+         <![CDATA[
+            var payload = {};
+            var versionNumber = mc.getProperty('uri.var.versionNumber');
+            var title = mc.getProperty('uri.var.title');
+            var type = mc.getProperty('uri.var.type');
+            var newStatus = mc.getProperty('uri.var.newStatus');
+            var contentBody = mc.getProperty('uri.var.contentBody');
+            var ancestors = mc.getProperty('uri.var.ancestors');
+            var existingStatus = mc.getProperty('uri.var.existingStatus');
+            var conflictPolicy = mc.getProperty('uri.var.conflictPolicy');
+            var urlQuery = '';
+            if (versionNumber != null && versionNumber != "") {
+               var version={};
+               version.number=versionNumber;
+               payload.version = version;
+            }
+            if (title != null && title != "") {
+               payload.title = title;
+            }  
+            if (type != null && type != "") {
+               payload.type = type;
+            }
+            if (newStatus != null && newStatus != "") {
+               payload.status = newStatus;
+            }
+            if (contentBody != null && contentBody != "") {
+               payload.body = eval ("(" + contentBody + ")");
+            }  
+            if (ancestors != null && ancestors != "") {
+               payload.ancestors = eval ("(" + ancestors + ")");
+            }           
+            if (existingStatus != null && existingStatus != "") {
+               urlQuery += 'existingStatus=' + existingStatus + '&';
+            }
+            if (conflictPolicy != null && conflictPolicy != "") {
+               urlQuery += 'conflictPolicy=' + conflictPolicy + '&';
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+            mc.setPayloadJSON(payload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="put" uri-template="{+uri.var.apiUrl}/content/{+uri.var.contentId}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom headers from the API response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-ASEN" action="remove" scope="transport" />
+      <header name="X-AUSERNAME" action="remove" scope="transport" />
+      <header name="X-Seraph-LoginReason" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Accel-Buffering" action="remove" scope="transport" />
+      <header name="Content-Security-Policy" action="remove" scope="transport" />
+   </sequence>
+</template>
