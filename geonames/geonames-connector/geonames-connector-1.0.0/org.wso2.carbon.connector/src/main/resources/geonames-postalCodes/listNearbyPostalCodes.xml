@@ -1,0 +1,106 @@
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ 
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+ 
+     http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<!-- Method Documentation URL: http://www.geonames.org/export/web-services.html#findNearbyPostalCodes-->
+<template name="listNearbyPostalCodes" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="latitude" description="The latitude to retrieve nearby postal codes." />
+   <parameter name="longitude" description="The longitude to retrieve nearby postal codes." />
+   <parameter name="radius" description="The radius which is used to buffer in km for closest timezone in coastal areas" />
+   <parameter name="maxRows" description="The maximal number of rows in the document returned by the service. Default is 10." />
+   <parameter name="style" description="The verbosity of returned xml document, default = MEDIUM." />
+   <parameter name="country" description="Default is all countries. The country parameter may occur more than once,country=FR,country=GP."/>
+   <parameter name="localCountry" description="The local country values." />
+   <parameter name="postalCode" description="The postalCode to determine the nearby postal codes." />
+   <parameter name="placeName" description="All fields : placename,postal code, country, admin name." />
+   <parameter name="responseType" description="The responseType to get the response of the listNearbyPostalCodes." />
+   <sequence>
+      <property name="uri.var.latitude" expression="$func:latitude" />
+      <property name="uri.var.longitude" expression="$func:longitude" />
+      <property name="uri.var.radius" expression="$func:radius" />
+      <property name="uri.var.maxRows" expression="$func:maxRows" />
+      <property name="uri.var.placeName" expression="$func:placeName" />
+      <property name="uri.var.style" expression="$func:style" />
+      <property name="uri.var.country" expression="$func:country" />
+      <property name="uri.var.localCountry" expression="$func:localCountry" />
+      <property name="uri.var.postalCode" expression="$func:postalCode" />
+      <property name="uri.var.responseType" expression="$func:responseType" />
+      <script language="js">
+         <![CDATA[
+            var responseType = mc.getProperty('uri.var.responseType');
+            var longitude = mc.getProperty('uri.var.longitude');
+            var latitude = mc.getProperty('uri.var.latitude');
+            var radius = mc.getProperty('uri.var.radius');
+            var localCountry = mc.getProperty('uri.var.localCountry');
+            var postalCode = mc.getProperty('uri.var.postalCode');
+            var placeName = mc.getProperty('uri.var.placeName');
+            var maxRows = mc.getProperty('uri.var.maxRows');
+            var style = mc.getProperty('uri.var.style');
+            var country = mc.getProperty('uri.var.country');
+            var urlQuery = mc.getProperty('uri.var.urlQuery');
+            if (longitude != null && longitude != "") {
+               urlQuery += '&lng=' + longitude;
+            }
+            if (latitude != null && latitude != "") {
+               urlQuery += '&lat=' + latitude;
+            }
+            if (radius != null && radius != "") {
+               urlQuery += '&radius=' + radius;
+            }
+            if (postalCode != null && postalCode != "") {
+               urlQuery += '&postalcode=' + postalCode;
+            }
+            if (placeName != null && placeName != "") {
+               urlQuery += '&placename=' + placeName;
+            }
+            if (maxRows != null && maxRows != "") {
+               urlQuery += '&maxRows=' + maxRows;
+            }
+            if (style != null && style != "") {
+               urlQuery += '&style=' + style;
+            }
+            if (country != null && country != "") {
+               urlQuery += '&country=' + country;
+            }
+            if (localCountry != null && localCountry != "") {
+               urlQuery += '&localCountry=' + localCountry;
+            }
+            if (responseType == null || responseType == ""){
+               responseType='json'; 
+            }
+            mc.setProperty('uri.var.urlQuery',urlQuery); 
+            if (responseType == 'json') {
+               mc.setProperty('uri.var.endpoint', 'findNearbyPostalCodesJSON');
+            } else if (responseType == 'xml'){
+               mc.setProperty('uri.var.endpoint', 'findNearbyPostalCodes');
+            } else {
+               mc.setProperty('uri.var.endpoint', 'findNearbyPostalCodes'+responseType);
+            }
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/{+uri.var.endpoint}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Cache-Control" action="remove" scope="transport"/>
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport"/>
+      <header name="Via" action="remove" scope="transport"/>
+      <header name="Vary" action="remove" scope="transport"/>
+      <header name="Accept-Ranges" action="remove" scope="transport"/>
+   </sequence>
+</template>
