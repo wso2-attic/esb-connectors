@@ -37,7 +37,7 @@ Steps to follow in setting integration test.
             Step 2 - Provide App Name, Redirect URL, App Type and Home Page URL and for App Type use "Server-side Web app". Note Redirect URL for further use.  
             Step 3 - select all the check boxes to enable access for the api.
             Step 4 - Click "Register App" and note client-id and client-secret that are returned for further use.
-   viii)Genarate the authorization code by sending a GET request using url "https://login.windows.net/common/oauth2/authorize?response_type=code&client_id=<client-id>&resource=https://analysis.windows.net/powerbi/api&redirect_uri=<Redirect URL>".
+   viii)Generate the authorization code by sending a GET request using url "https://login.windows.net/common/oauth2/authorize?response_type=code&client_id=<client-id>&resource=https://analysis.windows.net/powerbi/api&redirect_uri=<Redirect URL>".
    
    ix)  Add following resources to the ESB registry and add the values for clientId, clientSecret, apiUrl and redirectUrl.
 
