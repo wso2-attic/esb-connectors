@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="powerbi" transports="https,http" statistics="disable" trace="disable"
+   startOnLoad="true">
+   <target>
+      <inSequence>
+         <property name="apiUrl" expression="json-eval($.apiUrl)" />
+         <property name="authorizationCode" expression="json-eval($.authorizationCode)" />
+         <property name="defaultRetentionPolicy" expression="json-eval($.defaultRetentionPolicy)" />
+         <property name="resource" expression="json-eval($.resource)" />
+         <property name="datasetName" expression="json-eval($.datasetName)" />
+         <property name="tables" expression="json-eval($.tables)" />
+         <property name="groupId" expression="json-eval($.groupId)" />
+         <property name="datasetId" expression="json-eval($.datasetId)" />
+         <property name="tableName" expression="json-eval($.tableName)" />
+         <property name="rows" expression="json-eval($.rows)" />
+         <property name="columns" expression="json-eval($.columns)" />
+         <switch source="get-property('transport','Action')">
+            <case regex="urn:getAccessTokenFromAuthorizationCode">
+               <powerbi.getAccessTokenFromAuthorizationCode>
+                  <apiUrl>{$ctx:apiUrl}</apiUrl>
+                  <authorizationCode>{$ctx:authorizationCode}</authorizationCode>
+                  <resource>{$ctx:resource}</resource>
+               </powerbi.getAccessTokenFromAuthorizationCode>
+            </case>
+            <case regex="urn:getAccessTokenFromRefreshToken">
+               <powerbi.getAccessTokenFromRefreshToken>
+                  <apiUrl>{$ctx:apiUrl}</apiUrl>
+                  <resource>{$ctx:resource}</resource>
+               </powerbi.getAccessTokenFromRefreshToken>
+            </case>
+            <default>
+               <powerbi.init>
+                  <apiUrl>{$ctx:apiUrl}</apiUrl>
+                  <accessToken>{$ctx:accessToken}</accessToken>
+               </powerbi.init>
+               <switch source="get-property('transport','Action')">
+                  <case regex="urn:listGroups">
+                     <powerbi.listGroups>
+                     </powerbi.listGroups>
+                  </case>
+                  <case regex="urn:createDataset">
+                     <powerbi.createDataset>
+                        <defaultRetentionPolicy>{$ctx:defaultRetentionPolicy}</defaultRetentionPolicy>
+                        <datasetName>{$ctx:datasetName}</datasetName>
+                        <tables>{$ctx:tables}</tables>
+                     </powerbi.createDataset>
+                  </case>
+                  <case regex="urn:createGroupDataset">
+                     <powerbi.createGroupDataset>
+                        <groupId>{$ctx:groupId}</groupId>
+                        <defaultRetentionPolicy>{$ctx:defaultRetentionPolicy}</defaultRetentionPolicy>
+                        <datasetName>{$ctx:datasetName}</datasetName>
+                        <tables>{$ctx:tables}</tables>
+                     </powerbi.createGroupDataset>
+                  </case>
+                  <case regex="urn:listDatasets">
+                     <powerbi.listDatasets>
+                     </powerbi.listDatasets>
+                  </case>
+                  <case regex="urn:listGroupDatasets">
+                     <powerbi.listGroupDatasets>
+                        <groupId>{$ctx:groupId}</groupId>
+                     </powerbi.listGroupDatasets>
+                  </case>
+                  <case regex="urn:listTables">
+                     <powerbi.listTables>
+                        <datasetId>{$ctx:datasetId}</datasetId>
+                     </powerbi.listTables>
+                  </case>
+                  <case regex="urn:listGroupTables">
+                     <powerbi.listGroupTables>
+                        <groupId>{$ctx:groupId}</groupId>
+                        <datasetId>{$ctx:datasetId}</datasetId>
+                     </powerbi.listGroupTables>
+                  </case>
+                  <case regex="urn:addRows">
+                     <powerbi.addRows>
+                        <datasetId>{$ctx:datasetId}</datasetId>
+                        <tableName>{$ctx:tableName}</tableName>
+                        <rows>{$ctx:rows}</rows>
+                     </powerbi.addRows>
+                  </case>
+                  <case regex="urn:addGroupRows">
+                     <powerbi.addGroupRows>
+                        <groupId>{$ctx:groupId}</groupId>
+                        <datasetId>{$ctx:datasetId}</datasetId>
+                        <tableName>{$ctx:tableName}</tableName>
+                        <rows>{$ctx:rows}</rows>
+                     </powerbi.addGroupRows>
+                  </case>
+                  <case regex="urn:deleteRows">
+                     <powerbi.deleteRows>
+                        <datasetId>{$ctx:datasetId}</datasetId>
+                        <tableName>{$ctx:tableName}</tableName>
+                     </powerbi.deleteRows>
+                  </case>
+                  <case regex="urn:deleteGroupRows">
+                     <powerbi.deleteGroupRows>
+                        <groupId>{$ctx:groupId}</groupId>
+                        <datasetId>{$ctx:datasetId}</datasetId>
+                        <tableName>{$ctx:tableName}</tableName>
+                     </powerbi.deleteGroupRows>
+                  </case>
+                  <case regex="urn:updateTableSchema">
+                     <powerbi.updateTableSchema>
+                        <datasetId>{$ctx:datasetId}</datasetId>
+                        <tableName>{$ctx:tableName}</tableName>
+                        <columns>{$ctx:columns}</columns>
+                     </powerbi.updateTableSchema>
+                  </case>
+                  <case regex="urn:updateGroupTableSchema">
+                     <powerbi.updateGroupTableSchema>
+                        <groupId>{$ctx:groupId}</groupId>
+                        <datasetId>{$ctx:datasetId}</datasetId>
+                        <tableName>{$ctx:tableName}</tableName>
+                        <columns>{$ctx:columns}</columns>
+                     </powerbi.updateGroupTableSchema>
+                  </case>
+               </switch>
+            </default>
+         </switch>
+         <respond />
+      </inSequence>
+      <outSequence>
+         <log />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
