@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developer.atlassian.com/static/rest/jira/6.1.html#d2e902 -->
+<template name="sendNotification" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="issueIdOrKey" description="A string containing the issue id or key the comment will be added to." />
+   <parameter name="subject" description="The subject of the notification." />
+   <parameter name="textBody" description="The text body of the notification." />
+   <parameter name="htmlBody" description="The html body of the notification." />
+   <parameter name="toReporter" description="The boolen flag to indicate whether to notify the reporter." />
+   <parameter name="toAssignee" description="The boolen flag to indicate whether to notify the assignee." />
+   <parameter name="toWatchers" description="The boolen flag to indicate whether to notify the watchers." />
+   <parameter name="toVoters" description="The boolen flag to indicate whether to notify the voters." />
+   <parameter name="toUsers" description="The boolen flag to indicate whether to notify the users." />
+   <parameter name="toGroups" description="The Array of notification groups to be notified." />
+   <parameter name="restrictGroups" description="The Array of notification groups to be restricted." />
+   <parameter name="restrictPermissions" description="The Array of restricted permissions for the notification." />
+   <sequence>
+      <property name="uri.var.issueIdOrKey" expression="$func:issueIdOrKey" />
+      <property name="uri.var.subject" expression="$func:subject" />
+      <property name="uri.var.textBody" expression="$func:textBody" />
+      <property name="uri.var.htmlBody" expression="$func:htmlBody" />
+      <property name="uri.var.toReporter" expression="$func:toReporter" />
+      <property name="uri.var.toAssignee" expression="$func:toAssignee" />
+      <property name="uri.var.toWatchers" expression="$func:toWatchers" />
+      <property name="uri.var.toVoters" expression="$func:toVoters" />
+      <property name="uri.var.toUsers" expression="$func:toUsers" />
+      <property name="uri.var.toGroups" expression="$func:toGroups" />
+      <property name="uri.var.restrictGroups" expression="$func:restrictGroups" />
+      <property name="uri.var.restrictPermissions" expression="$func:restrictPermissions" />
+      <script language="js">
+         <![CDATA[
+            var subject = mc.getProperty('uri.var.subject');
+            var textBody = mc.getProperty('uri.var.textBody');
+            var htmlBody = mc.getProperty('uri.var.htmlBody');
+            var toReporter = mc.getProperty('uri.var.toReporter');
+            var toAssignee = mc.getProperty('uri.var.toAssignee');
+            var toWatchers = mc.getProperty('uri.var.toWatchers');
+            var toVoters = mc.getProperty('uri.var.toVoters');
+            var toUsers = mc.getProperty('uri.var.toUsers');
+            var toGroups = mc.getProperty('uri.var.toGroups');
+            var restrictGroups = mc.getProperty('uri.var.restrictGroups');
+            var restrictPermissions = mc.getProperty('uri.var.restrictPermissions');
+            var payload={};
+            var to={};
+            var restrict={};
+            if (subject != null && subject != ""){
+               payload.subject = subject;
+            }
+            if (textBody != null && textBody != ""){
+               payload.textBody = textBody;
+            }
+            if (htmlBody != null && htmlBody != ""){
+               payload.htmlBody = htmlBody;
+            }
+            if (toReporter != null && toReporter != ""){
+               to.reporter = toReporter;
+            }
+            if (toAssignee != null && toAssignee != ""){
+               to.assignee = toAssignee;
+            }
+            if (toWatchers != null && toWatchers != ""){
+               to.watchers = toWatchers;
+            }
+            if (toVoters != null && toVoters != ""){
+               to.voters = toVoters;
+            }
+            if (toUsers != null && toUsers != ""){
+               to.users = eval ("(" + toUsers + ")");
+            }
+            if (toGroups != null && toGroups != ""){
+               to.groups = eval ("(" + toGroups + ")");
+            }
+            if (restrictGroups != null && restrictGroups != ""){
+               restrict.groups = eval ("(" + restrictGroups + ")");
+            }
+            if (restrictPermissions != null && restrictPermissions != ""){
+               restrict.permissions = eval ("(" + restrictPermissions + ")");
+            }
+            for(var toProp in to) {
+               if (to.hasOwnProperty(toProp)) {
+                  payload.to = to;
+                  break;
+               }
+            } 
+            for(var resProp in restrict) {
+               if (restrict.hasOwnProperty(resProp)) {
+                  payload.restrict = restrict;
+                  break;
+               }
+            } 
+            mc.setPayloadJSON(payload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.jira.url}/rest/api/2/issue/{+uri.var.issueIdOrKey}/notify" />
+         </endpoint>
+      </call>
+      <!-- Remove custom headers from the API response -->
+      <header name="X-ASESSIONID" action="remove" scope="transport" />
+      <header name="X-AUSERNAME" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="X-ATENANT-ID" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-ASEN" action="remove" scope="transport" />
+      <header name="X-AREQUESTID" action="remove" scope="transport" />
+   </sequence>
+</template>

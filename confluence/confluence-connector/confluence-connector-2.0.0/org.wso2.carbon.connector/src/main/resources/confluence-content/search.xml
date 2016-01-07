@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://docs.atlassian.com/atlassian-confluence/REST/latest/#d3e931 -->
+<template name="search" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="cql" description="A cql query string to use to locate content." />
+   <parameter name="cqlContext" description="The context to execute a cql search in, this is the json serialized form of SearchContext" />
+   <parameter name="expand" description="A comma separated list of properties to expand on the content." />
+   <parameter name="start" description="The start point of the collection to return." />
+   <parameter name="limit"
+      description="The limit of the number of items to return, this may be restricted by fixed system limits." />
+   <sequence>
+      <property name="uri.var.cql" expression="$func:cql" />
+      <property name="uri.var.cqlContext" expression="$func:cqlContext" />
+      <property name="uri.var.expand" expression="$func:expand" />
+      <property name="uri.var.start" expression="$func:start" />
+      <property name="uri.var.limit" expression="$func:limit" />
+      <script language="js">
+         <![CDATA[
+            var urlQuery = '';
+            var cql = mc.getProperty('uri.var.cql');
+            var cqlContext = mc.getProperty('uri.var.cqlContext');
+            var expand = mc.getProperty('uri.var.expand');
+            var start = mc.getProperty('uri.var.start');
+            var limit = mc.getProperty('uri.var.limit');
+            if (cql != null && cql != "") {
+               urlQuery += 'cql=' + cql + '&';
+            }
+            if (cqlContext != null && cqlContext != "") {
+               urlQuery += 'cqlcontext=' + cqlContext + '&';
+            }
+            if (expand != null && expand != "") {
+               urlQuery += 'expand=' + expand + '&';
+            }
+            if (start != null && start != "") {
+               urlQuery += 'start=' + start + '&';
+            }
+            if (limit != null && limit != "") {
+               urlQuery += 'limit=' + limit + '&';
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/content/search{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom headers from the API response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-ASEN" action="remove" scope="transport" />
+      <header name="X-AUSERNAME" action="remove" scope="transport" />
+      <header name="X-Seraph-LoginReason" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Accel-Buffering" action="remove" scope="transport" />
+      <header name="Content-Security-Policy" action="remove" scope="transport" />
+   </sequence>
+</template>

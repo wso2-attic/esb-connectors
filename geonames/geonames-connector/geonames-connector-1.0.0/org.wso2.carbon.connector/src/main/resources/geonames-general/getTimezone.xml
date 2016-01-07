@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ 
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+ 
+     http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<!-- Method Documentation URL: http://www.geonames.org/export/web-services.html#timezone -->
+<template name="getTimezone" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="responseType" description="The type of the response of getTimeZone method." />
+   <parameter name="longitude" description="The longitude to which the time zone is retrieved." />
+   <parameter name="latitude" description="The latitude to which the time zone is retrieved." />
+   <parameter name="radius" description="The radius which is used to buffer in km for closest timezone in coastal areas." />
+   <parameter name="language" description="The language of the country to identify the country." />
+   <parameter name="date" description="The date to which the timezone is retrieved." />
+   <sequence>
+      <property name="uri.var.responseType" expression="$func:responseType" />
+      <property name="uri.var.longitude" expression="$func:longitude" />
+      <property name="uri.var.latitude" expression="$func:latitude" />
+      <property name="uri.var.radius" expression="$func:radius" />
+      <property name="uri.var.language" expression="$func:language" />
+      <property name="uri.var.date" expression="$func:date" />
+      <script language="js">
+         <![CDATA[
+            var responseType = mc.getProperty('uri.var.responseType');
+            var longitude = mc.getProperty('uri.var.longitude');
+            var latitude = mc.getProperty('uri.var.latitude');
+            var radius = mc.getProperty('uri.var.radius');
+            var language = mc.getProperty('uri.var.language');
+            var date = mc.getProperty('uri.var.date');
+            var urlQuery = mc.getProperty('uri.var.urlQuery');
+            urlQuery += '&lat=' + latitude;
+            urlQuery += '&lng=' + longitude;
+            if (radius != null && radius != "") {
+               urlQuery += '&radius=' + radius;
+            }
+            if (language != null && language != "") {
+               urlQuery += '&lang=' + language;
+            }
+            if (date != null && date != "") {
+               urlQuery += '&date=' + date;
+            }
+            if (responseType == null || responseType == ""){
+               responseType='json'; 
+            }
+            mc.setProperty('uri.var.urlQuery',urlQuery); 
+            if (responseType == 'json') {
+               mc.setProperty('uri.var.endpoint', 'timezoneJSON');
+            } else if (responseType == 'xml'){
+               mc.setProperty('uri.var.endpoint', 'timezone');
+            } else {
+               mc.setProperty('uri.var.endpoint', 'timezone'+responseType);
+            } 
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/{+uri.var.endpoint}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Cache-Control" action="remove" scope="transport"/>
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport"/>
+      <header name="Via" action="remove" scope="transport"/>
+      <header name="Vary" action="remove" scope="transport"/>
+      <header name="Accept-Ranges" action="remove" scope="transport"/>
+   </sequence>
+</template>
