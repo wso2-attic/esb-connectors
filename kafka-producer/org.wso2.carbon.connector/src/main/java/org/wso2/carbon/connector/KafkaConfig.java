@@ -157,7 +157,7 @@ public class KafkaConfig extends AbstractConnector {
             }
 
         } catch (Exception e) {
-            log.error("Kafka producer connector : Error sending the message to broker lists ");
+            log.error("KafkaString producer connector : Error sending the message to broker lists ");
             throw new ConnectException(e);
         }
     }

@@ -27,6 +27,7 @@ import org.apache.axis2.transport.base.BaseUtils;
 import org.apache.axis2.util.MessageProcessorSelector;
 import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.synapse.MessageContext;
+import org.apache.synapse.SynapseException;
 import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.wso2.carbon.connector.core.util.ConnectorUtils;
 
@@ -90,7 +91,11 @@ public class KafkaUtils {
         producerConfigProperties.put(KafkaConnectConstants.ENQUEUE_TIMEOUT, enqueueTimeout);
         producerConfigProperties.put(KafkaConnectConstants.CLIENT_ID, clientId);
 
-        return new Producer<String, String>(new ProducerConfig(producerConfigProperties));
+        try {
+            return new Producer<String, String>(new ProducerConfig(producerConfigProperties));
+        } catch (Exception e) {
+            throw new SynapseException("The Variable properties or values are not valid");
+        }
     }
 
     /**
