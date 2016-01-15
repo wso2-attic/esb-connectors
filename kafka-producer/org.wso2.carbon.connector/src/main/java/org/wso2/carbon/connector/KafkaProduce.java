@@ -20,13 +20,12 @@ package org.wso2.carbon.connector;
 
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
-
 import org.apache.axis2.AxisFault;
 import org.apache.synapse.MessageContext;
-import org.apache.synapse.SynapseException;
 import org.apache.synapse.SynapseLog;
 import org.apache.synapse.core.axis2.Axis2MessageContext;
-import org.wso2.carbon.connector.core.*;
+import org.wso2.carbon.connector.core.AbstractConnector;
+import org.wso2.carbon.connector.core.ConnectException;
 
 /**
  * Produce the messages to the kafka brokers
@@ -52,7 +51,9 @@ public class KafkaProduce extends AbstractConnector {
             throw new ConnectException(e);
         } finally {
             //Close the producer pool connections to all kafka brokers.Also closes the zookeeper client connection if any
-            producer.close();
+            if (producer != null) {
+                producer.close();
+            }
         }
     }
 
@@ -60,22 +61,14 @@ public class KafkaProduce extends AbstractConnector {
      * Read the topic from the parameter
      */
     private String getTopic(MessageContext messageContext) {
-        String topic = KafkaUtils.lookupTemplateParameter(messageContext,
-                KafkaConnectConstants.PARAM_TOPIC);
-        if (topic == null) {
-            log.error("Kafka producer connector : The request does not contain the required 'topic' field");
-            throw new SynapseException("The request does not contain the required 'topic' field");
-        }
-        return topic;
+        return KafkaUtils.lookupTemplateParameter(messageContext, KafkaConnectConstants.PARAM_TOPIC);
     }
 
     /**
      * Read the key from the parameter
      */
     private String getKey(MessageContext messageContext) {
-        String key = KafkaUtils.lookupTemplateParameter(messageContext,
-                KafkaConnectConstants.PARAM_KEY);
-        return key;
+        return KafkaUtils.lookupTemplateParameter(messageContext, KafkaConnectConstants.PARAM_KEY);
     }
 
     /**
@@ -83,18 +76,14 @@ public class KafkaProduce extends AbstractConnector {
      */
     private String getMessage(MessageContext messageContext) throws AxisFault {
         Axis2MessageContext axisMsgContext = (Axis2MessageContext) messageContext;
-        org.apache.axis2.context.MessageContext msgContext = axisMsgContext
-                .getAxis2MessageContext();
-        String messages = KafkaUtils
-                .formatMessage((org.apache.axis2.context.MessageContext) msgContext);
-        return messages;
+        org.apache.axis2.context.MessageContext msgContext = axisMsgContext.getAxis2MessageContext();
+        return KafkaUtils.formatMessage(msgContext);
     }
 
     /**
      * Send the messages to the kafka broker with topic and the key that is optional
      */
-    private void send(Producer<String, String> producer, String topic,
-                      String key, String message) {
+    private void send(Producer<String, String> producer, String topic, String key, String message) {
         if (key == null) {
             producer.send(new KeyedMessage<String, String>(topic, message));
         } else {
