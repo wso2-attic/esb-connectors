@@ -43,8 +43,8 @@ STEPS:
  5. Update the Bacecamp properties file at location "<ESB_Connector_Home>/basecamp/basecamp-connector/basecamp-connector-1.0.0/org wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
    
 		i)    apiUrl        	  - Basecamp API url(https://basecamp.com)
-		ii)   accessToken         - Use the access token you got from step 3.ii		
-		iii)  accountId		      - Use the account ID retrieved from step 3.i
+		ii)   accessToken         - Use the access token you got from step 4.ii		
+		iii)  accountId		      - Use the account ID retrieved from step 4.i
 		iii)  txtFileName         - Name of the attachment(residing under <ESB_Connector_Home>/basecamp/basecamp-connector/basecamp-connector-1.0.0/org wso2.carbon.connector/src/test/resources/artifacts/ESB/config/resources/basecamp folder) with the extention(attachmentFile.txt).
 		iv)   contentType         - Content type of attachment(text/plain).
 		v)    sleepTime           - An integer value in milliseconds, to wait between API calls to avoid conflicts at API end. preferred value is 5000. Try increasing this value if test cases fails.
