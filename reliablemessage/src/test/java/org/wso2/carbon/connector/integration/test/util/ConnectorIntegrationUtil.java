@@ -41,12 +41,9 @@ import java.util.Properties;
 
 
 public class ConnectorIntegrationUtil {
-
     private static final Log log = LogFactory.getLog(ConnectorIntegrationUtil.class);
 
-
     public static Properties getConnectorConfigProperties(String connectorName) {
-
         String connectorConfigFile = null;
         ProductConstant.init();
         try {
@@ -70,13 +67,11 @@ public class ConnectorIntegrationUtil {
         } catch (IOException ignored) {
             log.error("automation.properties file not found, please check your configuration");
         }
-
         return null;
     }
 
     public static void uploadConnector(String repoLocation, MediationLibraryUploaderStub mediationLibUploadStub,
                                        String strFileName) throws MalformedURLException, RemoteException {
-
         List<LibraryFileItem> uploadLibraryInfoList = new ArrayList<LibraryFileItem>();
         LibraryFileItem uploadedFileItem = new LibraryFileItem();
         uploadedFileItem.setDataHandler(new DataHandler(new URL("file:" + "///" + repoLocation + "/" + strFileName)));
@@ -91,7 +86,6 @@ public class ConnectorIntegrationUtil {
 
     public static OMElement sendXMLRequest(String addUrl, String query) throws MalformedURLException, IOException,
             XMLStreamException {
-
         String charset = "UTF-8";
         URLConnection connection = new URL(addUrl).openConnection();
         connection.setDoOutput(true);
@@ -133,23 +127,17 @@ public class ConnectorIntegrationUtil {
                 out = sb.toString();
             }
         }
-
         OMElement omElement = AXIOMUtil.stringToOM(out);
-
         return omElement;
-
     }
 
     public static String getFileContent(String path) throws IOException {
-
         StringBuilder stringBuilder = new StringBuilder();
         BufferedReader reader = null;
         try {
             reader = new BufferedReader(new FileReader(path));
             String line;
-
             String ls = System.getProperty("line.separator");
-
             while ((line = reader.readLine()) != null) {
                 stringBuilder.append(line);
                 stringBuilder.append(ls);
@@ -163,7 +151,5 @@ public class ConnectorIntegrationUtil {
             }
         }
         return stringBuilder.toString();
-
     }
-
 }

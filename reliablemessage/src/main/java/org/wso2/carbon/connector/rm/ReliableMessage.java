@@ -40,7 +40,6 @@ import javax.xml.ws.soap.SOAPBinding;
  * Reliable message connector
  */
 public class ReliableMessage extends AbstractConnector {
-
     private static Log log = LogFactory.getLog(ReliableMessage.class);
     private Bus springBus = null;
 
@@ -51,9 +50,7 @@ public class ReliableMessage extends AbstractConnector {
      * @throws ConnectException
      */
     public void connect(MessageContext messageContext) throws ConnectException {
-
         log.debug("Start: Reliable message connector");
-
         // Input parameters population
         RMParameters inputParams = populateInputParameters(messageContext);
         // Validate and set default values to the parameters
@@ -64,7 +61,6 @@ public class ReliableMessage extends AbstractConnector {
         Source response = invokeBackendRMService(messageContext, inputParams);
         // Set response back to the message context
         setResponse(messageContext, response);
-
     }
 
     /**
@@ -74,7 +70,6 @@ public class ReliableMessage extends AbstractConnector {
      * @return RMParameters input parameters.
      */
     private RMParameters populateInputParameters(MessageContext messageContext) {
-
         RMParameters inputParams = new RMParameters();
 
         if (messageContext.getProperty(RMConstants.ENDPOINT) != null) {
@@ -99,9 +94,7 @@ public class ReliableMessage extends AbstractConnector {
         if (messageContext.getProperty(RMConstants.CONF_LOCATION) != null) {
             inputParams.setConfigLocation(messageContext.getProperty(RMConstants.CONF_LOCATION).toString());
         }
-
         return inputParams;
-
     }
 
     /**
@@ -111,11 +104,8 @@ public class ReliableMessage extends AbstractConnector {
      * @throws ConnectException
      */
     private void initiateSpringBuss(RMParameters inputParams) throws ConnectException {
-
         if (springBus == null) {
-
             synchronized (this) {
-
                 if (springBus == null) {
                     SpringBusFactory bf = new SpringBusFactory();
                     springBus = bf.createBus(inputParams.getConfigLocation());
@@ -124,7 +114,6 @@ public class ReliableMessage extends AbstractConnector {
                 }
             }
         }
-
     }
 
 
@@ -136,7 +125,6 @@ public class ReliableMessage extends AbstractConnector {
      * @throws ConnectException
      */
     private Dispatch<Source> createDispatch(RMParameters inputParams) throws ConnectException {
-
         String portName = inputParams.getPortName();
         String serviceName = inputParams.getServiceName();
         String nameSpace = inputParams.getNamespace();
@@ -156,7 +144,6 @@ public class ReliableMessage extends AbstractConnector {
         } else {
             service.addPort(portQName, SOAPBinding.SOAP12HTTP_BINDING, inputParams.getEndpoint());
         }
-
         return service.createDispatch(portQName, Source.class, Service.Mode.MESSAGE);
     }
 
@@ -175,7 +162,6 @@ public class ReliableMessage extends AbstractConnector {
         Dispatch<Source> sourceDispatch = createDispatch(inputParams);
         Source source = new StreamSource(ReliableMessageUtil.getSOAPEnvelopAsStreamSource(messageContext.getEnvelope()));
         return sourceDispatch.invoke(source);
-
     }
 
 
@@ -186,11 +172,8 @@ public class ReliableMessage extends AbstractConnector {
      * @param response       backend reliable service response
      * @throws ConnectException
      */
-    private void setResponse(MessageContext messageContext, Source response)
-            throws ConnectException {
-
+    private void setResponse(MessageContext messageContext, Source response) throws ConnectException {
         if (response != null) {
-
             try {
                 String responseString = org.apache.cxf.helpers.XMLUtils.toString(response);
                 messageContext.setEnvelope(ReliableMessageUtil.toOMSOAPEnvelope(responseString));
@@ -200,9 +183,6 @@ public class ReliableMessage extends AbstractConnector {
                 log.error(message);
                 throw new ConnectException(e, message);
             }
-
         }
-
     }
-
 }

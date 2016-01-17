@@ -21,14 +21,12 @@ package org.wso2.carbon.connector.rm;
  * DAO for the input parameters
  */
 public class RMParameters {
-
     private String endpoint;
     private String serviceName;
     private String portName;
     private String namespace;
     private String soapVersion;
     private String configLocation;
-
 
     public String getEndpoint() {
         return endpoint;

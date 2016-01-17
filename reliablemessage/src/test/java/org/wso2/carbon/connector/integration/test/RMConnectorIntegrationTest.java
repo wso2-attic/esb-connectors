@@ -34,33 +34,21 @@ import org.wso2.esb.integration.common.utils.ESBIntegrationTest;
 import java.util.Properties;
 
 public class RMConnectorIntegrationTest extends ESBIntegrationTest {
-
     private static final String CONNECTOR_NAME = "reliable-message";
-
     private String reliableMessageConnectorFileName = "reliable-message-connector.zip";
-
     private MediationLibraryUploaderStub mediationLibUploadStub = null;
-
     private MediationLibraryAdminServiceStub adminServiceStub = null;
-
     private String repoLocation = null;
-
     private Properties reliableMessagingConnectorProperties = null;
-
     private String pathToRequestsDirectory = null;
-
     private AutomationContext automationContext = null;
-
 
     @BeforeClass(alwaysRun = true)
     public void setEnvironment() throws Exception {
-
         super.init();
         automationContext = new AutomationContext("ESB", TestUserMode.SUPER_TENANT_ADMIN);
-
         ConfigurationContextProvider configurationContextProvider = ConfigurationContextProvider.getInstance();
         ConfigurationContext cc = configurationContextProvider.getConfigurationContext();
-
         mediationLibUploadStub =
                 new MediationLibraryUploaderStub(cc, automationContext.getContextUrls().getBackEndUrl() + "MediationLibraryUploader");
         AuthenticateStub.authenticateStub("admin", "admin", mediationLibUploadStub);
@@ -68,7 +56,6 @@ public class RMConnectorIntegrationTest extends ESBIntegrationTest {
                 new MediationLibraryAdminServiceStub(cc, automationContext.getContextUrls().getBackEndUrl() + "MediationLibraryAdminService");
 
         AuthenticateStub.authenticateStub("admin", "admin", adminServiceStub);
-
         if (System.getProperty("os.name").toLowerCase().contains("windows")) {
             repoLocation = System.getProperty("connector_repo").replace("/", "\\");
         } else {
@@ -84,28 +71,19 @@ public class RMConnectorIntegrationTest extends ESBIntegrationTest {
 
         reliableMessagingConnectorProperties = ConnectorIntegrationUtil.getConnectorConfigProperties(CONNECTOR_NAME);
         pathToRequestsDirectory = repoLocation + reliableMessagingConnectorProperties.getProperty("requestDirectoryPath");
-
         String synapseConfigPath = reliableMessagingConnectorProperties.getProperty("synapseConfigDirectoryPath");
-
         loadESBConfigurationFromClasspath(synapseConfigPath + "synapseRmConnectorConfig.xml");
-
     }
 
     @Test(enabled = true, description = "Send reliable message success request")
     public void sendRmEnableRequest() throws Exception {
-
         String methodName = "rmsend";
         String actualResponse = "Hello Gil";
         String pathToMessage = pathToRequestsDirectory + "greetMeRequest.xml";
-
         final String soapRequestString = ConnectorIntegrationUtil
                 .getFileContent(pathToMessage);
-
         OMElement omElement = ConnectorIntegrationUtil.sendXMLRequest(
                 getProxyServiceURLHttp(methodName), soapRequestString);
-
         Assert.assertEquals(omElement.getFirstElement().getText(), actualResponse, "Expected response not found");
-
     }
-
 }
