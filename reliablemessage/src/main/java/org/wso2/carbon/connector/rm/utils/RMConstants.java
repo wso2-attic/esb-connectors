@@ -21,7 +21,6 @@ package org.wso2.carbon.connector.rm.utils;
  * RMConstants contains required constants
  */
 public class RMConstants {
-
     /**
      * Constant for endpoint parameter.
      */
@@ -54,5 +53,4 @@ public class RMConstants {
      * Constant for soap version 1.2.
      */
     public static final String SOAP_V_12 = "2.1";
-
 }

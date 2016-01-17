@@ -41,7 +41,6 @@ import java.io.*;
  * Reliable message utility methods
  */
 public class ReliableMessageUtil {
-
     private static Log log = LogFactory.getLog(ReliableMessageUtil.class);
 
     /**
@@ -65,9 +64,7 @@ public class ReliableMessageUtil {
      * @throws ConnectException
      * @retuen InputStream converted inputStream.
      */
-    public static InputStream getSOAPEnvelopAsStreamSource(SOAPEnvelope soapEnvelope)
-            throws ConnectException {
-
+    public static InputStream getSOAPEnvelopAsStreamSource(SOAPEnvelope soapEnvelope) throws ConnectException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder;
         StringWriter stringWriter = null;
@@ -76,13 +73,11 @@ public class ReliableMessageUtil {
 
             docBuilder = documentBuilderFactory.newDocumentBuilder();
             stringWriter = new StringWriter();
-
             String soapEnvelop = "";
             if(soapEnvelope != null && soapEnvelope.getBody() != null) {
                 soapEnvelop = soapEnvelope.getBody().toString();
             }
             Document doc = docBuilder.parse(new InputSource(new StringReader(soapEnvelop)));
-
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer trans = transformerFactory.newTransformer();
             trans.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
@@ -90,12 +85,10 @@ public class ReliableMessageUtil {
             StreamResult result = new StreamResult(stringWriter);
             DOMSource source = new DOMSource(doc);
             trans.transform(source, result);
-
         } catch (Exception e) {
             String message = "Failed to parse SOAPEnvelop request in to StreamSource";
             throwException(message, e);
         } finally {
-
             try {
                 if (stringWriter != null) {
                     stringWriter.close();
@@ -125,7 +118,6 @@ public class ReliableMessageUtil {
      * @throws ConnectException
      */
     private static void validateMandatoryInputs(RMParameters inputParams) throws ConnectException {
-
         StringBuffer fields = new StringBuffer();
         boolean valid = true;
 
@@ -158,7 +150,6 @@ public class ReliableMessageUtil {
             String message = fields + " cannot be null";
             throwException(message);
         }
-
     }
 
     /**
@@ -168,7 +159,6 @@ public class ReliableMessageUtil {
      * @throws ConnectException
      */
     private static void validateSoapVersion(RMParameters inputParams) throws ConnectException {
-
         if (inputParams.getSoapVersion() == null || inputParams.getSoapVersion().isEmpty()) {
             inputParams.setSoapVersion(RMConstants.SOAP_V_11); //set default soap version(1.1)
         }
@@ -177,7 +167,6 @@ public class ReliableMessageUtil {
             String message = "Invalid soap version defined";
             throwException(message);
         }
-
     }
 
     private static void throwException(String message, Exception e) throws ConnectException {
@@ -189,6 +178,4 @@ public class ReliableMessageUtil {
         log.error(message);
         throw new ConnectException(message);
     }
-
-
 }
