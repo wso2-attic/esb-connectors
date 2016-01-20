@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2005-2013, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *  Copyright (c) 2005-2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
@@ -38,66 +38,66 @@ import org.wso2.carbon.connector.core.util.ConnectorUtils;
 
 public class SetupSendEmail extends AbstractConnector {
 
-	public void connect(MessageContext synCtx) {
+    public void connect(MessageContext synCtx) {
 
-		SynapseLog synLog = getLog(synCtx);
+        SynapseLog synLog = getLog(synCtx);
 
-		if (synLog.isTraceOrDebugEnabled()) {
-			synLog.traceOrDebug("Start : Salesforce Send Email Message mediator");
+        if (synLog.isTraceOrDebugEnabled()) {
+            synLog.traceOrDebug("Start : Salesforce Send Email Message mediator");
 
-			if (synLog.isTraceTraceEnabled()) {
-				synLog.traceTrace("Message : " + synCtx.getEnvelope());
-			}
-		}
+            if (synLog.isTraceTraceEnabled()) {
+                synLog.traceTrace("Message : " + synCtx.getEnvelope());
+            }
+        }
 
-		SOAPEnvelope envelope = synCtx.getEnvelope();
-		OMFactory fac = OMAbstractFactory.getOMFactory();
-		SOAPBody body = envelope.getBody();
-		Iterator<OMElement> bodyChildElements = body.getChildrenWithLocalName("sendEmail");
-		OMElement tmpElement = null;
-		if (bodyChildElements.hasNext()) {
-			try {
-				OMElement bodyElement = bodyChildElements.next();
-				String strSobject = (String) ConnectorUtils.lookupTemplateParamater(synCtx,
-						SalesforceUtil.SALESFORCE_EMAIL_SENDEMAIL);
-				OMElement sObjects = AXIOMUtil.stringToOM(strSobject);
-				Iterator<OMElement> sObject = sObjects.getChildElements();
-				OMNamespace omNsurn = fac.createOMNamespace("urn:partner.soap.sforce.com", "urn");
-		        OMNamespace omNsXsi = fac.createOMNamespace("http://www.w3.org/2001/XMLSchema-instance", "xsi");
-		        String strType = null;
-				// Loops sObject
-				while (sObject.hasNext()) {
-					OMElement currentElement = sObject.next();
-					OMElement newElement = fac.createOMElement("messages", omNsurn);
-					//Add Attributes
-					OMAttribute omAttribute = currentElement.getAttribute(new QName(SalesforceUtil.SALESFORCE_CREATE_SOBJECTTYPE));
-					strType = "urn:SingleEmailMessage";
-					if(omAttribute != null && omAttribute.getAttributeValue() != null){
-						strType = omAttribute.getAttributeValue();
-					}
-					newElement.addAttribute(new OMAttributeImpl("type", omNsXsi, strType, fac));
-					// Add the fields
-					Iterator<OMElement> sObjectFields = currentElement.getChildElements();
-					while (sObjectFields.hasNext()) {
-						OMElement sObjectField = sObjectFields.next();
-						tmpElement = fac.createOMElement(sObjectField.getLocalName(), omNsurn);
-						tmpElement.addChild(fac.createOMText(sObjectField.getText()));
-						newElement.addChild(tmpElement);
-					}
+        SOAPEnvelope envelope = synCtx.getEnvelope();
+        OMFactory fac = OMAbstractFactory.getOMFactory();
+        SOAPBody body = envelope.getBody();
+        Iterator<OMElement> bodyChildElements = body.getChildrenWithLocalName("sendEmail");
+        OMElement tmpElement = null;
+        if (bodyChildElements.hasNext()) {
+            try {
+                OMElement bodyElement = bodyChildElements.next();
+                String strSobject = (String) ConnectorUtils.lookupTemplateParamater(synCtx,
+                        SalesforceUtil.SALESFORCE_EMAIL_SENDEMAIL);
+                OMElement sObjects = AXIOMUtil.stringToOM(strSobject);
+                Iterator<OMElement> sObject = sObjects.getChildElements();
+                OMNamespace omNsurn = fac.createOMNamespace("urn:partner.soap.sforce.com", "urn");
+                OMNamespace omNsXsi = fac.createOMNamespace("http://www.w3.org/2001/XMLSchema-instance", "xsi");
+                String strType = null;
+                // Loops sObject
+                while (sObject.hasNext()) {
+                    OMElement currentElement = sObject.next();
+                    OMElement newElement = fac.createOMElement("messages", omNsurn);
+                    //Add Attributes
+                    OMAttribute omAttribute = currentElement.getAttribute(new QName(SalesforceUtil.SALESFORCE_CREATE_SOBJECTTYPE));
+                    strType = "urn:SingleEmailMessage";
+                    if (omAttribute != null && omAttribute.getAttributeValue() != null) {
+                        strType = omAttribute.getAttributeValue();
+                    }
+                    newElement.addAttribute(new OMAttributeImpl("type", omNsXsi, strType, fac));
+                    // Add the fields
+                    Iterator<OMElement> sObjectFields = currentElement.getChildElements();
+                    while (sObjectFields.hasNext()) {
+                        OMElement sObjectField = sObjectFields.next();
+                        tmpElement = fac.createOMElement(sObjectField.getLocalName(), omNsurn);
+                        tmpElement.addChild(fac.createOMText(sObjectField.getText()));
+                        newElement.addChild(tmpElement);
+                    }
 
-					bodyElement.addChild(newElement);
-				}
-			} catch (Exception e) {
-				synLog.error("Saleforce adaptor - error injecting Email Messages to payload : " + e);
-			}
-		}
+                    bodyElement.addChild(newElement);
+                }
+            } catch (Exception e) {
+                synLog.error("Saleforce adaptor - error injecting Email Messages to payload : " + e);
+            }
+        }
 
-		if (synLog.isTraceOrDebugEnabled()) {
-			synLog.traceOrDebug("End : Salesforce Send Email Message mediator");
+        if (synLog.isTraceOrDebugEnabled()) {
+            synLog.traceOrDebug("End : Salesforce Send Email Message mediator");
 
-			if (synLog.isTraceTraceEnabled()) {
-				synLog.traceTrace("Message : " + synCtx.getEnvelope());
-			}
-		}
-	}
+            if (synLog.isTraceTraceEnabled()) {
+                synLog.traceTrace("Message : " + synCtx.getEnvelope());
+            }
+        }
+    }
 }

@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2005-2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *
+ * WSO2 Inc. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.wso2.carbon.connector.salesforce;
 
 import java.util.Collection;
@@ -18,89 +35,89 @@ import junit.framework.TestCase;
 
 public class SetupCRUDParamsTest extends TestCase {
 
-	private static final String TEST_TEMPLATE = "test123";
+    private static final String TEST_TEMPLATE = "test123";
 
-	protected void setUp() throws Exception {
-		super.setUp();
-	}
+    protected void setUp() throws Exception {
+        super.setUp();
+    }
 
-	protected void tearDown() throws Exception {
-		super.tearDown();
-	}
+    protected void tearDown() throws Exception {
+        super.tearDown();
+    }
 
-	public static void testSetupCRUDDefaultParams() throws AxisFault {
+    public static void testSetupCRUDDefaultParams() throws AxisFault {
 
-		org.apache.axis2.context.MessageContext axis2Ctx =
-		                                                   new org.apache.axis2.context.MessageContext();
-		SOAPFactory fac = OMAbstractFactory.getSOAP11Factory();
-		org.apache.axiom.soap.SOAPEnvelope envelope = fac.getDefaultEnvelope();
-		axis2Ctx.setEnvelope(envelope);
-		MessageContext synCtx = new Axis2MessageContext(axis2Ctx, null, null);
-		Collection<String> collection = new java.util.ArrayList<String>();
+        org.apache.axis2.context.MessageContext axis2Ctx =
+                new org.apache.axis2.context.MessageContext();
+        SOAPFactory fac = OMAbstractFactory.getSOAP11Factory();
+        org.apache.axiom.soap.SOAPEnvelope envelope = fac.getDefaultEnvelope();
+        axis2Ctx.setEnvelope(envelope);
+        MessageContext synCtx = new Axis2MessageContext(axis2Ctx, null, null);
+        Collection<String> collection = new java.util.ArrayList<String>();
 
-		TemplateContext context = new TemplateContext(TEST_TEMPLATE, collection);
-		Stack<TemplateContext> stack = new Stack<TemplateContext>();
-		stack.add(context);
+        TemplateContext context = new TemplateContext(TEST_TEMPLATE, collection);
+        Stack<TemplateContext> stack = new Stack<TemplateContext>();
+        stack.add(context);
 
-		context.setupParams(synCtx);
+        context.setupParams(synCtx);
 
-		synCtx.setProperty(SynapseConstants.SYNAPSE__FUNCTION__STACK, stack);
+        synCtx.setProperty(SynapseConstants.SYNAPSE__FUNCTION__STACK, stack);
 
-		SetupCRUDParams crudParams = new SetupCRUDParams();
-		crudParams.connect(synCtx);
+        SetupCRUDParams crudParams = new SetupCRUDParams();
+        crudParams.connect(synCtx);
 
-		assertEquals("1",
-		             synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
-		                                SalesforceUtil.SALESFORCE_CRUD_ALLORNONE));
-		assertEquals("0",
-		             synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
-		                                SalesforceUtil.SALESFORCE_CRUD_ALLOWFIELDTRUNCATE));
-		assertEquals("Id",
-		             synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
-		                                SalesforceUtil.SALESFORCE_EXTERNALID));
+        assertEquals("1",
+                synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
+                        SalesforceUtil.SALESFORCE_CRUD_ALLORNONE));
+        assertEquals("0",
+                synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
+                        SalesforceUtil.SALESFORCE_CRUD_ALLOWFIELDTRUNCATE));
+        assertEquals("Id",
+                synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
+                        SalesforceUtil.SALESFORCE_EXTERNALID));
 
-	}
+    }
 
-	public static void testSetupCRUDParams() throws AxisFault {
+    public static void testSetupCRUDParams() throws AxisFault {
 
-		org.apache.axis2.context.MessageContext axis2Ctx =
-		                                                   new org.apache.axis2.context.MessageContext();
-		SOAPFactory fac = OMAbstractFactory.getSOAP11Factory();
-		org.apache.axiom.soap.SOAPEnvelope envelope = fac.getDefaultEnvelope();
-		axis2Ctx.setEnvelope(envelope);
-		MessageContext synCtx = new Axis2MessageContext(axis2Ctx, null, null);
-		Collection<String> collection = new java.util.ArrayList<String>();
-		collection.add(SalesforceUtil.SALESFORCE_CRUD_ALLORNONE);
-		collection.add(SalesforceUtil.SALESFORCE_CRUD_ALLOWFIELDTRUNCATE);
-		collection.add(SalesforceUtil.SALESFORCE_EXTERNALID);
-		synCtx.setProperty(TEST_TEMPLATE + ":" + SalesforceUtil.SALESFORCE_CRUD_ALLORNONE,
-		                   new Value("0"));
-		synCtx.setProperty(TEST_TEMPLATE + ":" + SalesforceUtil.SALESFORCE_CRUD_ALLOWFIELDTRUNCATE,
-		                   new Value("1"));
-		synCtx.setProperty(TEST_TEMPLATE + ":" + SalesforceUtil.SALESFORCE_EXTERNALID,
-		                   new Value("Name"));
+        org.apache.axis2.context.MessageContext axis2Ctx =
+                new org.apache.axis2.context.MessageContext();
+        SOAPFactory fac = OMAbstractFactory.getSOAP11Factory();
+        org.apache.axiom.soap.SOAPEnvelope envelope = fac.getDefaultEnvelope();
+        axis2Ctx.setEnvelope(envelope);
+        MessageContext synCtx = new Axis2MessageContext(axis2Ctx, null, null);
+        Collection<String> collection = new java.util.ArrayList<String>();
+        collection.add(SalesforceUtil.SALESFORCE_CRUD_ALLORNONE);
+        collection.add(SalesforceUtil.SALESFORCE_CRUD_ALLOWFIELDTRUNCATE);
+        collection.add(SalesforceUtil.SALESFORCE_EXTERNALID);
+        synCtx.setProperty(TEST_TEMPLATE + ":" + SalesforceUtil.SALESFORCE_CRUD_ALLORNONE,
+                new Value("0"));
+        synCtx.setProperty(TEST_TEMPLATE + ":" + SalesforceUtil.SALESFORCE_CRUD_ALLOWFIELDTRUNCATE,
+                new Value("1"));
+        synCtx.setProperty(TEST_TEMPLATE + ":" + SalesforceUtil.SALESFORCE_EXTERNALID,
+                new Value("Name"));
 
-		TemplateContext context = new TemplateContext(TEST_TEMPLATE, collection);
-		Stack<TemplateContext> stack = new Stack<TemplateContext>();
-		stack.add(context);
+        TemplateContext context = new TemplateContext(TEST_TEMPLATE, collection);
+        Stack<TemplateContext> stack = new Stack<TemplateContext>();
+        stack.add(context);
 
-		context.setupParams(synCtx);
+        context.setupParams(synCtx);
 
-		synCtx.setProperty(SynapseConstants.SYNAPSE__FUNCTION__STACK, stack);
+        synCtx.setProperty(SynapseConstants.SYNAPSE__FUNCTION__STACK, stack);
 
-		SetupCRUDParams crudParams = new SetupCRUDParams();
-		crudParams.connect(synCtx);
+        SetupCRUDParams crudParams = new SetupCRUDParams();
+        crudParams.connect(synCtx);
 
-		assertEquals("0",
-		             synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
-		                                SalesforceUtil.SALESFORCE_CRUD_ALLORNONE));
-		assertEquals("1",
-		             synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
-		                                SalesforceUtil.SALESFORCE_CRUD_ALLOWFIELDTRUNCATE));
-		assertEquals("Name",
-		             synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
-		                                SalesforceUtil.SALESFORCE_EXTERNALID));
+        assertEquals("0",
+                synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
+                        SalesforceUtil.SALESFORCE_CRUD_ALLORNONE));
+        assertEquals("1",
+                synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
+                        SalesforceUtil.SALESFORCE_CRUD_ALLOWFIELDTRUNCATE));
+        assertEquals("Name",
+                synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
+                        SalesforceUtil.SALESFORCE_EXTERNALID));
 
-	}
+    }
 
 }
