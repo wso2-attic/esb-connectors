@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template xmlns="http://ws.apache.org/ns/synapse" name="addCheckins">
+
+    <parameter name="venueId" description="Venue ID of the check-in" />
+    <parameter name="broadcast" description="Who to broadcast this check-in to"/>
+
+    <!-- optional parameters -->
+
+
+    <parameter name="shout" description="A message about your check-in. The maximum length of this field is 140 characters"/>
+    <parameter name="ll" description="Latitude and longitude of the user's location"/>
+    <parameter name="alt" description="Altitude of the user's location, in meters"/>
+    <parameter name="altAcc" description="Vertical accuracy of the user's location, in meters"/>
+
+
+
+    <sequence>
+        <property name="HTTP_METHOD" value="POST" scope="axis2" type="STRING"/>
+        <property name="uri.var.venueId" expression="$func:venueId" scope="default" type="STRING" />
+        <property name="Accept-Encoding" scope="transport" action="remove"/>
+        <property name="messageType" value="application/json" scope="axis2" type="STRING"/>
+        <property name="uri.var.broadcast" expression="$func:broadcast" scope="default" type="STRING" value="public"/>
+        <property name="parameters" expression="fn:concat('venueId=',get-property('uri.var.venueId'))" />
+
+        <!-- optional param-->
+
+        <property name="uri.var.shout" expression="$func:shout" scope="default"  />
+        <property name="uri.var.ll" expression="$func:ll" scope="default" />
+        <property name="uri.var.alt" expression="$func:alt" scope="default" />
+        <property name="uri.var.altAcc" expression="$func:altAcc" scope="default" />
+
+
+        <filter
+                xpath="get-property('uri.var.broadcast') = 'private' or get-property('uri.var.broadcast') = 'facebook' or get-property('uri.var.broadcast') = 'twitter' or get-property('uri.var.broadcast') = 'followers' " >
+            <then>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;broadcast=', get-property('uri.var.broadcast'))"/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;broadcast=public')"/>
+            </else>
+        </filter>
+
+
+
+        <filter
+                xpath="get-property('uri.var.shout') = '' or  not(string(get-property('uri.var.shout')))" >
+            <then>
+                <property name="uri.var.shout" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;shout=', get-property('uri.var.shout'))"/>
+            </else>
+        </filter>
+
+        <filter
+                xpath="get-property('uri.var.ll') = '' or  not(string(get-property('uri.var.ll')))" >
+            <then>
+                <property name="uri.var.ll" value=""/>
+             </then>
+             <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;ll=', get-property('uri.var.ll'))"/>
+            </else>
+        </filter>
+
+
+
+        <filter
+                xpath="get-property('uri.var.alt') = '' or  not(string(get-property('uri.var.alt')))" >
+            <then>
+                <property name="uri.var.alt" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;alt=', get-property('uri.var.alt'))"/>
+            </else>
+        </filter>
+
+        <filter
+                xpath="get-property('uri.var.altAcc') = '' or  not(string(get-property('uri.var.altAcc')))" >
+            <then>
+                <property name="uri.var.altAcc" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;altAcc=', get-property('uri.var.altAcc'))"/>
+            </else>
+        </filter>
+
+        <payloadFactory media-type="json">
+            <format>
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                    <soapenv:Header/>
+                    <soapenv:Body/>
+                </soapenv:Envelope>
+            </format>
+
+            <args/>
+        </payloadFactory>
+        <property name="messageType" value="application/json" scope="axis2" />
+        <property name="uri.var.parameters" expression="get-property('parameters')"/>
+        <property name="FORCE_HTTP_1.0" value="true" scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.foursquare.apiUrl}/v2/checkins/add?v=20140626&amp;{+uri.var.parameters}&amp;oauth_token={+uri.var.foursquare.accessToken}" />
+
+            </endpoint>
+        </call>
+
+    </sequence>
+
+</template>

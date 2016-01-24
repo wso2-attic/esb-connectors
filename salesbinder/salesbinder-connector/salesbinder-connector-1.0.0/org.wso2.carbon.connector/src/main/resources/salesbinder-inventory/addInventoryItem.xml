@@ -30,6 +30,7 @@
    <parameter name="locationId" description="The location ID." />
    <parameter name="categoryId" description="The category ID." />
    <parameter name="unitOfMeasureId" description="Unit of Measure ID." />
+   <parameter name="customFields" description="Custom fields to set for inventory item." />
    <sequence>
       <property name="uri.var.name" expression="$func:name" />
       <property name="uri.var.description" expression="$func:description" />
@@ -43,6 +44,7 @@
       <property name="uri.var.locationId" expression="$func:locationId" />
       <property name="uri.var.categoryId" expression="$func:categoryId" />
       <property name="uri.var.unitOfMeasureId" expression="$func:unitOfMeasureId" />
+      <property name="uri.var.customFields" expression="$func:customFields" />
       <payloadFactory media-type="json">
          <format>
             {
@@ -70,6 +72,7 @@
             var locationId = mc.getProperty('uri.var.locationId');
             var categoryId = mc.getProperty('uri.var.categoryId');
             var unitOfMeasureId = mc.getProperty('uri.var.unitOfMeasureId');
+            var customFields = mc.getProperty('uri.var.customFields');
                 
             payload = mc.getPayloadJSON();
 
@@ -100,6 +103,9 @@
             if (unitOfMeasureId != null && unitOfMeasureId!= ""){
                payload.Item.unit_of_measure_id = unitOfMeasureId;
             }
+            if (customFields != null && customFields!= ""){
+               payload.ItemDetail = eval("(" + customFields + ")");
+            }
             mc.setPayloadJSON(payload);     
           ]]>
       </script>
@@ -109,9 +115,21 @@
          </endpoint>
       </call>
       <!-- Remove custom Headers from the API Response -->
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
       <header name="X-Powered-By" action="remove" scope="transport" />
       <header name="P3P" action="remove" scope="transport" />
       <header name="Via" action="remove" scope="transport" />
       <header name="Server" action="remove" scope="transport" />
+      <!-- If Location header is returned in the response, fetch the object pointed by Location header. -->
+      <property name="location" expression="$trp:Location" />
+      <header name="Location" action="remove" scope="transport" />
+      <filter source="boolean(get-property('location'))" regex="true" >
+         <then>
+            <salesbinder.fetchObjectFromLocation>
+               <location>{$ctx:location}</location>
+            </salesbinder.fetchObjectFromLocation>
+         </then>
+      </filter>
    </sequence>
 </template>

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: http://www.freshbooks.com/developers/docs/projects#project.create -->
+<template name="createProject" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="projectName" description="Name of the project." />
+   <parameter name="billMethod" description="Method of billing for the project." />
+   <parameter name="clientId" description="ID of the Client of the project." />
+   <parameter name="rate" description="Billing rate for the project." />
+   <parameter name="description" description="Detailed description of the project." />
+   <parameter name="hourBudget" description="Hourly budget for the project." />
+   <parameter name="tasks" description="Tasks associated with the project." />
+   <sequence>
+      <property name="uri.var.projectName" expression="$func:projectName" />
+      <property name="uri.var.billMethod" expression="$func:billMethod" />
+      <property name="uri.var.clientId" expression="$func:clientId" />
+      <property name="uri.var.rate" expression="$func:rate" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.hourBudget" expression="$func:hourBudget" />
+      <property name="uri.var.tasks" expression="$func:tasks" />
+      <payloadFactory media-type="xml">
+         <format>
+            <request method="project.create" xmlns="">
+               <project>
+                  <name>$1</name>
+                  <bill_method>$2</bill_method>
+                  <tasks>$3</tasks>
+               </project>
+            </request>
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.projectName')" />
+            <arg expression="get-property('uri.var.billMethod')" />
+            <arg expression="get-property('uri.var.tasks')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            //request body param variables
+            var clientId = mc.getProperty('uri.var.clientId');
+            var rate = mc.getProperty('uri.var.rate');
+            var description = mc.getProperty('uri.var.description');
+            var hourBudget = mc.getProperty('uri.var.hourBudget');
+            var payload = mc.getPayloadXML();
+            if (clientId != null && clientId != "") {
+               payload.project.client_id = clientId;
+            }
+            if (rate != null && rate != "") {
+               payload.project.rate = rate;
+            }
+            if (description != null && description != "") {
+               payload.project.description = description;
+            }
+            if (hourBudget != null && hourBudget != "") {
+               payload.project.hour_budget = hourBudget;
+            }
+            mc.setPayloadXML(payload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/api/2.1/xml-in" />
+         </endpoint>
+      </call>
+      <!-- Remove custom header information in response -->
+      <header name="X-Frame-Options" scope="transport" action="remove" />
+      <header name="Strict-Transport-Security" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="P3P" scope="transport" action="remove" />
+   </sequence>
+</template>

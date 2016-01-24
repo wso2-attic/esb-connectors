@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template xmlns="http://ws.apache.org/ns/synapse" name="getFavoritesList">
+    <parameter name="userID" description="The ID of the user for whom to return results for."/>
+    <parameter name="screenName" description="The screen name of the user for whom to return results for."/>
+    <parameter name="sinceId" description="Returns results with an ID greater than (that is, more recent than) the specified ID. There are limits to the number of Tweets which can be accessed through the API.
+        If the limit of Tweets has occurred since the since_id, the since_id will be forced to the oldest ID available."/>
+    <parameter name="count"
+               description="The number of users to return per page, up to a maximum of 200. Defaults to 20."/>
+    <parameter name="maxId "
+               description="When set to either true, t or 1 statuses will not be included in the returned user objects."/>
+    <parameter name="includeUserEntities"
+               description="The user object entities node will be disincluded when set to false."/>
+    <sequence>
+
+        <class name="org.wso2.carbon.connector.twitter.RemoveTwitterContext"/>
+
+        <property name="uri.var.screenName" expression="$func:screenName"/>
+        <property name="uri.var.userID" expression="$func:userID"/>
+        <property name="uri.var.sinceId" expression="$func:sinceId"/>
+        <property name="uni.var.count" expression="$func:count"/>
+        <property name="uri.var.maxId" expression="$func:maxId"/>
+        <property name="uni.var.includeUserEntities" expression="$func:includeUserEntities"/>
+
+        <script language="js">
+            <![CDATA[
+				// optional url param variables
+				var screenName = mc.getProperty('uri.var.screenName');
+				var userID = mc.getProperty('uri.var.userID');
+				var sinceId  = mc.getProperty('uri.var.sinceId');
+				var count  = mc.getProperty('uni.var.count');
+			    var maxId  = mc.getProperty('uri.var.maxId');
+			    var includeUserEntities  = mc.getProperty('uni.var.includeUserEntities');
+
+				var uriParams = '';
+
+				if (screenName != null && screenName != "") {
+					uriParams = 'screen_name=' + screenName + '&';
+					screenName = 'screen_name=' + encodeURIComponent(screenName);
+					mc.setProperty('uri.var.screenName', screenName)
+				}
+				if (userID != null && userID != "") {
+					uriParams += 'user_id=' + userID + '&';
+					userID = 'user_id=' + encodeURIComponent(userID);
+					mc.setProperty('uri.var.userID', userID)
+				}
+				if (sinceId != null && sinceId != "") {
+					uriParams += 'since_id=' + sinceId + '&';
+					sinceId = 'since_id=' + encodeURIComponent(sinceId);
+					mc.setProperty('uri.var.sinceId', sinceId)
+				}
+				if (count != null && count != "") {
+					uriParams += 'count=' + count + '&';
+					count = 'count=' + encodeURIComponent(count);
+					mc.setProperty('uri.var.lang', count)
+				}
+				if (maxId != null && maxId != "") {
+					uriParams += 'max_id=' + maxId + '&';
+					maxId = 'max_id=' + encodeURIComponent(maxId);
+					mc.setProperty('uri.var.maxId', maxId)
+				}
+			    if (includeUserEntities != null && includeUserEntities != "") {
+					uriParams += 'include_user_entities=' + includeUserEntities + '&';
+					includeUserEntities = 'include_user_entities=' + encodeURIComponent(includeUserEntities);
+					mc.setProperty('uri.var.includeUserEntities', includeUserEntities)
+				}
+
+				if(uriParams != ''){
+					mc.setProperty('uri.var.uriParams' , uriParams.substring(0, uriParams.length-1));
+				}
+			]]>
+        </script>
+
+
+        <property name="uri.var.apiUrl.final"
+                  expression="fn:concat(get-property('uri.var.apiUrl'),'/1.1/favorites/list.json')"/>
+
+        <property name="uri.var.httpMethod"
+                  value="GET"/>
+
+        <class name="org.wso2.carbon.connector.twitter.TwitterSignatureGeneration"/>
+
+        <header name="Authorization" expression="get-property('uri.var.signature')"
+                scope="transport"/>
+
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="legacy-encoding:{uri.var.apiUrl}/1.1/favorites/list.json?{uri.var.uriParams}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom header information in response -->
+        <header name="x-access-level" scope="transport" action="remove"/>
+        <header name="x-twitter-response-tags" scope="transport" action="remove"/>
+        <header name="x-transaction" scope="transport" action="remove"/>
+        <header name="x-response-time" scope="transport" action="remove"/>
+        <header name="x-connection-hash" scope="transport" action="remove"/>
+        <header name="x-content-type-options" scope="transport" action="remove"/>
+        <header name="x-frame-options" scope="transport" action="remove"/>
+        <header name="x-rate-limit-limit" scope="transport" action="remove"/>
+        <header name="x-rate-limit-remaining" scope="transport" action="remove"/>
+        <header name="x-rate-limit-reset" scope="transport" action="remove"/>
+        <header name="x-xss-protection" scope="transport" action="remove"/>
+
+    </sequence>
+</template>

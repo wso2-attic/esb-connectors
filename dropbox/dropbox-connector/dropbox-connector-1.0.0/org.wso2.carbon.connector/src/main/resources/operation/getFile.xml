@@ -1,45 +1,56 @@
-<template name="getFile" xmlns="http://ws.apache.org/ns/synapse">
-	<parameter name="rev" description="The revision of the file to retrieve" />
-	<parameter name="range" description="The byte range of the file to be returned" />
-	
-	<sequence>
-		<property name="uri.var.rev" expression="$func:rev" />
-		<property name="uri.var.range" expression="$func:range" />
-		<property name="uri.var.urlQuery" value="" />
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 
-	    <!-- Setting the Range header -->    
-	    <property name="Range" 
-				  expression="fn:concat('bytes=', get-property('uri.var.range'))"
-				  scope="transport" 
-				  type="STRING" />
-				  			
-	    <script language="js">
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.dropbox.com/developers/core/docs#files-GET -->
+<template name="getFile" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="rev" description="The revision of the file to retrieve" />
+   <parameter name="range" description="The byte range of the file to be returned" />
+   <sequence>
+      <property name="uri.var.rev" expression="$func:rev" />
+      <property name="uri.var.range" expression="$func:range" />
+      <property name="uri.var.urlQuery" value="" />
+      <!-- Setting the Range header -->
+      <property name="Range" expression="fn:concat('bytes=', get-property('uri.var.range'))" scope="transport"
+         type="STRING" />
+      <script language="js">
 	        <![CDATA[                    
-	               //encoding url param variables 
+	        	//encoding url param variables 
                 var rev = mc.getProperty("uri.var.rev");
                 var urlQuery = "";
-                
-               
-                
-					//encoding optional url param variables 			
-                  if (rev!=null && rev!= ""){
-                     urlQuery+='?rev='+encodeURIComponent(rev);
-                     mc.setProperty('uri.var.urlQuery', urlQuery);
-                  }
-                                                                     
-	               ]]>
-	    </script>
-		<call>
-			<endpoint>
-				<http method="get"
-					uri-template="{uri.var.apiUrl}/1/files/{uri.var.root}/{uri.var.path}{uri.var.urlQuery}" />
-			</endpoint>
-		</call>
-
-		<!-- Remove response custom header information -->
-		<header name="x-server-response-time" scope="transport" action="remove" />
-		<header name="x-dropbox-request-id" scope="transport" action="remove" />
-		<header name="X-RequestId" scope="transport" action="remove" />
-		<header name="WWW-Authenticate" scope="transport" action="remove" />
-	</sequence>
+				//encoding optional url param variables 			
+                if (rev!=null && rev!= ""){
+                	urlQuery+='?rev='+ rev;
+                    mc.setProperty('uri.var.urlQuery', urlQuery);
+                }                                                     
+	        ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/files{+uri.var.root}{+uri.var.path}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="x-server-response-time" scope="transport" action="remove" />
+      <header name="x-dropbox-request-id" scope="transport" action="remove" />
+      <header name="X-RequestId" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+      <header name="x-content-type-options" scope="transport" action="remove" />
+      <header name="cache-control" scope="transport" action="remove" />
+      <header name="pragma" scope="transport" action="remove" />
+   </sequence>
 </template>

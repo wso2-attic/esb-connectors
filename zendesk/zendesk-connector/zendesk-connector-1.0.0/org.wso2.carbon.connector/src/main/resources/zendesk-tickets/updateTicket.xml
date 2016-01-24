@@ -1,151 +1,200 @@
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developer.zendesk.com/rest_api/docs/core/tickets#updating-tickets -->
 <template name="updateTicket" xmlns="http://ws.apache.org/ns/synapse">
-
-	<parameter name="ticketId" description="The ID of the ticket to update" />
-	<parameter name="subject" description="The subject of the ticket." />
-	<parameter name="comment" description="A comment object that describes the problem, incident, question, or task." />
-	<parameter name="requesterId" description="The numeric ID of the user asking for support through the ticket." />
-	<parameter name="assigneeId" description="The numeric ID of the agent to assign the ticket to." />
-	<parameter name="groupId" description="The numeric ID of the group to assign the ticket to." />
-	<parameter name="organizationId" description="The numeric ID of the organization to assign the ticket to." />
-	<parameter name="collaboratorIds"
-		description="An array of the numeric IDs of agents or end-users to CC on the ticket. An email notification is sent to them when the ticket is created." />
-	<parameter name="type" description="Allowed values are problem, incident, question, or task" />
-	<parameter name="priority" description="Allowed values are urgent, high, normal, or low" />
-	<parameter name="status"
-		description="Allowed values are new, open, pending, hold, solved or closed. Is set to open if status is not specified." />
-	<parameter name="tags" description="An array of tags to add to the ticket." />
-	<parameter name="externalId" description="A unique external ID to link Zendesk tickets to local records." />
-	<parameter name="forumTopicId" description="The numeric ID of the topic the ticket originated from, if any." />
-	<parameter name="problemId"
-		description="For tickets of type 'incident', the numeric ID of the problem the incident is linked to, if any." />
-	<parameter name="dueAt"
-		description="For tickets of type 'task', the due date of the task. Accepts the ISO 8601 date format (yyyy-mm-dd)." />
-	<parameter name="customFields" description="An array of the custom fields of the ticket." />
-
-	<sequence>
-		<property name="uri.var.ticketId" expression="$func:ticketId" />
-		<property name="uri.var.subject" expression="$func:subject" />
-		<property name="uri.var.comment" expression="$func:comment" />
-		<property name="uri.var.requesterId" expression="$func:requesterId" />
-		<property name="uri.var.assigneeId" expression="$func:assigneeId" />
-		<property name="uri.var.groupId" expression="$func:groupId" />
-		<property name="uri.var.organizationId" expression="$func:organizationId" />
-		<property name="uri.var.collaboratorIds" expression="$func:collaboratorIds" />
-		<property name="uri.var.type" expression="$func:type" />
-		<property name="uri.var.priority" expression="$func:priority" />
-		<property name="uri.var.status" expression="$func:status" />
-		<property name="uri.var.tags" expression="$func:tags" />
-		<property name="uri.var.externalId" expression="$func:externalId" />
-		<property name="uri.var.forumTopicId" expression="$func:forumTopicId" />
-		<property name="uri.var.problemId" expression="$func:problemId" />
-		<property name="uri.var.dueAt" expression="$func:dueAt" />
-		<property name="uri.var.customFields" expression="$func:customFields" />
-
-		<payloadFactory media-type="json">
-			<format>
-				{}
-			</format>
-		</payloadFactory>
-
-		<script language="js">
-    	<![CDATA[
-    		var subject = mc.getProperty('uri.var.subject');
-    		var comment = mc.getProperty('uri.var.comment');
-    		var requesterId = mc.getProperty('uri.var.requesterId');
-    		var assigneeId = mc.getProperty('uri.var.assigneeId');
-    		var groupId = mc.getProperty('uri.var.groupId');
-    		var organizationId = mc.getProperty('uri.var.organizationId');
-    		var collaboratorIds = mc.getProperty('uri.var.collaboratorIds');
-    		var type = mc.getProperty('uri.var.type');
-    		var priority = mc.getProperty('uri.var.priority');
-    		var status = mc.getProperty('uri.var.status');
-    		var tags = mc.getProperty('uri.var.tags');
-    		var externalId = mc.getProperty('uri.var.externalId');
-    		var forumTopicId = mc.getProperty('uri.var.forumTopicId');
-    		var problemId = mc.getProperty('uri.var.problemId');
-    		var dueAt = mc.getProperty('uri.var.dueAt');
-    		var customFields = mc.getProperty('uri.var.customFields');
-    		
-    		payload = mc.getPayloadJSON();
-    		payload.ticket = new Object(); 
-			
-			payload.ticket.comment = new Object();
-			
-			if(comment != ""){
-				var commentObj = eval("(" + comment + ")");				
-							
-				payload.ticket.comment.body = commentObj.body;
-				payload.ticket.comment["public"] = commentObj.isPublic;
-				payload.ticket.comment.uploads = commentObj.uploads;
-				payload.ticket.comment.id = commentObj.id;
-				payload.ticket.comment.type = commentObj.type;
-				payload.ticket.comment.html_body = commentObj.htmlBody;			
-				
-				if(commentObj.authorId != ""){			
-					payload.ticket.comment.author_id = commentObj.authorId;
-				}
-			}		
-			
-			payload.ticket.subject = subject;
-			payload.ticket.assignee_id = assigneeId;
-			payload.ticket.group_id = groupId;
-			payload.ticket.organization_id = organizationId;
-			payload.ticket.collaborator_ids = collaboratorIds;
-			payload.ticket.tags = tags;
-			payload.ticket.external_id = externalId;	
-			payload.ticket.problem_id = problemId;
-			payload.ticket.due_at = dueAt;
-			payload.ticket.custom_fields = customFields;
-			
-			if(requesterId != ""){
-				payload.ticket.requester_id = requesterId;
-			}
-			
-			if(type != ""){
-				payload.ticket.type = type;
-			}
-			
-			if(priority != ""){
-				payload.ticket.priority = priority;
-			}
-			
-			if(status != ""){
-				payload.ticket.status = status;
-			}		
-						
-			if(forumTopicId != ""){
-				payload.ticket.forum_topic_id = forumTopicId;
-			}
-			
-			mc.setPayloadJSON(payload);
-    	]]>
-		</script>
-
-		<call>
-			<endpoint>
-				<http method="put" uri-template="{uri.var.apiUrl}/api/v2/tickets/{uri.var.ticketId}.json" />
-			</endpoint>
-		</call>
-
-		<!-- Remove response custom header information -->
-		
-		<header name="ETag" scope="transport" action="remove" />
-		<header name="Status" scope="transport" action="remove" />
-		<header name="Location" scope="transport" action="remove" />
-		<header name="Via" scope="transport" action="remove" />
-		<header name="X-Content-Type-Options" scope="transport" action="remove" />
-		<header name="X-Frame-Options" scope="transport" action="remove" />
-		<header name="X-Rack-Cache" scope="transport" action="remove" />
-		<header name="X-Request-Id" scope="transport" action="remove" />
-		<header name="X-Runtime" scope="transport" action="remove" />
-		<header name="X-UA-Compatible" scope="transport" action="remove" />
-		<header name="X-Zendesk-API-Version" scope="transport" action="remove" />
-		<header name="X-Zendesk-Origin-Server" scope="transport" action="remove" />
-		<header name="X-Zendesk-Request-Id" scope="transport" action="remove" />
-		<header name="X-Zendesk-User-Id" scope="transport" action="remove" />
-		<header name="WWW-Authenticate" scope="transport" action="remove" />
-		<header name="Set-Cookie" scope="transport" action="remove" />
-		<header name="X-Zendesk-API-Warn" scope="transport" action="remove" />
-
-	</sequence>
+   <parameter name="ticketId" description="The ID of the ticket to update" />
+   <parameter name="subject" description="The subject of the ticket." />
+   <parameter name="commentBody" description="The comment string that describe the incident." />
+   <parameter name="commentIsPublic" description="The value to set the comment to public or to private." />
+   <parameter name="commentType" description="The type of the object and the value should be Comment." />
+   <parameter name="commentHtmlBody" description="The comment formatted as HTML." />
+   <parameter name="commentAttachments" description="The attachements for the comment." />
+   <parameter name="requesterId" description="The numeric ID of the user asking for support through the ticket." />
+   <parameter name="assigneeId" description="The numeric ID of the agent to assign the ticket to." />
+   <parameter name="groupId" description="The numeric ID of the group to assign the ticket to." />
+   <parameter name="collaboratorIds"
+      description="An array of the numeric IDs of agents or end-users to CC on the ticket. An email notification is sent to them when the ticket is created." />
+   <parameter name="type" description="Allowed values are problem, incident, question, or task" />
+   <parameter name="priority" description="Allowed values are urgent, high, normal, or low" />
+   <parameter name="status"
+      description="Allowed values are new, open, pending, hold, solved or closed. Is set to open if status is not specified." />
+   <parameter name="tags" description="An array of tags to add to the ticket." />
+   <parameter name="externalId" description="A unique external ID to link Zendesk tickets to local records." />
+   <parameter name="forumTopicId" description="The numeric ID of the topic the ticket originated from, if any." />
+   <parameter name="problemId"
+      description="For tickets of type 'incident', the numeric ID of the problem the incident is linked to, if any." />
+   <parameter name="dueAt"
+      description="For tickets of type 'task', the due date of the task. Accepts the ISO 8601 date format (yyyy-mm-dd)." />
+   <parameter name="customFields" description="An array of the custom fields of the ticket." />
+   <parameter name="assigneeEmail" description="The email address of the agent to assign the ticket to." />
+   <parameter name="collaborators" 
+      description="An array of numeric IDs, emails, or objects containing name and email properties. An email notification is sent to them when the ticket is created." />
+   <parameter name="updatedStamp" description="Datetime of last update received from API." />
+   <parameter name="safeUpdate" description="The boolean value to prevent updates with outdated ticket data." />
+      <sequence>
+      <property name="uri.var.ticketId" expression="$func:ticketId" />
+      <property name="uri.var.subject" expression="$func:subject" />
+      <property name="uri.var.requesterId" expression="$func:requesterId" />
+      <property name="uri.var.assigneeId" expression="$func:assigneeId" />
+      <property name="uri.var.groupId" expression="$func:groupId" />
+      <property name="uri.var.collaboratorIds" expression="$func:collaboratorIds" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.priority" expression="$func:priority" />
+      <property name="uri.var.status" expression="$func:status" />
+      <property name="uri.var.tags" expression="$func:tags" />
+      <property name="uri.var.externalId" expression="$func:externalId" />
+      <property name="uri.var.forumTopicId" expression="$func:forumTopicId" />
+      <property name="uri.var.problemId" expression="$func:problemId" />
+      <property name="uri.var.dueAt" expression="$func:dueAt" />
+      <property name="uri.var.customFields" expression="$func:customFields" />
+      <property name="uri.var.assigneeEmail" expression="$func:assigneeEmail" />
+      <property name="uri.var.collaborators" expression="$func:collaborators" />
+      <property name="uri.var.updatedStamp" expression="$func:updatedStamp" />
+      <property name="uri.var.safeUpdate" expression="$func:safeUpdate" />
+      <property name="uri.var.commentBody" expression="$func:commentBody" />
+      <property name="uri.var.commentIsPublic" expression="$func:commentIsPublic" />
+      <property name="uri.var.commentType" expression="$func:commentType" />
+      <property name="uri.var.commentHtmlBody" expression="$func:commentHtmlBody" />
+      <property name="uri.var.commentAttachments" expression="$func:commentAttachments" />
+      <script language="js">
+      <![CDATA[
+         var payload = {};
+         var subject = mc.getProperty('uri.var.subject');
+         var comment = mc.getProperty('uri.var.comment');
+         var requesterId = mc.getProperty('uri.var.requesterId');
+         var assigneeId = mc.getProperty('uri.var.assigneeId');
+         var groupId = mc.getProperty('uri.var.groupId');
+         var collaboratorIds = mc.getProperty('uri.var.collaboratorIds');
+         var type = mc.getProperty('uri.var.type');
+         var priority = mc.getProperty('uri.var.priority');
+         var status = mc.getProperty('uri.var.status');
+         var tags = mc.getProperty('uri.var.tags');
+         var externalId = mc.getProperty('uri.var.externalId');
+         var forumTopicId = mc.getProperty('uri.var.forumTopicId');
+         var problemId = mc.getProperty('uri.var.problemId');
+         var dueAt = mc.getProperty('uri.var.dueAt');
+         var customFields = mc.getProperty('uri.var.customFields');    	
+         var assigneeEmail = mc.getProperty('uri.var.assigneeEmail');    
+         var collaborators = mc.getProperty('uri.var.collaborators'); 	
+         var updatedStamp = mc.getProperty('uri.var.updatedStamp');   
+         var safeUpdate = mc.getProperty('uri.var.safeUpdate');            
+         var commentBody = mc.getProperty('uri.var.commentBody');       
+         var commentIsPublic = mc.getProperty('uri.var.commentIsPublic');
+         var commentType = mc.getProperty('uri.var.commentType');
+         var commentHtmlBody = mc.getProperty('uri.var.commentHtmlBody');
+         var commentAttachments = mc.getProperty('uri.var.commentAttachments');
+         payload.ticket = {}; 
+         payload.ticket.comment = new Object();    
+         if(commentBody != null && commentBody != ""){
+            payload.ticket.comment.body = commentBody;
+         }
+         if(commentIsPublic != null && commentIsPublic != ""){
+            payload.ticket.comment["public"] = commentIsPublic;
+         }
+         if(commentType != null && commentType != ""){
+            payload.ticket.comment.type = commentType;
+         }
+         if(commentHtmlBody != null && commentHtmlBody != ""){
+            payload.ticket.comment.html_body = commentHtmlBody;   
+         }
+         if(commentAttachments != null && commentAttachments != ""){       
+            payload.ticket.comment.attachments = eval("(" +commentAttachments+ ")");
+         }
+         if(subject != null && subject!=""){
+            payload.ticket.subject = subject;
+         }
+         if(assigneeId != null && assigneeId!=""){
+            payload.ticket.assignee_id = assigneeId;
+         }
+         if(groupId != null && groupId!=""){
+            payload.ticket.group_id = groupId;
+         }
+         if(collaboratorIds != null && collaboratorIds!=""){
+            payload.ticket.collaborator_ids = eval("(" + collaboratorIds + ")");
+         }
+         if(tags != null && tags!=""){
+             payload.ticket.tags = eval("(" + tags + ")");
+         }
+         if(externalId != null && externalId!=""){
+            payload.ticket.external_id = externalId;
+         }
+         if(problemId != null && problemId!=""){	
+            payload.ticket.problem_id = problemId;
+         }
+         if(dueAt != null && dueAt!=""){
+            payload.ticket.due_at = dueAt;
+         }
+         if(customFields != null && customFields!=""){
+            payload.ticket.custom_fields = eval("(" + customFields + ")");
+         }
+         if(requesterId != null && requesterId != ""){
+            payload.ticket.requester_id = requesterId;
+         }
+         if(type != null && type != ""){
+            payload.ticket.type = type;
+         }
+         if(priority != null && priority != ""){
+            payload.ticket.priority = priority;
+         }
+         if(status != null && status != ""){
+            payload.ticket.status = status;
+         }			
+         if(forumTopicId != null &&forumTopicId != ""){
+            payload.ticket.forum_topic_id = forumTopicId;
+         }     
+         if(assigneeEmail != null &&assigneeEmail != ""){
+            payload.ticket.assignee_email = assigneeEmail;
+         }     
+         if(collaborators != null && collaborators != ""){        
+            payload.ticket.collaborators = eval("(" + collaborators + ")");
+         }
+         if(updatedStamp != null && updatedStamp != ""){        
+            payload.ticket.updated_stamp = updatedStamp;
+         }
+         if(safeUpdate != null && safeUpdate != ""){        
+            payload.ticket.safe_update = safeUpdate;
+         }
+         mc.setPayloadJSON(payload);
+      ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="put" uri-template="{uri.var.apiUrl}/api/v2/tickets/{uri.var.ticketId}.json" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+      <header name="Location" scope="transport" action="remove" />
+      <header name="Via" scope="transport" action="remove" />
+      <header name="X-Content-Type-Options" scope="transport" action="remove" />
+      <header name="X-Frame-Options" scope="transport" action="remove" />
+      <header name="X-Rack-Cache" scope="transport" action="remove" />
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="X-UA-Compatible" scope="transport" action="remove" />
+      <header name="X-Zendesk-API-Version" scope="transport" action="remove" />
+      <header name="X-Zendesk-Origin-Server" scope="transport" action="remove" />
+      <header name="X-Zendesk-Request-Id" scope="transport" action="remove" />
+      <header name="X-Zendesk-User-Id" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+      <header name="Set-Cookie" scope="transport" action="remove" />
+      <header name="X-Zendesk-API-Warn" scope="transport" action="remove" />
+      <header name="Strict-Transport-Security" scope="transport" action="remove" />
+   </sequence>
 </template>

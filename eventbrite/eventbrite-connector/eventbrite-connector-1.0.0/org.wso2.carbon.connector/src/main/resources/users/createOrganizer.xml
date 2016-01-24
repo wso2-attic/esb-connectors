@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied.  See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="createOrganizer">
+    <parameter name="name" description="Name of the organizer to be created"/>
+    <parameter name="description" description="Description of the organizer"/>
+    <parameter name="id" description="The logo id of the organizer"/>
+    <sequence>
+        <property name="uri.var.name" expression="$func:name"/>
+        <property name="uri.var.description" expression="$func:description"/>
+        <property name="uri.var.id" expression="$func:id"/>
+        <payloadFactory media-type="json">
+            <format>{
+                "organizer.name": "$1",
+                "organizer.description.html": "$2",
+                "organizer.logo.id": "$3"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.name')"/>
+                <arg expression="get-property('uri.var.description')"/>
+                <arg expression="get-property('uri.var.id')"/>
+            </args>
+        </payloadFactory>
+        <filter xpath="get-property('uri.var.description') = '' or (not(string(get-property('uri.var.description'))))">
+            <then>
+                <script language="js"><![CDATA[
+                    payload = mc.getPayloadJSON();
+                            delete payload["organizer.description.html"];
+                            mc.setPayloadJSON(payload);
+                    ]]>
+                </script>
+            </then>
+        </filter>
+        <filter xpath="get-property('uri.var.id') = '' or (not(string(get-property('uri.var.id'))))">
+            <then>
+                <script language="js"><![CDATA[
+                    payload = mc.getPayloadJSON();
+                            delete payload["organizer.logo.id"];
+                            mc.setPayloadJSON(payload);
+                    ]]>
+                </script>
+            </then>
+        </filter>
+        <!--<property name="messageType" value="application/json" scope="axis2"/>-->
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+        <!--<header name="Content-Type" value="application/json" scope="transport" />-->
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.eventbrite.apiUrl}/organizers/?token={uri.var.eventbrite.accessToken}"/>
+                <property name="Accept" value="*/*" scope="transport"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

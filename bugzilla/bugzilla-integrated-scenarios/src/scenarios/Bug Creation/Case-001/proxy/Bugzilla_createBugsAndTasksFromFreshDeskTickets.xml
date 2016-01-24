@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="bugzilla_createBugsAndTasksFromFreshDeskTickets" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!--FreshDesk Properties -->
+         <property name="freshdesk.apiUrl" expression="json-eval($.freshdeskApiUrl)" />
+         <property name="freshdesk.apiKey" expression="json-eval($.freshdeskApiKey)" />
+         <property name="freshdesk.ticketViewId" expression="json-eval($.freshdeskTicketViewId)" />
+
+         <!--Bugzilla Properties -->
+         <property name="bugzilla.apiUrl" expression="json-eval($.bugzillaApiUrl)" />
+         <property name="bugzilla.apiKey" expression="json-eval($.bugzillaApiKey)" />
+		 
+		 <!--TSheets Properties-->
+         <property name="tsheets.apiUrl" expression="json-eval($.tsheetsApiUrl)" />
+         <property name="tsheets.accessToken" expression="json-eval($.tsheetsAccessToken)" />
+         <property name="responseString" value="" scope="operation" />
+
+         <!-- Calling FreshDesk listTickets methods to retrieve tickets -->
+         <freshdesk.init>
+            <apiUrl>{$ctx:freshdesk.apiUrl}</apiUrl>
+            <apiKey>{$ctx:freshdesk.apiKey}</apiKey>
+            <format>json</format>
+         </freshdesk.init>
+
+         <freshdesk.listTickets>
+            <viewId>{$ctx:freshdesk.ticketViewId}</viewId>
+            <filterType>customticketviews</filterType>
+         </freshdesk.listTickets>
+
+         <property name="tickets" expression="json-eval($.)" />
+
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "tickets": $1
+               }
+            </format>
+            <args>
+               <arg expression="get-property('tickets')" />
+            </args>
+         </payloadFactory>
+
+         <property name="freshdesk.ticketsCount" expression="count(//tickets)" scope="operation" />
+         <property name="freshdesk.ticketIndex" expression="0" scope="operation" />
+
+         <!--Process only if the tickets are available -->
+         <filter xpath="get-property('operation','freshdesk.ticketsCount') =0">
+            <then>
+               <property name="id" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="bugzilla_createBug" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="message" value="There are no ticket(s) to process." />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!--FOR EACH tickets : BEGIN -->
+               <iterate continueParent="true" id="tickets" expression="//tickets" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="bugzilla.bug.summary" expression="//tickets/subject/text()" />
+                        <property name="bugzilla.bug.description" expression="//tickets/description/text()" />
+                        <property name="bugzilla.bug.operatingSystem"
+                           expression="//tickets/custom_field/*[starts-with(local-name(),'operating_system_')]/text()" />
+                        <property name="bugzilla.bug.platform" expression="//tickets/custom_field/*[starts-with(local-name(),'platform_')]/text()" />
+                        <property name="bugzilla.bug.severity" expression="//tickets/custom_field/*[starts-with(local-name(),'severity_')]/text()" />
+						
+						<property name="bugzilla.bug.product" expression="//tickets/custom_field/*[starts-with(local-name(),'product_name_')]/text()" />
+						<property name="bugzilla.bug.component" expression="//tickets/custom_field/*[starts-with(local-name(),'component_')]/text()" />
+						<property name="bugzilla.bug.isBillable" expression="//tickets/custom_field/*[starts-with(local-name(),'isbugbillable_')]/text()" />
+						<property name="bugzilla.bug.childJobCode" expression="//tickets/custom_field/*[starts-with(local-name(),'child_job_code_')]/text()" />
+						<property name="bugzilla.bug.productVersion" expression="//tickets/custom_field/*[starts-with(local-name(),'product_version_')]/text()" />
+
+                        <property name="ticket.ticketId" expression="//tickets/display_id/text()" />
+                        <property name="bugzilla.bug.priority" expression="//tickets/priority_name/text()" />
+
+                        <payloadFactory media-type="json">
+                           <format>
+                              {
+                                 "customFields": {
+                                    "cf_freshdesk_ticketid": "$1",
+                                    "cf_isbugbillable":"$2",
+									"cf_childjobcode":"$3"
+                                 }
+                              }
+                           </format>
+                           <args>
+                              <arg expression="get-property('ticket.ticketId')" />
+                              <arg expression="get-property('bugzilla.bug.isBillable')" />
+							  <arg expression="get-property('bugzilla.bug.childJobCode')" />
+                           </args>
+                        </payloadFactory>
+
+                        <property name="bugzilla.bug.customFields" expression="json-eval($.customFields)" />
+
+                        <!--Removing the Content-Encoding Header. -->
+                        <header name="Content-Encoding" action="remove" scope="transport" />
+
+                        <!-- Calling Bugzilla createBug method to create new bugs for tickets -->
+                        <bugzilla.init>
+                           <apiUrl>{$ctx:bugzilla.apiUrl}</apiUrl>
+                           <apiKey>{$ctx:bugzilla.apiKey}</apiKey>
+                        </bugzilla.init>
+                        <bugzilla.createBug>
+                           <product>{$ctx:bugzilla.bug.product}</product>
+                           <component>{$ctx:bugzilla.bug.component}</component>
+                           <summary>{$ctx:bugzilla.bug.summary}</summary>
+                           <version>{$ctx:bugzilla.bug.productVersion}</version>
+                           <description>{$ctx:bugzilla.bug.description}</description>
+                           <opSys>{$ctx:bugzilla.bug.operatingSystem}</opSys>
+                           <platform>{$ctx:bugzilla.bug.platform}</platform>
+                           <priority>{$ctx:bugzilla.bug.priority}</priority>
+                           <severity>{$ctx:bugzilla.bug.severity}</severity>
+                           <customFields>{$ctx:bugzilla.bug.customFields}</customFields>
+                        </bugzilla.createBug>
+
+                        <property name="bug.id" expression="json-eval($.id)" />
+
+                        <filter source="boolean(get-property('bug.id'))" regex="true">
+                           <then>
+                              <property name="idObject"
+                                 expression="fn:concat('ticketId:',get-property('ticket.ticketId'),',bugId:',get-property('bug.id'))" />
+                              <property name="status" value="success" />
+                              <property name="message" value="Bug has been created." />
+							  <call-template target="responseHandlerTemplate">
+							     <with-param name="id" value="{$ctx:idObject}" />
+							     <with-param name="activity" value="bugzilla_createBug" />
+							     <with-param name="status" value="{$ctx:status}" />
+							     <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+							  
+							  		<!-- Create jobCode Object for bugs in Tsheets -->
+                                    <script language="js">
+										<![CDATA[
+											var jobCodeName=mc.getProperty('bugzilla.bug.summary');
+											var parentId=mc.getProperty('bugzilla.bug.childJobCode');
+											var jobCodeObj = {};   
+											jobCodeObj.name  = jobCodeName;
+											jobCodeObj.parent_id = parentId;
+											mc.setPayloadJSON(jobCodeObj);
+										]]>
+                                    </script>
+
+                                    <property name="tsheets.jobCodes" expression="json-eval($.)" />
+									
+									<!-- Call tsheets connector addJobCodes method to create child jobCodes(tasks) for bugs.-->
+                                    <tsheets.init>
+                                       <accessToken>{$ctx:tsheets.accessToken}</accessToken>
+                                       <apiUrl>{$ctx:tsheets.apiUrl}</apiUrl>
+                                    </tsheets.init>
+                                    <tsheets.addJobCodes>
+                                       <jobCodes>{$ctx:tsheets.jobCodes}</jobCodes>
+                                    </tsheets.addJobCodes>
+
+                                    <property name="tsheets.statusCode" expression="json-eval($.results.jobcodes.1._status_code)" />
+
+                                    <switch source="get-property('tsheets.statusCode')">
+                                       <case regex="200">
+                                          <property name="tsheets.jobCodeId" expression="json-eval($.results.jobcodes.1.id)" />
+                                          <property name="jobCodeIdObject"
+                                             expression="fn:concat('bugId:',get-property('bug.id'),',jobCodeId:',get-property('tsheets.jobCodeId'))" />
+                                          <property name="message" value="Job code has been created successfully." />
+                                          <property name="status" value="success" />
+										  <call-template target="responseHandlerTemplate">
+										     <with-param name="id" value="{$ctx:jobCodeIdObject}" />
+										     <with-param name="activity" value="tsheets_createJobCode" />
+										     <with-param name="status" value="{$ctx:status}" />
+										     <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+										  
+										  <payloadFactory media-type="json">
+                                             <format>{
+                                                "customFields":
+												   {
+                                                      "cf_taskid":"$1"
+                                                   }
+                                                }
+                                             </format>
+                                             <args>
+                                                <arg expression="get-property('tsheets.jobCodeId')" />
+                                             </args>
+                                          </payloadFactory>
+
+                                          <property name="bugzilla.taskId" expression="json-eval($.customFields)" />
+
+											<!-- Call bugzilla connector updateBug method to update the bug with task ID -->
+                                          <bugzilla.init>
+                                             <apiUrl>{$ctx:bugzilla.apiUrl}</apiUrl>
+                                             <apiKey>{$ctx:bugzilla.apiKey}</apiKey>
+                                          </bugzilla.init>
+                                          <bugzilla.updateBug>
+                                             <bugId>{$ctx:bug.id}</bugId>
+                                             <customFields>{$ctx:bugzilla.taskId}</customFields>
+                                          </bugzilla.updateBug>
+                                          <property name="updateBugResponse" expression="json-eval($.bugs[0].changes)" />
+
+                                          <filter source="$axis2:HTTP_SC" regex="200">
+                                             <then>
+                                                <property name="id" expression="fn:concat('bugId:',get-property('bug.id'),', taskId:',get-property('tsheets.jobCodeId'))" />
+                                                <property name="status" value="success" />
+                                                <property name="message" value="Bug has been updated with the created task ID." />
+                                             </then>
+                                             <else>
+                                                <property name="id" expression="fn:concat('bugId:',get-property('bug.id'))" />
+                                                <property name="status" value="error" />
+                                                <property name="message" expression="json-eval($)" />
+                                             </else>
+                                          </filter>
+											<!--Call the responseHandler template-->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="bugzilla_updateBug" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+										  
+                                       </case>
+                                       <case regex="202">
+                                          <property name="tsheets.jobCodeId" expression="json-eval($.results.jobcodes.1.id)" />
+                                          <property name="jobCodeIdObject" expression="fn:concat('bugId:',get-property('bug.id'))" />
+                                          <property name="message" value="Job code already exist." />
+                                          <property name="status" value="skipped" />
+										  <call-template target="responseHandlerTemplate">
+										     <with-param name="id" value="{$ctx:jobCodeIdObject}" />
+										     <with-param name="activity" value="tsheets_createJobCode" />
+										     <with-param name="status" value="{$ctx:status}" />
+										     <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </case>
+                                       <default>
+                                          <property name="jobCodeIdObject" value="{}" />
+                                          <property name="status" value="error" />
+                                          <property name="message" expression="json-eval($.)" />
+										  <call-template target="responseHandlerTemplate">
+										     <with-param name="id" value="{$ctx:jobCodeIdObject}" />
+										     <with-param name="activity" value="tsheets_createJobCode" />
+										     <with-param name="status" value="{$ctx:status}" />
+										     <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </default>
+                                    </switch>
+                                   
+                           </then>
+                           <else>
+                              <property name="status" value="error" />
+                              <property name="idObject" expression="fn:concat('ticketId:',get-property('ticket.ticketId'))" />
+                              <property name="message" expression="json-eval($.)" />
+							  <call-template target="responseHandlerTemplate">
+							     <with-param name="id" value="{$ctx:idObject}" />
+							     <with-param name="activity" value="bugzilla_createBug" />
+							     <with-param name="status" value="{$ctx:status}" />
+							     <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </else>
+                        </filter>
+						
+                        <property name="freshdesk.ticketIndex" expression="get-property('operation','freshdesk.ticketIndex') + 1"
+                           scope="operation" />
+
+                        <filter
+                           xpath="get-property('operation','freshdesk.ticketsCount') = get-property('operation','freshdesk.ticketIndex')">
+                           <then>
+                              <loopback />
+                           </then>
+                        </filter>
+
+                     </sequence>
+                  </target>
+               </iterate>
+               <!--FOR EACH tickets : END -->
+            </else>
+         </filter>
+
+
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"bugzilla-createBugsAndTasksFromFreshDeskTickets",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-search.html -->
+<template name="searchByQuery" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="query" description="The query string." />
+   <parameter name="explain" description="For each hit, contain an explanation of how scoring of the hits was computed." />
+   <parameter name="fields" description="The selective stored fields of the document to return for each hit, comma delimited. Not specifying any value will cause no fields to return." />
+   <parameter name="sort"
+      description="Sorting to perform. Can either be in the form of fieldName, or fieldName:asc/fieldName:desc. The fieldName can either be an actual field within the document, or the special _score name to indicate sorting based on scores. There can be several sort parameters (order is important)." />
+   <parameter name="timeout" description="A search timeout, bounding the search request to be executed within the specified time value and bail with the hits accumulated up to that point when expired. Defaults to no timeout." />
+   <parameter name="terminateAfter"
+      description="The maximum number of documents to collect for each shard, upon reaching which the query execution will terminate early. If set, the response will have a boolean field terminated_early to indicate whether the query execution has actually terminated_early. Defaults to no terminate_after." />
+   <parameter name="source" description="Used to control how the _source field is returned." />
+   <parameter name="trackScores" description="Used to track scores and return them as part of each hit." />
+   <parameter name="from" description="The starting from index of the hits to return. Defaults to 0." />
+   <parameter name="size" description="The number of hits to return. Defaults to 10." />
+   <parameter name="searchType" description="The type of the search operation to perform. Can be dfs_query_then_fetch, dfs_query_and_fetch, query_then_fetch, query_and_fetch, count, scan. Defaults to query_then_fetch. See Search Type for more details on the different types of search that can be performed." />
+   <parameter name="scriptFields" description="Allows to return a script evaluation (based on different fields) for each hit." />
+   <parameter name="fieldDataFields" description="Allows to return the field data representation of a field for each hit." />
+   <parameter name="highlight" description="Allows to highlight search results on one or more fields. The implementation uses either the lucene highlighter, fast-vector-highlighter or postings-highlighter." />
+   <parameter name="indicesBoost" description="Allows to configure different boost level per index when searching across more than one indices. This is very handy when hits coming from one index matter more than hits coming from another index (think social graph where each user has an index)." />
+   <parameter name="minScore" description="Exclude documents which have a _score less than the minimum specified in min_score." />
+   <parameter name="version" description="Returns a version for each search hit." />
+   <parameter name="scroll" description="While a search request returns a single page of results, the scroll API can be used to retrieve large numbers of results (or even all results) from a single search request, in much the same way as you would use a cursor on a traditional database." />
+   <parameter name="queryCache" description="To enable or disable the caching of search results for requests." />
+   <parameter name="partialFields" description="Used to use wildcards to control what part of the _source will be loaded." />
+   <parameter name="postFilter" description="Remove results from response that have values other than this." />
+   <parameter name="aggregation" description="Aggregate data within a document set context." />
+   <parameter name="rescore" description="Used to improve precision by reordering just the top (eg 100 - 500) documents returned by the query and post_filter phases." />
+   <parameter name="preference" description="Controls a preference of which shard replicas to execute the search request on." />
+   <parameter name="innerHits" description="Used to return per search hit in the search response additional nested hits that caused a search hit to match in a different scope." />
+   <sequence>
+      <property name="uri.var.query" expression="$func:query" />
+      <property name="uri.var.explain" expression="$func:explain" />
+      <property name="uri.var.fields" expression="$func:fields" />
+      <property name="uri.var.sort" expression="$func:sort" />
+      <property name="uri.var.timeout" expression="$func:timeout" />
+      <property name="uri.var.terminateAfter" expression="$func:terminateAfter" />
+      <property name="uri.var.trackScores" expression="$func:trackScores" />
+      <property name="uri.var.from" expression="$func:from" />
+      <property name="uri.var.size" expression="$func:size" />
+      <property name="uri.var.searchType" expression="$func:searchType" />
+      <property name="uri.var.source" expression="$func:source" />
+      <property name="uri.var.scriptFields" expression="$func:scriptFields" />
+      <property name="uri.var.fieldDataFields" expression="$func:fieldDataFields" />
+      <property name="uri.var.highlight" expression="$func:highlight" />
+      <property name="uri.var.indicesBoost" expression="$func:indicesBoost" />
+      <property name="uri.var.minScore" expression="$func:minScore" />
+      <property name="uri.var.version" expression="$func:version" />
+      <property name="uri.var.scroll" expression="$func:scroll" />
+      <property name="uri.var.queryCache" expression="$func:queryCache" />
+      <property name="uri.var.partialFields" expression="$func:partialFields" />
+      <property name="uri.var.postFilter" expression="$func:postFilter" />
+      <property name="uri.var.aggregation" expression="$func:aggregation" />
+      <property name="uri.var.rescore" expression="$func:rescore" />
+      <property name="uri.var.preference" expression="$func:preference" />
+      <property name="uri.var.innerHits" expression="$func:innerHits" />
+      <script language="js">
+         <![CDATA[
+            var explain = mc.getProperty('uri.var.explain');
+            var source = mc.getProperty('uri.var.source');
+            var terminateAfter = mc.getProperty('uri.var.terminateAfter');
+            var timeout = mc.getProperty('uri.var.timeout');
+            var highlight = mc.getProperty('uri.var.highlight');
+            var fieldDataFields = mc.getProperty('uri.var.fieldDataFields');
+            var trackScores = mc.getProperty('uri.var.trackScores');
+            var from = mc.getProperty('uri.var.from');
+            var indicesBoost = mc.getProperty('uri.var.indicesBoost');
+            var scriptFields = mc.getProperty('uri.var.scriptFields');
+            var minScore = mc.getProperty('uri.var.minScore');
+            var searchType = mc.getProperty('uri.var.searchType');
+            var scroll = mc.getProperty('uri.var.scroll');
+            var sort = mc.getProperty('uri.var.sort');
+            var version = mc.getProperty('uri.var.version');
+            var query = mc.getProperty('uri.var.query');
+            var size = mc.getProperty('uri.var.size');
+            var fields = mc.getProperty('uri.var.fields');
+            var queryCache = mc.getProperty('uri.var.queryCache');
+            var partialFields = mc.getProperty('uri.var.partialFields');
+            var postFilter = mc.getProperty('uri.var.postFilter');
+            var aggregation = mc.getProperty('uri.var.aggregation');
+            var rescore = mc.getProperty('uri.var.rescore');
+            var preference = mc.getProperty('uri.var.preference');
+            var innerHits = mc.getProperty('uri.var.innerHits');
+            var jsonPayload = {};
+            var commonQueryParams = "" + mc.getProperty('uri.var.commonQueryParams');
+            var urlQuery = '';
+            if (commonQueryParams != null && commonQueryParams != "") {
+               urlQuery =  commonQueryParams;
+            }
+            if (query != null && query !="" && query != "{}"){
+               if(query.charCodeAt(0) == '123' ) {
+                  jsonPayload.query = eval( "(" + query + ")" );
+               }
+            }
+            if (explain != null && explain != ""){
+               jsonPayload.explain = explain;
+            }
+            if (fields != null && fields !="" && fields != "[]"){
+                if(fields.charCodeAt(0) == '91') {
+                  jsonPayload.fields = eval( "(" + fields + ")" );
+                }
+            }
+            if (sort != null && sort != "" && sort != "[]"){
+                if(sort.charCodeAt(0) == '91') {
+                  jsonPayload.sort = eval( "(" + sort + ")" );
+                }
+            }
+            if (timeout != null && timeout != ""){
+               jsonPayload.timeout = timeout;
+            }
+            if (terminateAfter != null && terminateAfter != ""){
+               urlQuery += 'terminate_after=' + terminateAfter + '&';
+            }
+            if (trackScores != null && trackScores != ""){
+               jsonPayload.track_scores = trackScores;
+            }
+            if (from != null && from != ""){
+               jsonPayload.from = from;
+            }
+            if (size != null && size != ""){
+               jsonPayload.size = size;
+            }
+            if (searchType != null && searchType != ""){
+               urlQuery += 'search_type=' + searchType + '&';
+            }
+            if (source != null && source != ""){
+               jsonPayload._source = source;
+            }
+            if (scriptFields != null && scriptFields != "" && scriptFields != "{}"){
+               if(scriptFields.charCodeAt(0) == '123' ) {
+                  jsonPayload.script_fields = eval( "(" + scriptFields + ")" );
+               }
+            }
+            if (fieldDataFields != null && fieldDataFields != "" && fieldDataFields != "[]"){
+                if(fieldDataFields.charCodeAt(0) == '91') {
+                  jsonPayload.fielddata_fields = eval( "(" + fieldDataFields + ")" );
+                }
+            }
+            if (highlight != null && highlight!= "" && highlight != "{}"){
+               if(highlight.charCodeAt(0) == '123' ) {
+                  jsonPayload.highlight = eval( "(" + highlight + ")" );
+               }
+            }
+            if (indicesBoost != null && indicesBoost!="" && indicesBoost != "{}"){
+               if(indicesBoost.charCodeAt(0) == '123' ) {
+                  jsonPayload.indices_boost = eval( "(" + indicesBoost + ")" );
+               }
+            }
+            if (minScore != null && minScore != ""){
+               jsonPayload.min_score = minScore;
+            }
+            if (version != null && version != ""){
+               jsonPayload.version = version;
+            }
+            if (scroll != null && scroll != ""){
+               urlQuery += 'scroll=' + scroll + '&';
+            }
+            if (queryCache != null && queryCache != ""){
+               urlQuery += 'query_cache=' + queryCache + '&';
+            }
+            if (partialFields != null && partialFields != "" && partialFields != "{}"){
+               if(partialFields.charCodeAt(0) == '123' ) {
+                  jsonPayload.partial_fields = eval( "(" + partialFields + ")" );
+               }
+            }
+            if (postFilter != null && postFilter != "" && postFilter != "{}"){
+                if(postFilter.charCodeAt(0) == '123' ) {
+                  jsonPayload.post_filter = eval( "(" + postFilter + ")" );
+               }
+            }
+            if (aggregation != null && aggregation != "" && aggregation != "{}"){
+                if(aggregation.charCodeAt(0) == '123' ) {
+                  jsonPayload.aggs = eval( "(" + aggregation + ")" );
+               }
+            }
+            if (rescore != null && rescore != "" && rescore != "{}"){
+               if(rescore.charCodeAt(0) == '123' ) {
+                  jsonPayload.rescore = eval( "(" + rescore + ")" );
+               }
+            }
+            if (preference != null && preference != ""){
+               urlQuery += 'preference=' + preference + '&';
+            }
+            if (innerHits != null && innerHits != "" && innerHits != "{}"){
+               if(innerHits.charCodeAt(0) == '123' ) {
+                  jsonPayload.inner_hits = eval( "(" + innerHits + ")" );
+               }
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != null && urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/_search{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+   </sequence>
+</template>

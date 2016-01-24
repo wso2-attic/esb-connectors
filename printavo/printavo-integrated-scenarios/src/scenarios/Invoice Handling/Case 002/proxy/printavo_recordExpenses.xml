@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="printavo_recordExpenses" transports="https http" startOnLoad="true" trace="disable">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Printavo Properties -->
+         <property name="printavo.apiUrl" value="https://www.printavo.com" />
+         <property name="printavo.apiKey" expression="json-eval($.printavo.apiKey)" />
+
+         <!-- FresBooks Properties -->
+         <property name="freshbooks.apiUrl" expression="json-eval($.freshbooks.apiUrl)" />
+         <property name="freshbooks.authenticationToken" expression="json-eval($.freshbooks.authenticationToken)" />
+         <property name="freshbooks.staffId" expression="json-eval($.freshbooks.staffId)" />
+
+         <!-- Common Properties -->
+         <property name="responseString" value="" scope="operation" />
+         <property name="id.empty" value="{}" />
+
+         <!-- List all the available categories in Freshbooks -->
+         <freshbooks.init>
+            <apiUrl>{$ctx:freshbooks.apiUrl}</apiUrl>
+            <authenticationToken>{$ctx:freshbooks.authenticationToken}</authenticationToken>
+         </freshbooks.init>
+         <freshbooks.listCategory>
+            <page>1</page>
+            <perPage>1000</perPage>
+         </freshbooks.listCategory>
+         <sequence key="removeResponseHeaders" />
+
+         <property name="freshbooks.categoryId" expression="//*[../*[local-name() = 'name']/text() = 'Printavo Expenses' and local-name() = 'category_id']" />
+
+         <!-- List all the expenses from Printavo API -->
+         <printavo.init>
+            <apiUrl>{$ctx:printavo.apiUrl}</apiUrl>
+            <apiKey>{$ctx:printavo.apiKey}</apiKey>
+         </printavo.init>
+         <printavo.listExpenses>
+            <page>1</page>
+            <perPage>1000</perPage>
+         </printavo.listExpenses>
+         <sequence key="removeResponseHeaders" />
+
+         <property name="printavo.totalExpenses" expression="json-eval($.meta.total_count)" />
+
+         <!-- START: Proceed only if the listExpenses call was successful. -->
+         <filter source="boolean(get-property('printavo.totalExpenses'))" regex="false">
+            <then>
+               <!-- Error case: Append a message to be sent to the user. -->
+               <property name="errorResponse" expression="json-eval($)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="printavo_listExpenses" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:errorResponse}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!-- START: Proceed only if there any expenses to process. -->
+               <filter xpath="get-property('printavo.totalExpenses') &gt; 0">
+                  <then>
+                     <property name="noOfExpenses" expression="count(//data)" />
+                     <property name="expenseIndex" expression="0" scope="operation" />
+                     <property name="noOfProcessedExpenses" expression="0" scope="operation" />
+
+                     <!--FOR EACH Expense: BEGIN -->
+                     <iterate continueParent="false" id="expenses" expression="//data" sequential="false">
+                        <target>
+                           <sequence>
+                              <property name="printavo.expenseId" expression="//data/id/text()" />
+                              <property name="printavo.expenseName" expression="//data/name/text()" />
+                              <property name="printavo.expenseAmount" expression="//data/amount/text()" />
+                              <property name="printavo.expenseTransactionDate" expression="//data/transaction_date/text()" />
+
+                              <!-- Retrieve the details of the expense. -->
+                              <printavo.init>
+                                 <apiUrl>{$ctx:printavo.apiUrl}</apiUrl>
+                                 <apiKey>{$ctx:printavo.apiKey}</apiKey>
+                              </printavo.init>
+                              <printavo.getExpense>
+                                 <expenseId>{$ctx:printavo.expenseId}</expenseId>
+                              </printavo.getExpense>
+                              <sequence key="removeResponseHeaders" />
+
+                              <property name="printavo.expenseId" expression="json-eval($.id)" />
+
+                              <!-- START: Proceed only if the expense is not deleted -->
+                              <filter source="boolean(get-property('printavo.expenseId'))" regex="true">
+                                 <then>
+                                    <property name="printavo.expenseAmount" expression="fn:substring-after(get-property('printavo.expenseAmount'), '-')" />
+                                    <property name="printavo.expenseTransactionDate" expression="fn:substring-before(get-property('printavo.expenseTransactionDate'), 'T')" />
+
+                                    <!-- Create the expense in Freshbooks. -->
+                                    <freshbooks.init>
+                                       <apiUrl>{$ctx:freshbooks.apiUrl}</apiUrl>
+                                       <authenticationToken>{$ctx:freshbooks.authenticationToken}</authenticationToken>
+                                    </freshbooks.init>
+                                    <freshbooks.createExpense>
+                                       <staffId>{$ctx:freshbooks.staffId}</staffId>
+                                       <status>1</status>
+                                       <vendor>Printavo</vendor>
+                                       <categoryId>{$ctx:freshbooks.categoryId}</categoryId>
+                                       <date>{$ctx:printavo.expenseTransactionDate}</date>
+                                       <amount>{$ctx:printavo.expenseAmount}</amount>
+                                       <notes>{$ctx:printavo.expenseName}</notes>
+                                    </freshbooks.createExpense>
+                                    <sequence key="removeResponseHeaders" />
+
+                                    <property name="freshbooks.expenseId" expression="//*[local-name()='expense_id']/text()" />
+
+                                    <!-- START: Proceed to delete the expense only if it was created successfully in Freshbooks. -->
+                                    <filter source="boolean(get-property('freshbooks.expenseId'))" regex="false">
+                                       <then>
+                                          <!-- Error case: Append a message to be sent to the user. -->
+                                          <property name="errorResponse" expression="//*[local-name()='error']/text()" />
+                                          <property name="id" expression="fn:concat('printavo_expenseId:', get-property('printavo.expenseId'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="freshbooks_createExpense" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Error" />
+                                             <with-param name="message" value="{$ctx:errorResponse}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <!-- Success case: Append a message to be sent to the user. -->
+                                          <property name="id" expression="fn:concat('printavo_expenseId:', get-property('printavo.expenseId'), ',freshbooks_expenseId:', get-property('freshbooks.expenseId'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="freshbooks_createExpense" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Success" />
+                                             <with-param name="message" value="Expense has been successfully created." />
+                                          </call-template>
+
+                                          <property name="noOfProcessedExpenses" expression="get-property('operation', 'noOfProcessedExpenses') + 1" scope="operation" />
+
+                                          <!-- Delete the expense in Printavo expense which is successfully created in FreshBooks. -->
+                                          <printavo.init>
+                                             <apiUrl>{$ctx:printavo.apiUrl}</apiUrl>
+                                             <apiKey>{$ctx:printavo.apiKey}</apiKey>
+                                          </printavo.init>
+                                          <printavo.deleteExpense>
+                                             <expenseId>{$ctx:printavo.expenseId}</expenseId>
+                                          </printavo.deleteExpense>
+                                          <sequence key="removeResponseHeaders" />
+
+                                          <property name="printavo.deletedExpenseId" expression="json-eval($.id)" />
+
+                                          <!-- START: Append an error message to user only if the deletion fails -->
+                                          <filter source="boolean(get-property('printavo.deletedExpenseId'))" regex="false">
+                                             <then>
+                                                <property name="id" expression="fn:concat('printavo_expenseId:', get-property('printavo.expenseId'))" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="printavo_deleteExpense" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="Error" />
+                                                   <with-param name="message" value="Unknown error occured while deleting the expense." />
+                                                </call-template>
+                                             </then>
+                                          </filter>
+                                          <!-- END: Append an error message to user only if the deletion fails -->
+                                       </else>
+                                    </filter>
+                                    <!-- END: Proceed to delete the expense only if it was created successfully in Freshbooks. -->
+                                 </then>
+                              </filter>
+                              <!-- START: Proceed only if the expense is not deleted -->
+
+                              <!--Increment the order Count by 1 -->
+                              <property name="expenseIndex" expression="get-property('operation', 'expenseIndex') + 1" scope="operation" />
+
+                              <!-- Terminate the inSequence and move to outSequence when all the iterations are done. -->
+                              <filter xpath="get-property('noOfExpenses') = get-property('operation', 'expenseIndex')">
+                                 <then>
+                                    <filter xpath="get-property('operation', 'noOfProcessedExpenses') = 0.0">
+                                       <then>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="printavo_retrieveExpenses" />
+                                             <with-param name="id" value="{$ctx:id.empty}" />
+                                             <with-param name="status" value="Skipped" />
+                                             <with-param name="message" value="There are no unprocessed expenses in the account." />
+                                          </call-template>
+                                       </then>
+                                    </filter>
+                                    <loopback />
+                                 </then>
+                              </filter>
+
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!--FOR EACH Expense - END -->
+
+                  </then>
+                  <else>
+                     <!-- Skip case: Append a message to be sent to the user. -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="printavo_listExpenses" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="There are no expenses to process." />
+                     </call-template>
+                     <loopback />
+                  </else>
+               </filter>
+               <!-- END: Proceed only if there any expenses to process. -->
+            </else>
+         </filter>
+         <!-- END: Proceed only if the listExpenses call was successful -->
+      </inSequence>
+
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "process":"printavo_recordExpenses",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <property name="HTTP_SC" value="200" scope="axis2"/>
+         <send />
+      </outSequence>
+   </target>
+</proxy>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="siteName" description="The site name of the user."/>
+    <parameter name="username" description="The username of the user."/>
+    <parameter name="password" description="The password of the user."/>
+    <parameter name="apiVersion" description="The version of the API."/>
+    <sequence>
+        <property name="eloqua.siteName" expression="$func:siteName"/>
+        <property name="eloqua.username" expression="$func:username"/>
+        <property name="eloqua.password" expression="$func:password"/>
+        <property name="eloqua.apiVersion" expression="$func:apiVersion"/>
+        <property name="eloqua.authHeader"
+                  expression="fn:concat(get-property('eloqua.siteName'),'\',get-property('eloqua.username'),':',get-property('eloqua.password'))"/>
+        <header name="Authorization" expression="fn:concat('Basic ',base64Encode(get-property('eloqua.authHeader')))"
+                scope="transport"/>
+        <property name="POST_TO_URI" value="true" scope="axis2" type="STRING"/>
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="https://login.eloqua.com/id"/>
+            </endpoint>
+        </call>
+        <filter source="$axis2:HTTP_SC" regex="[2][0][0]">
+            <then>
+                <property name="uri.var.apiUrl" expression="json-eval($.urls.apis.rest.bulk)"/>
+                <script language="js"><![CDATA[
+                var apiUrl=mc.getProperty('uri.var.apiUrl');
+                var apiVersion=mc.getProperty('eloqua.apiVersion');
+                apiUrl=apiUrl.replace("{version}",apiVersion);
+                mc.setProperty("uri.var.apiUrl",apiUrl);
+                ]]>
+                </script>
+                <header name="Authorization"
+                        expression="fn:concat('Basic ',base64Encode(get-property('eloqua.authHeader')))"
+                        scope="transport"/>
+            </then>
+            <else>
+                <respond/>
+                <drop/>
+            </else>
+        </filter>
+    </sequence>
+</template>

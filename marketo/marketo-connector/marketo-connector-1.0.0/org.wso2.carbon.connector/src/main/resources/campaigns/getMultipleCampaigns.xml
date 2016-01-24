@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="getMultipleCampaigns" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- Optional parameters -->
+    <parameter name="campaignIds" description="Comma separated list of campaign ids."/>
+    <parameter name="names" description="Comma separated list of campaign names."/>
+    <parameter name="programNames" description="Comma separated list of program names"/>
+    <parameter name="workspaceNames" description="Comma separated list of workspace names"/>
+    <parameter name="batchSize" description="The number of results to be returned in a single call."/>
+    <parameter name="nextPageToken" description="Used to paginate through large result sets."/>
+    <sequence>
+        <property name="uri.var.campaignIds" expression="$func:campaignIds"/>
+        <property name="uri.var.names" expression="$func:names"/>
+        <property name="uri.var.programNames" expression="$func:programNames"/>
+        <property name="uri.var.workspaceNames" expression="$func:workspaceName"/>
+        <property name="uri.var.batchSize" expression="$func:batchSize"/>
+        <property name="uri.var.nextPageToken" expression="$func:nextPageToken"/>
+        <script language="js">
+            <![CDATA[
+				var campaignIds = mc.getProperty('uri.var.campaignIds');
+				var names = mc.getProperty('uri.var.names');
+				var programNames = mc.getProperty('uri.var.programNames');
+				var workspaceNames = mc.getProperty('uri.var.workspaceNames');
+                var query="";
+                var added=0;
+                if (campaignIds != null && campaignIds != ""){
+                    var ids=campaignIds.split(',');
+                    for(var i = 0; i < ids.length; i++){
+                        query+='id='+ids[i]+'&amp;';
+                    }
+                }
+
+                if (names != null && names != ""){
+                    var nameLists=names.split(',');
+                    for(var i = 0; i < nameLists.length; i++){
+                        var name=nameLists[i];
+                        query+='name='+name+'&amp;';
+                    }
+                }
+
+                if (programNames != null && programNames != ""){
+                    var programNameLists=programNames.split(',');
+                    for(var i = 0; i < programNameLists.length; i++){
+                        var programName=nameLists[i];
+                        query+='programName='+programName+'&amp;';
+                    }
+                }
+
+                if (workspaceNames != null && workspaceNames != ""){
+                    var workspaceNameLists=workspaceNames.split(',');
+                    for(var i = 0; i < workspaceNameLists.length; i++){
+                        var workspaceName=nameLists[i];
+                        query+='workspaceName='+workspaceName+'&amp;';
+                    }
+                }
+
+                mc.setProperty('uri.var.apiParameters', query);
+			]]>
+        </script>
+        <filter xpath="(not(get-property('uri.var.batchSize') = '' or (not(string(get-property('uri.var.batchSize'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'batchSize=',get-property('uri.var.batchSize'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.nextPageToken') = '' or (not(string(get-property('uri.var.nextPageToken'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'nextPageToken=',get-property('uri.var.nextPageToken'),'&amp;')"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/campaigns.json?{+uri.var.apiParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

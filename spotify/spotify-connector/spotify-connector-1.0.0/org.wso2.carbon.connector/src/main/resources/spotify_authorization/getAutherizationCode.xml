@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~  Copyright (c) 2014-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~  WSO2 Inc. licenses this file to you under the Apache License,
+~  Version 2.0 (the "License"); you may not use this file except
+~  in compliance with the License.
+~  You may obtain a copy of the License at
+~
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied.  See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+<template name="getAutherizationCode" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- Required parameters -->
+    <parameter name="clientId"
+               description="The client ID provided to you by Spotify when you register your application"/>
+    <parameter name="responseType"
+               description="Set it to 'code'"/>
+    <parameter name="redirectUri"
+               description="The URI to redirect to after the user grants/denies permission"/>
+    <parameter name="state"
+               description="The state can be useful for correlating requests and responses"/>
+    <parameter name="scope"
+               description="If no scopes are specified, authorization will be granted only to access publicly available information"/>
+    <parameter name="showDialog"
+               description="Whether or not to force the user to approve the app again if they’ve already done so"/>
+    <sequence>
+        <property name="uri.var.clientId" expression="$func:clientId"/>
+        <property name="uri.var.responseType" expression="$func:responseType"/>
+        <property name="uri.var.redirectUri" expression="$func:redirectUri"/>
+        <property name="uri.var.state" expression="$func:state"/>
+        <property name="uri.var.scope" expression="$func:scope"/>
+        <property name="uri.var.showDialog" expression="$func:showDialog"/>
+        <filter xpath="(not(get-property('uri.var.state') = '' or (not(string(get-property('uri.var.state'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;state=',get-property('uri.var.state'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.scope') = '' or (not(string(get-property('uri.var.scope'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;scope=',get-property('uri.var.scope'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.showDialog') = '' or (not(string(get-property('uri.var.showDialog'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;show_dialog=',get-property('uri.var.showDialog'))"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="https://accounts.spotify.com/authorize/?client_id={uri.var.clientId}&amp;response_type={uri.var.responseType}&amp;redirect_uri={uri.var.redirectUri}{uri.var.apiParameters}"/>
+            </endpoint>
+        </call>
+        <filter source="$axis2:HTTP_SC" regex="[2][0][0]">
+            <then>
+                <property name="code" expression="json-eval($.code)"/>
+            </then>
+        </filter>
+    </sequence>
+</template>

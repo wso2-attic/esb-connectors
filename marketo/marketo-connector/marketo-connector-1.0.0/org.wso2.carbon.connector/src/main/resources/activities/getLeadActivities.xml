@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+<template name="getLeadActivities" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- Required parameters -->
+    <parameter name="activityTypeIds" description="Comma separated list of activity type ids."/>
+    <parameter name="nextPageToken" description="Used to paginate through large result sets."/>
+    <!-- Optional parameters -->
+    <parameter name="listId" description="The Marketo list id."/>
+    <parameter name="batchSize" description="The number of records to be returned in a single call."/>
+    <sequence>
+        <property name="uri.var.activityTypeIds" expression="$func:activityTypeIds"/>
+        <property name="uri.var.listId" expression="$func:listId"/>
+        <property name="uri.var.batchSize" expression="$func:batchSize"/>
+        <property name="uri.var.nextPageToken" expression="$func:nextPageToken"/>
+        <script language="js">
+            <![CDATA[
+                var activityTypeIds = mc.getProperty('uri.var.activityTypeIds');
+                var query="";
+                var ids=activityTypeIds.split(',');
+                for(var i = 0; i < ids.length; i++){
+                    query+='activityTypeIds='+ids[i]+'&';
+                }
+
+                mc.setProperty('uri.var.activityTypeId', query);
+            ]]>
+        </script>
+        <filter xpath="(not(get-property('uri.var.batchSize') = '' or (not(string(get-property('uri.var.batchSize'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'batchSize=',get-property('uri.var.batchSize'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.listId') = '' or (not(string(get-property('uri.var.listId'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'listId=',get-property('uri.var.listId'))"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/activities.json?{uri.var.activityTypeId}&amp;nextPageToken={+uri.var.nextPageToken}&amp;{+uri.var.apiParameters}"/>
+            </endpoint>
+        </call>
+        <filter xpath="get-property('uri.var.batchSize') = '' or (string(get-property('uri.var.batchSize')))">
+            <then>
+                <respond/>
+            </then>
+            <else>
+                <property name="nextPageToken" expression="//nextPageToken/text()" scope="default" type="STRING"/>
+                <property name="moreResult" expression="//moreResult/text()" scope="default" type="STRING"/>
+                <filter xpath="boolean(//result)">
+                    <then>
+                        <enrich>
+                            <source type="property" property="RESULTS"/>
+                            <target type="body" action="child"/>
+                        </enrich>
+                        <enrich>
+                            <source type="custom" clone="true" xpath="//result"/>
+                            <target type="property" property="RESULTS"/>
+                        </enrich>
+                    </then>
+                </filter>
+                <filter xpath="((get-property('moreResult') = 'true' )) and (get-property('uri.var.batchSize') = '' or (string(get-property('uri.var.batchSize'))))">
+                    <then>
+                        <header name="Authorization" expression="fn:concat('Bearer ',get-property('accessToken'))"
+                                scope="transport"/>
+                        <marketo.getLeadChanges>
+                            <listId>{get-property('uri.var.listId')}</listId>
+                            <fields>{get-property('uri.var.fields')}</fields>
+                            <batchSize>{get-property('uri.var.batchSize')}</batchSize>
+                            <nextPageToken>{get-property('nextPageToken')}</nextPageToken>
+                        </marketo.getLeadChanges>
+                    </then>
+                </filter>
+                <payloadFactory media-type="json">
+                    <format>
+                        $1
+                    </format>
+                    <args>
+                        <arg expression="get-property('RESULTS')"/>
+                    </args>
+                </payloadFactory>
+            </else>
+        </filter>
+    </sequence>
+</template>

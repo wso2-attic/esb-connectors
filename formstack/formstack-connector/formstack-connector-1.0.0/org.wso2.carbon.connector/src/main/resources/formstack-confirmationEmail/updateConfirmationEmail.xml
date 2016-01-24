@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: http://developers.formstack.com/v2.0/docs/confirmation-id-put -->
+<template name="updateConfirmationEmail" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="name" description="Name of the confirmation email." />
+   <parameter name="toField" description="Email field (id) on form to send email to." />
+   <parameter name="sender" description="Who the email is from." />
+   <parameter name="subject" description="The subject of the email." />
+   <parameter name="message" description="The email message in HTML." />
+   <parameter name="delay" description="Delay option (+1 day, + 1 hour, 12/23/2012, etc)" />
+   <parameter name="confirmationEmailId" description="ID of the confirmation email to be updated." />
+   <sequence>
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.toField" expression="$func:toField" />
+      <property name="uri.var.sender" expression="$func:sender" />
+      <property name="uri.var.subject" expression="$func:subject" />
+      <property name="uri.var.message" expression="$func:message" />
+      <property name="uri.var.delay" expression="$func:delay" />
+      <property name="uri.var.confirmationEmailId" expression="$func:confirmationEmailId" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "to_field": "$1",
+               "delay": "$2",
+               "sender": "$3",
+               "subject": "$4",
+               "name": "$5"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.toField')" />
+            <arg expression="get-property('uri.var.delay')" />
+            <arg expression="get-property('uri.var.sender')" />
+            <arg expression="get-property('uri.var.subject')" />
+            <arg expression="get-property('uri.var.name')" />
+         </args>
+      </payloadFactory>
+      <!-- Script Mediator is used to add HTML content to the JSON payload. -->
+      <script language="js">
+         <![CDATA[
+            var message = mc.getProperty('uri.var.message');            
+            if(message != null && message != ''){
+               var payload = mc.getPayloadJSON();
+               payload.message = message;
+               mc.setPayloadJSON(payload);
+            }
+         ]]>         
+      </script>
+      <call>
+         <endpoint>
+            <http method="put" uri-template="{+uri.var.apiUrl}/confirmation/{+uri.var.confirmationEmailId}.{+uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Robots-Tag" action="remove" scope="transport" />
+      <header name="P3P" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+   </sequence>
+</template>

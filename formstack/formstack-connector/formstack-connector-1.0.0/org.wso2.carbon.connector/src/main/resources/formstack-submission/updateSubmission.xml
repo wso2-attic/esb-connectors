@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: http://developers.formstack.com/v2.0/docs/submission-id-put -->
+<template name="updateSubmission" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="submissionId" description="ID of the submission to update." />
+   <parameter name="timestamp"
+      description="The time that should be recorded for the submission. YYYY-MM-DD HH:mm:SS format is expected." />
+   <parameter name="userAgent" description="Browser user agent value that should be recorded for the submission." />
+   <parameter name="remoteAddress" description="IP address that should be recorded for the submission." />
+   <parameter name="paymentStatus" description="Status of a payment integration." />
+   <parameter name="fields" description="Value that should be stored for a specific field on the form." />
+   <parameter name="read" description="Flag to mark the submission as read." />
+   <sequence>
+      <property name="uri.var.submissionId" expression="$func:submissionId" />
+      <property name="uri.var.timestamp" expression="$func:timestamp" />
+      <property name="uri.var.userAgent" expression="$func:userAgent" />
+      <property name="uri.var.remoteAddress" expression="$func:remoteAddress" />
+      <property name="uri.var.paymentStatus" expression="$func:paymentStatus" />
+      <property name="uri.var.fields" expression="$func:fields" />
+      <property name="uri.var.read" expression="$func:read" />
+      <script language="js">
+         <![CDATA[
+            var jsonPayload = new Object();
+            var fields = mc.getProperty('uri.var.fields');
+            var paymentStatus = mc.getProperty('uri.var.paymentStatus');
+            var read = mc.getProperty('uri.var.read');
+            var remoteAddress = mc.getProperty('uri.var.remoteAddress');
+            var timestamp = mc.getProperty('uri.var.timestamp');
+            var userAgent = mc.getProperty('uri.var.userAgent');
+            // Field IDs and values are be extracted from the Array and added to JSON payload.
+            if (fields != null && fields != ""){
+               fields = eval("(" + fields + ")");
+               for(var i=0; i<fields.length; i++){
+                  var fieldId = 'field_' + fields[i].fieldId;
+                  var value = fields[i].value;
+                  jsonPayload[fieldId] = value;
+               }               
+            }            
+            if (paymentStatus != null && paymentStatus != ""){
+               jsonPayload.payment_status = paymentStatus;
+            }            
+            if (read != null && read != ""){
+               jsonPayload.read = eval("(" + read + ")");
+            }            
+            if (remoteAddress != null && remoteAddress != ""){
+               jsonPayload.remote_addr = remoteAddress;
+            }            
+            if (timestamp != null && timestamp != ""){
+               jsonPayload.timestamp = timestamp;
+            }            
+            if (userAgent != null && userAgent != ""){
+               jsonPayload.user_agent = userAgent;
+            }            
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="put" uri-template="{+uri.var.apiUrl}/submission/{+uri.var.submissionId}.{+uri.var.format}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Robots-Tag" action="remove" scope="transport" />
+      <header name="P3P" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+   </sequence>
+</template>

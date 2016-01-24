@@ -5,17 +5,17 @@ Product: Integration tests for WSO2 ESB CleverTim connector
     - Maven 3.x
     - Java 1.6 or above
 	- The org.wso2.esb.integration.integration-base project is required. The test suite has been configured to download this project automatically. If the automatic download fails, download the following project and compile it using the mvn clean install command to update your local repository:
-      https://github.com/wso2-dev/esb-connectors/tree/master/integration-base
+            https://github.com/wso2/esb-connectors/tree/master/integration-base-1.0.1
 
     Tested Platforms: 
 
     - Microsoft WINDOWS V-7
     - Ubuntu 13.04
-    - WSO2 ESB 4.8.1
+    - Mac OSx 10.9
+    - WSO2 ESB 4.9.0-ALPHA
  
 Steps to follow in setting integration test.
- 1.  Download ESB 4.8.1 from official website.
- 2.  Deploy relevant patches, if applicable.
+ 1.  Download ESB 4.9.0-ALPHA by following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/.
 
 STEPS:
 
@@ -50,7 +50,7 @@ STEPS:
 	<messageBuilder contentType="text/html"                                
 					  class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 	
- 3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{CLEVERTIM_CONNECTOR_HOME}/clevertim-connector/clevertim-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 3. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
 	
  4. Create a CleverTim account and derive the API key:
 	i) 	 Using the URL "http://www.clevertim.com/en/" create a Clevertim Premium Free Trial account.
@@ -72,7 +72,10 @@ STEPS:
 	xii)	taskLocation - Provide a preferred location for a task. Use a string other than 'Colombo'.
 	xiii)	companyName - Provide a preferred name for the Company.
 
- 6. Navigate to "{CLEVERTIM_CONNECTOR_HOME}/clevertim-connector/clevertim-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+6. Make sure that the billiving connector is set as a module in esb-connectors parent pom.
+        <module>clevertimcrm/clevertimcrm-connector/clevertimcrm-connector-1.0.0/org.wso2.carbon.connector</module>
+
+7. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
       $ mvn clean install
 
  NOTE : 

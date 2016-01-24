@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ ~  Copyright (c) 2009-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ ~
+ ~  WSO2 Inc. licenses this file to you under the Apache License,
+ ~  Version 2.0 (the "License"); you may not use this file except
+ ~  in compliance with the License.
+ ~  You may obtain a copy of the License at
+ ~
+ ~    http://www.apache.org/licenses/LICENSE-2.0
+ ~
+ ~  Unless required by applicable law or agreed to in writing,
+ ~  software distributed under the License is distributed on an
+ ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ ~  KIND, either express or implied.  See the License for the
+ ~  specific language governing permissions and limitations
+ ~  under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="createPost">
+    <!--Mandatory Parameter-->
+    <parameter name="title" description="The post title (html)"/>
+    <!--Optional Request Parameters-->
+    <parameter name="date" description="The post's creation time"/>
+    <parameter name="content" description="The post content (html)"/>
+    <parameter name="excerpt" description="The post excerpt (html).excerpt is a summary of the post"/>
+    <parameter name="slug" description="The name slug for the post, used in URLs"/>
+    <parameter name="author" description="The username or ID for the user to assign the post to"/>
+    <parameter name="publicize"
+               description="True or false if the post be publicized to external services. An array of services if we only want to publicize to a select few. Defaults to true"/>
+    <parameter name="publicize_message" description="Custom message to be publicized to external services"/>
+    <parameter name="status" description="The status of the project ( publish | private | draft | pending )"/>
+    <parameter name="password"
+               description="The plaintext password protecting the post, or, more likely, the empty string if the post is not password protected"/>
+    <parameter name="parent" description="The post ID of the new post's parent"/>
+    <parameter name="type"
+               description="The post type. Defaults to 'post'. Post types besides post and page need to be whitelisted using the rest_api_allowed_post_types filter"/>
+    <parameter name="categories" description="Comma separated list or array of categories (name or id)"/>
+    <parameter name="tags" description="Comma separated list or array of tags (name or id)"/>
+    <parameter name="format"
+               description=" (standard | aside | chat | gallery | link | image | quote | status | video | audio) "/>
+    <parameter name="featured_image"
+               description="The post ID of an existing attachment to set as the featured image. Pass an empty string to delete the existing image "/>
+    <parameter name="comments_open"
+               description="Should the post be open to comments? Defaults to the blog's preference."/>
+    <parameter name="pings_open" description="Should the post be open to comments? Defaults to the blog's preference"/>
+    <parameter name="likes_enabled" description="Should the post be open to likes? Defaults to the blog's preference"/>
+    <parameter name="sharing_enabled" description="Should sharing buttons show on this post? Defaults to true"/>
+    <parameter name="gplusauthorship_enabled"
+               description="Should a Google+ account be associated with this post? Defaults to true"/>
+    <!--Optional Query Parameters-->
+    <parameter name="http_envelope"
+               description="Set HTTP status code to always be 200. The JSON response is wrapped in an 'envelope' containing the 'real' HTTP status code and headers.default(false)"/>
+    <parameter name="pretty" description="if true Output pretty JSON.default(false)"/>
+    <parameter name="meta" description="Loads data from the endpoints found in the 'meta' part of the response"/>
+    <parameter name="fields" description="Return only the specified fields"/>
+    <sequence>
+        <property name="uri.var.date" expression="$func:date"/>
+        <property name="uri.var.title" expression="$func:title"/>
+        <property name="uri.var.content" expression="$func:content"/>
+        <property name="uri.var.excerpt" expression="$func:excerpt"/>
+        <property name="uri.var.slug" expression="$func:slug"/>
+        <property name="uri.var.author" expression="$func:author"/>
+        <property name="uri.var.publicize" expression="$func:publicize"/>
+        <property name="uri.var.publicize_message" expression="$func:publicize_message"/>
+        <property name="uri.var.status" expression="$func:status"/>
+        <property name="uri.var.password" expression="$func:password"/>
+        <property name="uri.var.type" expression="$func:type"/>
+        <property name="uri.var.categories" expression="$func:categories"/>
+        <property name="uri.var.tags" expression="$func:tags"/>
+        <property name="uri.var.format" expression="$func:format"/>
+        <property name="uri.var.featured_image" expression="$func:featured_image"/>
+        <property name="uri.var.comments_open" expression="$func:comments_open"/>
+        <property name="uri.var.pings_open" expression="$func:pings_open"/>
+        <property name="uri.var.likes_enabled" expression="$func:likes_enabled"/>
+        <property name="uri.var.sharing_enabled" expression="$func:sharing_enabled"/>
+        <property name="uri.var.gplusauthorship_enabled" expression="$func:gplusauthorship_enabled"/>
+        <!--Optional body parameter with type integer -->
+        <filter source="boolean($func:parent)" regex="true">
+            <then>
+                <property name="uri.var.parent" expression="$func:parent" type="INTEGER"/>
+            </then>
+        </filter>
+        <!--Optional Query Parameters-->
+        <property name="uri.var.http_envelope" expression="$func:http_envelope"/>
+        <property name="uri.var.pretty" expression="$func:pretty"/>
+        <property name="uri.var.meta" expression="$func:meta"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <filter
+                xpath="(not(get-property('uri.var.http_envelope') = '' or (not(boolean(get-property('uri.var.http_envelope'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'http_envelope=',get-property('uri.var.http_envelope'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.pretty') = '' or (not(boolean(get-property('uri.var.pretty'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'pretty=',get-property('uri.var.pretty'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.meta') = '' or (not(string(get-property('uri.var.meta'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'meta=',get-property('uri.var.meta'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter
+                xpath="(not(get-property('uri.var.fields') = '' or (not(string(get-property('uri.var.fields'))))))">
+            <then>
+                <property name="uri.var.queryParameters"
+                          expression="fn:concat(get-property('uri.var.queryParameters'),'fields=',get-property('uri.var.fields'),'&amp;')"/>
+            </then>
+        </filter>
+        <!-- Building request with mandatory params -->
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "title": "$1"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.title')"/>
+            </args>
+        </payloadFactory>
+        <script language="js"><![CDATA[
+
+			var date=mc.getProperty('uri.var.date');
+			var content=mc.getProperty('uri.var.content');
+			var excerpt=mc.getProperty('uri.var.excerpt');
+			var slug=mc.getProperty('uri.var.slug');
+			var author=mc.getProperty('uri.var.author');
+			var publicize=mc.getProperty('uri.var.publicize');
+			var publicize_message=mc.getProperty('uri.var.publicize_message');
+			var status=mc.getProperty('uri.var.status');
+			var password=mc.getProperty('uri.var.password');
+			var parent=mc.getProperty('uri.var.parent');
+			var type=mc.getProperty('uri.var.type');
+			var categories=mc.getProperty('uri.var.categories');
+			var tags=mc.getProperty('uri.var.tags');
+			var format=mc.getProperty('uri.var.format');
+			var featured_image=mc.getProperty('uri.var.featured_image');
+			var comments_open=mc.getProperty('uri.var.comments_open');
+			var pings_open=mc.getProperty('uri.var.pings_open');
+			var likes_enabled=mc.getProperty('uri.var.likes_enabled');
+			var sharing_enabled=mc.getProperty('uri.var.sharing_enabled');
+			var gplusauthorship_enabled=mc.getProperty('uri.var.gplusauthorship_enabled');
+
+			payload = mc.getPayloadJSON();
+
+			if(date != null && date != ""){
+				payload.date = date;
+			}
+
+			if(content != null && content != ""){
+				payload.content = content;
+			}
+
+			if(excerpt != null && excerpt != ""){
+				payload.excerpt=excerpt;
+			}
+
+			if(slug != null && slug != ""){
+				payload.slug=slug;
+			}
+
+	        if(author != null && author != ""){
+				payload.slug=author;
+			}
+
+			if(publicize != null && publicize != ""){
+				payload.publicize=publicize;
+			}
+
+			if(publicize_message != null && publicize_message != ""){
+				payload.publicize_message=publicize_message;
+			}
+
+			if(status != null && status != ""){
+				payload.status=status;
+			}
+
+			if(password != null && password != ""){
+				payload.password=password;
+			}
+
+			if(parent != null && parent != ""){
+				payload.parent=parent;
+			}
+
+			if(type != null && type != ""){
+				payload.type=type;
+			}
+
+			if(categories != null && categories != ""){
+				payload.categories=categories;
+			}
+
+			if(tags != null && tags != ""){
+				payload.tags=tags;
+			}
+
+			if(format != null && format != ""){
+				payload.format=format;
+			}
+
+			if(featured_image != null && featured_image != ""){
+				payload.featured_image=featured_image;
+			}
+
+
+            if(comments_open != null && comments_open != ""){
+				payload.comments_open=comments_open;
+			}
+
+
+            if(pings_open != null && pings_open != ""){
+				payload.pings_open=pings_open;
+			}
+
+
+            if(likes_enabled != null && likes_enabled != ""){
+				payload.likes_enabled=likes_enabled;
+			}
+
+			if(sharing_enabled != null && sharing_enabled != ""){
+				payload.sharing_enabled=sharing_enabled;
+			}
+
+			if(gplusauthorship_enabled != null && gplusauthorship_enabled != ""){
+				payload.gplusauthorship_enabled=gplusauthorship_enabled;
+			}
+
+
+
+
+           mc.setPayloadJSON(payload);
+         ]]></script>
+        <property name="messageType" scope="axis2" value="application/x-www-form-urlencoded"/>
+        <property name="uri.var.wp_resource_uri"
+                  expression="fn:concat('https://public-api.wordpress.com/rest/v1/sites/',get-property('uri.var.wp_site_domain'),'/posts/new')"/>
+        <call>
+            <endpoint>
+                <http method="POST" uri-template="{uri.var.wp_resource_uri}?{+uri.var.queryParameters}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response's custom header information -->
+        <header name="X-Prefork" scope="transport" action="remove"/>
+        <header name="X-hacker" scope="transport" action="remove"/>
+    </sequence>
+</template>

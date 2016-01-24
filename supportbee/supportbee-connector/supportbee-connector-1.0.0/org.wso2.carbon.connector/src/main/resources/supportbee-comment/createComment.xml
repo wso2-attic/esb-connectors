@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developers.supportbee.com/api#create_comment -->
+<template name="createComment" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="ticketId" description="ID of the ticket to which the comment would be added." />
+   <parameter name="html" description="HTML content of the comment." />
+   <parameter name="text" description="Text content of the comment." />
+   <parameter name="attachmentIds" description="Attachments to be added to the comment." />
+   <sequence>
+      <property name="uri.var.ticketId" expression="$func:ticketId" />
+      <property name="uri.var.html" expression="$func:html" />
+      <property name="uri.var.text" expression="$func:text" />
+      <property name="uri.var.attachmentIds" expression="$func:attachmentIds" />
+      <filter source="boolean(get-property('uri.var.attachmentIds'))" regex="false">
+         <then>
+            <property name="uri.var.attachmentIds" value="[]" />
+         </then>
+      </filter>
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "comment": {
+                    "content": {
+                        "attachment_ids": $1,
+                        "text": "$2"
+                    }
+                }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.attachmentIds')" />
+            <arg expression="get-property('uri.var.text')" />
+         </args>
+      </payloadFactory>
+      <!-- Script Mediator is used to add HTML content to the JSON payload. -->
+      <script language="js">
+         <![CDATA[
+            var html = mc.getProperty('uri.var.html');            
+            if(html != null && html != ''){
+               var payload = mc.getPayloadJSON();
+               payload.comment.content.html = html;
+               mc.setPayloadJSON(payload);
+            }
+         ]]>         
+      </script>
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/tickets/{+uri.var.ticketId}/comments{+uri.var.authToken}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="X-Rack-Cache" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="X-Runtime" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="Status" action="remove" scope="transport" />
+   </sequence>
+</template>

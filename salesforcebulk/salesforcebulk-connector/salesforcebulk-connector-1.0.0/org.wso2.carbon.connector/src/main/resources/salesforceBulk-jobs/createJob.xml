@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_quickstart_create_job.htm -->
+<template name="createJob" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="operation" description="The processing operation for batches in the job." />
+   <parameter name="object" description="The object type for the data being processed." />
+   <parameter name="contentType" description="The content type for the job." />
+   <sequence>
+      <property name="uri.var.operation" expression="$func:operation" />
+      <property name="uri.var.object" expression="$func:object" />
+      <property name="uri.var.contentType" expression="$func:contentType" />
+      <payloadFactory media-type="xml">
+         <format>
+            <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload">
+               <operation>$1</operation>
+               <object>$2</object>
+            </jobInfo>
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.operation')" />
+            <arg expression="get-property('uri.var.object')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+        <![CDATA[
+           payload = mc.getPayloadXML();
+           var contentType=mc.getProperty('uri.var.contentType');
+           if (contentType != null && contentType != "") {
+              payload.jobInfo+=<contentType xmlns="http://www.force.com/2009/06/asyncapi/dataload">{contentType}</contentType>;
+           } 
+           mc.setPayloadXML(payload);
+        ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/job" />
+         </endpoint>
+      </call>
+      <property name="uri.var.statusCode" expression="$axis2:HTTP_SC" />
+      <property name="uri.var.exceptionCode" expression="//*[local-name()='exceptionCode']/text()"/>
+      <!-- If the call fails with 400 Bad Request and the exception code is 'InvalidSessionId,', then get a new access token by calling getAccessToken method. -->
+      <filter xpath="get-property('uri.var.statusCode') = 400 and get-property('uri.var.exceptionCode')='InvalidSessionId' and get-property('uri.var.refreshTokenNegotiated') = 'false'">
+         <then>
+            <salesforcebulk.getAccessTokenByRefreshToken />
+            <header name="X-SFDC-Session" expression="get-property('uri.var.accessToken')" scope="transport" />
+            <salesforcebulk.createJob />
+         </then>
+      </filter>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Cache-Control" action="remove" scope="transport" />
+   </sequence>
+</template>

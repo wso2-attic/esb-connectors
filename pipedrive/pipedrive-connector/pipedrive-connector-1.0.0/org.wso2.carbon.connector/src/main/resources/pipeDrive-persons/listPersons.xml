@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Document URL https://developers.pipedrive.com/v1 -->
+<template name="listPersons" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="prettyOutput" description="If the prettyOutput is specified as 1, will return an indented response of the output." />
+   <parameter name="fields" description="The array of fileds to be returned in the output." />
+   <parameter name="filterId" description="The unique identifier of the filter to be used." />
+   <parameter name="start" description="The start of the pagination." />
+   <parameter name="limit" description="The number of items shown per page." />
+   <parameter name="sort"
+      description="The field names and sorting mode separated by comma(E.g.field_name_1 ASC, field_name_2 DESC)." />
+   <sequence>
+      <property name="uri.var.prettyOutput" expression="$func:prettyOutput" />
+      <property name="uri.var.fields" expression="$func:fields" />
+      <property name="uri.var.filterId" expression="$func:filterId" />
+      <property name="uri.var.start" expression="$func:start" />
+      <property name="uri.var.limit" expression="$func:limit" />
+      <property name="uri.var.sort" expression="$func:sort" />
+      <script language="js">
+         <![CDATA[
+            var urlQuery = mc.getProperty('uri.var.urlQuery');
+            var prettyOutPut = mc.getProperty('uri.var.prettyOutput');
+            var fields = mc.getProperty('uri.var.fields');
+            var start = mc.getProperty('uri.var.start');
+            var filterId = mc.getProperty('uri.var.filterId');
+            var limit = mc.getProperty('uri.var.limit');
+            var sort = mc.getProperty('uri.var.sort');
+            if (prettyOutPut != null && prettyOutPut != '') {
+               urlQuery += '&pretty_output=' + prettyOutPut;
+            }
+            if (start != null && start != '') {
+               urlQuery += '&start=' + start;
+            }
+            if (filterId != null && filterId != '') {
+               urlQuery += '&filter_id=' + filterId ;
+            }
+            if (limit != null && limit != '') {
+               urlQuery += '&limit=' + limit;
+            }
+            if (sort != null && sort != "") {
+               var sortFieldsList = '';
+               var sortFieldsArray = eval('(' + sort + ')');
+               for (var i = 0; i < sortFieldsArray.length; i++) {
+                        sortFieldsList += sortFieldsArray[i] + ',';
+               }
+               if (sortFieldsList != '') {
+                  //Remove unwanted comma at the end
+                  sortFieldsList = sortFieldsList.substring(0, sortFieldsList.length - 1);
+                  urlQuery += '&sort=' + sortFieldsList;
+               }
+            }
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+            if (fields != null && fields != "") {
+               var fieldsList = '';
+               var fieldsArray = eval('(' + fields + ')');
+               for (var i = 0; i < fieldsArray.length; i++) {
+                  fieldsList += fieldsArray[i] + ',';
+               }
+               if (fieldsList != '') {
+                  //Remove unwanted comma at the end
+                  fieldsList = ':(' + fieldsList.substring(0, fieldsList.length - 1) + ')';
+                  mc.setProperty('uri.var.filter', fieldsList);
+               }
+            }
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}persons{+uri.var.filter}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Frame-Options" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="X-XSS-Protection" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+   </sequence>
+</template>

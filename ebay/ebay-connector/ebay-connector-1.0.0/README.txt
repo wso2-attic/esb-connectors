@@ -10,8 +10,8 @@ Pre-requisites:
 Tested Platform: 
 
  - Microsoft WINDOWS V-7
- - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - UBUNTU 14.04
+ - WSO2 ESB 4.9.0-Alpha
 
  Note:
 	This test suite can be executed based on two scenarios.
@@ -23,11 +23,11 @@ Tested Platform:
  
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.8.1 from official website.
+ 1. Download ESB 4.9.0-Alpha from official website.
  
  2. Deploy relevant patches, if applicable.
  
- 3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Ebay_Connector_Home}/ebay-connector/ebay-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 3. Compress modified ESB as wso2esb-4.9.0-Alpha.zip and copy that zip file in to location "{Ebay_Connector_Home}/ebay-connector/ebay-connector-1.0.0/org.wso2.carbon.connector/repository/".
 
  4. Prerequisites for eBay Connector Integration Testing.
 
@@ -58,8 +58,11 @@ Steps to follow in setting integration test.
 	xiv)	userId							- eBay sanbox account Id (e.g.: testuser_username).
 	xv)		addItemTitleForSalesListing 	- Title for secondary item in Promotional Sales Listings.
 
- 6. Navigate to "{Ebay_Connector_Home}/ebay-connector/ebay-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+ 6. Make sure that the Ebay connector is set as a module in esb-connectors parent pom.
+         <module>ebay/ebay-connector/ebay-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 7. Navigate to "{ESB_Connector_Home}/" and run the following command.
+       $ mvn clean install
 
 
  NOTE : Following are the credentials for the eBay developer account used for integration tests.

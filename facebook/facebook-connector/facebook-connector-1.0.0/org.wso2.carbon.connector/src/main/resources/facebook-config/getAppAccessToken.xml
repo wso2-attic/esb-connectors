@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied.  See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+<template name="getAppAccessToken" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="apiUrl" description="Url of Facebook"/>
+    <parameter name="clientId" description="App Id of the relevent application"/>
+    <parameter name="clientSecret" description="App Secret of the relevent application"/>
+    <sequence>
+        <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
+        <property name="uri.var.clientId" expression="$func:clientId"/>
+        <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/oauth/access_token?client_id={uri.var.clientId}&amp;client_secret={uri.var.clientSecret}&amp;grant_type=client_credentials"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-FB-Debug" scope="transport" action="remove"/>
+        <header name="X-FB-Rev" scope="transport" action="remove"/>
+        <header name="WWW-Authenticate" scope="transport" action="remove"/>
+        <!-- Creating response payload manually -->
+        <filter source="$axis2:HTTP_SC" regex="[2][\d][\d]">
+            <then>
+                <property name="response" expression="json-eval($.text)"/>
+                <script language="js"><![CDATA[
+                    var message=mc.getProperty('response');
+                    var arr=message.split('=');
+                    mc.setProperty('token', arr[1]);
+                 ]]></script>
+                <payloadFactory media-type="json">
+                    <format>
+                        {
+                        "access_token":"$1"
+                        }
+                    </format>
+                    <args>
+                        <arg expression="get-property('token')"/>
+                    </args>
+                </payloadFactory>
+                <property name="messageType" value="application/json" scope="axis2"/>
+            </then>
+        </filter>
+    </sequence>
+</template>

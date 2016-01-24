@@ -44,7 +44,7 @@ Steps to follow in setting integration test.
             <messageBuilder contentType="image/png" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
 
- 6.  Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{REDMINE_CONNECTOR_HOME}/redmine-connector/redmine-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 6.  Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/".
 
          
  7.  Prerequisites for Redmine Connector Integration Testing
@@ -103,8 +103,12 @@ Steps to follow in setting integration test.
 
         22)   comments is a short description for the time entry.
 
-8.  Navigate to "{REDMINE_CONNECTOR_HOME}/redmine-connector/redmine-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-     $ mvn clean install
+8.  Make sure that the redmine connector is set as a module in esb-connectors parent pom.
+            <module>redmine/redmine-connector/redmine-connector-1.0.0/org.wso2.carbon.connector</module>
+
+
+9.  Navigate to "{ESB_CONNECTORS_HOME}/" and run the following command.
+          $ mvn clean install
 
    
      credential of test account:

@@ -10,13 +10,15 @@ Pre-requisites:
 Tested Platform: 
 
  - Mac OSX 10.9.2
- - WSO2 ESB 4.8.1
+ - WSO2 ESB 4.9.0-ALPHA
  
  STEPS:
 
-1. Make sure the ESB 4.8.1 zip file with latest patches available at "{PATH_TO_SOURCE_BUNDLE}/ldap-connector/ldap-connector-1.0.0/org.wso2.carbon.connector/repository/"
+1. Make sure the WSO2 ESB 4.9.0-ALPHA zip file with available at "{ESB_Connector_Home}/repository/"
 
-2. Integration Tests uses Embedded in-memory LDAP server in tests. So normally connector doesn't need an external LDAP server to run its tests. If you want to test the Connector with your LDAP server, do necessary changes to LDAP properties file at location "{PATH_TO_SOURCE_BUNDLE}/ldap-connector/ldap-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config".
+2. Integration Tests uses Embedded in-memory LDAP server in tests. So normally connector doesn't need an external LDAP server to run its tests.
+    If you want to test the Connector with your LDAP server, do necessary changes to LDAP properties file at location
+    "{ESB_Connector_Home}/ldap/ldap-connector/ldap-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config".
 
 	providerUrl - URL of you LDAP server
 	securityPrincipal - Root user DN
@@ -27,7 +29,10 @@ Tested Platform:
 	ldapPort - Port which Embedded LDAP server should be started. (Default 10389)
 	useEmbeddedLDAP - Use embedded LDAP server or outside ldap sever. If you want to use your LDAP server to test with the Connector, make this value - false
 	
-3. Navigate to "{PATH_TO_SOURCE_BUNDLE}/ldap-connector/ldap-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+3.Make sure that the ldap connector is set as a module in esb-connectors parent pom.
+        <module>ldap/ldap-connector/ldap-connector-1.0.0/org.wso2.carbon.connector</module>
+
+4. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
 
 NOTE : 

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ ~  Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ ~
+ ~  WSO2 Inc. licenses this file to you under the Apache License,
+ ~  Version 2.0 (the "License"); you may not use this file except
+ ~  in compliance with the License.
+ ~  You may obtain a copy of the License at
+ ~
+ ~    http://www.apache.org/licenses/LICENSE-2.0
+ ~
+ ~  Unless required by applicable law or agreed to in writing,
+ ~  software distributed under the License is distributed on an
+ ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ ~  KIND, either express or implied.  See the License for the
+ ~  specific language governing permissions and limitations
+ ~  under the License.
+-->
+<template name="getInfo" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="userId" description="id of the interested user"/>
+    <parameter name="format" description="response format expected"/>
+    <sequence>
+        <property name="POST_TO_URI" value="true" scope="axis2"/>
+        <property name="flickr.consumerKey" expression="get-property('flickr.oauth.consumerKey')"/>
+        <property name="flickr.method" value="flickr.people.getInfo"/>
+        <property name="flickr.format" expression="$func:format"/>
+        <property name="flickr.userId" expression="$func:userId"/>
+        <property name="flickr.parameters" expression="fn:concat(
+        'method=', get-property('flickr.method'),
+        '&amp;api_key=', get-property('flickr.oauth.consumerKey'),
+        '&amp;user_id=', get-property('flickr.userId')
+        )"/>
+        <!--Adding optional parameters.-->
+        <filter
+                xpath="(not(get-property('flickr.format') = '' or  (not(string(get-property('flickr.format'))))))">
+            <then>
+                <!--
+                default flickr response for json format is a json callback function.
+                But the ESB expect raw json. To get that we additionally set the
+                nojsoncallback=1 parameter.
+                -->
+                <filter xpath="(get-property('flickr.format') = 'json')">
+                    <then>
+                        <property name="flickr.parameters" expression="fn:concat(
+                        get-property('flickr.parameters'),
+                        '&amp;nojsoncallback=1',
+                        )"/>
+                    </then>
+                </filter>
+                <property name="flickr.parameters" expression="fn:concat(
+                get-property('flickr.parameters'),
+                '&amp;format=', get-property('flickr.format')
+                )"/>
+            </then>
+        </filter>
+        <property name="uri.var.parameters" expression="get-property('flickr.parameters')"/>
+        <property name="uri.var.apiUri" expression="get-property('flickr.apiUri')"/>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUri}?{+uri.var.parameters}"/>
+            </endpoint>
+        </call>
+        <header name="P3P" action="remove" scope="transport"/>
+    </sequence>
+</template>

@@ -1,102 +1,103 @@
-<template name="listProjectTasks" xmlns="http://ws.apache.org/ns/synapse">
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 
-	<parameter name="updatedSince" description="The updated timestamp in the form YYYY-MM-DDThh:mm:ssZ." />
-	<parameter name="createdSince" description="The created timestamp in the form YYYY-MM-DDThh:mm:ssZ." />
-	<parameter name="status" description="The status of the task backlog, todo, doing, done or closed." />
-	<parameter name="priority" description="The priority of the task." />
-	<parameter name="tag" description="The list of tags." />
-	<parameter name="externalId" description="The id of the task is referenced to." />
-	<parameter name="assignedToId" description="The id of the task is assigned to." />
-	<parameter name="page" description="Check the count for pagination." />
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
 
-	<sequence>
+   http://www.apache.org/licenses/LICENSE-2.0
 
-		<property name="uri.var.updatedSince" expression="$func:updatedSince" />
-		<property name="uri.var.createdSince" expression="$func:createdSince" />
-		<property name="uri.var.status" expression="$func:status" />
-		<property name="uri.var.priority" expression="$func:priority" />
-		<property name="uri.var.tag" expression="$func:tag" />
-		<property name="uri.var.externalId" expression="$func:externalId" />
-		<property name="uri.var.assignedToId" expression="$func:assignedToId" />
-		<property name="uri.var.page" expression="$func:page" />
-		<property name="uri.var.query" value="" />
-
-		<filter xpath="boolean(get-property('uri.var.updatedSince'))">
-			<then>
-				<property name="uri.var.query"
-					expression="fn:concat(get-property('uri.var.query'),'updated_since=',get-property('uri.var.updatedSince'),'&amp;')" />
-			</then>
-		</filter>
-
-		<filter xpath="boolean(get-property('uri.var.createdSince'))">
-			<then>
-				<property name="uri.var.query"
-					expression="fn:concat(get-property('uri.var.query'),'created_since=',get-property('uri.var.createdSince'),'&amp;')" />
-			</then>
-		</filter>
-
-		<filter xpath="boolean(get-property('uri.var.status'))">
-			<then>
-				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'status=',get-property('uri.var.status'),'&amp;')" />
-			</then>
-		</filter>
-
-		<filter xpath="boolean(get-property('uri.var.priority'))">
-			<then>
-				<property name="uri.var.query"
-					expression="fn:concat(get-property('uri.var.query'),'priority=',get-property('uri.var.priority'),'&amp;')" />
-			</then>
-		</filter>
-
-		<filter xpath="boolean(get-property('uri.var.tag'))">
-			<then>
-				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'tag=',get-property('uri.var.tag'),'&amp;')" />
-			</then>
-		</filter>
-
-		<filter xpath="boolean(get-property('uri.var.externalId'))">
-			<then>
-				<property name="uri.var.query"
-					expression="fn:concat(get-property('uri.var.query'),'external_id=',get-property('uri.var.externalId'),'&amp;')" />
-			</then>
-		</filter>
-
-		<filter xpath="boolean(get-property('uri.var.assignedToId'))">
-			<then>
-				<property name="uri.var.query"
-					expression="fn:concat(get-property('uri.var.query'),'assigned_to_id=',get-property('uri.var.assignedToId'),'&amp;')" />
-			</then>
-		</filter>
-
-		<filter xpath="boolean(get-property('uri.var.page'))">
-			<then>
-				<property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'page=',get-property('uri.var.page'),'&amp;')" />
-			</then>
-		</filter>
-
-		<filter xpath="fn:string-length(get-property('uri.var.query')) > 0">
-			<then>
-				<property name="uri.var.query"
-					expression="fn:concat('?', fn:substring(get-property('uri.var.query'), 1, fn:string-length(get-property('uri.var.query'))-1))" />
-			</then>
-		</filter>
-
-		<call>
-			<endpoint>
-				<http method="get" uri-template="{uri.var.apiUrl}/api_v2/projects/{uri.var.projectId}/tasks.json{uri.var.query}" />
-			</endpoint>
-		</call>
-
-		<!-- Remove custom Headers from the Response -->
-		<header name="Via" scope="transport" action="remove" />
-		<header name="ETag" scope="transport" action="remove" />
-		<header name="X-Runtime" scope="transport" action="remove" />
-		<header name="X-Powered-By" scope="transport" action="remove" />
-		<header name="X-Rack-Cache" scope="transport" action="remove" />
-		<header name="X-Request-Id" scope="transport" action="remove" />
-		<header name="X-Frame-Options" scope="transport" action="remove" />
-		<header name="X-UA-Compatible" scope="transport" action="remove" />
-		<header name="X-XSS-Protection" scope="transport" action="remove" />
-		<header name="X-Content-Type-Options" scope="transport" action="remove" />
-	</sequence>
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://www.bugherd.com/api_v2#api_task_list -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="listProjectTasks">
+   <parameter name="updatedSince" description="The updated timestamp in the form YYYY-MM-DDThh:mm:ssZ." />
+   <parameter name="createdSince" description="The created timestamp in the form YYYY-MM-DDThh:mm:ssZ." />
+   <parameter name="status" description="The status of the task backlog, todo, doing, done or closed." />
+   <parameter name="priority" description="The priority of the task." />
+   <parameter name="tag" description="The list of tags." />
+   <parameter name="externalId" description="The id of the task is referenced to." />
+   <parameter name="assignedToId" description="The id of the task is assigned to." />
+   <parameter name="page" description="Check the count for pagination." />
+   <sequence>
+      <property name="uri.var.updatedSince" expression="$func:updatedSince" />
+      <property name="uri.var.createdSince" expression="$func:createdSince" />
+      <property name="uri.var.status" expression="$func:status" />
+      <property name="uri.var.priority" expression="$func:priority" />
+      <property name="uri.var.tag" expression="$func:tag" />
+      <property name="uri.var.externalId" expression="$func:externalId" />
+      <property name="uri.var.assignedToId" expression="$func:assignedToId" />
+      <property name="uri.var.page" expression="$func:page" />
+      <property name="uri.var.query" value="" />
+      <filter xpath="boolean(get-property('uri.var.updatedSince'))">
+         <then>
+            <property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'updated_since=',get-property('uri.var.updatedSince'),'&amp;')" />
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.createdSince'))">
+         <then>
+            <property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'created_since=',get-property('uri.var.createdSince'),'&amp;')" />
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.status'))">
+         <then>
+            <property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'status=',get-property('uri.var.status'),'&amp;')" />
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.priority'))">
+         <then>
+            <property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'priority=',get-property('uri.var.priority'),'&amp;')" />
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.tag'))">
+         <then>
+            <property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'tag=',get-property('uri.var.tag'),'&amp;')" />
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.externalId'))">
+         <then>
+            <property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'external_id=',get-property('uri.var.externalId'),'&amp;')" />
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.assignedToId'))">
+         <then>
+            <property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'assigned_to_id=',get-property('uri.var.assignedToId'),'&amp;')" />
+         </then>
+      </filter>
+      <filter xpath="boolean(get-property('uri.var.page'))">
+         <then>
+            <property name="uri.var.query" expression="fn:concat(get-property('uri.var.query'),'page=',get-property('uri.var.page'),'&amp;')" />
+         </then>
+      </filter>
+      <filter xpath="fn:string-length(get-property('uri.var.query')) &gt; 0">
+         <then>
+            <property name="uri.var.query" expression="fn:concat('?', fn:substring(get-property('uri.var.query'), 1, fn:string-length(get-property('uri.var.query'))-1))" />
+         </then>
+      </filter>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/api_v2/projects/{+uri.var.projectId}/tasks.json{+uri.var.query}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the Response -->
+      <header name="Via" scope="transport" action="remove" />
+      <header name="ETag" scope="transport" action="remove" />
+      <header name="X-Runtime" scope="transport" action="remove" />
+      <header name="X-Powered-By" scope="transport" action="remove" />
+      <header name="X-Rack-Cache" scope="transport" action="remove" />
+      <header name="X-Request-Id" scope="transport" action="remove" />
+      <header name="X-Frame-Options" scope="transport" action="remove" />
+      <header name="X-UA-Compatible" scope="transport" action="remove" />
+      <header name="X-XSS-Protection" scope="transport" action="remove" />
+      <header name="X-Content-Type-Options" scope="transport" action="remove" />
+	  <header name="Cache-Control" scope="transport" action="remove" />
+      <header name="Status" scope="transport" action="remove" />
+   </sequence>
 </template>

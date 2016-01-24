@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied.  See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+<template name="getEventDetails" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="eventId" description="The Id of the Event"/>
+    <parameter name="userId" description="The Id of the User"/>
+    <parameter name="connection" description="The connection which belongs to an object"/>
+    <parameter name="fields" description="The fields which belongs to an object"/>
+    <sequence>
+        <property name="uri.var.eventId" expression="$func:eventId"/>
+        <property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <property name="uri.var.connection" expression="$func:connection"/>
+        <!-- Need to verify userId exsist and valid connection send by user. if
+            not request will forward to default API call -->
+        <filter
+                xpath="not(get-property('uri.var.userId') = '') and string(get-property('uri.var.userId')) and
+				not(get-property('uri.var.connection') = '') and string(get-property('uri.var.connection')) and
+				(get-property('uri.var.connection') = 'attending' or get-property('uri.var.connection') = 'maybe' or get-property('uri.var.connection') = 'declined' or get-property('uri.var.connection') = 'noreply' or get-property('uri.var.connection') = 'invited')">
+            <then>
+                <call>
+                    <endpoint>
+                        <http method="get"
+                              uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/{uri.var.eventId}/{+uri.var.connection}/{uri.var.userId}?access_token={uri.var.accessToken}&amp;fields={+uri.var.fields}"/>
+                    </endpoint>
+                </call>
+            </then>
+            <else>
+                <call>
+                    <endpoint>
+                        <http method="get"
+                              uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/{uri.var.eventId}/{+uri.var.connection}?access_token={uri.var.accessToken}&amp;fields={+uri.var.fields}"/>
+                    </endpoint>
+                </call>
+            </else>
+        </filter>
+        <!-- Remove response custom header information -->
+        <header name="X-FB-Debug" scope="transport" action="remove"/>
+        <header name="X-FB-Rev" scope="transport" action="remove"/>
+        <header name="WWW-Authenticate" scope="transport" action="remove"/>
+    </sequence>
+</template>

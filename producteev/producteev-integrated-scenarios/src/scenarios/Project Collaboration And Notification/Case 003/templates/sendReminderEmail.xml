@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template send reminder email to task assignee via Mandrill API -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="sendReminderEmail">
+
+   <!-- Mandrill related template parameters -->
+   <parameter name="mandrill.apiUrl" description="API url of Mandrill." />
+   <parameter name="mandrill.apiKey" description="Authintication Key of Mandrill." />
+   <parameter name="mandrill.fromName" description="Name of the issue assigner." />
+   <parameter name="mandrill.fromEmail" description="Email address of the issue assigner." />
+
+   <!-- Common template parameters -->
+   <parameter name="common.id" description="ID of the resource."/>
+   <parameter name="issueId" description="ID of the issue." />
+   <parameter name="issueSubject" description="Subject of the issue." />
+   <parameter name="issueDescription" description="Description of the issue." />
+   <parameter name="serviceOrProjectTitle" description="Service name or Project name of the issue related to." />
+   <parameter name="issueDeadline" description="Deadline of the issue." />
+   <parameter name="issueAssigneeEmail" description="Assignee Email of the issue." />
+   <parameter name="issueAssigneeFirstName" description="First name of the issue assignee." />
+   <parameter name="source" description="Source name of the issue (Possible values are 'Bugerd' and 'Pagerduty')." />
+   <parameter name="priorityId" description="ID of the Producteev task priority." />
+
+   <sequence>
+
+      <!-- Mandrill related template properties -->
+      <property name="mandrill.apiUrl" expression="$func:mandrill.apiUrl" />
+      <property name="mandrill.apiKey" expression="$func:mandrill.apiKey" />
+      <property name="mandrill.fromName" expression="$func:mandrill.fromName" />
+      <property name="mandrill.fromEmail" expression="$func:mandrill.fromEmail" />
+
+      <!-- Common template properties -->
+      <property name="common.id" expression="$func:common.id" />
+      <property name="issueId" expression="$func:issueId" />
+      <property name="issueSubject" expression="$func:issueSubject" />
+      <property name="issueDescription" expression="$func:issueDescription" />
+      <property name="serviceOrProjectTitle" expression="$func:serviceOrProjectTitle" />
+      <property name="issueDeadline" expression="$func:issueDeadline" />
+      <property name="issueAssigneeEmail" expression="$func:issueAssigneeEmail" />
+      <property name="issueAssigneeFirstName" expression="$func:issueAssigneeFirstName" />
+      <property name="source" expression="$func:source" />
+      <property name="priorityId" expression="$func:priorityId" />
+
+      <switch source="get-property('source')">
+         <case regex="Bugherd">
+            <property name="issueType" value="Task" />
+            <property name="issueContainer" value="Project" />
+         </case>
+         <case regex="Pagerduty">
+            <property name="issueType" value="Incident" />
+            <property name="issueContainer" value="Service" />
+         </case>
+      </switch>
+
+      <switch source="get-property('priorityId')">
+         <case regex="0">
+            <property name="priority" value="None" />
+         </case>
+         <case regex="1">
+            <property name="priority" value="Very Low" />
+         </case>
+         <case regex="2">
+            <property name="priority" value="Low" />
+         </case>
+         <case regex="3">
+            <property name="priority" value="Medium" />
+         </case>
+         <case regex="4">
+            <property name="priority" value="High" />
+         </case>
+         <case regex="5">
+            <property name="priority" value="Very High" />
+         </case>
+      </switch>
+
+
+      <!-- Send a message to the task/incident assignee via Mandrill informing the overdue task/incident. -->
+      <script language="js">
+         <![CDATA[
+            var issueSubject = mc.getProperty('issueSubject');
+            var issueDescription = mc.getProperty('issueDescription');
+            var serviceOrProjectTitle = mc.getProperty('serviceOrProjectTitle');
+            var issueDeadline = mc.getProperty('issueDeadline');
+            var issueAssigneeEmail = mc.getProperty('issueAssigneeEmail');
+            var issueAssigneeFirstName = mc.getProperty('issueAssigneeFirstName');
+            var source = mc.getProperty('source');
+            var issueType = mc.getProperty('issueType');
+            var issueContainer = mc.getProperty('issueContainer');
+            var issueId = mc.getProperty('issueId');
+            var priority=mc.getProperty('priority');
+            var fromName=mc.getProperty('mandrill.fromName');
+            
+            var to = '[{"email": "' + issueAssigneeEmail + '"}]';                                                   
+            var mailSubject = 'REMINDER: Overdue '+issueType.toLowerCase()+ ' in '+ source;                                                  
+            var mailContent = "<style>table.line, td.line {border: 1px solid #33CCFF;border-collapse: collapse;}</style><h3>Dear "+issueAssigneeFirstName+",</h3><p>There is an overdue "+issueType.toLowerCase()+" in "+source+" that is assign to you needs urgent attention."+"</p><p>Please find the details as below.</p><table class=line><tr style=background-color:#33CCFF><td class=line colspan='2'>"+issueType+" Details</td></tr><tr><td class=line>"+issueContainer+" Name</td><td class=line>"+serviceOrProjectTitle+"</td></tr><tr><td class=line style=width:100px;>"+issueType+" ID</td><td class=line style=width:300px;>"+issueId+"</td></tr><tr><td class=line style=width:100px;>"+issueType+" Subject</td><td class=line style=width:300px;>"+issueSubject+"</td></tr><tr><td class=line>"+issueType+" Description</td><td class=line>"+issueDescription+"</td></tr><tr><td class=line>"+issueType+" Priority</td><td class=line>"+priority+"</td></tr><tr><td class=line>"+issueType+" Status</td><td class=line>Open</td></tr></table><p>Kind Regards,</p><p><b>"+fromName+"</b></p>";
+            mc.setProperty('mandrill.to', to);
+            mc.setProperty('mandrill.requester.html', mailContent);
+            mc.setProperty('mandrill.subject', mailSubject);
+         ]]>
+      </script>
+
+      <property name="mandrill.html" expression="fn:concat('&lt;html&gt;', get-property('mandrill.requester.html'), '&lt;/html&gt;')" />
+
+      <mandrill.init>
+         <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+         <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+         <format>json</format>
+      </mandrill.init>
+      <mandrill.sendMessage>
+         <html>{$ctx:mandrill.html}</html>
+         <subject>{$ctx:mandrill.subject}</subject>
+         <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+         <fromName>{$ctx:mandrill.fromName}</fromName>
+         <to>{$ctx:mandrill.to}</to>
+      </mandrill.sendMessage>
+
+      <property name="mandril.sentId" expression="json-eval($.[0]._id)" />
+      
+      <property name="source.idLabel" expression="fn:concat(lower-case(get-property('source')),'_',get-property('issueType'),'Id:')"/>
+
+      <!-- Returning Success response status when the email has been sent -->
+      <filter source="boolean(get-property('mandril.sentId'))" regex="false">
+         <then>
+            <property name="id" expression="fn:concat('producteev_taskId:',get-property('common.id'),',',get-property('source.idLabel'),get-property('issueId'))" />
+            <property name="status" value="Error" />
+            <property name="message" expression="json-eval($)" />
+         </then>
+         <else>
+             <property name="id" expression="fn:concat('producteev_taskId:',get-property('common.id'),',',get-property('source.idLabel'),get-property('issueId'))" />
+            <property name="status" value="Success" />
+            <property name="message" expression="fn:concat('Assignee (',get-property('issueAssigneeEmail'),') is reminded about the overdue task successfully.')" />
+         </else>
+      </filter>
+      <call-template target="responseHandlerTemplate">
+         <with-param name="id" value="{$ctx:id}" />
+         <with-param name="activity" value="mandrill_notifyAssignee" />
+         <with-param name="status" value="{$ctx:status}" />
+         <with-param name="message" value="{$ctx:message}" />
+      </call-template>
+
+
+   </sequence>
+</template>

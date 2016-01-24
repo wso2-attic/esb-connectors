@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://docs.atlassian.com/atlassian-confluence/REST/latest/#d3e1021 -->
+<template name="getAttachment" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="id" description="A string containing the id of the attachments content container." />
+   <parameter name="expand" description="A comma separated list of properties to expand on the attachments returned." />
+   <parameter name="start" description="The index of the first item within the result set that should be returned." />
+   <parameter name="limit" description="Specifies how many items should be returned after the start index." />
+   <parameter name="fileName" description="A filter parameter to return only the Attachment with the matching file name." />
+   <parameter name="mediaType" description="A filter parameter to return only Attachments with a matching Media-Type." />
+   <sequence>
+      <property name="uri.var.id" expression="$func:id" />
+      <property name="uri.var.expand" expression="$func:expand" />
+      <property name="uri.var.start" expression="$func:start" />
+      <property name="uri.var.limit" expression="$func:limit" />
+      <property name="uri.var.fileName" expression="$func:fileName" />
+      <property name="uri.var.mediaType" expression="$func:mediaType" />
+      <script language="js">
+         <![CDATA[
+            var expand = mc.getProperty('uri.var.expand');
+            var start = mc.getProperty('uri.var.start');
+            var limit = mc.getProperty('uri.var.limit');
+            var fileName = mc.getProperty('uri.var.fileName');
+            var mediaType = mc.getProperty('uri.var.mediaType');            
+            var urlQuery = '';            
+            if (expand != null && expand != ""){
+               urlQuery += 'expand=' + expand + '&';
+            }
+            if (start != null && start != ""){
+               urlQuery += 'start=' + start + '&';
+            }
+            if (limit != null && limit != ""){
+               urlQuery += 'limit=' + limit + '&';
+            }
+            if (fileName != null && fileName != ""){
+               urlQuery += 'filename=' + fileName + '&';
+            }
+            if (mediaType != null && mediaType != ""){
+               urlQuery += 'mediaType=' + mediaType + '&';
+            }
+            if (urlQuery != null && urlQuery != ""){
+               urlQuery = '?' + urlQuery;
+               // Remove the trailing '&'
+               urlQuery = urlQuery.substring(0, urlQuery.length - 1);
+            }     
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/content/{+uri.var.id}/child/attachment{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom headers from the API response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-ASEN" action="remove" scope="transport" />
+      <header name="X-AUSERNAME" action="remove" scope="transport" />
+      <header name="X-Seraph-LoginReason" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Accel-Buffering" action="remove" scope="transport" />
+      <header name="Content-Security-Policy" action="remove" scope="transport" />
+   </sequence>
+</template>

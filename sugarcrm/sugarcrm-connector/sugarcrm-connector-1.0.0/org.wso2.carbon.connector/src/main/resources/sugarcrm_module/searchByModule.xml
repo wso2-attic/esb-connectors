@@ -1,0 +1,77 @@
+<template name="searchByModule" xmlns="http://ws.apache.org/ns/synapse">
+
+	<!-- Fields required by the method -->
+	<parameter name="appUri" description="URL of the SugarCRM API" />
+	<parameter name="userName" description="The name of the user" />
+	<parameter name="password" description="The MD5 coded password" />
+	<parameter name="searchString" description="The string to search for" />
+	<parameter name="modules" description="The list of modules to query" />
+	<parameter name="offset" description="Offset value" />
+	<parameter name="maxResults" description="Maxium Results need to retrive" />
+
+	<sequence>
+
+		<property name="uri.var.sugarCRMurl" expression="$func:appUri" />
+		<property name="uri.var.userName" expression="$func:userName" />
+		<property name="uri.var.password" expression="$func:password" />
+		<property name="uri.var.searchString" expression="$func:searchString" />
+		<property name="uri.var.modules" expression="$func:modules" />
+		<property name="uri.var.offset" expression="$func:offset" />
+		<property name="uri.var.maxResults" expression="$func:maxResults" />
+
+		<payloadFactory>
+			<format>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+					xmlns:sug="http://www.sugarcrm.com/sugarcrm" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+					xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/">
+					<soapenv:Header />
+					<soapenv:Body>
+						<sug:search_by_module>
+							<sug:user_name>$1</sug:user_name>
+							<sug:password>$2</sug:password>
+							<sug:search_string>$3</sug:search_string>
+							$4
+							<sug:offset>$5</sug:offset>
+							<sug:max_results>$6</sug:max_results>
+						</sug:search_by_module>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</format>
+
+			<args>
+				<arg expression="get-property('uri.var.userName')" />
+				<arg expression="get-property('uri.var.password')" />
+				<arg expression="get-property('uri.var.searchString')" />
+				<arg expression="get-property('uri.var.modules')" />
+				<arg expression="get-property('uri.var.offset')" />
+				<arg expression="get-property('uri.var.maxResults')" />
+			</args>
+
+		</payloadFactory>
+
+    	<!-- Convert modules element via XSLT -->
+		<!--xslt key="SugerCRM_Converter_searchByModule.xslt" /-->
+			
+		<header name="To" expression="get-property('uri.var.sugarCRMurl')" />
+
+		<call>
+			<endpoint name="templEPTimeout" template="org.wso2.carbon.connector.sugarcrm.timeout">
+				<parameter name="timoutDuration" value="6000" />
+				<parameter name="initialDuration" value="2000" />
+				<parameter name="progressAFactor" value="2.0" />
+				<parameter name="maximumDuration" value="3000" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="X-SOAP-Server" scope="transport" action="remove" />
+		<header name="Cache-control" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Expires" scope="transport" action="remove" />
+		<header name="Set-Cookie" scope="transport" action="remove" />
+		<header name="path" scope="transport" action="remove" />
+
+
+	</sequence>
+
+</template>

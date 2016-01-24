@@ -11,10 +11,10 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - WSO2 ESB 4.9.0-ALPHA
 
 Steps to follow in setting integration test.
- 1.  Download ESB 4.8.1 from official website.
+ 1.  Download ESB 4.9.0-ALPHA from official website.
 
  2.  The ESB should be configured as below;
 	 Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
@@ -26,7 +26,7 @@ Steps to follow in setting integration test.
 
 	Note: Add the above message formatter only if it is not available in the axis configurations.
 			
- 3.  Compress modified ESB as wso2esb-4.8.1.zip with latest patches and copy that zip file in to location "{AMAZONSNS_CONNECTOR_HOME}/amazonsns-connector/amazonsns-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 3.  Compress modified ESB as wso2esb-4.9.0.zip and copy that zip file in to location "{}/repository/".
 
  
  4. Prerequisites for AmazonSNS Connector Integration Testing
@@ -38,7 +38,7 @@ Steps to follow in setting integration test.
 		Logged to AmazonSNS console https://console.aws.amazon.com/sns/home , create two new topics (e.g. Topic_A, Topic_B) and create two subscriptions (e.g. Create Subscription A with recently created Topic_A and Subscription B with recently created Topic_B) by using email protocol.
 
 		Once you create a subscription, you get a confirmation email to selected subscribed email. Open the subscription confirmation email and copy the “Token” from the “Confirm subscription” link URL.  
-		place those copied Token and topicArn values to "amazonsns" properties file in file at location "{AMAZONSNS_CONNECTOR_HOME}/amazonsns-connector/amazonsns-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+		place those copied Token and topicArn values to "amazonsns" properties file in file at location "{ESB_CONNECTORS_HOME}/amazonsns/amazonsns-connector/amazonsns-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
 	i)		subscriptionToken			- place the copied Subscription A Token.
 	ii)		subscriptionTopicArn		- place the Topic_A created TopicArn.
@@ -68,13 +68,13 @@ Steps to follow in setting integration test.
 					
 			Step 5:	Copy the token(Registration ID) from Step 3 and two platformApplicationArn values(e.g. platformApplicationArn_A and platformApplicationArn_B)
 					from Step 4 and past into "amazonsns" properties file in file at location 
-					"{AMAZONSNS_CONNECTOR_HOME}/amazonsns-connector/amazonsns-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+					"{ESB_CONNECTORS_HOME}/amazonsns-connector/amazonsns-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 					
 					i)		platformApplicationArn 		- place the copied platformApplicationArn_A value.
 					ii)		platformApplicationArnOpt 	- place the copied platformApplicationArn_B value.
 					iii)	token 						- place the token copied from Step 3.
 			
-	e)  Update the other properties in the "amazonsns" properties file at location "{AMAZONSNS_CONNECTOR_HOME}/amazonsns-connector/amazonsns-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+	e)  Update the other properties in the "amazonsns" properties file at location "{ESB_CONNECTORS_HOME}/amazonsns/amazonsns-connector/amazonsns-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
    
 	i) 		awsAccessKeyId 				- Your AWS account is identified by your Access Key ID. Use the saved Access Key ID in step b). 
 	ii) 	awsSecretAccessKey         	- Secret access key given in the account. Use the saved Secret Access Key in step b). 
@@ -84,6 +84,8 @@ Steps to follow in setting integration test.
 	vi)		message						- Message content to be used in publishing a topic. Eg. : Sample Message
 	vii)	subject						- Subject of the message to be used in publishing a topic. Eg. : Welcome!
 
- 5. Navigate to "{AMAZONSNS_CONNECTOR_HOME}/amazonsns-connector/amazonsns-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-		$ mvn clean install
-	
+ 5.Make sure that the amazonsns connector is set as a module in esb-connectors parent pom.
+            <module>/amazonsns/amazonsns-connector/amazonsns-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 6.Navigate to "<ESB_CONNECTORS_HOME>/" and run the following command.
+         $ mvn clean install

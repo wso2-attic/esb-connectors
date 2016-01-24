@@ -10,12 +10,12 @@ Pre-requisites:
 Tested Platform: 
 
  - Microsoft WINDOWS V-7
- - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - UBUNTU 14.04
+ - WSO2 ESB 4.9.0-Alpha
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{GITHUB_CONNECTOR_HOME}/github-connector/github-connector-1.0.0/org.wso2.carbon.connector/repository"
+ 1. Make sure the ESB 4.9.0-Alpha zip file with latest patches available at "{GITHUB_CONNECTOR_HOME}/github-connector/github-connector-1.0.0/org.wso2.carbon.connector/repository"
 
  2. This ESB should be configured as below;
 	In Axis configurations (/repository/conf/axis2/axis2.xml).
@@ -95,9 +95,11 @@ STEPS:
 
  Then execute "keytool -import -trustcacerts -alias root -file CERT_FILE_NAME -keystore wso2carbon.jks" in command line to import github certificate in to keystore. Give "wso2carbon" as password.
  NOTE : CERT_FILE_NAME is the file name which was extracted from github with  the extension, change it accordingly. 
-    
- 7. Navigate to "{GITHUB_CONNECTOR_HOME}/github-connector/github-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+
+ 7. Make sure that the Github connector is set as a module in esb-connectors parent pom.
+                    <module>github/github-connector/github-connector-1.0.0/org.wso2.carbon.connector/</module>
+            Navigate to "esb-connectors" and run the following command.
+            $ mvn clean install
 
  NOTE : Following Github account, can be used for run the integration tests.
     Username : wso2connector.abdera@gmail.com

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<template name="listCategory" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="category" description="Search to see if a specific Category exists rather than a list of all Categories." />
+    <sequence>
+        <property name="uri.var.category" expression="$func:category" />
+
+        <filter xpath="(not(get-property('uri.var.category') = '' or (not(string(get-property('uri.var.category'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;category=',get-property('uri.var.category'))"/>
+            </then>
+        </filter>
+
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/category/list.json?api_key={+uri.var.apiKey}&amp;api_user={+uri.var.apiUser}&amp;{+uri.var.optionalParameters}" />
+
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="X-Runtime" action="remove" scope="transport" />
+        <header name="ETag" action="remove" scope="transport" />
+        <header name="X-UA-Compatible" action="remove" scope="transport" />
+        <header name="X-Request-Id" action="remove" scope="transport" />
+        <header name="X-Rack-Cache" action="remove" scope="transport" />
+        <header name="X-Powered-By" action="remove" scope="transport" />
+
+    </sequence>
+</template>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Document URL https://developers.pipedrive.com/v1 -->
+<template name="listDealProducts" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="prettyOutput" description="If the prettyOutput is specified as 1, will return an indented response of the output." />
+   <parameter name="fields" description="The array of fileds to be returned in the output." />
+   <parameter name="id" description="The unique identifier of deal to retrieve it's attached products." />
+   <parameter name="start" description="The start of the pagination." />
+   <parameter name="limit" description="The number of items shown per page." />
+   <parameter name="includeProductData"
+      description="The includeProductData specifies whether to fetch product data along with each attached product (1) or not (0, default)." />
+   <sequence>
+      <property name="uri.var.prettyOutput" expression="$func:prettyOutput" />
+      <property name="uri.var.fields" expression="$func:fields" />
+      <property name="uri.var.id" expression="$func:id" />
+      <property name="uri.var.start" expression="$func:start" />
+      <property name="uri.var.limit" expression="$func:limit" />
+      <property name="uri.var.includeProductData" expression="$func:includeProductData" />
+      <script language="js">
+      <![CDATA[
+         var urlQuery = mc.getProperty('uri.var.urlQuery');
+         var prettyOutPut = mc.getProperty('uri.var.prettyOutput');
+         var fields = mc.getProperty('uri.var.fields');
+         var start = mc.getProperty('uri.var.start');
+         var limit = mc.getProperty('uri.var.limit');
+         var includeProductData = mc.getProperty('uri.var.includeProductData');
+         if (prettyOutPut != null && prettyOutPut != '') {
+            urlQuery += '&pretty_output=' + prettyOutPut;
+         }
+         if (start != null && start != '') {
+            urlQuery += '&start=' + start;
+         }
+         if (limit != null && limit != '') {
+            urlQuery += '&limit=' + limit;
+         }
+         if (includeProductData != null && includeProductData != '') {
+            urlQuery += '&include_product_data=' + includeProductData;
+         }
+         mc.setProperty('uri.var.urlQuery', urlQuery);
+         if (fields != null && fields != "") {
+            var fieldsList = '';
+            var fieldsArray = eval('(' + fields + ')');
+            for (var i = 0; i < fieldsArray.length; i++) {
+               fieldsList += fieldsArray[i] + ',';
+            }
+            if (fieldsList != '') {
+               //Remove unwanted comma at the end
+               fieldsList = ':(' + fieldsList.substring(0, fieldsList.length - 1) + ')';
+               mc.setProperty('uri.var.filter', fieldsList);
+            }
+         }
+      ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}deals{+uri.var.filter}/{+uri.var.id}/products{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Frame-Options" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="X-XSS-Protection" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+   </sequence>
+</template>

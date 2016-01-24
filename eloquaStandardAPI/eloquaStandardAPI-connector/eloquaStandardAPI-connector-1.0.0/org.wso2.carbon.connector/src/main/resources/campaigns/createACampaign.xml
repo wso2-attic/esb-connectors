@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+    WSO2 Inc. licenses this file to you under the Apache License,
+    Version 2.0 (the "License"); you may not use this file except
+    in compliance with the License.
+    You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+<template name="createACampaign" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="name" description="Name of the campaign to create a campaign on this name."/>
+    <parameter name="startAt" description="Date time value of the campaign start."/>
+    <parameter name="endAt" description="Date time value of the campaign end."/>
+    <parameter name="budgetedCost" description="Budgeted cost for the campaign."/>
+    <parameter name="actualCost" description="Actual cost of the campaign."/>
+    <parameter name="isMemberAllowedReEntry"
+               description="Boolean value, to set change permission to current user for this campaign."/>
+    <parameter name="fieldValues" description="The array of the custom fields."/>
+    <parameter name="elements" description="The email and segment elements for this campaign."/>
+    <parameter name="isReadOnly"
+               description="Boolean value, to set write permission to current user for this campaign."/>
+    <parameter name="campaignType" description="The type of the campaign."/>
+    <parameter name="product" description="The product of the campaign."/>
+    <parameter name="region" description="The region of the campaign."/>
+    <parameter name="crmId" description="The identifier of CRM."/>
+    <parameter name="isSyncedWithCRM" description="This indicates whether this campaign ins synced with CRM or not."/>
+    <parameter name="isIncludedInROI" description="This indicates whether this campaign ins included in ROI or not."/>
+    <sequence>
+        <property name="uri.var.elements" expression="$func:elements"/>
+        <property name="uri.var.name" expression="$func:name"/>
+        <property name="uri.var.startAt" expression="$func:startAt"/>
+        <property name="uri.var.endAt" expression="$func:endAt"/>
+        <property name="uri.var.budgetedCost" expression="$func:budgetedCost"/>
+        <property name="uri.var.actualCost" expression="$func:actualCost"/>
+        <property name="uri.var.isMemberAllowedReEntry" expression="$func:isMemberAllowedReEntry"/>
+        <property name="uri.var.fieldValues" expression="$func:fieldValues"/>
+        <property name="uri.var.isReadOnly" expression="$func:isReadOnly"/>
+        <property name="uri.var.campaignType" expression="$func:campaignType"/>
+        <property name="uri.var.product" expression="$func:product"/>
+        <property name="uri.var.region" expression="$func:region"/>
+        <property name="uri.var.crmId" expression="$func:crmId"/>
+        <property name="uri.var.isSyncedWithCRM" expression="$func:isSyncedWithCRM"/>
+        <property name="uri.var.isIncludedInROI" expression="$func:isIncludedInROI"/>
+        <script language="js">
+            <![CDATA[
+            var name = mc.getProperty('uri.var.name');
+            var encodedName = encodeURIComponent(name);
+            mc.setProperty('uri.var.name', encodedName);
+            ]]>
+        </script>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "name":"$1"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.name')"/>
+            </args>
+        </payloadFactory>
+        <script language="js">
+            <![CDATA[
+            var payload = mc.getPayloadJSON();
+            var startAt = mc.getProperty('uri.var.startAt');
+            var endAt = mc.getProperty('uri.var.endAt');
+            var budgetedCost = mc.getProperty('uri.var.budgetedCost');
+            var actualCost = mc.getProperty('uri.var.actualCost');
+            var isMemberAllowedReEntry = mc.getProperty('uri.var.isMemberAllowedReEntry');
+            var isReadOnly = mc.getProperty('uri.var.isReadOnly');
+            var campaignType = mc.getProperty('uri.var.campaignType');
+            var product = mc.getProperty('uri.var.product');
+            var region = mc.getProperty('uri.var.region');
+            var crmId = mc.getProperty('uri.var.crmId');
+            var isSyncedWithCRM = mc.getProperty('uri.var.isSyncedWithCRM');
+            var isIncludedInROI = mc.getProperty('uri.var.isIncludedInROI');
+            var elements = mc.getProperty('uri.var.elements');
+            var fieldValues = mc.getProperty('uri.var.fieldValues');
+             if(fieldValues != null && fieldValues!="" && fieldValues!="[]")
+            {
+            var testedFieldValues = new Array();
+            var txt = '{"fieldValuesList":'+fieldValues+"}";
+            var obj = eval("("+txt+")");
+            for (i = 0; i < obj.fieldValuesList.length; ++i) {
+                fieldObject = new Object();
+                fieldValueObject = new Object();
+                fieldObject = obj.fieldValuesList[i];
+                for(var key in fieldObject) {
+                    if(key == "id" && (fieldObject[key] == null || fieldObject[key]==""))
+                    {
+                    break;
+                    }
+                    if(fieldObject[key] != null && fieldObject[key]!="")
+                    {
+                    fieldValueObject[key] = fieldObject[key];
+                    }
+                }
+                testedFieldValues[i] = fieldValueObject;
+            }
+            payload["fieldValues"] = testedFieldValues;
+            }
+            if(startAt != null && startAt!="")
+            {
+            payload["startAt"] = startAt;
+            }
+            if(endAt != null && endAt!="")
+            {
+            payload["endAt"] = endAt;
+            }
+            if(budgetedCost != null && budgetedCost!="")
+            {
+            payload["budgetedCost"] = budgetedCost;
+            }
+            if(actualCost != null && actualCost!="")
+            {
+            payload["actualCost"] = actualCost;
+            }
+            if(isMemberAllowedReEntry != null && isMemberAllowedReEntry!="")
+            {
+            payload["isMemberAllowedReEntry"] = isMemberAllowedReEntry;
+            }
+            if(campaignType != null && campaignType!="")
+            {
+            payload["campaignType"] = campaignType;
+            }
+            if(product != null && product!="")
+            {
+            payload["product"] = product;
+            }
+            if(region != null && region!="")
+            {
+            payload["region"] = region;
+            }
+            if(crmId != null && crmId!="")
+            {
+            payload["crmId"] = crmId;
+            }
+            if(isSyncedWithCRM != null && isSyncedWithCRM!="")
+            {
+            payload["isSyncedWithCRM"] = isSyncedWithCRM;
+            }
+            if(isIncludedInROI != null && isIncludedInROI!="")
+            {
+            payload["isIncludedInROI"] = isIncludedInROI;
+            }
+            if(isReadOnly != null && isReadOnly!="")
+            {
+            payload["isReadOnly"] = isReadOnly;
+            }
+            if(elements != null && elements!="" && elements!="[]")
+            {
+            var allTestedElements = new Array();
+            var txt = '{"elementsList":'+elements+"}";
+            var obj = eval("("+txt+")");
+                for (i = 0; i < obj.elementsList.length; ++i) {
+                elementObject = new Object();
+                testedElementObject = new Object();
+                elementObject = obj.elementsList[i];
+                    for(var elementKey in elementObject) {
+                    var innerElementObject = new Object();
+                    innerElementObject= elementObject[elementKey];
+                        if(elementKey == "type" && (elementObject[elementKey] == null || elementObject[elementKey]==""))
+                        {
+                        allTestedElements=[];
+                        break;
+                        }
+                        else if(elementKey == "position")
+                        {
+                            var testedPosition = new Object();
+                            for(var key in innerElementObject) {
+                                if(innerElementObject[key] == null || innerElementObject[key]=="")
+                                {
+                                testedPosition=null;
+                                break;
+                                }
+                                else
+                                {
+                                testedPosition[key] = innerElementObject[key];
+                                }
+                            }
+                            if(testedPosition != null)
+                            {
+                            testedElementObject[elementKey]=testedPosition;
+                            }
+                        }
+                        else if(elementKey == "outputTerminals")
+                        {
+                            var testedOutputTerminals = new Array();
+                            for (j = 0; j < innerElementObject.length; ++j) {
+                            outputTerminalObject = new Object();
+                            outputTerminalsObject = new Object();
+                            outputTerminalObject = innerElementObject[j];
+                                for(var key in outputTerminalObject) {
+                                    if(outputTerminalObject[key] != null && outputTerminalObject[key]!="")
+                                    {
+                                    outputTerminalsObject[key] = outputTerminalObject[key];
+                                    }
+                                }
+                            testedOutputTerminals[j] = outputTerminalsObject;
+                            }
+                            testedElementObject[elementKey]=testedOutputTerminals;
+                        }
+                        else{
+                        testedElementObject[elementKey] = elementObject[elementKey];
+                        }
+                    }
+                    allTestedElements[i]=  testedElementObject;
+                }
+                payload["elements"] = allTestedElements;
+            }
+            mc.setPayloadJSON(payload);
+            ]]>
+        </script>
+        <property name="Content-Type" value="application/json" scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.apiUrl}assets/campaign"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

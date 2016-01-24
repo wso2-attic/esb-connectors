@@ -10,12 +10,12 @@ Pre-requisites:
 Tested Platform:
 
  - Microsoft WINDOWS V-7
- - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - UBUNTU 14.04
+ - WSO2 ESB 4.9.0
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches are available at "{AMAZONSIMPLEDB_CONNECTOR_HOME}/amazonsimpledb-connector/amazonsimpledb-connector-1.0.0/org.wso2.carbon.connector/repository/"
+ 1. Make sure the ESB 4.9.0 zip file with latest patches are available at "{AMAZONSIMPLEDB_CONNECTOR_HOME}/amazonsimpledb-connector/amazonsimpledb-connector-1.0.0/org.wso2.carbon.connector/repository/"
 
  2. The ESB should be configured as below;
 	Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
@@ -49,6 +49,9 @@ STEPS:
 	xiii) attributeName2 		- Name of an attribute associated with an item. Eg: name 
 	xiv) attributeValue2 		- Value of attribute associated with attributeName2. Eg: andrew 
 	
-	
- 4. Navigate to "{AMAZONSIMPLEDB_CONNECTOR_HOME}/amazonsimpledb-connector/amazonsimpledb-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+
+ 5.Make sure that the amazonsimpledb connector is set as a module in esb-connectors parent pom.
+                   <module>amazonsimpledb/amazonsimpledb-connector/amazonsimpledb-connector-1.0.0/org.wso2.carbon.connector/</module>
+
+ 6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+                   $ mvn clean install

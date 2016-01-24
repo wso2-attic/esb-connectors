@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="shareResources" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="comment" description="Text of member's comment"/>
+    <parameter name="title" description="Title of shared document"/>
+    <parameter name="submittedUrl" description="URL for shared content"/>
+    <parameter name="submittedImageUrl" description="URL for image of shared content"/>
+    <parameter name="description" description="Description of shared content"/>
+    <parameter name="code"
+               description="One of anyone: all members or connections-only: connections only"/>
+    <sequence>
+        <property name="uri.var.comment" expression="$func:comment"/>
+        <property name="uri.var.title" expression="$func:title"/>
+        <property name="uri.var.submittedUrl" expression="$func:submittedUrl"/>
+        <property name="uri.var.submittedImageUrl" expression="$func:submittedImageUrl"/>
+        <property name="uri.var.description" expression="$func:description"/>
+        <property name="uri.var.code" expression="$func:code"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "content": {
+                "title": "$2",
+                "description": "$3",
+                "submitted-url": "$4",
+                "submitted-image-url": "$5"
+                },
+                "comment": "$1",
+                "visibility": { "code": "$6" }
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.comment')"/>
+                <arg expression="get-property('uri.var.title')"/>
+                <arg expression="get-property('uri.var.description')"/>
+                <arg expression="get-property('uri.var.submittedUrl')"/>
+                <arg expression="get-property('uri.var.submittedImageUrl')"/>
+                <arg expression="get-property('uri.var.code')"/>
+            </args>
+        </payloadFactory>
+        <property name="messageType" value="application/json" scope="axis2"/>
+        <header name="x-li-format" scope="transport" value="json"/>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"></property>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="{+uri.var.apiUrl}/v1/people/~/shares?oauth2_access_token={+uri.var.accessToken}&amp;format=json"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+        <header name="P3P" scope="transport" action="remove"/>
+        <header name="Set-Cookie" scope="transport" action="remove"/>
+        <header name="Location" scope="transport" action="remove"/>
+    </sequence>
+</template>

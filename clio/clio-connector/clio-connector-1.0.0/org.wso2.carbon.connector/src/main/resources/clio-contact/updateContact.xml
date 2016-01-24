@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="updateContact" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="contactId" description="ID of the Contact to whose details should be retrieved." />
+   <parameter name="clioConnectEmail" description="Clio Connect email address if the contact is a Clio Connect user." />
+   <parameter name="addresses" description="Collection of mailing addresses." />
+   <parameter name="webSites" description="Collection of web sites of the Contact." />
+   <parameter name="instantMessengers" description="Collection of instant messengers' addresses of the Contact." />
+   <parameter name="companyName" description="Company's name (if the contact is a company)." />
+   <parameter name="firstName" description="Person's given name." />
+   <parameter name="lastName" description="Person's surname." />
+   <parameter name="title" description="Person's title." />
+   <parameter name="company" description="Company the person belongs to.." />
+   <parameter name="customFieldValues"
+      description="A polymorphic collect of custom field values set on this contact. You can get a list of custom fields from the custom fields and custom field sets end points." />
+   <parameter name="prefix" description="Person's prefix (e.g. Mr, Mrs, etc)." />
+   <parameter name="phoneNumbers" description="Collection of phone numbers. The first phone number listed is the default." />
+   <parameter name="emailAddresses" description="Collection of email addresses of the Contact." />
+   <parameter name="activity_rates" description="A collection of firm-wide and/or attorney specific rates." />
+   <sequence>
+      <property name="uri.var.contactId" expression="$func:contactId" />
+      <property name="uri.var.clioConnectEmail" expression="$func:clioConnectEmail" />
+      <property name="uri.var.addresses" expression="$func:addresses" />
+      <property name="uri.var.webSites" expression="$func:webSites" />
+      <property name="uri.var.instantMessengers" expression="$func:instantMessengers" />
+      <property name="uri.var.companyName" expression="$func:companyName" />
+      <property name="uri.var.firstName" expression="$func:firstName" />
+      <property name="uri.var.lastName" expression="$func:lastName" />
+      <property name="uri.var.title" expression="$func:title" />
+      <property name="uri.var.company" expression="$func:company" />
+      <property name="uri.var.customFieldValues" expression="$func:customFieldValues" />
+      <property name="uri.var.prefix" expression="$func:prefix" />
+      <property name="uri.var.phoneNumbers" expression="$func:phoneNumbers" />
+      <property name="uri.var.emailAddresses" expression="$func:emailAddresses" />
+      <property name="uri.var.activity_rates" expression="$func:activity_rates" />
+
+      <script language="js">
+         <![CDATA[
+            var jsonPayload = new Object();
+            
+            var activity_rates = mc.getProperty('uri.var.activity_rates');
+            var addresses = mc.getProperty('uri.var.addresses');
+            var clioConnectEmail = mc.getProperty('uri.var.clioConnectEmail');
+            var company = mc.getProperty('uri.var.company');
+            var companyName = mc.getProperty('uri.var.companyName');
+            var customFieldValues = mc.getProperty('uri.var.customFieldValues');
+            var emailAddresses = mc.getProperty('uri.var.emailAddresses');
+            var firstName = mc.getProperty('uri.var.firstName');
+            var instantMessengers = mc.getProperty('uri.var.instantMessengers');
+            var lastName = mc.getProperty('uri.var.lastName');
+            var phoneNumbers = mc.getProperty('uri.var.phoneNumbers');
+            var prefix = mc.getProperty('uri.var.prefix');
+            var title = mc.getProperty('uri.var.title');
+            var webSites = mc.getProperty('uri.var.webSites');
+            
+            var contact = new Object();
+            if (activity_rates != null && activity_rates != ""){
+               contact["activity_rates"] = eval("(" + activity_rates + ")");
+            }
+            
+            if (addresses != null && addresses != ""){
+               contact["addresses"] = eval("(" + addresses + ")");
+            }
+            
+            if (clioConnectEmail != null && clioConnectEmail != ""){
+               contact["clio_connect_email"] = clioConnectEmail;
+            }
+            
+            if (company != null && company != ""){
+               contact["company"] = company;
+            }
+            
+            if (customFieldValues != null && customFieldValues != ""){
+               contact["custom_field_values"] = eval("(" + customFieldValues + ")");
+            }
+            
+            if (emailAddresses != null && emailAddresses != ""){
+               contact["email_addresses"] = eval("(" + emailAddresses + ")");
+            }
+            
+            if (firstName != null && firstName != ""){
+               contact["first_name"] = firstName;
+            }
+            
+            if (instantMessengers != null && instantMessengers != ""){
+               contact["instant_messengers"] = eval("(" + instantMessengers + ")");
+            }
+            
+            if (lastName != null && lastName != ""){
+               contact["last_name"] = lastName;
+            }
+            
+            if (companyName != null && companyName != ""){
+               contact["name"] = companyName;
+            }
+            
+            if (phoneNumbers != null && phoneNumbers != ""){
+               contact["phone_numbers"] = eval("(" + phoneNumbers + ")");
+            }
+            
+            if (prefix != null && prefix != ""){
+               contact["prefix"] = prefix;
+            }
+            
+            if (title != null && title != ""){
+               contact["title"] = title;
+            }
+            
+            if (webSites != null && webSites != ""){
+               contact["web_sites"] = eval("(" + webSites + ")");
+            }
+            
+            jsonPayload["contact"] = contact;
+            
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+
+      <call>
+         <endpoint>
+            <http method="put" uri-template="{uri.var.apiUrl}/contacts/{uri.var.contactId}" />
+         </endpoint>
+      </call>
+
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="Status" action="remove" scope="transport" />
+
+   </sequence>
+</template>

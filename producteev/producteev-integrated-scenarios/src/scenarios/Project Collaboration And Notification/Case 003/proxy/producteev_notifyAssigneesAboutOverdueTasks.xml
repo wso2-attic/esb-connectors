@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Retrieving overdue tasks from Producteev API and notify to assignees using Mandrill API -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="producteev_notifyAssigneesAboutOverdueTasks" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!--Producteev Properties -->
+         <property name="producteev.apiUrl" value="https://www.producteev.com" />
+         <property name="producteev.accessToken" expression="json-eval($.producteev.accessToken)" />
+
+         <!--BugHerd Properties -->
+         <property name="bugherd.apiUrl" value="https://www.bugherd.com" />
+         <property name="bugherd.apiKey" expression="json-eval($.bugherd.apiKey)" />
+
+         <!-- PagerDuty Properties -->
+         <property name="pagerduty.apiUrl" expression="json-eval($.pagerduty.apiUrl)" />
+         <property name="pagerduty.apiToken" expression="json-eval($.pagerduty.apiToken)" />
+
+         <!-- Mandrill Properties -->
+         <property name="mandrill.apiUrl" value="https://mandrillapp.com" />
+         <property name="mandrill.apiKey" expression="json-eval($.mandrill.apiKey)" />
+         <property name="mandrill.fromName" expression="json-eval($.mandrill.fromName)" />
+         <property name="mandrill.fromEmail" expression="json-eval($.mandrill.fromEmail)" />
+
+
+         <!-- Calling listTasks method in Producteev API to retrieve overdue tasks -->
+         <producteev.init>
+            <apiUrl>{$ctx:producteev.apiUrl}</apiUrl>
+            <accessToken>{$ctx:producteev.accessToken}</accessToken>
+         </producteev.init>
+         <producteev.listTasks>
+            <sort>created_at</sort>
+            <alias>late</alias>
+            <order>asc</order>
+         </producteev.listTasks>
+
+         <property name="tasksStatusCode" expression="$axis2:HTTP_SC" />
+
+         <!-- Validating the listTasks response -->
+         <filter xpath="get-property('tasksStatusCode')!=200">
+            <then>
+               <property name="id" value="{}" />
+               <property name="status" value="Error" />
+               <property name="message" value="Error while retrieving tasks from Producteev API." />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="producteev_listTasks" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <property name="producteev.taskCount" expression="count(//tasks)" scope="operation" />
+               <property name="producteev.taskIndex" expression="0" scope="operation" />
+
+               <!-- Process only if overdue tasks are available -->
+               <filter xpath="get-property('operation','producteev.taskCount')=0.0">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="status" value="Skipped" />
+                     <property name="message" value="There are no any overdue task(s)." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="producteev_notifyAssigneesAboutOverdueTasks" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <!--FOR EACH tasks : BEGIN -->
+                     <iterate continueParent="true" id="tasks" expression="//tasks" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="producteev.taskId" expression="//tasks/id/text()" />
+                              <property name="producteev.taskLabel" expression="//tasks/labels[1]/title/text()" />
+                              <property name="producteev.taskTitle" expression="//tasks/title/text()" />
+                              <property name="producteev.projectTitle" expression="//tasks/project/title/text()" />
+                              <property name="producteev.taskDeadline" expression="//tasks/deadline/text()" />
+                              <property name="producteev.taskAssigneeEmail" expression="//tasks/responsibles/email/text()" />
+                              <property name="producteev.taskAssigneeFirstName" expression="//tasks/responsibles/firstname/text()" />
+                              <property name="producteev.taskCreatorEmail" expression="//tasks/creator/email/text()" />
+                              <property name="producteev.taskCreatorFirstName" expression="//tasks/creator/firstname/text()" />
+                              <property name="producteev.taskPriority" expression="//tasks/priority/text()" />
+
+                              <!-- Calling retrieveTaskDetailsFromNotes template to retrieve task details from notes -->
+                              <call-template target="retrieveTaskDetailsFromNotes">
+                                 <with-param name="producteev.apiUrl" value="{$ctx:producteev.apiUrl}" />
+                                 <with-param name="producteev.accessToken" value="{$ctx:producteev.accessToken}" />
+                                 <with-param name="producteev.taskId" value="{$ctx:producteev.taskId}" />
+                              </call-template>
+
+
+                              <property name="issueDescription" expression="get-property('producteev.taskDescription')" />
+                              <property name="issueId" expression="get-property('issueId')" />
+
+                              <switch source="get-property('producteev.taskLabel')">
+                                 <case regex="Production-Issue">
+                                    <filter source="boolean(get-property('issueId'))" regex="false">
+                                       <then>
+                                          <property name="id" expression="fn:concat('producteev_taskId:',get-property('producteev.taskId'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="activity" value="mandril_notifyAssignee" />
+                                             <with-param name="status" value="Skipped" />
+                                             <with-param name="message" value="Pagerduty incident ID not found." />
+                                          </call-template>
+
+                                       </then>
+                                       <else>
+                                          <!-- Calling sendReminderEmail template to send email notification for overdue incidents in PagerDuty API -->
+                                          <call-template target="sendReminderEmail">
+                                             <with-param name="issueSubject" value="{$ctx:producteev.taskTitle}" />
+                                             <with-param name="issueDescription" value="{$ctx:issueDescription}" />
+                                             <with-param name="serviceOrProjectTitle" value="{$ctx:producteev.projectTitle}" />
+                                             <with-param name="issueDeadline" value="{$ctx:producteev.taskDeadline}" />
+                                             <with-param name="issueAssigneeEmail" value="{$ctx:producteev.taskAssigneeEmail}" />
+                                             <with-param name="issueAssigneeFirstName" value="{$ctx:producteev.taskAssigneeFirstName}" />
+                                             <with-param name="mandrill.fromName" value="{$ctx:mandrill.fromName}" />
+                                             <with-param name="mandrill.fromEmail" value="{$ctx:mandrill.fromEmail}" />
+                                             <with-param name="source" value="Pagerduty" />
+                                             <with-param name="issueId" value="{$ctx:issueId}" />
+                                             <with-param name="priorityId" value="{$ctx:producteev.taskPriority}" />
+                                             <with-param name="common.id" value="{$ctx:producteev.taskId}" />
+                                          </call-template>
+                                       </else>
+                                    </filter>
+
+                                 </case>
+                                 <case regex="Bug">
+                                    <filter source="boolean(get-property('issueId'))" regex="false">
+                                       <then>
+                                          <property name="id" expression="fn:concat('producteev_taskId:',get-property('producteev.taskId'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="activity" value="mandrill_notifyAssignee" />
+                                             <with-param name="status" value="Skipped" />
+                                             <with-param name="message" value="Bugherd task ID not found." />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <!-- Calling sendReminderEmail template to send email notification for overdue tasks in BugHerd API -->
+                                          <call-template target="sendReminderEmail">
+                                             <with-param name="issueSubject" value="{$ctx:producteev.taskTitle}" />
+                                             <with-param name="issueDescription" value="{$ctx:issueDescription}" />
+                                             <with-param name="serviceOrProjectTitle" value="{$ctx:producteev.projectTitle}" />
+                                             <with-param name="issueDeadline" value="{$ctx:producteev.taskDeadline}" />
+                                             <with-param name="issueAssigneeEmail" value="{$ctx:producteev.taskAssigneeEmail}" />
+                                             <with-param name="issueAssigneeFirstName" value="{$ctx:producteev.taskAssigneeFirstName}" />
+                                             <with-param name="mandrill.fromName" value="{$ctx:mandrill.fromName}" />
+                                             <with-param name="mandrill.fromEmail" value="{$ctx:mandrill.fromEmail}" />
+                                             <with-param name="source" value="Bugherd" />
+                                             <with-param name="issueId" value="{$ctx:issueId}" />
+                                             <with-param name="priorityId" value="{$ctx:producteev.taskPriority}" />
+                                             <with-param name="common.id" value="{$ctx:producteev.taskId}" />
+                                          </call-template>
+                                       </else>
+                                    </filter>
+                                 </case>
+                                 <default>
+                                    <property name="id" expression="fn:concat('producteev_taskId:',get-property('producteev.taskId'))" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="activity" value="mandril_notifyAssignee" />
+                                       <with-param name="status" value="Skipped" />
+                                       <with-param name="message" value="Invalid task label value." />
+                                    </call-template>
+                                 </default>
+                              </switch>
+
+                              <property name="producteev.taskIndex" expression="get-property('operation','producteev.taskIndex')+1" scope="operation" />
+                              <filter xpath="get-property('operation','producteev.taskCount') = get-property('operation','producteev.taskIndex')">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!--FOR EACH tasks : END -->
+                  </else>
+               </filter>
+            </else>
+         </filter>
+
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"producteev_notifyAssigneesAboutOverdueTasks",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+</proxy>

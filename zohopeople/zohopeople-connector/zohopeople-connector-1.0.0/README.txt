@@ -10,19 +10,25 @@ Pre-requisites:
 Tested Platform:
 
  - Microsoft WINDOWS V-7
- - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - UBUNTU 13.04, Maven 3.x
+ - WSO2 ESB 4.9.0-ALPHA
+ - Java 1.7
 
 STEPS:
- 
+ 1.  Download ESB 4.9.0-ALPHA from official site.
+
  1. Extract the certificate from browser by navigating to "https://people.zoho.com/people/" and place the certificate file in following locations. 
 
-	i)  "<ZOHO_PEOPLE_CONNECTOR_HOME>/zohopeople-connector/zohopeople-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products"
+	i)  "<ESB_Connector_Home>/zohopeople/zohopeople-connector/zohopeople-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products"
 
 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "zohopeople"' in command line to import ZohoPeople certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from ZohoPeople with  the extension, change it accordingly. Remove the copied certificate.
 	
-	ii) "wso2esb-4.8.1/repository/resources/security"
+<<<<<<< HEAD
+	ii) "{ESB_HOME}/repository/resources/security"
+=======
+	ii) "{ESB_Connector_Home}/repository/resources/security"
+>>>>>>> upstream/master
 	
 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "zohopeople"' in command line to import ZohoPeople certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from ZohoPeople with  the extension, change it accordingly. Remove the copied certificate.
@@ -46,7 +52,7 @@ STEPS:
 	
 	Note: Add the aforementioned message formatters and the message builders to the axis file, if they are not available by default.
  
- 3. Make sure that the ESB 4.8.1 zip file with latest patches  and the changes in step 1 and 2, is available at "{ZOHO_PEOPLE_CONNECTOR_HOME}/zohopeople-connector/zohopeople-connector-1.0.0/org.wso2.carbon.connector/repository"	
+ 3.Compress the ESB and copy the wso2esb-4.9.0-ALPHA.zip file in to location "{ESB_Connector_Home}/repository/".
  
  4. Complete features of ZohoPeople API can be accessed via Zoho People Premium Edition account. Follow the below steps to create an account.
 
@@ -83,11 +89,14 @@ STEPS:
 	vii)  toLeaveDateESB    - A date string in the following format,dd-mmm-yyyy.
 	viii) fromLeaveDateAPI	- A date string in the following format,dd-mmm-yyyy. Make sure this is different to the fromLeaveDateESB given in step vi.
 	ix)   toLeaveDateAPI	- A date string in the following format,dd-mmm-yyyy. Make sure this is different to the toLeaveDateESB given in step vii.
- 
- 9. Navigate to "{ZOHO_PEOPLE_CONNECTOR_HOME}/zohopeople-connector/zohopeople-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+
+ 9. Make sure that zohopeople is specified as a module in ESB_Connector_Parent pom.
+      <module>zohopeople/zohopeople-connector/zohopeople-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 10. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
 	  
- 10. Account Details
+ 11. Account Details
 	Username: zohopeopletest2014@gmail.com
 	Password: 1qaz2wsx@
 	

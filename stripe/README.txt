@@ -3,6 +3,8 @@ Pre-requisites:
 
 - Maven 3.x
 - Java 1.6 or above
+- The org.wso2.esb.integration.integration-base project is required. The test suite has been configured to download this project automatically. If the automatic download fails, download the following project and compile it using the mvn clean install command to update your local repository:
+                 https://github.com/wso2/esb-connectors/tree/master/integration-base-1.0.1
 
 Tested Platform: 
 
@@ -12,7 +14,7 @@ Tested Platform:
 
 STEPS:
 
-1. Make sure the wso2esb-4.9.0-SNAPSHOT.zip file at "stripe/repository/".
+1. Make sure the wso2esb-4.9.0-ALPHA.zip file at "<ESB_CONNECTORS_HOME>/repository/".
         Make sure your axis2.xml contains following entries.
 
             <messageFormatter contentType="multipart/form-data" class="org.apache.axis2.transport.http.MultipartFormDataFormatter"/>
@@ -27,19 +29,7 @@ STEPS:
                  keytool -importcert -file <certificate file> -keystore <ESB>/repository/resources/security/client-truststore.jks -alias "StripeTrustCertImport"
                4. Restart the server and deploy the Stripe configuration.
 
-2. Add following code block, just after the listeners block (Remove or comment all the other test blocks) in following file - "stripe/src/test/resources/testng.xml"
-
-	<test name="Stripe-Connector-Test" preserve-order="true" verbose="2">
-        <packages>
-            <package name="org.wso2.carbon.connector.integration.test.stripe"/>
-        </packages>
-    </test> 
-
-3. Copy proxy files to following location "stripe/src/test/resources/artifacts/ESB/config/proxies/stripe/"
-
-4. Copy request files to following "stripe/src/test/resources/artifacts/ESB/config/restRequests/stripe/"
-
-5. Edit the "stripe.properties" at stripe/src/test/resources/artifacts/connector/config/ using valid and relevant data. Parameters to be changed are mentioned below.
+2. Edit the "stripe.properties" at stripe/src/test/resources/artifacts/connector/config/ using valid and relevant data. Parameters to be changed are mentioned below.
 
 	- proxyDirectoryRelativePath: relative path of the rest request files folder from target.
 	- requestDirectoryRelativePath: relative path of proxy folder from target.
@@ -48,7 +38,7 @@ STEPS:
 	- refreshToken: refresh token to get the access token.
 	- apiUrl: API URL.
 		
-6. Following data set can be used for the first testsuite run.
+3. Following data set can be used for the first testsuite run.
 
 		proxyDirectoryRelativePath=/../src/test/resources/artifacts/ESB/config/proxies/stripe/
 		requestDirectoryRelativePath=/../src/test/resources/artifacts/ESB/config/restRequests/stripe/
@@ -58,8 +48,11 @@ STEPS:
         apiUrl=https://api.stripe.com
         apiVersion=v1
 
-7. Required to change on test
+4. Required to change on test
 	change the relevant data in the corresponding text file(Text files in the rest requests folder)
 
-8. Navigate to "stripe/" and run the following command.
-     $ mvn clean install
+5. Make sure that the stripe connector is set as a module in esb-connectors parent pom.
+        <module>stripe</module>
+
+6. Navigate to "<ESB_CONNECTORS_HOME>" and run the following command.
+          $ mvn clean install

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ ~  Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ ~
+ ~  WSO2 Inc. licenses this file to you under the Apache License,
+ ~  Version 2.0 (the "License"); you may not use this file except
+ ~  in compliance with the License.
+ ~  You may obtain a copy of the License at
+ ~
+ ~    http://www.apache.org/licenses/LICENSE-2.0
+ ~
+ ~  Unless required by applicable law or agreed to in writing,
+ ~  software distributed under the License is distributed on an
+ ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ ~  KIND, either express or implied.  See the License for the
+ ~  specific language governing permissions and limitations
+ ~  under the License.
+-->
+<template xmlns="http://ws.apache.org/ns/synapse" name="getAccessToken">
+    <parameter name="clientId" description="client ID of the CodePlex app."/>
+    <parameter name="clientSecret" description="client secret of the CodePlex."/>
+    <parameter name="refreshToken" description="refresh token acquired from codeplex oauth."/>
+    <sequence>
+        <header name="Content-Type" value="application/x-www-form-urlencoded"
+                scope="transport"/>
+        <property name="messageType" value="application/x-www-form-urlencoded"
+                  scope="axis2"/>
+        <payloadFactory media-type="xml">
+            <format>
+                <xform>
+                    <client_id>$1</client_id>
+                    <client_secret>$2</client_secret>
+                    <refresh_token>$3</refresh_token>
+                    <grant_type>refresh_token</grant_type>
+                </xform>
+            </format>
+            <args>
+                <arg expression="$func:clientId"/>
+                <arg expression="$func:clientSecret"/>
+                <arg expression="$func:refreshToken"/>
+            </args>
+        </payloadFactory>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="https://www.codeplex.com/oauth/token"/>
+            </endpoint>
+        </call>
+        <!-- Check for 200 response-->
+        <filter source="$axis2:HTTP_SC" regex="[2][0][0]">
+            <then>
+                <property name="accessToken" expression="json-eval($.access_token)"/>
+                <header name="Authorization" expression="fn:concat('Bearer ',get-property('accessToken'))"
+                        scope="transport"/>
+            </then>
+        </filter>
+        <!-- Remove response custom header information -->
+        <header name="Cache-Control" scope="transport" action="remove"/>
+        <header name="Expires" scope="transport" action="remove"/>
+        <header name="X-Content-Type-Options" scope="transport" action="remove"/>
+    </sequence>
+</template>

@@ -261,7 +261,7 @@ public class ZohopeopleConnectorIntegrationTest extends ConnectorIntegrationTest
       // Creating a unique employee id and a employee email by appending the date string
       SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss.SSS");
       connectorProperties.put("emplyeeIdMandatory", "test_id_" + dateFormat.format(new Date()));
-      connectorProperties.put("emplyeeEmailMandatory", "test_email_" + dateFormat.format(new Date()) + "@gmail.com");
+      connectorProperties.put("emplyeeEmailMandatory", "test_email_" + dateFormat.format(new Date()).toString().replace(":","") + "@gmail.com");
       sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createRecord_mandatory.json");
       String apiEndPointAfterESBCall =
             connectorProperties.getProperty("apiUrl") + "/people/api/forms/EmployeeInactiveView/records?authtoken="

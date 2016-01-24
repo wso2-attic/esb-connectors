@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template xmlns="http://ws.apache.org/ns/synapse" name="getStatusesUserTimeline">
+    <parameter name="userID" description="The ID of the user for whom to return results for."/>
+    <parameter name="screenName" description="The screen name of the user for whom to return results for."/>
+    <parameter name="sinceId"
+               description="Returns results with an ID greater than (that is, more recent than) the specified ID. There are limits to the number of Tweets which can be accessed through the API. If the limit of Tweets has occured since the since_id, the since_id will be forced to the oldest ID available."/>
+    <parameter name="count"
+               description="The number of users to return per page, up to a maximum of 200. Defaults to 20."/>
+    <parameter name="maxId"
+               description="Returns results with an ID less than (that is, older than) or equal to the specified ID."/>
+    <parameter name="trimUser"
+               description="When set to either true, t or 1, each tweet returned in a timeline will include a user object including only the status authors numerical ID. Omit this parameter to receive the complete user object."/>
+    <parameter name="excludeReplies "
+               description="This parameter will prevent replies from appearing in the returned timeline. Using exclude_replies with the count parameter will mean you will receive up-to count tweets — this is because the count parameter retrieves that many tweets before filtering out retweets and replies. This parameter is only supported for JSON and XML responses."/>
+    <parameter name="contributorDetails "
+               description="This parameter enhances the contributors element of the status response to include the screen_name of the contributor. By default only the user_id of the contributor is included."/>
+    <parameter name="includeRts "
+               description="When set to false, the timeline will strip any native retweets (though they will still count toward both the maximal length of the timeline and the slice selected by the count parameter). Note: If you’re using the trim_user parameter in conjunction with include_rts, the retweets will still contain a full user object."/>
+    <sequence>
+
+        <class name="org.wso2.carbon.connector.twitter.RemoveTwitterContext"/>
+
+        <property name="uri.var.screenName" expression="$func:screenName"/>
+        <property name="uri.var.userID" expression="$func:userID"/>
+        <property name="uri.var.sinceId" expression="$func:sinceId"/>
+        <property name="uni.var.count" expression="$func:count"/>
+        <property name="uri.var.maxId" expression="$func:maxId"/>
+        <property name="uni.var.trimUser" expression="$func:trimUser"/>
+        <property name="uni.var.excludeReplies" expression="$func:excludeReplies"/>
+        <property name="uri.var.contributorDetails" expression="$func:contributorDetails"/>
+        <property name="uni.var.includeRts" expression="$func:includeRts"/>
+
+        <script language="js">
+            <![CDATA[
+				// optional url param variables
+				var screenName = mc.getProperty('uri.var.screenName');
+				var userID = mc.getProperty('uri.var.userID');
+				var sinceId  = mc.getProperty('uri.var.sinceId');
+				var count  = mc.getProperty('uni.var.count');
+			    var maxId  = mc.getProperty('uri.var.maxId');
+			    var trimUser  = mc.getProperty('uni.var.trimUser');
+			    var excludeReplies  = mc.getProperty('uni.var.excludeReplies');
+			    var contributorDetails  = mc.getProperty('uri.var.contributorDetails');
+			    var includeRts  = mc.getProperty('uni.var.includeRts');
+
+				var uriParams = '';
+
+				if (screenName != null && screenName != "") {
+					uriParams = 'screen_name=' + screenName + '&';
+					screenName = 'screen_name=' + encodeURIComponent(screenName);
+					mc.setProperty('uri.var.screenName', screenName)
+				}
+				if (userID != null && userID != "") {
+					uriParams += 'user_id=' + userID + '&';
+					userID = 'user_id=' + encodeURIComponent(userID);
+					mc.setProperty('uri.var.userID', userID)
+				}
+				if (sinceId != null && sinceId != "") {
+					uriParams += 'since_id=' + sinceId + '&';
+					sinceId = 'since_id=' + encodeURIComponent(sinceId);
+					mc.setProperty('uri.var.sinceId', sinceId)
+				}
+				if (count != null && count != "") {
+					uriParams += 'count=' + count + '&';
+					count = 'count=' + encodeURIComponent(count);
+					mc.setProperty('uri.var.count', count)
+				}
+				if (maxId != null && maxId != "") {
+					uriParams += 'max_id=' + maxId + '&';
+					maxId = 'max_id=' + encodeURIComponent(maxId);
+					mc.setProperty('uri.var.maxId', maxId)
+				}
+			    if (trimUser != null && trimUser != "") {
+					uriParams += 'trim_user=' + trimUser + '&';
+					trimUser = 'trim_user=' + encodeURIComponent(trimUser);
+					mc.setProperty('uri.var.trimUser', trimUser)
+				}
+				if (excludeReplies != null && excludeReplies != "") {
+					uriParams += 'exclude_replies=' + excludeReplies + '&';
+					excludeReplies = 'exclude_replies=' + encodeURIComponent(excludeReplies);
+					mc.setProperty('uri.var.excludeReplies', excludeReplies)
+				}
+				if (contributorDetails != null && contributorDetails != "") {
+					uriParams += 'contributor_details=' + contributorDetails + '&';
+					contributorDetails = 'contributor_details=' + encodeURIComponent(contributorDetails);
+					mc.setProperty('uri.var.contributorDetails', contributorDetails)
+				}
+			    if (includeRts != null && includeRts != "") {
+					uriParams += 'include_rts=' + includeRts + '&';
+					includeRts = 'include_rts=' + encodeURIComponent(includeRts);
+					mc.setProperty('uri.var.includeRts', includeRts)
+				}
+
+				if(uriParams != ''){
+					mc.setProperty('uri.var.uriParams' , uriParams.substring(0, uriParams.length-1));
+				}
+			]]>
+        </script>
+
+        <property name="uri.var.apiUrl.final"
+                  expression="fn:concat(get-property('uri.var.apiUrl'),'/1.1/statuses/user_timeline.json')"/>
+
+        <property name="uri.var.httpMethod"
+                  value="GET"/>
+
+        <class name="org.wso2.carbon.connector.twitter.TwitterSignatureGeneration"/>
+
+        <header name="Authorization" expression="get-property('uri.var.signature')"
+                scope="transport"/>
+
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="legacy-encoding:{uri.var.apiUrl}/1.1/statuses/user_timeline.json?{uri.var.uriParams}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom header information in response -->
+        <header name="x-access-level" scope="transport" action="remove"/>
+        <header name="x-twitter-response-tags" scope="transport" action="remove"/>
+        <header name="x-transaction" scope="transport" action="remove"/>
+        <header name="x-response-time" scope="transport" action="remove"/>
+        <header name="x-connection-hash" scope="transport" action="remove"/>
+        <header name="x-content-type-options" scope="transport" action="remove"/>
+        <header name="x-frame-options" scope="transport" action="remove"/>
+        <header name="x-rate-limit-limit" scope="transport" action="remove"/>
+        <header name="x-rate-limit-remaining" scope="transport" action="remove"/>
+        <header name="x-rate-limit-reset" scope="transport" action="remove"/>
+        <header name="x-xss-protection" scope="transport" action="remove"/>
+
+    </sequence>
+</template>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://docs.atlassian.com/atlassian-confluence/REST/latest/#d3e1247 -->
+<template name="listContentComments" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="id" description="ID of the content to retrieve comments." />
+   <parameter name="expand"
+      description="A comma separated list of properties to expand on the children." />
+   <parameter name="parentVersion" description="An int representing the version of the content to retrieve children for." />
+   <parameter name="start" description="The index of the first item within the result set that should be returned." />
+   <parameter name="limit" description="How many items should be returned after the start index." />
+   <parameter name="locations"
+      description="JSON string array containing the locations of the comments. Possible values are: 'inline', 'footer', 'resolved'." />
+   <parameter name="depth" description="The depth of the comments. Possible values are:  'ROOT only', 'all'." />
+   <sequence>
+      <property name="uri.var.id" expression="$func:id" />
+      <property name="uri.var.expand" expression="$func:expand" />
+      <property name="uri.var.parentVersion" expression="$func:parentVersion" />
+      <property name="uri.var.start" expression="$func:start" />
+      <property name="uri.var.limit" expression="$func:limit" />
+      <property name="uri.var.locations" expression="$func:locations" />
+      <property name="uri.var.depth" expression="$func:depth" />
+      <script language="js">
+         <![CDATA[
+            var urlQuery = '';
+            var expand = mc.getProperty('uri.var.expand');
+            var parentVersion = mc.getProperty('uri.var.parentVersion');
+            var start = mc.getProperty('uri.var.start');
+            var limit = mc.getProperty('uri.var.limit');
+            var locations = mc.getProperty('uri.var.locations');
+            var depth = mc.getProperty('uri.var.depth');
+            if (expand != null && expand != "") {
+               urlQuery += 'expand=' + expand + '&';
+            }
+            if (parentVersion != null && parentVersion != "") {
+               urlQuery += 'parentVersion=' + parentVersion + '&';
+            }
+            if (start != null && start != "") {
+               urlQuery += 'start=' + start + '&';
+            }
+            if (limit != null && limit != "") {
+               urlQuery += 'limit=' + limit + '&';
+            }
+            if (locations != null && locations != "") {
+               if(locations.charCodeAt(0) == '91'){
+                  locations=eval('(' + locations + ')');
+                  for(var key in locations){
+                     urlQuery += 'location=' + locations[key] + '&';
+                  }
+               }else{
+                  urlQuery += 'location=' + locations + '&';
+               }
+            }
+            if (depth != null && depth != "") {
+               urlQuery += 'depth=' + depth + '&';
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/content/{+uri.var.id}/child/comment{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom headers from the API response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-ASEN" action="remove" scope="transport" />
+      <header name="X-AUSERNAME" action="remove" scope="transport" />
+      <header name="X-Seraph-LoginReason" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Accel-Buffering" action="remove" scope="transport" />
+      <header name="Content-Security-Policy" action="remove" scope="transport" />
+   </sequence>
+</template>

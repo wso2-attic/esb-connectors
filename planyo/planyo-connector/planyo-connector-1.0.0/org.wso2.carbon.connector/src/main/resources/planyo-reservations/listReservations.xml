@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API method Url: https://www.planyo.com/api.php?topic=list_reservations -->
+<template name="listReservations" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="startTime" description="The start of time period."/>
+    <parameter name="endTime" description="The end of time period."/>
+    <parameter name="resourceId" description="The unique identifier of the resource."/>
+    <parameter name="isListByCreationDate"
+               description="The boolean value to specify if the reservations has been created between given start and end time."/>
+    <parameter name="sortField"
+               description="Specifies the sort field. one of user, user_id, email, phone, resource_id, resource, reservation_id, duration."/>
+    <parameter name="detailLevel"
+               description="The sum of one or more of the integer values.(ie., 1=reservation info,2=reservation properties, 4=pricing info)"/>
+    <parameter name="userId" description="The unique identifier of the user."/>
+    <parameter name="page" description="The zero-based page number."/>
+    <parameter name="mustIncludeTimePoint" description="Specifies a point in time."/>
+    <sequence>
+        <property name="uri.var.startTime" expression="$func:startTime"/>
+        <property name="uri.var.endTime" expression="$func:endTime"/>
+        <property name="uri.var.resourceId" expression="$func:resourceId"/>
+        <property name="uri.var.isListByCreationDate" expression="$func:isListByCreationDate"/>
+        <property name="uri.var.sortField" expression="$func:sortField"/>
+        <property name="uri.var.detailLevel" expression="$func:detailLevel"/>
+        <property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.page" expression="$func:page"/>
+        <property name="uri.var.mustIncludeTimePoint" expression="$func:mustIncludeTimePoint"/>
+        <script language="js">
+            <![CDATA[
+            var version = mc.getProperty('uri.var.version');
+            var language = mc.getProperty('uri.var.language');
+            var resourceId = mc.getProperty('uri.var.resourceId');
+            var startTime = mc.getProperty('uri.var.startTime');
+            var endTime = mc.getProperty('uri.var.endTime');
+            var isListByCreationDate = mc.getProperty('uri.var.isListByCreationDate');
+            var sortField = mc.getProperty('uri.var.sortField');
+            var detailLevel = mc.getProperty('uri.var.detailLevel');
+            var userId = mc.getProperty('uri.var.userId');
+            var page = mc.getProperty('uri.var.page');
+            var mustIncludeTimePoint =  mc.getProperty('uri.var.mustIncludeTimePoint');
+            // setting required params for the url
+            var urlQuery = '?api_key=' + encodeURIComponent(mc.getProperty('uri.var.apiKey')) + '&method=list_reservations&start_time=' + encodeURIComponent(startTime) + '&' + 'end_time=' + encodeURIComponent(endTime) + '&' + 'list_by_creation_date=' + isListByCreationDate;
+            // setting optional params for the url
+            if (version != null && version != '') {
+               urlQuery += '&version=' + version;
+            }
+            if (language != null && language != '') {
+               urlQuery += '&language=' + encodeURIComponent(language);
+            }
+            if (sortField != null && sortField != '') {
+               urlQuery += '&sort=' + encodeURIComponent(sortField);
+            }
+            if (detailLevel != null && detailLevel != '') {
+               urlQuery += '&detail_level=' + detailLevel;
+            }
+            if (userId != null && userId != '') {
+               urlQuery += '&user_id=' + userId;
+            }
+            if (page != null && page != '') {
+               urlQuery += '&page=' + page;
+            }
+            if (resourceId != null && resourceId != '') {
+               urlQuery += '&resource_id=' + resourceId;
+            }
+            if (mustIncludeTimePoint != null && mustIncludeTimePoint != '') {
+               urlQuery += '&must_include_time_point=' + encodeURIComponent(mustIncludeTimePoint);
+            }
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+         ]]>
+        </script>
+        <call>
+            <endpoint>
+                <http method="get" uri-template="{uri.var.apiUrl}{+uri.var.urlQuery}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-Powered-By" scope="transport" action="remove"/>
+        <header name="Via" scope="transport" action="remove"/>
+    </sequence>
+</template>

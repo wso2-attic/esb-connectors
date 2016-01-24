@@ -11,21 +11,21 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - WSO2 ESB 4.9.0-ALPHA
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.8.1 from official website.
+ 1. Download wso2esb-4.9.0-ALPHA by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/.
 
  2. Deploy relevant patches, if applicable and the ESB should be configured as below.
-	 Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
+	 Please make sure that the below mentioned Axis configurations are enabled ({ESB_Connector_Home}\repository\wso2esb-4.9.0-ALPHA\conf\axis2\axis2.xml).
 		
 		<messageFormatter contentType="text/html" 
 									class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
 		<messageBuilder contentType="text/html" 
 									class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
- 3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Deputy_Connector_Home}/deputy-connector/deputy-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 3. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location ""<ESB_HOME>/repository/".
 
  4. Create a Deputy trial account and derive the API Key.
 	i) 		Using the URL "http://www.deputy.com/" create a Deputy trial account.
@@ -52,9 +52,10 @@ Steps to follow in setting integration test.
 	
 	Note :- leaveStartDate, leaveEndDate, intStartTimestamp, intEndTimestamp, employeeEmail, updateEmployeeFirstName and employeeFirstName needs to be set with unique values before running the integration test each time.
 	
- 6. Navigate to "{Deputy_Connector_Home}/deputy-connector/deputy-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+6. Make sure that the Deputy connector is set as a module in esb-connectors parent pom.
+        <module>deputy/deputy-connector/deputy-connector-1.0.0/org.wso2.carbon.connector</module>
+
+7. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
 	  
 	  Note:- Deputy trial account expires within 30 days.
-
-		

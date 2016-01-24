@@ -1,26 +1,22 @@
-/**
- *  Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+/*
+ * Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
- *  WSO2 Inc. licenses this file to you under the Apache License,
- *  Version 2.0 (the "License"); you may not use this file except
- *  in compliance with the License.
- *  You may obtain a copy of the License at
+ * WSO2 Inc. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
 
 package org.wso2.carbon.connector.integration.test.github;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -30,6 +26,10 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.wso2.connector.integration.test.base.ConnectorIntegrationTestBase;
 import org.wso2.connector.integration.test.base.RestResponse;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class GithubConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     
@@ -300,34 +300,10 @@ public class GithubConnectorIntegrationTest extends ConnectorIntegrationTestBase
                 connectorProperties.getProperty("owner"));
         
     }
-    
-    /**
-     * Negative test case for createIssue method.
-     */
-    @Test(priority = 1, dependsOnMethods = { "testCreateIssueWithOptionalParameters" }, description = "github {createIssue} integration test with negative case.")
-    public void testCreateIssueWithNegativeCase() throws IOException, JSONException {
-    
-        esbRequestHeadersMap.put("Action", "urn:createIssue");
-        
-        RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_createIssue_neagative.json");
-        
-        String apiEndPoint =
-                connectorProperties.getProperty("githubApiUrl") + "/repos/" + connectorProperties.getProperty("owner")
-                        + "/" + connectorProperties.getProperty("repo") + "/issues";
-        
-        RestResponse<JSONObject> apiRestResponse =
-                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_createIssue_neagative.json");
-        
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
-        Assert.assertEquals(esbRestResponse.getBody().get("message"), apiRestResponse.getBody().get("message"));
-        
-    }
-    
     /**
      * Positive test case for editIssue method with mandatory parameters.
      */
-    @Test(priority = 1, dependsOnMethods = { "testCreateIssueWithNegativeCase" }, description = "github {editIssue} integration test with mandatory parameters.")
+    @Test(priority = 1, dependsOnMethods = { "testCreateIssueWithOptionalParameters" }, description = "github {editIssue} integration test with mandatory parameters.")
     public void testEditIssueWithMandatoryParameters() throws IOException, JSONException, InterruptedException {
     
         esbRequestHeadersMap.put("Action", "urn:editIssue");

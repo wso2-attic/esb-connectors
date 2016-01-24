@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API method Url: http://api.planyo.com/api.php?topic=add_resource -->
+<template name="createResource" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="baseResourceId" description="The ID of the resource used as a base for the new resource."/>
+    <parameter name="name" description="The name of the new resource being created."/>
+    <parameter name="quantity" description="The quantity of the new resource."/>
+    <parameter name="durationDetails"
+               description="Specifies predefined duration details in a JSON object containing duration property and a details sub object"/>
+    <parameter name="minRentalTime"
+               description="Overrides the base resource's minimum time between the reservation and rental time."/>
+    <parameter name="maxRentalTime"
+               description="Overrides the base resource's maximum time between the reservation and rental time."/>
+    <parameter name="availableFrom"
+               description="Overrides the base resource's setting Available on working days from."/>
+    <parameter name="availableUntil"
+               description="Overrides the base resource's setting Available on working days until."/>
+    <parameter name="startTimes" description="Overrides the base resource's setting Restrict starting times."/>
+    <parameter name="minHoursToRental"
+               description="Overrides the base resource's setting Min. time between reservation and rental."/>
+    <parameter name="maxDaysToRental"
+               description="Overrides the base resource's setting Max. time between reservation and rental"/>
+    <parameter name="defaultPrice" description="Overrides the base resource's default price."/>
+    <parameter name="resourceAdminId" description="Overrides the base resource's resource admin Identifier."/>
+    <parameter name="eventDates" description="Specifies comma-separated start dates or start dates and times "/>
+    <parameter name="isPublished" description="Specifies if the resource is published."/>
+    <parameter name="resourceProperties" description="Specifies the resource-specific properties in JSON object"/>
+    <parameter name="images" description="The comma-separated full URLs of images."/>
+    <sequence>
+        <property name="uri.var.baseResourceId" expression="$func:baseResourceId"/>
+        <property name="uri.var.name" expression="$func:name"/>
+        <property name="uri.var.quantity" expression="$func:quantity"/>
+        <property name="uri.var.durationDetails" expression="$func:durationDetails"/>
+        <property name="uri.var.minRentalTime" expression="$func:minRentalTime"/>
+        <property name="uri.var.maxRentalTime" expression="$func:maxRentalTime"/>
+        <property name="uri.var.availableFrom" expression="$func:availableFrom"/>
+        <property name="uri.var.availableUntil" expression="$func:availableUntil"/>
+        <property name="uri.var.startTimes" expression="$func:startTimes"/>
+        <property name="uri.var.minHoursToRental" expression="$func:minHoursToRental"/>
+        <property name="uri.var.maxDaysToRental" expression="$func:maxDaysToRental"/>
+        <property name="uri.var.defaultPrice" expression="$func:defaultPrice"/>
+        <property name="uri.var.resourceAdminId" expression="$func:resourceAdminId"/>
+        <property name="uri.var.eventDates" expression="$func:eventDates"/>
+        <property name="uri.var.isPublished" expression="$func:isPublished"/>
+        <property name="uri.var.resourceProperties" expression="$func:resourceProperties"/>
+        <property name="uri.var.images" expression="$func:images"/>
+        <!-- Generate the request payload with mandatory parameters -->
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "base_resource_id":"$1",
+                "name":"$2",
+                "api_key":"$3",
+                "method":"add_resource"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.baseResourceId')"/>
+                <arg expression="get-property('uri.var.name')"/>
+                <arg expression="get-property('uri.var.apiKey')"/>
+            </args>
+        </payloadFactory>
+        <script language="js">
+            <![CDATA[
+            // Generate payload with optional parameters
+            // Note that although quantity is marked required in API doc, it acts as optional
+            var quantity = mc.getProperty('uri.var.quantity');
+            var minRentalTime = mc.getProperty('uri.var.minRentalTime');         
+            var maxRentalTime = mc.getProperty('uri.var.maxRentalTime');
+            var availableFrom = mc.getProperty('uri.var.availableFrom');
+            var availableUntil = mc.getProperty('uri.var.availableUntil');       
+            var startTimes = mc.getProperty('uri.var.startTimes');
+            var minHoursToRental = mc.getProperty('uri.var.minHoursToRental');
+            var maxDaysToRental = mc.getProperty('uri.var.maxDaysToRental');
+            var defaultPrice = mc.getProperty('uri.var.defaultPrice');        
+            var resourceAdminId = mc.getProperty('uri.var.resourceAdminId');
+            var eventDates = mc.getProperty('uri.var.eventDates');
+            var isPublished = mc.getProperty('uri.var.isPublished');
+            var images = mc.getProperty('uri.var.images');
+            var language = mc.getProperty('uri.var.language');
+            var version = mc.getProperty('uri.var.version');
+            var resourceProperties = mc.getProperty('uri.var.resourceProperties');
+            var durationDetails = mc.getProperty('uri.var.durationDetails');
+            // Retrieve payload to set custom properties
+            payload = mc.getPayloadJSON();
+            if (quantity != null && quantity != "") {
+               payload.quantity = quantity;
+            }                     
+            if (minRentalTime != null && minRentalTime != "") {
+               payload.min_rental_time = minRentalTime;
+            }           
+            if (maxRentalTime != null && maxRentalTime != "") {
+               payload.max_rental_time = maxRentalTime;
+            }           
+            if (availableFrom != null && availableFrom != "") {
+               payload.available_from = availableFrom;
+            }           
+            if (availableUntil != null && availableUntil != "") {
+               payload.available_until = availableUntil;
+            }
+            if (startTimes != null && startTimes != "") {
+               payload.start_times = startTimes;
+            }           
+            if (minHoursToRental != null && minHoursToRental != "") {
+               payload.min_hours_to_rental = minHoursToRental;
+            }           
+            if (maxDaysToRental != null && maxDaysToRental != "") {
+               payload.max_days_to_rental = maxDaysToRental;
+            }           
+            if (defaultPrice != null && defaultPrice != "") {
+               payload.default_price = defaultPrice;
+            }           
+            if (resourceAdminId != null && resourceAdminId != "") {
+               payload.resource_admin_id = resourceAdminId;
+            }           
+            if (eventDates != null && eventDates != "") {
+               payload.event_dates = eventDates;
+            }           
+            if (isPublished != null && isPublished != "") {
+               payload.is_published = isPublished;
+            }           
+            if (images != null && images != "") {
+               payload.images = images;
+            } 
+            if (language != null && language != "") {
+               payload.language = language;
+            }
+            if (version != null && version != "") {
+               payload.version = version;
+            }
+            // Retrieves values from JSON objects and appends key values pairs to the payload            
+            if (resourceProperties != null && resourceProperties != "") {
+               var resourcePropertiesObj = eval("(" + resourceProperties + ")");
+               for (var key in resourcePropertiesObj) {
+                  if (key != null && key != "") {
+                     // Added toString to avoid trailing 0's being appended to integers
+                     payload[key] = resourcePropertiesObj[key].toString();   
+                  }
+               }
+            }
+            if (durationDetails != null && durationDetails != "") {
+               var durationDetailsObj = eval("(" + durationDetails + ")");
+               var duration = durationDetailsObj['duration'];
+               var details = durationDetailsObj['details'];
+               if (duration != null && duration != "") {
+                  payload.predefined_duration_count = duration.toString();
+               }           
+               if (details != null && details != "") {
+                  for (var key in details) {          
+                     if (key != null && key != "") {
+                        // Added toString to avoid trailing 0's being appended to integers
+                        payload[key] = details[key].toString();   
+                     }
+                  }
+               }              
+            }
+            mc.setPayloadJSON(payload);        
+         ]]>
+        </script>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-Powered-By" scope="transport" action="remove"/>
+        <header name="Via" scope="transport" action="remove"/>
+    </sequence>
+</template>

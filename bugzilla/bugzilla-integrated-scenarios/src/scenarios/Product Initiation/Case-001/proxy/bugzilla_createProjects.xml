@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="bugzilla_createProjects" transports="https,http" statistics="disable"
+   trace="disable" startOnLoad="true">
+   <target>
+      <inSequence>
+         <!--Zohobooks Properties -->
+         <property name="zohobooks.apiUrl" value="https://books.zoho.com" />
+         <property name="zohobooks.authToken" expression="json-eval($.zohobooksAuthToken)" />
+         <property name="zohobooks.organizationId" expression="json-eval($.zohobooksOrganizationId)" />
+
+         <!--Tsheets Properties -->
+         <property name="tsheets.apiUrl" expression="json-eval($.tsheetsApiUrl)" />
+         <property name="tsheets.accessToken" expression="json-eval($.tsheetsAccessToken)" />
+
+         <!--Common Properties -->
+         <property name="common.projectsDetails" expression="json-eval($.projectsDetails)" />
+         <property name="responseString" value="" scope="operation" />
+         <property name="projectCount" expression="count(//projectsDetails)" scope="operation" />
+         <property name="projectIndex" value="0" scope="operation" />
+
+         <!--FOR EACH Project : BEGIN -->
+         <iterate continueParent="false" id="projects" expression="//projectsDetails" sequential="true">
+            <target>
+               <sequence>
+                  <property name="messageType" value="application/json" scope="axis2" />
+                  <property name="projectName" expression="json-eval($.projectsDetails.projectName)" />
+                  <property name="customerId" expression="json-eval($.projectsDetails.customerId)" />
+                  <property name="projectNameObj" expression="fn:concat('projectName:',get-property('projectName'))" />
+
+                  <!-- Create Project in zohobooks -->
+                  <zohobooks.init>
+                     <authToken>{$ctx:zohobooks.authToken}</authToken>
+                     <apiUrl>{$ctx:zohobooks.apiUrl}</apiUrl>
+                     <organizationId>{$ctx:zohobooks.organizationId}</organizationId>
+                  </zohobooks.init>
+                  <zohobooks.createProject>
+                     <customerId>{$ctx:customerId}</customerId>
+                     <billingType>based_on_task_hours</billingType>
+                     <projectName>{$ctx:projectName}</projectName>
+                  </zohobooks.createProject>
+
+                  <header name="Transfer-Encoding" scope="transport" action="remove" />
+                  <header name="Content-Encoding" scope="transport" action="remove" />
+                  <header name="Content-Length" scope="transport" action="remove" />
+
+                  <filter source="$axis2:HTTP_SC" regex="201">
+                     <then>
+                        <property name="zohobooks.projectId" expression="json-eval($.project.project_id)" />
+                        <property name="projectIdObject"
+                           expression="fn:concat(get-property('projectNameObj'),',projectId:',get-property('zohobooks.projectId'))" />
+                        <property name="message" value="Project has been created successfully." />
+                        <property name="status" value="success" />
+                     </then>
+                     <else>
+                        <property name="projectIdObject" expression="get-property('projectNameObj')" />
+                        <property name="status" value="error" />
+                        <property name="message" expression="json-eval($.)" />
+                     </else>
+                  </filter>
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="id" value="{$ctx:projectIdObject}" />
+                     <with-param name="activity" value="zohobooks_createProject" />
+                     <with-param name="status" value="{$ctx:status}" />
+                     <with-param name="message" value="{$ctx:message}" />
+                  </call-template>
+                  
+                  <!-- Create jobCode Object for Tsheets -->
+                  <script language="js">
+                     <![CDATA[
+                     
+                        var projectName=mc.getProperty("projectName");
+                        var jobCodeObj = {};   
+                        jobCodeObj.name  = projectName;
+                        mc.setPayloadJSON(jobCodeObj);
+                       ]]>
+                  </script>
+                  
+                  <property name="tsheets.jobCodes" expression="json-eval($.)" />
+                  <!-- Create Project(Jobcode) in Tsheets -->
+                  <tsheets.init>
+                     <accessToken>{$ctx:tsheets.accessToken}</accessToken>
+                     <apiUrl>{$ctx:tsheets.apiUrl}</apiUrl>
+                  </tsheets.init>
+                  <tsheets.addJobCodes>
+                     <jobCodes>{$ctx:tsheets.jobCodes}</jobCodes>
+                  </tsheets.addJobCodes>
+
+                  <property name="tsheets.statusCode" expression="json-eval($.results.jobcodes.1._status_code)" />
+
+                  <switch source="get-property('tsheets.statusCode')">
+                     <case regex="200">
+                        <property name="tsheets.jobCodeId" expression="json-eval($.results.jobcodes.1.id)" />
+                        <property name="jobCodeIdObject"
+                           expression="fn:concat(get-property('projectNameObj'),',jobCodeId:',get-property('tsheets.jobCodeId'))" />
+                        <property name="message" value="Job code has been created successfully." />
+                        <property name="status" value="success" />
+                     </case>
+                     <case regex="202">
+                        <property name="tsheets.jobCodeId" expression="json-eval($.results.jobcodes.1.id)" />
+                        <property name="jobCodeIdObject"
+                           expression="fn:concat(get-property('projectNameObj'),',jobCodeId:',get-property('tsheets.jobCodeId'))" />
+                        <property name="message" value="This job code already exists." />
+                        <property name="status" value="skipped" />
+                     </case>
+                     <default>
+                        <property name="jobCodeIdObject" expression="get-property('projectNameObj')" />
+                        <property name="status" value="error" />
+                        <property name="message" expression="json-eval($.)" />
+                     </default>
+                  </switch>
+
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="id" value="{$ctx:jobCodeIdObject}" />
+                     <with-param name="activity" value="tsheets_createJobCode" />
+                     <with-param name="status" value="{$ctx:status}" />
+                     <with-param name="message" value="{$ctx:message}" />
+                  </call-template>
+
+                  <property name="projectIndex" expression="get-property('operation','projectIndex') + 1"
+                     scope="operation" />
+                  <filter xpath="get-property('operation','projectCount') = get-property('operation','projectIndex') ">
+                     <then>
+                        <loopback />
+                     </then>
+                  </filter>
+               </sequence>
+            </target>
+         </iterate>
+         <!--FOR EACH Project : END -->
+      </inSequence>
+      <outSequence>
+      
+         <property name="messageType" value="application/json" scope="axis2" />
+
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+                     "process":"bugzilla_createProjects",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>  

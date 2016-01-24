@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ 
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+ 
+     http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<template name="createTimeEntry" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- API Documentation URL - https://www.zoho.com/books/api/v3/projects/timeentries/#log-time-entries -->
+    <parameter name="projectId" description="ID of the project."/>
+    <parameter name="taskId" description="ID of the task."/>
+    <parameter name="userId" description="ID of the user."/>
+    <parameter name="logDate" description="Date on which the user spent on the task."/>
+    <parameter name="logTime"
+               description="Time the user spent on this task. Either send this attribute or begin and end time attributes."/>
+    <parameter name="beginTime" description="Time the user started working on this task."/>
+    <parameter name="endTime" description="Time the user stopped working on this task."/>
+    <parameter name="isBillable" description="Whether it is billable or not."/>
+    <parameter name="notes" description="Description of the work done."/>
+    <parameter name="startTimer" description="Start timer."/>
+    <sequence>
+        <property name="uri.var.projectId" expression="$func:projectId"/>
+        <property name="uri.var.taskId" expression="$func:taskId"/>
+        <property name="uri.var.userId" expression="$func:userId"/>
+        <property name="uri.var.logDate" expression="$func:logDate"/>
+        <property name="uri.var.logTime" expression="$func:logTime"/>
+        <property name="uri.var.beginTime" expression="$func:beginTime"/>
+        <property name="uri.var.endTime" expression="$func:endTime"/>
+        <property name="uri.var.isBillable" expression="$func:isBillable"/>
+        <property name="uri.var.notes" expression="$func:notes"/>
+        <property name="uri.var.startTimer" expression="$func:startTimer"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "project_id": "$1",
+                "task_id":"$2",
+                "user_id":"$3",
+                "log_date":"$4"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.projectId')"/>
+                <arg expression="get-property('uri.var.taskId')"/>
+                <arg expression="get-property('uri.var.userId')"/>
+                <arg expression="get-property('uri.var.logDate')"/>
+            </args>
+        </payloadFactory>
+        <script language="js">
+            <![CDATA[
+            var jsonPayload = mc.getPayloadJSON();
+            var logTime = mc.getProperty('uri.var.logTime');
+            var beginTime = mc.getProperty('uri.var.beginTime');
+            var endTime = mc.getProperty('uri.var.endTime');
+            var isBillable = mc.getProperty('uri.var.isBillable');
+            var notes = mc.getProperty('uri.var.notes');
+            var startTimer = mc.getProperty('uri.var.startTimer');
+            var authToken = mc.getProperty('uri.var.authToken');
+            var organizationId = mc.getProperty('uri.var.organizationId');
+            var urlQuery = '?authtoken=' + authToken + '&organization_id=' + organizationId;
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+            if (logTime != null && logTime != ""){
+               jsonPayload["log_time"] = logTime;
+            }
+			if (beginTime != null && beginTime != ""){
+               jsonPayload["begin_time"] = beginTime;
+            }
+            if (endTime != null && endTime != ""){
+               jsonPayload["end_time"] = endTime;
+            }
+            if (isBillable != null && isBillable != ""){
+               jsonPayload["is_billable"] = isBillable;
+            }
+			if (notes != null && notes != ""){
+               jsonPayload["notes"] = notes;
+            }
+            if (startTimer != null && startTimer != ""){
+               jsonPayload["start_timer"] = startTimer;
+            }
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+        </script>
+        <!--Extract the JSON object to a Property. -->
+        <property name="uri.var.jsonString" expression="json-eval($)"/>
+        <!--This script mediator is used for the purpose of URL encoding the JSON Object that was built in the Script Mediator
+           above. -->
+        <script language="js">
+            <![CDATA[
+			var jsonString = mc.getProperty('uri.var.jsonString');
+			var urlQuery = mc.getProperty('uri.var.urlQuery');
+			urlQuery += '&JSONString=' + encodeURIComponent(jsonString);
+			mc.setProperty('uri.var.urlQuery', urlQuery);
+         ]]>
+        </script>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="legacy-encoding:{uri.var.apiUrl}/projects/timeentries{uri.var.urlQuery}"/>
+            </endpoint>
+        </call>
+        <!--Removing custom headers from the Response.-->
+        <header name="X-Rate-Limit-Limit" action="remove" scope="transport"/>
+        <header name="X-XSS-Protection" action="remove" scope="transport"/>
+        <header name="X-Rate-Limit-Remaining" action="remove" scope="transport"/>
+        <header name="Cache-Control" action="remove" scope="transport"/>
+        <header name="Pragma" action="remove" scope="transport"/>
+        <header name="X-Content-Type-Options" action="remove" scope="transport"/>
+        <header name="BUILD_VERSION" action="remove" scope="transport"/>
+        <header name="Strict-Transport-Security" action="remove" scope="transport"/>
+        <header name="Vary" action="remove" scope="transport"/>
+        <header name="Content-Disposition" action="remove" scope="transport"/>
+        <header name="X-Rate-Limit-Reset" action="remove" scope="transport"/>
+        <header name="Status" action="remove" scope="transport"/>
+    </sequence>
+</template>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: http://www.billomat.com/en/api/invoices/items -->
+<template name="createInvoiceItem" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="invoiceId" description="ID of the invoice."/>
+   <parameter name="articleId" description="ID of the article, sets additionally the values from the article on creation."/>
+   <parameter name="unit" description="Unit of the item."/>
+   <parameter name="quantity" description="Quantity of the item."/>
+   <parameter name="unitPrice" description="Price per unit."/>
+   <parameter name="taxName" description="Name of the tax."/>
+   <parameter name="taxRate" description="Rate of taxation."/>
+   <parameter name="title" description="Title of the item."/>
+   <parameter name="description" description="Description of the item."/>
+   <parameter name="reduction" description="Reduction (absolute or percent: 10/10%)."/>
+   <sequence>
+      <property name="uri.var.invoiceId" expression="$func:invoiceId"/>
+      <property name="uri.var.articleId" expression="$func:articleId"/>
+      <property name="uri.var.unit" expression="$func:unit"/>
+      <property name="uri.var.quantity" expression="$func:quantity"/>
+      <property name="uri.var.unitPrice" expression="$func:unitPrice"/>
+      <property name="uri.var.taxName" expression="$func:taxName"/>
+      <property name="uri.var.taxRate" expression="$func:taxRate"/>
+      <property name="uri.var.title" expression="$func:title"/>
+      <property name="uri.var.description" expression="$func:description"/>
+      <property name="uri.var.reduction" expression="$func:reduction"/>
+      <script language="js">
+         <![CDATA[
+            var unitPrice = mc.getProperty('uri.var.unitPrice');
+            var taxRate = mc.getProperty('uri.var.taxRate');
+            var unit = mc.getProperty('uri.var.unit');
+            var quantity = mc.getProperty('uri.var.quantity');
+            var apiKey = mc.getProperty('uri.var.apiKey');
+            var articleId = mc.getProperty('uri.var.articleId');
+            var description = mc.getProperty('uri.var.description');
+            var invoiceId = mc.getProperty('uri.var.invoiceId');
+            var title = mc.getProperty('uri.var.title');
+            var reduction = mc.getProperty('uri.var.reduction');
+            var taxName = mc.getProperty('uri.var.taxName');
+            var jsonPayload = {};
+            var invoiceItem = {};
+            invoiceItem.invoice_id = invoiceId;
+            if (articleId != null && articleId != ""){
+               invoiceItem.article_id = articleId;
+            }
+            if (unit != null && unit != ""){
+               invoiceItem.unit = unit;
+            }
+            if (quantity != null && quantity != ""){
+               invoiceItem.quantity = quantity;
+            }
+            if (unitPrice != null && unitPrice != ""){
+               invoiceItem.unit_price = unitPrice;
+            }
+            if (taxName != null && taxName != ""){
+               invoiceItem.tax_name = taxName;
+            }
+            if (taxRate != null && taxRate != ""){
+               invoiceItem.tax_rate = taxRate;
+            }
+            if (title != null && title != ""){
+               invoiceItem.title = title;
+            }
+            if (description != null && description != ""){
+               invoiceItem.description = description;
+            }
+            if (reduction != null && reduction != ""){
+               invoiceItem.reduction = reduction;
+            }
+            jsonPayload["invoice-item"] = invoiceItem;
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/invoice-items?api_key={+uri.var.apiKey}"/>
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="X-Rate-Limit-Reset" action="remove" scope="transport" />
+      <header name="X-Rate-Limit-Remaining" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Headers" action="remove" scope="transport" />
+      <header name="Access-Control-Max-Age" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Methods" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+   </sequence>
+</template>

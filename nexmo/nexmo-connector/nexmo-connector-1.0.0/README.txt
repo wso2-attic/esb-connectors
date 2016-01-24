@@ -10,12 +10,12 @@ Pre-requisites:
 Tested Platform: 
 
  - Microsoft WINDOWS V-7
- - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - UBUNTU 14.04
+ - WSO2 ESB 4.9.0-Alpha
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.8.1 from official website.
+ 1. Download ESB 4.9.0-Alpha from official website.
 
  2. Deploy relevant patches, if applicable and the ESB should be configured as below.
 	Please make sure that the below mentioned Axis configurations are enabled in "<ESB_HOME>/repository/conf/axis2/axis2.xml".
@@ -28,13 +28,26 @@ Steps to follow in setting integration test.
 
 	<messageBuilder contentType="text/html" class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
 
- 3. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Nexmo_Connector_Home}/nexmo-connector/nexmo-connector-1.0.0/org.wso2.carbon.connector/repository/".
-
- 4. Create a Nexmo trial account and derive the API Key.
+ 3. Create a Nexmo trial account and derive the API Key.
 	i) 		Using the URL "https://dashboard.nexmo.com/register" create a Nexmo account and provide a valid phone number in account verification.
 	ii)		Login to the created Nexmo account and go to 'Api Settings' and fetch the 'Key' and 'Secret' of the API.
 
- 5. Update the Nexmo properties file at location "{Nexmo_Connector_Home}/nexmo-connector/nexmo-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 4. Follow the below mentioned steps for adding valid certificate to access Nexmo API over https.
+
+     i) 	 Extract the certificate from browser(Mozilla Firefox) by navigating to https://dashboard.nexmo.com/private/dashboard
+
+     ii)  Go to new ESB 4.9.0-Alpha folder and place the downloaded certificate in "<ESB_HOME>/repository/resources/security/"
+
+     iii) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" in command line to import Nexmo certificate in to keystore.
+     		 Give "wso2carbon" as password. Press "Y" to complete certificate import process.
+
+     		 NOTE : CERT_FILE_NAME is the file name which was extracted from Nexmo. (e.g. *.nexmo.com)
+     			    CERT_NAME is arbitrary name for the certificate. (e.g. Nexmo)
+
+
+ 5. Compress modified ESB as wso2esb-4.9.0-Alpha.zip and copy that zip file in to location "{Nexmo_Connector_Home}/nexmo-connector/nexmo-connector-1.0.0/org.wso2.carbon.connector/repository/".
+
+ 6. Update the Nexmo properties file at location "{Nexmo_Connector_Home}/nexmo-connector/nexmo-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i)		apiUrl 					- 	Use "https://rest.nexmo.com".
 	ii) 	apiKey					-   Use the Key retrieved in Step 04 - ii.
@@ -46,6 +59,9 @@ Steps to follow in setting integration test.
 	viii)	answerUrl			    -   Use a valid URL which contains a VoiceXML response.
 	ix)	    timeOut			    	-   Use a valid integer value as the timeout between each test case execution (recommended value is 10000).
 		
- 6. Navigate to "{Nexmo_Connector_Home}/nexmo-connector/nexmo-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      $ mvn clean install
+
+ 6. Make sure that the Nexmo connector is set as a module in esb-connectors parent pom.
+               <module>nexmo-connector/nexmo-connector-1.0.0/org.wso2.carbon.connector/</module>
+       Navigate to "esb-connectors" and run the following command.
+       $ mvn clean install
 		

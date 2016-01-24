@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://beetrack.com/apidoc/ -->
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="apiUrl" description="Base endpoint URL of Beetrack API."/>
+   <parameter name="accessToken" description="Access Token to read and manipulate data of Beetrack account."/>
+   <sequence>
+      <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
+      <property name="uri.var.accessToken" expression="$func:accessToken"/>
+      <filter source="boolean(get-property('uri.var.apiUrl'))" regex="true">
+         <then>
+            <property name="uri.var.apiUrl" expression="fn:concat(get-property('uri.var.apiUrl'), '/api/external/v1')"/>
+         </then>
+         <else>
+            <property name="uri.var.apiUrl" expression="fn:concat(get-property('registry', 'connectors/Beetrack/apiUrl'), '/api/external/v1')" />
+         </else>
+      </filter>
+      <filter source="boolean(get-property('uri.var.accessToken'))" regex="false">
+         <then>
+            <property name="uri.var.accessToken" expression="get-property('registry', 'connectors/Beetrack/accessToken')" />
+         </then>
+      </filter>
+      <header name="X-AUTH-TOKEN" expression="get-property('uri.var.accessToken')" scope="transport"/>
+   </sequence>
+</template>

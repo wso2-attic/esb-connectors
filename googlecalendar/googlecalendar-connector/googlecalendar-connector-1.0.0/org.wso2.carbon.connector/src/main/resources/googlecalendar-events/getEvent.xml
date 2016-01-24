@@ -1,0 +1,69 @@
+<template name="getEvent" xmlns="http://ws.apache.org/ns/synapse">
+
+  <!-- Required parameters -->
+  <parameter name="calendarId" description="Calender Identifier"/>
+  <parameter name="eventId" description="Event Identifier"/>
+  <!-- Optional parameters -->
+  <parameter name="alwaysIncludeEmail" description="Whether to always include a value in the email field"/>
+  <parameter name="maxAttendees" description="The maximum number of attendees to include in the response"/>
+  <parameter name="timeZone" description="Time zone used in the response"/>
+  <parameter name="fields" description="Fileds allows selector to specify which fields to be included in a partial response,
+						if not specified in default will provide all fields in responce"/>  
+  <sequence>
+    <property name="uri.var.calendarId" expression="$func:calendarId"/>
+    <property name="uri.var.eventId" expression="$func:eventId"/>
+    <property name="uri.var.alwaysIncludeEmail" expression="$func:alwaysIncludeEmail" />    
+    <property name="uri.var.timeZone" expression="$func:timeZone"/>
+    <property name="uri.var.fields" expression="$func:fields"/>
+    <property name="uri.var.maxAttendees" expression="$func:maxAttendees"/>
+	
+  	<script language="js">
+  		<![CDATA[
+  		
+  			//url param variables
+	        var eventId = encodeURIComponent(mc.getProperty("uri.var.eventId"));
+	        var calendarId = encodeURIComponent(mc.getProperty("uri.var.calendarId"));
+  			var alwaysIncludeEmail = mc.getProperty('uri.var.alwaysIncludeEmail');
+			var maxAttendees = mc.getProperty('uri.var.maxAttendees');
+			var timeZone = mc.getProperty('uri.var.timeZone');
+			var fields = mc.getProperty('uri.var.fields');
+				
+			//url param processing start	
+			mc.setProperty('uri.var.calendarId', calendarId);
+			mc.setProperty('uri.var.eventId', eventId);		
+			var uriParams = '';
+			
+			if (alwaysIncludeEmail != null && alwaysIncludeEmail != "") {
+				uriParams = '&alwaysIncludeEmail=' + encodeURIComponent(alwaysIncludeEmail);
+			}
+			if (maxAttendees != null && maxAttendees != "") {
+				uriParams += '&maxAttendees=' + maxAttendees;
+			}
+			if (timeZone != null && timeZone != "") {
+				uriParams += '&timeZone=' + encodeURIComponent(timeZone);
+			}
+			if (fields != null && fields != "") {
+				uriParams += '&fields=' + encodeURIComponent(fields);
+			}		
+  			if(uriParams != '') {
+  				uriParams = '?' + uriParams.substring(1);  				
+  			}
+  			mc.setProperty('uri.var.encodedUriParams', uriParams);
+  		
+  		]]>  	
+  	</script>
+  
+    <call>
+      <endpoint>
+        <http method="get" uri-template="legacy-encoding:{uri.var.apiUrl}/calendar/v3/calendars/{uri.var.calendarId}/events/{uri.var.eventId}{uri.var.encodedUriParams}"/>
+      </endpoint>
+    </call>
+    
+    <!-- Remove response's custom header information -->
+	<header name="X-Frame-Options" scope="transport" action="remove" />
+	<header name="X-XSS-Protection" scope="transport" action="remove" />
+	<header name="Alternate-Protocol" scope="transport" action="remove" />
+	<header name="X-Content-Type-Options" scope="transport" action="remove" />
+	
+  </sequence>
+</template>

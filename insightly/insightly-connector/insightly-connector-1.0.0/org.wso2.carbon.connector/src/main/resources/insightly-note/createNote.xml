@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://api.insight.ly/v2.1/Help/Api/POST-Notes -->
+<template name="createNote" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="noteBody" description="Body of the Note." />
+   <parameter name="ownerUserId" description="User ID of the Note Owner, must be a valid user id." />
+   <parameter name="visibleTo"
+      description="This field can have one of the following values: 'Everyone' (Default), 'Owner', 'Team', or 'Individuals'." />
+   <parameter name="visibleTeamId" description="If VISIBLE_TO is 'Team', then this should be a Team ID, must be a valid TEAM_ID." />
+   <parameter name="title" description="Title of the Note (required). Maximum length is 500 characters." />
+   <parameter name="linkSubjectId" description="ID of the Contact, Organisation, Opportunity, or Project that the Note is linked to." />
+   <parameter name="linkSubjectType"
+      description="LINK_SUBJECT_TYPE must have one of the following values: 'CONTACT', 'ORGANISATION', 'OPPORTUNITY', or 'PROJECT'." />
+   <parameter name="noteLinks" description="Set of Links attached to the Note." />
+   <parameter name="fileAttachments" description="Set of Files attached to the Note." />
+   <parameter name="visibleUserIds" description="If VISIBLE_TO is 'Individuals', then this should be a comma-separated list of User IDs." />
+   <sequence>
+      <property name="uri.var.noteBody" expression="$func:noteBody" />
+      <property name="uri.var.ownerUserId" expression="$func:ownerUserId" />
+      <property name="uri.var.visibleTo" expression="$func:visibleTo" />
+      <property name="uri.var.visibleTeamId" expression="$func:visibleTeamId" />
+      <property name="uri.var.title" expression="$func:title" />
+      <property name="uri.var.linkSubjectId" expression="$func:linkSubjectId" />
+      <property name="uri.var.linkSubjectType" expression="$func:linkSubjectType" />
+      <property name="uri.var.noteLinks" expression="$func:noteLinks" />
+      <property name="uri.var.fileAttachments" expression="$func:fileAttachments" />
+      <property name="uri.var.visibleUserIds" expression="$func:visibleUserIds" />
+      <!-- If user sends null for these parameters then set empty string -->
+      <filter xpath="((get-property('uri.var.title') = 'null'))">
+         <then>
+            <property name="uri.var.title" value="" />
+         </then>
+      </filter>
+      <filter xpath="((get-property('uri.var.noteBody') = 'null'))">
+         <then>
+            <property name="uri.var.noteBody" value="" />
+         </then>
+      </filter>
+      <filter xpath="((get-property('uri.var.linkSubjectId') = 'null'))">
+         <then>
+            <property name="uri.var.linkSubjectId" value="" />
+         </then>
+      </filter>
+      <filter xpath="((get-property('uri.var.linkSubjectType') = 'null'))">
+         <then>
+            <property name="uri.var.linkSubjectType" value="" />
+         </then>
+      </filter>
+      <filter xpath="((get-property('uri.var.visibleTeamId') = 'null'))">
+         <then>
+            <property name="uri.var.visibleTeamId" value="" />
+         </then>
+      </filter>
+      <filter xpath="((get-property('uri.var.visibleUserIds') = 'null'))">
+         <then>
+            <property name="uri.var.visibleUserIds" value="" />
+         </then>
+      </filter>
+      <filter xpath="get-property('uri.var.ownerUserId') = 'null'">
+         <then>
+            <property name="uri.var.ownerUserId" value="" />
+         </then>
+      </filter>
+      <!-- If user skips sending the array type params, set it as empty array -->
+      <filter source="boolean(get-property('uri.var.fileAttachments'))" regex="false">
+         <then>
+            <property name="uri.var.fileAttachments" value="[]" />
+         </then>
+      </filter> 
+      <filter source="boolean(get-property('uri.var.noteLinks'))" regex="false">
+         <then>
+            <property name="uri.var.noteLinks" value="[]" />
+         </then>
+      </filter>
+      <filter source="boolean(get-property('uri.var.ownerUserId'))" regex="true">
+         <then>
+            <property name="uri.var.ownerUserId"
+               expression="fn:concat(',&quot;OWNER_USER_ID&quot;: &quot;', get-property('uri.var.ownerUserId'), '&quot;')" />
+         </then>
+      </filter>       
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "TITLE": "$1",
+            "BODY": "$2",
+            "LINK_SUBJECT_ID": "$3",
+            "LINK_SUBJECT_TYPE": "$4",
+            "VISIBLE_TO": "$5",
+            "VISIBLE_TEAM_ID": "$6",
+            "VISIBLE_USER_IDS": "$7",
+            "FILE_ATTACHMENTS":$8,
+            "NOTELINKS":$9
+            $10
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.title')" />
+            <arg expression="get-property('uri.var.noteBody')" />
+            <arg expression="get-property('uri.var.linkSubjectId')" />
+            <arg expression="get-property('uri.var.linkSubjectType')" />
+            <arg expression="get-property('uri.var.visibleTo')" />
+            <arg expression="get-property('uri.var.visibleTeamId')" />
+            <arg expression="get-property('uri.var.visibleUserIds')" />
+            <arg expression="get-property('uri.var.fileAttachments')" />
+            <arg expression="get-property('uri.var.noteLinks')" />
+            <arg expression="get-property('uri.var.ownerUserId')" />
+         </args>
+      </payloadFactory>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/Notes" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="Expires" scope="transport" action="remove" />
+      <header name="Pragma" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+   </sequence>
+</template>

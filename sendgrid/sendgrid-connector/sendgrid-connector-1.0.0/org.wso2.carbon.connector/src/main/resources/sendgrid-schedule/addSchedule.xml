@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~ http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied. See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+
+<template name="addSchedule" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="name" description="Marketing Email to schedule delivery for. (If Marketing Email should be sent now, include no additional parameters.)" />
+    <parameter name="at" description="Date / Time to schedule marketing email Delivery." />
+    <parameter name="after" description="Number of minutes until delivery should occur." />
+    <sequence>
+        <property name="uri.var.name" expression="$func:name" />
+        <property name="uri.var.at" expression="$func:at" />
+        <property name="uri.var.after" expression="$func:after" />
+
+
+        <filter xpath="(not(get-property('uri.var.at') = '' or (not(string(get-property('uri.var.at'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;at=',get-property('uri.var.at'))"/>
+            </then>
+        </filter>
+
+
+        <filter xpath="(not(get-property('uri.var.after') = '' or (not(string(get-property('uri.var.after'))))))">
+            <then>
+                <property name="uri.var.optionalParameters"
+                          expression="fn:concat(get-property('uri.var.optionalParameters'),'&amp;after=',get-property('uri.var.after'))"/>
+            </then>
+        </filter>
+
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/schedule/add.json?api_user={+uri.var.apiUser}&amp;api_key={+uri.var.apiKey}&amp;name={+uri.var.name}&amp;{+uri.var.optionalParameters}" />
+
+            </endpoint>
+        </call>
+
+        <!-- Remove custom Headers from the API Response -->
+        <header name="X-Runtime" action="remove" scope="transport" />
+        <header name="ETag" action="remove" scope="transport" />
+        <header name="X-UA-Compatible" action="remove" scope="transport" />
+        <header name="X-Request-Id" action="remove" scope="transport" />
+        <header name="X-Rack-Cache" action="remove" scope="transport" />
+        <header name="X-Powered-By" action="remove" scope="transport" />
+
+    </sequence>
+</template>

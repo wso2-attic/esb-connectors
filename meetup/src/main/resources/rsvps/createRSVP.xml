@@ -1,0 +1,737 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="createRSVP" xmlns="http://ws.apache.org/ns/synapse"
+          description="Creates or updates an existing RSVP">
+
+    <!-- Required parameters -->
+    <parameter name="event_id"
+               description="The event that you are RSVP'ing to"/>
+    <parameter name="rsvp"
+               description="The RSVP setting - value must be either &quot;yes&quot;, &quot;no&quot; or &quot;waitlist&quot;"/>
+    <parameter name="access_token" description="Authorization token"/>
+    <!--Optional parameters -->
+    <parameter name="agree_to_refund"
+               description="For events with fees, the authorized member must agree to the event's refund policy. This must be set to either true or false"/>
+    <parameter name="answers"
+               description="Answers to event survey questions. Answers may not be longer than 250 characters. Organizers and hosts my not edit or create answers on behalf of members"/>
+    <parameter name="comments" description="A comment to post along with the RSVP"/>
+    <parameter name="guests" description="Number of guests also coming to the event."/>
+    <parameter name="member_id"
+               description="Organizers and event hosts may RSVP on behalf of a member by specifying an ID here. As when editing RSVPs on the site, organizers may enter a &quot;yes&quot; for a member even if the event requires payment."/>
+    <parameter name="opt_to_pay"
+               description="For events with fees, the authorized member may opt to pay as part of the RSVP request. This may be set to true or false"/>
+
+    <sequence>
+        <property name="uri.var.event_id" expression="$func:event_id"/>
+        <property name="uri.var.rsvp" expression="$func:rsvp"/>
+        <property name="uri.var.access_token" expression="$func:access_token"/>
+
+        <property name="uri.var.agree_to_refund" expression="$func:agree_to_refund"/>
+
+        <property name="uri.var.answers" expression="$func:answers"/>
+        <property name="uri.var.comments" expression="$func:comments"/>
+        <property name="uri.var.guests" expression="$func:guests"/>
+        <property name="uri.var.member_id" expression="$func:member_id"/>
+        <property name="uri.var.opt_to_pay" expression="$func:opt_to_pay"/>
+
+        <property name="ContentType" value="application/json" scope="axis2" type="STRING"/>
+
+        <!--<property name="uri.var.params" value=""/>
+        <filter xpath="get-property('uri.var.event_id') = '' or not(string(get-property('uri.var.event_id')))">
+            <then>
+                <property name="uri.var.params" value="event_id="/>
+            </then>
+            <else>
+                <property name="uri.var.params"
+                          expression="fn:concat('event_id=', get-property('uri.var.event_id'))"/>
+            </else>
+        </filter>
+        <filter xpath="get-property('uri.var.rsvp') = '' or not(string(get-property('uri.var.rsvp')))">
+            <then>
+                    <property name="uri.var.params" value="fn:concat(get-property('uri.var.params'),'&amp;rsvp=')"/>
+            </then>
+            <else>
+                <property name="uri.var.params"
+                          expression="fn:concat(get-property('uri.var.params'),'&amp;rsvp=', get-property('uri.var.rsvp'))"/>
+            </else>
+        </filter>
+        <filter xpath="get-property('uri.var.agree_to_refund') = '' or not(string(get-property('uri.var.agree_to_refund')))">
+            <then>
+                <log level="custom">
+                    <property name="agree_to_refund" value="not available"/>
+                </log>
+            </then>
+            <else>
+                <property name="uri.var.params"
+                          expression="fn:concat(get-property('uri.var.params'),'&amp;agree_to_refund=', get-property('uri.var.agree_to_refund'))"/>
+            </else>
+        </filter>
+        <filter xpath="get-property('uri.var.answers') = '' or not(string(get-property('uri.var.answers')))">
+            <then>
+                <log level="custom">
+                    <property name="answers" value="not available"/>
+                </log>
+            </then>
+            <else>
+                <property name="uri.var.params"
+                          expression="fn:concat(get-property('uri.var.params'),'&amp;', get-property('uri.var.answers'))"/>
+            </else>
+        </filter>
+        <filter xpath="get-property('uri.var.comments') = '' or not(string(get-property('uri.var.comments')))">
+            <then>
+                <log level="custom">
+                    <property name="comments" value="not available"/>
+                </log>
+            </then>
+            <else>
+                <property name="uri.var.params"
+                          expression="fn:concat(get-property('uri.var.params'),'&amp;comments=', get-property('uri.var.comments'))"/>
+            </else>
+        </filter>
+        <filter xpath="get-property('uri.var.guests') = '' or not(string(get-property('uri.var.guests')))">
+            <then>
+                <log level="custom">
+                    <property name="guests" value="not available"/>
+                </log>
+            </then>
+            <else>
+                <property name="uri.var.params"
+                          expression="fn:concat(get-property('uri.var.params'),'&amp;guests=', get-property('uri.var.guests'))"/>
+            </else>
+        </filter>
+        <log level="custom">
+            <property name="*********" expression="get-property('uri.var.params')"/>
+        </log>-->
+
+        <header name="Authorization"
+                expression="fn:concat('Bearer ',get-property('uri.var.access_token'))"
+                scope="transport"/>
+        <filter xpath="get-property('uri.var.guests') = '' or not(string(get-property('uri.var.guests')))">
+            <then>
+                <filter xpath="get-property('uri.var.opt_to_pay') = '' or not(string(get-property('uri.var.opt_to_pay')))">
+                    <then>
+                        <filter xpath="get-property('uri.var.member_id') = '' or not(string(get-property('uri.var.member_id')))">
+                            <then>
+                                <filter xpath="get-property('uri.var.agree_to_refund') = '' or not(string(get-property('uri.var.agree_to_refund')))">
+                                    <then>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            $3
+                                                            <comments>$4</comments>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </then>
+                                    <else>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            <agree_to_refund>$3</agree_to_refund>
+                                                            $4
+                                                            <comments>$5</comments>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.agree_to_refund')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </else>
+                                </filter>
+
+                            </then>
+                            <else>
+                                <filter xpath="get-property('uri.var.agree_to_refund') = '' or not(string(get-property('uri.var.agree_to_refund')))">
+                                    <then>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            $3
+                                                            <comments>$4</comments>
+                                                            <member_id>$6</member_id>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.member_id')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </then>
+                                    <else>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            <agree_to_refund>$3</agree_to_refund>
+                                                            $4
+                                                            <comments>$5</comments>
+                                                            <member_id>$7</member_id>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.agree_to_refund')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.member_id')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </else>
+                                </filter>
+                            </else>
+                        </filter>
+                    </then>
+                    <else>
+                        <filter xpath="get-property('uri.var.member_id') = '' or not(string(get-property('uri.var.member_id')))">
+                            <then>
+                                <filter xpath="get-property('uri.var.agree_to_refund') = '' or not(string(get-property('uri.var.agree_to_refund')))">
+                                    <then>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            $3
+                                                            <comments>$4</comments>
+                                                            <opt_to_pay>$6</opt_to_pay>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.opt_to_pay')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </then>
+                                    <else>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            <agree_to_refund>$3</agree_to_refund>
+                                                            $4
+                                                            <comments>$5</comments>
+                                                            <opt_to_pay>$7</opt_to_pay>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.agree_to_refund')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.opt_to_pay')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </else>
+                                </filter>
+
+                            </then>
+                            <else>
+                                <filter xpath="get-property('uri.var.agree_to_refund') = '' or not(string(get-property('uri.var.agree_to_refund')))">
+                                    <then>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            $3
+                                                            <comments>$4</comments>
+                                                            <member_id>$6</member_id>
+                                                            <opt_to_pay>$7</opt_to_pay>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.member_id')"/>
+                                                <arg expression="get-property('uri.var.opt_to_pay')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </then>
+                                    <else>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            <agree_to_refund>$3</agree_to_refund>
+                                                            $4
+                                                            <comments>$5</comments>
+                                                            <member_id>$7</member_id>
+                                                            <opt_to_pay>$8</opt_to_pay>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.agree_to_refund')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.member_id')"/>
+                                                <arg expression="get-property('uri.var.opt_to_pay')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </else>
+                                </filter>
+                            </else>
+                        </filter>
+                    </else>
+                </filter>
+            </then>
+            <else>
+                <filter xpath="get-property('uri.var.opt_to_pay') = '' or not(string(get-property('uri.var.opt_to_pay')))">
+                    <then>
+                        <filter xpath="get-property('uri.var.member_id') = '' or not(string(get-property('uri.var.member_id')))">
+                            <then>
+                                <filter xpath="get-property('uri.var.agree_to_refund') = '' or not(string(get-property('uri.var.agree_to_refund')))">
+                                    <then>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            $3
+                                                            <comments>$4</comments>
+                                                            <guests>$5</guests>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.guests')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </then>
+                                    <else>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            <agree_to_refund>$3</agree_to_refund>
+                                                            $4
+                                                            <comments>$5</comments>
+                                                            <guests>$6</guests>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.agree_to_refund')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.guests')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </else>
+                                </filter>
+
+                            </then>
+                            <else>
+                                <filter xpath="get-property('uri.var.agree_to_refund') = '' or not(string(get-property('uri.var.agree_to_refund')))">
+                                    <then>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            $3
+                                                            <comments>$4</comments>
+                                                            <guests>$5</guests>
+                                                            <member_id>$6</member_id>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.guests')"/>
+                                                <arg expression="get-property('uri.var.member_id')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </then>
+                                    <else>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            <agree_to_refund>$3</agree_to_refund>
+                                                            $4
+                                                            <comments>$5</comments>
+                                                            <guests>$6</guests>
+                                                            <member_id>$7</member_id>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.agree_to_refund')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.guests')"/>
+                                                <arg expression="get-property('uri.var.member_id')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </else>
+                                </filter>
+                            </else>
+                        </filter>
+                    </then>
+                    <else>
+                        <filter xpath="get-property('uri.var.member_id') = '' or not(string(get-property('uri.var.member_id')))">
+                            <then>
+                                <filter xpath="get-property('uri.var.agree_to_refund') = '' or not(string(get-property('uri.var.agree_to_refund')))">
+                                    <then>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            $3
+                                                            <comments>$4</comments>
+                                                            <guests>$5</guests>
+                                                            <opt_to_pay>$6</opt_to_pay>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.guests')"/>
+                                                <arg expression="get-property('uri.var.opt_to_pay')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </then>
+                                    <else>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            <agree_to_refund>$3</agree_to_refund>
+                                                            $4
+                                                            <comments>$5</comments>
+                                                            <guests>$6</guests>
+                                                            <opt_to_pay>$7</opt_to_pay>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.agree_to_refund')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.guests')"/>
+                                                <arg expression="get-property('uri.var.opt_to_pay')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </else>
+                                </filter>
+
+                            </then>
+                            <else>
+                                <filter xpath="get-property('uri.var.agree_to_refund') = '' or not(string(get-property('uri.var.agree_to_refund')))">
+                                    <then>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            $3
+                                                            <comments>$4</comments>
+                                                            <guests>$5</guests>
+                                                            <member_id>$6</member_id>
+                                                            <opt_to_pay>$7</opt_to_pay>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.guests')"/>
+                                                <arg expression="get-property('uri.var.member_id')"/>
+                                                <arg expression="get-property('uri.var.opt_to_pay')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </then>
+                                    <else>
+
+                                        <payloadFactory>
+                                            <format>
+                                                <soapenv:Envelope
+                                                        xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <soapenv:Header></soapenv:Header>
+                                                    <soapenv:Body>
+                                                        <root>
+                                                            <event_id>$1</event_id>
+                                                            <rsvp>$2</rsvp>
+                                                            <agree_to_refund>$3</agree_to_refund>
+                                                            $4
+                                                            <comments>$5</comments>
+                                                            <guests>$6</guests>
+                                                            <member_id>$7</member_id>
+                                                            <opt_to_pay>$8</opt_to_pay>
+
+                                                        </root>
+                                                    </soapenv:Body>
+                                                </soapenv:Envelope>
+                                            </format>
+
+                                            <args>
+                                                <arg expression="get-property('uri.var.event_id')"/>
+                                                <arg expression="get-property('uri.var.rsvp')"/>
+                                                <arg expression="get-property('uri.var.agree_to_refund')"/>
+                                                <arg expression="get-property('uri.var.answers')"/>
+                                                <arg expression="get-property('uri.var.comments')"/>
+                                                <arg expression="get-property('uri.var.guests')"/>
+                                                <arg expression="get-property('uri.var.member_id')"/>
+                                                <arg expression="get-property('uri.var.opt_to_pay')"/>
+
+                                            </args>
+
+                                        </payloadFactory>
+                                    </else>
+                                </filter>
+                            </else>
+                        </filter>
+                    </else>
+                </filter>
+            </else>
+        </filter>
+
+
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="https://api.meetup.com/2/rsvp"
+                      format="rest"/>
+                <property name="Accept" value="application/json" scope="transport"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+
+    </sequence>
+</template>

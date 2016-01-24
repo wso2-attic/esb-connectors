@@ -1,0 +1,162 @@
+<!--
+  ~ Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="getEvents" xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- Required Parameters -->
+    <parameter name="key" description="API key"/>
+
+    <!-- At least one of the required parameter must be supplied with the request-->
+    <parameter name="event_id"
+               description="Comma delimited list of event ids to limit recommendations to."/>
+    <parameter name="group_domain" description="To retrieve results based on group domain"/>
+    <parameter name="group_id" description="To retrieve results based on group_id"/>
+    <parameter name="group_urlname" description="To retrieve results based on group urlname"/>
+    <parameter name="member_id" description="To retrieve results based on member id"/>
+    <parameter name="rsvp" description="To retrieve results based on rsvp"/>
+    <parameter name="venue_id" description="To retrieve results based on venue id"/>
+
+    <!-- Optional Parameters -->
+    <parameter name="fields" description="To retrieve results based on fields"/>
+    <parameter name="limited_events" description="To retrieve results based on limited events"/>
+    <parameter name="status" description="To retrieve results based on status"/>
+    <parameter name="text_format" description="To retrieve results based on text format"/>
+    <parameter name="time" description="To retrieve results based on time"/>
+
+    <sequence>
+        <property name="uri.var.key" expression="$func:key"/>
+        <property name="uri.var.event_id" expression="$func:event_id"/>
+        <property name="uri.var.group_domain" expression="$func:group_domain"/>
+        <property name="uri.var.group_id" expression="$func:group_id"/>
+        <property name="uri.var.group_urlname" expression="$func:group_urlname"/>
+        <property name="uri.var.member_id" expression="$func:member_id"/>
+        <property name="uri.var.rsvp" expression="$func:rsvp"/>
+        <property name="uri.var.venue_id" expression="$func:venue_id"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <property name="uri.var.limited_events" expression="$func:limited_events"/>
+        <property name="uri.var.status" expression="$func:status"/>
+        <property name="uri.var.text_format" expression="$func:text_format"/>
+        <property name="uri.var.time" expression="$func:time"/>
+        <property name="uri.var.query" value=""/>
+
+
+        <script language="js">
+            <![CDATA[
+
+			var event_id = mc.getProperty('uri.var.event_id');
+			var group_domain = mc.getProperty('uri.var.group_domain');
+			var group_id = mc.getProperty('uri.var.group_id');
+			var group_urlname = mc.getProperty('uri.var.group_urlname');
+			var member_id = mc.getProperty('uri.var.member_id');
+			var rsvp = mc.getProperty('uri.var.rsvp');
+			var venue_id = mc.getProperty('uri.var.venue_id');
+			var fields = mc.getProperty('uri.var.fields');
+			var limited_events = mc.getProperty('uri.var.limited_events');
+			var status = mc.getProperty('uri.var.status');
+			var text_format = mc.getProperty('uri.var.text_format');
+			var time = mc.getProperty('uri.var.time');
+			var query = mc.getProperty('uri.var.query');
+
+			if (event_id != null && event_id != "") {
+				query = query + '&event_id=' + event_id;
+			}
+
+			if (group_domain != null && group_domain != "") {
+				query = query + '&group_domain=' + group_domain;
+			}
+
+			if(group_id !=null && group_id != "") {
+				query = query + '&group_id=' + group_id;
+			}
+
+			if (group_urlname != null && group_urlname != "") {
+				query = query + '&group_urlname=' + group_urlname;
+			}
+
+			if (member_id != null && member_id != "") {
+				query = query + '&member_id=' + member_id;
+			}
+
+			if(rsvp != null && rsvp != "") {
+				query = query + '&rsvp=' + rsvp;
+			}
+
+			if (venue_id != null && venue_id != "") {
+				query = query + '&venue_id=' + venue_id;
+			}
+
+			if (fields != null && fields != "") {
+				query = query + '&fields=' + fields;
+			}
+
+            if (limited_events != null && limited_events != "") {
+				query = query + '&limited_events=' + limited_events;
+			}
+
+			if (status != null && status != "") {
+				query = query + '&status=' + status;
+			}
+
+			if(text_format !=null && text_format != "") {
+				query = query + '&text_format=' + text_format;
+			}
+
+			if (time != null && time != "") {
+				query = query + '&time=' + time;
+			}
+
+
+			mc.setProperty('uri.var.query', query);
+
+	 		]]>
+        </script>
+
+
+        <filter
+                xpath="get-property('uri.var.key') = '' or not(string(get-property('uri.var.key')))">
+            <then>
+                <property name="uri.var.key" value=""/>
+            </then>
+        </filter>
+
+
+        <log level="custom" xmlns="http://ws.apache.org/ns/synapse">
+            <property name="string" expression="fn:concat('key - ', get-property('uri.var.key'))"/>
+        </log>
+        <log level="custom" xmlns="http://ws.apache.org/ns/synapse">
+            <property name="string"
+                      expression="fn:concat('query - ', get-property('uri.var.query'))"/>
+        </log>
+
+
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/events?key={uri.var.key}{uri.var.query}"/>
+            </endpoint>
+        </call>
+
+
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+    </sequence>
+</template>

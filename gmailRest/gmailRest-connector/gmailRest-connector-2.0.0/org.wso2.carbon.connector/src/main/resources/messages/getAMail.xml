@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~   WSO2 Inc. licenses this file to you under the Apache License,
+  ~   Version 2.0 (the "License"); you may not use this file except
+  ~   in compliance with the License.
+  ~   You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing,
+  ~  software distributed under the License is distributed on an
+  ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~  KIND, either express or implied.  See the License for the
+  ~  specific language governing permissions and limitations
+  ~  under the License.
+  -->
+<template name="getAMail" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="id" description="The ID of the message to retrieve"/>
+    <parameter name="format" description="The format to return the message"/>
+    <parameter name="metadataHeaders" description="When given and format is METADATA, only include headers specified"/>
+    <sequence>
+        <property name="uri.var.id" expression="$func:id"/>
+        <property name="uri.var.format" expression="$func:format"/>
+        <property name="uri.var.metadataHeaders" expression="$func:metadataHeaders"/>
+        <property name="gmailParameters" value=""/>
+        <script language="js">
+            <![CDATA[
+                   var query = mc.getProperty('uri.var.metadataHeaders');
+					var encodedQuery = encodeURIComponent(query);
+					mc.setProperty('uri.var.metadataHeaders', encodedQuery);
+            ]]>
+        </script>
+        <filter
+                xpath="get-property('uri.var.format') = '' or  not(string(get-property('uri.var.format')))">
+            <then>
+                <property name="uri.var.format" value=""/>
+            </then>
+            <else>
+                <property name="gmailParameters" expression="fn:concat(get-property('gmailParameters'),
+               '&amp;format=', get-property('uri.var.format'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.metadataHeaders') = '' or  not(string(get-property('uri.var.metadataHeaders')))">
+            <then>
+                <property name="uri.var.metadataHeaders" value=""/>
+            </then>
+            <else>
+                <property name="gmailParameters" expression="fn:concat(get-property('gmailParameters'),
+               '&amp;metadataHeaders=', get-property('uri.var.metadataHeaders'))"/>
+            </else>
+        </filter>
+        <property name="uri.var.parameters" expression="get-property('gmailParameters')"/>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{+uri.var.apiUrl}/{+uri.var.apiVersion}/users/{+uri.var.userId}/messages/{+uri.var.id}?{+uri.var.parameters}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+    </sequence>
+</template>

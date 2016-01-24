@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developers.supportbee.com/api#create_ticket -->
+<template name="createTicket" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="copiedEmails"
+      description="Specifies the CC email addresses included in the ticket. If there are multiple emails, pass them comma separated." />
+   <parameter name="notifyRequester"
+      description="Set to true if you want to email the requester a copy of the ticket. If this is true, an auto-response is not sent (even if it's enabled in the settings)." />
+   <parameter name="forwardingAddressId"
+      description="This optional parameter lets you specify the email address/name to be used for sending out replies/auto-responses to the customer." />
+   <parameter name="subject" description="Specifies the subject of the ticket." />
+   <parameter name="requesterName" description="Specifies the name of the requester of the ticket." />
+   <parameter name="requesterEmail" description="Specifies the email of the requester of the ticket." />
+   <parameter name="html" description="HTML content of the ticket." />
+   <parameter name="text" description="Text content of the ticket." />
+   <parameter name="attachmentIds" description="Attachments to be added to the ticket." />
+   <sequence>
+      <property name="uri.var.copiedEmails" expression="$func:copiedEmails" />
+      <filter source="boolean(get-property('uri.var.copiedEmails'))" regex="false">
+         <then>
+            <property name="uri.var.copiedEmails" value="[]" />
+         </then>
+      </filter>
+      <property name="uri.var.notifyRequester" expression="$func:notifyRequester" />
+      <property name="uri.var.forwardingAddressId" expression="$func:forwardingAddressId" />
+      <property name="uri.var.subject" expression="$func:subject" />
+      <property name="uri.var.requesterName" expression="$func:requesterName" />
+      <property name="uri.var.requesterEmail" expression="$func:requesterEmail" />
+      <property name="uri.var.html" expression="$func:html" />
+      <property name="uri.var.text" expression="$func:text" />
+      <property name="uri.var.attachmentIds" expression="$func:attachmentIds" />
+      <filter source="boolean(get-property('uri.var.attachmentIds'))" regex="false">
+         <then>
+            <property name="uri.var.attachmentIds" value="[]" />
+         </then>
+      </filter>
+      <payloadFactory media-type="json">
+         <format>
+            {
+                "ticket": {
+                    "content": {
+                        "attachment_ids": $1,
+                        "text": "$2"
+                    },
+                    "cc": $3,
+                    "forwarding_address_id": "$4",
+                    "requester_email": "$5",
+                    "requester_name": "$6",
+                    "subject": "$7",
+                    "notify_requester": "$8"
+                }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.attachmentIds')" />
+            <arg expression="get-property('uri.var.text')" />
+            <arg expression="get-property('uri.var.copiedEmails')" />
+            <arg expression="get-property('uri.var.forwardingAddressId')" />
+            <arg expression="get-property('uri.var.requesterEmail')" />
+            <arg expression="get-property('uri.var.requesterName')" />
+            <arg expression="get-property('uri.var.subject')" />
+            <arg expression="get-property('uri.var.notifyRequester')" />
+         </args>
+      </payloadFactory>
+      <!-- Script Mediator is used to add HTML content to the JSON payload. -->
+      <script language="js">
+         <![CDATA[
+            var html = mc.getProperty('uri.var.html');            
+            if(html != null && html != ''){
+               var payload = mc.getPayloadJSON();
+               payload.ticket.content.html = html;
+               mc.setPayloadJSON(payload);
+            }
+         ]]>         
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/tickets{+uri.var.authToken}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="X-Rack-Cache" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="X-Runtime" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="Status" action="remove" scope="transport" />
+   </sequence>
+</template>

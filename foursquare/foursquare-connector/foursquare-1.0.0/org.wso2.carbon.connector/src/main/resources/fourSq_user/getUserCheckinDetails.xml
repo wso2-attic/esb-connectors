@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template xmlns="http://ws.apache.org/ns/synapse" name="getUserCheckinDetails">
+    <parameter name="userId"/>
+
+    <parameter name="limit" description="list limit" />
+    <parameter name="offset" description="offset parameter" />
+    <parameter name="afterTimestamp" description="afterTimestamp parameter" />
+    <parameter name="beforeTimestamp" description="afterTimestamp parameter" />
+
+
+
+    <sequence>
+        <property name="HTTP_METHOD" value="GET" scope="axis2" type="STRING"/>
+        <property name="uri.var.userId" expression="$func:userId" scope="default" type="STRING"/>
+        <property name="Accept-Encoding" scope="transport" action="remove"/>
+        <property name="messageType" value="application/json" scope="axis2" type="STRING"/>
+
+        <property name="parameters" value="0"/>
+
+
+        <property name="uri.var.limit" expression="$func:limit" />
+        <property name="uri.var.offset" expression="$func:offset" />
+        <property name="uri.var.afterTimestamp" expression="$func:afterTimestamp" />
+        <property name="uri.var.beforeTimestamp" expression="$func:beforeTimestamp" />
+
+
+
+
+
+        <filter
+                xpath="get-property('uri.var.limit') = '' or  not(string(get-property('uri.var.limit')))" >
+            <then>
+                <property name="uri.var.limit" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;limit=', get-property('uri.var.limit'))"/>
+            </else>
+        </filter>
+
+        <filter
+                xpath="get-property('uri.var.offset') = '' or  not(string(get-property('uri.var.offset')))" >
+            <then>
+                <property name="uri.var.offset" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;offset=', get-property('uri.var.offset'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.afterTimestamp') = '' or  not(string(get-property('uri.var.afterTimestamp')))" >
+            <then>
+                <property name="uri.var.afterTimestamp" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;afterTimestamp=', get-property('uri.var.afterTimestamp'))"/>
+            </else>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.beforeTimestamp') = '' or  not(string(get-property('uri.var.beforeTimestamp')))" >
+            <then>
+                <property name="uri.var.beforeTimestamp" value=""/>
+            </then>
+            <else>
+                <property name="parameters" expression="fn:concat(get-property('parameters'),
+                '&amp;beforeTimestamp=', get-property('uri.var.beforeTimestamp'))"/>
+            </else>
+        </filter>
+
+
+
+        <payloadFactory media-type="xml">
+            <format>
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                    <soapenv:Header />
+                    <soapenv:Body />
+                </soapenv:Envelope>
+            </format>
+            <args />
+        </payloadFactory>
+        <property name="messageType" value="application/json" scope="axis2" />
+        <call>
+            <endpoint>
+                <http method="GET"
+                      uri-template="{uri.var.foursquare.apiUrl}/v2/users/{+uri.var.userId}/checkins?v=20131213&amp;{+uri.var.parameters}&amp;oauth_token={+uri.var.foursquare.accessToken}" />
+            </endpoint>
+        </call>
+
+    </sequence>
+</template>

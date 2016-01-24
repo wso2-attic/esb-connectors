@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Document URL https://developers.pipedrive.com/v1 -->
+<template name="createActivity" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="subject" description="Subject of the activity." />
+   <parameter name="type" description="The Type of the activity." />
+   <parameter name="isDone" description="Indicates whether the activity is done or not." />
+   <parameter name="dueDate" description="Due date of the activity, Format: YYYY-MM-DD" />
+   <parameter name="dueTime" description="Due time of the activity in UTC, Format: HH:MM" />
+   <parameter name="duration" description="The duration of the activity, Format: HH:MM" />
+   <parameter name="userId" description="The unique identifier of the user whom the activity will be assigned to." />
+   <parameter name="dealId" description="The unique identifier of the deal the activity will be associated with." />
+   <parameter name="personId" description="The unique identifier of the person the activity will be associated with." />
+   <parameter name="organizationId" description="The unique identifier of the organization the activity will be associated with." />
+   <parameter name="note" description="The note of the activity in HTML format." />
+   <parameter name="prettyOutput" description="If the prettyOutput is specified as 1, will return an indented response of the output." />
+   <parameter name="fields" description="The array of fileds to be returned in the output." />
+   <sequence>
+      <property name="uri.var.subject" expression="$func:subject" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.isDone" expression="$func:isDone" />
+      <property name="uri.var.dueDate" expression="$func:dueDate" />
+      <property name="uri.var.dueTime" expression="$func:dueTime" />
+      <property name="uri.var.duration" expression="$func:duration" />
+      <property name="uri.var.userId" expression="$func:userId" />
+      <property name="uri.var.dealId" expression="$func:dealId" />
+      <property name="uri.var.personId" expression="$func:personId" />
+      <property name="uri.var.organizationId" expression="$func:organizationId" />
+      <property name="uri.var.note" expression="$func:note" />
+      <property name="uri.var.prettyOutput" expression="$func:prettyOutput" />
+      <property name="uri.var.fields" expression="$func:fields" />
+      <!-- Generate the request payload with mandatory parameters -->
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "subject":"$1",
+            "type":"$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.subject')" />
+            <arg expression="get-property('uri.var.type')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[ 
+            // Generate payload with optional parameters
+            var urlQuery = mc.getProperty('uri.var.urlQuery');
+            var prettyOutput = mc.getProperty('uri.var.prettyOutput');
+            var fields = mc.getProperty('uri.var.fields');
+            var isDone = mc.getProperty('uri.var.isDone');
+            var dueDate = mc.getProperty('uri.var.dueDate');
+            var dueTime = mc.getProperty('uri.var.dueTime');
+            var duration = mc.getProperty('uri.var.duration');
+            var userId = mc.getProperty('uri.var.userId');
+            var dealId = mc.getProperty('uri.var.dealId');
+            var personId = mc.getProperty('uri.var.personId');
+            var organizationId = mc.getProperty('uri.var.organizationId');
+            var note = mc.getProperty('uri.var.note');
+            if (prettyOutput != null && prettyOutput != '') {
+               urlQuery += '&pretty_output=' + prettyOutput;
+            }
+            if (fields != null && fields != "") {
+               var fieldsList = '';
+               var fieldsArray = eval('(' + fields + ')');
+               for (var i = 0; i < fieldsArray.length; i++) {
+                  fieldsList += fieldsArray[i] + ',';
+               }
+               if (fieldsList != '') {
+                  //Remove unwanted comma at the end
+                  fieldsList = ':(' + fieldsList.substring(0, fieldsList.length - 1) + ')';
+                  mc.setProperty('uri.var.filter', fieldsList);
+               }
+            }
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+            payload = mc.getPayloadJSON();
+            if (isDone != null && isDone != "") {
+               payload.done = isDone;
+            }
+            if (dueDate != null && dueDate != "") {
+               payload.due_date = dueDate;
+            }
+            if (dueTime != null && dueTime != "") {
+               payload.due_time = dueTime;
+            }
+            if (duration != null && duration != "") {
+               payload.duration = duration;
+            }
+            if (userId != null && userId != "") {
+               payload.user_id = userId;
+            }
+            if (dealId != null && dealId != "") {
+               payload.deal_id = dealId;
+            }
+            if (personId != null && personId != "") {
+               payload.person_id = personId;
+            }
+            if (organizationId != null && organizationId != "") {
+               payload.org_id = organizationId;
+            }
+            if (note != null && note != "") {
+               payload.note = note;
+            }
+            mc.setPayloadJSON(payload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}activities{+uri.var.filter}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Frame-Options" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="X-XSS-Protection" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+   </sequence>
+</template>

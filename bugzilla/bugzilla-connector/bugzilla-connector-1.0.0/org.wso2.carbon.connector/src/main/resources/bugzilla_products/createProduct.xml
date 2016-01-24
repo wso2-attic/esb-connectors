@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ 
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+ 
+     http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<!--API Documentation URL  http://www.bugzilla.org/docs/tip/en/html/api/Bugzilla/WebService/Product.html#create-->
+<template name="createProduct" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="name" description="The name of the product. Must be globally unique within Bugzilla." />
+   <parameter name="description" description="A description for this product. Allows some simple HTML." />
+   <parameter name="version" description="The default version for the product." />
+   <parameter name="hasUnconfirmed" description="Allow the UNCONFIRMED status to be set on bugs in the product. Default: true." />
+   <parameter name="classification" description="The name of the Classification which contains the product." />
+   <parameter name="defaultMilestone" description="he default milestone for the product. Default '---'." />
+   <parameter name="isOpen" description="True if the product is currently allowing bugs to be entered into it. Default: true." />
+   <parameter name="createSeries" description="True if you want series for New Charts to be created for the new product. Default: true." />
+   <sequence>
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.version" expression="$func:version" />
+      <property name="uri.var.hasUnconfirmed" expression="$func:hasUnconfirmed" />
+      <property name="uri.var.classification" expression="$func:classification" />
+      <property name="uri.var.defaultMilestone" expression="$func:defaultMilestone" />
+      <property name="uri.var.isOpen" expression="$func:isOpen" />
+      <property name="uri.var.createSeries" expression="$func:createSeries " />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "name":"$1",
+               "version":"$2"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.name')" />
+            <arg expression="get-property('uri.var.version')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+        <![CDATA[
+         payload = mc.getPayloadJSON();
+         var description = mc.getProperty('uri.var.description');
+         var hasUnconfirmed = mc.getProperty('uri.var.hasUnconfirmed');
+         var classification = mc.getProperty('uri.var.classification'); 
+         var defaultMilestone = mc.getProperty('uri.var.defaultMilestone'); 
+         var isOpen = mc.getProperty('uri.var.isOpen'); 
+         var createSeries = mc.getProperty('uri.var.createSeries'); 
+         payload.description=description;  
+         if (hasUnconfirmed != null && hasUnconfirmed != "") {
+            if("false"==hasUnconfirmed.toLowerCase()){
+               payload.has_unconfirmed=eval("(" + hasUnconfirmed + ")");
+            }else{            
+               payload.has_unconfirmed=hasUnconfirmed;
+            }
+         }     
+         if (classification != null && classification != "") {
+             payload.classification=classification;
+         }     
+         if (defaultMilestone != null && defaultMilestone != "") {
+             payload.default_milestone=defaultMilestone;
+         }     
+         if (isOpen != null && isOpen != "") {
+            if("false"==isOpen.toLowerCase()){
+               payload.is_open=eval("(" + isOpen + ")");
+            }else{            
+               payload.is_open=is_open;
+            }
+         }    
+         if (createSeries != null && createSeries != "") {
+             payload.create_series=eval("(" + createSeries + ")");
+         }     
+         mc.setPayloadJSON(payload);
+        ]]>
+      </script>
+      <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/product{+uri.var.apiKey}" />
+         </endpoint>
+      </call>
+      <!--Removing custom headers from the Response. -->
+      <header name="X-frame-options" action="remove" scope="transport" />
+      <header name="X-xss-protection" action="remove" scope="transport" />
+      <header name="Etag" action="remove" scope="transport" />
+      <header name="X-content-type-options" action="remove" scope="transport" />
+      <header name="Access-control-allow-origin" action="remove" scope="transport" />
+      <header name="Access-control-allow-headers" action="remove" scope="transport" />
+   </sequence>
+</template>

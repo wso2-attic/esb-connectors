@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ ~  Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ ~
+ ~  WSO2 Inc. licenses this file to you under the Apache License,
+ ~  Version 2.0 (the "License"); you may not use this file except
+ ~  in compliance with the License.
+ ~  You may obtain a copy of the License at
+ ~
+ ~    http://www.apache.org/licenses/LICENSE-2.0
+ ~
+ ~  Unless required by applicable law or agreed to in writing,
+ ~  software distributed under the License is distributed on an
+ ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ ~  KIND, either express or implied.  See the License for the
+ ~  specific language governing permissions and limitations
+ ~  under the License.
+-->
+<template name="getAccessToken" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- Required parameters -->
+    <parameter name="clientId"
+               description="Unique client identifier obtained through the application registration process."/>
+    <parameter name="clientSecret"
+               description="Unique client secret key obtained through the application registration process."/>
+    <sequence>
+        <property name="uri.var.clientId" expression="$func:clientId"/>
+        <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
+        <property name="uri.var.grantType" value="client_credentials"/>
+        <property name="uri.var.contentType" value="application/x-www-form-urlencoded"/>
+        <!-- Setting up a new  Authorization header and content-type-->
+        <property xmlns:ns2="http://org.apache.synapse/xsd" xmlns:ns="http://org.apache.synapse/xsd"
+                  name="Authorization"
+                  expression="fn:concat('Basic ', base64Encode(fn:concat(get-property('uri.var.clientId'),':',get-property('uri.var.clientSecret'))))"
+                  scope="transport" type="STRING"/>
+        <property xmlns:ns2="http://org.apache.synapse/xsd" xmlns:ns="http://org.apache.synapse/xsd" name="content-type"
+                  expression="(get-property('uri.var.contentType'))" scope="transport" type="STRING"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "grant_type":"$1"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.grantType')"/>
+            </args>
+        </payloadFactory>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="{uri.var.apiUrl}/v1/oauth2/token"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="Paypal-Debug-Id" scope="transport" action="remove"/>
+        <header name="DC" scope="transport" action="remove"/>
+        <header name="PROXY_SERVER_INFO" scope="transport" action="remove"/>
+        <header name="CORRELATION-ID" scope="transport" action="remove"/>
+        <header name="SERVER_INFO" scope="transport" action="remove"/>
+        <header name="Set-Cookie" scope="transport" action="remove"/>
+    </sequence>
+</template>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ 
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+ 
+     http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<!--API Documentation URL- http://www.bugzilla.org/docs/tip/en/html/api/Bugzilla/WebService/Product.html#get -->
+<template name="searchProducts" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="ids" description="An array of product ids." />
+   <parameter name="names" description="An array of product names." />
+   <parameter name="type" description="The group of products to return. Valid values are: accessible (default), selectable, and enterable." />
+   <parameter name="includeFields" description="An array of strings, representing the names of fields in the return value. Only the fields specified in this hash will be returned." />
+   <parameter name="excludeFields" description="An array of strings, representing the names of fields in the return value. The fields specified will not be included in the returned hashes." />
+   <sequence>
+      <property name="uri.var.ids" expression="$func:ids" />
+      <property name="uri.var.names" expression="$func:names" />
+      <property name="uri.var.type" expression="$func:type" />
+      <property name="uri.var.excludeFields" expression="$func:excludeFields" />
+      <property name="uri.var.includeFields" expression="$func:includeFields" />
+            <script language="js">
+         <![CDATA[
+            var includeFields = mc.getProperty('uri.var.includeFields');
+            var excludeFields = mc.getProperty('uri.var.excludeFields');
+            var ids = mc.getProperty('uri.var.ids');
+            var names = mc.getProperty('uri.var.names');
+            var type = mc.getProperty('uri.var.type');
+            var urlQuery = '&';
+            if (includeFields != null && includeFields != ""){
+               urlQuery += 'include_fields=' + encodeURI(includeFields) + '&';
+            }
+            if (excludeFields != null && excludeFields != ""){
+               urlQuery += 'exclude_fields=' + encodeURI(excludeFields) + '&';
+            }
+            if (ids != null && ids != ""){
+               if(ids.charCodeAt(0) != '91' && ids.charCodeAt(ids.length-1) != '93'){
+                  urlQuery += 'ids=' + ids + '&';
+               } else {
+                  ids=eval("(" + ids + ")");
+                  for(i=0;i<ids.length;i++){
+                     urlQuery +='ids='+ids[i] + '&'; 
+                  } 
+              }
+            }
+            if (names != null && names != ""){
+               if(names.charCodeAt(0) != '91' && names.charCodeAt(names.length-1) != '93'){
+                  urlQuery += 'names=' + encodeURI(names) + '&';
+               }else{
+                  names=eval("(" + names + ")");
+                  for(i=0;i<names.length;i++){
+                     urlQuery +='names='+ encodeURI(names[i]) + '&'; 
+                  }
+                }
+            }
+            if (type != null && type != ""){
+               if(type.charCodeAt(0) != '91' && type.charCodeAt(type.length-1) != '93'){
+                  urlQuery += 'type=' + type + '&';
+               }else{
+                  type=eval("(" + type + ")");
+                  for(i=0;i<type.length;i++){
+                     urlQuery +='type='+ type[i] + '&'; 
+                  }
+               }  
+            }
+            // Remove the trailing '&'
+            urlQuery = urlQuery.substring(0, urlQuery.length - 1);
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/product{+uri.var.apiKey}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!--Removing custom headers from the Response. -->
+      <header name="X-frame-options" action="remove" scope="transport" />
+      <header name="X-xss-protection" action="remove" scope="transport" />
+      <header name="Etag" action="remove" scope="transport" />
+      <header name="X-content-type-options" action="remove" scope="transport" />
+      <header name="Access-control-allow-origin" action="remove" scope="transport" />
+      <header name="Access-control-allow-headers" action="remove" scope="transport" />
+   </sequence>
+</template>

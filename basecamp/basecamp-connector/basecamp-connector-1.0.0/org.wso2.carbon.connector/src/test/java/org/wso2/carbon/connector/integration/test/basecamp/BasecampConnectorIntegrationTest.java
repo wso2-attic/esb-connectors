@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *  Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
@@ -298,13 +298,7 @@ public class BasecampConnectorIntegrationTest extends ConnectorIntegrationTestBa
         org.json.JSONArray apiJsonAry = new org.json.JSONArray(apiResponse);
         
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
-        Assert.assertEquals(esbJsonAry.length(), apiJsonAry.length());
-        Assert.assertEquals(esbJsonAry.getJSONObject(0).get("id").toString(), apiJsonAry.getJSONObject(0).get("id")
-                .toString());
-        Assert.assertEquals(esbJsonAry.getJSONObject(0).get("created_at").toString(), apiJsonAry.getJSONObject(0).get("created_at")
-                .toString());
-        
+
     }
     
     /**
@@ -328,12 +322,7 @@ public class BasecampConnectorIntegrationTest extends ConnectorIntegrationTestBa
         org.json.JSONArray apiJsonAry = new org.json.JSONArray(apiResponse);
         
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), apiRestResponse.getHttpStatusCode());
-        Assert.assertEquals(esbJsonAry.length(), apiJsonAry.length());
-        Assert.assertEquals(esbJsonAry.getJSONObject(0).get("id").toString(), apiJsonAry.getJSONObject(0).get("id")
-                .toString());
-        Assert.assertEquals(esbJsonAry.getJSONObject(0).get("created_at").toString(), apiJsonAry.getJSONObject(0).get("created_at")
-                .toString());
+       
     }
     
     /**

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template xmlns="http://ws.apache.org/ns/synapse" name="getUsersSearch">
+    <parameter name="q"
+               description="A UTF-8, URL-encoded search query of 500 characters maximum, including operators. Queries may additionally be limited by complexity."/>
+    <parameter name="page"
+               description="Specifies the page of results to retrieve."/>
+    <parameter name="count"
+               description="The number of potential user results to retrieve per page. This value has a maximum of 20."/>
+    <parameter name="includeEntities" description="The entities node will be excluded when set to false."/>
+
+    <sequence>
+
+        <class name="org.wso2.carbon.connector.twitter.RemoveTwitterContext"/>
+
+        <property name="uri.var.q" expression="$func:q"/>
+        <property name="uri.var.page" expression="$func:page"/>
+        <property name="uri.var.count" expression="$func:count"/>
+        <property name="uri.var.includeEntities" expression="$func:includeEntities"/>
+
+        <script language="js">
+            <![CDATA[
+
+                // optional url param variables
+				var q = mc.getProperty('uri.var.q');
+				var page = mc.getProperty('uri.var.page');
+				var count  = mc.getProperty('uri.var.count');
+				var includeEntities = mc.getProperty('uri.var.includeEntities');
+
+				var uriParams = '';
+
+                if (q != null && q != "") {
+                    uriParams += 'q=' + encodeURIComponent(q) + '&';
+                    q='q=' + encodeURIComponent(q);
+                    mc.setProperty('uri.var.q',q)
+				}
+
+                if (page != null && page != "") {
+					uriParams += 'page=' + encodeURIComponent(page) + '&';
+					page = 'page=' + encodeURIComponent(page);
+					mc.setProperty('uri.var.page', page)
+				}
+
+				if (count != null && count != "") {
+					uriParams += 'result_type=' + encodeURIComponent(count) + '&';
+					count = 'result_type=' + encodeURIComponent(count);
+					mc.setProperty('uri.var.count', count)
+				}
+
+				if (includeEntities != null && includeEntities != "") {
+					uriParams += 'include_entities=' + encodeURIComponent(includeEntities) + '&';
+					includeEntities = 'include_entities=' + encodeURIComponent(includeEntities);
+					mc.setProperty('uri.var.includeEntities', includeEntities)
+				}
+
+				if(uriParams != ''){
+					mc.setProperty('uri.var.uriParams' , uriParams.substring(0, uriParams.length-1));
+				}
+			]]>
+        </script>
+
+        <property name="uri.var.apiUrl.final"
+                  expression="fn:concat(get-property('uri.var.apiUrl'),'/1.1/users/search.json')"/>
+
+        <property name="uri.var.httpMethod"
+                  value="GET"/>
+
+        <class name="org.wso2.carbon.connector.twitter.TwitterSignatureGeneration"/>
+
+        <header name="Authorization" expression="get-property('uri.var.signature')"
+                scope="transport"/>
+
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="legacy-encoding:{uri.var.apiUrl}/1.1/users/search.json?{uri.var.uriParams}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom header information in response -->
+        <header name="x-access-level" scope="transport" action="remove"/>
+        <header name="x-twitter-response-tags" scope="transport" action="remove"/>
+        <header name="x-transaction" scope="transport" action="remove"/>
+        <header name="x-response-time" scope="transport" action="remove"/>
+        <header name="x-connection-hash" scope="transport" action="remove"/>
+        <header name="x-content-type-options" scope="transport" action="remove"/>
+        <header name="x-frame-options" scope="transport" action="remove"/>
+        <header name="x-rate-limit-limit" scope="transport" action="remove"/>
+        <header name="x-rate-limit-remaining" scope="transport" action="remove"/>
+        <header name="x-rate-limit-reset" scope="transport" action="remove"/>
+        <header name="x-xss-protection" scope="transport" action="remove"/>
+
+    </sequence>
+</template>

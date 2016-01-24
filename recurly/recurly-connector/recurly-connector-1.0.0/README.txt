@@ -11,11 +11,11 @@ Product: Integration tests for WSO2 ESB Recurly connector
 
     - Microsoft WINDOWS V-7
     - Ubuntu 13.04
-    - WSO2 ESB 4.8.1
+    - WSO2 ESB 4.9.0-ALPHA
 
 STEPS:
 
-1. Download ESB 4.8.1 from official website.
+1. Download WSO2 ESB 4.9.0-ALPHA from official website.
 
 2. Deploy relevant patches, if applicable and the ESB should be configured as below.
    Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
@@ -32,9 +32,9 @@ STEPS:
 4. Follow the below mentioned steps to add valid certificate to access Recurly API.
 
    i)   Extract the certificate from browser(Mozilla Firefox) by navigating to API URL that obtained in step 3-ii. 
-   ii)  Go to new ESB 4.8.1 folder and place the downloaded certificate into "<ESB_HOME>/repository/resources/security/" and 
-        "{Recurly_Connector_Home}/recurly-connector/recurly-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products" folders.
-   iii) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute the following command.
+   ii)  Go to new ESB 4.9.0-ALPHA folder and place the downloaded certificate into "{ESB_Connector_Home}/repository/resources/security/" and
+        "{ESB_Connector_Home}/recurly/recurly-connector/recurly-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products" folders.
+   iii) Navigate to "{ESB_Connector_Home}/repository/resources/security/" using command prompt and execute the following command.
 
             keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME"
 
@@ -44,7 +44,7 @@ STEPS:
          NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from Recurly with the extension. (e.g. recurly.crt)
                CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. Recurly)
 
-   iv) Navigate to "{Recurly_Connector_Home}/recurly-connector/recurly-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute the following command.
+   iv) Navigate to "{ESB_Connector_Home}/recurly/recurly-connector/recurly-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute the following command.
 
             keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME" 
 
@@ -54,9 +54,9 @@ STEPS:
          NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from Recurly with the extension. (e.g. recurly.crt)
                CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. Recurly)
 
-5. Compress modified ESB as wso2esb-4.8.1.zip and copy that zip file in to location "{Recurly_Connector_Home}/recurly-connector/recurly-connector-1.0.0/org.wso2.carbon.connector/repository/".
+5. Compress modified ESB as WSO2 ESB 4.9.0-ALPHA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
 
-6. Update the property file recurly.properties found in {Recurly_Connector_Home}/recurly-connector/recurly-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config as follows:
+6. Update the property file recurly.properties found in {ESB_Connector_Home}/recurly/recurly-connector/recurly-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config as follows:
 
    i)   apiUrl               -  API URL to which the service calls are made. e.g. https://virasoft.recurly.com.
    ii)  apiKey               -  Use the API key obtained in Step 3 - iii.
@@ -73,5 +73,8 @@ STEPS:
 
    Note: The property values of couponCode, couponCodeOpt, accountCode, accountCodeOpt, planCode, planCodeOptional should be changed to unique different values for each integration execution.
 
-7. Navigate to "{Recurly_Connector_Home}/recurly-connector/recurly-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+7.Make sure that the recurly connector is set as a module in esb-connectors parent pom.
+        <module>recurly/recurly-connector/recurly-connector-1.0.0/org.wso2.carbon.connector</module>
+
+8. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install

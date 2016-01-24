@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Retrieve comments for tasks from Cashboard API and update the ticket with the comment in Sirportly API. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="sirportly_updateTicketsWithComments" transports="https" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+      
+         <!-- Sirportly properties. -->
+         <property name="sirportly.apiUrl" expression="json-eval($.sirportly.apiUrl)" />
+         <property name="sirportly.apiToken" expression="json-eval($.sirportly.apiToken)" />
+         <property name="sirportly.apiSecret" expression="json-eval($.sirportly.apiSecret)" />
+         
+         <!-- Cashboard properties. -->
+         <property name="cashboard.apiUrl" expression="json-eval($.cashboard.apiUrl)" />
+         <property name="cashboard.emailAddress" expression="json-eval($.cashboard.emailAddress)" />
+         <property name="cashboard.password" expression="json-eval($.cashboard.password)" />
+         <property name="cashboard.subdomain" expression="json-eval($.cashboard.subdomain)" />
+         <property name="cashboard.updatedSince" expression="json-eval($.cashboard.updatedSince)" />
+         
+         <!-- Common properties. -->
+         <property name="id.empty" value="{}" />
+         
+         <!-- Retrieving all the projectLists of the account. -->
+         <cashboard.init>
+            <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+            <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+            <password>{$ctx:cashboard.password}</password>
+            <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+         </cashboard.init>
+         <cashboard.listProjectLists>
+            <isArchived>false</isArchived>
+         </cashboard.listProjectLists>
+         
+         <!--Removing unused headers. -->
+         <sequence key="removeResponseHeaders" />
+         
+         <!-- START: Checks for the successful execution of listProjectLists method. -->
+         <property name="responseStatus" expression="$axis2:HTTP_SC" />
+         <filter xpath="get-property('responseStatus') != 200">
+            <then>
+               <!-- In case an error response returns retrieve the error message accordingly. -->
+               <property name="cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+               <filter source="boolean(get-property('cashboard.errorResponseHtml'))" regex="true">
+                  <then>
+                     <!--If in case the error returns as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                     <call-template target="base64Decoder">
+                        <with-param name="responseBinaryString" value="{$ctx:cashboard.errorResponseHtml}" />
+                     </call-template>
+                     <property name="cashboard.errorMessage" expression="get-property('decodedResult')" />
+                  </then>
+                  <else>
+                     <!-- In case any other response returns it will be caught here. -->
+                     <property name="cashboard.errorResponse" expression="json-eval($)" />
+                     <property name="cashboard.errorMessage" expression="get-property('cashboard.errorResponse')" />
+                  </else>
+               </filter>
+               
+               <!-- listProjectLists method execution failure, generate the error response. -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="cashboard_listProjectLists" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:cashboard.errorMessage}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <property name="cashboardProjectListCount" expression="count(//project_list)" scope="operation" />
+               <property name="cashboardProjectListIndex" expression="0" scope="operation" />
+               <property name="cashboardCommentCount" expression="0" scope="operation" />
+               <property name="cashboardCommentIndex" expression="0" scope="operation" />
+               
+               <!-- START: Checks for the successful retrieval of Project Lists. -->
+               <filter source="get-property('operation', 'cashboardProjectListCount')" regex="0.0">
+                  <then>
+                     <!-- If the Project Lists are not available for the account, generate the error response. -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="activity" value="cashboard_listProjectLists" />
+                        <with-param name="message" value="There are no project lists exist to update comments." />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <!-- Iterates over Project Lists and proceed to update Tickets in Sirportly. -->
+                     <iterate continueParent="false" id="projectListIterator" expression="//project_list" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="cashboard.projectListId" expression="//project_list/id/text()" />
+                              <property name="sirportly.ticketReference" expression="substring-before(//project_list/title/text(),'_')" />
+                              
+                              <!-- Checks for the successful retrieval of Sirportly ticket reference. -->
+                              <filter source="boolean(get-property('sirportly.ticketReference'))" regex="false">
+                                 <then>
+                                    <property name="cashboardProjectListIndex" expression="get-property('operation', 'cashboardProjectListIndex') + 1" scope="operation" />
+                                 </then>
+                                 <else>
+                                    <script language="js">
+									//If the value for updateSince parameter is not provided, set the default value as current date.
+                                       <![CDATA[
+                                          var updatedSinceDate = mc.getProperty('cashboard.updatedSince');
+                                          if (updatedSinceDate != null && updatedSinceDate != "") {
+                                             mc.setProperty('cashboard.updatedSince', updatedSinceDate);
+                                          }
+                                          else {
+                                             mc.setProperty('cashboard.updatedSince', new java.text.SimpleDateFormat("yyyy-MM-dd '00:00:00'").format(new java.util.Date()));
+                                          }
+                                       ]]>
+                                    </script>
+                                    
+                                    <!-- List the line items for the project list. -->
+                                    <cashboard.init>
+                                       <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+                                       <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+                                       <password>{$ctx:cashboard.password}</password>
+                                       <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+                                    </cashboard.init>
+                                    <cashboard.listLineItems>
+                                       <projectListId>{$ctx:cashboard.projectListId}</projectListId>
+                                       <updatedSince>{$ctx:cashboard.updatedSince}</updatedSince>
+                                    </cashboard.listLineItems>
+                                    
+                                    <!--Removing unused headers. -->
+                                    <sequence key="removeResponseHeaders" />
+                                    
+                                    <!-- START: Checks for the successful execution of listLineItems method. -->
+                                    <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                                    <filter xpath="get-property('responseStatus') != 200">
+                                       <then>
+                                          <!-- In case the error response returns as html then retrieve the error message accordingly. -->
+                                          <property name="cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+                                          <filter source="boolean(get-property('cashboard.errorResponseHtml'))" regex="true">
+                                             <then>
+                                                <!-- In case the error returns as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                                                <call-template target="base64Decoder">
+                                                   <with-param name="responseBinaryString" value="{$ctx:cashboard.errorResponseHtml}" />
+                                                </call-template>
+                                                <property name="cashboard.errorMessage" expression="get-property('decodedResult')" />
+                                             </then>
+                                             <else>
+                                                <!-- if any other response returns it will be caught here. -->
+                                                <property name="cashboard.errorResponse" expression="json-eval($)" />
+                                                <property name="cashboard.errorMessage" expression="get-property('cashboard.errorResponse')" />
+                                             </else>
+                                             
+                                             <!-- listLineItems method execution failure, generate the error response. -->
+                                             <call-template target="responseHandlerTemplate">
+                                                <with-param name="activity" value="cashboard_listProjectLists" />
+                                                <with-param name="id" value="{$ctx:id.empty}" />
+                                                <with-param name="status" value="Error" />
+                                                <with-param name="message" value="{$ctx:cashboard.errorMessage}" />
+                                             </call-template>
+                                             <loopback />
+                                          </filter>
+                                       </then>
+                                       <else>
+                                          <!-- START: Checks for the successful retrieval of Line Item for the Project List. -->
+                                          <property name="cashboardLineItemsCount" expression="count(//line_item)" scope="operation" />
+                                          <filter source="get-property('operation', 'cashboardLineItemsCount') " regex="0.0">
+                                             <then>
+                                                <property name="cashboardProjectListIndex" expression="get-property('operation', 'cashboardProjectListIndex') + 1" scope="operation" />
+                                             </then>
+                                             <else>
+                                                <property name="cashboard.lineItemId" expression="//line_item/id/text()" />
+                                                
+                                                <!-- Get Line Item details for the lineItemId. -->
+                                                <cashboard.init>
+                                                   <apiUrl>{$ctx:cashboard.apiUrl}</apiUrl>
+                                                   <emailAddress>{$ctx:cashboard.emailAddress}</emailAddress>
+                                                   <password>{$ctx:cashboard.password}</password>
+                                                   <subdomain>{$ctx:cashboard.subdomain}</subdomain>
+                                                </cashboard.init>
+                                                <cashboard.getLineItem>
+                                                   <lineItemId>{$ctx:cashboard.lineItemId}</lineItemId>
+                                                </cashboard.getLineItem>
+                                                
+                                                <!--Removing unused headers. -->
+                                                <sequence key="removeResponseHeaders" />
+                                                
+                                                <!-- START: Checks for the successful execution of getLineItem method. -->
+                                                <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                                                <filter xpath="get-property('responseStatus') != 200">
+                                                   <then>
+                                                      <!-- In case the error response returns as html then retrieve the error message accordingly. -->
+                                                      <property name="cashboard.errorResponseHtml" expression="json-eval($.binary)" />
+                                                      <filter source="boolean(get-property('cashboard.errorResponseHtml'))" regex="true">
+                                                         <then>
+                                                            <!-- In case the error returns as an html, then call the 'base64Decoder' template in order to extract the error message. -->
+                                                            <call-template target="base64Decoder">
+                                                               <with-param name="responseBinaryString" value="{$ctx:cashboard.errorResponseHtml}" />
+                                                            </call-template>
+                                                            <property name="cashboard.errorMessage" expression="get-property('decodedResult')" />
+                                                         </then>
+                                                         <else>
+                                                            <!-- In case any other response returns it will be caught here. -->
+                                                            <property name="cashboard.errorResponse" expression="json-eval($)" />
+                                                            <property name="cashboard.errorMessage" expression="get-property('cashboard.errorResponse')" />
+                                                         </else>
+                                                         
+                                                         <!-- getLineItem method execution failure, generate the error response. -->
+                                                         <call-template target="responseHandlerTemplate">
+                                                            <with-param name="activity" value="cashboard_listProjectLists" />
+                                                            <with-param name="id" value="{$ctx:id.empty}" />
+                                                            <with-param name="status" value="Error" />
+                                                            <with-param name="message" value="{$ctx:cashboard.errorMessage}" />
+                                                         </call-template>
+                                                         <loopback />
+                                                      </filter>
+                                                   </then>
+                                                   <else>
+                                                      <!-- START: Checks for the successful retrieval of Line Item details. -->
+                                                      <property name="cashboardLineItem" expression="//line_item" />
+                                                      <filter xpath="get-property('cashboardLineItem') ='[]'">
+                                                         <then>
+                                                            <property name="id" expression="fn:concat('{&quot;cashboard_projectListId&quot;:&quot;',get-property('cashboard.projectListId'), '&quot;}')" />
+                                                            
+                                                            <!-- Failure in retrieving Line Item details, generate the error response. -->
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="status" value="Error" />
+                                                               <with-param name="activity" value="cashboard_getLineItemDetails" />
+                                                               <with-param name="message" value="Failed to retrieve details of the task of the project list." />
+                                                            </call-template>
+                                                            
+                                                            <property name="cashboardProjectListIndex" expression="get-property('operation', 'cashboardProjectListIndex') + 1" scope="operation" />
+                                                         </then>
+                                                         <else>
+                                                            <!-- START: Checks for the successful retrieval of comments for the Line Item. -->
+                                                            <property name="cashboardCommentCount" expression="count(//comment)" />
+                                                            <filter source="get-property('cashboardCommentCount')" regex="0.0">
+                                                               <then>
+                                                                  <property name="cashboardProjectListIndex" expression="get-property('operation', 'cashboardProjectListIndex') + 1" scope="operation" />
+                                                               </then>
+                                                               <else>
+                                                                  <property name="cashboardCommentCount" expression="get-property('operation','cashboardCommentCount') + get-property('cashboardCommentCount')" scope="operation" />
+                                                                  <property name="cashboardProjectListIndex" expression="get-property('operation', 'cashboardProjectListIndex') + 1" scope="operation" />
+                                                                  
+                                                                  <!-- Iterates through the comments of a Line Item. -->
+                                                                  <iterate continueParent="false" id="commentIterator" expression="//comment" sequential="true">
+                                                                     <target>
+                                                                        <sequence>
+                                                                           <property name="cashboard.commentId" expression="//comment/id" />
+                                                                           <property name="cashboard.commentUpdatedAt" expression="//comment/updated_at" />
+                                                                           
+                                                                           <script language="js">
+                                                                              //Comparing the updateSince parameter with the comment updated time to retrieve only the comments updated after the given time.
+                                                                              <![CDATA[
+                                                                                 var updatedSince = mc.getProperty('cashboard.updatedSince');
+                                                                                 var updatedAt =  mc.getProperty('cashboard.commentUpdatedAt');
+                                                                                 var formatter = new java.text.SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+                                                                                 var calUpdatedSince = java.util.Calendar.getInstance();
+                                                                                 var calUpdatedAt = java.util.Calendar.getInstance();
+                                                                                 if (updatedSince != null && updatedSince != '' && updatedAt != null && updatedAt!='') {
+                                                                                    calUpdatedSince.setTime(formatter.parse(updatedSince));
+                                                                                    calUpdatedAt.setTime(formatter.parse(updatedAt));
+                                                                                    if (calUpdatedSince.getTime() <= calUpdatedAt.getTime()) {
+                                                                                       mc.setProperty('isUpdatedSince', "true");
+                                                                                    }
+                                                                                 }
+                                                                              ]]>
+                                                                           </script>
+                                                                           
+                                                                           <!-- START:  Checks whether the comments updated after the given time.  -->
+                                                                           <property name="isUpdatedSince" expression="get-property('isUpdatedSince')" />
+                                                                           <filter xpath="boolean(get-property('isUpdatedSince')) = 'true'">
+                                                                              <then>
+                                                                                 <property name="cashboard.commentContent" expression="//content" />
+                                                                                 
+                                                                                 <!-- Adding retrieved comment content as message of Ticket created in Sirportly. -->
+                                                                                 <sirportly.init>
+                                                                                    <apiUrl>{$ctx:sirportly.apiUrl}</apiUrl>
+                                                                                    <apiToken>{$ctx:sirportly.apiToken}</apiToken>
+                                                                                    <apiSecret>{$ctx:sirportly.apiSecret}</apiSecret>
+                                                                                 </sirportly.init>
+                                                                                 <sirportly.addContentToTicket>
+                                                                                    <ticketReference>{$ctx:sirportly.ticketReference}</ticketReference>
+                                                                                    <message>{$ctx:cashboard.commentContent}</message>
+                                                                                 </sirportly.addContentToTicket>
+                                                                                 
+                                                                                 <!--Removing unused headers. -->
+                                                                                 <sequence key="removeResponseHeaders" />
+                                                                                 
+                                                                                 <!-- START: Checks for the successful  execution of Sirportly addContentToTicket method. -->
+                                                                                 <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                                                                                 <filter xpath="get-property('responseStatus') != 201">
+                                                                                    <then>
+                                                                                       <!-- Generate the error response. -->
+                                                                                       <property name="id" expression="fn:concat('{&quot;cashboard_projectListId&quot;:&quot;', get-property('cashboard.projectListId') , '&quot;, &quot;sirportly_ticketReference&quot;:&quot;', get-property('sirportly.ticketReference') , '&quot;}')" />
+                                                                                       <property name="errInfo" expression="json-eval($.error)" />
+                                                                                       <property name="message" expression="fn:concat('Error in adding comment to the ticket, Error:',get-property('errInfo'))" />
+                                                                                       <property name="status" value="Skipped" />
+                                                                                    </then>
+                                                                                    <else>
+                                                                                       <!-- Generate the success response. -->
+                                                                                       <property name="ticketId" expression="json-eval($.id)" />
+                                                                                       <property name="id" expression="fn:concat('{&quot;cashboard_projectListId&quot;:&quot;', get-property('cashboard.projectListId'),'&quot;, &quot;cashboard_commentId&quot;:&quot;', get-property('cashboard.commentId'), '&quot;, &quot;sirportly_ticketReference&quot;:&quot;', get-property('sirportly.ticketReference'), '&quot;}')" />
+                                                                                       <property name="status" value="Success" />
+                                                                                       <property name="message" value="Comment is added to the ticket successfully." />
+                                                                                    </else>
+                                                                                 </filter><!-- END of filter: Checks for the successful  execution of Sirportly addContentToTicket method. -->
+                                                                                 
+                                                                                 <!-- Generate the response for execution of addContentToTicket method. -->
+                                                                                 <call-template target="responseHandlerTemplate">
+                                                                                    <with-param name="activity" value="sirportly_addCommentToTicket" />
+                                                                                    <with-param name="id" value="{$ctx:id}" />
+                                                                                    <with-param name="status" value="{$ctx:status}" />
+                                                                                    <with-param name="message" value="{$ctx:message}" />
+                                                                                 </call-template>
+                                                                                 
+                                                                                 <property name="cashboardCommentIndex" expression="get-property('operation','cashboardCommentIndex') + 1" scope="operation" />
+                                                                                 <filter xpath="(get-property('operation', 'cashboardProjectListCount') = get-property('operation', 'cashboardProjectListIndex')) and (get-property('operation', 'cashboardCommentCount') = get-property('operation', 'cashboardCommentIndex'))">
+                                                                                    <then>
+                                                                                       <filter source="get-property('operation','cashboardCommentIndex')" regex="0.0">
+                                                                                          <then>
+                                                                                             <!-- In case there are no comments found in any of the project lists , generate the error response. -->
+                                                                                             <call-template target="responseHandlerTemplate">
+                                                                                                <with-param name="activity" value="cashboard_retrieveComments" />
+                                                                                                <with-param name="id" value="{$ctx:id}" />
+                                                                                                <with-param name="status" value="Skipped" />
+                                                                                                <with-param name="message" value="There are no comments in any of the project lists to sync." />
+                                                                                             </call-template>
+                                                                                          </then>
+                                                                                       </filter>
+                                                                                       <loopback />
+                                                                                    </then>
+                                                                                 </filter>
+                                                                              </then>
+                                                                              <else>
+                                                                                 <property name="cashboardCommentIndex" expression="get-property('operation','cashboardCommentIndex') + 1" scope="operation" />
+                                                                              </else>
+                                                                           </filter><!-- END of filter: Checks whether the comments updated after the given time. -->
+                                                                        </sequence>
+                                                                     </target>
+                                                                  </iterate> <!--END of LOOP: Iterates over comments. -->
+                                                               </else>
+                                                            </filter><!-- END of filter: Checks for the successful retrieval of comments for the Line Item. -->
+                                                         </else>
+                                                      </filter><!-- END of filter: Checks for the successful retrieval of Line Item details. -->
+                                                   </else>
+                                                </filter> <!-- END of filter: Checks for the successful execution of getLineItem method. -->
+                                             </else>
+                                          </filter> <!-- END of filter: Checks for the successful retrieval of Line Item for the Project List. -->
+                                       </else>
+                                    </filter><!-- END of filter: Checks for the successful execution of listLineItems method. -->
+                                 </else>
+                              </filter><!-- END of filter: Checks for the successful retrival of Sirportly Ticket reference. -->
+                              
+                              <!-- Generate an error response in case there are no comments in any of the project lists. -->
+                              <filter xpath="(get-property('operation', 'cashboardProjectListCount') = get-property('operation', 'cashboardProjectListIndex')) and (get-property('operation', 'cashboardCommentCount') = get-property('operation', 'cashboardCommentIndex'))">
+                                 <then>
+                                    <filter source="get-property('operation','cashboardCommentIndex')" regex="0.0">
+                                       <then>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="cashboard_retrieveComments" />
+                                             <with-param name="id" value="{$ctx:id.empty}" />
+                                             <with-param name="status" value="Skipped" />
+                                             <with-param name="message" value="There are no comments in any of the project lists to sync." />
+                                          </call-template>
+                                       </then>
+                                    </filter>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!--END LOOP: Iterates over Project Lists. -->
+                     <!--START: Move to outSequence when all the iterations are done. -->
+                     <filter xpath="(get-property('operation', 'cashboardProjectListCount') = get-property('operation', 'cashboardProjectListIndex')) and (get-property('operation', 'cashboardCommentCount') = get-property('operation', 'cashboardCommentIndex'))">
+                        <then>
+                           <loopback />
+                        </then>
+                     </filter>
+                  </else>
+               </filter><!-- END of filter: Checks for the successful retrieval of Project Lists. -->
+            </else>
+         </filter><!-- END of filter: Checks for the successful execution of listProjectLists method. -->
+      </inSequence>
+      <outSequence>
+      
+         <!-- Generate the chained response of all the API calls in updateTicketsWithComments. -->
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response": {
+               "process": "sirportly_updateTicketsWithComments",
+               "activityResponse": [$1]
+               }
+               }
+            </format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

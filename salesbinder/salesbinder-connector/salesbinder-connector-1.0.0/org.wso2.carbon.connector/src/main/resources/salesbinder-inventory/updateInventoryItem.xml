@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Documentation URL - http://www.salesbinder.com/kb/api-functions/edit-item -->
+<template name="updateInventoryItem" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="name" description="Name of the item." />
+   <parameter name="description" description="Optional description of item." />
+   <parameter name="serialNumber" description="Item Serial Number (for unique items)." />
+   <parameter name="sku" description="Stock Keeping Unit." />
+   <parameter name="multiple" description="0 = Unique Item, 1 = Quantity Item." />
+   <parameter name="threshold" description="Low Quantity Threshold." />
+   <parameter name="cost" description="Item/Unit Cost." />
+   <parameter name="price" description="Selling price of item/unit." />
+   <parameter name="quantity" description="Items in stock (unique items should have 1)." />
+   <parameter name="locationId" description="The location ID." />
+   <parameter name="categoryId" description="The category ID." />
+   <parameter name="unitOfMeasureId" description="Unit of Measure ID." />
+   <parameter name="customFields" description="Custom fields to set for inventory item." />
+   <parameter name="id" description="The id of the item." />
+   <sequence>
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.serialNumber" expression="$func:serialNumber" />
+      <property name="uri.var.sku" expression="$func:sku" />
+      <property name="uri.var.multiple" expression="$func:multiple" />
+      <property name="uri.var.threshold" expression="$func:threshold" />
+      <property name="uri.var.cost" expression="$func:cost" />
+      <property name="uri.var.price" expression="$func:price" />
+      <property name="uri.var.quantity" expression="$func:quantity" />
+      <property name="uri.var.locationId" expression="$func:locationId" />
+      <property name="uri.var.categoryId" expression="$func:categoryId" />
+      <property name="uri.var.unitOfMeasureId" expression="$func:unitOfMeasureId" />
+      <property name="uri.var.customFields" expression="$func:customFields" />
+      <property name="uri.var.id" expression="$func:id" />
+      <script language="js">
+         <![CDATA[
+            var name = mc.getProperty('uri.var.name');
+            var multiple = mc.getProperty('uri.var.multiple');
+            var cost = mc.getProperty('uri.var.cost');
+            var description = mc.getProperty('uri.var.description');
+            var serialNumber = mc.getProperty('uri.var.serialNumber');
+            var sku = mc.getProperty('uri.var.sku');
+            var threshold = mc.getProperty('uri.var.threshold');
+            var price = mc.getProperty('uri.var.price');
+            var quantity = mc.getProperty('uri.var.quantity');
+            var locationId = mc.getProperty('uri.var.locationId');
+            var categoryId = mc.getProperty('uri.var.categoryId');
+            var unitOfMeasureId = mc.getProperty('uri.var.unitOfMeasureId');
+            var customFields = mc.getProperty('uri.var.customFields');
+                
+            var payload = {};            
+            var item = {};
+            
+            if (name != null && name!= ""){
+               item.name = name;
+            }
+            if (multiple != null && multiple!= ""){
+               item.multiple = multiple;
+            }
+            if (cost != null && cost!= ""){
+                item.cost = cost;
+            }
+            if (description != null && description!= ""){
+               item.description = description;
+            }
+            if (serialNumber != null && serialNumber!= ""){
+               item.serial_number = serialNumber;
+            }
+            if (sku != null && sku!= ""){
+                item.sku = sku;
+            }
+            if (threshold != null && threshold!= ""){
+               item.threshold = threshold;
+            }
+            if (price != null && price!= ""){
+               item.price = price;
+            }
+            if (quantity != null && quantity!= ""){
+               item.quantity = quantity;
+            }
+            if (locationId != null && locationId!= ""){
+               item.location_id = locationId;
+            }
+            if (categoryId != null && categoryId!= ""){
+               item.category_id = categoryId;
+            }
+            if (unitOfMeasureId != null && unitOfMeasureId!= ""){
+               item.unit_of_measure_id = unitOfMeasureId;
+            }
+            payload.Item = item;
+            if (customFields != null && customFields!= ""){
+               payload.ItemDetail = eval("(" + customFields + ")");
+            }
+            mc.setPayloadJSON(payload);     
+          ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="put" uri-template="{uri.var.apiUrl}/items/{uri.var.id}.json" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="P3P" action="remove" scope="transport" />
+      <header name="Via" action="remove" scope="transport" />
+      <header name="Server" action="remove" scope="transport" />
+      <!-- If Location header is returned in the response, fetch the object pointed by Location header. -->
+      <property name="location" expression="$trp:Location" />
+      <header name="Location" action="remove" scope="transport" />
+      <filter source="boolean(get-property('location'))" regex="true">
+         <then>
+            <salesbinder.fetchObjectFromLocation>
+               <location>{$ctx:location}</location>
+            </salesbinder.fetchObjectFromLocation>
+         </then>
+      </filter>
+   </sequence>
+</template>

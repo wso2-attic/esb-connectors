@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="getLeadChanges" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- Required parameters -->
+    <parameter name="nextPageToken" description="Token from getPagingToken call."/>
+    <parameter name="fields" description="Comma separated list of field names."/>
+    <!-- Optional parameters -->
+    <parameter name="listId" description="The Marketo list id."/>
+    <parameter name="batchSize" description="The number of records to be returned in a single call."/>
+    <sequence>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <property name="uri.var.listId" expression="$func:listId"/>
+        <property name="uri.var.batchSize" expression="$func:batchSize"/>
+        <property name="uri.var.nextPageToken" expression="$func:nextPageToken"/>
+        <property name="uri.var.apiParameters" value=""/>
+        <filter xpath="(not(get-property('uri.var.batchSize') = '' or (not(string(get-property('uri.var.batchSize'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'batchSize=',get-property('uri.var.batchSize'),'&amp;')"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.listId') = '' or (not(string(get-property('uri.var.listId'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'listId=',get-property('uri.var.listId'))"/>
+            </then>
+        </filter>
+        <property name="uri.var.endpoint"
+                  expression="fn:concat(get-property('uri.var.apiUrl'),'/activities/leadchanges.json?nextPageToken=',get-property('uri.var.nextPageToken'),'&amp;fields=',get-property('uri.var.fields'),'&amp;',get-property('uri.var.apiParameters'))"/>
+        <callout endpointKey="httpGetEP">
+            <source type="envelope"/>
+            <target key="response"/>
+        </callout>
+    </sequence>
+</template>

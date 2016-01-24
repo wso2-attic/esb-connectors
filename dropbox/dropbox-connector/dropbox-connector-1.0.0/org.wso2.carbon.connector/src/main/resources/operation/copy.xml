@@ -1,79 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.dropbox.com/developers/core/docs#fileops-copy -->
 <template name="copy" xmlns="http://ws.apache.org/ns/synapse">
-
-	<!-- Mandatory parameters -->
-	<parameter name="toPath"
-		description="Specifies the destination path, including the new name for the file or folder, relative to root." />
-		
-	<!-- Optional parameters -->
-	<parameter name="fromPath"
-		description="file or folder to be copied from relative to root." />	
-	<parameter name="locale"
-		description="The locale, returned size value field will be translated based on the given locale" />
-	<parameter name="fromCopyRef"
-		description="Specifies a copy_ref generated from a previous /copy_ref call." />
-
-	<sequence>
-		<property name="uri.var.fromPath" expression="$func:fromPath" />
-		<property name="uri.var.toPath" expression="$func:toPath" />
-		<property name="uri.var.locale" expression="$func:locale" />
-		<property name="uri.var.fromCopyRef" expression="$func:fromCopyRef" />
-	
-		<!-- Building payload for mandatory params -->
-		<payloadFactory media-type="json">
-			<format>
-				{
-					"root": "$1",
-					"to_path": "$2"
-				}
-			</format>
-			<args>
-				<arg expression="get-property('uri.var.root')" />
-				<arg expression="get-property('uri.var.toPath')" />
-			</args>
-		</payloadFactory>
-
-		<script language="js">
-		    <![CDATA[
-		    
+   <!-- Mandatory parameters -->
+   <parameter name="toPath"
+      description="Specifies the destination path, including the new name for the file or folder, relative to root." />
+   <!-- Optional parameters -->
+   <parameter name="fromPath" description="file or folder to be copied from relative to root." />
+   <parameter name="locale" description="The locale, returned size value field will be translated based on the given locale" />
+   <parameter name="fromCopyRef" description="Specifies a copy_ref generated from a previous /copy_ref call." />
+   <sequence>
+      <property name="uri.var.fromPath" expression="$func:fromPath" />
+      <property name="uri.var.toPath" expression="$func:toPath" />
+      <property name="uri.var.locale" expression="$func:locale" />
+      <property name="uri.var.fromCopyRef" expression="$func:fromCopyRef" />
+      <!-- Building payload for mandatory params -->
+      <payloadFactory media-type="json">
+         <format>
+         { "to_path": "$1" }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.toPath')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+		    <![CDATA[    
 		    var fromPath = mc.getProperty('uri.var.fromPath');
 	  		var locale = mc.getProperty('uri.var.locale');
 	  		var fromCopyRef = mc.getProperty('uri.var.fromCopyRef');
-	  		
+            var root = mc.getProperty("uri.var.root"); 
 	  		payload = mc.getPayloadJSON();
-	  		
 		    if(fromPath != null && fromPath != ''){		    	
 		    	payload.from_path = fromPath;		    	
-		    }
-		    
+		    }  
 		    if(locale != null && locale != ''){		    	
 		    	payload.locale = locale;		    	
-		    }
-		    
+		    } 
 		    if(fromCopyRef != null && fromCopyRef != ''){		    	
 		    	payload.from_copy_ref = fromCopyRef;		    	
 		    }
-		    
+            if (root != null && root != ""){
+               payload.root = root.substring(1);   
+            }    
 		    mc.setPayloadJSON(payload);
 			]]>
-		</script>
-
-		<property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />	
-	
-		<call>
-			<endpoint>
-				<http method="POST"
-						uri-template="{uri.var.apiUrl}/1/fileops/copy" />
-			</endpoint>
-		</call>
-		
-		<!-- Remove response custom header information -->
-		<header name="x-server-response-time" scope="transport" action="remove" />
-		<header name="x-frame-options" scope="transport" action="remove" />
-		<header name="x-dropbox-http-protocol" scope="transport" action="remove" />
-		<header name="x-dropbox-request-id" scope="transport" action="remove" />
-		<header name="set-cookie" scope="transport" action="remove" />
-		<header name="X-RequestId" scope="transport" action="remove" />
-		<header name="WWW-Authenticate" scope="transport" action="remove" />
-	</sequence>
-
+      </script>
+      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
+      <call>
+         <endpoint>
+            <http method="POST" uri-template="{+uri.var.apiUrl}/fileops/copy" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="x-server-response-time" scope="transport" action="remove" />
+      <header name="x-frame-options" scope="transport" action="remove" />
+      <header name="x-dropbox-http-protocol" scope="transport" action="remove" />
+      <header name="x-dropbox-request-id" scope="transport" action="remove" />
+      <header name="set-cookie" scope="transport" action="remove" />
+      <header name="X-RequestId" scope="transport" action="remove" />
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+      <header name="x-content-type-options" scope="transport" action="remove" />
+      <header name="cache-control" scope="transport" action="remove" />
+      <header name="pragma" scope="transport" action="remove" />
+   </sequence>
 </template>

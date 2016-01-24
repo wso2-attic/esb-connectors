@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template retrieves Invoice Items from Planyo and creates an INvoice in FreshBooks. Client will be created in FreshBooks 
+   if not available. Finally, updates the Planyo Reservation with the created Invoice number -->
+<template name="planyo-retrieveInvoiceItemsAndCreateInvoicesInFreshBooks" xmlns="http://ws.apache.org/ns/synapse">
+
+   <!-- Planyo parameters -->
+   <parameter name="planyoApiKey" description="The apiKey of a valid Planyo account" />
+   <parameter name="planyoReservationId" description="Planyo Reservation identifier" />
+
+   <!-- FreshBooks parameters -->
+   <parameter name="freshbooksApiUrl" description="The FreshBooks Api Url" />
+   <parameter name="freshbooksApiKey" description="The Api Key of the FreshBooks" />
+
+   <sequence>
+      <!-- Planyo properties -->
+      <property name="uri.var.planyoApiUrl" value="http://api.planyo.com" />
+      <property name="uri.var.planyoApiKey" expression="$func:planyoApiKey" />
+      <property name="uri.var.planyoReservationId" expression="$func:planyoReservationId" />
+      <property name="uri.var.planyoVersion" value="1" />
+      <property name="uri.var.planyoDetailLevel" value="4" />
+
+      <!-- FreshBooks properties -->
+      <property name="uri.var.freshbooksApiUrl" expression="$func:freshbooksApiUrl" />
+      <property name="uri.var.freshbooksApiKey" expression="$func:freshbooksApiKey" />
+
+      <!-- Common properties -->
+      <property name="uri.var.emptyID" value="{}" />
+
+      <!-- Retrieve Invoice Items of the given reservation -->
+      <planyo.init>
+         <apiUrl>{$ctx:uri.var.planyoApiUrl}</apiUrl>
+         <apiKey>{$ctx:uri.var.planyoApiKey}</apiKey>
+         <language>{$ctx:uri.var.planyoLanguage}</language>
+         <version>{$ctx:uri.var.planyoVersion}</version>
+      </planyo.init>
+      <planyo.getInvoiceItemsById>
+         <reservationId>{$ctx:uri.var.planyoReservationId}</reservationId>
+      </planyo.getInvoiceItemsById>
+
+      <property name="uri.var.planyoInvoiceItemsResponseCode" expression="json-eval($.response_code)" />
+
+      <!-- START: Check the successful response of getInvoiceItemsById to proceed with Invoice Creation -->
+      <filter xpath="get-property('uri.var.planyoInvoiceItemsResponseCode') = 0">
+         <else>
+            <property name="uri.var.id" expression="fn:concat('planyoReservationId:', get-property('uri.var.planyoReservationId'))" />
+            <property name="uri.var.planyoInvoiceItemsResponseMessage" expression="json-eval($.response_message)" />
+            <call-template target="responseHandlerTemplate">
+               <with-param name="activity" value="planyo_getInvoiceItemsById" />
+               <with-param name="id" value="{$ctx:uri.var.id}" />
+               <with-param name="status" value="Error" />
+               <with-param name="message" value="{$ctx:uri.var.planyoInvoiceItemsResponseMessage}" />
+            </call-template>
+         </else>
+         <then>
+            <!-- Successfully retrieved the Invoice Items details -->
+            <property name="uri.var.planyoInvoiceItemsResults" expression="json-eval($.data.results)" />
+
+            <!-- Retrieves the returned Invoice Item details and creates content for the invoice -->
+            <script language="js">
+               <![CDATA[
+                  var planyoInvoiceItems = mc.getProperty('uri.var.planyoInvoiceItemsResults');
+                  if(planyoInvoiceItems != ''){
+                  
+                     var planyoInvoiceItemsArray = eval("(" + planyoInvoiceItems + ")");
+                     var lines = '';
+                     // Check whether variants are available in each product.         
+                     if(planyoInvoiceItemsArray.length > 0){         
+                        for(var i = 0; i < planyoInvoiceItemsArray.length; i++){
+                        lines += '<line><name>' + planyoInvoiceItemsArray[i].name 
+                                 + '</name><description> Invoice Item of Reservation ' + mc.getProperty('uri.var.planyoReservationId') 
+                                 + '</description><unit_cost>' + planyoInvoiceItemsArray[i].price 
+                                 + '</unit_cost><quantity>' + planyoInvoiceItemsArray[i].quantity + '</quantity></line>';
+                        }
+                     }         
+                     mc.setProperty('uri.var.lines', lines);
+                  }
+               
+               ]]>
+            </script>
+
+            <!-- START: Checks the availability of the invoice Items lines to proceed with the -->
+            <filter source="boolean(get-property('uri.var.lines'))" regex="true">
+               <else>
+                  <property name="uri.var.createInvoiceId"
+                     expression="fn:concat('planyoReservationId:', get-property('uri.var.planyoReservationId'))" />
+                  <property name="uri.var.status" value="Skipped" />
+                  <property name="uri.var.activity" value="freshbooks_createInvoice" />
+                  <property name="uri.var.message" value="Line details were not found for the Resources of the Planyo Reservation" />
+               </else>
+               <then>
+                  <!-- Retrieve Reservation details of the given reservation -->
+                  <planyo.init>
+                     <apiUrl>{$ctx:uri.var.planyoApiUrl}</apiUrl>
+                     <apiKey>{$ctx:uri.var.planyoApiKey}</apiKey>
+                     <language>{$ctx:uri.var.planyoLanguage}</language>
+                     <version>{$ctx:uri.var.planyoVersion}</version>
+                  </planyo.init>
+                  <planyo.getReservationById>
+                     <reservationId>{$ctx:uri.var.planyoReservationId}</reservationId>
+                  </planyo.getReservationById>
+
+                  <property name="uri.var.planyoUserId" expression="json-eval($.data.user_id)" />
+
+                  <!-- START: Check the successful response of getReservationById to proceed with Invoice Creation -->
+                  <filter source="boolean(get-property('uri.var.planyoUserId'))" regex="true">
+                     <else>
+                        <property name="uri.var.createInvoiceId"
+                           expression="fn:concat('planyoReservationId:', get-property('uri.var.planyoReservationId'))" />
+                        <property name="uri.var.planyoGetReservationErrorMessage" expression="json-eval($.response_message)" />
+                        <property name="uri.var.status" value="Skipped" />
+                        <property name="uri.var.activity" value="planyo_getReservationDetails" />
+                        <property name="uri.var.message"
+                           expression="fn:concat('Could not retrieve User details for the Reservation, Error: ', get-property('uri.var.planyoGetReservationErrorMessage'))" />
+                     </else>
+                     <then>
+                        <!-- Retrieve User details of the given reservation -->
+                        <planyo.init>
+                           <apiUrl>{$ctx:uri.var.planyoApiUrl}</apiUrl>
+                           <apiKey>{$ctx:uri.var.planyoApiKey}</apiKey>
+                           <language>{$ctx:uri.var.planyoLanguage}</language>
+                           <version>{$ctx:uri.var.planyoVersion}</version>
+                        </planyo.init>
+                        <planyo.getUserById>
+                           <userId>{$ctx:uri.var.planyoUserId}</userId>
+                           <detailLevel>{$ctx:uri.var.planyoDetailLevel}</detailLevel>
+                        </planyo.getUserById>
+
+                        <property name="uri.var.planyoUserDetailsResponseCode" expression="json-eval($.response_code)" />
+
+                        <!-- START: Check the successful response of getUserById to proceed with Invoice Creation -->
+                        <filter xpath="get-property('uri.var.planyoUserDetailsResponseCode') = 0">
+                           <else>
+                              <property name="uri.var.createInvoiceId"
+                                 expression="fn:concat('planyoReservationId:', get-property('uri.var.planyoReservationId'))" />
+                              <property name="uri.var.planyoGetUserErrorMessage" expression="json-eval($.response_message)" />
+                              <property name="uri.var.status" value="Skipped" />
+                              <property name="uri.var.activity" value="planyo_getUserDetails" />
+                              <property name="uri.var.message"
+                                 expression="fn:concat('Could not retrieve User email of the Reservation, Error: ', get-property('uri.var.planyoGetUserErrorMessage'))" />
+                           </else>
+                           <then>
+                              <property name="uri.var.clientEmail" expression="json-eval($.data.email)" />
+                              <property name="uri.var.clientFirstName" expression="json-eval($.data.first_name)" />
+                              <property name="uri.var.clientLastName" expression="json-eval($.data.last_name)" />
+                              <!-- filter to remove the null value from the last name -->
+                              <filter xpath="get-property('uri.var.clientLastName') = 'null'">
+                                 <then>
+                                    <property name="uri.var.clientLastName" value="" />
+                                 </then>
+                              </filter>
+
+                              <!-- START: Check the availability of the User email to proceed with Invoice Creation -->
+                              <filter source="boolean(get-property('uri.var.clientEmail'))" regex="true">
+                                 <else>
+                                    <property name="uri.var.createInvoiceId"
+                                       expression="fn:concat('planyoReservationId:', get-property('uri.var.planyoReservationId'))" />
+                                    <property name="uri.var.planyoGetUserErrorMessage" expression="json-eval($.response_message)" />
+                                    <property name="uri.var.status" value="Skipped" />
+                                    <property name="uri.var.activity" value="planyo_getUserDetails" />
+                                    <property name="uri.var.message"
+                                       value="Could not retrieve User email of the Reservation. User email should be available to create the Invoice" />
+                                 </else>
+                                 <then>
+                                    <!-- Item details are extracted and proceeds with FreshBooks Invoice creation -->
+                                    <property name="messageType" value="application/xml" scope="axis2" />
+                                    <!-- list FreshBooks clients for the given email -->
+                                    <freshbooks.init>
+                                       <apiUrl>{$ctx:uri.var.freshbooksApiUrl}</apiUrl>
+                                       <authenticationToken>{$ctx:uri.var.freshbooksApiKey}</authenticationToken>
+                                    </freshbooks.init>
+                                    <freshbooks.listClients>
+                                       <email>{$ctx:uri.var.clientEmail}</email>
+                                    </freshbooks.listClients>
+
+                                    <!-- retrieve the error message from the listClients method is there is any -->
+                                    <property name="uri.var.listClientsErrorMessage" expression="//*[local-name()='error']/text()" />
+                                    <!-- STRAT: Check the successful execution of the listClients method to proceed with 
+                                       Invoice creation -->
+                                    <filter source="boolean(get-property('uri.var.listClientsErrorMessage'))"
+                                       regex="true">
+                                       <then>
+                                          <property name="uri.var.createInvoiceId" expression="get-property('uri.var.emptyID')" />
+                                          <property name="uri.var.message"
+                                             expression="fn:concat('Cannot check the existence of the client(', get-property('uri.var.clientEmail') ,') in Freshbooks. Error: ', get-property('uri.var.listClientsErrorMessage'))" />
+                                          <property name="uri.var.status" value="Error" />
+                                          <property name="uri.var.activity" value="freshbooks_createInvoice" />
+                                       </then>
+                                       <else>
+                                          <property name="uri.var.clientsCount" expression="//*[local-name()='clients']/@total" />
+
+                                          <!-- START: Checks if there aren't any clients listed for the provided email -->
+                                          <filter xpath="0 = get-property('uri.var.clientsCount')">
+                                             <then>
+                                                <property name="messageType" value="application/xml" scope="axis2" />
+                                                <!-- Client does not exist in FreshBooks, proceed to create client in FreshBooks -->
+                                                <freshbooks.init>
+                                                   <apiUrl>{$ctx:uri.var.freshbooksApiUrl}</apiUrl>
+                                                   <authenticationToken>{$ctx:uri.var.freshbooksApiKey}</authenticationToken>
+                                                </freshbooks.init>
+                                                <freshbooks.createClient>
+                                                   <email>{$ctx:uri.var.clientEmail}</email>
+                                                   <firstName>{$ctx:uri.var.clientFirstName}</firstName>
+                                                   <lastName>{$ctx:uri.var.clientLastName}</lastName>
+                                                </freshbooks.createClient>
+
+                                                <!-- retrieve the error message from the listClients method is there is any -->
+                                                <property name="uri.var.createClientErrorMessage" expression="//*[local-name()='error']/text()" />
+                                                <!-- STRAT: Check the successful execution of the createClient method -->
+                                                <filter source="boolean(get-property('uri.var.createClientErrorMessage'))"
+                                                   regex="true">
+                                                   <then>
+                                                      <property name="uri.var.createClientId" expression="get-property('uri.var.emptyID')" />
+                                                      <property name="uri.var.createClientMessage"
+                                                         expression="fn:concat('Failed to create the non existing Client with Email: ', get-property('uri.var.clientEmail') ,'. Error: ', get-property('uri.var.createClientErrorMessage'))" />
+                                                      <property name="uri.var.status" value="Error" />
+                                                   </then>
+                                                   <else>
+                                                      <!-- Fetches the created Client ID -->
+                                                      <property name="uri.var.freshbooksClientId" expression="//*[local-name()='client_id']/text()" />
+                                                      <property name="uri.var.createClientId"
+                                                         expression="get-property('uri.var.freshbooksClientId')" />
+                                                      <property name="uri.var.createClientMessage"
+                                                         expression="fn:concat('Successfully created the Client with Email: ', get-property('uri.var.clientEmail'))" />
+                                                      <property name="uri.var.status" value="Success" />
+                                                   </else>
+                                                </filter>
+                                                <!-- END: Check Client creation -->
+                                                <!-- Generate response for the FreshBooks Client creation -->
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="freshbooks_createClient" />
+                                                   <with-param name="id" value="{$ctx:uri.var.createClientId}" />
+                                                   <with-param name="status" value="{$ctx:uri.var.status}" />
+                                                   <with-param name="message" value="{$ctx:uri.var.createClientMessage}" />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <!-- Fetches the existing client ID, Scenario assumption: email is unique 
+                                                   for each client hence only one client should be present and retrieves the first email -->
+                                                <property name="uri.var.freshbooksClientId"
+                                                   expression="//*[local-name()='client'][1]/*[local-name()='client_id']/text()" />
+                                             </else>
+                                          </filter>
+                                          <!-- END: Client availability check -->
+
+                                          <!-- STRAT: Check the availability of the client ID to proceed with Invoice creation -->
+                                          <filter source="boolean(get-property('uri.var.freshbooksClientId'))"
+                                             regex="false">
+                                             <then>
+                                                <property name="uri.var.createInvoiceId"
+                                                   expression="fn:concat('planyoReservationId:', get-property('uri.var.planyoReservationId'))" />
+                                                <property name="uri.var.message"
+                                                   expression="fn:concat('Client Id is not present for the client with Email: ', get-property('uri.var.clientEmail'), ', Hence could not create Invoice for the Reservation')" />
+                                                <property name="uri.var.status" value="Error" />
+                                                <property name="uri.var.activity" value="freshbooks_createInvoice" />
+                                             </then>
+                                             <else>
+                                                <property name="uri.var.freshBooksInvoiceName"
+                                                   expression="fn:concat('Invoice For Reservation ', get-property('uri.var.planyoReservationId'))" />
+                                                <property name="uri.var.status" value="" />
+                                                <!-- Create FreshBooks invoice for the client -->
+                                                <freshbooks.init>
+                                                   <apiUrl>{$ctx:uri.var.freshbooksApiUrl}</apiUrl>
+                                                   <authenticationToken>{$ctx:uri.var.freshbooksApiKey}</authenticationToken>
+                                                </freshbooks.init>
+                                                <freshbooks.createInvoice>
+                                                   <firstName>{$ctx:uri.var.freshBooksInvoiceName}</firstName>
+                                                   <clientId>{$ctx:uri.var.freshbooksClientId}</clientId>
+                                                   <lines>{$ctx:uri.var.lines}</lines>
+                                                </freshbooks.createInvoice>
+
+                                                <property name="uri.var.freshBooksCreateInvoiceErrorMessage"
+                                                   expression="//*[local-name()='error']/text()" />
+                                                <!-- START: Checks the successful completion of the FreshBooks Invoice -->
+                                                <filter
+                                                   source="boolean(get-property('uri.var.freshBooksCreateInvoiceErrorMessage'))"
+                                                   regex="true">
+                                                   <then>
+                                                      <property name="uri.var.createInvoiceId"
+                                                         expression="fn:concat('planyoReservationId:', get-property('uri.var.planyoReservationId'))" />
+                                                      <property name="uri.var.message"
+                                                         expression="fn:concat('Failed to create the Invoice for the Reservation. Error: ', get-property('uri.var.freshBooksCreateInvoiceErrorMessage'))" />
+                                                      <property name="uri.var.activity" value="freshbooks_createInvoice" />
+                                                      <property name="uri.var.status" value="Error" />
+                                                   </then>
+                                                   <else>
+                                                      <property name="uri.var.freshBooksInvoiceId" expression="//*[local-name()='invoice_id']/text()" />
+                                                      <property name="uri.var.createInvoiceId"
+                                                         expression="fn:concat('invoiceId:', get-property('uri.var.freshBooksInvoiceId'), ',planyoReservationId:', get-property('uri.var.planyoReservationId'), ',freshbooksClientId:', get-property('uri.var.freshbooksClientId'))" />
+                                                      <property name="uri.var.message"
+                                                         value="Successfully created the Client Invoice for the Reservation" />
+                                                      <property name="uri.var.activity" value="freshbooks_createInvoice" />
+                                                      <property name="uri.var.status" value="Success" />
+
+                                                      <!-- Retrieve the created Invoice number -->
+                                                      <freshbooks.init>
+                                                         <apiUrl>{$ctx:uri.var.freshbooksApiUrl}</apiUrl>
+                                                         <authenticationToken>{$ctx:uri.var.freshbooksApiKey}</authenticationToken>
+                                                      </freshbooks.init>
+                                                      <freshbooks.getInvoice>
+                                                         <invoiceId>{$ctx:uri.var.freshBooksInvoiceId}</invoiceId>
+                                                      </freshbooks.getInvoice>
+                                                      <property name="uri.var.invoiceNumber" expression="//*[local-name()='number']/text()" />
+                                                      <!-- START: Checks the availability of the created Invoice number to 
+                                                         proceed with Reservation update -->
+                                                      <filter source="boolean(get-property('uri.var.invoiceNumber'))"
+                                                         regex="true">
+                                                         <else>
+                                                            <property name="uri.var.planyoUpdateReservationId"
+                                                               expression="fn:concat('freshbooksInvoiceId:', get-property('uri.var.invoiceId'), ',planyoReservationId:', get-property('uri.var.planyoReservationId'))" />
+                                                            <property name="uri.var.updateReservationMessage"
+                                                               value="Could not retrieve the number of the created Invoice, Hence the Reservation will not be updated with the Invoice number" />
+                                                            <property name="uri.var.updateReservationStatus"
+                                                               value="Error" />
+                                                         </else>
+                                                         <then>
+                                                            <!-- Temporally saves the invoice Id -->
+                                                            <property name="uri.var.invoiceId"
+                                                               expression="get-property('uri.var.freshBooksInvoiceId')" />
+                                                            <property name="uri.var.planyoType" value="reservation" />
+                                                            <property name="uri.var.customProperties"
+                                                               expression="fn:concat('{&quot;Invoice_Number&quot;: &quot;', get-property('uri.var.invoiceNumber'), '&quot;}')" />
+                                                            <planyo.init>
+                                                               <apiUrl>{$ctx:uri.var.planyoApiUrl}</apiUrl>
+                                                               <apiKey>{$ctx:uri.var.planyoApiKey}</apiKey>
+                                                               <language>{$ctx:uri.var.planyoLanguage}</language>
+                                                               <version>{$ctx:uri.var.planyoVersion}</version>
+                                                            </planyo.init>
+                                                            <planyo.setCustomProperties>
+                                                               <type>{$ctx:uri.var.planyoType}</type>
+                                                               <id>{$ctx:uri.var.planyoReservationId}</id>
+                                                               <customProperties>{$ctx:uri.var.customProperties}</customProperties>
+                                                            </planyo.setCustomProperties>
+                                                            <property name="uri.var.planyoUpdateReservationResponseCode"
+                                                               expression="json-eval($.response_code)" />
+                                                            <property name="uri.var.planyoUpdateReservationId"
+                                                               expression="fn:concat('freshbooksInvoiceId:', get-property('uri.var.invoiceId'), ',planyoReservationId:', get-property('uri.var.planyoReservationId'))" />
+                                                            <!-- START: Check the successful response of getInvoiceItemsById 
+                                                               to proceed with Invoice Creation -->
+                                                            <filter
+                                                               xpath="get-property('uri.var.planyoUpdateReservationResponseCode') = 0">
+                                                               <else>
+                                                                  <property name="uri.var.updateReservationMessage"
+                                                                     expression="fn:concat('Failed to update the Reservation with the Invoice number ', get-property('uri.var.invoiceNumber'))" />
+                                                                  <property name="uri.var.updateReservationStatus"
+                                                                     value="Error" />
+                                                               </else>
+                                                               <then>
+                                                                  <property name="uri.var.updateReservationMessage"
+                                                                     expression="fn:concat('Successfully updated the Reservation with the Invoice number ', get-property('uri.var.invoiceNumber'))" />
+                                                                  <property name="uri.var.updateReservationStatus"
+                                                                     value="Success" />
+                                                               </then>
+                                                            </filter>
+                                                         </then>
+                                                      </filter>
+                                                      <!-- END: Invoice number availability check -->
+                                                      <property name="uri.var.isReservationUpdateCalled" value="true" />
+                                                   </else>
+                                                </filter>
+                                                <!-- END: Successful creation of the FreshBooks Invoice -->
+                                             </else>
+                                          </filter>
+                                          <!-- END: client ID check -->
+                                       </else>
+                                    </filter>
+                                    <!-- END: listClients execution check -->
+                                 </then>
+                              </filter>
+                              <!-- END: User email availability check -->
+                           </then>
+                        </filter>
+                        <!-- END: User details retrieval check -->
+                     </then>
+                  </filter>
+                  <!-- END: User id availability check -->
+               </then>
+            </filter>
+            <!-- END: Check the availability of the lines -->
+            <!-- Generate response for the FreshBooks Invoice creation -->
+            <call-template target="responseHandlerTemplate">
+               <with-param name="id" value="{$ctx:uri.var.createInvoiceId}" />
+               <with-param name="activity" value="{$ctx:uri.var.activity}" />
+               <with-param name="status" value="{$ctx:uri.var.status}" />
+               <with-param name="message" value="{$ctx:uri.var.message}" />
+            </call-template>
+            <!-- START: Check the availability of the invoice Update property to proceed with the updated response generation -->
+            <filter source="get-property('uri.var.isReservationUpdateCalled')" regex="true">
+               <then>
+                  <!-- Generate the response for Reservation update -->
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="id" value="{$ctx:uri.var.planyoUpdateReservationId}" />
+                     <with-param name="activity" value="planyo_updateReservation" />
+                     <with-param name="status" value="{$ctx:uri.var.updateReservationStatus}" />
+                     <with-param name="message" value="{$ctx:uri.var.updateReservationMessage}" />
+                  </call-template>
+               </then>
+            </filter>
+            <!-- END: isReservationUpdateCalled availability check -->
+         </then>
+      </filter>
+      <!-- END: Check the successful response of getInvoiceItemsById -->
+   </sequence>
+</template>

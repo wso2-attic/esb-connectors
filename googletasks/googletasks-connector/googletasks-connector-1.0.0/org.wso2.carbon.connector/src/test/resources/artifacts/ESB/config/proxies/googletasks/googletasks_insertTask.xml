@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ ~  Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ ~
+ ~  WSO2 Inc. licenses this file to you under the Apache License,
+ ~  Version 2.0 (the "License"); you may not use this file except
+ ~  in compliance with the License.
+ ~  You may obtain a copy of the License at
+ ~
+ ~    http://www.apache.org/licenses/LICENSE-2.0
+ ~
+ ~  Unless required by applicable law or agreed to in writing,
+ ~  software distributed under the License is distributed on an
+ ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ ~  KIND, either express or implied.  See the License for the
+ ~  specific language governing permissions and limitations
+ ~  under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="googletasks_insertTask"
+       transports="https,http" statistics="disable" trace="disable"
+       startOnLoad="true">
+    <target>
+        <inSequence>
+            <property name="accessToken" expression="json-eval($.accessToken)"/>
+            <property name="tasklist_id" expression="json-eval($.tasklist_id)"/>
+            <property name="title" expression="json-eval($.title)"/>
+            <property name="completed" expression="json-eval($.completed)"
+                      type="STRING"/>
+            <property name="deleted" expression="json-eval($.deleted)"
+                      type="STRING"/>
+            <property name="due" expression="json-eval($.due)" type="STRING"/>
+            <property name="hidden" expression="json-eval($.hidden)"
+                      type="STRING"/>
+            <property name="notes" expression="json-eval($.notes)" type="STRING"/>
+            <property name="position" expression="json-eval($.position)"
+                      type="STRING"/>
+            <property name="status" expression="json-eval($.status)"
+                      type="STRING"/>
+            <googletasks.init>
+                <accessToken>{$ctx:accessToken}</accessToken>
+            </googletasks.init>
+            <googletasks.insertTask>
+                <tasklist_id>{$ctx:tasklist_id}</tasklist_id>
+                <title>{$ctx:title}</title>
+                <completed>{$ctx:completed}</completed>
+                <deleted>{$ctx:deleted}</deleted>
+                <due>{$ctx:due}</due>
+                <hidden>{$ctx:hidden}</hidden>
+                <notes>{$ctx:notes}</notes>
+                <position>{$ctx:position}</position>
+                <status>{$ctx:status}</status>
+            </googletasks.insertTask>
+            <filter source="$axis2:HTTP_SC" regex="^[^2][0-9][0-9]">
+                <then>
+                    <property name="ERROR_CODE" expression="$axis2:HTTP_SC"/>
+                    <switch source="$axis2:HTTP_SC">
+                        <case regex="401">
+                            <property name="ERROR_MESSAGE" value="Unauthorized"/>
+                            <property name="error_description" expression="json-eval($.message)"/>
+                        </case>
+                        <case regex="403">
+                            <property name="ERROR_MESSAGE" value="Forbidden"/>
+                            <property name="error_description" expression="json-eval($.message)"/>
+                        </case>
+                        <case regex="404">
+                            <property name="ERROR_MESSAGE" value="Not Found"/>
+                        </case>
+                        <case regex="400">
+                            <property name="ERROR_MESSAGE" value="Bad Request"/>
+                            <property name="error_description" expression="json-eval($.message)"/>
+                        </case>
+                    </switch>
+                </then>
+            </filter>
+            <respond/>
+        </inSequence>
+        <outSequence>
+            <log/>
+            <send/>
+        </outSequence>
+    </target>
+    <description/>
+</proxy>

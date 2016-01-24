@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API method Url: http://api.planyo.com/api.php?topic=set_custom_properties -->
+<template name="setCustomProperties" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="type" description="The Property type (one of: site, resource, reservation, user)"/>
+    <parameter name="id"
+               description="Related ID whose property is being queried (depending on type one of: site ID, resource ID, reservation ID, user ID)"/>
+    <parameter name="customProperties"
+               description="The customProperties object containing the property names and values"/>
+    <sequence>
+        <property name="uri.var.type" expression="$func:type"/>
+        <property name="uri.var.id" expression="$func:id"/>
+        <property name="uri.var.customProperties" expression="$func:customProperties"/>
+        <!-- Generate the request payload with mandatory parameters -->
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "type":"$1",
+                "id":"$2",
+                "api_key":"$3",
+                "method":"set_custom_properties"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.type')"/>
+                <arg expression="get-property('uri.var.id')"/>
+                <arg expression="get-property('uri.var.apiKey')"/>
+            </args>
+        </payloadFactory>
+        <script language="js">
+            <![CDATA[
+            // Generate payload with optional parameters
+            var customProperties = mc.getProperty('uri.var.customProperties');
+            var language = mc.getProperty('uri.var.language');
+            var version = mc.getProperty('uri.var.version');
+            // Retrieve payload to set custom properties
+            payload = mc.getPayloadJSON();
+            if (language != null && language != "") {
+               payload.language = language;
+            }
+            if (version != null && version != "") {
+               payload.version = version;
+            }
+            // Retrieves values from JSON objects and appends key values paris to the payload
+            // Note that this names parameter acts as an optional parameter despite documented as required.       
+            if (customProperties != null && customProperties != "") {
+               var customPropertiesObj = eval("(" + customProperties + ")");
+               var propertyNames = '';
+               for (var key in customPropertiesObj) {
+                  if (key != null && key != "") {
+                     if(customPropertiesObj[key] != null && customPropertiesObj[key] != ''){
+                        // Added toString to avoid trailing 0's being appended to integers
+                        payload[key] = customPropertiesObj[key].toString();
+                     }                     
+                     // Creates comma separated property names
+                     propertyNames += key + ',';
+                  }
+               }
+               if(propertyNames != ''){
+                  // Removes unwanted comma at the end
+                  propertyNames = propertyNames.substring(0,propertyNames.length - 1);
+                  payload.names = propertyNames;
+               }
+            }
+            mc.setPayloadJSON(payload);
+         ]]>
+        </script>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-Powered-By" scope="transport" action="remove"/>
+        <header name="Via" scope="transport" action="remove"/>
+    </sequence>
+</template>

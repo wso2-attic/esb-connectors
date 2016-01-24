@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~   WSO2 Inc. licenses this file to you under the Apache License,
+  ~   Version 2.0 (the "License"); you may not use this file except
+  ~   in compliance with the License.
+  ~   You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing,
+  ~  software distributed under the License is distributed on an
+  ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~  KIND, either express or implied.  See the License for the
+  ~  specific language governing permissions and limitations
+  ~  under the License.
+  -->
+<template name="importTableAndList" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="key" description="Unique value of the spreadsheet"/>
+    <parameter name="importTableworksheetId" description="The ID of the worksheet"/>
+    <parameter name="cellId" description="The ID of the cell"/>
+    <parameter name="inputTableURL" description="URL which has tables or lists"/>
+    <parameter name="row" description="Row index"/>
+    <parameter name="col" description="Column index"/>
+    <parameter name="importTableCellVersion" description="The version of the cell"/>
+    <parameter name="inputFormat" description="The formate of import data(table,list)"/>
+    <parameter name="position" description="The position of import data"/>
+    <sequence>
+        <property name="uri.var.key" expression="$func:key"/>
+        <property name="uri.var.importTableworksheetId" expression="$func:importTableworksheetId"/>
+        <property name="uri.var.cellId" expression="$func:cellId"/>
+        <property name="uri.var.inputTableURL" expression="$func:inputTableURL"/>
+        <property name="uri.var.row" expression="$func:row"/>
+        <property name="uri.var.col" expression="$func:col"/>
+        <property name="uri.var.importTableCellVersion" expression="$func:importTableCellVersion"/>
+        <property name="uri.var.inputFormat" expression="$func:inputFormat"/>
+        <property name="uri.var.position" expression="$func:position"/>
+        <property name="REQUEST_HOST_HEADER" scope="axis2" value="spreadsheets.google.com"/>
+        <payloadFactory media-type="xml">
+            <format>
+                <entry xmlns="http://www.w3.org/2005/Atom"
+                       xmlns:gs="http://schemas.google.com/spreadsheets/2006">
+                    <gs:cell row="$1" col="$2" inputValue="=IMPORTHTML(&quot;$3&quot;,&quot;$4&quot;,&quot;$5&quot;)"/>
+                </entry>
+            </format>
+            <args>
+                <arg expression="$ctx:row"/>
+                <arg expression="$ctx:col"/>
+                <arg expression="$ctx:inputTableURL"/>
+                <arg expression="$ctx:inputFormat"/>
+                <arg expression="$ctx:position"/>
+            </args>
+        </payloadFactory>
+        <property name="messageType" value="application/atom+xml" scope="axis2"/>
+        <property name="Content-Type" value="application/atom+xml" scope="axis2"/>
+        <header name="Content-Type" value="application/atom+xml" scope="transport"/>
+        <property action="remove" name="Accept-Encoding" scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="put"
+                      uri-template="{+uri.var.apiUrl}/feeds/cells/{+uri.var.key}/{+uri.var.importTableworksheetId}/private/full/{+uri.var.cellId}/{+uri.var.importTableCellVersion}"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+    </sequence>
+</template>

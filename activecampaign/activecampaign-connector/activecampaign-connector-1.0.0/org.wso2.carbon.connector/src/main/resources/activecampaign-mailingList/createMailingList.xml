@@ -16,7 +16,7 @@
    specific language governing permissions and limitations
    under the License.
 -->
-
+<!-- API Doc: http://www.activecampaign.com/api/example.php?call=list_add -->
 <template name="createMailingList" xmlns="http://ws.apache.org/ns/synapse">
    <parameter name="name" description="The Internal list name." />
    <parameter name="subscriptionNotifyList"
@@ -45,7 +45,6 @@
    <parameter name="senderUrl" description="The website associated with this list." />
    <parameter name="senderReminder"
       description="The reminder to the contacts as to why they are on this list and why you are emailing." />
-
    <sequence>
       <property name="uri.var.name" expression="$func:name" />
       <property name="uri.var.subscriptionNotifyList" expression="$func:subscriptionNotifyList" />
@@ -69,7 +68,6 @@
       <property name="uri.var.senderCity" expression="$func:senderCity" />
       <property name="uri.var.senderUrl" expression="$func:senderUrl" />
       <property name="uri.var.senderReminder" expression="$func:senderReminder" />
-
       <payloadFactory media-type="json">
          <format>
             {
@@ -106,13 +104,10 @@
             <arg expression="get-property('uri.var.senderReminder')" />
          </args>
       </payloadFactory>
-
       <script language="js">
          <![CDATA[
-
             // optional parameters are set to the payload.     
             var payload = mc.getPayloadJSON();
-
             var pUseTwitter = mc.getProperty('uri.var.pUseTwitter');
             var twitterUser = mc.getProperty('uri.var.twitterUser');
             var twitterPass = mc.getProperty('uri.var.twitterPass');
@@ -121,55 +116,43 @@
             var sendLastBroadcast = mc.getProperty('uri.var.sendLastBroadcast');
             var requireName = mc.getProperty('uri.var.requireName');
             var privateVal = mc.getProperty('uri.var.private');
-
             if (pUseTwitter != null && pUseTwitter != "") {
                payload.p_use_twitter = pUseTwitter;
             }
-
             if (twitterUser != null && twitterUser != "") {
                payload.twitter_user = twitterUser;
             }
-
             if (twitterPass != null && twitterPass != "") {
                payload.twitter_pass = twitterPass;
             }
-
             if (pUseCaptcha != null && pUseCaptcha != "") {
                payload.p_use_captcha = pUseCaptcha;
             }
-
             if (getUnsubscribeReason != null && getUnsubscribeReason != "") {
                payload.get_unsubscribe_reason = getUnsubscribeReason;
             }
-
             if (sendLastBroadcast != null && sendLastBroadcast != "") {
                payload.send_last_broadcast = sendLastBroadcast;
             }
-
             if (requireName != null && requireName != "") {
                payload.require_name = requireName;
             } 
-
             if (privateVal != null && privateVal != "") {
                payload['private'] = privateVal;
             } 
-
             mc.setPayloadJSON(payload);
-
          ]]>
       </script>
-
       <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
       <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
-
       <call>
          <endpoint>
-            <http method="post" uri-template="{uri.var.apiUrl}list_add{uri.var.queryParams}" />
+            <http method="post" uri-template="{uri.var.apiUrl}list_add{+uri.var.queryParams}" />
          </endpoint>
       </call>
-
       <!-- Remove response custom header information -->
       <header name="X-Powered-By" scope="transport" action="remove" />
-
+      <header name="Pragma" scope="transport" action="remove" />
+      <header name="Cache-control" scope="transport" action="remove" />
    </sequence>
 </template>

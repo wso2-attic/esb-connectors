@@ -1,140 +1,142 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<proxy xmlns="http://ws.apache.org/ns/synapse"
-       name="dropbox"
-       transports="https,http"
-       statistics="disable"
-       trace="disable"
-       startOnLoad="true">
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="dropbox" transports="https,http" statistics="disable" trace="disable"
+   startOnLoad="true">
    <target>
       <inSequence>
-         <property name="apiUrl" expression="json-eval($.apiUrl)"/>
-         <property name="accessToken" expression="json-eval($.accessToken)"/>
-		 <property name="root" expression="json-eval($.root)"/>
-         <property name="path" expression="json-eval($.path)"/>
-         <property name="rev" expression="json-eval($.rev)"/>
-		 <property name="query" expression="json-eval($.query)"/>
-         <property name="fileLimit" expression="json-eval($.fileLimit)"/>
-         <property name="includeDeleted" expression="json-eval($.includeDeleted)"/>
-         <property name="locale" expression="json-eval($.locale)"/>
-		 <property name="fromPath" expression="json-eval($.fromPath)"/>
-         <property name="toPath" expression="json-eval($.toPath)"/>
-		 <property name="hash" expression="json-eval($.hash)"/>
-		 <property name="list" expression="json-eval($.list)"/>	
-	     <property name="revLimit" expression="json-eval($.revLimit)"/>
-	     <property name="includeMediaInfo" expression="json-eval($.includeMediaInfo)"/>	
-		 <property name="fromCopyRef" expression="json-eval($.fromCopyRef)" />
-         <property name="overwrite" expression="json-eval($.overwrite)"/>
-         <property name="parentRev" expression="json-eval($.parentRev)"/>
-         <property name="uploadId" expression="json-eval($.uploadId)"/>
-		 
-		<filter xpath="get-property('transport', 'Action') = 'urn:chunkUpload' or get-property('transport', 'Action') = 'urn:uploadFile'">    
-			<then>
-				 <dropbox.init>
-					<apiUrl>{$url:apiUrl}</apiUrl>
-					<accessToken>{$url:accessToken}</accessToken>
-					<root>{$url:root}</root>
-					<path>{$url:path}</path>
-				 </dropbox.init>
-			</then>
-			<else>	 
-			 <dropbox.init>
-				<apiUrl>{$ctx:apiUrl}</apiUrl>
-				<accessToken>{$ctx:accessToken}</accessToken>
-				<path>{$ctx:path}</path>
-				<root>{$ctx:root}</root>            
-			 </dropbox.init>
-			</else>
-		</filter>
-		 
-		 <switch source="get-property('transport', 'Action')">
-         
-		<case regex="urn:getFile">
-         <dropbox.getFile>
-			<rev>{$ctx:rev}</rev>
-         </dropbox.getFile>
-		</case>
-		
-		<case regex="urn:move">
-         <dropbox.move>
-            <fromPath>{$ctx:fromPath}</fromPath>
-            <toPath>{$ctx:toPath}</toPath>
-            <locale>{$ctx:locale}</locale>
-         </dropbox.move>
-		</case>
-		
-		<case regex="urn:search">
-         <dropbox.search>
-            <query>{$ctx:query}</query>
-            <locale>{$ctx:locale}</locale>
-            <fileLimit>{$ctx:fileLimit}</fileLimit>
-            <includeDeleted>{$ctx:includeDeleted}</includeDeleted>
-         </dropbox.search>
-		</case>	
-		
-		<case regex="urn:getMetadata">
-		 <dropbox.getMetadata>
-			<locale>{$ctx:locale}</locale>
-			<fileLimit>{$ctx:fileLimit}</fileLimit>
-			<hash>{$ctx:hash}</hash>
-			<list>{$ctx:list}</list>
-			<includeDeleted>{$ctx:includeDeleted}</includeDeleted>
-			<rev>{$ctx:rev}</rev>
-			<includeMediaInfo>{$ctx:includeMediaInfo}</includeMediaInfo>
-		 </dropbox.getMetadata>
-		</case>	
-		
-		<case regex="urn:getRevisionMetadata">
-			<dropbox.getRevisionMetadata>
-				<revLimit>{$ctx:revLimit}</revLimit>
-				<locale>{$ctx:locale}</locale>
-			</dropbox.getRevisionMetadata>
-		</case>	
-		
-		<case regex="urn:restoreFile">
-			<dropbox.restoreFile>
-				<rev>{$ctx:rev}</rev>
-				<locale>{$ctx:locale}</locale>
-			 </dropbox.restoreFile>
-		</case>
-		
-		<case regex="urn:delete">
-			<dropbox.delete>
-				<locale>{$ctx:locale}</locale>
-			</dropbox.delete>
-		</case>		
-		<case regex="urn:createFolder">
-			<dropbox.createFolder>
-				<locale>{$ctx:locale}</locale>
-			</dropbox.createFolder>
-		</case>
-		<case regex="urn:copy">
-			<dropbox.copy>
-				<fromPath>{$ctx:fromPath}</fromPath>
-				<toPath>{$ctx:toPath}</toPath>
-				<locale>{$ctx:locale}</locale>
-				<fromCopyRef>{$ctx:fromCopyRef}</fromCopyRef>
-			</dropbox.copy>
-		</case>				
-		<case regex="urn:share">
-			<dropbox.share>
-				<locale>{$ctx:locale}</locale>
-			</dropbox.share>
-		</case>
-		<case regex="urn:commitChunk">
-		 <dropbox.commitChunk>
-            <locale>{$ctx:locale}</locale>
-            <overwrite>{$ctx:overwrite}</overwrite>
-            <parentRev>{$ctx:parentRev}</parentRev>
-            <uploadId>{$ctx:uploadId}</uploadId>
-         </dropbox.commitChunk>
-		</case>		
-		
-		<case regex="urn:uploadFile">
-               <dropbox.uploadFile>
+         <property name="apiUrl" expression="json-eval($.apiUrl)" />
+         <property name="accessToken" expression="json-eval($.accessToken)" />
+         <property name="root" expression="json-eval($.root)" />
+         <property name="path" expression="json-eval($.path)" />
+         <property name="rev" expression="json-eval($.rev)" />
+         <property name="query" expression="json-eval($.query)" />
+         <property name="fileLimit" expression="json-eval($.fileLimit)" />
+         <property name="includeDeleted" expression="json-eval($.includeDeleted)" />
+         <property name="locale" expression="json-eval($.locale)" />
+         <property name="fromPath" expression="json-eval($.fromPath)" />
+         <property name="toPath" expression="json-eval($.toPath)" />
+         <property name="hash" expression="json-eval($.hash)" />
+         <property name="list" expression="json-eval($.list)" />
+         <property name="revLimit" expression="json-eval($.revLimit)" />
+         <property name="includeMediaInfo" expression="json-eval($.includeMediaInfo)" />
+         <property name="fromCopyRef" expression="json-eval($.fromCopyRef)" />
+         <property name="overwrite" expression="json-eval($.overwrite)" />
+         <property name="parentRev" expression="json-eval($.parentRev)" />
+         <property name="uploadId" expression="json-eval($.uploadId)" />
+         <filter
+            xpath="get-property('transport', 'Action') = 'urn:chunkUpload' or get-property('transport', 'Action') = 'urn:uploadFile'">
+            <then>
+               <dropbox.init>
                   <apiUrl>{$url:apiUrl}</apiUrl>
                   <accessToken>{$url:accessToken}</accessToken>
                   <root>{$url:root}</root>
                   <path>{$url:path}</path>
+               </dropbox.init>
+            </then>
+            <else>
+               <dropbox.init>
+                  <apiUrl>{$ctx:apiUrl}</apiUrl>
+                  <accessToken>{$ctx:accessToken}</accessToken>
+                  <path>{$ctx:path}</path>
+                  <root>{$ctx:root}</root>
+               </dropbox.init>
+            </else>
+         </filter>
+         <switch source="get-property('transport', 'Action')">
+            <case regex="urn:getFile">
+               <dropbox.getFile>
+                  <rev>{$ctx:rev}</rev>
+               </dropbox.getFile>
+            </case>
+            <case regex="urn:move">
+               <dropbox.move>
+                  <fromPath>{$ctx:fromPath}</fromPath>
+                  <toPath>{$ctx:toPath}</toPath>
+                  <locale>{$ctx:locale}</locale>
+               </dropbox.move>
+            </case>
+            <case regex="urn:search">
+               <dropbox.search>
+                  <query>{$ctx:query}</query>
+                  <locale>{$ctx:locale}</locale>
+                  <fileLimit>{$ctx:fileLimit}</fileLimit>
+                  <includeDeleted>{$ctx:includeDeleted}</includeDeleted>
+               </dropbox.search>
+            </case>
+            <case regex="urn:getMetadata">
+               <dropbox.getMetadata>
+                  <locale>{$ctx:locale}</locale>
+                  <fileLimit>{$ctx:fileLimit}</fileLimit>
+                  <hash>{$ctx:hash}</hash>
+                  <list>{$ctx:list}</list>
+                  <includeDeleted>{$ctx:includeDeleted}</includeDeleted>
+                  <rev>{$ctx:rev}</rev>
+                  <includeMediaInfo>{$ctx:includeMediaInfo}</includeMediaInfo>
+               </dropbox.getMetadata>
+            </case>
+            <case regex="urn:getRevisionMetadata">
+               <dropbox.getRevisionMetadata>
+                  <revLimit>{$ctx:revLimit}</revLimit>
+                  <locale>{$ctx:locale}</locale>
+               </dropbox.getRevisionMetadata>
+            </case>
+            <case regex="urn:restoreFile">
+               <dropbox.restoreFile>
+                  <rev>{$ctx:rev}</rev>
+                  <locale>{$ctx:locale}</locale>
+               </dropbox.restoreFile>
+            </case>
+            <case regex="urn:delete">
+               <dropbox.delete>
+                  <locale>{$ctx:locale}</locale>
+               </dropbox.delete>
+            </case>
+            <case regex="urn:createFolder">
+               <dropbox.createFolder>
+                  <locale>{$ctx:locale}</locale>
+               </dropbox.createFolder>
+            </case>
+            <case regex="urn:copy">
+               <dropbox.copy>
+                  <fromPath>{$ctx:fromPath}</fromPath>
+                  <toPath>{$ctx:toPath}</toPath>
+                  <locale>{$ctx:locale}</locale>
+                  <fromCopyRef>{$ctx:fromCopyRef}</fromCopyRef>
+               </dropbox.copy>
+            </case>
+            <case regex="urn:share">
+               <dropbox.share>
+                  <locale>{$ctx:locale}</locale>
+               </dropbox.share>
+            </case>
+            <case regex="urn:commitChunk">
+               <dropbox.commitChunk>
+                  <locale>{$ctx:locale}</locale>
+                  <overwrite>{$ctx:overwrite}</overwrite>
+                  <parentRev>{$ctx:parentRev}</parentRev>
+                  <uploadId>{$ctx:uploadId}</uploadId>
+               </dropbox.commitChunk>
+            </case>
+            <case regex="urn:uploadFile">
+               <dropbox.uploadFile>
                   <locale>{$url:locale}</locale>
                   <overwrite>{$url:overwrite}</overwrite>
                   <parentRev>{$url:parentRev}</parentRev>
@@ -143,20 +145,23 @@
             </case>
             <case regex="urn:chunkUpload">
                <dropbox.chunkUpload>
-                  <apiUrl>{$url:apiUrl}</apiUrl>
-                  <accessToken>{$url:accessToken}</accessToken>
                   <uploadId>{$url:uploadId}</uploadId>
                   <offset>{$url:offset}</offset>
                </dropbox.chunkUpload>
             </case>
-		 </switch>
-         <respond/>
+            <case regex="urn:createDirectLink">
+               <dropbox.createDirectLink>
+                  <locale>{$ctx:locale}</locale>
+               </dropbox.createDirectLink>
+            </case>
+         </switch>
+         <respond />
       </inSequence>
       <outSequence>
-         <log/>
-         <send/>
+         <log />
+         <send />
       </outSequence>
    </target>
-   <description/>
+   <description />
 </proxy>
                                 

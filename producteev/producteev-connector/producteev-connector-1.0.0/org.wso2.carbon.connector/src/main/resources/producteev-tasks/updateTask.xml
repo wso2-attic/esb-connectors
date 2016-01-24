@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.producteev.com/api/doc/#Update a task -->
+<template name="updateTask" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="title" description="Title of the task." />
+   <parameter name="projectId" description="ID of the project to create task." />
+   <parameter name="endDate"
+      description="end date of the task. The format should be in ISO 8601 date and time format (e.g.: 2013-12-07T07:00:00+0000)." />
+   <parameter name="endDateTimeZone" description="Standard timezone abbreviations for the task end date (e.g.: PST)." />
+   <parameter name="taskId" description="ID of the task to update." />
+   <parameter name="priority" description="Priority of the task." />
+   <parameter name="status" description="Status of the task." />
+   <parameter name="allday" description="Boolean value to set the task as all day." />
+   <parameter name="reminder" description="Reminder for the task. Possible values are '0' and '1'." />
+   <sequence>
+      <property name="uri.var.title" expression="$func:title" />
+      <property name="uri.var.projectId" expression="$func:projectId" />
+      <property name="uri.var.endDate" expression="$func:endDate" />
+      <property name="uri.var.endDateTimeZone" expression="$func:endDateTimeZone" />
+      <property name="uri.var.taskId" expression="$func:taskId" />
+      <property name="uri.var.priority" expression="$func:priority" />
+      <property name="uri.var.status" expression="$func:status" />
+      <property name="uri.var.allday" expression="$func:allday" />
+      <property name="uri.var.reminder" expression="$func:reminder" />
+      <script language="js">
+         <![CDATA[
+            var title = mc.getProperty('uri.var.title');
+            var projectId=mc.getProperty('uri.var.projectId');
+            var allday = mc.getProperty('uri.var.allday');
+            var reminder = mc.getProperty('uri.var.reminder');
+            var endDate = mc.getProperty('uri.var.endDate');
+            var priority = mc.getProperty('uri.var.priority');
+            var endDateTimeZone = mc.getProperty('uri.var.endDateTimeZone');
+            var status = mc.getProperty('uri.var.status');
+            var jsonPayload = {};
+            var task=new Object();
+            if (title != null && title != ""){
+               task["title"] = title;
+            }
+            if (projectId != null && projectId != ""){
+               var project=new Object();
+               project["id"]=projectId;
+               task["project"] = project;
+            }
+            if (endDate != null && endDate != ""){
+               task["deadline"] = endDate;
+            }
+            if (endDateTimeZone != null && endDateTimeZone != ""){
+               task["deadline_timezone"] = endDateTimeZone;
+            }
+            if (priority != null && priority != ""){
+               task["priority"] = priority;
+            }
+            if (status != null && status != ""){
+               task["status"] = status;
+            }
+            if (allday != null && allday != ""){
+               task["allday"] = eval ("(" + allday + ")");
+            }
+            if (reminder != null && reminder != ""){
+               task["reminder"] = reminder;
+            }
+            jsonPayload["task"]=task;
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="put" uri-template="{+uri.var.apiUrl}/api/tasks/{+uri.var.taskId}" />
+         </endpoint>
+      </call>
+      <property name="uri.var.statusCode" expression="$axis2:HTTP_SC" />
+      <!-- If the call fails with 401 Unauthorized, then get a new access token by calling getAccessTokenFromRefreshToken
+         method. -->
+      <filter xpath="get-property('uri.var.statusCode') = 401 and get-property('uri.var.refreshTokenNegotiated') = 'false'">
+         <then>
+            <producteev.getAccessTokenFromRefreshToken />
+            <header name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))"
+               scope="transport" />
+            <producteev.updateTask />
+         </then>
+      </filter>
+      <!--Removing custom headers from the Response. -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="WWW-Authenticate" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+   </sequence>
+</template>

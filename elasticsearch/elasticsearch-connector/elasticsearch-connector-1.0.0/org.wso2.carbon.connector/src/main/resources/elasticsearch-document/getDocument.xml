@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-get.html#docs-get -->
+<template name="getDocument" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="indexName" description="Name of the index."/>
+   <parameter name="type" description="The type to which the key belongs."/>
+   <parameter name="id" description="Key of the index to retrieve."/>
+   <parameter name="source" description="By default, the get operation returns the contents of the _source field unless you have used the fields parameter or if the _source field is disabled. You can turn off _source retrieval by using the _source parameter."/>
+   <parameter name="sourceExclude" description="The _source_exclude parameter can be used to omit the unwanted fields from complete _source." />
+   <parameter name="sourceInclude" description="The _source_include parameter can be used to filter out only one or two fields from the complete _source." />
+   <parameter name="fields" description="The get operation allows specifying a set of stored fields that will be returned by passing the fields parameter."/>
+   <parameter name="routing" description="When indexing using the ability to control the routing, in order to get a document, the routing value should also be provided."/>
+   <parameter name="preference" description="Controls a preference of which shard replicas to execute the get request on. By default, the operation is randomized between the shard replicas."/>
+   <parameter name="refresh" description="The refresh parameter can be set to true in order to refresh the relevant shard before the get operation and make it searchable."/>
+   <parameter name="realtime" description="By default, the get API is realtime, and is not affected by the refresh rate of the index (when data will become visible for search)."/>
+   <parameter name="version" description="Version parameter can be used to get only the specific version."/>
+   <sequence>
+      <property name="uri.var.indexName" expression="$func:indexName"/>
+      <property name="uri.var.type" expression="$func:type"/>
+      <property name="uri.var.id" expression="$func:id"/>
+      <property name="uri.var.source" expression="$func:source"/>
+      <property name="uri.var.sourceExclude" expression="$func:sourceExclude"/>
+      <property name="uri.var.sourceInclude" expression="$func:sourceInclude"/>
+      <property name="uri.var.fields" expression="$func:fields"/>
+      <property name="uri.var.routing" expression="$func:routing"/>
+      <property name="uri.var.preference" expression="$func:preference"/>
+      <property name="uri.var.refresh" expression="$func:refresh"/>
+      <property name="uri.var.realtime" expression="$func:realtime"/>
+      <property name="uri.var.version" expression="$func:version"/>
+      <script language="js">
+         <![CDATA[
+            var sourceInclude = mc.getProperty('uri.var.sourceInclude');
+            var routing = mc.getProperty('uri.var.routing');
+            var realtime = mc.getProperty('uri.var.realtime');
+            var preference = mc.getProperty('uri.var.preference');
+            var refresh = mc.getProperty('uri.var.refresh');
+            var source = mc.getProperty('uri.var.source');
+            var sourceExclude = mc.getProperty('uri.var.sourceExclude');
+            var fields = mc.getProperty('uri.var.fields');
+            var version = mc.getProperty('uri.var.version');
+            var commonQueryParams = mc.getProperty('uri.var.commonQueryParams');
+            var urlQuery = '';
+            if (commonQueryParams != null && commonQueryParams != "") {
+               urlQuery +=  commonQueryParams;
+            }
+            if (source != null && source != "") {
+               urlQuery += '_source=' + source + '&';
+            }
+            if (sourceExclude != null && sourceExclude != "") {
+               urlQuery += '_source_exclude=' + sourceExclude + '&';
+            }
+            if (sourceInclude != null && sourceInclude != "") {
+               urlQuery += '_source_include=' + sourceInclude + '&';
+            }
+            if (fields != null && fields != "") {
+               urlQuery += 'fields=' + fields + '&';
+            }
+            if (routing != null && routing != "") {
+               urlQuery += 'routing=' + routing + '&';
+            }
+            if (preference != null && preference != "") {
+               urlQuery += 'preference=' + preference + '&';
+            }
+            if (refresh != null && refresh != "") {
+               urlQuery += 'refresh=' + refresh + '&';
+            }
+            if (realtime != null && realtime != "") {
+               urlQuery += 'realtime=' + realtime + '&';
+            }
+            if (version != null && version != "") {
+               urlQuery += 'version=' + version + '&';
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/{uri.var.indexName}/{uri.var.type}/{uri.var.id}{+uri.var.urlQuery}"/>
+         </endpoint>
+      </call>
+   </sequence>
+</template>

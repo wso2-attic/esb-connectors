@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://cloud.google.com/bigquery/docs/reference/v2/datasets/get -->
+<template name="getDataset" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="projectId" description="The Id of the project which the dataset is belongs to." />
+   <parameter name="datasetId" description="The Id of the dataset." />
+   <sequence>
+      <property name="uri.var.projectId" expression="$func:projectId" />
+      <property name="uri.var.datasetId" expression="$func:datasetId" />
+      <filter xpath="boolean(get-property('uri.var.commonQueryParams'))">
+         <property name="uri.var.urlQuery"
+            expression="fn:concat('?',fn:substring(get-property('uri.var.commonQueryParams'),1,fn:string-length(get-property('uri.var.commonQueryParams')) -1))" />
+      </filter>
+      <call>
+         <endpoint>
+            <http method="get"
+               uri-template="{+uri.var.apiUrl}/bigquery/v2/projects/{+uri.var.projectId}/datasets/{+uri.var.datasetId}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <property name="uri.var.statusCode" expression="$axis2:HTTP_SC" />
+      <!-- If the call fails with 401 Unauthorized, then get a new access token by calling getAccessTokenFromRefreshToken
+         method. -->
+      <filter xpath="get-property('uri.var.statusCode') = 401 and get-property('uri.var.refreshTokenNegotiated') = 'false'">
+         <then>
+            <bigquery.getAccessTokenFromRefreshToken />
+            <header name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))"
+               scope="transport" />
+            <bigquery.getDataset />
+         </then>
+      </filter>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="Expires" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Alt-Svc" action="remove" scope="transport" />
+      <header name="Alternate-Protocol" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="WWW-Authenticate" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Accept-Ranges" action="remove" scope="transport" />
+   </sequence>
+</template>

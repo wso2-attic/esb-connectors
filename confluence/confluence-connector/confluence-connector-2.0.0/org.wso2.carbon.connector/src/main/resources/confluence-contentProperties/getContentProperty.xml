@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://docs.atlassian.com/atlassian-confluence/REST/latest/#d3e249 -->
+<template name="getContentProperty" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="id" description="The unique identifier of the content which the property is attached to." />
+   <parameter name="key" description="The key of the content property." />
+   <parameter name="expand"
+      description="A comma separated list of properties to expand on the content properties. Default value: version." />
+   <sequence>
+      <property name="uri.var.id" expression="$func:id" />
+      <property name="uri.var.key" expression="$func:key" />
+      <property name="uri.var.expand" expression="$func:expand" />
+      <filter source="boolean(get-property('uri.var.expand'))" regex="true">
+         <then>
+            <property name="uri.var.urlQuery" expression="fn:concat('?expand=',get-property('uri.var.expand'))" />
+         </then>
+      </filter>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/content/{+uri.var.id}/property/{+uri.var.key}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom headers from the API response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-ASEN" action="remove" scope="transport" />
+      <header name="X-AUSERNAME" action="remove" scope="transport" />
+      <header name="X-Seraph-LoginReason" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Accel-Buffering" action="remove" scope="transport" />
+      <header name="Content-Security-Policy" action="remove" scope="transport" />
+   </sequence>
+</template>

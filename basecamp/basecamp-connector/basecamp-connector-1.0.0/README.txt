@@ -12,23 +12,23 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.8.1
+ - WSO2 ESB 4.9.0-ALPHA
 
 STEPS:
   
  1. Extract the certificate from browser by navigating to https://basecamp.com and place the certificate file in following locations. 
 
-	i)  "<Basecamp_Connector_Home>/basecamp-connector/basecamp-connector-1.0.0/org wso2.carbon.connector/src/test/resources/keystores/products"
+	i)  "<ESB_Connector_Home>/basecamp/basecamp-connector/basecamp-connector-1.0.0/org wso2.carbon.connector/src/test/resources/keystores/products"
 
 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "Basecamp"' in command line to import basecamp certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from basecamp with  the extension, change it accordingly. Remove the copied certificate.
 	
-	ii) "wso2esb-4.8.1/repository/resources/security"
+	ii) "WSO2 ESB 4.9.0-ALPHA/repository/resources/security"
 	
 		Navigate to the above location from command prompt and execute 'keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "Basecamp"' in command line to import basecamp certificate in to keystore. Give "wso2carbon" as password.
 		NOTE : CERT_FILE_NAME is the file name which was extracted from basecamp with  the extension, change it accordingly. Remove the copied certificate. 
 		
- 2. Place the ESB 4.8.1 zip file with the applied changes in step 1->(ii) and the latest patches at "<Basecamp_Connector_Home>/basecamp-connector/basecamp-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 2. Place the WSO2 ESB 4.9.0-ALPHA zip file with the applied changes in step 1->(ii) and the latest patches at "<Basecamp_Connector_Home>/repository/".
 
  3. Ensure that the below mentioned Axis configurations are enabled in the ESB.(/repository/conf/axis2/axis2.xml).
 
@@ -40,19 +40,22 @@ STEPS:
 	ii) Derive the access token by following the instructions at "https://github.com/basecamp/api/blob/master/sections/authentication.md#oauth-2-from-scratch".
 
 
- 5. Update the Bacecamp properties file at location "<Basecamp_Connector_Home>/basecamp-connector/basecamp-connector-1.0.0/org wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 5. Update the Bacecamp properties file at location "<ESB_Connector_Home>/basecamp/basecamp-connector/basecamp-connector-1.0.0/org wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
    
 		i)    apiUrl        	  - Basecamp API url(https://basecamp.com)
-		ii)   accessToken         - Use the access token you got from step 3.ii		
-		iii)  accountId		      - Use the account ID retrieved from step 3.i
-		iii)  txtFileName         - Name of the attachment(residing under <Basecamp_Connector_Home>/basecamp-connector/basecamp-connector-1.0.0/org wso2.carbon.connector/src/test/resources/artifacts/ESB/config/resources/basecamp folder) with the extention(attachmentFile.txt).
+		ii)   accessToken         - Use the access token you got from step 4.ii		
+		iii)  accountId		      - Use the account ID retrieved from step 4.i
+		iii)  txtFileName         - Name of the attachment(residing under <ESB_Connector_Home>/basecamp/basecamp-connector/basecamp-connector-1.0.0/org wso2.carbon.connector/src/test/resources/artifacts/ESB/config/resources/basecamp folder) with the extention(attachmentFile.txt).
 		iv)   contentType         - Content type of attachment(text/plain).
 		v)    sleepTime           - An integer value in milliseconds, to wait between API calls to avoid conflicts at API end. preferred value is 5000. Try increasing this value if test cases fails.
 		vi)   uploadContent       - The String which describes the upload("upload content").
 		vii)  projectName         - Project Name to create a Project in the testCreateProjectMandatory method in the integration test(sample). 
 		viii) optionalProjectName - Project Name to create a Project in the testCreateProjectOptional method in the integration test (sampleOptional).
 			
- 6. Navigate to "<Basecamp_Connector_Home>/basecamp-connector/basecamp-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 6. Make sure that the Bacecamp connector is set as a module in esb-connectors parent pom.
+            <module>basecamp/basecamp-connector/basecamp-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 7. Navigate to "<ESB_Connector_Home>/" and run the following command.
       $ mvn clean install
 
 

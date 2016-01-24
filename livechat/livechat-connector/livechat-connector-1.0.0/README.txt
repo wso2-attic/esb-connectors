@@ -11,14 +11,14 @@ Tested Platform:
 
  - Microsoft WINDOWS V-7
  - UBUNTU 13.04
- - WSO2 ESB 4.9.0-SNAPSHOT
+ - WSO2 ESB 4.9.0-ALPHA
 
 Note:
 	Set up a new LiveChat account and follow all the instructions given below in step 4 to generate an access token.
 
 Steps to follow in setting integration test.
 
- 1. Download ESB 4.9.0-SNAPSHOT from official website.
+ 1. Download WSO2 ESB 4.9.0-ALPHA from official website.
  
  2. Deploy relevant patches, if applicable.
 
@@ -30,7 +30,7 @@ Steps to follow in setting integration test.
 
 	i) 	 Extract the certificate for the api url "https://api.livechatinc.com".
 			NOTE : Make sure to use an api method endpoint url to obtain the certificate (e.g. https://api.livechatinc.com/chats )
-	ii)  Go to new ESB 4.9.0-SNAPSHOT folder and place the downloaded certificate in both "<ESB_HOME>/repository/resources/security/" and "{LIVECHAT_CONNECTOR_HOME}/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" folders.
+	ii)  Go to new ESB 4.9.0-SNAPSHOT folder and place the downloaded certificate in both "{ESB_Connector_Home}/repository/wso2esb-4.9.0-ALPHA/resources/security/" and "{ESB_Connector_Home}/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" folders.
 	iii) Navigate to "<ESB_HOME>/repository/resources/security/" using command prompt and execute the following command.
 	
 				keytool -importcert -file CERT_FILE_NAME -keystore client-truststore.jks -alias "CERT_NAME" 
@@ -41,7 +41,7 @@ Steps to follow in setting integration test.
 		 NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from LiveChat with the extension. (e.g. livechat.crt)
 			    CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. LiveChat)
 				
-	iv)  Navigate to "{LIVECHAT_CONNECTOR_HOME}/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute the following command.
+	iv)  Navigate to "{ESB_Connector_Home}/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/keystores/products/" using command prompt and execute the following command.
 	
 				keytool -importcert -file CERT_FILE_NAME -keystore wso2carbon.jks -alias "CERT_NAME" 
 				
@@ -51,7 +51,7 @@ Steps to follow in setting integration test.
 		 NOTE : CERT_FILE_NAME - Replace CERT_FILE_NAME with the file name that was extracted from LiveChat with the extension. (e.g. livechat.crt)
 			    CERT_NAME - Replace CERT_NAME with an arbitrary name for the certificate. (e.g. LiveChat)
 
- 6. Compress modified ESB as wso2esb-4.9.0-SNAPSHOT.zip and copy that zip file in to location "{LIVECHAT_CONNECTOR_HOME}/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector/repository/".
+ 6. Compress modified ESB as WSO2 ESB 4.9.0-ALPHA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
 
  7. Pre-requisites for LiveChat Connector Integration Testing.
 
@@ -61,7 +61,7 @@ Steps to follow in setting integration test.
 	iii)Click "Chat now" in the re-directed page in step 7[ii], and create a new chat by giving a name and an email address. 
 	iv) Integration test could be run, 10 minutes (at least) after step 7(iii) is completed. 
 	 
- 8. Update the properties in 'livechat.properties' file at location "{LIVECHAT_CONNECTOR_HOME}/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
+ 8. Update the properties in 'livechat.properties' file at location "{ESB_Connector_Home}/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
 	i) 		apiUrl				- Use the API URL as "https://api.livechatinc.com".
 	ii)		apiKey			    - Access Token obtained by following the steps in 4.
@@ -84,5 +84,8 @@ Steps to follow in setting integration test.
 	
 	* Values need to be changed for each execution of the Test Suite. Please make sure the values are unique in the context of the same account.
 	
- 9. Navigate to "{LIVECHAT_CONNECTOR_HOME}/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
+ 9. Make sure that the livechat connector is set as a module in esb-connectors parent pom.
+        <module>livechat/livechat-connector/livechat-connector-1.0.0/org.wso2.carbon.connector</module>
+
+10. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install

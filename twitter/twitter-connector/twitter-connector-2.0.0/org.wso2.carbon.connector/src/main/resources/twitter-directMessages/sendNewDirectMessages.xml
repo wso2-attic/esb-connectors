@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template xmlns="http://ws.apache.org/ns/synapse" name="sendNewDirectMessages">
+    <parameter name="userID" description="The ID of the user for whom to return results for." />
+    <parameter name="screenName" description="The screen name of the user for whom to return results for."/>
+    <parameter name="text" description="The text of your direct message. Be sure to URL encode as necessary, and keep the message under 140 characters."/>
+    <sequence>
+
+        <class name="org.wso2.carbon.connector.twitter.RemoveTwitterContext"/>
+
+        <property name="uri.var.screenName" expression="$func:screenName" />
+        <property name="uri.var.userID" expression="$func:userID" />
+        <property name="uri.var.text" expression="$func:text" />
+        <script language="js">
+            <![CDATA[
+				// optional url param variables
+				var screenName = mc.getProperty('uri.var.screenName');
+				var userID = mc.getProperty('uri.var.userID');
+				var text  = mc.getProperty('uri.var.text');
+
+				var uriParams = '';
+
+				if (screenName != null && screenName != "") {
+					uriParams = 'screen_name=' + screenName + '&';
+					screenName='screen_name=' + encodeURIComponent(screenName);
+                    mc.setProperty('uri.var.screenName',screenName)
+				}
+				if (userID != null && userID != "") {
+					uriParams += 'user_id=' + userID + '&';
+					userID='user_id=' + encodeURIComponent(userID);
+                    mc.setProperty('uri.var.userID',userID)
+				}
+				if (text != null && text != "") {
+					uriParams += 'text=' + text + '&';
+					text='text=' + encodeURIComponent(text);
+                    mc.setProperty('uri.var.text',text)
+				}
+
+				if(uriParams != ''){
+					mc.setProperty('uri.var.uriParams' , uriParams.substring(0, uriParams.length-1));
+				}
+			]]>
+        </script>
+
+        <property name="uri.var.apiUrl.final"
+                  expression="fn:concat(get-property('uri.var.apiUrl'),'/1.1/direct_messages/new.json')"/>
+
+        <property name="uri.var.httpMethod"
+                  value="POST"/>
+
+        <class name="org.wso2.carbon.connector.twitter.TwitterSignatureGeneration"/>
+
+        <header name="Authorization" expression="get-property('uri.var.signature')"
+                scope="transport"/>
+
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="legacy-encoding:{uri.var.apiUrl}/1.1/direct_messages/new.json?{uri.var.uriParams}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom header information in response -->
+        <header name="x-access-level" scope="transport" action="remove"/>
+        <header name="x-twitter-response-tags" scope="transport" action="remove"/>
+        <header name="x-transaction" scope="transport" action="remove"/>
+        <header name="x-response-time" scope="transport" action="remove"/>
+        <header name="x-connection-hash" scope="transport" action="remove"/>
+        <header name="x-content-type-options" scope="transport" action="remove"/>
+        <header name="x-frame-options" scope="transport" action="remove"/>
+        <header name="x-rate-limit-limit" scope="transport" action="remove"/>
+        <header name="x-rate-limit-remaining" scope="transport" action="remove"/>
+        <header name="x-rate-limit-reset" scope="transport" action="remove"/>
+        <header name="x-xss-protection" scope="transport" action="remove"/>
+
+    </sequence>
+</template>

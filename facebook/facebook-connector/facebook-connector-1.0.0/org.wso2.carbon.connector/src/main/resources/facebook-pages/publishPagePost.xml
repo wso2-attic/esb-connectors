@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied.  See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+<template name="publishPagePost" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="pageId" description="Unique identifier of the page"/>
+    <parameter name="message" description="The main body of the post"/>
+    <parameter name="link" description="The URL of a link to attach to the post"/>
+    <parameter name="picture"
+               description="Determines the preview image associated with the link"/>
+    <parameter name="name" description="Overwrites the title of the link preview"/>
+    <parameter name="caption"
+               description="Overwrites the caption under the title in the link preview"/>
+    <parameter name="description"
+               description="Overwrites the description in the link preview"/>
+    <parameter name="actions" description="The action links attached to the post"/>
+    <parameter name="place"
+               description="Page ID of a location associated with this post"/>
+    <parameter name="tags"
+               description="List of user IDs of people tagged in this post"/>
+    <parameter name="objectAttachment" description="Facebook ID for an existing picture"/>
+    <parameter name="targeting"
+               description="Object that limits the audience for this content"/>
+    <parameter name="feedTargeting"
+               description="Object that controls news feed targeting for this content"/>
+    <parameter name="published"
+               description="Whether a story is shown about this newly published object"/>
+    <parameter name="scheduledPublishTime" description="Time when this post should go live"/>
+    <parameter name="backdatedTime"
+               description="Specifies a time in the past to back-date this post to"/>
+    <parameter name="backdatedTimeGranularity"
+               description="Controls the display of how a backdated post appears"/>
+    <parameter name="childAttachments" description="Use to specify multiple links in the post."/>
+    <parameter name="multiShareOptimized"
+               description="Order of links to be used in child_attachments."/>
+    <parameter name="multiShareEndCard"
+               description="Whether display the end card of a carousel link post when child_attachments is used."/>
+    <sequence>
+        <property name="uri.var.pageId" expression="$func:pageId"/>
+        <property name="uri.var.message" expression="$func:message"/>
+        <property name="uri.var.link" expression="$func:link"/>
+        <property name="uri.var.picture" expression="$func:picture"/>
+        <property name="uri.var.name" expression="$func:name"/>
+        <property name="uri.var.caption" expression="$func:caption"/>
+        <property name="uri.var.description" expression="$func:description"/>
+        <property name="uri.var.actions" expression="$func:actions"/>
+        <property name="uri.var.place" expression="$func:place"/>
+        <property name="uri.var.tags" expression="$func:tags"/>
+        <property name="uri.var.objectAttachment" expression="$func:objectAttachment"/>
+        <property name="uri.var.targeting" expression="$func:targeting"/>
+        <property name="uri.var.feedTargeting" expression="$func:feedTargeting"/>
+        <property name="uri.var.published" expression="$func:published"/>
+        <property name="uri.var.scheduledPublishTime" expression="$func:scheduledPublishTime"/>
+        <property name="uri.var.backdatedTime" expression="$func:backdatedTime"/>
+        <property name="uri.var.backdatedTimeGranularity" expression="$func:backdatedTimeGranularity"/>
+        <property name="uri.var.childAttachments" expression="$func:childAttachments"/>
+        <property name="uri.var.multiShareOptimized" expression="$func:multiShareOptimized"/>
+        <property name="uri.var.multiShareEndCard" expression="$func:multiShareEndCard"/>
+        <filter
+                xpath="get-property('uri.var.published') = '' or (not(string(get-property('published')))) ">
+            <then>
+                <property name="uri.var.published" value="true"/>
+            </then>
+        </filter>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "access_token":"$1"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.accessToken')"/>
+            </args>
+        </payloadFactory>
+        <script language="js"><![CDATA[
+            var message=mc.getProperty('uri.var.message');
+            var link=mc.getProperty('uri.var.link');
+            var picture=mc.getProperty('uri.var.picture');
+            var name=mc.getProperty('uri.var.name');
+            var caption=mc.getProperty('uri.var.caption');
+            var description=mc.getProperty('uri.var.description');
+            var actions=mc.getProperty('uri.var.actions');
+            var place=mc.getProperty('uri.var.place');
+            var tags=mc.getProperty('uri.var.tags');
+            var objectAttachment=mc.getProperty('uri.var.objectAttachment');
+            var targeting=mc.getProperty('uri.var.targeting');
+            var feedTargeting=mc.getProperty('uri.var.feedTargeting');
+            var published=mc.getProperty('uri.var.published');
+            var scheduledPublishTime=mc.getProperty('uri.var.scheduledPublishTime');
+            var backdatedTime=mc.getProperty('uri.var.backdatedTime');
+            var backdatedTimeGranularity=mc.getProperty('uri.var.backdatedTimeGranularity');
+            var childAttachments=mc.getProperty('uri.var.childAttachments');
+            var multiShareOptimized=mc.getProperty('uri.var.multiShareOptimized');
+            var multiShareEndCard=mc.getProperty('uri.var.multiShareEndCard');
+
+            payload = mc.getPayloadJSON();
+
+            if(message !=null && message != ""){
+                payload.message=message;
+            }
+
+            if(link != null && link != ""){
+                payload.link = link;
+                if(picture !=null && picture != ""){
+                    payload.picture=picture;
+                }
+                if(name !=null && name != ""){
+                    payload.name=name;
+                }
+                if(caption !=null && caption != ""){
+                    payload.caption=caption;
+                }
+                if(description !=null && description != ""){
+                    payload.description=description;
+                }
+            }
+
+            if(actions !=null && actions != ""){
+                payload.actions=actions;
+            }
+
+            if(place !=null && place != ""){
+                payload.place=place;
+            }
+            
+            if(tags !=null && tags != ""){
+                payload.tags=tags;
+            }
+
+            if(objectAttachment !=null && objectAttachment != ""){
+                payload.object_attachment=objectAttachment;
+            }
+
+            if(targeting !=null && targeting != ""){
+                payload.targeting=targeting;
+            }
+
+            if(feedTargeting !=null && feedTargeting != ""){
+                payload.feed_targeting=feedTargeting;
+            }
+
+            if(published !=null && published != ""){
+                payload.published=published;
+            }
+
+            if(scheduledPublishTime !=null && scheduledPublishTime != ""){
+                payload.scheduled_publish_time=scheduledPublishTime;
+            }
+
+            if(backdatedTime !=null && backdatedTime != ""){
+                payload.backdated_time=backdatedTime;
+            }
+
+            if(backdatedTimeGranularity !=null && backdatedTimeGranularity != ""){
+                payload.backdated_time_granularity=backdatedTimeGranularity;
+            }
+
+            if(childAttachments !=null && childAttachments != ""){
+                payload.child_attachments=childAttachments;
+            }
+
+            if(multiShareOptimized !=null && multiShareOptimized != ""){
+                payload.multi_share_optimized=multiShareOptimized;
+            }
+
+            if(multiShareEndCard !=null && multiShareEndCard != ""){
+                payload.multi_share_end_card=multiShareEndCard;
+            }
+
+           mc.setPayloadJSON(payload);
+         ]]></script>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/{uri.var.pageId}/feed"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-FB-Debug" scope="transport" action="remove"/>
+        <header name="X-FB-Rev" scope="transport" action="remove"/>
+        <header name="WWW-Authenticate" scope="transport" action="remove"/>
+    </sequence>
+</template>

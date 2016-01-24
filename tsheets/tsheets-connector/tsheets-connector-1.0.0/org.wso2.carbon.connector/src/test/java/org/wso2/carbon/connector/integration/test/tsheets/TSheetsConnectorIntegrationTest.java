@@ -18,10 +18,14 @@
 
 package org.wso2.carbon.connector.integration.test.tsheets;
 
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -48,14 +52,29 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
         
         apiRequestHeadersMap.putAll(esbRequestHeadersMap);
         apiRequestHeadersMap.put("Authorization", "Bearer " + connectorProperties.getProperty("accessToken"));
-        
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        Date date = new Date();
+        date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse(sdf.format(date));
+        date.setDate(date.getDate() - 1);
+        String timeSheetTwoEnd=sdf.format(date)+"-07:00";
+        date.setMinutes(date.getMinutes() - 1);
+        String timeSheetTwoStart=sdf.format(date)+"-07:00";
+        date.setDate(date.getDate() - 1);
+        String timeSheetOneEnd=sdf.format(date)+"-07:00";
+        date.setMinutes(date.getMinutes()-1);
+        String timeSheetOneStart=sdf.format(date)+"-07:00";
+        connectorProperties.setProperty("timeSheetOneStart", timeSheetOneStart);
+        connectorProperties.setProperty("timeSheetOneEnd", timeSheetOneEnd);
+        connectorProperties.setProperty("timeSheetTwoStart", timeSheetTwoStart);
+        connectorProperties.setProperty("timeSheetTwoEnd", timeSheetTwoEnd);
     }
     
     /**
      * Positive test case for listUsers method with mandatory parameters.
      */
     @Test(groups = { "wso2.esb" }, description = "tsheets {listUsers} integration test with mandatory parameters.")
-    public void testListUsersWithMandatoryParameters() throws Exception {
+    public void testListUsersWithMandatoryParameters() throws IOException, JSONException{
     
         esbRequestHeadersMap.put("Action", "urn:listUsers");
         RestResponse<JSONObject> esbRestResponse =
@@ -102,7 +121,7 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
      * Positive test case for listUsers method with optional parameters.
      */
     @Test(groups = { "wso2.esb" }, description = "tsheets {listUsers} integration test with optional parameters.")
-    public void testListUsersWithOptionalParameters() throws Exception {
+    public void testListUsersWithOptionalParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:listUsers");
         RestResponse<JSONObject> esbRestResponse =
@@ -138,7 +157,7 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
      * Negative test case for listUsers method .
      */
     @Test(groups = { "wso2.esb" }, description = "tsheets {listUsers} integration test with negative case.")
-    public void testListUsersWithNegative() throws Exception {
+    public void testListUsersWithNegative() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:listUsers");
         RestResponse<JSONObject> esbRestResponse =
@@ -161,7 +180,7 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
      * Positive test case for addJobCodes method with mandatory parameters.
      */
     @Test(groups = { "wso2.esb" }, description = "tsheets {addJobCodes} integration test with mandatory parameters.")
-    public void testAddJobCodesWithMandatoryParameters() throws Exception {
+    public void testAddJobCodesWithMandatoryParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:addJobCodes");
         RestResponse<JSONObject> esbRestResponse =
@@ -196,7 +215,7 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
      * Negative test case for addJobCodes method.
      */
     @Test(groups = { "wso2.esb" }, description = "tsheets {addJobCodes} integration test with negative case.")
-    public void testAddJobCodesWithNegativeCase() throws Exception {
+    public void testAddJobCodesWithNegativeCase() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:addJobCodes");
         RestResponse<JSONObject> esbRestResponse =
@@ -220,7 +239,7 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
      * Positive test case for listJobCodes method with mandatory parameters.
      */
     @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddJobCodesWithMandatoryParameters" }, description = "tsheets {listJobCodes} integration test with mandatory parameters.")
-    public void testListJobCodesWithMandatoryParameters() throws Exception {
+    public void testListJobCodesWithMandatoryParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:listJobCodes");
         RestResponse<JSONObject> esbRestResponse =
@@ -260,7 +279,7 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
      * Positive test case for listJobCodes method with optional parameters.
      */
     @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddJobCodesWithMandatoryParameters" }, description = "tsheets {listJobCodes} integration test with optional parameters.")
-    public void testListJobCodesWithOptionalParameters() throws Exception {
+    public void testListJobCodesWithOptionalParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:listJobCodes");
         RestResponse<JSONObject> esbRestResponse =
@@ -299,7 +318,7 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
      * Negative test case for listJobCodes method.
      */
     @Test(groups = { "wso2.esb" }, description = "tsheets {listJobCodes} integration test with negative case.")
-    public void testListJobCodesWithNegativeCase() throws Exception {
+    public void testListJobCodesWithNegativeCase() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:listJobCodes");
         RestResponse<JSONObject> esbRestResponse =
@@ -323,7 +342,7 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
      */
     @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListUsersWithMandatoryParameters",
             "testAddJobCodesWithMandatoryParameters" }, description = "tsheets {addTimeSheets} integration test with mandatory parameters.")
-    public void testAddTimeSheetsWithMandatoryParameters() throws Exception {
+    public void testAddTimeSheetsWithMandatoryParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:addTimeSheets");
         RestResponse<JSONObject> esbRestResponse =
@@ -360,31 +379,30 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
      * Negative test case for addTimeSheets method .
      */
     @Test(groups = { "wso2.esb" }, description = "tsheets {addTimeSheets} integration test with negative case.")
-    public void testAddTimeSheetsWithNegativeCase() throws Exception {
-    
+    public void testAddTimeSheetsWithNegativeCase() throws IOException, JSONException {
+
         esbRequestHeadersMap.put("Action", "urn:addTimeSheets");
         RestResponse<JSONObject> esbRestResponse =
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_addTimeSheets_negative.json");
-        
-        JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("error");
-        
+
+        JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("results").getJSONObject("timesheets").getJSONObject("1");
+
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/api/v1/timesheets";
         RestResponse<JSONObject> apiRestResponse =
                 sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_addTimeSheets_negative.json");
-        
-        JSONObject apiResponseObject = apiRestResponse.getBody().getJSONObject("error");
-        
+
+        JSONObject apiResponseObject = apiRestResponse.getBody().getJSONObject("results").getJSONObject("timesheets").getJSONObject("1");
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(), esbRestResponse.getHttpStatusCode());
-        Assert.assertEquals(apiResponseObject.getString("code"), esbResponseObject.getString("code"));
-        Assert.assertEquals(apiResponseObject.getString("message"), esbResponseObject.getString("message"));
-        
+        Assert.assertEquals(apiResponseObject.getString("_status_code"), esbResponseObject.getString("_status_code"));
+        Assert.assertEquals(apiResponseObject.getString("_status_message"), esbResponseObject.getString("_status_message"));
+
     }
     
     /**
      * Positive test case for listTimeSheets method with mandatory parameters.
      */
     @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddTimeSheetsWithMandatoryParameters" }, description = "tsheets {listTimeSheets} integration test with mandatory parameters.")
-    public void testListTimeSheetsWithMandatoryParameters() throws Exception {
+    public void testListTimeSheetsWithMandatoryParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:listTimeSheets");
         RestResponse<JSONObject> esbRestResponse =
@@ -429,7 +447,7 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
      */
     @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testListUsersWithMandatoryParameters",
             "testAddTimeSheetsWithMandatoryParameters" }, description = "tsheets {listTimeSheets} integration test with optional parameters.")
-    public void testListTimeSheetsWithOptionalParameters() throws Exception {
+    public void testListTimeSheetsWithOptionalParameters() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:listTimeSheets");
         RestResponse<JSONObject> esbRestResponse =
@@ -474,7 +492,7 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
      * Negative test case for listTimeSheets method .
      */
     @Test(groups = { "wso2.esb" }, description = "tsheets {listTimeSheets} integration test with negative case.")
-    public void testListTimeSheetsWithNegativeCase() throws Exception {
+    public void testListTimeSheetsWithNegativeCase() throws IOException, JSONException {
     
         esbRequestHeadersMap.put("Action", "urn:listTimeSheets");
         RestResponse<JSONObject> esbRestResponse =
@@ -492,5 +510,164 @@ public class TSheetsConnectorIntegrationTest extends ConnectorIntegrationTestBas
         Assert.assertEquals(apiResponseObject.getString("message"), esbResponseObject.getString("message"));
         
     }
+    
+    /**
+     * Positive test case for addJobCodeAssignments method with mandatory parameters.
+     */
+    @Test(groups = { "wso2.esb" },dependsOnMethods = { "testListUsersWithMandatoryParameters",
+    "testAddJobCodesWithMandatoryParameters" }, description = "tsheets {addJobCodeAssignments} integration test with mandatory parameters.")
+    public void testAddJobCodeAssignmentsWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:addJobCodeAssignments");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_addJobCodeAssignments_mandatory.json");
+        
+        JSONObject esbJobCodeAssignment =
+                esbRestResponse.getBody().getJSONObject("results").getJSONObject("jobcode_assignments").getJSONObject("1");
+        String jobCodeAssignmentId= esbJobCodeAssignment.getString("id");
+        String jobCodeAssignmentUserId = esbJobCodeAssignment.getString("user_id");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/api/v1/jobcode_assignments?user_ids=" + jobCodeAssignmentUserId;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        JSONObject apiJobCodeAssignment =
+                apiRestResponse.getBody().getJSONObject("results").getJSONObject("jobcode_assignments")
+                        .getJSONObject(jobCodeAssignmentId);
+        
+        Assert.assertEquals(connectorProperties.getProperty("userId"), apiJobCodeAssignment.getString("user_id"));
+        Assert.assertEquals(connectorProperties.getProperty("jobCodeId"), apiJobCodeAssignment.getString("jobcode_id"));
+    }
+    
+    /**
+     * Negative test case for addJobCodeAssignments method .
+     */
+    @Test(groups = { "wso2.esb" }, description = "tsheets {addJobCodeAssignments} integration test with negative case.")
+    public void testAddJobCodeAssignmentsWithNegativeCase() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:addJobCodeAssignments");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_addJobCodeAssignments_negative.json");
+        
+        JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("results").getJSONObject("jobcode_assignments").getJSONObject("1");
+        
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/api/v1/jobcode_assignments";
+        RestResponse<JSONObject> apiRestResponse =
+                sendJsonRestRequest(apiEndPoint, "POST", apiRequestHeadersMap, "api_addJobCodeAssignments_negative.json");
+        
+        JSONObject apiResponseObject = apiRestResponse.getBody().getJSONObject("results").getJSONObject("jobcode_assignments").getJSONObject("1");
+        
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), esbRestResponse.getHttpStatusCode());
+        Assert.assertEquals(apiResponseObject.getString("_status_code"), esbResponseObject.getString("_status_code"));
+        Assert.assertEquals(apiResponseObject.getString("_status_message"), esbResponseObject.getString("_status_message"));
+        Assert.assertEquals(apiResponseObject.getString("_status_extra"), esbResponseObject.getString("_status_extra"));
+        
+    }
+    
+    /**
+     * Positive test case for listJobCodeAssignments method with mandatory parameters.
+     */
+    @Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddJobCodeAssignmentsWithMandatoryParameters" }, description = "tsheets {listJobCodeAssignments} integration test with mandatory parameters.")
+    public void testListJobCodeAssignmentsWithMandatoryParameters() throws IOException, JSONException {
+    
+        esbRequestHeadersMap.put("Action", "urn:listJobCodeAssignments");
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listJobCodeAssignments_mandatory.json");
+        
+        JSONObject esbJobAssignments = esbRestResponse.getBody().getJSONObject("results").getJSONObject("jobcode_assignments");
+        
+        String apiEndPoint =
+                connectorProperties.getProperty("apiUrl") + "/api/v1/jobcode_assignments";
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        
+        JSONObject apiJobAssignments = apiRestResponse.getBody().getJSONObject("results").getJSONObject("jobcode_assignments");
+        
+        Iterator<String> esbTimeSheetKeySet = esbJobAssignments.keys();
+        int count = 0;
+        
+        while (esbTimeSheetKeySet.hasNext()) {
+            
+            String userKey = esbTimeSheetKeySet.next();
+            JSONObject esbJobAssignment = esbJobAssignments.getJSONObject(userKey);
+            JSONObject apiJobAssignment = apiJobAssignments.getJSONObject(userKey);
+            
+            Assert.assertEquals(apiJobAssignment.getString("id"), esbJobAssignment.getString("id"));
+            Assert.assertEquals(apiJobAssignment.getString("user_id"), esbJobAssignment.getString("user_id"));
+            Assert.assertEquals(apiJobAssignment.getString("jobcode_id"), esbJobAssignment.getString("jobcode_id"));
+            Assert.assertEquals(apiJobAssignment.getString("created"), esbJobAssignment.getString("created"));
+            
+            count++;
+            
+            if (count > 1) {
+                break;
+            }
+        }   
+      }
+        
+        /**
+         * Positive test case for listJobCodeAssignments method with optional parameters.
+         */
+    	@Test(groups = { "wso2.esb" }, dependsOnMethods = { "testAddJobCodeAssignmentsWithMandatoryParameters" }, description = "tsheets {listJobCodeAssignments} integration test with optional parameters.")
+        public void testListJobCodeAssignmentsWithOptionalParameters() throws IOException, JSONException {
+        
+            esbRequestHeadersMap.put("Action", "urn:listJobCodeAssignments");
+            RestResponse<JSONObject> esbRestResponse =
+                    sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listJobCodeAssignments_optional.json");
+            
+            JSONObject esbJobAssignments = esbRestResponse.getBody().getJSONObject("results").getJSONObject("jobcode_assignments");
+            
+            String apiEndPoint =
+                    connectorProperties.getProperty("apiUrl") + "/api/v1/jobcode_assignments?page=2&per_page=1";
+            RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+            
+            JSONObject apiJobAssignments = apiRestResponse.getBody().getJSONObject("results").getJSONObject("jobcode_assignments");
+            
+            Iterator<String> esbTimeSheetKeySet = esbJobAssignments.keys();
+            int count = 0;
+            
+            while (esbTimeSheetKeySet.hasNext()) {
+                
+                String userKey = esbTimeSheetKeySet.next();
+                JSONObject esbJobAssignment = esbJobAssignments.getJSONObject(userKey);
+                JSONObject apiJobAssignment = apiJobAssignments.getJSONObject(userKey);
+                
+                Assert.assertEquals(apiJobAssignment.getString("id"), esbJobAssignment.getString("id"));
+                Assert.assertEquals(apiJobAssignment.getString("user_id"), esbJobAssignment.getString("user_id"));
+                Assert.assertEquals(apiJobAssignment.getString("jobcode_id"), esbJobAssignment.getString("jobcode_id"));
+                Assert.assertEquals(apiJobAssignment.getString("created"), esbJobAssignment.getString("created"));
+                
+                count++;
+                
+                if (count > 1) {
+                    break;
+                }
+                
+            }
+        
+    }
+    	
+    	/**
+         * Negative test case for listJobCodeAssignments method .
+         */
+        @Test(groups = { "wso2.esb" }, description = "tsheets {listJobCodeAssignments} integration test with negative case.")
+        public void testListJobCodeAssignmentsWithNegativeCase() throws IOException, JSONException {
+        
+            esbRequestHeadersMap.put("Action", "urn:listJobCodeAssignments");
+            RestResponse<JSONObject> esbRestResponse =
+                    sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_listJobCodeAssignments_negative.json");
+            
+            JSONObject esbResponseObject = esbRestResponse.getBody().getJSONObject("error");
+            
+            String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/api/v1/jobcode_assignments?page=invalid";
+            RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+            
+            JSONObject apiResponseObject = apiRestResponse.getBody().getJSONObject("error");
+            
+            Assert.assertEquals(apiRestResponse.getHttpStatusCode(), esbRestResponse.getHttpStatusCode());
+            Assert.assertEquals(apiResponseObject.getString("code"), esbResponseObject.getString("code"));
+            Assert.assertEquals(apiResponseObject.getString("message"), esbResponseObject.getString("message"));
+            
+        }
+    
     
 }

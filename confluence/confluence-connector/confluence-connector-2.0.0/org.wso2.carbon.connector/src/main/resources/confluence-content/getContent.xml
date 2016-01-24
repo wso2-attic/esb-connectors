@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://docs.atlassian.com/atlassian-confluence/REST/latest/#d3e751 -->
+<template name="getContent" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="id" description="ID of the content." />
+   <parameter name="status" description="List of Content statuses to filter results on. Default value: [current]." />
+   <parameter name="version" description="Integer value of the content version to filter." />
+   <parameter name="expand"
+      description="A comma separated list of properties to expand on the content." />
+   <sequence>
+      <property name="uri.var.id" expression="$func:id" />
+      <property name="uri.var.status" expression="$func:status" />
+      <property name="uri.var.version" expression="$func:version" />
+      <property name="uri.var.expand" expression="$func:expand" />
+      <script language="js">
+         <![CDATA[
+            var urlQuery = '';
+            var status = mc.getProperty('uri.var.status');
+            var version = mc.getProperty('uri.var.version');
+            var expand = mc.getProperty('uri.var.expand');
+            if (status != null && status != "") {
+               urlQuery += 'status=' + status + '&';
+            }
+            if (version != null && version != "") {
+               urlQuery += 'version=' + version + '&';
+            }
+            if (expand != null && expand != "") {
+               urlQuery += 'expand=' + expand + '&';
+            }
+            // Add a leading '?' and remove the trailing '&'
+            if (urlQuery != "") {
+               urlQuery = '?' + urlQuery.substring(0, urlQuery.length - 1);
+               mc.setProperty('uri.var.urlQuery', urlQuery);
+            }
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{+uri.var.apiUrl}/content/{+uri.var.id}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom headers from the API response -->
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="X-ASEN" action="remove" scope="transport" />
+      <header name="X-AUSERNAME" action="remove" scope="transport" />
+      <header name="X-Seraph-LoginReason" action="remove" scope="transport" />
+      <header name="X-Content-Type-Options" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="X-Frame-Options" action="remove" scope="transport" />
+      <header name="X-XSS-Protection" action="remove" scope="transport" />
+      <header name="X-Accel-Buffering" action="remove" scope="transport" />
+      <header name="Content-Security-Policy" action="remove" scope="transport" />
+   </sequence>
+</template>

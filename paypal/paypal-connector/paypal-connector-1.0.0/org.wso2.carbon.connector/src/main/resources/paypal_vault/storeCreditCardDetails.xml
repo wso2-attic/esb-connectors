@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ ~  Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ ~
+ ~  WSO2 Inc. licenses this file to you under the Apache License,
+ ~  Version 2.0 (the "License"); you may not use this file except
+ ~  in compliance with the License.
+ ~  You may obtain a copy of the License at
+ ~
+ ~    http://www.apache.org/licenses/LICENSE-2.0
+ ~
+ ~  Unless required by applicable law or agreed to in writing,
+ ~  software distributed under the License is distributed on an
+ ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ ~  KIND, either express or implied.  See the License for the
+ ~  specific language governing permissions and limitations
+ ~  under the License.
+-->
+<template name="storeCreditCardDetails" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- Required parameters -->
+    <parameter name="number" description="String containing credit card number"/>
+    <parameter name="type"
+               description="Credit card type. Valid types are: visa, mastercard, discover, amex"/>
+    <parameter name="expireMonth"
+               description="Expiration month with no leading zero. Acceptable values are 1 through 12"/>
+    <parameter name="expireYear" description="4-digit expiration year"/>
+    <parameter name="payerId"
+               description="A unique identifier that you can assign and track when storing a credit card or using a stored credit card"/>
+    <parameter name="cvv2" description="3-4 digit card validation code"/>
+    <parameter name="firstName" description="Cardholder’s first name. 25 characters max"/>
+    <parameter name="lastName" description="Cardholder’s last name"/>
+    <parameter name="billingAddress" description="Billing address associated with card"/>
+    <sequence>
+        <property name="uri.var.number" expression="$func:number"/>
+        <property name="uri.var.type" expression="$func:type"/>
+        <property name="uri.var.expireMonth" expression="$func:expireMonth"/>
+        <property name="uri.var.expireYear" expression="$func:expireYear"/>
+        <property name="uri.var.payerId" expression="$func:payerId"/>
+        <property name="uri.var.cvv2" expression="$func:cvv2"/>
+        <property name="uri.var.firstName" expression="$func:firstName"/>
+        <property name="uri.var.lastName" expression="$func:lastName"/>
+        <property name="uri.var.billingAddress" expression="$func:billingAddress"/>
+        <filter
+                xpath="get-property('uri.var.billingAddress') = '' or (not(string(get-property('uri.var.billingAddress'))))">
+            <then>
+                <payloadFactory media-type="json">
+                    <format>
+                        {
+                        "number":"$1",
+                        "type":"$2",
+                        "expire_month":"$3",
+                        "expire_year":"$4",
+                        "payer_id":"$5",
+                        "cvv2":"$6",
+                        "first_name":"$7",
+                        "last_name":"$8"
+                        }
+                    </format>
+                    <args>
+                        <arg expression="get-property('uri.var.number')"/>
+                        <arg expression="get-property('uri.var.type')"/>
+                        <arg expression="get-property('uri.var.expireMonth')"/>
+                        <arg expression="get-property('uri.var.expireYear')"/>
+                        <arg expression="get-property('uri.var.payerId')"/>
+                        <arg expression="get-property('uri.var.cvv2')"/>
+                        <arg expression="get-property('uri.var.firstName')"/>
+                        <arg expression="get-property('uri.var.lastName')"/>
+                    </args>
+                </payloadFactory>
+            </then>
+            <else>
+                <payloadFactory media-type="json">
+                    <format>
+                        {
+                        "number":"$1",
+                        "type":"$2",
+                        "expire_month":"$3",
+                        "expire_year":"$4",
+                        "payer_id":"$5",
+                        "cvv2":"$6",
+                        "first_name":"$7",
+                        "last_name":"$8",
+                        "billing_address":$9
+                        }
+                    </format>
+                    <args>
+                        <arg expression="get-property('uri.var.number')"/>
+                        <arg expression="get-property('uri.var.type')"/>
+                        <arg expression="get-property('uri.var.expireMonth')"/>
+                        <arg expression="get-property('uri.var.expireYear')"/>
+                        <arg expression="get-property('uri.var.payerId')"/>
+                        <arg expression="get-property('uri.var.cvv2')"/>
+                        <arg expression="get-property('uri.var.firstName')"/>
+                        <arg expression="get-property('uri.var.lastName')"/>
+                        <arg expression="get-property('uri.var.billingAddress')"/>
+                    </args>
+                </payloadFactory>
+            </else>
+        </filter>
+        <!-- Check optional parameters -->
+        <filter
+                xpath="get-property('uri.var.payerId') = '' or (not(string(get-property('uri.var.payerId'))))">
+            <then>
+                <script language="js"><![CDATA[
+					           payload = mc.getPayloadJSON();
+					           delete payload["payer_id"];
+					           mc.setPayloadJSON(payload);
+					         ]]></script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.cvv2') = '' or (not(string(get-property('uri.var.cvv2'))))">
+            <then>
+                <script language="js"><![CDATA[
+								payload = mc.getPayloadJSON();
+								delete payload["cvv2"];
+								mc.setPayloadJSON(payload);
+							]]></script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.firstName') = '' or (not(string(get-property('uri.var.firstName'))))">
+            <then>
+                <script language="js"><![CDATA[
+								payload = mc.getPayloadJSON();
+								delete payload["first_name"];
+								mc.setPayloadJSON(payload);
+							]]></script>
+            </then>
+        </filter>
+        <filter
+                xpath="get-property('uri.var.lastName') = '' or (not(string(get-property('uri.var.lastName'))))">
+            <then>
+                <script language="js"><![CDATA[
+								payload = mc.getPayloadJSON();
+								delete payload["last_name"];
+								mc.setPayloadJSON(payload);
+							]]></script>
+            </then>
+        </filter>
+        <property name="messageType" scope="axis2" value="application/json"/>
+        <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/v1/vault/credit-card"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="Paypal-Debug-Id" scope="transport" action="remove"/>
+        <header name="DC" scope="transport" action="remove"/>
+        <header name="PROXY_SERVER_INFO" scope="transport" action="remove"/>
+    </sequence>
+</template>

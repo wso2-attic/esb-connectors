@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="getMultipleLeadsByFilterType" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- Required parameters -->
+    <parameter name="filterType" description="Filter type to retrieve the leads."/>
+    <parameter name="filterValues" description="Comma separated list of filter values."/>
+    <!-- Optional parameters -->
+    <parameter name="fields" description="List of fields to be returned in response."/>
+    <parameter name="batchSize" description="The number of lead records to be returned in a single call."/>
+    <parameter name="nextPageToken" description="Used to paginate through large result sets."/>
+    <sequence>
+        <property name="uri.var.filterType" expression="$func:filterType"/>
+        <property name="uri.var.filterValues" expression="$func:filterValues"/>
+        <property name="uri.var.fields" expression="$func:fields"/>
+        <property name="uri.var.batchSize" expression="$func:batchSize"/>
+        <property name="uri.var.nextPageToken" expression="$func:nextPageToken"/>
+        <filter xpath="(not(get-property('uri.var.batchSize') = '' or (not(string(get-property('uri.var.batchSize'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;batchSize=',get-property('uri.var.batchSize'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.nextPageToken') = '' or (not(string(get-property('uri.var.nextPageToken'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;nextPageToken=',get-property('uri.var.nextPageToken'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.fields') = '' or (not(string(get-property('uri.var.fields'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'&amp;fields=',get-property('uri.var.fields'))"/>
+            </then>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="{uri.var.apiUrl}/leads.json?filterType={uri.var.filterType}&amp;filterValues={+uri.var.filterValues}&amp;{+uri.var.apiParameters}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

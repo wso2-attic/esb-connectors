@@ -1,0 +1,207 @@
+<template name="updateItem" xmlns="http://ws.apache.org/ns/synapse">
+	<parameter name="id" description="Unique Identifier for an Intuit entity (object)." />
+	<parameter name="syncToken" description="Version number of the entity." />
+	<parameter name="isSparse" description="Boolean value to specify weather the update is a full or a sparse update." />
+	<parameter name="name" description="User recognizable name for the Item." />
+	<parameter name="description" description="User entered description for the item that describes the details of the service or product." />
+	<parameter name="active" description="True if active." />
+	<parameter name="subItem" description="True if the item is a subitem; false or null indicates a top-level item." />
+	<parameter name="parentRef" description="Reference to the item's parent entity." />
+	<parameter name="taxable" description="True if the item is subject to tax." />
+	<parameter name="salesTaxIncluded" description="True if the sales tax is included in the item amount, and therefore is not calculated for the transaction." />
+	<parameter name="unitPrice" description="Monetary value of the service or product, as expressed in the home currency." />
+	<parameter name="ratePercent" description="The tax amount expressed as a percent of charges entered in the current transaction. " />
+	<parameter name="incomeAccountRef" description="Reference to the posting account, that is, the account that records the proceeds from the sale of this item." />
+	<parameter name="purchaseDesc" description="User entered purchase description for the item." />
+	<parameter name="purchaseTaxIncluded" description="True if the purchase tax is included in the item amount, and therefore is not calculated for the transaction." />
+	<parameter name="purchaseCost" description="Amount paid when buying or ordering the item, as expressed in the home currency." />
+	<parameter name="expenseAccountRef" description="Reference to the expense account used to pay the vendor for this item." />
+	<parameter name="assetAccountRef" description="Reference to the Inventory Asset account that tracks the current value of the inventory." />
+	<parameter name="trackQtyOnHand" description="True if there is quantity on hand to be tracked." />
+	<parameter name="qtyOnHand" description="Current quantity of the inventory items available for sale." />
+	<parameter name="salesTaxCodeRef" description="Reference to the sales tax code for the Sales item." />
+	<parameter name="purchaseTaxCodeRef" description="Reference to the purchase tax code for the item." />
+	<parameter name="inventoryStartDate" description="Date of opening balance for the inventory transaction. " />
+
+	<sequence>
+		<property name="uri.var.id" expression="$func:id" />
+		<property name="uri.var.syncToken" expression="$func:syncToken" />
+		<property name="uri.var.isSparse" expression="$func:isSparse" />
+		<property name="uri.var.name" expression="$func:name" />
+		<property name="uri.var.description" expression="$func:description" />
+		<property name="uri.var.active" expression="$func:active" />
+		<property name="uri.var.subItem" expression="$func:subItem" />
+		<property name="uri.var.parentRef" expression="$func:parentRef" />
+		<property name="uri.var.taxable" expression="$func:taxable" />
+		<property name="uri.var.salesTaxIncluded" expression="$func:salesTaxIncluded" />
+		<property name="uri.var.unitPrice" expression="$func:unitPrice" />
+		<property name="uri.var.ratePercent" expression="$func:ratePercent" />
+		<property name="uri.var.incomeAccountRef" expression="$func:incomeAccountRef" />
+		<property name="uri.var.purchaseDesc" expression="$func:purchaseDesc" />
+		<property name="uri.var.purchaseTaxIncluded" expression="$func:purchaseTaxIncluded" />
+		<property name="uri.var.purchaseCost" expression="$func:purchaseCost" />
+		<property name="uri.var.expenseAccountRef" expression="$func:expenseAccountRef" />
+		<property name="uri.var.assetAccountRef" expression="$func:assetAccountRef" />
+		<property name="uri.var.trackQtyOnHand" expression="$func:trackQtyOnHand" />
+		<property name="uri.var.qtyOnHand" expression="$func:qtyOnHand" />
+		<property name="uri.var.salesTaxCodeRef" expression="$func:salesTaxCodeRef" />
+		<property name="uri.var.purchaseTaxCodeRef" expression="$func:purchaseTaxCodeRef" />
+		<property name="uri.var.inventoryStartDate" expression="$func:inventoryStartDate" />
+		<property name="uri.var.uriRemainder" expression="fn:concat('/company/',get-property('uri.var.companyId'),'/item?operation=update')" />
+		<property name="uri.var.params" value="" />
+		<property name="uri.var.method" value="POST" />
+
+		<!-- Authentication Header Setup and call the API -->
+		<class
+			name="org.wso2.carbon.connector.quickbooks.auth.QuickBooksOAuthSignpost" />
+			
+		<filter source="boolean(get-property('auth'))" regex="true">
+			<then>
+				<property name="Authorization" expression="get-property('auth')"
+					scope="transport" type="STRING" />
+			</then>
+		</filter>
+				
+		<payloadFactory media-type="json">
+			<format>
+				{	
+				"Id":"$1",	
+				"SyncToken":"$2",		
+				"Name":"$3"				
+				}
+			</format>
+
+			<args>
+				<arg expression="get-property('uri.var.id')" />
+				<arg expression="get-property('uri.var.syncToken')" />
+				<arg expression="get-property('uri.var.name')" />
+			</args>
+		</payloadFactory>
+		
+				
+		 <script language="js">
+			<![CDATA[
+				//request body param variables
+				var payload = mc.getPayloadJSON();
+				
+				var description = mc.getProperty('uri.var.description');
+				var active = mc.getProperty('uri.var.active');
+				var subItem = mc.getProperty('uri.var.subItem');
+				var parentRef = mc.getProperty('uri.var.parentRef');
+				var taxable = mc.getProperty('uri.var.taxable');
+				var salesTaxIncluded = mc.getProperty('uri.var.salesTaxIncluded');
+				var unitPrice = mc.getProperty('uri.var.unitPrice');
+				var ratePercent = mc.getProperty('uri.var.ratePercent');
+				var incomeAccountRef = mc.getProperty('uri.var.incomeAccountRef');
+				var purchaseDesc = mc.getProperty('uri.var.purchaseDesc');
+				var purchaseTaxIncluded = mc.getProperty('uri.var.purchaseTaxIncluded');
+				var purchaseCost = mc.getProperty('uri.var.purchaseCost');
+				var expenseAccountRef = mc.getProperty('uri.var.expenseAccountRef');
+				var assetAccountRef = mc.getProperty('uri.var.assetAccountRef');
+				var trackQtyOnHand = mc.getProperty('uri.var.trackQtyOnHand');
+				var qtyOnHand = mc.getProperty('uri.var.qtyOnHand');
+				var salesTaxCodeRef = mc.getProperty('uri.var.salesTaxCodeRef');
+				var purchaseTaxCodeRef = mc.getProperty('uri.var.purchaseTaxCodeRef');
+				var inventoryStartDate = mc.getProperty('uri.var.inventoryStartDate');
+				var isSparse = mc.getProperty("uri.var.isSparse");
+				
+				
+				
+				if (description != null && description != "") {
+					payload.Description = description;
+				}
+				
+				if (active != null && active != "") {
+					payload.Active = active;
+				}
+				
+				if (subItem != null && subItem != "") {
+					payload.SubItem = subItem;
+				}
+				
+				if (parentRef != null && parentRef != "") {
+					payload.ParentRef = eval("("+ parentRef +")");
+				}
+				
+				if (taxable != null && taxable != "") {
+					payload.Taxable = taxable;
+				}
+				
+				if (salesTaxIncluded != null && salesTaxIncluded != "") {
+					payload.SalesTaxIncluded = salesTaxIncluded;
+				}
+				
+				if (unitPrice != null && unitPrice != "") {
+					payload.UnitPrice = unitPrice;
+				}
+				
+				if (ratePercent != null && ratePercent != "") {
+					payload.RatePercent = ratePercent;
+				}
+				
+				if (incomeAccountRef != null && incomeAccountRef != "") {
+					payload.IncomeAccountRef = eval("("+ incomeAccountRef +")");
+				}
+				
+				if (purchaseDesc != null && purchaseDesc != "") {
+					payload.PurchaseDesc = purchaseDesc;
+				}
+				
+				if (purchaseTaxIncluded != null && purchaseTaxIncluded != "") {
+					payload.PurchaseTaxIncluded = purchaseTaxIncluded;
+				}
+				
+				if (purchaseCost != null && purchaseCost != "") {
+					payload.PurchaseCost = purchaseCost;
+				}
+				
+				if (expenseAccountRef != null && expenseAccountRef != "") {
+					payload.ExpenseAccountRef = eval("("+ expenseAccountRef +")");
+				}
+				
+				if (assetAccountRef != null && assetAccountRef != "") {
+					payload.AssetAccountRef = eval("("+ assetAccountRef +")");
+				}
+				
+				if (trackQtyOnHand != null && trackQtyOnHand != "") {
+					payload.TrackQtyOnHand = trackQtyOnHand;
+				}
+				
+				if (qtyOnHand != null && qtyOnHand != "") {
+					payload.QtyOnHand = qtyOnHand;
+				}
+				
+				if (salesTaxCodeRef != null && salesTaxCodeRef != "") {
+					payload.SalesTaxCodeRef = eval("("+ salesTaxCodeRef +")");
+				}
+				
+				if (purchaseTaxCodeRef != null && purchaseTaxCodeRef != "") {
+					payload.PurchaseTaxCodeRef = eval("("+ purchaseTaxCodeRef +")");
+				}
+				
+				if (inventoryStartDate != null && inventoryStartDate != "") {
+					payload.InvStartDate = inventoryStartDate;
+				}
+				
+			    if (isSparse != null && isSparse != ''){
+			    	payload.sparse = isSparse;
+			    }
+				
+				mc.setPayloadJSON(payload);
+			]]>
+		</script>
+						
+		<call>
+			<endpoint>
+				<http method="post" uri-template="legacy-encoding:{uri.var.apiUrl}{uri.var.uriRemainder}" />
+			</endpoint>
+		</call>
+
+		<!-- Remove response custom header information -->
+		<header name="intuit_tid" scope="transport" action="remove" />
+		<header name="QBO-Version" scope="transport" action="remove" />
+		<header name="Vary" scope="transport" action="remove" />
+		<header name="Via" scope="transport" action="remove" />
+
+	</sequence>
+</template>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: http://www.roninapp.com/api/projects -->
+<template name="createProject" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="name" description="Name for the project." />
+   <parameter name="rate" description="Billing rate for the project." />
+   <parameter name="number" description="Unique identifier for the project." />
+   <parameter name="budgetType" description="The budget type of the project." />
+   <parameter name="projectType" description="The project type of the project." />
+   <parameter name="description" description="The description about project." />
+   <parameter name="currencyCode" description="The currency code of the project." />
+   <parameter name="endDate" description="The end date of the project." />
+   <parameter name="status" description="The status of the project." />
+   <parameter name="clientId" description="ID of the client." />
+   <sequence>
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.rate" expression="$func:rate" />
+      <property name="uri.var.number" expression="$func:number" />
+      <property name="uri.var.budgetType" expression="$func:budgetType" />
+      <property name="uri.var.projectType" expression="$func:projectType" />
+      <property name="uri.var.description" expression="$func:description" />
+      <property name="uri.var.currencyCode" expression="$func:currencyCode" />
+      <property name="uri.var.endDate" expression="$func:endDate" />
+      <property name="uri.var.status" expression="$func:status" />
+	  <property name="uri.var.clientId" expression="$func:clientId" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "project": {
+            "name": "$1",
+            "rate": "$2"
+            }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.name')" />
+            <arg expression="get-property('uri.var.rate')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var jsonPayload = mc.getPayloadJSON();
+            var number = mc.getProperty('uri.var.number');
+            var budgetType = mc.getProperty('uri.var.budgetType');
+            var projectType = mc.getProperty('uri.var.projectType');
+            var description = mc.getProperty('uri.var.description');
+            var currencyCode = mc.getProperty('uri.var.currencyCode');
+            var endDate = mc.getProperty('uri.var.endDate');
+            var status = mc.getProperty('uri.var.status');
+			var clientId=mc.getProperty('uri.var.clientId');
+            if (number != null && number != ""){
+               jsonPayload.project.number = number;
+            }
+            if (budgetType != null && budgetType != ""){
+               jsonPayload.project.budget_type = budgetType;
+            } 
+            if (projectType != null && projectType != ""){
+               jsonPayload.project.project_type = projectType;
+            }
+            if (description != null && description != ""){
+               jsonPayload.project.description = description;
+            }
+            if (currencyCode != null && currencyCode != ""){
+               jsonPayload.project.currency_code = currencyCode;
+            } 
+            if (endDate != null && endDate != ""){
+               jsonPayload.project.end_date = endDate;
+            }
+            if (status != null && status != ""){
+               jsonPayload.project.status = status;
+            }
+			if (clientId != null && clientId != ""){
+               jsonPayload.project.client_id = clientId;
+            }       
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}/projects" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-Runtime" action="remove" scope="transport" />
+      <header name="ETag" action="remove" scope="transport" />
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="X-Request-Id" action="remove" scope="transport" />
+      <header name="X-Rack-Cache" action="remove" scope="transport" />
+      <header name="X-Powered-By" action="remove" scope="transport" />
+   </sequence>
+</template>

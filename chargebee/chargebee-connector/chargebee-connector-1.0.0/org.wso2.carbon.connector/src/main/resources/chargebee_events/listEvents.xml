@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Doc: https://apidocs.chargebee.com/docs/api/events#list_events -->
+<template name="listEvents" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="limit" description="The number of results per page." />
+   <parameter name="offset" description="The offset value for pagination." />
+   <parameter name="startTime" description="The value to filter the events that occured at/after this time." />
+   <parameter name="endTime" description="The value to filter the events that occured at/before this time." />
+   <parameter name="webhookStatus" description="The value to filter the events with webhook status." />
+   <parameter name="eventType" description="The value to filter the events with event type." />
+   <sequence>
+      <property expression="$func:limit" name="uri.var.limit" />
+      <property expression="$func:offset" name="uri.var.offset" />
+      <property expression="$func:startTime" name="uri.var.startTime" />
+      <property expression="$func:endTime" name="uri.var.endTime" />
+      <property expression="$func:webhookStatus" name="uri.var.webhookStatus" />
+      <property expression="$func:eventType" name="uri.var.eventType" />
+      <script language="js">
+      <![CDATA[
+         var limit = mc.getProperty('uri.var.limit');
+         var offset = mc.getProperty('uri.var.offset');
+         var startTime = mc.getProperty('uri.var.startTime');
+         var endTime = mc.getProperty('uri.var.endTime');
+         var webhookStatus = mc.getProperty('uri.var.webhookStatus');
+         var eventType = mc.getProperty('uri.var.eventType');
+         var apiParameters = "";
+         if (limit != null && limit != "") {
+            apiParameters += "limit=" + limit + '&';
+         }
+         if (offset != null && offset != "") {
+            apiParameters += "offset=" + offset + '&';
+         }
+         if (startTime != null && startTime != "") {
+            apiParameters += "start_time=" + startTime + '&';
+         }
+         if (endTime != null && endTime != "") {
+            apiParameters += "end_time=" + endTime + '&';
+         }
+         if (webhookStatus != null && webhookStatus != "") {
+            apiParameters += "webhook_status=" + webhookStatus + '&';
+         }
+         if (eventType != null && eventType != "") {
+            apiParameters += "event_type=" + eventType + '&';
+         }
+         if (apiParameters != "") {
+            apiParameters = '?' + apiParameters.substring(0, apiParameters.length - 1);
+            mc.setProperty('uri.var.apiParameters', apiParameters);
+         } 
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="get" uri-template="{uri.var.apiUrl}/events{+uri.var.apiParameters}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="WWW-Authenticate" scope="transport" action="remove" />
+      <header name="Pragma" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="Expires" scope="transport" action="remove" />
+      <header name="Cache-Control" scope="transport" action="remove" />
+   </sequence>
+</template>

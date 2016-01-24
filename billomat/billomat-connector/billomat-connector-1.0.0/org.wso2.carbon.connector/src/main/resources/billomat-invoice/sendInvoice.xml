@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: http://www.billomat.com/en/api/invoices -->
+<template name="sendInvoice" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="invoiceId" description="ID of the invoice to be sent." />
+   <parameter name="fromEmail" description="Sender's email address." />
+   <parameter name="recipients" description="Recipients of the e-mail. There must be at least one xml note for 'to', 'cc' and/or 'bcc'." />
+   <parameter name="subject" description="Subject of the e-mail." />
+   <parameter name="emailBody" description="Text body of the e-mail" />
+   <parameter name="fileName" description="Name of the PDF file (without .pdf)" />
+   <parameter name="attachments" description="Further files. Attachments can contain as many nodes on the 'attachment' with the elements 'filename', 'mimetype' and 'base64file'" />
+   <sequence>
+      <property name="uri.var.invoiceId" expression="$func:invoiceId" />
+      <property name="uri.var.fromEmail" expression="$func:fromEmail" />
+      <property name="uri.var.recipients" expression="$func:recipients" />
+      <property name="uri.var.subject" expression="$func:subject" />
+      <property name="uri.var.emailBody" expression="$func:emailBody" />
+      <property name="uri.var.fileName" expression="$func:fileName" />
+      <property name="uri.var.attachments" expression="$func:attachments" />
+      <payloadFactory media-type="json">
+         <format>
+            {
+               "email": {
+                  "recipients": $1
+               }
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.recipients')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[
+            var fromEmail = mc.getProperty('uri.var.fromEmail');
+            var subject = mc.getProperty('uri.var.subject');
+            var emailBody = mc.getProperty('uri.var.emailBody');
+            var fileName = mc.getProperty('uri.var.fileName');
+            var attachments = mc.getProperty('uri.var.attachments');
+            var jsonPayload = mc.getPayloadJSON();
+            var emails = jsonPayload["email"];
+            if (fromEmail != null && fromEmail != ""){
+               emails.from = fromEmail;
+            }
+            if (subject != null && subject != ""){
+               emails.subject = subject;
+            }
+            if (fileName != null && fileName != ""){
+               emails.filename = fileName;
+            }
+            if (attachments != null && attachments != ""){
+               emails.attachments = eval("(" + attachments + ")");
+            }
+            if (emailBody != null && emailBody != ""){
+               emails.body = emailBody;
+            }
+            jsonPayload["email"] = emails;
+            mc.setPayloadJSON(jsonPayload);
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{+uri.var.apiUrl}/invoices/{+uri.var.invoiceId}/email?api_key={+uri.var.apiKey}" />
+         </endpoint>
+      </call>
+      <!-- Remove custom Headers from the API Response -->
+      <header name="X-UA-Compatible" action="remove" scope="transport" />
+      <header name="X-Rate-Limit-Reset" action="remove" scope="transport" />
+      <header name="X-Rate-Limit-Remaining" action="remove" scope="transport" />
+      <header name="Vary" action="remove" scope="transport" />
+      <header name="Strict-Transport-Security" action="remove" scope="transport" />
+      <header name="Pragma" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Headers" action="remove" scope="transport" />
+      <header name="Access-Control-Max-Age" action="remove" scope="transport" />
+      <header name="Cache-Control" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Methods" action="remove" scope="transport" />
+      <header name="Access-Control-Allow-Origin" action="remove" scope="transport" />
+   </sequence>
+</template>

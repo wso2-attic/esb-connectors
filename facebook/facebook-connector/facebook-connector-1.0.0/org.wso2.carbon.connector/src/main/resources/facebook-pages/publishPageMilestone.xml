@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~
+~ WSO2 Inc. licenses this file to you under the Apache License,
+~ Version 2.0 (the "License"); you may not use this file except
+~ in compliance with the License.
+~ You may obtain a copy of the License at
+~
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing,
+~ software distributed under the License is distributed on an
+~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~ KIND, either express or implied.  See the License for the
+~ specific language governing permissions and limitations
+~ under the License.
+-->
+<template name="publishPageMilestone" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="pageId" description="The unique identifier of the page"/>
+    <parameter name="title" description="The title of the milestone"/>
+    <parameter name="description" description="The description of the milestone"/>
+    <parameter name="startTime" description="The start time of the milestone"/>
+    <sequence>
+        <property name="uri.var.pageId" expression="$func:pageId"/>
+        <property name="uri.var.title" expression="$func:title"/>
+        <property name="uri.var.description" expression="$func:description"/>
+        <property name="uri.var.startTime" expression="$func:startTime"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "title":"$1",
+                "description":"$2",
+                "start_time":"$3",
+                "access_token":"$4"
+                }
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.title')"/>
+                <arg expression="get-property('uri.var.description')"/>
+                <arg expression="get-property('uri.var.startTime')"/>
+                <arg expression="get-property('uri.var.accessToken')"/>
+            </args>
+        </payloadFactory>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}/{uri.var.apiVersion}/{uri.var.pageId}/milestones"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="X-FB-Debug" scope="transport" action="remove"/>
+        <header name="X-FB-Rev" scope="transport" action="remove"/>
+        <header name="WWW-Authenticate" scope="transport" action="remove"/>
+    </sequence>
+</template>

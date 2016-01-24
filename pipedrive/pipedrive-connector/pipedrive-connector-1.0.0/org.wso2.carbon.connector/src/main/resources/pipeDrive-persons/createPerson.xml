@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- API Document URL https://developers.pipedrive.com/v1 -->
+<template name="createPerson" xmlns="http://ws.apache.org/ns/synapse">
+   <parameter name="name" description="The name of the person being created" />
+   <parameter name="customFields"
+      description="JSON Object specifying the values for the Person's custom fields created in the account, keys for the object are the 40-character hashes assigned for the respective custom fields" />
+   <parameter name="ownerId" description="ID of the user who will be marked as the owner of this person" />
+   <parameter name="organizationId" description="ID of the organization this person will belong to" />
+   <parameter name="emails" description="Email addresses (one or more) associated with the person" />
+   <parameter name="phoneNumbers" description="Phone numbers (one or more) associated with the person" />
+   <parameter name="visibility"
+      description="Visibility of the person. If omitted, visibility will be set to the default visibility, possible values are 0,1,2" />
+   <parameter name="addedTime" description="Optional creation date and time of the person in UTC, Format: YYYY-MM-DD HH:MM:SS" />
+   <parameter name="prettyOutput" description="If the prettyOutput is specified as 1, will return an indented response of the output." />
+   <parameter name="fields" description="The array of fileds to be returned in the output" />
+   <sequence>
+      <property name="uri.var.name" expression="$func:name" />
+      <property name="uri.var.customFields" expression="$func:customFields" />
+      <property name="uri.var.ownerId" expression="$func:ownerId" />
+      <property name="uri.var.organizationId" expression="$func:organizationId" />
+      <property name="uri.var.emails" expression="$func:emails" />
+      <property name="uri.var.phoneNumbers" expression="$func:phoneNumbers" />
+      <property name="uri.var.visibility" expression="$func:visibility" />
+      <property name="uri.var.addedTime" expression="$func:addedTime" />
+      <property name="uri.var.prettyOutput" expression="$func:prettyOutput" />
+      <property name="uri.var.fields" expression="$func:fields" />
+      <!-- Generate the request payload with mandatory parameters -->
+      <payloadFactory media-type="json">
+         <format>
+            {
+            "name":"$1"
+            }
+         </format>
+         <args>
+            <arg expression="get-property('uri.var.name')" />
+         </args>
+      </payloadFactory>
+      <script language="js">
+         <![CDATA[ 
+            // Generate payload with optional parameters
+            var customFields = mc.getProperty('uri.var.customFields');
+            var ownerId = mc.getProperty('uri.var.ownerId');         
+            var organizationId = mc.getProperty('uri.var.organizationId');
+            var emails = mc.getProperty('uri.var.emails');
+            var phoneNumbers = mc.getProperty('uri.var.phoneNumbers');       
+            var visibility = mc.getProperty('uri.var.visibility');
+            var addedTime = mc.getProperty('uri.var.addedTime');
+            var prettyOutPut = mc.getProperty('uri.var.prettyOutput');
+            var fields = mc.getProperty('uri.var.fields');
+            var urlQuery = mc.getProperty('uri.var.urlQuery');
+            if (prettyOutPut != null && prettyOutPut != '') {
+               urlQuery += '&pretty_output=' + prettyOutPut;
+            }
+            mc.setProperty('uri.var.urlQuery', urlQuery);
+            // Retrieve payload to set custom properties
+            payload = mc.getPayloadJSON();
+            if (ownerId != null && ownerId != "") {
+               payload.owner_id = ownerId;
+            }
+            if (organizationId != null && organizationId != "") {
+               payload.org_id = organizationId;
+            }
+            if (emails != null && emails != "") {
+               payload.email = eval('(' + emails + ')');
+            }
+            if (phoneNumbers != null && phoneNumbers != "") {
+               payload.phone = eval('(' + phoneNumbers + ')');
+            }
+            if (visibility != null && visibility != "") {
+               payload.visible_to = visibility;
+            }
+            if (addedTime != null && addedTime != "") {
+               payload.add_time = addedTime;
+            }
+            // Retrieves values from customFields object and appends as key values pairs to the payload            
+            if (customFields != null && customFields != "") {
+               var customFieldsObj = eval("(" + customFields + ")");
+               for (var key in customFieldsObj) {
+                  if (key != null && key != "") {
+                     // Added toString to avoid trailing 0's being appended to integers
+                     payload[key] = customFieldsObj[key].toString();   
+                  }
+               }
+            }
+            mc.setPayloadJSON(payload);     
+            if (fields != null && fields != "") {
+               var fieldsList = '';
+               var fieldsArray = eval('(' + fields + ')');
+               for (var i = 0; i < fieldsArray.length; i++) {
+                  fieldsList += fieldsArray[i] + ',';
+               }
+               if (fieldsList != '') {
+                  //Remove unwanted comma at the end
+                  fieldsList = ':(' + fieldsList.substring(0, fieldsList.length - 1) + ')';
+                  mc.setProperty('uri.var.filter', fieldsList);
+               }
+            }       
+         ]]>
+      </script>
+      <call>
+         <endpoint>
+            <http method="post" uri-template="{uri.var.apiUrl}persons{+uri.var.filter}{+uri.var.urlQuery}" />
+         </endpoint>
+      </call>
+      <!-- Remove response custom header information -->
+      <header name="X-Frame-Options" scope="transport" action="remove" />
+      <header name="Vary" scope="transport" action="remove" />
+      <header name="X-XSS-Protection" scope="transport" action="remove" />
+      <header name="Access-Control-Allow-Origin" scope="transport" action="remove" />
+   </sequence>
+</template>

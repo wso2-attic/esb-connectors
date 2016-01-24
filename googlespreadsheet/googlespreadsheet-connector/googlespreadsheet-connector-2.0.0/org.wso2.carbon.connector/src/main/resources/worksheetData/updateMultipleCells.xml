@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~   WSO2 Inc. licenses this file to you under the Apache License,
+  ~   Version 2.0 (the "License"); you may not use this file except
+  ~   in compliance with the License.
+  ~   You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing,
+  ~  software distributed under the License is distributed on an
+  ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~  KIND, either express or implied.  See the License for the
+  ~  specific language governing permissions and limitations
+  ~  under the License.
+  -->
+<template name="updateMultipleCells" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="key" description="Unique value of the spreadsheet"/>
+    <parameter name="worksheetId" description="The ID of the worksheet"/>
+    <parameter name="batchIds" description="Unique IDs"/>
+    <parameter name="cellIds" description="The IDs of the cells"/>
+    <parameter name="cellVersions" description="The versions of the cells"/>
+    <parameter name="rowArray" description="The index of the each rows you are updating"/>
+    <parameter name="colArray" description="The indexs of the each column you are updating"/>
+    <parameter name="inputValues" description="A values that you can update to a each cells"/>
+    <sequence>
+        <property name="uri.var.key" expression="$func:key"/>
+        <property name="uri.var.worksheetId" expression="$func:worksheetId"/>
+        <property name="uri.var.batchIds" expression="$func:batchIds"/>
+        <property name="uri.var.cellIds" expression="$func:cellIds"/>
+        <property name="uri.var.cellVersions" expression="$func:cellVersions"/>
+        <property name="uri.var.rowArray" expression="$func:rowArray"/>
+        <property name="uri.var.colArray" expression="$func:colArray"/>
+        <property name="uri.var.inputValues" expression="$func:inputValues"/>
+        <property name="REQUEST_HOST_HEADER" scope="axis2" value="spreadsheets.google.com"/>
+        <payloadFactory media-type="xml">
+            <format>
+                <feed xmlns="http://www.w3.org/2005/Atom"
+                      xmlns:batch="http://schemas.google.com/gdata/batch"
+                      xmlns:gs="http://schemas.google.com/spreadsheets/2006">
+                    <id>https://spreadsheets.google.com/feeds/cells/$1/$2/private/full</id>
+                </feed>
+            </format>
+            <args>
+                <arg expression="$ctx:key"/>
+                <arg expression="$ctx:worksheetId"/>
+            </args>
+        </payloadFactory>
+        <script language="js"><![CDATA[
+            //request body param variables
+            var cellIds=mc.getProperty('uri.var.cellIds');
+            var key=mc.getProperty('uri.var.key');
+            var worksheetId=mc.getProperty('uri.var.worksheetId');
+            var cellVersions=mc.getProperty('uri.var.cellVersions');
+            var batchIds=mc.getProperty('uri.var.batchIds');
+            var rowArray=mc.getProperty('uri.var.rowArray');
+            var colArray=mc.getProperty('uri.var.colArray');
+            var inputValues=mc.getProperty('uri.var.inputValues');
+            //Get the existing payload
+            var payload = mc.getPayloadXML();
+            var cellIdsArray = cellIds.split(",");
+            var testedcellIds = new Array();
+            var cellVersionsArray = cellVersions.split(",");
+            var testedcellVersions = new Array();
+            var batchIdsArray = batchIds.split(",");
+            var testedbatchIds = new Array();
+            var splitRowArray = rowArray.split(",");
+            var testedrowArray = new Array();
+            var splitColArray= colArray.split(",");
+            var testedcolArray = new Array();
+            var splitRowArray = rowArray.split(",");
+            var testedrowArray = new Array();
+            var inputValuesArray = inputValues.split(",");
+            var testedInputValues = new Array();
+            for (var i = 0; i < cellIdsArray.length; ++i) {
+                if(cellIdsArray[i] != null && cellIdsArray[i]!=""){
+                    testedcellIds[i] = cellIdsArray[i];
+                }
+                if(cellVersionsArray[i] != null && cellVersionsArray[i]!=""){
+                    testedcellVersions[i] = cellVersionsArray[i];
+                }
+                if(batchIdsArray[i] != null && batchIdsArray[i]!=""){
+                    testedbatchIds[i] = batchIdsArray[i];
+                }
+                if(splitRowArray[i] != null && splitRowArray[i]!=""){
+                    testedrowArray[i] = splitRowArray[i];
+                }
+                if(splitColArray[i] != null && splitColArray[i]!=""){
+                    testedcolArray[i] =splitColArray[i];
+                }
+                if(inputValuesArray[i] != null && inputValuesArray[i]!=""){
+                    testedInputValues[i] = inputValuesArray[i];
+                }
+                var urlString="https://spreadsheets.google.com/feeds/cells/"+key+"/"+worksheetId
+                    +"/private/full/"+testedcellIds[i]+"/"+testedcellVersions[i];
+                payload[cellIds]+=<entry xmlns="http://www.w3.org/2005/Atom">
+                        <batch:id xmlns:batch="http://schemas.google.com/gdata/batch">
+                            {testedbatchIds[i]}</batch:id>
+                        <batch:operation type="update" xmlns:batch="http://schemas.google.com/gdata/batch"/>
+                        <id>
+                            https://spreadsheets.google.com/feeds/cells/{key}/{worksheetId}/private/full/{testedcellIds[i]}
+                        </id>
+                        <link rel="edit" type="application/atom+xml" href={urlString}/>
+                        <gs:cell xmlns:gs="http://schemas.google.com/spreadsheets/2006" row={testedrowArray[i]} col={testedcolArray[i]} inputValue={testedInputValues[i]}/>
+                </entry>
+            }
+            //Set the newly constructed payload
+            mc.setPayloadXML(payload);
+            ]]>
+        </script>
+        <property name="messageType" value="application/atom+xml" scope="axis2"/>
+        <property name="Content-Type" value="application/atom+xml" scope="axis2"/>
+        <header name="Content-Type" value="application/atom+xml" scope="transport"/>
+        <property action="remove" name="Accept-Encoding" scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="{+uri.var.apiUrl}/feeds/cells/{+uri.var.key}/{+uri.var.worksheetId}/private/full/batch"/>
+            </endpoint>
+        </call>
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+    </sequence>
+</template>
+

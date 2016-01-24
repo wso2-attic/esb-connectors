@@ -1,0 +1,703 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="supportbee_replyTicketAndSendSurvey" startOnLoad="true" statistics="disable" trace="disable"
+   transports="https,http" xmlns="http://ws.apache.org/ns/synapse">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+		 <!-- AgileZen Properties -->
+         <property name="agilezen.apiUrl" value="https://agilezen.com" />
+         <property name="agilezen.format" value="json" />
+         <property name="agilezen.filters" value="phase:complete" />
+         <property name="agilezen.enrichments" value="comments,details,tags" />
+         <property name="agilezen.pageSize" value="1000" />
+         <property name="agilezen.apiKey" expression="json-eval($.agilezen.apiKey)" />
+         <property name="agilezen.projectId" expression="json-eval($.agilezen.projectId)" />
+         
+		 <!-- SupportBee Properties -->
+         <property name="supportbee.apiUrl" expression="json-eval($.supportbee.apiUrl)"/>
+         <property name="supportbee.authToken" expression="json-eval($.supportbee.authToken)"/>
+         
+		 <!-- ZohoCRM Properties -->
+		 <property name="zohocrm.apiUrl" value="https://crm.zoho.com"/>
+		 <property name="zohocrm.accessToken" expression="json-eval($.zohocrm.accessToken)"/>
+		 
+		 <!-- Formstack Properties -->
+		 <property name="formstack.apiUrl" value="https://www.formstack.com"/>
+         <property name="formstack.format" value="json" />
+		 <property name="formstack.accessToken" expression="json-eval($.formstack.accessToken)"/>
+		 <property name="formstack.templateFormId" expression="json-eval($.formstack.templateFormId)"/>
+		 <property name="formstack.subjectFieldName" expression="json-eval($.formstack.subjectFieldName)"/>
+		 <property name="formstack.detailsFieldName" expression="json-eval($.formstack.detailsFieldName)"/>
+		 <property name="formstack.resolutionFieldName" expression="json-eval($.formstack.resolutionFieldName)"/>
+		 
+		 <!-- Madnrill Properties -->
+		 <property name="mandrill.apiUrl" value="https://mandrillapp.com"/>
+		 <property name="mandrill.apiKey" expression="json-eval($.mandrill.apiKey)"/>
+		 <property name="mandrill.fromName" expression="json-eval($.mandrill.fromName)"/>
+		 <property name="mandrill.fromEmail" expression="json-eval($.mandrill.fromEmail)"/>
+		 
+		 <property name="responseString" value="" scope="operation" />
+		 
+		 <!-- List all the completed stories from AgileZen.
+			Once a story is moved to completed phase in AgileZen, the respective agent who completed the story is required to add the resolution as a comment to the story with the tag '[Resolution]'. -->
+         <agilezen.init>
+            <apiUrl>{$ctx:agilezen.apiUrl}</apiUrl>
+            <apiKey>{$ctx:agilezen.apiKey}</apiKey>
+            <format>{$ctx:agilezen.format}</format>
+            <enrichments>{$ctx:agilezen.enrichments}</enrichments>
+         </agilezen.init>
+         <agilezen.listStories>
+            <projectId>{$ctx:agilezen.projectId}</projectId>
+            <filters>{$ctx:agilezen.filters}</filters>
+            <pageSize>{$ctx:agilezen.pageSize}</pageSize>
+         </agilezen.listStories>
+
+		 <property name="listStories.statusCode" expression="$axis2:HTTP_SC" />
+
+		 <!-- START: Proceed with the scenario only if the status code of the listStories call is 200 OK. -->
+         <filter source="get-property('listStories.statusCode')" regex="200">
+            <then>
+               <property name="noOfStories" expression="count(//items)" scope="operation" />
+               <property name="storyIndex" expression="0" scope="operation" />
+		 
+		       <!-- START: Proceed only if there are any stories in the 'Complete' phase of the project. -->
+               <filter source="get-property('operation', 'noOfStories')" regex="0.0">
+                  <then>
+					   <!-- Skip case: Append a message to be sent to the user. -->
+					   <property name="id" expression="fn:concat('agilezen_projectId:', get-property('agilezen.projectId'))" />
+					   <call-template target="responseHandlerTemplate">
+						  <with-param name="activity" value="agilezen_retrieveCompletedStories" />
+						  <with-param name="id" value="{$ctx:id}" />
+						  <with-param name="status" value="Skipped" />
+						  <with-param name="message" value="There are no stories in the 'Complete' phase of the project." />
+					   </call-template>
+					   <loopback />
+                  </then>
+                  <else>
+					  <!--FOR EACH Completed story: BEGIN -->
+					  <iterate continueParent="false" id="stories" expression="//items" sequential="false" preservePayload="false">
+						 <target>
+							<sequence>
+								<property name="messageType" value="application/json" scope="axis2"/>
+								
+								<property name="agilezen.storyId" expression="json-eval($.items.id)" />
+								<property name="agilezen.tagsArray" expression="json-eval($.items.tags)" />
+								<property name="agilezen.commentsArray" expression="json-eval($.items.comments)" />
+								
+								<script language="js">								
+									<![CDATA[
+										var tagsArray = mc.getProperty('agilezen.tagsArray');
+										var ticketId = '';
+										
+										if(tagsArray != null && tagsArray != ''){
+											tagsArray = eval("(" + tagsArray + ")");
+											// Proceed only if there are any tags in the array.
+											if(tagsArray.length > 0){
+												for(var i=0; i<tagsArray.length; i++){
+													var tagName = tagsArray[i].name;
+													// Proceed only if the tag name has a ';'
+													if(tagName.indexOf(':') != -1){
+														// If the left part of the ':' of the tag name is equal to 'supportbee-ticket-id' then the right part would be the ticket ID.
+														if(tagName.split(':')[0].toLowerCase() == 'supportbee-ticket-id'){
+															ticketId = tagName.split(':')[1];
+															break;
+														}
+													}
+												}
+											} 
+											// If 'tagsArray' is an object (when there is only one entry) verify the object.
+											else if(tagsArray.hasOwnProperty('name')){
+												var tagName = tagsArray.name;
+												// Proceed only if the tag name has a ';'
+												if(tagName.indexOf(':') != -1){
+													// If the left part of the ':' of the tag name is equal to 'supportbee-ticket-id' then the right part would be the ticket ID.
+													if(tagName.split(':')[0].toLowerCase() == 'supportbee-ticket-id'){
+														ticketId = tagName.split(':')[1];
+													}
+												}
+											}
+										}
+										mc.setProperty('agilezen.supportbee.ticketId', ticketId);
+									]]>
+								</script>
+								
+								<!-- START: Proceed only if the ticket ID was found in the ticket. -->
+								<filter source="boolean(get-property('agilezen.supportbee.ticketId'))" regex="true">
+								   <then>
+										<!-- Get the details of the ticket. -->
+										<supportbee.init>
+											<apiUrl>{$ctx:supportbee.apiUrl}</apiUrl>
+											<authToken>{$ctx:supportbee.authToken}</authToken>
+										 </supportbee.init>
+										 <supportbee.getTicket>
+											<ticketId>{$ctx:agilezen.supportbee.ticketId}</ticketId>
+										 </supportbee.getTicket>
+										 <property name="supportbee.ticketId" expression="json-eval($.ticket.id)" />
+										 
+										<!-- START: Proceed only if the ID extracted from AgileZen story is that of an existing ticket in SupportBee. -->
+										<filter source="boolean(get-property('supportbee.ticketId'))" regex="true">
+										   <then>
+												<property name="supportbee.ticket.subject" expression="json-eval($.ticket.subject)" />
+												<property name="supportbee.ticket.subject" expression="json-eval($.ticket.subject)" />
+												<property name="supportbee.ticket.createdTime" expression="json-eval($.ticket.created_at)" />
+												<property name="supportbee.ticket.commentsCount" expression="json-eval($.ticket.comments_count)" />
+												<property name="supportbee.ticket.content" expression="json-eval($.ticket.content.text)" />
+												<property name="supportbee.ticket.requesterEmail" expression="json-eval($.ticket.requester.email)" />
+												<property name="supportbee.ticket.requesterName" expression="json-eval($.ticket.requester.name)" />
+												
+												<!-- Iterate over the comments added to the story and check whether a resolution is available among them. 
+													A comment is supposed to have '[Resolution]' tag to be considered a comment. -->
+												<script language="js">
+													<![CDATA[							  
+														var storyComments = mc.getProperty('agilezen.commentsArray');	
+														var resolution = '';
+														
+														if(storyComments != null && storyComments != ''){
+															storyComments = eval("(" + storyComments + ")");
+															if(storyComments.length > 0){
+																for(var i=0; i<storyComments.length; i++){
+																	var comment = storyComments[i].text;
+																	if(new java.lang.String(comment).toLowerCase().contains('[resolution]')){
+																		resolution = new java.lang.String(comment).replace("[Resolution]", "").replace("[resolution]", "");
+																		break;
+																	}
+																}
+															}
+															// If 'storyComments' is an object (when there is only one entry) verify the object.
+															else if(storyComments.hasOwnProperty('id')){
+																var comment = storyComments.text;
+																if(new java.lang.String(comment).toLowerCase().contains('[resolution]')){
+																	resolution = new java.lang.String(comment).replace("[Resolution]", "").replace("[resolution]", "");
+																}
+															}
+														}
+														mc.setProperty('ticket.resolution', resolution);
+													]]>
+												</script>
+												
+												<!-- START: ZohoCRM case is considered only when a resolution is available for the ticket. -->
+												<filter source="boolean(get-property('ticket.resolution'))" regex="true">
+												   <then>
+														<!-- START: If there are any comments added to the ticket, list them and verify whether a comment related to ZohoCRM case is found. -->
+														<filter xpath="boolean(get-property('ticket.resolution')) and get-property('supportbee.ticket.commentsCount') &gt; 0">
+														   <then>
+																<!-- Get the list of comments added to the Ticket. This is done to verify whether a comment regarding ZohoCRM case ID has been added. -->
+																<supportbee.init>
+																	<apiUrl>{$ctx:supportbee.apiUrl}</apiUrl>
+																	<authToken>{$ctx:supportbee.authToken}</authToken>
+																 </supportbee.init>
+																 <supportbee.listComments>
+																	<ticketId>{$ctx:supportbee.ticketId}</ticketId>
+																 </supportbee.listComments>
+																 
+																 <property name="supportbee.commentsArray" expression="json-eval($.comments)" />
+										
+																<!-- Retrieve the ZohoCRM case ID from the ticket comments. -->
+																<script language="js">								
+																	<![CDATA[
+																		var commentsArray = mc.getProperty('supportbee.commentsArray');
+																		var zohocrmCaseId = '';
+																		
+																		if(commentsArray != null && commentsArray != ''){
+																			commentsArray = eval("(" + commentsArray + ")");
+																			for(var i=0; i<commentsArray.length; i++){
+																				var comment = commentsArray[i].content.text;
+																				// Proceed only if the comment text has a ';'
+																				if(comment.indexOf(':') != -1){
+																					// If the left part of the ':' of the comment text is equal to 'zohocrm-case-id' then the right part would be the ZohoCRM Case ID.
+																					if(comment.split(':')[0].toLowerCase() == 'zohocrm-caseid'){
+																						zohocrmCaseId = comment.split(':')[1];
+																						break;
+																					}
+																				}
+																			}
+																		}
+																		mc.setProperty('supportbee.ticket.zohocrmCaseId', zohocrmCaseId);
+																	]]>
+																</script>
+																
+																<!-- START: Proceed to update the ZohoCRM case, only if the ZohoCRM Case ID was found in the ticket. -->
+																<filter source="boolean(get-property('supportbee.ticket.zohocrmCaseId'))" regex="true">
+																   <then>
+																		<!-- Constuct the xml data to update ZohoCRM case -->
+																		<script language="js">
+																			<![CDATA[							  
+																				var resolution = mc.getProperty('ticket.resolution');
+																				if(resolution != null && resolution != ''){
+																					var xmlData = '<Contacts> <row no="1"> <FL val="Status">Closed</FL> <FL val="Solution">' + resolution + ' </FL> </row> </Contacts>';
+																				} else {
+																					var xmlData = '<Contacts> <row no="1"> <FL val="Status">Closed</FL> </row> </Contacts>';
+																				}																		
+																				mc.setProperty('zohocrm.xmlData', xmlData);
+																			]]>
+																		</script>
+
+																		<!-- Update the case as closed n ZohoCRM. -->
+																		<zohocrm.init>
+																		   <apiUrl>{$ctx:zohocrm.apiUrl}</apiUrl>
+																		   <accessToken>{$ctx:zohocrm.accessToken}</accessToken>
+																		   <scope>crmapi</scope>
+																		</zohocrm.init>
+																		<zohocrm.updateRecords>
+																		   <moduleType>Cases</moduleType>
+																		   <id>{$ctx:supportbee.ticket.zohocrmCaseId}</id>
+																		   <xmlData>{$ctx:zohocrm.xmlData}</xmlData>
+																		</zohocrm.updateRecords>
+																		<sequence key="removeResponseHeaders" />
+																		<property name="statusCode" expression="$axis2:HTTP_SC" />
+																		
+																		<property name="id" expression="fn:concat('zohocrm_caseId:', get-property('supportbee.ticket.zohocrmCaseId'))" />
+																		<!-- Append a message to be sent to the user regarding the status of the update operation. -->
+																		<filter source="get-property('statusCode')" regex="200">
+																		   <then>
+																				<property name="status" value="Success" />
+																				<property name="message" value="Case has been successfully closed with the solution." />
+																		   </then>
+																		   <else>
+																				<property name="status" value="Failure" />
+																				<property name="message" expression="json-eval($)" />
+																		   </else>
+																		</filter>
+																		
+																		<call-template target="responseHandlerTemplate">
+																		  <with-param name="activity" value="zohocrm_updateCaseAsClosed" />
+																		  <with-param name="id" value="{$ctx:id}" />
+																		  <with-param name="status" value="{$ctx:status}" />
+																		  <with-param name="message" value="{$ctx:message}" />
+																	   </call-template>
+																		
+																   </then>
+																</filter>
+																<!-- END: Proceed to update the ZohoCRM case, only if the ZohoCRM Case ID was found in the ticket. -->														
+														   </then>
+														</filter>
+														<!-- END: If there are any comments added to the ticket, list them and verify whether a comment related to ZohoCRM case is found. -->
+												   </then>
+												</filter>
+												<!-- END: ZohoCRM case is considered only when a resolution is available for the ticket. -->
+												
+												<!-- START: Survey is created only when a resolution is available for the ticket. -->
+												<filter source="boolean(get-property('ticket.resolution'))" regex="true">
+												   <then>
+														<!-- START: Proceed to create the survey and send it only if the formstack accessToken and templateFormId is provided by the user. -->
+														<filter xpath="boolean(get-property('formstack.accessToken')) and boolean(get-property('formstack.templateFormId'))" >
+														   <then>
+																<!-- Create a new survey/form by cloning an existing one. -->
+																<formstack.init>
+																	<accessToken>{$ctx:formstack.accessToken}</accessToken>
+																	<format>{$ctx:formstack.format}</format>
+																	<apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+																 </formstack.init>
+																 <formstack.copyForm>
+																	<formId>{$ctx:formstack.templateFormId}</formId>
+																 </formstack.copyForm>
+																 <property name="formstack.formId" expression="json-eval($.id)" />
+																 <property name="formstack.fieldsArray" expression="json-eval($.fields)" />
+																 <property name="formstack.formUrl" expression="json-eval($.url)" />
+																 
+																 <!-- START: Proceed if the form has been successfully cloned/copied. -->
+																<filter source="boolean(get-property('formstack.formId'))" regex="true">
+																   <then>
+																		<script language="js">														
+																			<![CDATA[
+																				var subjectFieldName = mc.getProperty('formstack.subjectFieldName').toLowerCase();																		
+																				var detailsFieldName = mc.getProperty('formstack.detailsFieldName').toLowerCase();																		
+																				var resolutionFieldName = mc.getProperty('formstack.resolutionFieldName').toLowerCase();																	
+																				var fieldsArray = mc.getProperty('formstack.fieldsArray');
+																				
+																				var subjectFieldId = '';
+																				var detailsFieldId = '';
+																				var resolutionFieldId = '';
+																				
+																				if(fieldsArray != null && fieldsArray != ''){
+																					fieldsArray = eval("(" + fieldsArray + ")");
+																					for(var i=0; i<fieldsArray.length; i++){
+																						var labelName = fieldsArray[i].label.toLowerCase();
+																						if(labelName == subjectFieldName){
+																							subjectFieldId = '' + fieldsArray[i].id;
+																						} else if(labelName == detailsFieldName){
+																							detailsFieldId = '' + fieldsArray[i].id;
+																						} else if(labelName == resolutionFieldName){
+																							resolutionFieldId = '' + fieldsArray[i].id;
+																						}
+																						
+																						if(subjectFieldId != '' && detailsFieldId != '' && resolutionFieldId != ''){
+																							break;
+																						}
+																					}
+																				}
+																				
+																				mc.setProperty('formstack.subjectFieldId', subjectFieldId);
+																				mc.setProperty('formstack.detailsFieldId', detailsFieldId);
+																				mc.setProperty('formstack.resolutionFieldId', resolutionFieldId);						
+																			]]>
+																		</script>
+																		
+																		<!-- If ID of the subject field could be found, update the content of the field with the subject of the ticket. -->
+																		<filter source="boolean(get-property('formstack.subjectFieldId'))" regex="true">
+																		   <then>
+																				<call-template target="formstack_updateFieldContent">
+																				  <with-param name="apiUrl" value="{$ctx:formstack.apiUrl}" />
+																				  <with-param name="accessToken" value="{$ctx:formstack.accessToken}" />
+																				  <with-param name="fieldId" value="{$ctx:formstack.subjectFieldId}" />
+																				  <with-param name="content" value="{$ctx:supportbee.ticket.subject}" />
+																			   </call-template>
+																		   </then>
+																		</filter>
+																		
+																		<!-- If ID of the details field could be found, update the content of the field with the details of the ticket. -->
+																		<filter source="boolean(get-property('formstack.detailsFieldId'))" regex="true">
+																		   <then>
+																				<call-template target="formstack_updateFieldContent">
+																				  <with-param name="apiUrl" value="{$ctx:formstack.apiUrl}" />
+																				  <with-param name="accessToken" value="{$ctx:formstack.accessToken}" />
+																				  <with-param name="fieldId" value="{$ctx:formstack.detailsFieldId}" />
+																				  <with-param name="content" value="{$ctx:supportbee.ticket.content}" />
+																			   </call-template>
+																		   </then>
+																		</filter>
+																		
+																		<!-- If ID of the resolution field could be found, update the content of the field with the resolution of the ticket. -->
+																		<filter source="boolean(get-property('formstack.resolutionFieldId'))" regex="true">
+																		   <then>
+																				<call-template target="formstack_updateFieldContent">
+																				  <with-param name="apiUrl" value="{$ctx:formstack.apiUrl}" />
+																				  <with-param name="accessToken" value="{$ctx:formstack.accessToken}" />
+																				  <with-param name="fieldId" value="{$ctx:formstack.resolutionFieldId}" />
+																				  <with-param name="content" value="{$ctx:ticket.resolution}" />
+																			   </call-template>
+																		   </then>
+																		</filter>
+																		
+																		<script language="js">
+																			<![CDATA[							  
+																				var requesterEmail = mc.getProperty('supportbee.ticket.requesterEmail');								  
+																				var requesterName = mc.getProperty('supportbee.ticket.requesterName');									  
+																				var reportedTime = mc.getProperty('supportbee.ticket.createdTime');								  
+																				var ticketSubject = mc.getProperty('supportbee.ticket.subject');							  
+																				var ticketContent = mc.getProperty('supportbee.ticket.content');							  
+																				var resolution = mc.getProperty('ticket.resolution');								  
+																				var formUrl = mc.getProperty('formstack.formUrl');		
+																				
+																				var mailHTML = '<h3>Dear ' + requesterName + ',</h3><p>We are happy to inform you that, the issue reported by you, on <u>' + reportedTime.split('T')[0] + '</u> at <u>' + reportedTime.split('T')[1].split('Z')[0] + '</u>, was successfully resolved by our agents.</p><p>Subject: <b>' + ticketSubject + '</b></p><p>Issue: <i>' + ticketContent + '</i></p><p>Resolution: <i>' + resolution + "</i></p><p>We would like you to take a survey to give us feedback on how you felt about our service and how we could improve it in future.</p><p><u><a href='" + formUrl + "'>Click here to take the survey</a></u></p> <p></p><p> </p><p> </p><p>This is an auto-generated email. Please do not reply.</p>";
+																				mc.setProperty('mandrill.html', mailHTML);																		
+																				mc.setProperty('mandrill.subject', 'Ticket Resolved [' + ticketSubject + ']');																		
+																				var mailTo = '[{"email": "' + requesterEmail + '", "name": "' + requesterName + '", "type": "to"}]';
+																				mc.setProperty('mandrill.to', mailTo);
+																			]]>
+																		</script>
+																		
+																		<property name="mandrill.html" expression="fn:concat('&lt;html&gt;', get-property('mandrill.html'), '&lt;/html&gt;')" />
+																		
+																		<!-- Send survey to requester. -->
+																		<mandrill.init>
+																			<apiKey>{$ctx:mandrill.apiKey}</apiKey>
+																			<apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+																			<format>json</format>	
+																		 </mandrill.init>
+																		 <mandrill.sendMessage>
+																			<html>{$ctx:mandrill.html}</html>
+																			<subject>{$ctx:mandrill.subject}</subject>
+																			<fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+																			<fromName>{$ctx:mandrill.fromName}</fromName>
+																		    <important>false</important>
+																		    <autoHtml>true</autoHtml>
+																		    <urlStripQs>false</urlStripQs>
+																		    <preserveRecipients>true</preserveRecipients>
+																		    <viewContentLink>true</viewContentLink>
+																			<to>{$ctx:mandrill.to}</to>
+																		 </mandrill.sendMessage>	
+																		 <property name="mandrill.mailId" expression="json-eval($[0]._id)" />
+																		
+																		<!-- START: Append a message to be sent to the user regarding the status of the send email operation. -->
+																		<filter source="boolean(get-property('mandrill.mailId'))" regex="true">
+																		   <then>
+																				<property name="id" expression="fn:concat('formstack_surveyId:', get-property('formstack.formId'), ',mandrill_mailId:', get-property('mandrill.mailId'))" />
+																				<property name="status" value="Success" />
+																				<property name="message" value="Survey has been created and successfully sent via email." />
+																		   </then>
+																		   <else>
+																				<property name="id" expression="fn:concat('formstack_surveyId:', get-property('formstack.formId'))" />
+																				<call-template target="responseHandlerTemplate">
+																				  <with-param name="activity" value="formstack_createFormFromTemplate" />
+																				  <with-param name="id" value="{$ctx:id}" />
+																				  <with-param name="status" value="Success" />
+																				  <with-param name="message" value="Survey has been successfully created for the ticket." />
+																			   </call-template>
+																			   
+																				<property name="status" value="Failure" />
+																				<property name="message" expression="json-eval($)" />
+																		   </else>
+																		</filter>
+																		<!-- END: Append a message to be sent to the user regarding the status of the send email operation. -->
+																		
+																		<call-template target="responseHandlerTemplate">
+																		  <with-param name="activity" value="mandrill_sendSurveyViaEmail" />
+																		  <with-param name="id" value="{$ctx:id}" />
+																		  <with-param name="status" value="{$ctx:status}" />
+																		  <with-param name="message" value="{$ctx:message}" />
+																	   </call-template>
+																		 
+																   </then>
+																   <else>
+																		<property name="id" expression="fn:concat('formstack_templateFormId:', get-property('formstack.templateFormId'))" />
+																		<property name="message" expression="json-eval($)" />
+																		<call-template target="responseHandlerTemplate">
+																		  <with-param name="activity" value="formstack_createFormFromTemplate" />
+																		  <with-param name="id" value="{$ctx:id}" />
+																		  <with-param name="status" value="Failure" />
+																		  <with-param name="message" value="{$ctx:message}" />
+																	   </call-template>
+																   </else>
+																</filter>
+																<!-- END: Proceed if the form has been successfully cloned/copied. -->
+																
+														   </then>
+														   <else>
+															   <property name="id" value="{}" />
+															   <call-template target="responseHandlerTemplate">
+																  <with-param name="activity" value="supportbee_createAndSendSurvey" />
+																  <with-param name="id" value="{$ctx:id}" />
+																  <with-param name="status" value="Skipped" />
+																  <with-param name="message" value="Formstack credentials or template form ID is not provided by the user." />
+															   </call-template>
+														   </else>
+														</filter>
+														<!-- END: Proceed to create the survey and send it only if the formstack accessToken and templateFormId is provided by the user. -->
+												   </then>
+												</filter>
+												<!-- END: Survey is created only when a resolution is available for the ticket. -->
+												
+												<!-- START: Reply and archive the ticket only if a resolution is available for the ticket. -->
+												<filter source="boolean(get-property('ticket.resolution'))" regex="true">
+												   <then>
+														<property name="supportbee.html" expression="fn:concat('&lt;p&gt;', get-property('ticket.resolution'), '&lt;/p&gt;')" />
+														<!-- Add the Formstack survey ID to the reply, if one was created. -->
+														<filter source="boolean(get-property('formstack.formId'))" regex="true">
+														   <then>
+																<property name="supportbee.text" expression="fn:concat('Formstack-Survey-ID:', get-property('formstack.formId'))" />
+														   </then>
+														</filter>
+														
+														<!-- Add a reply to the ticket with the resolution extracted from AgileZen story. -->
+														<supportbee.init>
+															<apiUrl>{$ctx:supportbee.apiUrl}</apiUrl>
+															<authToken>{$ctx:supportbee.authToken}</authToken>
+														 </supportbee.init>
+														 <supportbee.createReply>
+															<ticketId>{$ctx:supportbee.ticketId}</ticketId>
+															<html>{$ctx:supportbee.html}</html>
+															<text>{$ctx:supportbee.text}</text>
+														 </supportbee.createReply>
+														 <property name="supportbee.replyId" expression="json-eval($.reply.id)" />
+														 
+														 <!-- START: Proceed to archive the ticket only if the reply was successful. -->
+														<filter source="boolean(get-property('supportbee.replyId'))" regex="true">
+														   <then>
+																<property name="id" expression="fn:concat('supportbee_ticketId:', get-property('supportbee.ticketId'), ',supportbee_replyId:', get-property('supportbee.replyId'))" />
+															   <call-template target="responseHandlerTemplate">
+																  <with-param name="activity" value="supportbee_replyTicket" />
+																  <with-param name="id" value="{$ctx:id}" />
+																  <with-param name="status" value="Success" />
+																  <with-param name="message" value="Ticket has been closed with the resolution." />
+															   </call-template>
+															   
+																<!-- Resetting the payload to empty. -->
+																<payloadFactory media-type="json">
+																	 <format></format>
+																</payloadFactory>
+																
+																<!-- Archive the completed ticket. -->
+																<supportbee.init>
+																	<apiUrl>{$ctx:supportbee.apiUrl}</apiUrl>
+																	<authToken>{$ctx:supportbee.authToken}</authToken>
+																 </supportbee.init>
+																 <supportbee.archiveTicket>
+																	<ticketId>{$ctx:supportbee.ticketId}</ticketId>
+																 </supportbee.archiveTicket>
+																 <property name="statusCode" expression="$axis2:HTTP_SC" />
+																 
+																 <!-- START: Proceed to archive the story, only if the status of the previous call is 204 No Content which indicates success. -->
+																<filter source="get-property('statusCode')" regex="204">
+																   <then>
+																		<property name="id" expression="fn:concat('supportbee_ticketId:', get-property('supportbee.ticketId'))" />
+																	   <call-template target="responseHandlerTemplate">
+																		  <with-param name="activity" value="supportbee_archiveTicket" />
+																		  <with-param name="id" value="{$ctx:id}" />
+																		  <with-param name="status" value="Success" />
+																		  <with-param name="message" value="Ticket has been successfully archived." />
+																	   </call-template>
+																	   
+																		<call-template target="agilezen_getPhaseIdFromName">
+																		  <with-param name="apiUrl" value="{$ctx:agilezen.apiUrl}" />
+																		  <with-param name="apiKey" value="{$ctx:agilezen.apiKey}" />
+																		  <with-param name="projectId" value="{$ctx:agilezen.projectId}" />
+																		  <with-param name="phaseName" value="Archive" />
+																		</call-template>
+																		
+																		<!-- Remove property set in supportbee.createReply method is which unnecessarily accessed in agilezen.updateStory. -->
+																		<property name="uri.var.text" action="remove" />
+																		
+																		<!-- Update the phase of the story to 'Archive' from 'Complete'. -->
+																		<agilezen.init>
+																			<apiUrl>{$ctx:agilezen.apiUrl}</apiUrl>
+																			<apiKey>{$ctx:agilezen.apiKey}</apiKey>
+																			<format>{$ctx:agilezen.format}</format>
+																		 </agilezen.init>
+																		 <agilezen.updateStory>
+																			<color>grey</color>
+																			<phaseId>{$ctx:agilzen.phaseId}</phaseId>
+																			<projectId>{$ctx:agilezen.projectId}</projectId>
+																			<storyId>{$ctx:agilezen.storyId}</storyId>
+																		 </agilezen.updateStory>
+																		 <property name="agilezen.updatedStoryId" expression="json-eval($.id)" />
+																		 
+																		 <!-- START: Append a message to be sent to the user regarding the status of the update operation. -->
+																		<filter xpath="boolean(get-property('agilezen.updatedStoryId'))" regex="true">
+																		   <then>
+																				<property name="id" expression="fn:concat('agilezen_storyId:', get-property('agilezen.updatedStoryId'))" />
+																				<property name="status" value="Success" />
+																				<property name="message" value="Story has been successfully archived." />
+																		   </then>
+																		   <else>
+																				<property name="updateStory.statusCode" expression="$axis2:HTTP_SC" />
+																				<property name="id" value="{}" />
+																				<property name="status" value="Failure" />
+																				<property name="message" expression="fn:concat('API response status code: ', get-property('updateStory.statusCode'))" />
+																		   </else>
+																		</filter>
+																		<!-- END: Append a message to be sent to the user regarding the status of the update operation. -->
+																		
+																		<call-template target="responseHandlerTemplate">
+																		  <with-param name="activity" value="agilezen_archiveStory" />
+																		  <with-param name="id" value="{$ctx:id}" />
+																		  <with-param name="status" value="{$ctx:status}" />
+																		  <with-param name="message" value="{$ctx:message}" />
+																	   </call-template>
+																   </then>
+																   <else>
+																		<!-- Failure case: Append a message to be sent to the user. -->
+																	   <property name="id" expression="fn:concat('supportbee_ticketId:', get-property('supportbee.ticketId'))" />
+																	   <property name="message" expression="json-eval($)" />
+																	   <call-template target="responseHandlerTemplate">
+																		  <with-param name="activity" value="supportbee_archiveTicket" />
+																		  <with-param name="id" value="{$ctx:id}" />
+																		  <with-param name="status" value="Failure" />
+																		  <with-param name="message" value="{$ctx:message}" />
+																		</call-template>
+																   </else>
+																</filter>
+																 <!-- END: Proceed to archive the story, only if the status of the previous call is 204 No Content which indicates success. -->
+														   </then>
+														   <else>
+																<!-- Failure case: Append a message to be sent to the user. -->
+															   <property name="id" expression="fn:concat('supportbee_ticketId:', get-property('supportbee.ticketId'))" />
+															   <property name="message" expression="json-eval($)" />
+															   <call-template target="responseHandlerTemplate">
+																  <with-param name="activity" value="supportbee_replyTicket" />
+																  <with-param name="id" value="{$ctx:id}" />
+																  <with-param name="status" value="Failure" />
+																  <with-param name="message" value="{$ctx:message}" />
+															   </call-template>
+														   </else>
+														</filter>
+														<!-- END: Proceed to archive the ticket only if the reply was successful. -->
+												   </then>
+												   <else>
+														<!-- Failure case: Append a message to be sent to the user. -->
+													   <property name="id" expression="fn:concat('agilezen_storyId:', get-property('agilezen.storyId'), ',supportbee_ticketId:', get-property('agilezen.supportbee.ticketId'))" />
+													   <call-template target="responseHandlerTemplate">
+														  <with-param name="activity" value="supportbee_replyTicket" />
+														  <with-param name="id" value="{$ctx:id}" />
+														  <with-param name="status" value="Failure" />
+														  <with-param name="message" value="Ticket cannot be replied as there is no resolution added to the corresponding story in AgileZen." />
+													   </call-template>
+												   </else>
+												</filter>
+												<!-- END: Reply and archive the ticket only if a resolution is available for the ticket. -->
+												
+										   </then>
+										   <else>
+												<!-- Failure case: Append a message to be sent to the user. -->
+											   <property name="id" expression="fn:concat('agilezen_storyId:', get-property('agilezen.storyId'), ',supportbee_ticketId:', get-property('agilezen.supportbee.ticketId'))" />
+											   <call-template target="responseHandlerTemplate">
+												  <with-param name="activity" value="supportbee_retrieveTicketDetails" />
+												  <with-param name="id" value="{$ctx:id}" />
+												  <with-param name="status" value="Failure" />
+												  <with-param name="message" value="Ticket ID associated with the story in AgileZen is either invalid or references a deleted ticket." />
+											   </call-template>
+											   <loopback />
+										   </else>
+										</filter>
+										<!-- END: Proceed only if the ID extracted from AgileZen story is that of an existing ticket in SupportBee. -->
+								   </then>
+								   <else>
+									   <!-- Skip case: Append a message to be sent to the user. -->
+									   <property name="id" expression="fn:concat('agilezen_storyId:', get-property('agilezen.storyId'))" />
+									   <call-template target="responseHandlerTemplate">
+										  <with-param name="activity" value="agilezen_retrieveTicketIdFromStory" />
+										  <with-param name="id" value="{$ctx:id}" />
+										  <with-param name="status" value="Skipped" />
+										  <with-param name="message" value="Story doesn't have an associated SupportBee ticket." />
+									   </call-template>
+									   <loopback />
+								   </else>
+								</filter>
+								<!-- END: Proceed only if the ticket ID was found in the ticket. -->
+								
+							   <!--Increment the storyIndex count by 1 -->
+							   <property name="storyIndex" expression="get-property('operation', 'storyIndex') + 1"
+								  scope="operation" />
+
+							</sequence>
+						 </target>
+					  </iterate>
+					  <!--FOR EACH Completed story: END -->
+					  
+					  <!-- Move to outSequence when all the iterations are done. -->
+					  <filter xpath="get-property('operation', 'storyIndex') = get-property('operation', 'noOfStories')">
+						<then>
+							<loopback />
+						</then>
+					  </filter>
+					  
+                  </else>
+               </filter>
+			   <!-- END: Proceed only if there are any stories in the 'Complete' phase of the project. -->
+            </then>
+            <else>
+				<!-- Failure case: Append an error message to be sent to the user. -->
+               <property name="id" expression="fn:concat('agilezen_projectId:', get-property('agilezen.projectId'))" />
+			   
+			   <!-- API status response code is given as the error message since the API returns HTML content for negative scenarios. -->
+               <property name="message" expression="fn:concat('API response status code: ', get-property('listStories.statusCode'))" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="agilezen_retrieveCompletedStories" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Failure" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+			   <loopback />
+            </else>
+         </filter>
+		 <!-- END: Proceed with the scenario only if the status code of the listStories call is 200 OK. -->
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+				{
+					"Response": {
+						"process": "supportbee_replyTicketAndSendSurvey",
+						"activityResponse": [$1]
+					}
+				}
+			</format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <respond />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

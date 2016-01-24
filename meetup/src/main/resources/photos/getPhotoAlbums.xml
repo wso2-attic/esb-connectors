@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<template name="getPhotoAlbums" xmlns="http://ws.apache.org/ns/synapse"
+          description="This method returns photo albums associated with Meetup groups. To create albums, see the corresponding write method.">
+
+    <!-- Required parameters -->
+    <parameter name="event_id"
+               description="Return photo albums for these event ids, separated by commas."/>
+    <parameter name="key" description="API key"/>
+    <parameter name="access_token" description="OAuth access_token "/>
+    <parameter name="group_id"
+               description="Return albums in groups with these ID, separated by commas."/>
+    <parameter name="photo_album_id"
+               description="Return albums with these IDs, separated by commas."/>
+    <!-- ordering  parameters -->
+    <parameter name="time" description="creation date and time."/>
+    <parameter name="title" description="title of the album."/>
+    <parameter name="updated" description="album updated field."/>
+
+    <sequence>
+        <property name="uri.var.event_id" expression="$func:event_id"/>
+        <property name="uri.var.key" expression="$func:key"/>
+        <property name="uri.var.access_token" expression="$func:access_token"/>
+        <property name="uri.var.group_id" expression="$func:group_id"/>
+        <property name="uri.var.photo_album_id" expression="$func:photo_album_id"/>
+
+        <property name="uri.var.time" expression="$func:time"/>
+        <property name="uri.var.title" expression="$func:title"/>
+        <property name="uri.var.updated" expression="$func:updated"/>
+
+        <filter xpath="get-property('uri.var.access_token') = '' or not(string(get-property('uri.var.access_token')))">
+            <then>
+                <filter xpath="not(get-property('uri.var.event_id') = '' or not(string(get-property('uri.var.event_id'))))">
+                    <then>
+                        <call>
+                            <endpoint>
+                                <http method="get"
+                                      uri-template="https://api.meetup.com/2/photo_albums?event_id={uri.var.event_id}&amp;key={uri.var.key}&amp;time={uri.var.time}&amp;title={uri.var.title}&amp;updated={uri.var.updated}"/>
+
+                            </endpoint>
+                        </call>
+
+                    </then>
+
+                </filter>
+                <filter xpath="not(get-property('uri.var.group_id') = '' or not(string(get-property('uri.var.group_id'))))">
+                    <then>
+                        <call>
+                            <endpoint>
+                                <http method="get"
+                                      uri-template="https://api.meetup.com/2/photo_albums?group_id={uri.var.group_id}&amp;key={uri.var.key}&amp;time={uri.var.time}&amp;title={uri.var.title}&amp;updated={uri.var.updated}"/>
+
+                            </endpoint>
+                        </call>
+
+                    </then>
+
+                </filter>
+                <filter xpath="not(get-property('uri.var.photo_album_id') = '' or not(string(get-property('uri.var.photo_album_id'))))">
+                    <then>
+                        <call>
+                            <endpoint>
+                                <http method="get"
+                                      uri-template="https://api.meetup.com/2/photo_albums?photo_album_id={uri.var.photo_album_id}&amp;key={uri.var.key}&amp;time={uri.var.time}&amp;title={uri.var.title}&amp;updated={uri.var.updated}"/>
+
+                            </endpoint>
+                        </call>
+
+                    </then>
+
+                </filter>
+
+            </then>
+            <else>
+                <header name="Authorization"
+                        expression="fn:concat('Bearer ',get-property('uri.var.access_token'))"
+                        scope="transport"/>
+                <filter xpath="not(get-property('uri.var.event_id') = '' or not(string(get-property('uri.var.event_id'))))">
+                    <then>
+                        <call>
+                            <endpoint>
+                                <http method="get"
+                                      uri-template="https://api.meetup.com/2/photo_albums?event_id={uri.var.event_id}&amp;time={uri.var.time}&amp;title={uri.var.title}&amp;updated={uri.var.updated}"/>
+
+                            </endpoint>
+                        </call>
+
+                    </then>
+
+                </filter>
+                <filter xpath="not(get-property('uri.var.group_id') = '' or not(string(get-property('uri.var.group_id'))))">
+                    <then>
+                        <call>
+                            <endpoint>
+                                <http method="get"
+                                      uri-template="https://api.meetup.com/2/photo_albums?group_id={uri.var.group_id}&amp;time={uri.var.time}&amp;title={uri.var.title}&amp;updated={uri.var.updated}"/>
+
+                            </endpoint>
+                        </call>
+
+                    </then>
+
+                </filter>
+                <filter xpath="not(get-property('uri.var.photo_album_id') = '' or not(string(get-property('uri.var.photo_album_id'))))">
+                    <then>
+                        <call>
+                            <endpoint>
+                                <http method="get"
+                                      uri-template="https://api.meetup.com/2/photo_albums?photo_album_id={uri.var.photo_album_id}&amp;time={uri.var.time}&amp;title={uri.var.title}&amp;updated={uri.var.updated}"/>
+
+                            </endpoint>
+                        </call>
+
+                    </then>
+
+                </filter>
+
+            </else>
+        </filter>
+
+
+        <!-- Remove response custom header information -->
+        <header name="x-li-format" scope="transport" action="remove"/>
+        <header name="X-LI-UUID" scope="transport" action="remove"/>
+        <header name="X-Li-Pop" scope="transport" action="remove"/>
+        <header name="X-Li-Fabric" scope="transport" action="remove"/>
+        <header name="x-li-request-id" scope="transport" action="remove"/>
+
+    </sequence>
+</template>

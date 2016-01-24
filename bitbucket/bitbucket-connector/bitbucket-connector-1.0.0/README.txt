@@ -15,7 +15,7 @@ Tested Platform:
 
 STEPS:
 
- 1. Make sure the ESB 4.8.1 zip file with latest patches available at "{BITBUCKET_CONNECTOR_HOME}/bitbucket-connector/bitbucket-connector-1.0.0/org.wso2.carbon.connector/repository/"
+ 1. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "<ESB_CONNECTORS_HOME>/repository/"
 
  2. This ESB should be configured as below;
 	Please make sure that the below mentioned Axis configurations are enabled (\repository\conf\axis2\axis2.xml).
@@ -76,8 +76,11 @@ STEPS:
 	 Then execute "keytool -import -trustcacerts -alias root -file CERT_FILE_NAME -keystore wso2carbon.jks" in command line to import bitbucket certificate in to keystore. Give "wso2carbon" as password.
 	 NOTE : CERT_FILE_NAME is the file name which was extracted from bitbucket with  the extension, change it accordingly.
 
- 6.	Navigate to "{BITBUCKET_CONNECTOR_HOME}/bitbucket-connector/bitbucket-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
-      	$ mvn clean install
+ 6.	Make sure that the bitbucket connector is set as a module in esb-connectors parent pom.
+            <module>bitbucket/bitbucket-connector/bitbucket-connector-1.0.0/org.wso2.carbon.connector</module>
+
+ 7.Navigate to "{ESB_CONNECTORS_HOME}/" and run the following command.
+         $ mvn clean install
 
 
  NOTE : Following bitbucket account, can be used to run the integration tests.
