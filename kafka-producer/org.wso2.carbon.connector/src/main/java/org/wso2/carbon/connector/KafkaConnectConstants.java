@@ -64,4 +64,23 @@ public class KafkaConnectConstants {
     public static final String KAFKA_ENQUEUE_TIMEOUT = "kafka.enqueueTimeout";
     public static final String KAFKA_CLIENT_ID = "kafka.clientId";
 
+    // Configuration properties default values
+
+    public static final String DEFAULT_REQUIRED_ACKS = "0";
+    public static final String DEFAULT_SERIALIZATION_CLASS = "kafka.serializer.StringEncoder";
+    public static final String DEFAULT_PRODUCER_TYPE = "sync";
+    public static final String DEFAULT_KEY_SERIALIZER_CLASS = "";
+    public static final String DEFAULT_PARTITION_CLASS = "kafka.producer.DefaultPartitioner";
+    public static final String DEFAULT_COMPRESSION_TYPE = "none";
+    public static final String DEFAULT_COMPRESSED_TOPIC = "";
+    public static final String DEFAULT_TIME_REFRESH_METADATA = "100";
+    public static final String DEFAULT_TIME_REFRESH_METADATA_AFTER_TOPIC = "600000";
+    public static final String DEFAULT_BUFFER_MAX_MESSAGE = "10000";
+    public static final String DEFAULT_MESSAGE_SEND_MAX_RETRIES = "3";
+    public static final String DEFAULT_NO_MESSAGE_BATCHED_PRODUCER = "200";
+    public static final String DEFAULT_BUFFER_SIZE = "1048576";
+    public static final String DEFAULT_REQUEST_TIMEOUT = "10000";
+    public static final String DEFAULT_BUFFER_MAX_TIME = "5000";
+    public static final String DEFAULT_ENQUEUE_TIMEOUT = "-1";
+    public static final String DEFAULT_CLIENT_ID = "";
 }
