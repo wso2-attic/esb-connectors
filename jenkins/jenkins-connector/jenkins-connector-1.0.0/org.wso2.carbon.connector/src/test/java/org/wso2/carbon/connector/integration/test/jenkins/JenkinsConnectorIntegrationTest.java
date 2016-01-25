@@ -60,8 +60,7 @@ public class JenkinsConnectorIntegrationTest extends ConnectorIntegrationTestBas
         apiRequestHeadersMap.put("Authorization", "Basic " + base64AuthString);
         
         apiRequestHeadersMap.putAll(esbRequestHeadersMap);
-        apiEndpointUrl = connectorProperties.getProperty("apiUrl") + ":8080";
-        
+        apiEndpointUrl = connectorProperties.getProperty("apiUrl") + ":"+connectorProperties.getProperty("port");
         connectorProperties.setProperty("jobName", System.currentTimeMillis() + connectorProperties
                 .getProperty("jobName"));
         connectorProperties.setProperty("uploadJobName", System.currentTimeMillis() + connectorProperties
