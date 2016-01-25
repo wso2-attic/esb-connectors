@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2013, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2005-2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  * 
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -24,32 +24,32 @@ import org.wso2.carbon.connector.core.AbstractConnector;
 
 public class SetupUpsertSobjects extends AbstractConnector {
 
-	public void connect(MessageContext synCtx) {
+    public void connect(MessageContext synCtx) {
 
-		SynapseLog synLog = getLog(synCtx);
+        SynapseLog synLog = getLog(synCtx);
 
-		if (synLog.isTraceOrDebugEnabled()) {
-			synLog.traceOrDebug("Start : Salesforce Upsert SObjects mediator");
+        if (synLog.isTraceOrDebugEnabled()) {
+            synLog.traceOrDebug("Start : Salesforce Upsert SObjects mediator");
 
-			if (synLog.isTraceTraceEnabled()) {
-				synLog.traceTrace("Message : " + synCtx.getEnvelope());
-			}
-		}
+            if (synLog.isTraceTraceEnabled()) {
+                synLog.traceTrace("Message : " + synCtx.getEnvelope());
+            }
+        }
 
-		SalesforceUtil salesforceUtil = SalesforceUtil.getSalesforceUtil();
-		salesforceUtil.addSobjects("upsert",
-		                           SalesforceUtil.SALESFORCE_SOBJECTS,
-		                           synCtx,
-		                           synLog,
-		                           (String) synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
-		                                                       SalesforceUtil.SALESFORCE_EXTERNALID));
+        SalesforceUtil salesforceUtil = SalesforceUtil.getSalesforceUtil();
+        salesforceUtil.addSobjects("upsert",
+                SalesforceUtil.SALESFORCE_SOBJECTS,
+                synCtx,
+                synLog,
+                (String) synCtx.getProperty(SalesforceUtil.SALESFORCE_CRUD_PREFIX +
+                        SalesforceUtil.SALESFORCE_EXTERNALID));
 
-		if (synLog.isTraceOrDebugEnabled()) {
-			synLog.traceOrDebug("End : Salesforce Upsert SObjects mediator");
+        if (synLog.isTraceOrDebugEnabled()) {
+            synLog.traceOrDebug("End : Salesforce Upsert SObjects mediator");
 
-			if (synLog.isTraceTraceEnabled()) {
-				synLog.traceTrace("Message : " + synCtx.getEnvelope());
-			}
-		}
-	}
+            if (synLog.isTraceTraceEnabled()) {
+                synLog.traceTrace("Message : " + synCtx.getEnvelope());
+            }
+        }
+    }
 }

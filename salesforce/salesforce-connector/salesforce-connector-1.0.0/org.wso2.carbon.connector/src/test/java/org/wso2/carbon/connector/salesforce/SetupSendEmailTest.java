@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2005-2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *
+ * WSO2 Inc. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.wso2.carbon.connector.salesforce;
 
 import java.util.Collection;
@@ -26,62 +43,62 @@ import junit.framework.TestCase;
 
 public class SetupSendEmailTest extends TestCase {
 
-	private static final String TEST_TEMPLATE = "test123";
-	private static MessageContext testCtx;
-	
-	protected void setUp() throws Exception {
-		super.setUp();
+    private static final String TEST_TEMPLATE = "test123";
+    private static MessageContext testCtx;
+
+    protected void setUp() throws Exception {
+        super.setUp();
         SynapseConfiguration synCfg = new SynapseConfiguration();
         AxisConfiguration config = new AxisConfiguration();
         testCtx = new Axis2MessageContext(new org.apache.axis2.context.MessageContext(),
-            synCfg, new Axis2SynapseEnvironment(new ConfigurationContext(config), synCfg));
-        ((Axis2MessageContext)testCtx).getAxis2MessageContext().setConfigurationContext(new ConfigurationContext(config));
+                synCfg, new Axis2SynapseEnvironment(new ConfigurationContext(config), synCfg));
+        ((Axis2MessageContext) testCtx).getAxis2MessageContext().setConfigurationContext(new ConfigurationContext(config));
         SOAPEnvelope envelope = OMAbstractFactory.getSOAP11Factory().getDefaultEnvelope();
-        envelope.getBody().addChild(createOMElement("<sendEmail/>"));	       
-        testCtx.setEnvelope(envelope);	
-	}
+        envelope.getBody().addChild(createOMElement("<sendEmail/>"));
+        testCtx.setEnvelope(envelope);
+    }
 
-	protected void tearDown() throws Exception {
-		super.tearDown();
-		testCtx = null;
-	}
+    protected void tearDown() throws Exception {
+        super.tearDown();
+        testCtx = null;
+    }
 
-	public static void testDescribeSObjectsConnect() throws AxisFault{
-		
-		org.apache.axis2.context.MessageContext axis2Ctx = new org.apache.axis2.context.MessageContext();
-		SOAPFactory fac = OMAbstractFactory.getSOAP11Factory();
-		org.apache.axiom.soap.SOAPEnvelope envelope = fac.getDefaultEnvelope();
-		axis2Ctx.setEnvelope(envelope);
-		Collection<String> collection = new java.util.ArrayList<String>();
-		collection.add(SalesforceUtil.SALESFORCE_EMAIL_SENDEMAIL);
-		testCtx.setProperty(TEST_TEMPLATE + ":" + SalesforceUtil.SALESFORCE_EMAIL_SENDEMAIL, 
-					new Value("<sfdc:messages xmlns:sfdc='sfdc'><sfdc:message><sfdc:bccSender>1@1.com</sfdc:bccSender>"
-							+"<sfdc:emailPriority>1</sfdc:emailPriority><sfdc:replyTo>2@2.com</sfdc:replyTo>"
-							+"<sfdc:saveAsActivity>false</sfdc:saveAsActivity><sfdc:senderDisplayName>account</sfdc:senderDisplayName>"
-							+"<sfdc:subject>subject</sfdc:subject><sfdc:useSignature>sig</sfdc:useSignature>"
-							+"</sfdc:message></sfdc:messages>"));
-		TemplateContext context = new TemplateContext(TEST_TEMPLATE, collection);
-		Stack<TemplateContext> stack = new Stack<TemplateContext>();
-		stack.add(context);				
-		context.setupParams(testCtx);
-		
-		testCtx.setProperty(SynapseConstants.SYNAPSE__FUNCTION__STACK, stack);	
-		SetupSendEmail connector = new SetupSendEmail();
-		connector.connect(testCtx);
+    public static void testDescribeSObjectsConnect() throws AxisFault {
 
-		Iterator<OMElement> iIteratorElements = testCtx.getEnvelope().getBody().getChildrenWithLocalName("sendEmail");	
-		OMElement element = iIteratorElements.next();
-		iIteratorElements = element.getChildren();
-		if(iIteratorElements.hasNext()){			
-			assertTrue(true);
-		}else{
-			assertTrue(false);
-		}		
-						
-	}	
-	
+        org.apache.axis2.context.MessageContext axis2Ctx = new org.apache.axis2.context.MessageContext();
+        SOAPFactory fac = OMAbstractFactory.getSOAP11Factory();
+        org.apache.axiom.soap.SOAPEnvelope envelope = fac.getDefaultEnvelope();
+        axis2Ctx.setEnvelope(envelope);
+        Collection<String> collection = new java.util.ArrayList<String>();
+        collection.add(SalesforceUtil.SALESFORCE_EMAIL_SENDEMAIL);
+        testCtx.setProperty(TEST_TEMPLATE + ":" + SalesforceUtil.SALESFORCE_EMAIL_SENDEMAIL,
+                new Value("<sfdc:messages xmlns:sfdc='sfdc'><sfdc:message><sfdc:bccSender>1@1.com</sfdc:bccSender>"
+                        + "<sfdc:emailPriority>1</sfdc:emailPriority><sfdc:replyTo>2@2.com</sfdc:replyTo>"
+                        + "<sfdc:saveAsActivity>false</sfdc:saveAsActivity><sfdc:senderDisplayName>account</sfdc:senderDisplayName>"
+                        + "<sfdc:subject>subject</sfdc:subject><sfdc:useSignature>sig</sfdc:useSignature>"
+                        + "</sfdc:message></sfdc:messages>"));
+        TemplateContext context = new TemplateContext(TEST_TEMPLATE, collection);
+        Stack<TemplateContext> stack = new Stack<TemplateContext>();
+        stack.add(context);
+        context.setupParams(testCtx);
+
+        testCtx.setProperty(SynapseConstants.SYNAPSE__FUNCTION__STACK, stack);
+        SetupSendEmail connector = new SetupSendEmail();
+        connector.connect(testCtx);
+
+        Iterator<OMElement> iIteratorElements = testCtx.getEnvelope().getBody().getChildrenWithLocalName("sendEmail");
+        OMElement element = iIteratorElements.next();
+        iIteratorElements = element.getChildren();
+        if (iIteratorElements.hasNext()) {
+            assertTrue(true);
+        } else {
+            assertTrue(false);
+        }
+
+    }
+
     private static OMElement createOMElement(String xml) {
         return SynapseConfigUtils.stringToOM(xml);
     }
-	
+
 }
