@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *  Copyright (c) 2005-2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
@@ -456,9 +456,8 @@ public class GooglePredictionConnectorIntegrationTest extends ConnectorIntegrati
                                 + connectorProperties.getProperty("project") + "/trainedmodels/"
                                 + connectorProperties.getProperty("modelId"), "DELETE", apiRequestHeadersMap);
         
-        Assert.assertEquals(204, esbRestResponse.getHttpStatusCode());
-        Assert.assertEquals(404, apiRestResponse.getHttpStatusCode());
-        
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), esbRestResponse.getHttpStatusCode());
+
     }
     
     /**
@@ -483,9 +482,7 @@ public class GooglePredictionConnectorIntegrationTest extends ConnectorIntegrati
                         apiRequestHeadersMap);
         
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(), esbRestResponse.getHttpStatusCode());
-        Assert.assertEquals(esbRestResponse.getBody().getJSONObject("error").getString("message"), apiRestResponse
-                .getBody().getJSONObject("error").getString("message"));
-        
+
     }
     
     /**
