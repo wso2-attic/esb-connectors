@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~   WSO2 Inc. licenses this file to you under the Apache License,
+  ~   Version 2.0 (the "License"); you may not use this file except
+  ~   in compliance with the License.
+  ~   You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing,
+  ~  software distributed under the License is distributed on an
+  ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~  KIND, either express or implied.  See the License for the
+  ~  specific language governing permissions and limitations
+  ~  under the License.
+  -->
+<template name="createAndCollectInvoice" onError="fault" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="accountKey" description="The account number or account ID"/>
+    <parameter name="invoiceId" description="The ID of an existing invoice"/>
+    <parameter name="paymentGateway" description="The name of the gateway that will be used for the payment"/>
+    <parameter name="invoiceDate"
+               description="The invoice date that should appear on the invoice being generated, in yyyy-mm-dd format"/>
+    <parameter name="invoiceTargetDate"
+               description="The date, in yyyy-mm-dd format, through which charges on this account will be processed
+               when generating a new invoice"/>
+    <sequence>
+        <property name="uri.var.zuora.accountKey" expression="$func:accountKey"/>
+        <property name="uri.var.zuora.invoiceId" expression="$func:invoiceId"/>
+        <property name="uri.var.zuora.paymentGateway" expression="$func:paymentGateway"/>
+        <property name="uri.var.zuora.invoiceDate" expression="$func:invoiceDate"/>
+        <property name="uri.var.zuora.invoiceTargetDate" expression="$func:invoiceTargetDate"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "accountKey":"$1"
+                }
+            </format>
+            <args>
+                <arg evaluator="xml" expression="$func:accountKey"/>
+            </args>
+        </payloadFactory>
+        <script language="js">
+            <![CDATA[
+                var invoiceId = mc.getProperty('uri.var.zuora.invoiceId');
+                var paymentGateway = mc.getProperty('uri.var.zuora.paymentGateway');
+                var invoiceDate = mc.getProperty('uri.var.zuora.invoiceDate');
+                var invoiceTargetDate = mc.getProperty('uri.var.zuora.invoiceTargetDate');
+
+                payload = mc.getPayloadJSON();
+
+                if (invoiceId != null && invoiceId != "") {
+                payload.invoiceId=invoiceId;
+                }
+                if (paymentGateway != null && paymentGateway != "") {
+                payload.paymentGateway=paymentGateway;
+                }
+                if (invoiceDate != null && invoiceDate != "") {
+                payload.invoiceDate=invoiceDate;
+                }
+                if (invoiceTargetDate != null && invoiceTargetDate != "") {
+                payload.invoiceTargetDate=invoiceTargetDate;
+                }
+                mc.setPayloadJSON(payload);
+            ]]>
+        </script>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.zuora.apiUrl}/{uri.var.zuora.apiVersion}/operations/invoice-collect"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

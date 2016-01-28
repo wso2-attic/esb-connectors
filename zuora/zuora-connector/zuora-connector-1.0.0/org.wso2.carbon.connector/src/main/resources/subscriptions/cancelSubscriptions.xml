@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~   WSO2 Inc. licenses this file to you under the Apache License,
+  ~   Version 2.0 (the "License"); you may not use this file except
+  ~   in compliance with the License.
+  ~   You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing,
+  ~  software distributed under the License is distributed on an
+  ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~  KIND, either express or implied.  See the License for the
+  ~  specific language governing permissions and limitations
+  ~  under the License.
+  -->
+<template name="cancelSubscriptions" onError="fault" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="cancellationPolicy" description="Cancellation method"/>
+    <parameter name="invoiceCollect"
+               description="If true, an invoice is generated and payment collected automatically"/>
+    <parameter name="subscriptionKey" description="Subscription number"/>
+    <parameter name="cancellationEffectiveDate"
+               description="Date the cancellation takes effect, in the format yyyy-mm-dd"/>
+    <parameter name="invoiceTargetDate"
+               description="If an invoice is to be generated, the date through which to calculate the charges, as yyyy-mm-dd"/>
+    <parameter name="invoice" description="Creates an invoice for a subscription"/>
+    <parameter name="collect" description="Collects an automatic payment for a subscription"/>
+    <parameter name="applyCreditBalance" description="Applies a credit balance to an invoice"/>
+    <parameter name="OpportunityCloseDateQT" description="The closing date of the Opportunity"/>
+    <parameter name="OpportunityNameQT" description="The unique identifier of the Opportunity"/>
+    <parameter name="QuoteBusinessTypeQT"
+               description="The specific identifier for the type of business transaction the Quote represents such as
+               New, Upsell, Downsell, Renewal, or Churn"/>
+    <parameter name="QuoteNumberQT" description="The unique identifier of the Quote"/>
+    <parameter name="QuoteTypeQT"
+               description="The Quote type that represents the subscription lifecycle stage such as New, Amendment,
+               Renew or Cancel"/>
+    <sequence>
+        <property name="uri.var.zuora.cancellationPolicy" expression="$func:cancellationPolicy"/>
+        <property name="uri.var.zuora.invoiceCollect" expression="$func:invoiceCollect"/>
+        <property name="uri.var.zuora.subscriptionKey" expression="$func:subscriptionKey"/>
+        <property name="uri.var.zuora.cancellationEffectiveDate" expression="$func:cancellationEffectiveDate"/>
+        <property name="uri.var.zuora.invoiceTargetDate" expression="$func:invoiceTargetDate"/>
+        <property name="uri.var.zuora.invoice" expression="$func:invoice"/>
+        <property name="uri.var.zuora.collect" expression="$func:collect"/>
+        <property name="uri.var.zuora.OpportunityCloseDateQT" expression="$func:OpportunityCloseDateQT"/>
+        <property name="uri.var.zuora.OpportunityNameQT" expression="$func:OpportunityNameQT"/>
+        <property name="uri.var.zuora.QuoteNumberQT" expression="$func:QuoteNumberQT"/>
+        <property name="uri.var.zuora.QuoteTypeQT" expression="$func:QuoteTypeQT"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "cancellationPolicy":"$1",
+                "invoiceCollect":$2
+                }
+            </format>
+            <args>
+                <arg evaluator="xml" expression="$func:cancellationPolicy"/>
+                <arg evaluator="xml" expression="$func:invoiceCollect"/>
+            </args>
+        </payloadFactory>
+        <script language="js">
+            <![CDATA[
+            var invoiceCollect = mc.getProperty('uri.var.zuora.invoiceCollect');
+            var cancellationEffectiveDate = mc.getProperty('uri.var.zuora.cancellationEffectiveDate');
+            var invoiceTargetDate = mc.getProperty('uri.var.zuora.invoiceTargetDate');
+            var invoice = mc.getProperty('uri.var.zuora.invoice');
+            var collect = mc.getProperty('uri.var.zuora.collect');
+            var applyCreditBalance = mc.getProperty('uri.var.zuora.applyCreditBalance');
+            var OpportunityCloseDateQT = mc.getProperty('uri.var.zuora.OpportunityCloseDateQT');
+            var OpportunityNameQT = mc.getProperty('uri.var.zuora.OpportunityNameQT');
+            var QuoteBusinessTypeQT = mc.getProperty('uri.var.zuora.QuoteBusinessTypeQT');
+            var QuoteNumberQT = mc.getProperty('uri.var.zuora.QuoteNumberQT');
+            var QuoteTypeQT = mc.getProperty('uri.var.zuora.QuoteTypeQT');
+
+            payload = mc.getPayloadJSON();
+
+             if (cancellationEffectiveDate != null && cancellationEffectiveDate != "") {
+                payload.cancellationEffectiveDate=cancellationEffectiveDate;
+                }
+                if (invoiceTargetDate != null && invoiceTargetDate != "") {
+                payload.invoiceTargetDate=invoiceTargetDate;
+                }
+                if (invoice != null && invoice != "") {
+                payload.invoice=invoice;
+                }
+                if (collect != null && collect != "") {
+                payload.collect=collect;
+                }
+                if (applyCreditBalance != null && applyCreditBalance != "") {
+                payload.applyCreditBalance=applyCreditBalance;
+                }
+                if (OpportunityCloseDateQT != null && OpportunityCloseDateQT != "") {
+                payload.OpportunityCloseDate_QT=OpportunityCloseDateQT;
+                }
+                if (OpportunityNameQT != null && OpportunityNameQT != "") {
+                payload.OpportunityName_QT=OpportunityNameQT;
+                }
+                if (QuoteBusinessTypeQT != null && QuoteBusinessTypeQT != "") {
+                payload.QuoteBusinessType_QT=QuoteBusinessTypeQT;
+                }
+                if (QuoteNumberQT != null && QuoteNumberQT != "") {
+                payload.QuoteNumber_QT=QuoteNumberQT;
+                }
+                if (QuoteTypeQT != null && QuoteTypeQT != "") {
+                payload.QuoteType_QT=QuoteTypeQT;
+                }
+            mc.setPayloadJSON(payload);
+            ]]>
+        </script>
+        <call>
+            <endpoint>
+                <http method="PUT"
+                      uri-template="{+uri.var.zuora.apiUrl}/{+uri.var.zuora.apiVersion}/subscriptions/{+uri.var.zuora.subscriptionKey}/cancel"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>
