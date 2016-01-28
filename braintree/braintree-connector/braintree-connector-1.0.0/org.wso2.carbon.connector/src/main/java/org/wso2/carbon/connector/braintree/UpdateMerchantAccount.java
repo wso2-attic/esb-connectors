@@ -62,10 +62,8 @@ public final class UpdateMerchantAccount extends AbstractBrainTreeConnector {
         try {
             // instantiating and authenticating a braintreeGateway
             final BraintreeGateway braintreeGateway = getBrainTreeService(messageContext);
-            
             // remove the request from the payload
             messageContext.getEnvelope().getBody().getFirstElement().detach();
-            
             // update a merchant account & convert to JSON format and set to
             // messageContext
             messageContext.setProperty(

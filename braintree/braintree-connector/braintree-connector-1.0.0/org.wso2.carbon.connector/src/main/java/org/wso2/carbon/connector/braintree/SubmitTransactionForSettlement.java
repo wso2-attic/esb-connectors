@@ -55,20 +55,16 @@ public final class SubmitTransactionForSettlement extends AbstractBrainTreeConne
         String errorMessage = null;
         
         try {
-            
             // instantiating and authenticating a braintreeGateway.
             BraintreeGateway braintreeGateway = getBrainTreeService(msgContext);
-            
             // remove the request from the payload.
             msgContext.getEnvelope().getBody().getFirstElement().detach();
-            
             /*
              * submit a transaction for settlement and convert the response to JSON format and set to
              * messageContext.
              */
             msgContext.setProperty(Constants.RESULT,
                     new Gson().toJson(submitTransactionForSettlement(braintreeGateway)));
-            
         } catch (NotFoundException re) {
             errorMessage = Constants.ErrorConstants.INVALID_RESOURCE_MSG;
             log.error(errorMessage, re);

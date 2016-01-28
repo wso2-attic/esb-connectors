@@ -69,18 +69,14 @@ public final class SearchTransactions extends AbstractBrainTreeConnector {
         
         String errorMessage = null;
         try {
-            
             // instantiating and authenticating a braintreeGateway
             final BraintreeGateway braintreeGateway = getBrainTreeService(messageContext);
-            
             // remove the request from the payload
             messageContext.getEnvelope().getBody().getFirstElement().detach();
-            
             // creating a transaction & convert to JSON format and set to
             // messageContext
             messageContext.setProperty(Constants.RESULT,
                     new Gson().toJson(searchTransaction(braintreeGateway, getTransactionSearchRequest())));
-            
         } catch (NotFoundException nfe) {
             errorMessage = ErrorConstants.INVALID_RESOURCE_MSG;
             log.error(errorMessage, nfe);
