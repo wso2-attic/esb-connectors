@@ -48,7 +48,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
 
         apiRequestHeadersMap.putAll(esbRequestHeadersMap);
 
-        String authHeader = connectorProperties.getProperty("apiAccessKeyId") + ":" + connectorProperties.getProperty("apiSecretAccessKey");
+        String authHeader = connectorProperties.getProperty("apiAccessKeyId") + ":" + connectorProperties.
+                getProperty("apiSecretAccessKey");
         String encodedAuthorization = new String(Base64.encodeBase64(authHeader.getBytes()));
 
         apiRequestHeadersMap.put("Authorization", "Basic " + encodedAuthorization);
@@ -68,7 +69,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
                         "getInvoices_mandatory.json");
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" + connectorProperties
-                .getProperty("apiVersion") + "/transactions/invoices/accounts/" + connectorProperties.getProperty("accountKey");
+                .getProperty("apiVersion") + "/transactions/invoices/accounts/" + connectorProperties.
+                getProperty("accountKey");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
@@ -108,7 +110,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
                         "getTransferredPayments_mandatory.json");
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" + connectorProperties
-                .getProperty("apiVersion") + "/transactions/payments/accounts/" + connectorProperties.getProperty("accountKey");
+                .getProperty("apiVersion") + "/transactions/payments/accounts/" + connectorProperties.
+                getProperty("accountKey");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
@@ -177,8 +180,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
     /**
      * Positive test case for createSubscription method optional parameters.
      */
-    @Test(priority = 1, enabled = true, dependsOnMethods = {"testCreateSubscriptionWithMandatoryParameters"}, description = "zuora {createSubscription} integration test with optional" +
-            " parameters.")
+    @Test(priority = 1, enabled = true, dependsOnMethods = {"testCreateSubscriptionWithMandatoryParameters"},
+            description = "zuora {createSubscription} integration test with optional" + " parameters.")
     public void testCreateSubscriptionWithOptionalParameters() throws IOException, JSONException {
         esbRequestHeadersMap.put("Action", "urn:createSubscription");
 
@@ -200,11 +203,11 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
     }
 
     /**
-     * Subscriptions
+     *
      * Positive test case for getSubscriptions method with mandatory parameters..
      */
-    @Test(enabled = true, priority = 1, dependsOnMethods = {"testCreateSubscriptionWithOptionalParameters"}, description = "zuora {getSubscriptions} integration test with mandatory" +
-            " parameters.")
+    @Test(enabled = true, priority = 1, dependsOnMethods = {"testCreateSubscriptionWithOptionalParameters"},
+            description = "zuora {getSubscriptions} integration test with mandatory" + " parameters.")
     public void testGetSubscriptionsWithMandatoryParameters() throws IOException, JSONException {
         esbRequestHeadersMap.put("Action", "urn:getSubscriptions");
 
@@ -223,8 +226,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
     /**
      * Positive test case for getSubscriptions method with optional parameters.
      */
-    @Test(enabled = true, priority = 1, dependsOnMethods = {"testGetSubscriptionsWithMandatoryParameters"}, description = "zuora {getSubscriptions} integration test with optional" +
-            " parameters.")
+    @Test(enabled = true, priority = 1, dependsOnMethods = {"testGetSubscriptionsWithMandatoryParameters"},
+            description = "zuora {getSubscriptions} integration test with optional" + " parameters.")
     public void testGetSubscriptionsWithOptionalParameters() throws IOException, JSONException {
         esbRequestHeadersMap.put("Action", "urn:getSubscriptions");
 
@@ -245,8 +248,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
     /**
      * Positive test case for getSubscriptionsByKey method with mandatory parameters.
      */
-    @Test(enabled = true, priority = 2, dependsOnMethods = {"testGetSubscriptionsWithOptionalParameters"}, description = "zuora {getSubscriptionsByKey} integration test with mandatory" +
-            " parameters.")
+    @Test(enabled = true, priority = 2, dependsOnMethods = {"testGetSubscriptionsWithOptionalParameters"},
+            description = "zuora {getSubscriptionsByKey} integration test with mandatory" + " parameters.")
     public void testGetSubscriptionsByKeyWithMandatoryParameters() throws IOException, JSONException {
         esbRequestHeadersMap.put("Action", "urn:getSubscriptionsByKey");
 
@@ -265,8 +268,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
     /**
      * Positive test case for getSubscriptionsByKey method with optional parameters.
      */
-    @Test(priority = 2, enabled = true, dependsOnMethods = {"testGetSubscriptionsByKeyWithMandatoryParameters"}, description = "zuora {getSubscriptionsByKey} integration test with optional" +
-            " parameters.")
+    @Test(priority = 2, enabled = true, dependsOnMethods = {"testGetSubscriptionsByKeyWithMandatoryParameters"},
+            description = "zuora {getSubscriptionsByKey} integration test with optional" + " parameters.")
     public void testGetSubscriptionsByKeyWithOptionalParameters() throws IOException, JSONException {
         esbRequestHeadersMap.put("Action", "urn:getSubscriptionsByKey");
 
@@ -287,8 +290,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
     /**
      * Positive test case for updateSubscription method mandatory parameters.
      */
-    @Test(priority = 2, enabled = true, dependsOnMethods = {"testGetSubscriptionsByKeyWithOptionalParameters"}, description = "zuora {updateSubscription} integration test with mandatory" +
-            " parameters.")
+    @Test(priority = 2, enabled = true, dependsOnMethods = {"testGetSubscriptionsByKeyWithOptionalParameters"},
+            description = "zuora {updateSubscription} integration test with mandatory" + " parameters.")
     public void testUpdateSubscriptionWithMandatoryParameters() throws IOException, JSONException {
         esbRequestHeadersMap.put("Action", "urn:updateSubscription");
         System.out.println("\n\n\n\n\n\n\n" + connectorProperties.getProperty("subscriptionIdMandatory"));
@@ -302,8 +305,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
     /**
      * Positive test case for previewSubscription method mandatory parameters.
      */
-    @Test(priority = 2, enabled = true, dependsOnMethods = {"testUpdateSubscriptionWithMandatoryParameters"}, description = "zuora {previewSubscription} integration test with mandatory" +
-            " parameters.")
+    @Test(priority = 2, enabled = true, dependsOnMethods = {"testUpdateSubscriptionWithMandatoryParameters"},
+            description = "zuora {previewSubscription} integration test with mandatory" + " parameters.")
     public void testPreviewSubscriptionWithMandatoryParameters() throws IOException, JSONException {
         esbRequestHeadersMap.put("Action", "urn:previewSubscription");
 
@@ -317,8 +320,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
     /**
      * Positive test case for previewSubscription method optional parameters.
      */
-    @Test(priority = 2, enabled = true, dependsOnMethods = {"testPreviewSubscriptionWithMandatoryParameters"}, description = "zuora {previewSubscription} integration test with optional" +
-            " parameters.")
+    @Test(priority = 2, enabled = true, dependsOnMethods = {"testPreviewSubscriptionWithMandatoryParameters"},
+            description = "zuora {previewSubscription} integration test with optional" + " parameters.")
     public void testPreviewSubscriptionWithOptionalParameters() throws IOException, JSONException {
         esbRequestHeadersMap.put("Action", "urn:previewSubscription");
 
@@ -332,8 +335,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
     /**
      * Positive test case for renewSubscriptions method mandatory parameters.
      */
-    @Test(priority = 2, enabled = true, dependsOnMethods = {"testPreviewSubscriptionWithOptionalParameters"}, description = "zuora {renewSubscriptions} integration test with mandatory" +
-            " parameters.")
+    @Test(priority = 2, enabled = true, dependsOnMethods = {"testPreviewSubscriptionWithOptionalParameters"},
+            description = "zuora {renewSubscriptions} integration test with mandatory" + " parameters.")
     public void testRenewSubscriptionsWithMandatoryParameters() throws IOException, JSONException {
         esbRequestHeadersMap.put("Action", "urn:renewSubscriptions");
 
@@ -347,8 +350,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
     /**
      * Positive test case for renewSubscriptions method optional parameters.
      */
-    @Test(priority = 2, enabled = false, dependsOnMethods = {"testRenewSubscriptionsWithMandatoryParameters"}, description = "zuora {renewSubscriptions} integration test with optional" +
-            " parameters.")
+    @Test(priority = 2, enabled = false, dependsOnMethods = {"testRenewSubscriptionsWithMandatoryParameters"},
+            description = "zuora {renewSubscriptions} integration test with optional" + " parameters.")
     public void testRenewSubscriptionsWithOptionalParameters() throws IOException, JSONException {
         esbRequestHeadersMap.put("Action", "urn:renewSubscriptions");
 
@@ -362,8 +365,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
     /**
      * Positive test case for cancelSubscriptions method mandatory parameters.
      */
-    @Test(priority = 3, enabled = true, dependsOnMethods = {"testRenewSubscriptionsWithMandatoryParameters"}, description = "zuora {cancelSubscriptions} integration test with mandatory" +
-            " parameters.")
+    @Test(priority = 3, enabled = true, dependsOnMethods = {"testRenewSubscriptionsWithMandatoryParameters"},
+            description = "zuora {cancelSubscriptions} integration test with mandatory" + " parameters.")
     public void testCancelSubscriptionsWithMandatoryParameters() throws IOException, JSONException {
         esbRequestHeadersMap.put("Action", "urn:cancelSubscriptions");
         RestResponse<JSONObject> esbRestResponse =
