@@ -375,4 +375,460 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
         Assert.assertEquals(esbRestResponse.getBody().getString("success"), "true");
     }
+
+ /**
+     * Positive test case for checkConnections method with mandatory parameters..
+     */
+    @Test(enabled = true, description = "zuora {checkConnections} integration test with mandatory" +
+            " parameters.")
+    public void testCheckConnection() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:checkConnections");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "checkConnections.json");
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" + connectorProperties
+                .getProperty("apiVersion") + "/connections";
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "POST",
+                apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(esbRestResponse.getBody().toString(), apiRestResponse.getBody().toString());
+    }
+
+    /**
+     * Positive test case for createAccount method mandatory parameters.
+     */
+    @Test(priority = 1, description = "zuora {createAccounts} integration test with mandatory" +
+            " parameters.")
+    public void testCreateAccountWithMandatoryParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:createAccounts");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "createAccounts_mandatory.json");
+
+        final String accountId = esbRestResponse.getBody().getString("accountId");
+        final String accountKey = esbRestResponse.getBody().getString("accountNumber");
+
+        connectorProperties.setProperty("accountId", accountId);
+        connectorProperties.setProperty("accountKey", accountKey);
+
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" +
+                connectorProperties.getProperty("apiVersion") + "/accounts" + "/" + accountId;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET",
+                apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("basicInfo").
+                getString("accountNumber"), accountKey);
+
+    }
+
+    /**
+     * Positive test case for createAccount method optional parameters.
+     */
+    @Test(priority = 1, description = "zuora {createAccounts} integration test with optional" +
+            " parameters.")
+    public void testCreateAccountWithOptionalParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:createAccounts");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "createAccounts_optional.json");
+
+        String accountId = esbRestResponse.getBody().getString("accountId");
+        String accountNumber = esbRestResponse.getBody().getString("accountNumber");
+
+        connectorProperties.setProperty("accountId", accountId);
+        connectorProperties.setProperty("accountNumber", accountNumber);
+
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" +
+                connectorProperties.getProperty("apiVersion") + "/accounts" + "/" + accountId;
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET",
+                apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("basicInfo").
+                getString("accountNumber"), accountNumber);
+    }
+
+    /**
+     * Negative test case for createAccount method.
+     */
+    @Test(enabled = true, description = "zuora {createAccounts} integration test with negative " +
+            "case ")
+    public void testCreateAccountNegativeCase() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:createAccounts");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "createAccounts_negative.json");
+
+        Assert.assertEquals(esbRestResponse.getBody().getString("success"), "false");
+    }
+
+    /**
+     * Positive test case for getAccount method mandatory parameters.
+     */
+    @Test(priority = 2, dependsOnMethods = {"testCreateAccountWithMandatoryParameters"},
+            description = "zuora {getAccounts} integration test with mandatory parameters.")
+    public void testGetAccountWithMandatoryParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:getAccounts");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "getAccounts_mandatory.json");
+
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" +
+                connectorProperties.getProperty("apiVersion") + "/accounts" + "/"
+                + connectorProperties.get("accountKey");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET",
+                apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().toString(), esbRestResponse.getBody().toString());
+    }
+
+    /**
+     * Negative test case for getAccount method.
+     */
+    @Test(enabled = true, description = "zuora {getAccounts} integration test with negative case ")
+    public void testGetAccountNegativeCase() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:getAccounts");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "getAccounts_negative.json");
+
+        Assert.assertEquals(esbRestResponse.getBody().getString("success"), "false");
+    }
+
+    /**
+     * Positive test case for getAccountsSummary method mandatory parameters.
+     */
+    @Test(priority = 2, dependsOnMethods = {"testCreateAccountWithMandatoryParameters"},
+            description = "zuora {getAccountsSummary} integration test with mandatory parameters.")
+    public void testGetAccountSummaryWithMandatoryParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:getAccountsSummary");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "getAccountsSummary_mandatory.json");
+        String accountNumber = esbRestResponse.getBody().getJSONObject("basicInfo").
+                getString("accountNumber");
+
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" +
+                connectorProperties.getProperty("apiVersion") + "/accounts" + "/" +
+                connectorProperties.get("accountKey") + "/summary";
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET",
+                apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().toString(), esbRestResponse.getBody().toString());
+    }
+
+    /**
+     * Negative test case for getAccountsSummary method.
+     */
+    @Test(enabled = true, description = "zuora {getAccountsSummary} integration test with negative case ")
+    public void testCreateAccountSummaryNegativeCase() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:getAccountsSummary");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "getAccountsSummary_negative.json");
+
+        Assert.assertEquals(esbRestResponse.getBody().getString("success"), "false");
+    }
+
+    /**
+     * Positive test case for updateAccount method mandatory parameters.
+     */
+    @Test(priority = 2, dependsOnMethods = {"testCreateAccountWithMandatoryParameters"},
+            description = "zuora {updateAccounts} integration test with mandatory parameters.")
+    public void testUpdateAccountWithMandatoryParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:updateAccounts");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "updateAccounts_mandatory.json");
+
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" + connectorProperties
+                .getProperty("apiVersion") + "/accounts" + "/" +
+                connectorProperties.getProperty("accountKey");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "PUT",
+                apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().toString(), esbRestResponse.getBody().toString());
+    }
+
+    /**
+     * Positive test case for updateAccount method optional parameters.
+     */
+    @Test(priority = 2, dependsOnMethods = {"testCreateAccountWithMandatoryParameters"},
+            description = "zuora {updateAccounts} integration test with optional " +
+                    "parameters.")
+    public void testUpdateAccountWithOptionalParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:updateAccounts");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "updateAccounts_optional.json");
+
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" +
+                connectorProperties.getProperty("apiVersion") + "/accounts" + "/" +
+                connectorProperties.getProperty("accountKey");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET",
+                apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONObject("basicInfo").getString("name"),
+                connectorProperties.getProperty("updateName"));
+    }
+
+    /**
+     * Negative test case for updateAccount method.
+     */
+    @Test(enabled = true, description = "zuora {updateAccounts} integration test with negative case ")
+    public void testUpdateAccountNegativeCase() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:updateAccounts");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "getAccountsSummary_negative.json");
+
+        Assert.assertEquals(esbRestResponse.getBody().getString("success"), "false");
+    }
+
+    /**
+     * Positive test case for getPayments method mandatory parameters.
+     */
+    @Test(priority = 2, dependsOnMethods = {"testCreateAccountWithMandatoryParameters"},
+            description = "zuora {getPayments} integration test with mandatory parameters.")
+    public void testGetPaymentWithMandatoryParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:getPayments");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "getPayments_mandatory" +
+                        ".json");
+
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" + connectorProperties
+                .getProperty("apiVersion") + "/payment-methods/credit-cards/accounts" + "/"
+                + connectorProperties.getProperty("accountKey");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET",
+                apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().toString(), esbRestResponse.getBody().toString());
+    }
+
+    /**
+     * Positive test case for getPayments method optional parameters.
+     */
+    @Test(priority = 2, dependsOnMethods = {"testCreateAccountWithMandatoryParameters"},
+            description = "zuora {getPayments} integration test with optional " +
+                    "parameters.")
+    public void testGetPaymentWithOptionalParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:getPayments");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "getPayments_optional" +
+                        ".json");
+
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" +
+                connectorProperties.getProperty("apiVersion") + "/payment-methods/credit-cards/accounts" + "/" +
+                connectorProperties.getProperty("accountKey") + "?pageSize=" +
+                connectorProperties.getProperty("pageSize");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET",
+                apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().toString(), esbRestResponse.getBody().toString());
+    }
+
+    /**
+     * Negative test case for getPayments method.
+     */
+    @Test(enabled = true, description = "zuora {getPayments} integration test with negative case ")
+    public void testGetPaymentNegativeCase() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:getPayments");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "getPayments_negative.json");
+
+        Assert.assertEquals(esbRestResponse.getBody().getString("success"), "false");
+    }
+
+    /**
+     * Positive test case for createPayments method mandatory parameters.
+     */
+    @Test(priority = 2, dependsOnMethods = {"testCreateAccountWithMandatoryParameters"},
+            description = "zuora {createPayments} integration test with mandatory parameters.")
+    public void testCreatePaymentWithMandatoryParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:createPayments");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "createPayments_mandatory.json");
+        final String paymentMethodId = esbRestResponse.getBody().getString("paymentMethodId");
+
+        connectorProperties.setProperty("paymentMethodId", paymentMethodId);
+
+
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" + connectorProperties
+                .getProperty("apiVersion") + "/payment-methods/credit-cards/accounts" + "/"
+                + connectorProperties.getProperty("accountKey");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET",
+                apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("creditCards").getJSONObject
+                (0).getString("id"), esbRestResponse.getBody().getString("paymentMethodId"));
+    }
+
+    /**
+     * Positive test case for createPayments method optional parameters.
+     */
+    @Test(priority = 2, dependsOnMethods = {"testCreateAccountWithMandatoryParameters"},
+            description = "zuora {createPayments} integration test with optional " +
+                    "parameters.")
+    public void testCreatePaymentWithOptionalParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:createPayments");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "createPayments_optional.json");
+
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" + connectorProperties
+                .getProperty("apiVersion") + "/payment-methods/credit-cards/accounts" + "/"
+                + connectorProperties.getProperty("accountKey");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET",
+                apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("creditCards").getJSONObject
+                (0).getString("id"), esbRestResponse.getBody().getString("paymentMethodId"));
+    }
+
+    /**
+     * Negative test case for createPayments method.
+     */
+    @Test(enabled = true, description = "zuora {createPayments} integration test with negative case ")
+    public void testCreatePaymentNegativeCase() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:createPayments");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "createPayments_negative.json");
+
+        Assert.assertEquals(esbRestResponse.getBody().getString("success"), "false");
+    }
+
+    /**
+     * Positive test case for updatePayments method mandatory parameters.
+     */
+    @Test(priority = 3, dependsOnMethods = {"testCreatePaymentWithMandatoryParameters"},
+            description = "zuora {updatePayments} integration test with mandatory parameters.")
+    public void testUpdatePaymentWithMandatoryParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:updatePayments");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "updatePayments_mandatory.json");
+
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" + connectorProperties
+                .getProperty("apiVersion") + "/payment-methods/credit-cards/accounts" + "/"
+                + connectorProperties.getProperty("accountKey");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET",
+                apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("creditCards").getJSONObject
+                (0).getString("id"), esbRestResponse.getBody().getString("paymentMethodId"));
+    }
+
+    /**
+     * Positive test case for updatePayments method optional parameters.
+     */
+    @Test(priority = 3, dependsOnMethods = {"testCreatePaymentWithOptionalParameters"},
+            description = "zuora {updatePayments} integration test with optional " +
+                    "parameters.")
+    public void testUpdatePaymentWithOptionalParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:updatePayments");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "updatePayments_optional.json");
+
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" + connectorProperties
+                .getProperty("apiVersion") + "/payment-methods/credit-cards/accounts" + "/"
+                + connectorProperties.getProperty("accountKey");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET",
+                apiRequestHeadersMap);
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getBody().getJSONArray("creditCards").getJSONObject
+                        (0).getJSONObject("cardHolderInfo").getString("cardHolderName"),
+                connectorProperties.getProperty("cardHolderName"));
+    }
+
+    /**
+     * Negative test case for updatePayments method.
+     */
+    @Test(enabled = true, description = "zuora {updatePayments} integration test with negative case ")
+    public void testUpdatePaymentNegativeCase() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:updatePayments");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "updatePayments_negative.json");
+
+        Assert.assertEquals(esbRestResponse.getBody().getString("success"), "false");
+    }
+
+    /**
+     * Positive test case for deletePayments method mandatory parameters.
+     */
+    @Test(priority = 4, dependsOnMethods = {"testCreatePaymentWithMandatoryParameters",
+            "testUpdatePaymentWithOptionalParameters","testUpdatePaymentWithMandatoryParameters"},
+            description = "zuora {deletePayments} integration test with mandatory parameters.")
+    public void testDeletePaymentWithMandatoryParameters() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:deletePayments");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "deletePayments_mandatory.json");
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(esbRestResponse.getBody().getString("success"), "true");
+    }
+
+    /**
+     * Negative test case for deletePayments method.
+     */
+    @Test(enabled = true, description = "zuora {deletePayments} integration test with negative case ")
+    public void testDeletePaymentNegativeCase() throws IOException, JSONException {
+        esbRequestHeadersMap.put("Action", "urn:deletePayments");
+
+        RestResponse<JSONObject> esbRestResponse =
+                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
+                        "deletePayments_negative.json");
+
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 403);
+    }
 }
