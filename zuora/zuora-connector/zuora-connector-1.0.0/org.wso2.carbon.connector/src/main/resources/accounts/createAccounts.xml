@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="createAccounts" onError="fault" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="name" description="The name of the account"/>
+    <parameter name="currency" description="The currency type"/>
+    <parameter name="billCycleDay" description="The account's bill cycle day"/>
+    <parameter name="billToContact" description="The container for bill-to contact information"/>
+    <parameter name="creditCard" description="The container for the information on a credit card"/>
+    <parameter name="batch" description="The batch name"/>
+    <parameter name="accountNumber" description="The account number"/>
+    <parameter name="notes" description="The notes"/>
+    <parameter name="autoPay" description="The future payments are to be automatically billed"/>
+    <parameter name="crmId" description="The CRM account ID for the account"/>
+    <parameter name="invoiceTemplateId" description="The invoice template ID"/>
+    <parameter name="communicationProfileId" description="The ID of a communication profile"/>
+    <parameter name="paymentGateway" description="The name of the payment gateway instance"/>
+    <parameter name="cfTxtnC" description="One or more optional custom fields"/>
+    <parameter name="cfPknC" description="One or more optional custom fields"/>
+    <parameter name="soldToContact" description="The container for optional sold-to contact"/>
+    <parameter name="hpmCreditCardPaymentMethodId"
+               description="The ID of the HPM credit card payment methods"/>
+    <parameter name="subscription" description="The container for the subscription information"/>
+    <parameter name="invoiceCollect" description="The invoice and collect field"/>
+    <parameter name="invoice" description="The invoice for a subscription"/>
+    <parameter name="collect"
+               description="The collection for an automatic payment for a subscription"/>
+    <parameter name="invoiceSeparately"
+               description="Separates a single subscription from other subscriptions and invoices
+               the charge independently"/>
+    <parameter name="applyCreditBalance" description="Applies a credit balance to an invoice"/>
+    <parameter name="invoiceTargetDate" description="The target date for the invoice"/>
+
+    <sequence>
+        <property name="uri.var.zuora.name" expression="$func:name"/>
+        <property name="uri.var.zuora.currency" expression="$func:currency"/>
+        <property name="uri.var.zuora.billCycleDay" expression="$func:billCycleDay"/>
+        <property name="uri.var.zuora.billToContact" expression="$func:billToContact"/>
+        <property name="uri.var.zuora.creditCard" expression="$func:creditCard"/>
+        <property name="uri.var.zuora.batch" expression="$func:batch"/>
+        <property name="uri.var.zuora.accountNumber" expression="$func:accountNumber"/>
+        <property name="uri.var.zuora.notes" expression="$func:notes"/>
+        <property name="uri.var.zuora.autoPay" expression="$func:autoPay"/>
+        <property name="uri.var.zuora.crmId" expression="$func:crmId"/>
+        <property name="uri.var.zuora.communicationProfileId"
+                  expression="$func:communicationProfileId"/>
+        <property name="uri.var.zuora.paymentGateway" expression="$func:paymentGateway"/>
+        <property name="uri.var.zuora.cfTxtnC" expression="$func:cfTxtnC"/>
+        <property name="uri.var.zuora.cfPknC" expression="$func:cfPknC"/>
+        <property name="uri.var.zuora.soldToContact" expression="$func:soldToContact"/>
+        <property name="uri.var.zuora.hpmCreditCardPaymentMethodId"
+                  expression="$func:hpmCreditCardPaymentMethodId"/>
+        <property name="uri.var.zuora.subscription" expression="$func:subscription"/>
+        <property name="uri.var.zuora.invoiceCollect" expression="$func:invoiceCollect"/>
+        <property name="uri.var.zuora.collect" expression="$func:collect"/>
+        <property name="uri.var.zuora.invoice" expression="$func:invoice"/>
+        <property name="uri.var.zuora.invoiceSeparately" expression="$func:invoiceSeparately"/>
+        <property name="uri.var.zuora.applyCreditBalance" expression="$func:applyCreditBalance"/>
+        <property name="uri.var.zuora.invoiceTargetDate" expression="$func:invoiceTargetDate"/>
+        <property name="uri.var.zuora.paymentTerm" expression="$func:paymentTerm"/>
+
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "name":"$1",
+                "currency":"$2",
+                "billCycleDay":"$3",
+                "billToContact":$4,
+                "creditCard":$5
+                }
+            </format>
+            <args>
+                <arg evaluator="xml" expression="$func:name"/>
+                <arg evaluator="xml" expression="$func:currency"/>
+                <arg evaluator="xml" expression="$func:billCycleDay"/>
+                <arg evaluator="xml" expression="$func:billToContact"/>
+                <arg evaluator="xml" expression="$func:creditCard"/>
+            </args>
+        </payloadFactory>
+
+        <script language="js">
+            <![CDATA[
+
+                 var payload = mc.getPayloadJSON();
+
+                var batch = mc.getProperty('uri.var.zuora.batch');
+                var accountNumber = mc.getProperty('uri.var.zuora.accountNumber');
+                var notes = mc.getProperty('uri.var.zuora.notes');
+                var crmId = mc.getProperty('uri.var.zuora.crmId');
+                var autoPay = mc.getProperty('uri.var.zuora.autoPay');
+                var invoiceTemplateId = mc.getProperty('uri.var.zuora.invoiceTemplateId');
+                var communicationProfileId = mc.getProperty('uri.var.zuora.communicationProfileId');
+                var cfTxtnC = mc.getProperty('uri.var.zuora.cfTxtnC');
+                var cfPknC = mc.getProperty('uri.var.zuora.cfPknC');
+                var soldToContact = mc.getProperty('uri.var.zuora.soldToContact');
+                var paymentGateway = mc.getProperty('uri.var.zuora.paymentGateway');
+                var hpmCreditCardPaymentMethodId = mc.getProperty('uri.var.zuora.hpmCreditCardPaymentMethodId');
+                var subscription = mc.getProperty('uri.var.zuora.subscription');
+                var invoiceCollect = mc.getProperty('uri.var.zuora.invoiceCollect');
+                var collect = mc.getProperty('uri.var.zuora.collect');
+                var invoice = mc.getProperty('uri.var.zuora.invoice');
+                var invoiceSeparately = mc.getProperty('uri.var.zuora.invoiceSeparately');
+                var applyCreditBalance = mc.getProperty('uri.var.zuora.applyCreditBalance');
+                var invoiceTargetDate = mc.getProperty('uri.var.zuora.invoiceTargetDate');
+                var paymentTerm = mc.getProperty('uri.var.zuora.paymentTerm');
+
+                if (batch != null && batch != "") {
+                payload.batch=batch;
+                }
+
+                if (accountNumber != null && accountNumber != "") {
+                payload.accountNumber=accountNumber;
+                }
+
+                if (notes != null && notes != "") {
+                payload.notes=notes;
+                }
+
+                if (crmId != null && crmId != "") {
+                payload.crmId=crmId;
+                }
+
+                if (autoPay != null && autoPay != "") {
+                payload.autoPay=autoPay;
+                }
+
+                if (invoiceTemplateId != null && invoiceTemplateId != "") {
+                payload.invoiceTemplateId=invoiceTemplateId;
+                }
+
+                if (communicationProfileId != null && communicationProfileId != "") {
+                payload.communicationProfileId=communicationProfileId;
+                }
+
+                if (cfTxtnC != null && cfTxtnC != "") {
+                payload.cf_txtn__c=cfTxtnC;
+                }
+
+                if (cfPknC != null && cfPknC != "") {
+                payload.cf_pkn__c=cfPknC;
+                }
+
+                if (soldToContact != null && soldToContact != "" && soldToContact!="{}") {
+                if(soldToContact.charCodeAt(0) == '123' ) {
+                payload.soldToContact=eval( "(" + soldToContact + ")" );;
+                }
+                }
+
+                if (subscription != null && subscription != "" && subscription!="{}") {
+                if(subscription.charCodeAt(0) == '123' ) {
+                payload.subscription=eval( "(" + subscription + ")" );;
+                }
+                }
+
+                if (paymentGateway != null && paymentGateway != "") {
+                payload.paymentGateway=paymentGateway;
+                }
+
+                if (hpmCreditCardPaymentMethodId != null && hpmCreditCardPaymentMethodId != "") {
+                payload.hpmCreditCardPaymentMethodId=hpmCreditCardPaymentMethodId;
+                }
+
+                if (invoiceCollect != null && invoiceCollect != "") {
+                payload.invoiceCollect=invoiceCollect;
+                }
+
+                if (collect != null && collect != "") {
+                payload.collect=collect;
+                }
+
+                if (invoice != null && invoice != "") {
+                payload.invoice=invoice;
+                }
+
+                if (paymentTerm != null && paymentTerm != "") {
+                payload.paymentTerm=paymentTerm;
+                }
+
+                if (invoiceSeparately != null && invoiceSeparately != "") {
+                payload.invoiceSeparately=invoiceSeparately;
+                }
+
+                if (applyCreditBalance != null && applyCreditBalance != "") {
+                payload.applyCreditBalance=applyCreditBalance;
+                }
+
+                if (invoiceTargetDate != null && invoiceTargetDate != "") {
+                payload.invoiceTargetDate=invoiceTargetDate;
+                }
+
+                 mc.setPayloadJSON(payload);
+             ]]>
+        </script>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.zuora.apiUrl}/{uri.var.zuora.apiVersion}/accounts"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>
