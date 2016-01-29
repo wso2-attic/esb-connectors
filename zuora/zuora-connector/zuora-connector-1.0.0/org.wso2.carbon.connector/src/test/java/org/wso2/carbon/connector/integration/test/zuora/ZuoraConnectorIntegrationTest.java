@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  * <p/>
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -277,8 +277,8 @@ public class ZuoraConnectorIntegrationTest extends ConnectorIntegrationTestBase 
                 sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap,
                         "getSubscriptionsByKey_optional.json");
         String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/" + connectorProperties
-                .getProperty("apiVersion") + "/subscriptions/" + connectorProperties.getProperty("subscriptionKey") + "?charge-detail=" +
-                connectorProperties.getProperty("chargeDetail");
+                .getProperty("apiVersion") + "/subscriptions/" + connectorProperties.getProperty("subscriptionKey") +
+                "?charge-detail=" + connectorProperties.getProperty("chargeDetail");
         RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
 
         Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
