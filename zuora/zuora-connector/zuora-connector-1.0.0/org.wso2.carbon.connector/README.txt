@@ -23,6 +23,7 @@ Steps to follow in setting integration test.
 	ii) create a customer account
 	iii)create a product catalog and get productRatePlanChargeId, productRatePlanId
 	iv) create a subscription
+	v)  create a payment
 
  2. Download ESB WSO2 ESB 4.9.0
  
@@ -48,8 +49,9 @@ Steps to follow in setting integration test.
 	vii)	productRatePlanChargeId		- 		ProductRatePlanChargeId created in (ii)
 	viii)	productRatePlanId			- 		productRatePlanId created in (ii)
 	ix)		contractEffectiveDate		- 		Effective contract date for your subscription
+	x)      paymentMethodIdMandatory    -       PaymentId created in (v)
 
-	*	subscriptionKey value should be changed in each run.
+	*	subscriptionKey, paymentMethodIdMandatory value should be changed in each run.
 
  7. Navigate to "{ESB_Connector_Home}/" and run the following command.
       $ mvn clean install
