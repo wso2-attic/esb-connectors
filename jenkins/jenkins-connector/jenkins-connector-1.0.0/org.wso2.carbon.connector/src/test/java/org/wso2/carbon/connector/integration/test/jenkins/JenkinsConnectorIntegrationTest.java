@@ -18,19 +18,18 @@
 
 package org.wso2.carbon.connector.integration.test.jenkins;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.util.Base64;
 import org.json.JSONException;
-
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.wso2.connector.integration.test.base.ConnectorIntegrationTestBase;
 import org.wso2.connector.integration.test.base.RestResponse;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class JenkinsConnectorIntegrationTest extends ConnectorIntegrationTestBase {
 
@@ -60,7 +59,8 @@ public class JenkinsConnectorIntegrationTest extends ConnectorIntegrationTestBas
         apiRequestHeadersMap.put("Authorization", "Basic " + base64AuthString);
 
         apiRequestHeadersMap.putAll(esbRequestHeadersMap);
-        apiEndpointUrl = connectorProperties.getProperty("apiUrl") + ":" + connectorProperties.getProperty("port");
+
+        apiEndpointUrl = connectorProperties.getProperty("apiUrl");
 
 
         connectorProperties.setProperty("jobName", System.currentTimeMillis() + connectorProperties
