@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  * 
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,6 +19,8 @@ package org.wso2.carbon.connector;
 
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.axiom.om.OMAbstractFactory;
 import org.apache.axiom.om.OMElement;
@@ -46,8 +48,10 @@ public class FileSearch extends AbstractConnector implements Connector {
                 FileConstants.FILE_LOCATION);
         String filePattern = (String) ConnectorUtils.lookupTemplateParamater(messageContext,
                 FileConstants.FILE_PATTERN);
+        String recursiveSearch =(String) ConnectorUtils.lookupTemplateParamater(messageContext,
+                FileConstants.RECURSIVE_SEARCH);
 
-        search(source, filePattern, messageContext);
+        search(source, filePattern, recursiveSearch, messageContext);
     }
 
     /**
@@ -55,9 +59,11 @@ public class FileSearch extends AbstractConnector implements Connector {
      *
      * @param source         Location fo the file
      * @param filePattern    Pattern of the file
+     * @param recursiveSearch check whether recursively search or not
      * @param messageContext The message context that is processed by a handler in the handle method
      */
-    private void search(String source, String filePattern, MessageContext messageContext) {
+    private void search(String source, String filePattern, String recursiveSearch, MessageContext
+            messageContext) {
         ResultPayloadCreate resultPayload = new ResultPayloadCreate();
         StandardFileSystemManager manager = null;
         if (StringUtils.isEmpty(filePattern)) {
@@ -76,15 +82,29 @@ public class FileSearch extends AbstractConnector implements Connector {
                     OMElement result = factory.createOMElement(FileConstants.RESULT, ns);
                     resultPayload.preparePayload(messageContext, result);
                     FilePattenMatcher fpm = new FilePattenMatcher(filePattern);
+                    recursiveSearch = recursiveSearch.trim();
 
                     for (FileObject child : children) {
-                        if (child.getType() == FileType.FILE && fpm.validate(child.getName().
-                                getBaseName().toLowerCase())) {
-                            outputResult = child.getName().getBaseName();
-                            OMElement messageElement = factory.createOMElement(FileConstants.FILE,
-                                    ns);
-                            messageElement.setText(outputResult);
-                            result.addChild(messageElement);
+                        if (StringUtils.isEmpty(recursiveSearch) || recursiveSearch.equals("false")) {
+                            if (child.getType() == FileType.FILE && fpm.validate(child.getName().
+                                    getBaseName().toLowerCase())) {
+                                outputResult = child.getName().getPath();
+                                OMElement messageElement = factory.createOMElement(FileConstants.FILE,
+                                        ns);
+                                messageElement.setText(outputResult);
+                                result.addChild(messageElement);
+                            }
+                        } else if (recursiveSearch.equals("true")) {
+                            if (child.getType() == FileType.FILE && fpm.validate(child.getName().
+                                    getBaseName().toLowerCase())) {
+                                outputResult = child.getName().getBaseName();
+                                OMElement messageElement = factory.createOMElement(FileConstants.FILE,
+                                        ns);
+                                messageElement.setText(outputResult);
+                                result.addChild(messageElement);
+                            } else if (child.getType() == FileType.FOLDER) {
+                                searchSubFolders(child, filePattern, messageContext, factory, result, ns);
+                            }
                         }
                     }
                     messageContext.getEnvelope().getBody().addChild(result);
@@ -100,4 +120,59 @@ public class FileSearch extends AbstractConnector implements Connector {
             }
         }
     }
+
+    /**
+     *
+     * @param dir sub directory
+     * @param fileList list of file inside directory
+     * @param messageContext the message context that is generated for processing the file
+     */
+    private void getAllFiles(FileObject dir, List<FileObject> fileList, MessageContext
+            messageContext) {
+        try {
+            FileObject[] children = dir.getChildren();
+            for (FileObject child : children) {
+                fileList.add(child);
+            }
+        } catch (IOException e) {
+            handleException("Unable to list all folders", e, messageContext);
+        }
+    }
+
+    /**
+     *
+     * @param child sub folder
+     * @param filePattern pattern of the file to be searched
+     * @param messageContext the message context that is generated for processing the file
+     * @param factory OMFactory
+     * @param result OMElement
+     * @param ns OMNamespace
+     * @throws IOException
+     */
+    private void searchSubFolders(FileObject child, String filePattern, MessageContext
+            messageContext, OMFactory factory, OMElement result, OMNamespace ns) throws
+            IOException {
+        List<FileObject> fileList = new ArrayList<FileObject>();
+        getAllFiles(child, fileList, messageContext);
+        FilePattenMatcher fpm = new FilePattenMatcher(filePattern);
+        String outputResult;
+        try {
+            for (FileObject file : fileList) {
+                if (file.getType() == FileType.FILE) {
+                    if (fpm.validate(file.getName().getBaseName().toLowerCase())) {
+                        outputResult = file.getName().getPath();
+                        OMElement messageElement = factory.createOMElement(FileConstants.FILE,
+                                ns);
+                        messageElement.setText(outputResult);
+                        result.addChild(messageElement);
+                    }
+                } else if (file.getType() == FileType.FOLDER) {
+                    searchSubFolders(file, filePattern, messageContext, factory, result, ns);
+                }
+            }
+        } catch (IOException e) {
+            handleException("Unable to search a file in sub folder.", e, messageContext);
+        }
+    }
 }
+

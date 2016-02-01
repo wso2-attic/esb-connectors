@@ -38,5 +38,5 @@ public final class FileConstants {
     public static final String END_TAG = "</success></result>";
     public static final String FILE_EXIST_START_TAG = "<result><fileExist>";
     public static final String FILE_EXIST_END_TAG = "</fileExist></result>";
-
+    public static final String RECURSIVE_SEARCH="recursiveSearch";
 }
