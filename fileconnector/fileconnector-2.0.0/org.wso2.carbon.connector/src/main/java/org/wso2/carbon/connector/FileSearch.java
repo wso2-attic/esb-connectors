@@ -85,7 +85,7 @@ public class FileSearch extends AbstractConnector implements Connector {
                     recursiveSearch = recursiveSearch.trim();
 
                     for (FileObject child : children) {
-                        if (StringUtils.isEmpty(recursiveSearch) || recursiveSearch.equals("false")) {
+                        try {
                             if (child.getType() == FileType.FILE && fpm.validate(child.getName().
                                     getBaseName().toLowerCase())) {
                                 outputResult = child.getName().getPath();
@@ -93,17 +93,20 @@ public class FileSearch extends AbstractConnector implements Connector {
                                         ns);
                                 messageElement.setText(outputResult);
                                 result.addChild(messageElement);
-                            }
-                        } else if (recursiveSearch.equals("true")) {
-                            if (child.getType() == FileType.FILE && fpm.validate(child.getName().
-                                    getBaseName().toLowerCase())) {
-                                outputResult = child.getName().getBaseName();
-                                OMElement messageElement = factory.createOMElement(FileConstants.FILE,
-                                        ns);
-                                messageElement.setText(outputResult);
-                                result.addChild(messageElement);
-                            } else if (child.getType() == FileType.FOLDER) {
+                            } else if (child.getType() == FileType.FOLDER && "true".equals
+                                    (recursiveSearch)) {
                                 searchSubFolders(child, filePattern, messageContext, factory, result, ns);
+                            }
+                        } catch (IOException e) {
+                            handleException("Unable to search a file.", e, messageContext);
+                        } finally {
+                            try {
+                                if (child != null) {
+                                    child.close();
+                                }
+                            } catch (IOException e) {
+                                log.error("Error while closing Directory: " + e.getMessage(),
+                                        e);
                             }
                         }
                     }
@@ -136,6 +139,14 @@ public class FileSearch extends AbstractConnector implements Connector {
             }
         } catch (IOException e) {
             handleException("Unable to list all folders", e, messageContext);
+        } finally {
+            try {
+                if (dir != null) {
+                    dir.close();
+                }
+            } catch (IOException e) {
+                log.error("Error while closing Directory: " + e.getMessage(), e);
+            }
         }
     }
 
@@ -172,6 +183,14 @@ public class FileSearch extends AbstractConnector implements Connector {
             }
         } catch (IOException e) {
             handleException("Unable to search a file in sub folder.", e, messageContext);
+        }finally {
+            try {
+                if (child != null) {
+                    child.close();
+                }
+            } catch (IOException e) {
+                log.error("Error while closing Directory: " + e.getMessage(), e);
+            }
         }
     }
 }
