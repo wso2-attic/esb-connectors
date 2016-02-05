@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~   WSO2 Inc. licenses this file to you under the Apache License,
+  ~   Version 2.0 (the "License"); you may not use this file except
+  ~   in compliance with the License.
+  ~   You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing,
+  ~  software distributed under the License is distributed on an
+  ~  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~  KIND, either express or implied.  See the License for the
+  ~  specific language governing permissions and limitations
+  ~  under the License.
+  -->
+<template name="previewSubscription" onError="fault" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="accountKey" description="The account number or account ID"/>
+    <parameter name="termType" description="Possible values are: TERMED, EVERGREEN"/>
+    <parameter name="contractEffectiveDate" description="Effective contract date for this subscription, as yyyy-mm-dd"/>
+    <parameter name="subscribeToRatePlans" description="Container for one or more rate plans for this subscription"/>
+    <parameter name="invoiceOwnerAccountKey" description="Invoice owner account number or ID"/>
+    <parameter name="serviceActivationDate"
+               description="The date on which the services or products within a subscription have been activated and access has been provided to the customer"/>
+    <parameter name="customerAcceptanceDate"
+               description="The date on which the services or products within a subscription have been accepted by the customer, as yyyy-mm-dd"/>
+    <parameter name="termStartDate" description="The date on which the subscription term begins"/>
+    <parameter name="initialTerm" description="Duration of the first term of the subscription"/>
+    <parameter name="initialTermPeriodType" description="The period type of the initial term."/>
+    <parameter name="notes" description="String of up to 500 characters"/>
+    <parameter name="invoiceCollect"
+               description="If true (default), an invoice is generated and payment collected automatically during the subscription process"/>
+    <parameter name="invoiceTargetDate"
+               description="Date through which to calculate charges if an invoice is generated"/>
+    <parameter name="invoiceSeparately"
+               description="Separates a single subscription from other subscriptions and invoices the charge independently"/>
+    <parameter name="previewType" description="The type of preview you will receive"/>
+    <parameter name="includeExistingDraftInvoiceItems"
+               description="Specifies whether to include draft invoice items in subscription previews"/>
+    <sequence>
+        <property name="uri.var.zuora.accountKey" expression="$func:accountKey"/>
+        <property name="uri.var.zuora.termType" expression="$func:termType"/>
+        <property name="uri.var.zuora.contractEffectiveDate" expression="$func:contractEffectiveDate"/>
+        <property name="uri.var.zuora.subscribeToRatePlans" expression="$func:subscribeToRatePlans"/>
+        <property name="uri.var.zuora.invoiceOwnerAccountKey" expression="$func:invoiceOwnerAccountKey"/>
+        <property name="uri.var.zuora.serviceActivationDate" expression="$func:serviceActivationDate"/>
+        <property name="uri.var.zuora.customerAcceptanceDate" expression="$func:customerAcceptanceDate"/>
+        <property name="uri.var.zuora.termStartDate" expression="$func:termStartDate"/>
+        <property name="uri.var.zuora.initialTerm" expression="$func:initialTerm"/>
+        <property name="uri.var.zuora.initialTermPeriodType" expression="$func:initialTermPeriodType"/>
+        <property name="uri.var.zuora.notes" expression="$func:notes"/>
+        <property name="uri.var.zuora.invoiceCollect" expression="$func:invoiceCollect"/>
+        <property name="uri.var.zuora.invoiceTargetDate" expression="$func:invoiceTargetDate"/>
+        <property name="uri.var.zuora.invoiceSeparately" expression="$func:invoiceSeparately"/>
+        <property name="uri.var.zuora.previewType" expression="$func:previewType"/>
+        <property name="uri.var.zuora.includeExistingDraftInvoiceItems"
+                  expression="$func:includeExistingDraftInvoiceItems"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "accountKey":"$1",
+                "termType":"$2",
+                "contractEffectiveDate":"$3",
+                "subscribeToRatePlans":$4,
+                "initialTerm":$5
+                }
+            </format>
+            <args>
+                <arg evaluator="xml" expression="$func:accountKey"/>
+                <arg evaluator="xml" expression="$func:termType"/>
+                <arg evaluator="xml" expression="$func:contractEffectiveDate"/>
+                <arg evaluator="xml" expression="$func:subscribeToRatePlans"/>
+                <arg evaluator="xml" expression="$func:initialTerm"/>
+            </args>
+        </payloadFactory>
+        <script language="js">
+            <![CDATA[
+                var invoiceOwnerAccountKey = mc.getProperty('uri.var.zuora.invoiceOwnerAccountKey');
+                var serviceActivationDate = mc.getProperty('uri.var.zuora.serviceActivationDate');
+                var customerAcceptanceDate = mc.getProperty('uri.var.zuora.customerAcceptanceDate');
+                var termStartDate = mc.getProperty('uri.var.zuora.termStartDate');
+                var initialTermPeriodType = mc.getProperty('uri.var.zuora.initialTermPeriodType');
+                var notes = mc.getProperty('uri.var.zuora.notes');
+                var invoiceCollect = mc.getProperty('uri.var.zuora.invoiceCollect');
+                var invoiceTargetDate = mc.getProperty('uri.var.zuora.invoiceTargetDate');
+                var invoiceSeparately = mc.getProperty('uri.var.zuora.invoiceSeparately');
+                var previewType = mc.getProperty('uri.var.zuora.previewType');
+                var includeExistingDraftInvoiceItems = mc.getProperty('uri.var.zuora.includeExistingDraftInvoiceItems');
+
+                payload = mc.getPayloadJSON();
+
+                if (invoiceOwnerAccountKey != null && invoiceOwnerAccountKey != "") {
+                    payload.invoiceOwnerAccountKey=invoiceOwnerAccountKey;
+                }
+                if (serviceActivationDate != null && serviceActivationDate != "") {
+                    payload.serviceActivationDate=serviceActivationDate;
+                }
+                if (customerAcceptanceDate != null && customerAcceptanceDate != "") {
+                    payload.customerAcceptanceDate=customerAcceptanceDate;
+                }
+                if (termStartDate != null && termStartDate != "") {
+                    payload.termStartDate=termStartDate;
+                }
+                if (initialTermPeriodType != null && initialTermPeriodType != "") {
+                    payload.initialTermPeriodType=initialTermPeriodType;
+                }
+                if (notes != null && notes != "") {
+                    payload.notes=notes;
+                }
+                if (invoiceCollect != null && invoiceCollect != "") {
+                    payload.invoiceCollect=invoiceCollect;
+                }
+                if (invoiceTargetDate != null && invoiceTargetDate != "") {
+                    payload.invoiceTargetDate=invoiceTargetDate;
+                }
+                if (invoiceSeparately != null && invoiceSeparately != "") {
+                    payload.invoiceSeparately=invoiceSeparately;
+                }
+                if (previewType != null && previewType != "") {
+                    payload.previewType=previewType;
+                }
+                if (includeExistingDraftInvoiceItems != null && includeExistingDraftInvoiceItems != "") {
+                    payload.includeExistingDraftInvoiceItems=includeExistingDraftInvoiceItems;
+                }
+                mc.setPayloadJSON(payload);
+            ]]>
+        </script>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="{uri.var.zuora.apiUrl}/{uri.var.zuora.apiVersion}/subscriptions/preview"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>

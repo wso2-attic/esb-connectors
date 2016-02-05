@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="updateAccounts" onError="fault" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="accountKey" description="The account number or ID"/>
+    <parameter name="name" description="The name of the account"/>
+    <parameter name="batch" description="The batch name"/>
+    <parameter name="notes" description="The notes"/>
+    <parameter name="crmId" description="The CRM account ID for the account"/>
+    <parameter name="autoPay" description="The future payments are to be automatically billed"/>
+    <parameter name="invoiceTemplateId" description="The invoice template ID"/>
+    <parameter name="communicationProfileId" description="The ID of a communication profile"/>
+    <parameter name="cfTxtnC" description="One or more optional custom fields"/>
+    <parameter name="cfPknC" description="One or more optional custom fields"/>
+    <parameter name="billToContact" description="The container for bill-to contact"/>
+    <parameter name="soldToContact" description="The container for optional sold-to contact"/>
+    <parameter name="paymentGateway" description="The name of the payment gateway instance"/>
+    <sequence>
+        <property name="uri.var.zuora.accountKey" expression="$func:accountKey"/>
+        <property name="uri.var.zuora.name" expression="$func:name"/>
+        <property name="uri.var.zuora.batch" expression="$func:batch"/>
+        <property name="uri.var.zuora.notes" expression="$func:notes"/>
+        <property name="uri.var.zuora.crmId" expression="$func:crmId"/>
+        <property name="uri.var.zuora.autoPay" expression="$func:autoPay"/>
+        <property name="uri.var.zuora.invoiceTemplateId" expression="$func:invoiceTemplateId"/>
+        <property name="uri.var.zuora.communicationProfileId"
+                  expression="$func:communicationProfileId"/>
+        <property name="uri.var.zuora.cfTxtnC" expression="$func:cfTxtnC"/>
+        <property name="uri.var.zuora.cfPknC" expression="$func:cfPknC"/>
+        <property name="uri.var.zuora.billToContact" expression="$func:billToContact"/>
+        <property name="uri.var.zuora.soldToContact" expression="$func:soldToContact"/>
+        <property name="uri.var.zuora.paymentGateway" expression="$func:paymentGateway"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                }
+            </format>
+            <args/>
+        </payloadFactory>
+        <property name="FORCE_POST_PUT_NOBODY" value="true" scope="axis2" type="BOOLEAN"/>
+        <script language="js">
+            <![CDATA[
+                var name = mc.getProperty('uri.var.zuora.name');
+                var batch = mc.getProperty('uri.var.zuora.batch');
+                var notes = mc.getProperty('uri.var.zuora.notes');
+                var crmId = mc.getProperty('uri.var.zuora.crmId');
+                var autoPay = mc.getProperty('uri.var.zuora.autoPay');
+                var invoiceTemplateId = mc.getProperty('uri.var.zuora.invoiceTemplateId');
+                var communicationProfileId = mc.getProperty('uri.var.zuora.communicationProfileId');
+                var cfTxtnC = mc.getProperty('uri.var.zuora.cfTxtnC');
+                var cfPknC = mc.getProperty('uri.var.zuora.cfPknC');
+                var billToContact = mc.getProperty('uri.var.zuora.billToContact');
+                var soldToContact = mc.getProperty('uri.var.zuora.soldToContact');
+                var paymentGateway = mc.getProperty('uri.var.zuora.paymentGateway');
+
+                payload = mc.getPayloadJSON();
+
+                if (name != null && name != "") {
+                    payload.name=name;
+                }
+                if (batch != null && batch != "") {
+                    payload.batch=batch;
+                }
+                if (notes != null && notes != "") {
+                    payload.notes=notes;
+                }
+                if (crmId != null && crmId != "") {
+                    payload.crmId=crmId;
+                }
+                if (autoPay != null && autoPay != "") {
+                    payload.autoPay=autoPay;
+                }
+                if (invoiceTemplateId != null && invoiceTemplateId != "") {
+                    payload.invoiceTemplateId=invoiceTemplateId;
+                }
+                if (communicationProfileId != null && communicationProfileId != "") {
+                    payload.communicationProfileId=communicationProfileId;
+                }
+                if (cfTxtnC != null && cfTxtnC != "") {
+                    payload.cf_txtn__c=cfTxtnC;
+                }
+                if (cfPknC != null && cfPknC != "") {
+                    payload.cf_pkn__c=cfPknC;
+                }
+                if (billToContact != null && billToContact != "" && billToContact!="{}") {
+                    if(billToContact.charCodeAt(0) == '123' ) {
+                        payload.billToContact=eval( "(" + billToContact + ")" );;
+                    }
+                }
+                if (soldToContact != null && soldToContact != "" && soldToContact!="{}") {
+                    if(soldToContact.charCodeAt(0) == '123' ) {
+                        payload.soldToContact=eval( "(" + soldToContact + ")" );;
+                    }
+                }
+                if (paymentGateway != null && paymentGateway != "") {
+                    payload.paymentGateway=paymentGateway;
+                }
+                mc.setPayloadJSON(payload);
+            ]]>
+        </script>
+        <call>
+            <endpoint>
+                <http method="PUT"
+                      uri-template="{uri.var.zuora.apiUrl}/{uri.var.zuora.apiVersion}/accounts/{uri.var.zuora.accountKey}"/>
+            </endpoint>
+        </call>
+    </sequence>
+</template>
