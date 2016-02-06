@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="apiVersion" description="Access token of the organizational account."/>
+    <parameter name="hostName" description="Value of the hostname to authenticate salesforce."/>
+    <parameter name="refreshToken" description="value of the refresh token."/>
+    <parameter name="clientSecret"
+               description="Value of your secret key given when you registered your application with salesforce."/>
+    <parameter name="clientId"
+               description="Value of your API Key given when you registered your application with salesforce."/>
+    <sequence>
+        <property name="uri.var.apiVersion" expression="$func:apiVersion"/>
+        <property name="uri.var.hostName" expression="$func:hostName"/>
+        <property name="uri.var.refreshToken" expression="$func:refreshToken"/>
+        <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
+        <property name="uri.var.clientId" expression="$func:clientId"/>
+        <property name="uri.var.accessToken"
+                  expression="get-property('registry', 'connectors/salesforceRest/accessToken')"/>
+        <property name="systemTime" expression="get-property('SYSTEM_TIME')"
+                  scope="default"/>
+        <property name="registryTime"
+                  expression="get-property('registry', 'connectors/salesforceRest/time')"/>
+        <property name="uri.var.apiUrl"
+                  expression="get-property('registry', 'connectors/salesforceRest/apiUrl')"/>
+        <script language="js">
+            <![CDATA[
+                    var time1 = mc.getProperty("systemTime");
+                    var time2 = mc.getProperty("registryTime");
+                    var timeTaken = time1 - time2;
+                    mc.setProperty("INTERVAL_TIME", timeTaken);
+                    ]]>
+        </script>
+        <!--If the access token is not in the registry(first call) or time interval less than 50 minutes , then get a new access token by calling getAccessTokenByRefreshToken method and store the time into registry-->
+        <filter source="$ctx:INTERVAL_TIME &gt;3000000 or $ctx:uri.var.accessToken=''"
+                regex="true">
+            <then>
+                <salesforcerest.getAccessTokenFromRefreshToken/>
+                <property name="uri.var.accessToken" expression="json-eval($.access_token)"/>
+                <property name="uri.var.apiUrl" expression="json-eval($.instance_url)"/>
+                <property name="connectors/salesforceRest/time"
+                          expression="$ctx:systemTime" scope="registry"/>
+                <property name="connectors/salesforceRest/accessToken"
+                          expression="$ctx:uri.var.accessToken" scope="registry"/>
+                <property name="connectors/salesforceRest/apiUrl"
+                          expression="$ctx:uri.var.apiUrl" scope="registry"/>
+            </then>
+        </filter>
+        <header name="Authorization"
+                expression="fn:concat('Bearer ', $ctx:uri.var.accessToken )"
+                scope="transport"/>
+    </sequence>
+</template>
