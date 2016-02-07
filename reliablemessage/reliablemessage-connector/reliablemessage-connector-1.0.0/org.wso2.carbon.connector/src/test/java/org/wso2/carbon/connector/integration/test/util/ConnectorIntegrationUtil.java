@@ -87,6 +87,7 @@ public class ConnectorIntegrationUtil {
     public static OMElement sendXMLRequest(String addUrl, String query) throws MalformedURLException, IOException,
             XMLStreamException {
         String charset = "UTF-8";
+        System.out.println("=======url======"+addUrl+"======="+query);
         URLConnection connection = new URL(addUrl).openConnection();
         connection.setDoOutput(true);
         connection.setRequestProperty("Accept-Charset", charset);
@@ -127,6 +128,7 @@ public class ConnectorIntegrationUtil {
                 out = sb.toString();
             }
         }
+        System.out.println("=======out======"+out);
         OMElement omElement = AXIOMUtil.stringToOM(out);
         return omElement;
     }

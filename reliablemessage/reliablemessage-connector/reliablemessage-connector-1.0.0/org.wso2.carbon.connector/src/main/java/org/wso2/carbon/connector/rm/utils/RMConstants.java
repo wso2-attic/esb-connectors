@@ -52,5 +52,11 @@ public class RMConstants {
     /**
      * Constant for soap version 1.2.
      */
-    public static final String SOAP_V_12 = "2.1";
+    public static final String SOAP_V_12 = "1.2";
+
+    public static final String SPRING_BUS = "rm.spring_bus";
+
+    public static final String RM_PARAMS = "rm.rm_params";
+
+    public static final String SOAP_ACTION = "Action";
 }

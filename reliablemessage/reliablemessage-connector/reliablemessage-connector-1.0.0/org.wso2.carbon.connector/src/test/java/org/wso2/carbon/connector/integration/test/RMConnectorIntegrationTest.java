@@ -18,72 +18,45 @@
 package org.wso2.carbon.connector.integration.test;
 
 import org.apache.axiom.om.OMElement;
-import org.apache.axis2.context.ConfigurationContext;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import org.wso2.carbon.automation.api.clients.utils.AuthenticateStub;
-import org.wso2.carbon.automation.engine.context.AutomationContext;
-import org.wso2.carbon.automation.engine.context.TestUserMode;
-import org.wso2.carbon.automation.test.utils.axis2client.ConfigurationContextProvider;
 import org.wso2.carbon.connector.integration.test.util.ConnectorIntegrationUtil;
-import org.wso2.carbon.mediation.library.stub.MediationLibraryAdminServiceStub;
-import org.wso2.carbon.mediation.library.stub.upload.MediationLibraryUploaderStub;
-import org.wso2.esb.integration.common.utils.ESBIntegrationTest;
+import org.wso2.connector.integration.test.base.ConnectorIntegrationTestBase;
 
+import java.io.File;
 import java.util.Properties;
 
-public class RMConnectorIntegrationTest extends ESBIntegrationTest {
-    private static final String CONNECTOR_NAME = "reliable-message";
-    private String reliableMessageConnectorFileName = "reliable-message-connector.zip";
-    private MediationLibraryUploaderStub mediationLibUploadStub = null;
-    private MediationLibraryAdminServiceStub adminServiceStub = null;
-    private String repoLocation = null;
-    private Properties reliableMessagingConnectorProperties = null;
+public class RMConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     private String pathToRequestsDirectory = null;
-    private AutomationContext automationContext = null;
+    private static final String CONNECTOR_PROPERTIES = "reliable";
+    private static final String CONNECTOR_NAME = "reliable-message-connector-1.0.0";
 
     @BeforeClass(alwaysRun = true)
     public void setEnvironment() throws Exception {
-        super.init();
-        automationContext = new AutomationContext("ESB", TestUserMode.SUPER_TENANT_ADMIN);
-        ConfigurationContextProvider configurationContextProvider = ConfigurationContextProvider.getInstance();
-        ConfigurationContext cc = configurationContextProvider.getConfigurationContext();
-        mediationLibUploadStub =
-                new MediationLibraryUploaderStub(cc, automationContext.getContextUrls().getBackEndUrl() + "MediationLibraryUploader");
-        AuthenticateStub.authenticateStub("admin", "admin", mediationLibUploadStub);
-        adminServiceStub =
-                new MediationLibraryAdminServiceStub(cc, automationContext.getContextUrls().getBackEndUrl() + "MediationLibraryAdminService");
-
-        AuthenticateStub.authenticateStub("admin", "admin", adminServiceStub);
+        init(CONNECTOR_NAME);
+        String repoLocation;
         if (System.getProperty("os.name").toLowerCase().contains("windows")) {
             repoLocation = System.getProperty("connector_repo").replace("/", "\\");
         } else {
             repoLocation = System.getProperty("connector_repo").replace("/", "/");
         }
-
-        ConnectorIntegrationUtil.uploadConnector(repoLocation, mediationLibUploadStub, reliableMessageConnectorFileName);
-        log.info("Sleeping for " + 30000 / 1000 + " seconds while waiting for synapse import");
-        Thread.sleep(30000);
-
-        adminServiceStub.updateStatus("{org.wso2.carbon.connector}" + CONNECTOR_NAME, CONNECTOR_NAME,
-                                      "org.wso2.carbon.connector", "enabled");
-
-        reliableMessagingConnectorProperties = ConnectorIntegrationUtil.getConnectorConfigProperties(CONNECTOR_NAME);
-        pathToRequestsDirectory = repoLocation + reliableMessagingConnectorProperties.getProperty("requestDirectoryPath");
-        String synapseConfigPath = reliableMessagingConnectorProperties.getProperty("synapseConfigDirectoryPath");
-        loadESBConfigurationFromClasspath(synapseConfigPath + "synapseRmConnectorConfig.xml");
+        Properties reliableMessagingConnectorProperties = ConnectorIntegrationUtil.getConnectorConfigProperties
+                (CONNECTOR_PROPERTIES);
+        pathToRequestsDirectory = repoLocation + reliableMessagingConnectorProperties.getProperty
+                ("requestDirectoryRelativePath");
     }
 
     @Test(enabled = true, description = "Send reliable message success request")
     public void sendRmEnableRequest() throws Exception {
-        String methodName = "rmsend";
+        String methodName = "reliable";
         String actualResponse = "Hello Gil";
         String pathToMessage = pathToRequestsDirectory + "greetMeRequest.xml";
+        File file = new File(pathToMessage);
         final String soapRequestString = ConnectorIntegrationUtil
-                .getFileContent(pathToMessage);
+                .getFileContent(file.getPath());
         OMElement omElement = ConnectorIntegrationUtil.sendXMLRequest(
-                getProxyServiceURLHttp(methodName), soapRequestString);
+                getProxyServiceURL(methodName), soapRequestString);
         Assert.assertEquals(omElement.getFirstElement().getText(), actualResponse, "Expected response not found");
     }
 }
