@@ -18,15 +18,15 @@
 
 package org.wso2.carbon.connector.integration.test.googleprediction;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.json.JSONObject;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.wso2.connector.integration.test.base.ConnectorIntegrationTestBase;
 import org.wso2.connector.integration.test.base.RestResponse;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class GooglePredictionConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     
@@ -45,7 +45,15 @@ public class GooglePredictionConnectorIntegrationTest extends ConnectorIntegrati
         init("googleprediction-connector-1.0.0");
         esbRequestHeadersMap.put("Content-Type", "application/json");
         apiRequestHeadersMap.putAll(esbRequestHeadersMap);
-        apiRequestHeadersMap.put("Authorization", "Bearer " + connectorProperties.getProperty("accessToken"));
+
+        String apiEndpointUrl = "https://www.googleapis.com/oauth2/v3/token?grant_type=refresh_token&client_id="+connectorProperties.getProperty("clientId")+
+                "&client_secret="+connectorProperties.getProperty("clientSecret")+"&refresh_token="+connectorProperties.getProperty("refreshToken");
+
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpointUrl, "POST", apiRequestHeadersMap);
+        final String accessToken = apiRestResponse.getBody().getString("access_token");
+        connectorProperties.put("accessToken", accessToken);
+        apiRequestHeadersMap.put("Authorization", "Bearer " + accessToken);
+        apiRequestHeadersMap.putAll(esbRequestHeadersMap);
     }
     
     /**

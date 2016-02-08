@@ -16,24 +16,61 @@
    specific language governing permissions and limitations
    under the License.
 -->
-<template name="init" xmlns="http://ws.apache.org/ns/synapse">
-	<parameter name="apiUrl" description="API Url for GooglePrediction" />
-	<parameter name="accessToken" description="The access token to authenticate to GooglePrediction using OAuth 2.0." />
-	<parameter name="project" description="The project available in GooglePrediction." />
 
-	<sequence>
-		<property name="uri.var.apiUrl" expression="$func:apiUrl" />
-		<property name="uri.var.accessToken" expression="$func:accessToken" />
-		<property name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))" scope="transport"
-			type="STRING" />
-		<property name="Content-Type" value="application/json" scope="transport" type="STRING" />
-		<property name="uri.var.project" expression="$func:project" />
+<template name="init" xmlns="http://ws.apache.org/ns/synapse"> <parameter name="refreshToken" description="Refresh Token"/>
+    <parameter name="clientId"
+               description="clientId of your App, given by YouTube when you registered your application"/>
+    <parameter name="clientSecret"
+               description="clientSecret of your App, given by YouTube when you registered your application"/>
+    <parameter name="apiUrl" description="API Url to access the endpoint."/>
+    <parameter name="accessToken" description="API Url to access the endpoint."/>
+    <parameter name="project" description="API Url to access the endpoint."/>
+    <parameter name="refreshToken" description="refreshToken to access the endpoint."/>
+    <parameter name="accessTokenRegistryPath" description="API Url to access the endpoint."/>
+    <sequence>
+        <property name="uri.var.refreshToken" expression="$func:refreshToken"/>
+        <property name="uri.var.clientId" expression="$func:clientId"/>
+        <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
+        <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
+        <property name="uri.var.project" expression="$func:project"/>
 
-		<!-- If the apiUrl is not specified, set the default value as https://www.googleapis.com -->
-		<filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
-			<then>
-				<property name="uri.var.apiUrl" value="https://www.googleapis.com" />
-			</then>
-		</filter>
-	</sequence>
+        <property name="uri.var.accessToken" expression="$func:accessToken"/>
+        <property name="uri.var.accessTokenRegistryPath" expression="$func:accessTokenRegistryPath"/>
+        <header name="Transfer-Encoding" action="remove" scope="transport"/>
+        <filter source="boolean($ctx:uri.var.accessTokenRegistryPath)" regex="false">
+            <then>
+                <property name="uri.var.accessTokenRegistryPath"
+                          value="connectors/GooglePrediction/accessToken"/>
+
+            </then>
+            <else>
+                <property name="uri.var.accessTokenRegistryPath"
+                          expression="$ctx:uri.var.accessTokenRegistryPath"/>
+            </else>
+        </filter>
+        <filter source="boolean($ctx:uri.var.accessToken)" regex="false">
+            <property name="uri.var.accessToken"
+                      expression="get-property('registry', $ctx:uri.var.accessTokenRegistryPath)"/>
+        </filter>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={+uri.var.accessToken}"/>
+            </endpoint>
+        </call>
+        <property name="error" expression="json-eval($.error)"/>
+        <filter source="boolean($ctx:uri.var.refreshToken) and boolean($ctx:uri.var.clientSecret) and boolean($ctx:uri.var.clientId)"
+                regex="true">
+            <then>
+                <filter source="$ctx:error='invalid_token' or $ctx:uri.var.accessToken=''"
+                        regex="true">
+                    <googleprediction.getAccessTokenByRefreshToken/>
+                    <property name="uri.var.accessToken"
+                              expression="json-eval($.access_token)"/>
+                </filter>
+            </then>
+        </filter>
+        <header name="Authorization" expression="fn:concat('Bearer ', $ctx:uri.var.accessToken)"
+                scope="transport"/>
+    </sequence>
 </template>
