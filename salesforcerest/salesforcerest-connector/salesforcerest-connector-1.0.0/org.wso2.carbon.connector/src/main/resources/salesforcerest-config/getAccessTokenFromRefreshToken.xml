@@ -26,20 +26,58 @@
                 }
             </format>
             <args>
-                <arg expression="get-property('uri.var.refreshToken')"/>
-                <arg expression="get-property('uri.var.clientSecret')"/>
-                <arg expression="get-property('uri.var.clientId')"/>
+                <arg expression="$ctx:uri.var.refreshToken"/>
+                <arg expression="$ctx:uri.var.clientSecret"/>
+                <arg expression="$ctx:uri.var.clientId"/>
             </args>
         </payloadFactory>
         <property name="Accept-Encoding" scope="transport" action="remove"/>
         <call>
             <endpoint>
                 <http method="post"
-                      uri-template="{+uri.var.hostName}/services/oauth2/token?grant_type=refresh_token&amp;client_id={uri.var.clientId}&amp;client_secret={uri.var.clientSecret}&amp;refresh_token={uri.var.refreshToken}&amp;format=json"/>
+                      uri-template="{uri.var.hostName}/services/oauth2/token?grant_type=refresh_token&amp;client_id={uri.var.clientId}&amp;client_secret={uri.var.clientSecret}&amp;refresh_token={uri.var.refreshToken}&amp;format=json"/>
             </endpoint>
         </call>
+        <!-- Setting the new access token to the property. -->
+        <property name="uri.var.accessToken" expression="json-eval($.access_token)"/>
+        <property name="uri.var.apiUrl" expression="json-eval($.instance_url)"/>
+        <property name="systemTime" expression="$ctx:SYSTEM_TIME"
+                  scope="default"/>
+        <script language="js">
+            <![CDATA[
+             importPackage(Packages.org.apache.synapse.config);
+             var newAccessToken = mc.getProperty('uri.var.accessToken');
+             var newSystemTime = mc.getProperty('systemTime');
+             var newApiUrl = mc.getProperty('uri.var.apiUrl');
+             var newAccessRegistryPath = mc.getProperty('uri.var.accessTokenRegistryPath');
+             var newTimeRegistryPath = mc.getProperty('uri.var.timeRegistryPath');
+             var newApiUrlRegistryPath = mc.getProperty('uri.var.apiUrlRegistryPath');
+             if(newAccessToken != null && newAccessToken != ''){
+                var existingAccessToken = mc.getConfiguration().getRegistry().getResource(newAccessRegistryPath);
+                var existingTime = mc.getConfiguration().getRegistry().getResource(newTimeRegistryPath);
+                if(existingAccessToken == null){
+                  // Create the registry entry if no such entry exists.
+                  mc.getConfiguration().getRegistry().newResource(newAccessRegistryPath, false);
+                  mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath, newAccessToken);
+                  mc.getConfiguration().getRegistry().newResource(newTimeRegistryPath, false);
+                  mc.getConfiguration().getRegistry().updateResource(newTimeRegistryPath, newSystemTime);
+                  mc.getConfiguration().getRegistry().newResource(newApiUrlRegistryPath, false);
+                  mc.getConfiguration().getRegistry().updateResource(newApiUrlRegistryPath, newApiUrl);
+                } else {
+                  // Update the registry entry if it already exists.
+                  mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath, newAccessToken);
+                  mc.getConfiguration().getRegistry().updateResource(newTimeRegistryPath, newSystemTime);
+                  mc.getConfiguration().getRegistry().updateResource(newApiUrlRegistryPath, newApiUrl);
+                }
+             }
+         ]]>
+        </script>
         <!-- Remove custom Headers from the API Response -->
         <header name="Cache-Control" action="remove" scope="transport"/>
         <header name="Pragma" action="remove" scope="transport"/>
     </sequence>
 </template>
+
+
+
+

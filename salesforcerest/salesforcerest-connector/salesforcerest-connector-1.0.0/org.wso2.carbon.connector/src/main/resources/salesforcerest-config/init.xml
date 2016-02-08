@@ -24,45 +24,86 @@
                description="Value of your secret key given when you registered your application with salesforce."/>
     <parameter name="clientId"
                description="Value of your API Key given when you registered your application with salesforce."/>
+    <parameter name="accessToken"
+               description="Value of the Access Token to access the api via request"/>
+    <parameter name="accessTokenRegistryPath" description="Registry Path of access token where access token is stored"/>
+    <parameter name="timeRegistryPath" description="Registry Path of time where time interval is stored"/>
+    <parameter name="apiUrlRegistryPath" description="Registry path of apiUrl where api Url is stored"/>
     <sequence>
         <property name="uri.var.apiVersion" expression="$func:apiVersion"/>
         <property name="uri.var.hostName" expression="$func:hostName"/>
         <property name="uri.var.refreshToken" expression="$func:refreshToken"/>
         <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
         <property name="uri.var.clientId" expression="$func:clientId"/>
-        <property name="uri.var.accessToken"
-                  expression="get-property('registry', 'connectors/salesforceRest/accessToken')"/>
-        <property name="systemTime" expression="get-property('SYSTEM_TIME')"
-                  scope="default"/>
-        <property name="registryTime"
-                  expression="get-property('registry', 'connectors/salesforceRest/time')"/>
-        <property name="uri.var.apiUrl"
-                  expression="get-property('registry', 'connectors/salesforceRest/apiUrl')"/>
-        <script language="js">
-            <![CDATA[
+        <property name="uri.var.accessToken" expression="$func:accessToken"/>
+        <property name="uri.var.accessTokenRegistryPath" expression="$func:accessTokenRegistryPath"/>
+        <property name="uri.var.timeRegistryPath" expression="$func:timeRegistryPath"/>
+        <property name="uri.var.apiUrlRegistryPath" expression="$func:apiUrlRegistryPath"/>
+
+        <filter source="boolean($ctx:uri.var.accessToken)" regex="false">
+            <property name="uri.var.accessToken"
+                      expression="get-property('registry', $ctx:uri.var.accessTokenRegistryPath)"/>
+        </filter>
+
+        <filter source="boolean($ctx:uri.var.accessTokenRegistryPath)" regex="false">
+            <then>
+                <property name="uri.var.accessTokenRegistryPath" value="connectors/salesforceREST/accessToken"/>
+
+            </then>
+            <else>
+                <property name="uri.var.accessTokenRegistryPath"
+                          expression="$ctx:uri.var.accessTokenRegistryPath"/>
+            </else>
+        </filter>
+        <filter source="boolean($ctx:uri.var.timeRegistryPath)" regex="false">
+            <then>
+                <property name="uri.var.timeRegistryPath" value="connectors/salesforceREST/time"/>
+
+            </then>
+            <else>
+                <property name="uri.var.timeRegistryPath"
+                          expression="$ctx:uri.var.timeRegistryPath"/>
+            </else>
+        </filter>
+        <filter source="boolean($ctx:uri.var.apiUrlRegistryPath)" regex="false">
+            <then>
+                <property name="uri.var.apiUrlRegistryPath" value="connectors/salesforceREST/apiUrl"/>
+
+            </then>
+            <else>
+                <property name="uri.var.apiUrlRegistryPath"
+                          expression="$ctx:uri.var.apiUrlRegistryPath"/>
+            </else>
+        </filter>
+        <filter source="boolean($ctx:uri.var.refreshToken) and boolean($ctx:uri.var.clientSecret) and boolean($ctx:uri.var.clientId)"
+                regex="true">
+            <then>
+                <property name="uri.var.accessToken"
+                          expression="get-property('registry', get-property('uri.var.accessTokenRegistryPath'))"/>
+                <property name="systemTime" expression="get-property('SYSTEM_TIME')"
+                          scope="default"/>
+                <property name="registryTime"
+                          expression="get-property('registry', $ctx:uri.var.timeRegistryPath)"/>
+                <property name="uri.var.apiUrl"
+                          expression="get-property('registry', get-property('uri.var.apiUrlRegistryPath'))"/>
+                <script language="js"><![CDATA[
                     var time1 = mc.getProperty("systemTime");
                     var time2 = mc.getProperty("registryTime");
                     var timeTaken = time1 - time2;
                     mc.setProperty("INTERVAL_TIME", timeTaken);
-                    ]]>
-        </script>
-        <!--If the access token is not in the registry(first call) or time interval less than 50 minutes , then get a new access token by calling getAccessTokenByRefreshToken method and store the time into registry-->
-        <filter source="$ctx:INTERVAL_TIME &gt;3000000 or $ctx:uri.var.accessToken=''"
-                regex="true">
-            <then>
-                <salesforcerest.getAccessTokenFromRefreshToken/>
-                <property name="uri.var.accessToken" expression="json-eval($.access_token)"/>
-                <property name="uri.var.apiUrl" expression="json-eval($.instance_url)"/>
-                <property name="connectors/salesforceRest/time"
-                          expression="$ctx:systemTime" scope="registry"/>
-                <property name="connectors/salesforceRest/accessToken"
-                          expression="$ctx:uri.var.accessToken" scope="registry"/>
-                <property name="connectors/salesforceRest/apiUrl"
-                          expression="$ctx:uri.var.apiUrl" scope="registry"/>
+                   ]]>
+                </script>
+                <!--If the access token is not in the registry(first call) or time interval less than 50 minutes , then get a new access token by calling getAccessTokenByRefreshToken method and store the time into registry-->
+                <filter source="$ctx:INTERVAL_TIME &gt;3000000 or $ctx:uri.var.accessToken=''"
+                        regex="true">
+                    <then>
+                        <salesforcerest.getAccessTokenFromRefreshToken/>
+                    </then>
+                </filter>
             </then>
         </filter>
         <header name="Authorization"
-                expression="fn:concat('Bearer ', $ctx:uri.var.accessToken )"
+                expression="fn:concat('Bearer  ', $ctx:uri.var.accessToken )"
                 scope="transport"/>
     </sequence>
 </template>
