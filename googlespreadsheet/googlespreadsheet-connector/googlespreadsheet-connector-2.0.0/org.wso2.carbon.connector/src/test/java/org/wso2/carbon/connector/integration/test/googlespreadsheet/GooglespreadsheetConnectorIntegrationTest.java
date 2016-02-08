@@ -22,9 +22,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import javax.xml.xpath.*;
+
 import org.apache.axiom.om.OMElement;
+
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
+
 import org.json.JSONObject;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -32,10 +35,12 @@ import org.testng.annotations.Test;
 import org.wso2.connector.integration.test.base.ConnectorIntegrationTestBase;
 import org.wso2.connector.integration.test.base.RestResponse;
 import org.xml.sax.SAXException;
+
 public class GooglespreadsheetConnectorIntegrationTest extends ConnectorIntegrationTestBase {
     private Map<String, String> esbRequestHeadersMap = new HashMap<String, String>();
     private Map<String, String> apiRequestHeadersMap = new HashMap<String, String>();
     private String title;
+    private String apiEndpointUrl;
 
     /**
      * Set up the environment.
@@ -44,11 +49,13 @@ public class GooglespreadsheetConnectorIntegrationTest extends ConnectorIntegrat
     public void setEnvironment() throws Exception {
         init("googlespreadsheet-connector-2.0.0");
         esbRequestHeadersMap.put("Content-Type", "application/json");
-        esbRequestHeadersMap.put("Action", "getAccessTokenFromRefreshToken");
-        RestResponse<JSONObject> esbRestResponse =
-                sendJsonRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "getAccessToken.json");
-        connectorProperties.setProperty("accessToken", esbRestResponse.getBody().getString("access_token"));
-        apiRequestHeadersMap.put("Authorization", "Bearer " + connectorProperties.getProperty("accessToken"));
+        apiRequestHeadersMap.put("Content-Type", "application/json");
+        apiEndpointUrl = "https://www.googleapis.com/oauth2/v3/token?grant_type=refresh_token&client_id=" + connectorProperties.getProperty("clientId") +
+                "&client_secret=" + connectorProperties.getProperty("clientSecret") + "&refresh_token=" + connectorProperties.getProperty("refreshToken");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndpointUrl, "POST", apiRequestHeadersMap);
+        final String accessToken = apiRestResponse.getBody().getString("access_token");
+        connectorProperties.put("accessToken", accessToken);
+        apiRequestHeadersMap.put("Authorization", "Bearer " + accessToken);
         apiRequestHeadersMap.putAll(esbRequestHeadersMap);
     }
 

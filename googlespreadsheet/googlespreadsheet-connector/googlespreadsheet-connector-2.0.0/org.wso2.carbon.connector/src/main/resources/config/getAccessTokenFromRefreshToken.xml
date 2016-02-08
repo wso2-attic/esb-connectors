@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_understanding_refresh_token_oauth.htm -->
+<template name="getAccessTokenFromRefreshToken" xmlns="http://ws.apache.org/ns/synapse">
+    <sequence>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "refresh_token": "$1",
+                "grant_type": "refresh_token",
+                "client_secret": "$2",
+                "client_id": "$3"
+                }
+            </format>
+            <args>
+                <arg expression="$ctx:uri.var.refreshToken"/>
+                <arg expression="$ctx:uri.var.clientSecret"/>
+                <arg expression="$ctx:uri.var.clientId"/>
+            </args>
+        </payloadFactory>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <!-- Remove custom Headers from the API Response -->
+        <header name="Content-Encoding" action="remove" scope="transport"/>
+        <property name="REQUEST_HOST_HEADER" scope="axis2" value="www.googleapis.com"/>
+        <header name="Transfer-Encoding" action="remove" scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="https://www.googleapis.com/oauth2/v3/token?grant_type=refresh_token&amp;client_id={+uri.var.clientId}&amp;client_secret={+uri.var.clientSecret}&amp;refresh_token={+uri.var.refreshToken}"/>
+            </endpoint>
+        </call>
+        <!-- Setting the new access token to the property. -->
+        <property name="uri.var.accessToken" expression="json-eval($.access_token)"/>
+        <script language="js">
+            <![CDATA[
+            importPackage(Packages.org.apache.synapse.config);
+            var newAccessToken = mc.getProperty('uri.var.accessToken');
+            var newAccessRegistryPath = mc.getProperty('uri.var.accessTokenRegistryPath');
+            if(newAccessToken != null && newAccessToken != ''){
+            var existingAccessToken =mc.getConfiguration().getRegistry().getResource(newAccessRegistryPath);
+            if(existingAccessToken == null){
+            // Create the registry entry if no such entry exists.
+            mc.getConfiguration().getRegistry().newResource(newAccessRegistryPath,false);
+            mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath,newAccessToken);
+            } else {
+            // Update the registry entry if it already exists.
+            mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath,newAccessToken);
+        }
+        }
+        ]]>
+        </script>
+        <!-- store the new accessToken into registry. -->
+        <header name="Authorization" expression="fn:concat('Bearer ', $ctx:uri.var.accessToken)"
+                scope="transport"/>
+        <header name="Cache-Control" action="remove" scope="transport"/>
+        <header name="Pragma" action="remove" scope="transport"/>
+    </sequence>
+</template>
+
