@@ -78,7 +78,12 @@ STEPS:
 	 - trainModuleTimeout=Adjust according to size of the file, since the system takes time to train the module.
 	 - modelId=Per each execution iteration this value should be changed.
 
-	 [Note: Access token expires with in 3600 seconds. Make sure that your access token has not been expired before executing integration test.] 
+	  Note: Access token expires with in 3600 seconds.
+	  You can provide the following in googleprediction.properties so that it will regenerate the access token once its expired.
+	  refreshToken - the value got in step 5.
+	  clientSecret - the value got in step 4
+	  clientId - the value got in step 4
+
 
   7. Navigate to "{GOOGLEPREDICTION_CONNECTOR_HOME}/googleprediction-connector/googleprediction-connector-1.0.0/org.wso2.carbon.connector/" and run the following command.
       	$ mvn clean install
