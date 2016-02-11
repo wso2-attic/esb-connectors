@@ -25,7 +25,7 @@
     <parameter name="clientSecret"
                description="clientSecret of your App, given by google console when you registered your application"/>
     <parameter name="refreshToken" description="Refresh Token"/>
-    <parameter name="accessTokenRegistryPath" description="API Url to access the endpoint."/>
+    <parameter name="accessTokenRegistryPath" description="Registry path ."/>
     <sequence>
         <property name="uri.var.accessToken" expression="$func:accessToken"/>
         <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
@@ -33,8 +33,7 @@
         <property name="uri.var.refreshToken" expression="$func:refreshToken"/>
         <property name="uri.var.clientId" expression="$func:clientId"/>
         <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
-        <property name="uri.var.accessTokenRegistryPath"
-                  expression="$func:accessTokenRegistryPath"/>
+        <property name="uri.var.accessTokenRegistryPath" expression="$func:accessTokenRegistryPath"/>
 
         <filter source="boolean($ctx:uri.var.refreshToken) and boolean($ctx:uri.var.clientSecret) and boolean($ctx:uri.var.clientId) and boolean($ctx:uri.var.accessToken)"
                 regex="true">
@@ -55,15 +54,18 @@
                     <then>
                         <script language="js">
                             <![CDATA[
-                           importPackage(Packages.org.apache.synapse.config);
-                           var newAccess = mc.getProperty('uri.var.accessToken');
-                           var newAccessRegistryPath = mc.getProperty('uri.var.accessTokenRegistryPath');
-                           if(newAccess != null && newAccess != ''){
-                               //Create the registry entry if no such entry exists.
-                               mc.getConfiguration().getRegistry().newResource(newAccessRegistryPath,false);
-                               mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath,newAccess);
-                           }
-                           ]]>
+                            importPackage(Packages.org.apache.synapse.config);
+                                var newAccessToken = mc.getProperty('uri.var.accessToken');
+                                var newAccessRegistryPath = mc.getProperty('uri.var.accessTokenRegistryPath');
+                                if(newAccessToken != null && newAccessToken != ''){
+                                    var existingAccessToken =mc.getConfiguration().getRegistry().getResource(newAccessRegistryPath);
+                                    if(existingAccessToken == null){
+                                        // Create the registry entry if no such entry exists.
+                                        mc.getConfiguration().getRegistry().newResource(newAccessRegistryPath,false);
+                                    }
+                                    mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath,newAccessToken);
+                                    }
+                             ]]>
                         </script>
                     </then>
                     <else>
