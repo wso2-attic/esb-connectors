@@ -94,6 +94,7 @@ Steps to follow in setting integration test.
        xxxxiv)sobject1                       -  The type of Sobject to create mutiple records
        xxxxv)workflowRuleId                  -  The work flow Id of a specific rule for specific rule
        xxxxvi)registryPath                   -  Registry Path of the Connector where the values are stored
+       xxxxvii)intervalTime                  -  The Interval time to check the accessToken validity
 Properties iii), vii) and xiv) needs to be changed before running the integration test each time.
 You can put the value for nextRecordsUrl(xviii) property when the results/response of query or queryAll have too large of records only. If you have too large of records only you can get passed integration test at queryMore and queryAllMore.
 Don't put the same value to xiv) and (xiii, xvi).
