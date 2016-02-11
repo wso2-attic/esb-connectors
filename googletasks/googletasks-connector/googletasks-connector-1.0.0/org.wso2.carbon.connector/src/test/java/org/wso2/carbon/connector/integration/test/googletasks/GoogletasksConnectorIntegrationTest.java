@@ -1,13 +1,13 @@
 /**
- * Copyright (c) 2005-2010, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
- *
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * <p/>
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -18,13 +18,6 @@
 
 package org.wso2.carbon.connector.integration.test.googletasks;
 
-import java.net.URL;
-import java.util.Properties;
-
-import javax.activation.DataHandler;
-
-import org.wso2.carbon.connector.integration.test.common.ConnectorIntegrationUtil;
-import org.wso2.carbon.connector.integration.test.common.RestResponse;
 import org.apache.axis2.context.ConfigurationContext;
 import org.json.JSONObject;
 import org.testng.Assert;
@@ -33,36 +26,30 @@ import org.testng.annotations.Test;
 import org.wso2.carbon.automation.api.clients.proxy.admin.ProxyServiceAdminClient;
 import org.wso2.carbon.automation.api.clients.utils.AuthenticateStub;
 import org.wso2.carbon.automation.utils.axis2client.ConfigurationContextProvider;
+import org.wso2.carbon.connector.integration.test.common.ConnectorIntegrationUtil;
+import org.wso2.carbon.connector.integration.test.common.RestResponse;
 import org.wso2.carbon.esb.ESBIntegrationTest;
 import org.wso2.carbon.mediation.library.stub.MediationLibraryAdminServiceStub;
 import org.wso2.carbon.mediation.library.stub.upload.MediationLibraryUploaderStub;
 
+import javax.activation.DataHandler;
+import java.net.URL;
+import java.util.Properties;
+
 public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
 
     private static final String CONNECTOR_NAME = "googletasks";
-
     private MediationLibraryUploaderStub mediationLibUploadStub = null;
-
     private MediationLibraryAdminServiceStub adminServiceStub = null;
-
     private ProxyServiceAdminClient proxyAdmin;
-
     private String repoLocation = null;
-
     private String googletasksConnectorFileName = CONNECTOR_NAME + "-connector-1.0.0.zip";
-
     private Properties googletasksConnectorProperties = null;
-
     private String pathToProxiesDirectory = null;
-
     private String pathToRequestsDirectory = null;
-
     private String accessToken = null;
-
     private JSONObject parameters = null;
-
     private String taskListId = null;
-
     private String taskId = null;
 
     @BeforeClass(alwaysRun = true)
@@ -148,7 +135,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for listTaskLists method.
      */
-    @Test(groups = { "wso2.esb" }, description = "googletasks {listTaskLists} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, description = "googletasks {listTaskLists} integration test with mandatory parameters.")
     public void testListTaskListsWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "listTaskLists_mandatory.txt";
@@ -181,7 +168,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listTaskLists method.
      */
-    @Test(groups = { "wso2.esb" }, description = "googletasks {listTaskLists} integration test with optional parameters.")
+    @Test(groups = {"wso2.esb"}, description = "googletasks {listTaskLists} integration test with optional parameters.")
     public void testListTaskListsWithOptionalParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "listTaskLists_optional.txt";
@@ -217,7 +204,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative Optional parameter test case for listTaskLists method.
      */
-    @Test(groups = { "wso2.esb" }, description = "googletasks {listTaskLists} integration test with optional parameters.")
+    @Test(groups = {"wso2.esb"}, description = "googletasks {listTaskLists} integration test with optional parameters.")
     public void testListTaskListsWithNegativeOptionalParameters() throws Exception {
 
         String jsonRequestFilePath =
@@ -259,7 +246,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for insertTaskList method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 1, description = "googletasks {insertTaskList} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 1, description = "googletasks {insertTaskList} integration test with mandatory parameters.")
     public void testInsertTaskListWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "insertTaskList_mandatory.txt";
@@ -295,7 +282,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative parameter test case for insertTaskList method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 1, description = "googletasks {insertTaskList} integration test with negative parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 1, description = "googletasks {insertTaskList} integration test with negative parameters.")
     public void testInsertTaskListWithNegativeParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "insertTaskList_negative.txt";
@@ -322,7 +309,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for getTaskList method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 2, description = "googletasks {getTaskList} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 2, description = "googletasks {getTaskList} integration test with mandatory parameters.")
     public void testGetTaskListWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "getTaskList_mandatory.txt";
@@ -354,7 +341,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative parameter test case for getTaskList method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 2, description = "googletasks {getTaskList} integration test with negative parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 2, description = "googletasks {getTaskList} integration test with negative parameters.")
     public void testGetTaskListWithNegativeParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "getTaskList_negative.txt";
@@ -393,7 +380,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for updateTaskList method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 2, description = "googletasks {updateTaskList} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 2, description = "googletasks {updateTaskList} integration test with mandatory parameters.")
     public void testUpdateTaskListWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "updateTaskList_mandatory.txt";
@@ -426,7 +413,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative parameter test case for updateTaskList method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 2, description = "googletasks {updateTaskList} integration test with negative parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 2, description = "googletasks {updateTaskList} integration test with negative parameters.")
     public void testUpdateTaskListWithNegativeParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "updateTaskList_negative.txt";
@@ -463,7 +450,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for patchTaskList method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 3, description = "googletasks {patchTaskList} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 3, description = "googletasks {patchTaskList} integration test with mandatory parameters.")
     public void testPatchTaskListWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "patchTaskList_mandatory.txt";
@@ -492,7 +479,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative parameter test case for patchTaskList method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 3, description = "googletasks {patchTaskList} integration test with negative parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 3, description = "googletasks {patchTaskList} integration test with negative parameters.")
     public void testPatchTaskListWithNegativeParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "patchTaskList_negative.txt";
@@ -529,7 +516,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for deleteTaskList method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 10, description = "googletasks {deleteTaskList} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 10, description = "googletasks {deleteTaskList} integration test with mandatory parameters.")
     public void testDeleteTaskListWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "deleteTaskList_mandatory.txt";
@@ -563,7 +550,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative parameter test case for deleteTaskList method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 10, description = "googletasks {deleteTaskList} integration test with negative parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 10, description = "googletasks {deleteTaskList} integration test with negative parameters.")
     public void testDeleteTaskListWithNegativeParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "deleteTaskList_negative.txt";
@@ -604,7 +591,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for listTasks method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 3, description = "googletasks {listTasks} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 3, description = "googletasks {listTasks} integration test with mandatory parameters.")
     public void testListTasksWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "listTasks_mandatory.txt";
@@ -638,7 +625,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative parameter test case for listTasks method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 3, description = "googletasks {listTasks} integration test with negative parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 3, description = "googletasks {listTasks} integration test with negative parameters.")
     public void testListTasksWithNegativeParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "listTasks_negative.txt";
@@ -676,7 +663,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Optional parameter test case for listTasks method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 3, description = "googletasks {listTasks} integration test with optional parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 3, description = "googletasks {listTasks} integration test with optional parameters.")
     public void testListTasksWithOptionalParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "listTasks_optional.txt";
@@ -719,7 +706,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative Optional parameter test case for listTasks method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 3, description = "googletasks {listTasks} integration test with negative optional parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 3, description = "googletasks {listTasks} integration test with negative optional parameters.")
     public void testListTasksWithNegativeOptionalParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "listTasks_negative_optional.txt";
@@ -765,7 +752,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for insertTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 4, description = "googletasks {insertTask} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 4, description = "googletasks {insertTask} integration test with mandatory parameters.")
     public void testInsertTaskWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "insertTask_mandatory.txt";
@@ -830,7 +817,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Optional parameter test case for insertTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 4, description = "googletasks {insertTask} integration test with optional parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 4, description = "googletasks {insertTask} integration test with optional parameters.")
     public void testInsertTaskWithOptionalParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "insertTask_optional.txt";
@@ -870,7 +857,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative Optional parameter test case for insertTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 4, description = "googletasks {insertTask} integration test with negative optional parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 4, description = "googletasks {insertTask} integration test with negative optional parameters.")
     public void testInsertTaskWithNegativeOptionalParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "insertTask_negative_optional.txt";
@@ -897,7 +884,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for getTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 5, description = "googletasks {getTask} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 5, description = "googletasks {getTask} integration test with mandatory parameters.")
     public void testGetTaskWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "getTask_mandatory.txt";
@@ -933,7 +920,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative parameter test case for getTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 5, description = "googletasks {getTask} integration test with negative parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 5, description = "googletasks {getTask} integration test with negative parameters.")
     public void testGetTaskWithNegativeParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "getTask_negative.txt";
@@ -971,7 +958,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for clearTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 5, description = "googletasks {clearTask} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 5, description = "googletasks {clearTask} integration test with mandatory parameters.")
     public void testClearTaskWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "clearTask_mandatory.txt";
@@ -997,7 +984,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative parameter test case for clearTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 5, description = "googletasks {clearTask} integration test with negative parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 5, description = "googletasks {clearTask} integration test with negative parameters.")
     public void testClearTaskWithNegativeParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "clearTask_negative.txt";
@@ -1024,7 +1011,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for moveTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 6, description = "googletasks {moveTask} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 6, description = "googletasks {moveTask} integration test with mandatory parameters.")
     public void testMoveTaskWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "moveTask_mandatory.txt";
@@ -1050,7 +1037,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative parameter test case for moveTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 6, description = "googletasks {moveTask} integration test with negative parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 6, description = "googletasks {moveTask} integration test with negative parameters.")
     public void testMoveTaskWithNegativeParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "moveTask_negative.txt";
@@ -1076,7 +1063,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Optional parameter test case for moveTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 6, description = "googletasks {moveTask} integration test with optional parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 6, description = "googletasks {moveTask} integration test with optional parameters.")
     public void testMoveTaskWithOptionalParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "moveTask_optional.txt";
@@ -1102,7 +1089,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative Optional parameter test case for moveTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 6, description = "googletasks {moveTask} integration test with negative optional parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 6, description = "googletasks {moveTask} integration test with negative optional parameters.")
     public void testMoveTaskWithNegativeOptionalParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "moveTask_negative_optional.txt";
@@ -1128,7 +1115,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for updateTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 7, description = "googletasks {updateTask} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 7, description = "googletasks {updateTask} integration test with mandatory parameters.")
     public void testUpdateTaskWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "updateTask_mandatory.txt";
@@ -1164,7 +1151,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative parameter test case for updateTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 7, description = "googletasks {updateTask} integration test with negative parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 7, description = "googletasks {updateTask} integration test with negative parameters.")
     public void testUpdateTaskWithNegativeParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "updateTask_negative.txt";
@@ -1191,7 +1178,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Optional parameter test case for updateTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 7, description = "googletasks {updateTask} integration test with optional parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 7, description = "googletasks {updateTask} integration test with optional parameters.")
     public void testUpdateTaskWithOptionalParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "updateTask_optional.txt";
@@ -1227,7 +1214,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative optional parameter test case for updateTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 7, description = "googletasks {updateTask} integration test with negative optional parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 7, description = "googletasks {updateTask} integration test with negative optional parameters.")
     public void testUpdateTaskWithNegativeOptionalParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "updateTask_negative_optional.txt";
@@ -1255,7 +1242,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for patchTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 8, description = "googletasks {patchTask} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 8, description = "googletasks {patchTask} integration test with mandatory parameters.")
     public void testPatchTaskWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "patchTask_mandatory.txt";
@@ -1291,7 +1278,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative parameter test case for patchTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 8, description = "googletasks {updateTask} integration test with negative parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 8, description = "googletasks {updateTask} integration test with negative parameters.")
     public void testPatchTaskWithNegativeParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "patchTask_negative.txt";
@@ -1321,7 +1308,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Optional parameter test case for patchTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 8, description = "googletasks {patchTask} integration test with optional parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 8, description = "googletasks {patchTask} integration test with optional parameters.")
     public void testPatchTaskWithOptionalParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "patchTask_optional.txt";
@@ -1357,7 +1344,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative parameter test case for patchTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 8, description = "googletasks {updateTask} integration test with negative parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 8, description = "googletasks {updateTask} integration test with negative parameters.")
     public void testPatchTaskWithNegativeOptionalParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "patchTask_negative_optional.txt";
@@ -1385,7 +1372,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Mandatory parameter test case for deleteTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 9, description = "googletasks {deleteTask} integration test with mandatory parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 9, description = "googletasks {deleteTask} integration test with mandatory parameters.")
     public void testDeleteTaskWithMandatoryParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "deleteTask_mandatory.txt";
@@ -1420,7 +1407,7 @@ public class GoogletasksConnectorIntegrationTest extends ESBIntegrationTest {
     /**
      * Negative parameter test case for deleteTask method.
      */
-    @Test(groups = { "wso2.esb" }, priority = 9, description = "googletasks {deleteTask} integration test with negative parameters.")
+    @Test(groups = {"wso2.esb"}, priority = 9, description = "googletasks {deleteTask} integration test with negative parameters.")
     public void testDeleteTaskWithNegativeParameters() throws Exception {
 
         String jsonRequestFilePath = pathToRequestsDirectory + "deleteTask_negative.txt";
