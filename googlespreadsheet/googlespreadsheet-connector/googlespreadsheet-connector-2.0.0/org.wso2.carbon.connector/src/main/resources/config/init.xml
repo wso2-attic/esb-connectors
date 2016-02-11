@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~ Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
   ~
   ~ WSO2 Inc. licenses this file to you under the Apache License,
   ~ Version 2.0 (the "License"); you may not use this file except
@@ -19,28 +19,80 @@
 <template name="init" xmlns="http://ws.apache.org/ns/synapse">
     <parameter name="accessToken" description="Access Token if a client account is being used"/>
     <parameter name="apiVersion" description="The Googlespreadsheet API request version."/>
+    <parameter name="apiUrl" description="API Url to access the endpoint."/>
+    <parameter name="clientId"
+               description="clientId of your App, given by google console when you registered your application"/>
+    <parameter name="clientSecret"
+               description="clientSecret of your App, given by google console when you registered your application"/>
+    <parameter name="refreshToken" description="Refresh token to exchange with an access token."/>
+    <parameter name="accessTokenRegistryPath" description="API Url to access the endpoint."/>
     <sequence>
-        <property name="uri.var.accessToken" expression="$func:accessToken" scope="default"
-                  type="STRING"/>
-        <property name="uri.var.apiVersion" expression="$func:apiVersion" scope="default"
-                  type="STRING"/>
-        <property name="uri.var.apiUrl" value="https://spreadsheets.google.com"/>
+        <property name="uri.var.accessToken" expression="$func:accessToken"/>
+        <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
         <property name="uri.var.apiVersion" expression="$func:apiVersion"/>
+        <property name="uri.var.refreshToken" expression="$func:refreshToken"/>
+        <property name="uri.var.clientId" expression="$func:clientId"/>
+        <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
+        <property name="uri.var.accessTokenRegistryPath"
+                  expression="$func:accessTokenRegistryPath"/>
         <property name="uri.var.appVersionId" value=""/>
-
-        <filter xpath="(not(get-property('uri.var.apiVersion') = '' or (not(string(get-property('uri.var.apiVersion'))))))">
+        <filter xpath="boolean($ctx:uri.var.apiVersion)"  regex="true">>
             <then>
                 <property name="uri.var.appVersionId"
-                          expression="fn:concat(get-property('uri.var.appVersionId'),'v=',get-property('uri.var.apiVersion'))"/>
+                          expression="fn:concat(ctx:uri.var.appVersionId,'v=',ctx:uri.var.apiVersion)"/>
             </then>
         </filter>
-        <header name="Authorization"
-                expression="fn:concat('Bearer ',get-property('uri.var.accessToken'))"
+        <filter source="boolean($ctx:uri.var.refreshToken) and boolean($ctx:uri.var.clientSecret) and boolean($ctx:uri.var.clientId) and boolean($ctx:uri.var.accessToken)"
+                regex="true">
+            <then>
+                <filter source="boolean($ctx:uri.var.accessTokenRegistryPath)" regex="false">
+                    <then>
+                        <property name="uri.var.accessTokenRegistryPath"
+                                  value="connectors/Google/accessToken"/>
+                    </then>
+                    <else>
+                        <property name="uri.var.accessTokenRegistryPath"
+                                  expression="$ctx:uri.var.accessTokenRegistryPath"/>
+                    </else>
+                </filter>
+                <property name="uri.var.accessToken.reg"
+                          expression="get-property('registry', $ctx:uri.var.accessTokenRegistryPath)"/>
+                <filter source="$ctx:uri.var.accessToken.reg=''" regex="true">
+                    <then>
+                        <script language="js">
+                            <![CDATA[
+                            importPackage(Packages.org.apache.synapse.config);
+                            var newAccess = mc.getProperty('uri.var.accessToken');
+                            var newAccessRegistryPath = mc.getProperty('uri.var.accessTokenRegistryPath');
+                            if(newAccess != null && newAccess != ''){
+                                //Create the registry entry if no such entry exists.
+                                mc.getConfiguration().getRegistry().newResource(newAccessRegistryPath,false);
+                                mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath,newAccess);
+                            }
+                            ]]>
+                        </script>
+                    </then>
+                    <else>
+                        <property name="uri.var.accessToken" expression="$ctx:uri.var.accessToken.reg"/>
+                    </else>
+                </filter>
+                <header name="Transfer-Encoding" action="remove" scope="transport"/>
+                <call>
+                    <endpoint>
+                        <http method="get"
+                              uri-template="https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={+uri.var.accessToken}"/>
+                    </endpoint>
+                </call>
+                <property name="error" expression="json-eval($.error)"/>
+                <filter source="$ctx:error='invalid_token'"
+                        regex="true">
+                    <googlespreadsheet.getAccessTokenFromRefreshToken/>
+                    <property name="uri.var.accessToken"
+                              expression="json-eval($.access_token)"/>
+                </filter>
+            </then>
+        </filter>
+        <header name="Authorization" expression="fn:concat('Bearer ', $ctx:uri.var.accessToken)"
                 scope="transport"/>
     </sequence>
 </template>
-
-
-
-
-
