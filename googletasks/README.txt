@@ -9,7 +9,7 @@ Pre-requisites:
 Tested Platform: 
 
  - Ubuntu 13.04 64bit, Mac OSx 10.9
- - WSO2 ESB 4.9.0-ALPHA and 4.9.0
+ - WSO2 ESB 4.9.0
  - Java 1.7
 
 STEPS:
