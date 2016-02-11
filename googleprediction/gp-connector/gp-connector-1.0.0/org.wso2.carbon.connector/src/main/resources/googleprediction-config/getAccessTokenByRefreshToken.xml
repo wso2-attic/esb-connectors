@@ -16,8 +16,17 @@
    specific language governing permissions and limitations
    under the License.
 -->
-<template name="getAccessTokenByRefreshToken" xmlns="http://ws.apache.org/ns/synapse">
+<!-- Method Documentation URL: https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_understanding_refresh_token_oauth.htm -->
+<template name="getAccessTokenFromRefreshToken" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="clientId"
+               description="clientId of your App, given by google console when you registered your application"/>
+    <parameter name="clientSecret"
+               description="clientSecret of your App, given by google console when you registered your application"/>
+    <parameter name="refreshToken" description="Refresh Token"/>
     <sequence>
+        <property name="uri.var.refreshToken" expression="$func:refreshToken"/>
+        <property name="uri.var.clientId" expression="$func:clientId"/>
+        <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
         <payloadFactory media-type="json">
             <format>
                 {
@@ -49,24 +58,25 @@
         <script language="js">
             <![CDATA[
             importPackage(Packages.org.apache.synapse.config);
-                var newAccessToken = mc.getProperty('uri.var.accessToken');
-                var newAccessRegistryPath = mc.getProperty('uri.var.accessTokenRegistryPath');
-                    if(newAccessToken != null && newAccessToken != ''){
-                    var existingAccessToken =mc.getConfiguration().getRegistry().getResource(newAccessRegistryPath);
-                        if(existingAccessToken == null){
-                            // Create the registry entry if no such entry exists.
-                            mc.getConfiguration().getRegistry().newResource(newAccessRegistryPath,false);
-                            mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath,newAccessToken);
-                        } else {
-                            // Update the registry entry if it already exists.
-                            mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath,newAccessToken);
-                        }
-            }
-            ]]>
+            var newAccessToken = mc.getProperty('uri.var.accessToken');
+            var newAccessRegistryPath = mc.getProperty('uri.var.accessTokenRegistryPath');
+            if(newAccessToken != null && newAccessToken != ''){
+            var existingAccessToken =mc.getConfiguration().getRegistry().getResource(newAccessRegistryPath);
+            if(existingAccessToken == null){
+            // Create the registry entry if no such entry exists.
+            mc.getConfiguration().getRegistry().newResource(newAccessRegistryPath,false);
+            mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath,newAccessToken);
+            } else {
+            // Update the registry entry if it already exists.
+            mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath,newAccessToken);
+        }
+        }
+        ]]>
         </script>
         <!-- store the new accessToken into registry. -->
+        <header name="Authorization" expression="fn:concat('Bearer ', $ctx:uri.var.accessToken)"
+                scope="transport"/>
         <header name="Cache-Control" action="remove" scope="transport"/>
         <header name="Pragma" action="remove" scope="transport"/>
     </sequence>
 </template>
-
