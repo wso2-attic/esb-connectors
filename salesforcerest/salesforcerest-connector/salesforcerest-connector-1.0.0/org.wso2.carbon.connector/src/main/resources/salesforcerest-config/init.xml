@@ -29,6 +29,7 @@
     <parameter name="apiUrl" description="The instance URL for your organization"/>
     <parameter name="registryPath"
                description="Registry Path of the Connector where the values are stored"/>
+    <parameter name="intervalTime" description="The Interval time to check the accessToken validity"/>
     <sequence>
         <property name="uri.var.accessToken" expression="$func:accessToken"/>
         <property name="uri.var.apiVersion" expression="$func:apiVersion"/>
@@ -38,10 +39,17 @@
         <property name="uri.var.clientId" expression="$func:clientId"/>
         <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
         <property name="uri.var.registryPath" expression="$func:registryPath"/>
+        <property name="uri.var.intervalTime" expression="$func:intervalTime"/>
 
         <filter source="boolean($ctx:uri.var.refreshToken) and boolean($ctx:uri.var.clientSecret) and boolean($ctx:uri.var.clientId) and boolean($ctx:uri.var.accessToken)"
                 regex="true">
             <then>
+                <filter source="boolean($ctx:uri.var.intervalTime)" regex="false">
+                    <then>
+                        <property name="uri.var.intervalTime"
+                                  value="3000000"/>
+                    </then>
+                </filter>
                 <filter source="boolean(get-property('uri.var.registryPath'))" regex="true">
                     <then>
                         <property name="uri.var.accessTokenRegistryPath"
@@ -88,7 +96,7 @@
                    ]]>
                 </script>
                 <!--If the access token is not in the registry(first call) or time interval less than 50 minutes , then get a new access token by calling getAccessTokenByRefreshToken method and store the time into registry-->
-                <filter source="$ctx:INTERVAL_TIME &gt;3000000 or $ctx:uri.var.accessToken=''"
+                <filter source="$ctx:INTERVAL_TIME &gt;$ctx:uri.var.intervalTime or $ctx:uri.var.accessToken=''"
                         regex="true">
                     <then>
                         <salesforcerest.getAccessTokenFromRefreshToken/>
