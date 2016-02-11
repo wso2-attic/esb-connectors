@@ -16,7 +16,15 @@
    under the License.
 -->
 <template name="getAccessTokenFromRefreshToken" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="refreshToken" description="value of the refresh token."/>
+    <parameter name="clientSecret"
+               description="Value of your secret key given when you registered your application with salesforce."/>
+    <parameter name="clientId"
+               description="Value of your API Key given when you registered your application with salesforce."/>
     <sequence>
+        <property name="uri.var.refreshToken" expression="$func:refreshToken"/>
+        <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
+        <property name="uri.var.clientId" expression="$func:clientId"/>
         <payloadFactory media-type="json">
             <format>
                 {
@@ -48,10 +56,8 @@
              importPackage(Packages.org.apache.synapse.config);
              var newAccessToken = mc.getProperty('uri.var.accessToken');
              var newSystemTime = mc.getProperty('systemTime');
-             var newApiUrl = mc.getProperty('uri.var.apiUrl');
              var newAccessRegistryPath = mc.getProperty('uri.var.accessTokenRegistryPath');
              var newTimeRegistryPath = mc.getProperty('uri.var.timeRegistryPath');
-             var newApiUrlRegistryPath = mc.getProperty('uri.var.apiUrlRegistryPath');
              if(newAccessToken != null && newAccessToken != ''){
                 var existingAccessToken = mc.getConfiguration().getRegistry().getResource(newAccessRegistryPath);
                 var existingTime = mc.getConfiguration().getRegistry().getResource(newTimeRegistryPath);
@@ -61,13 +67,10 @@
                   mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath, newAccessToken);
                   mc.getConfiguration().getRegistry().newResource(newTimeRegistryPath, false);
                   mc.getConfiguration().getRegistry().updateResource(newTimeRegistryPath, newSystemTime);
-                  mc.getConfiguration().getRegistry().newResource(newApiUrlRegistryPath, false);
-                  mc.getConfiguration().getRegistry().updateResource(newApiUrlRegistryPath, newApiUrl);
                 } else {
                   // Update the registry entry if it already exists.
                   mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath, newAccessToken);
                   mc.getConfiguration().getRegistry().updateResource(newTimeRegistryPath, newSystemTime);
-                  mc.getConfiguration().getRegistry().updateResource(newApiUrlRegistryPath, newApiUrl);
                 }
              }
          ]]>

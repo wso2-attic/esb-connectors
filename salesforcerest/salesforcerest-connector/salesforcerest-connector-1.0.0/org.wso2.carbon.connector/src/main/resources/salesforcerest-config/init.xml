@@ -17,6 +17,8 @@
   ~ under the License.
   -->
 <template name="init" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="accessToken"
+               description="Value of the Access Token to access the api via request"/>
     <parameter name="apiVersion" description="Access token of the organizational account."/>
     <parameter name="hostName" description="Value of the hostname to authenticate salesforce."/>
     <parameter name="refreshToken" description="value of the refresh token."/>
@@ -24,41 +26,60 @@
                description="Value of your secret key given when you registered your application with salesforce."/>
     <parameter name="clientId"
                description="Value of your API Key given when you registered your application with salesforce."/>
-    <parameter name="accessToken"
-               description="Value of the Access Token to access the api via request"/>
-    <parameter name="registryPath" description="Registry Path of the Connector where the values are stored"/>
+    <parameter name="apiUrl" description="The instance URL for your organization"/>
+    <parameter name="registryPath"
+               description="Registry Path of the Connector where the values are stored"/>
     <sequence>
+        <property name="uri.var.accessToken" expression="$func:accessToken"/>
         <property name="uri.var.apiVersion" expression="$func:apiVersion"/>
         <property name="uri.var.hostName" expression="$func:hostName"/>
         <property name="uri.var.refreshToken" expression="$func:refreshToken"/>
         <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
         <property name="uri.var.clientId" expression="$func:clientId"/>
-        <property name="uri.var.accessToken" expression="$func:accessToken"/>
+        <property name="uri.var.apiUrl" expression="$func:apiUrl"/>
         <property name="uri.var.registryPath" expression="$func:registryPath"/>
         <filter source="boolean(get-property('uri.var.registryPath'))" regex="true">
             <then>
-                <property name="uri.var.accessTokenRegistryPath" expression="fn:concat($ctx:uri.var.registryPath, '/accessToken' )" />
-                <property name="uri.var.timeRegistryPath" expression="fn:concat($ctx:uri.var.registryPath, '/time' )" />
-                <property name="uri.var.apiUrlRegistryPath" expression="fn:concat($ctx:uri.var.registryPath, '/apiUrl' )" />
+                <property name="uri.var.accessTokenRegistryPath"
+                          expression="fn:concat($ctx:uri.var.registryPath, '/accessToken' )"/>
+                <property name="uri.var.timeRegistryPath"
+                          expression="fn:concat($ctx:uri.var.registryPath, '/time' )"/>
             </then>
         </filter>
 
-        <filter source="boolean($ctx:uri.var.accessToken)" regex="false">
-            <property name="uri.var.accessToken"
-                      expression="get-property('registry', $ctx:uri.var.accessTokenRegistryPath)"/>
-        </filter>
-        
-        <filter source="boolean($ctx:uri.var.refreshToken) and boolean($ctx:uri.var.clientSecret) and boolean($ctx:uri.var.clientId)"
+        <filter source="boolean($ctx:uri.var.refreshToken) and boolean($ctx:uri.var.clientSecret) and boolean($ctx:uri.var.clientId) and boolean($ctx:uri.var.accessToken)"
                 regex="true">
             <then>
-                <property name="uri.var.accessToken"
-                          expression="get-property('registry', get-property('uri.var.accessTokenRegistryPath'))"/>
+                <property name="uri.var.accessToken.reg"
+                          expression="get-property('registry', $ctx:uri.var.accessTokenRegistryPath)"/>
                 <property name="systemTime" expression="get-property('SYSTEM_TIME')"
                           scope="default"/>
+                <filter source="$ctx:uri.var.accessToken.reg=''" regex="true">
+                    <then>
+                        <script language="js">
+                            <![CDATA[
+                           importPackage(Packages.org.apache.synapse.config);
+                           var newAccess = mc.getProperty('uri.var.accessToken');
+                           var newAccessRegistryPath = mc.getProperty('uri.var.accessTokenRegistryPath');
+                           var newSysTime = mc.getProperty('systemTime');
+                           var newTimeRegistryPath = mc.getProperty('uri.var.timeRegistryPath');
+                           if(newAccess != null && newAccess != ''){
+                               //Create the registry entry if no such entry exists.
+                               mc.getConfiguration().getRegistry().newResource(newAccessRegistryPath,false);
+                               mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath,newAccess);
+                               mc.getConfiguration().getRegistry().newResource(newTimeRegistryPath, false);
+                               mc.getConfiguration().getRegistry().updateResource(newTimeRegistryPath, newSysTime);
+                           }
+                           ]]>
+                        </script>
+                    </then>
+                    <else>
+                        <property name="uri.var.accessToken"
+                                  expression="$ctx:uri.var.accessToken.reg"/>
+                    </else>
+                </filter>
                 <property name="registryTime"
                           expression="get-property('registry', $ctx:uri.var.timeRegistryPath)"/>
-                <property name="uri.var.apiUrl"
-                          expression="get-property('registry', get-property('uri.var.apiUrlRegistryPath'))"/>
                 <script language="js"><![CDATA[
                     var time1 = mc.getProperty("systemTime");
                     var time2 = mc.getProperty("registryTime");
