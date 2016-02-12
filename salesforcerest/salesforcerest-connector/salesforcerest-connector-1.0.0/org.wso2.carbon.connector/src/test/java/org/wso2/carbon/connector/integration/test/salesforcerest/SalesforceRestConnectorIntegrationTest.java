@@ -220,32 +220,33 @@ public class SalesforceRestConnectorIntegrationTest extends ConnectorIntegration
         Assert.assertEquals(esbRestResponse.getBody().getString("records"), apiRestResponse.getBody().getString("records"));
     }
 
-//    /**
-//     * Test case for queryAllMore method.
-//     */
-//    @Test(enabled = true, description = "salesforcerest {queryAllMore} integration test.")
-//    public void queryAllMore() throws IOException, JSONException {
-//
-//        String methodName = "queryAllMore";
-//        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "queryAllMore.json");
-//        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/services/data/"+ connectorProperties.getProperty("apiVersion")+"/queryAll/"+connectorProperties.getProperty("nextRecordsUrl");
-//        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-//        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
-//    }
-//
-//    /**
-//     * Test case for queryMore method.
-//     */
-//    @Test(enabled = true, description = "salesforcerest {queryMore} integration test.")
-//    public void queryMore() throws IOException, JSONException {
-//
-//        String methodName = "queryMore";
-//        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "queryMore.json");
-//        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/services/data/"+ connectorProperties.getProperty("apiVersion")+"/query/"+connectorProperties.getProperty("nextRecordsUrl");
-//        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-//        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-//        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
-//    }
+    /**
+     * Test case for queryAllMore method.
+     */
+    @Test(enabled = false, description = "salesforcerest {queryAllMore} integration test.")
+    public void queryAllMore() throws IOException, JSONException {
+
+        String methodName = "queryAllMore";
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "queryAllMore.json");
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/services/data/"+ connectorProperties.getProperty("apiVersion")+"/queryAll/"+connectorProperties.getProperty("nextRecordsUrl");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+    }
+
+    /**
+     * Test case for queryMore method.
+     */
+    @Test(enabled = false, description = "salesforcerest {queryMore} integration test.")
+    public void queryMore() throws IOException, JSONException {
+
+        String methodName = "queryMore";
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "queryMore.json");
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/services/data/"+ connectorProperties.getProperty("apiVersion")+"/query/"+connectorProperties.getProperty("nextRecordsUrl");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+    }
 
     /**
      * Test case for getSpecificAction method.
@@ -485,19 +486,19 @@ public class SalesforceRestConnectorIntegrationTest extends ConnectorIntegration
         Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 404);
     }
 
-////    /**
-////     * Test case for resetPassword method.
-////     */
-////    @Test(enabled = true, description = "salesforcerest {resetPassword} integration test.")
-////    public void resetPassword() throws IOException, JSONException {
-////
-////        String methodName = "resetPassword";
-////        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "resetPassword.json");
-////        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/services/data/"+ connectorProperties.getProperty("apiVersion")+"/sobjects/User/"+connectorProperties.getProperty("userId")+"/password";
-////        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-////        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-////        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
-////    }
+    /**
+     * Test case for resetPassword method.
+     */
+    @Test(enabled = false, description = "salesforcerest {resetPassword} integration test.")
+    public void resetPassword() throws IOException, JSONException {
+
+        String methodName = "resetPassword";
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "resetPassword.json");
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/services/data/"+ connectorProperties.getProperty("apiVersion")+"/sobjects/User/"+connectorProperties.getProperty("userId")+"/password";
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+    }
 
     /**
      * Positive test case for getListOfAction method with mandatory parameters.
@@ -757,19 +758,19 @@ public class SalesforceRestConnectorIntegrationTest extends ConnectorIntegration
         Assert.assertEquals(esbRestResponse.getBody().toString(), apiRestResponse.getBody().toString());
     }
 
-//    /**
-//     * Positive test case for getSpecificProcessRule method with mandatory parameters.
-//     */
-//    @Test(enabled = true, description = "salesforcerest {getSpecificProcessRule} integration test with mandatory parameters.")
-//    public void getSpecificProcessRuleWithMandatoryParameters() throws IOException, JSONException {
-//        String methodName = "getSpecificProcessRule";
-//        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "getSpecificProcessRule.json");
-//        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/services/data/"+connectorProperties.getProperty("apiVersion")+"/process/rules/"+connectorProperties.getProperty("sobject")+"/"+connectorProperties.getProperty("objectId");
-//        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
-//        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
-//        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
-//        Assert.assertEquals(esbRestResponse.getBody().toString(), apiRestResponse.getBody().toString());
-//    }
+    /**
+     * Positive test case for getSpecificProcessRule method with mandatory parameters.
+     */
+    @Test(enabled = false, description = "salesforcerest {getSpecificProcessRule} integration test with mandatory parameters.")
+    public void getSpecificProcessRuleWithMandatoryParameters() throws IOException, JSONException {
+        String methodName = "getSpecificProcessRule";
+        RestResponse<JSONObject> esbRestResponse = sendJsonRestRequest(getProxyServiceURL(methodName), "POST", esbRequestHeadersMap, "getSpecificProcessRule.json");
+        String apiEndPoint = connectorProperties.getProperty("apiUrl") + "/services/data/"+connectorProperties.getProperty("apiVersion")+"/process/rules/"+connectorProperties.getProperty("sobject")+"/"+connectorProperties.getProperty("objectId");
+        RestResponse<JSONObject> apiRestResponse = sendJsonRestRequest(apiEndPoint, "GET", apiRequestHeadersMap);
+        Assert.assertEquals(esbRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(apiRestResponse.getHttpStatusCode(), 200);
+        Assert.assertEquals(esbRestResponse.getBody().toString(), apiRestResponse.getBody().toString());
+    }
 
     /**
      * Positive test case for getDefaultValueOfAction method with mandatory parameters.
