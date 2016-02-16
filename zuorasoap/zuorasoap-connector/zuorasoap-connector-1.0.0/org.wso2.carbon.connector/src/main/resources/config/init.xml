@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<template name="init" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="apiUrl" description="The base endpoint URL of Zuora SOAP API."/>
+    <parameter name="username" description="The account username of Zuora."/>
+    <parameter name="password" description="The account password of the Zuora."/>
+    <sequence>
+        <property name="uri.var.zuorasoap.apiUrl" expression="$func:apiUrl"/>
+        <property name="uri.var.zuorasoap.username" expression="$func:username"/>
+        <property name="uri.var.zuorasoap.password" expression="$func:password"/>
+        <payloadFactory>
+            <format>
+                <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                                  xmlns:urn="http://api.zuora.com/">
+                    <soapenv:Header/>
+                    <soapenv:Body>
+                        <urn:login>
+                            <urn:username>$1</urn:username>
+                            <urn:password>$2</urn:password>
+                        </urn:login>
+                    </soapenv:Body>
+                </soapenv:Envelope>
+            </format>
+            <args>
+                <arg expression="$func:username"/>
+                <arg expression="$func:password"/>
+            </args>
+        </payloadFactory>
+
+        <header name="To" expression="$ctx:uri.var.zuorasoap.apiUrl" />
+
+        <call>
+            <endpoint>
+                <default format="soap11"/>
+            </endpoint>
+        </call>
+
+        <property expression="//ns:loginResponse/ns:result/ns:Session/text()"
+                  name="zuorasoap.sessionId" type="STRING"
+                  xmlns:ns="http://api.zuora.com/" />
+    </sequence>
+</template>
