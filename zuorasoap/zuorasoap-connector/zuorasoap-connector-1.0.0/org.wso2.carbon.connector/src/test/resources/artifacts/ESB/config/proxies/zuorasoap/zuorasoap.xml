@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="zuorasoap"
+       transports="https http"
+       startOnLoad="true"
+       trace="disable">
+    <description/>
+    <target>
+        <inSequence>
+            <property xmlns:ns="wso2.connector.zuora"
+                      name="apiUrl"
+                      expression="//ns:apiUrl/text()"/>
+            <property xmlns:ns="wso2.connector.zuora"
+                      name="username"
+                      expression="//ns:username/text()"/>
+            <property xmlns:ns="wso2.connector.zuora"
+                      name="password"
+                      expression="//ns:password/text()"/>
+            <property xmlns:ns="wso2.connector.zuora"
+                      name="method"
+                      expression="//ns:method/text()"/>
+            <property xmlns:ns="wso2.connector.zuora"
+                      name="batchSize"
+                      expression="//ns:batchSize/text()"/>
+            <property xmlns:ns="wso2.connector.zuora"
+                      name="queryString"
+                      expression="//ns:queryString/text()"/>
+            <property xmlns:ns="wso2.connector.zuora"
+                      name="zuorasoap.query.queryLocator"
+                      expression="//ns:queryLocator/text()"/>
+            <property xmlns:ns1="http://api.zuora.com/"
+                      name="zobjects"
+                      expression="//ns1:zObjects"/>
+            <property xmlns:ns1="wso2.connector.zuora"
+                      name="zobjectsForUpdate"
+                      expression="//ns1:updateObjects/*"/>
+            <property xmlns:ns="wso2.connector.zuora"
+                      name="zobjectType"
+                      expression="//ns:zobjectType/text()"/>
+            <zuorasoap.init>
+                <apiUrl>{$ctx:apiUrl}</apiUrl>
+                <username>{$ctx:username}</username>
+                <password>{$ctx:password}</password>
+            </zuorasoap.init>
+            <switch source="get-property('method')">
+                <case regex="getUserInfo">
+                    <zuorasoap.getUserInfo/>
+                </case>
+                <case regex="query">
+                    <zuorasoap.query>
+                        <queryString>{$ctx:queryString}</queryString>
+                        <batchSize>{$ctx:batchSize}</batchSize>
+                    </zuorasoap.query>
+                </case>
+                <case regex="queryMore">
+                    <zuorasoap.queryMore>
+                        <batchSize>{$ctx:batchSize}</batchSize>
+                    </zuorasoap.queryMore>
+                </case>
+                <case regex="create">
+                    <zuorasoap.create>
+                        <zobjects>{$ctx:zobjects}</zobjects>
+                    </zuorasoap.create>
+                </case>
+                <case regex="update">
+                    <zuorasoap.update>
+                        <zobjects>{$ctx:zobjectsForUpdate}</zobjects>
+                    </zuorasoap.update>
+                </case>
+                <case regex="delete">
+                    <zuorasoap.delete>
+                        <zobjectType>{$ctx:zobjectType}</zobjectType>
+                        <zobjects>{$ctx:zobjects}</zobjects>
+                    </zuorasoap.delete>
+                </case>
+            </switch>
+            <respond/>
+        </inSequence>
+        <outSequence>
+            <send/>
+        </outSequence>
+    </target>
+</proxy>
