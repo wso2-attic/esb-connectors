@@ -57,9 +57,7 @@ public final class ZuoraUtil {
                     value.addChild(fac.createOMText(strExternalId));
                     bodyElement.addChild(value);
                 }
-                String strZobject =
-                        (String) ConnectorUtils.lookupTemplateParamater(synCtx,
-                                strParamName);
+                String strZobject = (String) ConnectorUtils.lookupTemplateParamater(synCtx, strParamName);
                 OMElement zObjects = AXIOMUtil.stringToOM(strZobject);
                 Iterator<OMElement> zObject = zObjects.getChildElements();
                 String strType = zObjects.getAttributeValue(new QName(ZuoraUtil.ZUORA_CREATE_ZOBJECTTYPE));

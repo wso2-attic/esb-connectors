@@ -37,27 +37,23 @@ import org.wso2.carbon.connector.core.AbstractConnector;
 public class QueryMoreIterator extends AbstractConnector {
 
     public void connect(MessageContext synCtx) {
-
         SynapseLog synLog = getLog(synCtx);
 
         if (synLog.isTraceOrDebugEnabled()) {
             synLog.traceOrDebug("Start : Zuora QueryMoreIterator mediator");
-
             if (synLog.isTraceTraceEnabled()) {
                 synLog.traceTrace("Message : " + synCtx.getEnvelope());
             }
         }
 
         SOAPEnvelope envelope = synCtx.getEnvelope();
-
         SOAPBody body = envelope.getBody();
 
         Iterator<OMElement> bodyChildElements = body.getChildElements();
 
         if (bodyChildElements.hasNext()) {
             try {
-                String strQueryLocator = (String) synCtx
-                        .getProperty("zuorasoap.query.queryLocator");
+                String strQueryLocator = (String) synCtx.getProperty("zuorasoap.query.queryLocator");
                 String strRecordSize = (String) synCtx.getProperty("zuorasoap.query.recordSize");
 
                 String[] arrQueryLocator = strQueryLocator.split("-");
@@ -89,12 +85,10 @@ public class QueryMoreIterator extends AbstractConnector {
             } catch (Exception e) {
                 synLog.error("Zuora adaptor - error generating the iterator payload : " + e);
             }
-
         }
 
         if (synLog.isTraceOrDebugEnabled()) {
             synLog.traceOrDebug("End : Zuora QueryMoreIterator mediator");
-
             if (synLog.isTraceTraceEnabled()) {
                 synLog.traceTrace("Message : " + synCtx.getEnvelope());
             }

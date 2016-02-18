@@ -32,10 +32,6 @@ import org.testng.Assert;
 public class ZuorasoapConnectorIntegrationTest extends
         ConnectorIntegrationTestBase {
 
-    private Map<String, String> esbRequestHeadersMap = new HashMap<String, String>();
-
-    private Map<String, String> apiRequestHeadersMap = new HashMap<String, String>();
-
     private final String SOAP_HEADER_XPATH_EXP = "/soapenv:Envelope/soapenv:Header/*";
 
     private final String SOAP_BODY_XPATH_EXP = "/soapenv:Envelope/soapenv:Body/*";
@@ -80,7 +76,6 @@ public class ZuorasoapConnectorIntegrationTest extends
         String session = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
         connectorProperties.put("session", session);
 
-
         apiSoapResponse = sendSOAPRequest(apiEndPoint, "apiGetUserInfoMandatory.xml", null, "getUserInfo",
                 SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse.getBody().toString());
@@ -103,27 +98,17 @@ public class ZuorasoapConnectorIntegrationTest extends
         SOAPEnvelope esbSoapResponse = sendSOAPRequest(proxyUrl, "esbCreateMandatory.xml", null, "mediate",
                 SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa     "+esbSoapResponse.getBody().toString());
         String xPathExp = "string(//ns:Id)";
         String id = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
         connectorProperties.put("id", id);
-        //xPathExp = "string(//ns:UserId)";
-        //String esbUserId = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaid     "+id);
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa     "+System.currentTimeMillis());
 
         SOAPEnvelope apiSoapResponse = sendSOAPRequest(apiEndPoint, "apiQueryForCreateMandatory.xml", null, "query",
                 SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse.getBody().toString());
         xPathExp = "string(//ns1:Name)";
         String name = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa     "+apiSoapResponse.getBody().toString());
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa     "+name);
-        //xPathExp = "string(//ns:UserId)";
-        //String apiUserId = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
 
         Assert.assertEquals(connectorProperties.getProperty("name"), name);
-//        Assert.assertEquals(esbUserId, apiUserId);
 
     }
 
@@ -135,28 +120,17 @@ public class ZuorasoapConnectorIntegrationTest extends
         SOAPEnvelope esbSoapResponse = sendSOAPRequest(proxyUrl, "esbUpdateMandatory.xml", null, "mediate",
                 SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa     " + esbSoapResponse.getBody().toString());
         String xPathExp = "string(//ns:Success)";
         String status = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
-
-        //xPathExp = "string(//ns:UserId)";
-        //String esbUserId = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaastatus     " + status);
-
 
         SOAPEnvelope apiSoapResponse = sendSOAPRequest(apiEndPoint, "apiQueryForCreateMandatory.xml", null, "query",
                 SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse.getBody().toString());
         xPathExp = "string(//ns1:Name)";
         String name = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa     " + apiSoapResponse.getBody().toString());
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa     " + name);
-        //xPathExp = "string(//ns:UserId)";
-        //String apiUserId = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
 
         Assert.assertEquals(status, "true");
         Assert.assertEquals(connectorProperties.getProperty("updateName"), name);
-//        Assert.assertEquals(esbUserId, apiUserId);
 
     }
 
@@ -167,12 +141,9 @@ public class ZuorasoapConnectorIntegrationTest extends
     public void testDeleteWithMandatoryParameters() throws Exception {
         SOAPEnvelope esbSoapResponse = sendSOAPRequest(proxyUrl, "esbDeleteMandatory.xml", null, "mediate",
                 SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
-        OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa     " + esbSoapResponse.getBody().toString());
+        OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());;
         String xPathExp = "string(//ns:success)";
         String status = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
-
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaastatus     " + status);
 
         Assert.assertEquals(status, "true");
     }
@@ -199,12 +170,8 @@ public class ZuorasoapConnectorIntegrationTest extends
         OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse.getBody().toString());
         xPathExp = "string(//ns:result/*[not(name()='queryLocator')])";
         String apiResults = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
-        //xPathExp = "string(//ns:UserId)";
-        //String apiUserId = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
 
         Assert.assertEquals(esbResults, apiResults);
-//        Assert.assertEquals(esbUserId, apiUserId);
-
     }
 
     /**
@@ -219,19 +186,13 @@ public class ZuorasoapConnectorIntegrationTest extends
         OMElement esbResponseElement = AXIOMUtil.stringToOM(esbSoapResponse.getBody().toString());
         String xPathExp = "string(//ns:result/*[not(name()='queryLocator')])";
         String esbResults = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
-        //xPathExp = "string(//ns:UserId)";
-        //String esbUserId = (String) xPathEvaluate(esbResponseElement, xPathExp, nameSpaceMap);
 
         SOAPEnvelope apiSoapResponse = sendSOAPRequest(apiEndPoint, "apiQueryMoreMandatory.xml", null, "queryMore",
                 SOAP_HEADER_XPATH_EXP, SOAP_BODY_XPATH_EXP);
         OMElement apiResponseElement = AXIOMUtil.stringToOM(apiSoapResponse.getBody().toString());
         xPathExp = "string(//ns:result/*[not(name()='queryLocator')])";
         String apiResults = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
-        //xPathExp = "string(//ns:UserId)";
-        //String apiUserId = (String) xPathEvaluate(apiResponseElement, xPathExp, nameSpaceMap);
 
         Assert.assertEquals(esbResults, apiResults);
-//        Assert.assertEquals(esbUserId, apiUserId);
-
     }
 }

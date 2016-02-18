@@ -25,12 +25,10 @@ import org.wso2.carbon.connector.core.AbstractConnector;
 public class SetupUpdateZobjects extends AbstractConnector {
     
     public void connect(MessageContext synCtx) {
-
         SynapseLog synLog = getLog(synCtx);
 
         if (synLog.isTraceOrDebugEnabled()) {
             synLog.traceOrDebug("Start : Zuora update ZObjects mediator");
-
             if (synLog.isTraceTraceEnabled()) {
                 synLog.traceTrace("Message : " + synCtx.getEnvelope());
             }
@@ -41,7 +39,6 @@ public class SetupUpdateZobjects extends AbstractConnector {
 
         if (synLog.isTraceOrDebugEnabled()) {
             synLog.traceOrDebug("End : Zuora update ZObjects mediator");
-
             if (synLog.isTraceTraceEnabled()) {
                 synLog.traceTrace("Message : " + synCtx.getEnvelope());
             }
