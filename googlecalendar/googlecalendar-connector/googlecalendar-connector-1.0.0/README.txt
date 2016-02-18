@@ -28,10 +28,6 @@ STEPS:
    iv) Enable message builder for "application/json" in messageBuilders tag
 			<messageBuilder contentType="application/json" class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
 
-   V) Install HTTP PATCH request enabling patch and Json patch to ESB 4.8.1
-		patch0804 - http PATCH request patch
-		patch0800 - Json string escape ("\") character patch
-
  2. Create a Google account and enable Google Calendar API:
 	i) 	Using the URL "https://accounts.google.com/SignUp" create a Google account.
 	ii) 	Go to "https://developers.google.com/oauthplayground/".
@@ -41,12 +37,14 @@ STEPS:
  3. Update the googlecalendar properties file at location "{GOOGLECALENDAR_CONNECTOR_HOME}/googlecalendar-connector/googlecalendar-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 
     i) accessToken - Use the access token you got from step 2.
-
     ii) emailAddress - Email address of the created Google account in step 2.
+				iii) clientId - Use the Client ID.
+				iv) clientSecret - Use the Client Secret.
+				v) refreshToken - Use the Refresh token.
 
  4. Navigate to "{GOOGLECALENDAR_CONNECTOR_HOME}/googlecalendar-connector/googlecalendar-connector-1.0.0/org.wso2.carbon.connector/src/" and run the following command.
       $ mvn clean install
 
  NOTE : Following Google account, can be used for run the integration tests.
-    Username : wso2gcalendar@gmail.com
-    Password : connector1234
+    Username : gcalendarwso2@gmail.com
+    Password : wso22016
