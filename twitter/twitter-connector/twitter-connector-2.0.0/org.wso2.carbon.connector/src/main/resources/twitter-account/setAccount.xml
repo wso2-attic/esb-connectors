@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template xmlns="http://ws.apache.org/ns/synapse" name="setAccount">
+    <parameter name="sleepTimeEnabled"
+               description="When set to true, t or 1, will enable sleep time for the user.
+               Sleep time is the time when push or SMS notifications should not be sent to the user."/>
+    <parameter name="startSleepTime"
+               description="The hour that sleep time should begin if it is enabled.
+               The value for this parameter should be provided in ISO8601 format (i.e. 00-23)."/>
+    <parameter name="endSleepTime"
+               description="The hour that sleep time should end if it is enabled."/>
+    <parameter name="timeZone"
+               description="The timezone dates and times should be displayed in for the user(Eg:Europe, Copenhagen, etc)."/>
+    <parameter name="trendLocationWoeid"
+               description="The Yahoo! Where On Earth ID to use as the user’s default trend location. Global information is available by using 1 as the WOEID."/>
+    <parameter name="allowContributorRequest"
+               description="Whether to allow others to include user as contributor."/>
+    <parameter name="lang"
+               description="The language which Twitter should render in for this user."/>
+    <sequence>
+        <class name="org.wso2.carbon.connector.twitter.RemoveTwitterContext"/>
+        <property name="uri.var.sleepTimeEnabled" expression="$func:sleepTimeEnabled"/>
+        <property name="uri.var.startSleepTime" expression="$func:startSleepTime"/>
+        <property name="uri.var.endSleepTime" expression="$func:endSleepTime"/>
+        <property name="uri.var.timeZone" expression="$func:timeZone"/>
+        <property name="uri.var.trendLocationWoeid" expression="$func:trendLocationWoeid"/>
+        <property name="uri.var.allowContributorRequest"
+                  expression="$func:allowContributorRequest"/>
+        <property name="uri.var.lang" expression="$func:lang"/>
+        <script language="js">
+            <![CDATA[
+				// optional url param variables
+				var sleepTimeEnabled  = mc.getProperty('uri.var.sleepTimeEnabled');
+			    var startSleepTime  = mc.getProperty('uri.var.startSleepTime');
+			    var endSleepTime  = mc.getProperty('uni.var.endSleepTime');
+			    var timeZone  = mc.getProperty('uni.var.timeZone');
+			    var trendLocationWoeid  = mc.getProperty('uni.var.trendLocationWoeid');
+			    var allowContributorRequest  = mc.getProperty('uni.var.allowContributorRequest');
+			    var lang  = mc.getProperty('uni.var.lang');
+				var uriParams = '';
+				if (sleepTimeEnabled != null && sleepTimeEnabled != "") {
+					uriParams += 'sleep_time_enabled=' + sleepTimeEnabled + '&';
+					sleepTimeEnabled = 'sleep_time_enabled=' + encodeURIComponent(sleepTimeEnabled);
+					mc.setProperty('uri.var.sleepTimeEnabled', sleepTimeEnabled)
+				}
+				if (startSleepTime != null && startSleepTime != "") {
+					uriParams += 'start_sleep_time=' + startSleepTime + '&';
+					startSleepTime = 'start_sleep_time=' + encodeURIComponent(startSleepTime);
+					mc.setProperty('uri.var.startSleepTime', startSleepTime)
+				}
+			    if (endSleepTime != null && endSleepTime != "") {
+					uriParams += 'end_sleep_time=' + endSleepTime + '&';
+					endSleepTime = 'end_sleep_time=' + encodeURIComponent(endSleepTime);
+					mc.setProperty('uri.var.endSleepTime', endSleepTime)
+				}
+				 if (timeZone != null && timeZone != "") {
+					uriParams += 'time_zone=' + timeZone + '&';
+					timeZone = 'time_zone=' + encodeURIComponent(timeZone);
+					mc.setProperty('uri.var.timeZone', timeZone)
+				}
+				 if (trendLocationWoeid != null && trendLocationWoeid != "") {
+					uriParams += 'trend_location_woeid=' + trendLocationWoeid + '&';
+					trendLocationWoeid = 'trend_location_woeid=' + encodeURIComponent(trendLocationWoeid);
+					mc.setProperty('uri.var.trendLocationWoeid', trendLocationWoeid)
+				}
+				 if (allowContributorRequest != null && allowContributorRequest != "") {
+					uriParams += 'allow_contributor_request=' + allowContributorRequest + '&';
+					allowContributorRequest = 'allow_contributor_request=' + encodeURIComponent(allowContributorRequest);
+					mc.setProperty('uri.var.allowContributorRequest', allowContributorRequest)
+				}
+				 if (lang != null && lang != "") {
+					uriParams += 'lang=' + lang + '&';
+					lang = 'lang=' + encodeURIComponent(lang);
+					mc.setProperty('uri.var.lang', lang)
+				}
+
+				if(uriParams != ''){
+					mc.setProperty('uri.var.uriParams' , uriParams.substring(0, uriParams.length-1));
+				}
+			]]>
+        </script>
+        <property name="uri.var.apiUrl.final"
+                  expression="fn:concat(get-property('uri.var.apiUrl'),'/1.1/account/settings.json')"/>
+
+        <property name="uri.var.httpMethod"
+                  value="POST"/>
+        <class name="org.wso2.carbon.connector.twitter.TwitterSignatureGeneration"/>
+        <header name="Authorization" expression="get-property('uri.var.signature')"
+                scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="legacy-encoding:{uri.var.apiUrl}/1.1/account/settings.json?{uri.var.uriParams}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom header information in response -->
+        <header name="x-access-level" scope="transport" action="remove"/>
+        <header name="x-twitter-response-tags" scope="transport" action="remove"/>
+        <header name="x-transaction" scope="transport" action="remove"/>
+        <header name="x-response-time" scope="transport" action="remove"/>
+        <header name="x-connection-hash" scope="transport" action="remove"/>
+        <header name="x-content-type-options" scope="transport" action="remove"/>
+        <header name="x-frame-options" scope="transport" action="remove"/>
+        <header name="x-rate-limit-limit" scope="transport" action="remove"/>
+        <header name="x-rate-limit-remaining" scope="transport" action="remove"/>
+        <header name="x-rate-limit-reset" scope="transport" action="remove"/>
+        <header name="x-xss-protection" scope="transport" action="remove"/>
+
+    </sequence>
+</template>
