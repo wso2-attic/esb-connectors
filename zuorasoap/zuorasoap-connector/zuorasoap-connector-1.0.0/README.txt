@@ -21,7 +21,7 @@ Steps to follow in setting integration test.
 
  3. Update the Zuora properties file at location "{ESB_Connector_Home}/zuorasoap/zuorasoap-connector/zuorasoap-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
 	
-	i)		apiUrl     -   The API URL .
+	i)      apiUrl     -   The API URL .
 	ii) 	username   -   The username of the Zuora account.
 	iii)	password   -   The password of the Zuora account.
 
