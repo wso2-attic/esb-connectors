@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template xmlns="http://ws.apache.org/ns/synapse" name="updateProfile">
+    <parameter name="name"
+               description="Full name associated with the profile."/>
+    <parameter name="url"
+               description="URL associated with the profile."/>
+    <parameter name="location"
+               description="The city or country describing where the user of the account is located."/>
+    <parameter name="description"
+               description="A description of the user owning the account."/>
+    <parameter name="profileLinkColor"
+               description="Sets a hex value that controls the color scheme of links used on the
+               authenticating user’s profile page on twitter.com. This must be a valid hexadecimal value."/>
+    <parameter name="includeEntities"
+               description="The entities node will not be included when set to false."/>
+    <parameter name="skipStatus"
+               description="When set to either true, t or 1 statuses will not be included in the returned user objects."/>
+    <sequence>
+        <class name="org.wso2.carbon.connector.twitter.RemoveTwitterContext"/>
+        <property name="uri.var.name" expression="$func:name"/>
+        <property name="uri.var.url" expression="$func:url"/>
+        <property name="uri.var.location" expression="$func:location"/>
+        <property name="uri.var.description" expression="$func:description"/>
+        <property name="uri.var.profileLinkColor" expression="$func:profileLinkColor"/>
+        <property name="uri.var.includeEntities" expression="$func:includeEntities"/>
+        <property name="uri.var.skipStatus" expression="$func:skipStatus"/>
+        <script language="js">
+            <![CDATA[
+				// optional url param variables
+				var name  = mc.getProperty('uri.var.name');
+				var url  = mc.getProperty('uri.var.url');
+				var location  = mc.getProperty('uri.var.location');
+				var description  = mc.getProperty('uri.var.description');
+				var profileLinkColor  = mc.getProperty('uri.var.profileLinkColor');
+				var includeEntities  = mc.getProperty('uri.var.includeEntities');
+			    var skipStatus  = mc.getProperty('uri.var.skipStatus');
+				var uriParams = '';
+				if (name != null && name != "") {
+					uriParams += 'name=' + name + '&';
+					name = 'name=' + encodeURIComponent(name);
+					mc.setProperty('uri.var.name', name)
+				}
+				if (url != null && url != "") {
+					uriParams += 'url=' + url + '&';
+					url = 'url=' + encodeURIComponent(url);
+					mc.setProperty('uri.var.url', url)
+				}
+			    if (location != null && location != "") {
+					uriParams += 'location=' + location + '&';
+					location = 'location=' + encodeURIComponent(location);
+					mc.setProperty('uri.var.location', location)
+				}
+				 if (description != null && description != "") {
+					uriParams += 'description=' + description + '&';
+					description = 'description=' + encodeURIComponent(description);
+					mc.setProperty('uri.var.description', description)
+				}
+				 if (profileLinkColor != null && profileLinkColor != "") {
+					uriParams += 'profile_link_color=' + profileLinkColor + '&';
+					profileLinkColor = 'profile_link_color=' + encodeURIComponent(profileLinkColor);
+					mc.setProperty('uri.var.profileLinkColor', profileLinkColor)
+				}
+				 if (includeEntities != null && includeEntities != "") {
+					uriParams += 'include_entities=' + includeEntities + '&';
+					includeEntities = 'include_entities=' + encodeURIComponent(includeEntities);
+					mc.setProperty('uri.var.includeEntities', includeEntities)
+				}
+				 if (skipStatus != null && skipStatus != "") {
+					uriParams += 'skip_status=' + skipStatus + '&';
+					includeUserEntities = 'skip_status=' + encodeURIComponent(skipStatus);
+					mc.setProperty('uri.var.includeUserEntities', skipStatus)
+				}
+
+				if(uriParams != ''){
+					mc.setProperty('uri.var.uriParams' , uriParams.substring(0, uriParams.length-1));
+				}
+			]]>
+        </script>
+        <property name="uri.var.apiUrl.final"
+                  expression="fn:concat(get-property('uri.var.apiUrl'),'/1.1/account/update_profile.json')"/>
+        <property name="uri.var.httpMethod"
+                  value="POST"/>
+        <class name="org.wso2.carbon.connector.twitter.TwitterSignatureGeneration"/>
+        <header name="Authorization" expression="get-property('uri.var.signature')"
+                scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="POST"
+                      uri-template="legacy-encoding:{uri.var.apiUrl}/1.1/account/update_profile.json?{uri.var.uriParams}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom header information in response -->
+        <header name="x-access-level" scope="transport" action="remove"/>
+        <header name="x-twitter-response-tags" scope="transport" action="remove"/>
+        <header name="x-transaction" scope="transport" action="remove"/>
+        <header name="x-response-time" scope="transport" action="remove"/>
+        <header name="x-connection-hash" scope="transport" action="remove"/>
+        <header name="x-content-type-options" scope="transport" action="remove"/>
+        <header name="x-frame-options" scope="transport" action="remove"/>
+        <header name="x-rate-limit-limit" scope="transport" action="remove"/>
+        <header name="x-rate-limit-remaining" scope="transport" action="remove"/>
+        <header name="x-rate-limit-reset" scope="transport" action="remove"/>
+        <header name="x-xss-protection" scope="transport" action="remove"/>
+    </sequence>
+</template>

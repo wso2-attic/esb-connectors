@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template xmlns="http://ws.apache.org/ns/synapse" name="showStatusesById">
+    <parameter name="id" description="The numerical ID of the desired Tweet."/>
+    <parameter name="trimUser"
+               description="When set to either true, t or 1, each tweet returned in a timeline will
+                include a user object including only the status authors numerical ID.
+                Omit this parameter to receive the complete user object."/>
+    <parameter name="includeMyRetweet"
+               description="When set to either true, t or 1, any Tweets returned that have been retweeted
+               by the authenticating user will include an additional current_user_retweet node,
+               containing the ID of the source status for the retweet."/>
+    <parameter name="includeEntities"
+               description="The entities node will be disincluded when set to false."/>
+    <sequence>
+        <property name="uri.var.id" expression="$func:id"/>
+        <property name="uri.var.trimUser" expression="$func:trimUser"/>
+        <property name="uri.var.includeMyRetweet" expression="$func:includeMyRetweet"/>
+        <property name="uri.var.includeEntities" expression="$func:includeEntities"/>
+        <script language="js">
+            <![CDATA[
+				// optional url param variables
+				var id  = mc.getProperty('uni.var.id');
+			    var includeMyRetweet  = mc.getProperty('uri.var.includeMyRetweet');
+			    var trimUser = mc.getProperty('uri.var.trimUser');
+			    var includeEntities = mc.getProperty('uri.var.includeEntities');
+				var uriParams = '';
+				uriParams += 'id=' + id + '&';
+                id = 'id=' + encodeURIComponent(id);
+                mc.setProperty('uri.var.id', id);
+				if (includeMyRetweet != null && includeMyRetweet != "") {
+					uriParams += 'include_my_retweet=' + includeMyRetweet + '&';
+					includeMyRetweet = 'include_my_retweet=' + encodeURIComponent(includeMyRetweet);
+					mc.setProperty('uri.var.includeMyRetweet', includeMyRetweet)
+				}
+				if (trimUser != null && trimUser != "") {
+					uriParams += 'trim_user=' + trimUser + '&';
+					trimUser = 'trim_user=' + encodeURIComponent(trimUser);
+					mc.setProperty('uri.var.trimUser', trimUser)
+				}
+				if (includeEntities != null && includeEntities != "") {
+					uriParams += 'include_entities=' + includeEntities + '&';
+					includeEntities = 'include_entities=' + encodeURIComponent(includeEntities);
+					mc.setProperty('uri.var.includeEntities', includeEntities)
+				}
+				if(uriParams != ''){
+					mc.setProperty('uri.var.uriParams' , uriParams.substring(0, uriParams.length-1));
+				}
+			]]>
+        </script>
+
+        <property name="uri.var.apiUrl.final"
+                  expression="fn:concat(get-property('uri.var.apiUrl'),'/1.1/statuses/show.json')"/>
+
+        <property name="uri.var.httpMethod"
+                  value="GET"/>
+
+        <class name="org.wso2.carbon.connector.twitter.TwitterSignatureGeneration"/>
+
+        <header name="Authorization" expression="get-property('uri.var.signature')"
+                scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="get"
+                      uri-template="legacy-encoding:{uri.var.apiUrl}/1.1/statuses/show.json?{uri.var.uriParams}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove custom header information in response -->
+        <header name="x-access-level" scope="transport" action="remove"/>
+        <header name="x-twitter-response-tags" scope="transport" action="remove"/>
+        <header name="x-transaction" scope="transport" action="remove"/>
+        <header name="x-response-time" scope="transport" action="remove"/>
+        <header name="x-connection-hash" scope="transport" action="remove"/>
+        <header name="x-content-type-options" scope="transport" action="remove"/>
+        <header name="x-frame-options" scope="transport" action="remove"/>
+        <header name="x-rate-limit-limit" scope="transport" action="remove"/>
+        <header name="x-rate-limit-remaining" scope="transport" action="remove"/>
+        <header name="x-rate-limit-reset" scope="transport" action="remove"/>
+        <header name="x-xss-protection" scope="transport" action="remove"/>
+
+    </sequence>
+</template>
