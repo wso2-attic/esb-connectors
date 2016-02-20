@@ -18,6 +18,13 @@
 
 package org.wso2.carbon.connector.integration.test.amazonsqs;
 
+import org.apache.synapse.MessageContext;
+import org.apache.synapse.SynapseConstants;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
@@ -26,20 +33,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.TreeMap;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-
-import org.apache.synapse.MessageContext;
-import org.apache.synapse.SynapseConstants;
-import org.json.JSONException;
-import org.json.JSONObject;
+import java.util.*;
 
 /**
  * Class AmazonSQSAuthConnector which helps to generate authentication signature for Amazon SQS WSO2
@@ -247,7 +241,7 @@ public class AmazonSQSAuthConnector {
                 AmazonSQSConstants.PAYLOAD_QUEUE_NAME, AmazonSQSConstants.LABEL, AmazonSQSConstants.MESSAGE_BODY,
                 AmazonSQSConstants.LABEL, AmazonSQSConstants.MESSAGE_BODY, AmazonSQSConstants.RECEIPT_HANDLE,
                 AmazonSQSConstants.MAX_NO_OF_MESSAGES, AmazonSQSConstants.VISIBILITY_TIMEOUT, AmazonSQSConstants.WAIT_TIME_SECONDS
-                , AmazonSQSConstants.DELAY_SECONDS
+                , AmazonSQSConstants.DELAY_SECONDS, AmazonSQSConstants.API_ACCOUNT_ID
 
         };
     }
@@ -268,7 +262,7 @@ public class AmazonSQSAuthConnector {
     private String[] getMultivaluedParameterKeys() {
         return new String[] {AmazonSQSConstants.AWS_ACCOUNT_NUMBERS, AmazonSQSConstants.ACTION_NAMES,
                 AmazonSQSConstants.REQUEST_ENTRIES, AmazonSQSConstants.ATTRIBUTE_ENTRIES, AmazonSQSConstants.ATTRIBUTES,
-                AmazonSQSConstants.MESSAGE_ATTRIBUTE_NAMES, AmazonSQSConstants.MESSAGE_ATTRIBUTES };
+                AmazonSQSConstants.MESSAGE_ATTRIBUTE_NAMES, AmazonSQSConstants.MESSAGE_ATTRIBUTES, AmazonSQSConstants.MESSAGE_REQUEST_ENTRY };
     }
     /**
      * getParametersMap method used to return list of parameter values sorted by expected API parameter names.
@@ -366,10 +360,12 @@ public class AmazonSQSAuthConnector {
         map.put(AmazonSQSConstants.VISIBILITY_TIMEOUT, AmazonSQSConstants.API_VISIBILITY_TIMEOUT);
         map.put(AmazonSQSConstants.WAIT_TIME_SECONDS, AmazonSQSConstants.API_WAIT_TIME_SECONDS);
         map.put(AmazonSQSConstants.DELAY_SECONDS, AmazonSQSConstants.API_DELAY_SECONDS);
+        map.put(AmazonSQSConstants.ACCOUNT_ID, AmazonSQSConstants.API_ACCOUNT_ID);
         // Header parameters
         map.put(AmazonSQSConstants.HOST, AmazonSQSConstants.API_HOST);
         map.put(AmazonSQSConstants.CONTENT_TYPE, AmazonSQSConstants.API_CONTENT_TYPE);
         map.put(AmazonSQSConstants.AMZ_DATE, AmazonSQSConstants.API_AMZ_DATE);
+
 
         return map;
     }
