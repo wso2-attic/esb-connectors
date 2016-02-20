@@ -98,7 +98,6 @@ public class AmazonsqsConnectorIntegrationTest extends ConnectorIntegrationTestB
         String apiQId = getValueByExpression("//*[local-name()='QueueUrl']/text()", esbResponse.getBody()).split("/")[3];
         connectorProperties.put("queueId", qId);
         connectorProperties.put("apiQueueId", apiQId);
-        System.out.println("222@@@@@@@@@@@@@@@@@@@@@id   " + qId + " api id " + apiQId);
         Assert.assertNotNull(getValueByExpression("//*[local-name()='QueueUrl']/text()", esbResponse.getBody()));
         Assert.assertFalse(getValueByExpression("//*[local-name()='QueueUrl']/text()", esbResponse.getBody()).equals(""));
         Assert.assertNotNull(getValueByExpression("//*[local-name()='QueueUrl']/text()", apiRestResponse.getBody()));
@@ -124,11 +123,8 @@ public class AmazonsqsConnectorIntegrationTest extends ConnectorIntegrationTestB
         String apiQId = getValueByExpression("//*[local-name()='QueueUrl']/text()", esbResponse.getBody()).split("/")[3];
         connectorProperties.put("optionalQueueId", qId);
         connectorProperties.put("optionalAPIQueueId", apiQId);
-        System.out.println("222@@@@@@@@@@@@@@@@@@@@@id   " + qId + " api id " + apiQId);
-        System.out.println("222@@@@@@@@@@@@@@@@@ apiRestResponse @@@@id   " + apiRestResponse.getBody().toString());
         Assert.assertNotNull(getValueByExpression("//*[local-name()='QueueUrl']/text()", esbResponse.getBody()));
         Assert.assertFalse(getValueByExpression("//*[local-name()='QueueUrl']/text()", esbResponse.getBody()).equals(""));
-        System.out.println("222@@@@@@@@@@@@@@@@@@@@@id   " + qId + " api id " + apiQId);
         Assert.assertNotNull(getValueByExpression("//*[local-name()='QueueUrl']/text()", apiRestResponse.getBody()));
         Assert.assertFalse(getValueByExpression("//*[local-name()='QueueUrl']/text()", apiRestResponse.getBody()).equals(""));
     }
@@ -528,7 +524,6 @@ public class AmazonsqsConnectorIntegrationTest extends ConnectorIntegrationTestB
                 getValueByExpression("//*[local-name()='Name']/text()", apiResponse.getBody()));
         Assert.assertEquals(getValueByExpression("//*[local-name()='Value']/text()", esbResponse.getBody()),
                 getValueByExpression("//*[local-name()='Value']/text()", apiResponse.getBody()));
-
     }
 
     /**
@@ -576,7 +571,6 @@ public class AmazonsqsConnectorIntegrationTest extends ConnectorIntegrationTestB
                 getValueByExpression("//*[local-name()='Name']/text()", apiResponse.getBody()));
         Assert.assertEquals(getValueByExpression("//*[local-name()='Value']/text()", esbResponse.getBody()),
                 getValueByExpression("//*[local-name()='Value']/text()", apiResponse.getBody()));
-
     }
 
     /**
@@ -640,7 +634,6 @@ public class AmazonsqsConnectorIntegrationTest extends ConnectorIntegrationTestB
                 getValueByExpression("//*[local-name()='Name']/text()", apiResponse.getBody()));
         Assert.assertEquals(getValueByExpression("//*[local-name()='Value']/text()", esbResponse.getBody()),
                 getValueByExpression("//*[local-name()='Value']/text()", apiResponse.getBody()));
-
     }
 
     /**
@@ -678,7 +671,6 @@ public class AmazonsqsConnectorIntegrationTest extends ConnectorIntegrationTestB
                 sendXmlRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_addPermission_mandatory.xml");
         Assert.assertEquals(esbResponse.getHttpStatusCode(), 200);
         Assert.assertEquals(apiResponse.getHttpStatusCode(), 200);
-
     }
 
     /**
@@ -721,7 +713,6 @@ public class AmazonsqsConnectorIntegrationTest extends ConnectorIntegrationTestB
                 sendXmlRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_removePermission_mandatory.xml");
         Assert.assertEquals(esbResponse.getHttpStatusCode(), 200);
         Assert.assertEquals(apiResponse.getHttpStatusCode(), 200);
-
     }
 
     /**
@@ -769,9 +760,7 @@ public class AmazonsqsConnectorIntegrationTest extends ConnectorIntegrationTestB
 
         RestResponse< OMElement > esbReDeleteResponse =
                 sendXmlRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_deleteQueue_mandatory.xml");
-
         Assert.assertEquals(esbReDeleteResponse.getHttpStatusCode(), 400);
-
     }
 
     /**
@@ -822,9 +811,7 @@ public class AmazonsqsConnectorIntegrationTest extends ConnectorIntegrationTestB
 
         RestResponse< OMElement > esbReDeleteResponse =
                 sendXmlRestRequest(proxyUrl, "POST", esbRequestHeadersMap, "esb_purgeQueue_mandatory.xml");
-
         Assert.assertEquals(esbReDeleteResponse.getHttpStatusCode(), 403);
-
     }
 
     /**
@@ -879,11 +866,9 @@ public class AmazonsqsConnectorIntegrationTest extends ConnectorIntegrationTestB
         apiRequestHeadersMap.put("Authorization", responseMap.get(AmazonSQSConstants.AUTHORIZATION_HEADER));
         apiRequestHeadersMap.put("x-amz-date", responseMap.get(AmazonSQSConstants.AMZ_DATE));
         connectorProperties.put("xFormUrl", responseMap.get(AmazonSQSConstants.REQUEST_PAYLOAD));
-        System.out.println("api request @@@@@@@@@@@@@@@@@@@@@@ " + responseMap.get(AmazonSQSConstants.REQUEST_PAYLOAD));
     }
 
     private String loadRequestFromFile(String requestFileName) throws IOException {
-
         String requestFilePath;
         String requestData;
         requestFilePath = requestFileName;
@@ -899,7 +884,6 @@ public class AmazonsqsConnectorIntegrationTest extends ConnectorIntegrationTestB
     }
 
     private String getFileContent(String path) throws IOException {
-
         String fileContent;
         BufferedInputStream bfist = new BufferedInputStream(new FileInputStream(path));
 
@@ -911,6 +895,5 @@ public class AmazonsqsConnectorIntegrationTest extends ConnectorIntegrationTestB
             bfist.close();
         }
         return fileContent;
-
     }
 }
