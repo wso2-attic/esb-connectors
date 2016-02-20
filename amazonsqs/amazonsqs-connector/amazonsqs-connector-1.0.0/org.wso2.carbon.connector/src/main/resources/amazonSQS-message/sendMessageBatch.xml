@@ -16,17 +16,20 @@
  ~  specific language governing permissions and limitations
  ~  under the License.
 -->
-<template name="deleteMessage" xmlns="http://ws.apache.org/ns/synapse">
-    <parameter name="receiptHandle"
-               description="A list of receipt handles for the messages to be deleted"/>
+<template name="sendMessageBatch" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="delaySeconds"
+               description="Integer, The number of seconds (0 to 900 - 15 minutes) to delay a specific message"/>
+    <parameter name="messageRequestEntry"
+               description="List of SendMessageBatchRequestEntry items"/>
     <parameter name="queueId" description="The unique identifier of the queue"/>
     <parameter name="queueName" description="The name of the queue"/>
     <sequence>
         <class name="org.wso2.carbon.connector.amazonsqs.auth.AmazonSQSContext"/>
-        <property name="uri.var.receiptHandle" expression="$func:receiptHandle"/>
+        <property name="uri.var.delaySeconds" expression="$func:delaySeconds"/>
+        <property name="uri.var.messageRequestEntry" expression="$func:messageRequestEntry"/>
         <property name="uri.var.queueId" expression="$func:queueId"/>
         <property name="uri.var.urlQueueName" expression="$func:queueName"/>
-        <property name="uri.var.action" value="DeleteMessage"/>
+        <property name="uri.var.action" value="SendMessageBatch"/>
         <class
                 name="org.wso2.carbon.connector.amazonsqs.auth.AmazonSQSAuthConnector"/>
         <!-- Add authorization and date header parameters -->
@@ -46,7 +49,7 @@
         <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
         <call>
             <endpoint>
-                <http method="post" uri-template="{uri.var.apiUrl}{+uri.var.httpRequestUri}"/>
+                <http method="post" uri-template="legacy-encoding:{uri.var.apiUrl}{uri.var.httpRequestUri}"/>
             </endpoint>
         </call>
         <!-- Remove custom header information -->
