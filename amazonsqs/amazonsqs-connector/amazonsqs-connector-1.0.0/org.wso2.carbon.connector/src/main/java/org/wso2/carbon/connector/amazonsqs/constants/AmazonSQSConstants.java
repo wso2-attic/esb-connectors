@@ -547,7 +547,17 @@ public class AmazonSQSConstants {
      * Constant for AWS Account Numbers.
      */
     public static final String AWS_ACCOUNT_NUMBERS = "uri.var.awsAccountNumbers";
-    
+
+    /**
+     * Constant for AWS Account Numbers.
+     */
+    public static final String AWS_ACCOUNT_ID = "uri.var.accountId";
+
+    /**
+     * Constant for API name for AWS Account.
+     */
+    public static final String API_ACCOUNT_ID = "QueueOwnerAWSAccountId";
+
     /**
      * Constant for Action Names.
      */
@@ -651,8 +661,13 @@ public class AmazonSQSConstants {
     /**
      * Constant for Message Attributes.
      */
+    public static final String MESSAGE_REQUEST_ENTRY = "uri.var.messageRequestEntry";
+
+     /**
+     * Constant for Message Attributes.
+     */
     public static final String MESSAGE_ATTRIBUTES = "uri.var.messageAttributes";
-    
+
     /**
      * Constant for Delay Seconds.
      */
