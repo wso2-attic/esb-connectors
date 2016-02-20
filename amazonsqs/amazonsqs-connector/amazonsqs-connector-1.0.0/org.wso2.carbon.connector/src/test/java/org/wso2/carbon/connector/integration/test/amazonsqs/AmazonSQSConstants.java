@@ -500,6 +500,11 @@ public class AmazonSQSConstants {
     public static final String PAYLOAD_QUEUE_NAME = "payloadQueueName";
 
     /**
+     * Constant for Account Id.
+     */
+    public static final String ACCOUNT_ID = "accountId";
+
+    /**
      * Constant for API Queue Name.
      */
     public static final String API_QUEUE_NAME = "QueueName";
@@ -575,9 +580,20 @@ public class AmazonSQSConstants {
     public static final String API_MESSAGE_BODY = "MessageBody";
 
     /**
+     * Constant for API variable AWS account Id.
+     */
+    public static final String API_ACCOUNT_ID = "QueueOwnerAWSAccountId";
+
+
+    /**
      * Constant for Attribute Entries.
      */
     public static final String ATTRIBUTE_ENTRIES = "attributeEntries";
+
+    /**
+     * Constant for Attribute Entries.
+     */
+    public static final String MESSAGE_REQUEST_ENTRY = "messageRequestEntry";
 
     /**
      * Constant for Url Queue Name.
