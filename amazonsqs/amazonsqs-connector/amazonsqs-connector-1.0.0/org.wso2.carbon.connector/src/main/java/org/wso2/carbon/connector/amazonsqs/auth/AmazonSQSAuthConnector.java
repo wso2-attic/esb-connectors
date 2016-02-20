@@ -18,6 +18,13 @@
 
 package org.wso2.carbon.connector.amazonsqs.auth;
 
+import org.apache.synapse.MessageContext;
+import org.apache.synapse.SynapseConstants;
+import org.wso2.carbon.connector.amazonsqs.constants.AmazonSQSConstants;
+import org.wso2.carbon.connector.core.AbstractConnector;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
@@ -26,19 +33,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TimeZone;
-import java.util.TreeMap;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-
-import org.apache.synapse.MessageContext;
-import org.apache.synapse.SynapseConstants;
-import org.wso2.carbon.connector.amazonsqs.constants.AmazonSQSConstants;
-import org.wso2.carbon.connector.core.AbstractConnector;
+import java.util.*;
 
 /**
  * Class AmazonSQSAuthConnector which helps to generate authentication signature for Amazon SQS WSO2 ESB
@@ -109,20 +104,20 @@ public class AmazonSQSAuthConnector extends AbstractConnector {
                 payloadBuilder.append(AmazonSQSConstants.EQUAL);
                 payloadBuilder.append(URLEncoder.encode(entry.getValue(), charSet));
                 payloadBuilder.append(AmazonSQSConstants.AMPERSAND);
-                payloadStrBuilder.append(AmazonSQSConstants.QUOTE);
+                payloadStrBuilder.append('"');
                 payloadStrBuilder.append(entry.getKey());
-                payloadStrBuilder.append(AmazonSQSConstants.QUOTE);
+                payloadStrBuilder.append('"');
                 payloadStrBuilder.append(AmazonSQSConstants.COLON);
-                payloadStrBuilder.append(AmazonSQSConstants.QUOTE);
+                payloadStrBuilder.append('"');
                 payloadStrBuilder.append(entry.getValue());
-                payloadStrBuilder.append(AmazonSQSConstants.QUOTE);
+                payloadStrBuilder.append('"');
                 payloadStrBuilder.append(AmazonSQSConstants.COMMA);
             }
 
             // Adds authorization header to message context, removes additionally appended comma at the end
             if (payloadStrBuilder.length() > 0) {
                 messageContext.setProperty(AmazonSQSConstants.REQUEST_PAYLOAD,
-                        payloadStrBuilder.substring(0, payloadStrBuilder.length() - 1));
+                        "{" + payloadStrBuilder.substring(0, payloadStrBuilder.length() - 1) + "}");
             }
             // Appends empty string since no URL parameters are used in POST API requests
             canonicalRequest.append("");
@@ -238,7 +233,7 @@ public class AmazonSQSAuthConnector extends AbstractConnector {
                 AmazonSQSConstants.PAYLOAD_QUEUE_NAME, AmazonSQSConstants.LABEL, AmazonSQSConstants.MESSAGE_BODY,
                 AmazonSQSConstants.LABEL, AmazonSQSConstants.MESSAGE_BODY, AmazonSQSConstants.RECEIPT_HANDLE,
                 AmazonSQSConstants.MAX_NO_OF_MESSAGES, AmazonSQSConstants.VISIBILITY_TIMEOUT,
-                AmazonSQSConstants.WAIT_TIME_SECONDS, AmazonSQSConstants.DELAY_SECONDS
+                AmazonSQSConstants.WAIT_TIME_SECONDS, AmazonSQSConstants.DELAY_SECONDS, AmazonSQSConstants.AWS_ACCOUNT_ID
 
         };
     }
@@ -264,7 +259,7 @@ public class AmazonSQSAuthConnector extends AbstractConnector {
         return new String[] { AmazonSQSConstants.AWS_ACCOUNT_NUMBERS, AmazonSQSConstants.ACTION_NAMES,
                 AmazonSQSConstants.REQUEST_ENTRIES, AmazonSQSConstants.ATTRIBUTE_ENTRIES,
                 AmazonSQSConstants.ATTRIBUTES, AmazonSQSConstants.MESSAGE_ATTRIBUTE_NAMES,
-                AmazonSQSConstants.MESSAGE_ATTRIBUTES };
+                AmazonSQSConstants.MESSAGE_ATTRIBUTES, AmazonSQSConstants.MESSAGE_REQUEST_ENTRY };
     }
 
     /**
@@ -365,6 +360,7 @@ public class AmazonSQSAuthConnector extends AbstractConnector {
         map.put(AmazonSQSConstants.VISIBILITY_TIMEOUT, AmazonSQSConstants.API_VISIBILITY_TIMEOUT);
         map.put(AmazonSQSConstants.WAIT_TIME_SECONDS, AmazonSQSConstants.API_WAIT_TIME_SECONDS);
         map.put(AmazonSQSConstants.DELAY_SECONDS, AmazonSQSConstants.API_DELAY_SECONDS);
+        map.put(AmazonSQSConstants.AWS_ACCOUNT_ID, AmazonSQSConstants.API_ACCOUNT_ID);
         // Header parameters
         map.put(AmazonSQSConstants.HOST, AmazonSQSConstants.API_HOST);
         map.put(AmazonSQSConstants.CONTENT_TYPE, AmazonSQSConstants.API_CONTENT_TYPE);
