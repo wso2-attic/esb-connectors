@@ -1,0 +1,52 @@
+<!--
+   Copyright (c) 2005-2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<template name="getIdentityPolicies" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="identity" description="Either an Email Address or a Domain."/>
+    <parameter name="policyNamesMember" description="A list of the names of policies to be retrieved."/>
+    <sequence>
+        <property name="uri.var.identity" expression="$func:identity"/>
+        <property name="uri.var.policyNamesMember" expression="$func:policyNamesMember"/>
+        <property name="uri.var.action" value="GetIdentityPolicies"/>
+
+        <class name="org.wso2.carbon.connector.amazonses.auth.AmazonSESGetIdentityPoliciesMediator"/>
+
+        <payloadFactory media-type="json">
+            <format>
+                $1
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.requestPayload')"/>
+            </args>
+        </payloadFactory>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <header name="x-amz-date" expression="get-property('uri.var.xAmzDate')" scope="transport"/>
+        <header name="X-Amzn-Authorization" expression="get-property('uri.var.xAmznAuthorization')" scope="transport"/>
+
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}"/>
+            </endpoint>
+        </call>
+
+        <!-- Remove Custom Headers in the Response -->
+        <header name="Via" scope="transport" action="remove"/>
+        <header name="Proxy-Connection" scope="transport" action="remove"/>
+        <header name="x-amzn-RequestId" scope="transport" action="remove"/>
+    </sequence>
+</template>

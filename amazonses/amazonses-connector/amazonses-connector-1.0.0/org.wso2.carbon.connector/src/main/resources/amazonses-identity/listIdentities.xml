@@ -1,5 +1,5 @@
 <!--
-   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   Copyright (c) 2005-2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 
    WSO2 Inc. licenses this file to you under the Apache License,
    Version 2.0 (the "License"); you may not use this file except
@@ -17,39 +17,40 @@
 -->
 
 <template name="listIdentities" xmlns="http://ws.apache.org/ns/synapse">
-	<parameter name="identityType" description="Type of identity: Domain or EmailAddress." />
-	<parameter name="maxItems" description="Maximum no. of identities to be returned in the current response." />
-	<parameter name="nextToken" description="Token to retrieve the next set of identities if not all are returned currently." />
-	<sequence>
-		<property name="uri.var.identityType" expression="$func:identityType" />
-		<property name="uri.var.maxItems" expression="$func:maxItems" />
-		<property name="uri.var.nextToken" expression="$func:nextToken" />
-		<property name="uri.var.action" value="ListIdentities" />
+    <parameter name="identityType" description="Type of identity: Domain or EmailAddress."/>
+    <parameter name="maxItems" description="Maximum no. of identities to be returned in the current response."/>
+    <parameter name="nextToken" description="Token to retrieve the next set of identities if not all are returned
+					currently."/>
+    <sequence>
+        <property name="uri.var.identityType" expression="$func:identityType"/>
+        <property name="uri.var.maxItems" expression="$func:maxItems"/>
+        <property name="uri.var.nextToken" expression="$func:nextToken"/>
+        <property name="uri.var.action" value="ListIdentities"/>
 
-		<class name="org.wso2.carbon.connector.amazonses.auth.AmazonSESListIdentitiesMediator" />
+        <class name="org.wso2.carbon.connector.amazonses.auth.AmazonSESListIdentitiesMediator"/>
 
-		<payloadFactory media-type="json">
-			<format>
-				$1
-			</format>
-			<args>
-				<arg expression="get-property('uri.var.requestPayload')" />
-			</args>
-		</payloadFactory>
+        <payloadFactory media-type="json">
+            <format>
+                $1
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.requestPayload')"/>
+            </args>
+        </payloadFactory>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <header name="x-amz-date" expression="get-property('uri.var.xAmzDate')" scope="transport"/>
+        <header name="X-Amzn-Authorization" expression="get-property('uri.var.xAmznAuthorization')" scope="transport"/>
 
-		<header name="x-amz-date" expression="get-property('uri.var.xAmzDate')" scope="transport" />
-		<header name="X-Amzn-Authorization" expression="get-property('uri.var.xAmznAuthorization')" scope="transport" />
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}"/>
+            </endpoint>
+        </call>
 
-		<call>
-			<endpoint>
-				<http method="post" uri-template="{uri.var.apiUrl}" />
-			</endpoint>
-		</call>
+        <!-- Remove Custom Headers in the Response -->
+        <header name="Via" scope="transport" action="remove"/>
+        <header name="Proxy-Connection" scope="transport" action="remove"/>
+        <header name="x-amzn-RequestId" scope="transport" action="remove"/>
 
-		<!-- Remove Custom Headers in the Response -->
-		<header name="Via" scope="transport" action="remove" />
-		<header name="Proxy-Connection" scope="transport" action="remove" />
-		<header name="x-amzn-RequestId" scope="transport" action="remove" />
-
-	</sequence>
+    </sequence>
 </template>

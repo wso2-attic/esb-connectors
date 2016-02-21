@@ -1,5 +1,5 @@
 <!--
-   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   Copyright (c) 2005-2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 
    WSO2 Inc. licenses this file to you under the Apache License,
    Version 2.0 (the "License"); you may not use this file except
@@ -17,39 +17,43 @@
 -->
 
 <template name="sendRawEmail" xmlns="http://ws.apache.org/ns/synapse">
-	<parameter name="destinations" description="Destination Addresses to send the RawEmail." />
-	<parameter name="rawMessage" description="The raw text of the message. The client is responsible for ensuring the following: Message must contain a header and a body, separated by a blank line, All required header fields must be present, Each part of a multipart MIME message must be formatted properly, MIME content types must be among those supported by Amazon SES (For more information, go to the Amazon SES Developer Guide), Content must be base64-encoded, if MIME requires it." />
-	<parameter name="source" description="Email address of the sender." />
-	<sequence>
-		<property name="uri.var.destinations" expression="$func:destinations" />
-		<property name="uri.var.rawMessage" expression="$func:rawMessage" />
-		<property name="uri.var.source" expression="$func:source" />
-		<property name="uri.var.action" value="SendRawEmail" />
+    <parameter name="destinations" description="Destination Addresses to send the RawEmail."/>
+    <parameter name="rawMessage" description="The raw text of the message. The client is responsible for
+			ensuring the following: Message must contain a header and a body, separated by a blank line,
+			All required header fields must be present, Each part of a multipart MIME message must be formatted
+			properly, MIME content types must be among those supported by Amazon SES (For more information, go to
+			the Amazon SES Developer Guide), Content must be base64-encoded, if MIME requires it."/>
+    <parameter name="source" description="Email address of the sender."/>
+    <sequence>
+        <property name="uri.var.destinations" expression="$func:destinations"/>
+        <property name="uri.var.rawMessage" expression="$func:rawMessage"/>
+        <property name="uri.var.source" expression="$func:source"/>
+        <property name="uri.var.action" value="SendRawEmail"/>
 
-		<class name="org.wso2.carbon.connector.amazonses.auth.AmazonSESSendRawEmailMediator" />
+        <class name="org.wso2.carbon.connector.amazonses.auth.AmazonSESSendRawEmailMediator"/>
 
-		<payloadFactory media-type="json">
-			<format>
-				$1
-			</format>
-			<args>
-				<arg expression="get-property('uri.var.requestPayload')" />
-			</args>
-		</payloadFactory>
+        <payloadFactory media-type="json">
+            <format>
+                $1
+            </format>
+            <args>
+                <arg expression="get-property('uri.var.requestPayload')"/>
+            </args>
+        </payloadFactory>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <header name="x-amz-date" expression="get-property('uri.var.xAmzDate')" scope="transport"/>
+        <header name="X-Amzn-Authorization" expression="get-property('uri.var.xAmznAuthorization')" scope="transport"/>
 
-		<header name="x-amz-date" expression="get-property('uri.var.xAmzDate')" scope="transport" />
-		<header name="X-Amzn-Authorization" expression="get-property('uri.var.xAmznAuthorization')" scope="transport" />
+        <call>
+            <endpoint>
+                <http method="post" uri-template="{uri.var.apiUrl}"/>
+            </endpoint>
+        </call>
 
-		<call>
-			<endpoint>
-				<http method="post" uri-template="{uri.var.apiUrl}" />
-			</endpoint>
-		</call>
+        <!-- Remove Custom Headers in the Response -->
+        <header name="Via" scope="transport" action="remove"/>
+        <header name="Proxy-Connection" scope="transport" action="remove"/>
+        <header name="x-amzn-RequestId" scope="transport" action="remove"/>
 
-		<!-- Remove Custom Headers in the Response -->
-		<header name="Via" scope="transport" action="remove" />
-		<header name="Proxy-Connection" scope="transport" action="remove" />
-		<header name="x-amzn-RequestId" scope="transport" action="remove" />
-
-	</sequence>
+    </sequence>
 </template>
