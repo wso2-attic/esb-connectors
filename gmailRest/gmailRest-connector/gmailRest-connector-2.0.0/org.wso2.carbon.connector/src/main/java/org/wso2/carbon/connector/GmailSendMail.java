@@ -55,7 +55,7 @@ public class GmailSendMail extends AbstractConnector {
 
             // Validating recipients. At least one recipient should have been
             // given to send the mail
-            if (StringUtils.isEmpty(toRecipients) && StringUtils.isEmpty(bccRecipients) && StringUtils.isEmpty(ccRecipients)) {
+            if (toRecipients == null && bccRecipients == null && ccRecipients == null) {
                 String errorLog = "No recipients are found";
                 log.error(errorLog);
                 ConnectException connectException = new ConnectException(errorLog);
