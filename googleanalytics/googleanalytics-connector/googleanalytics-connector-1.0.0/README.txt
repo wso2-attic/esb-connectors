@@ -53,7 +53,7 @@ Steps to follow in setting integration test.
             a) Go to the 'Account Settings' tab of the selected account and obtain the account ID.
             b) Navigate to the 'PROPERTY' section ->Tracking Info->Tracking Code and obtain the Tracking ID.
             c) Navigate to the 'VIEW' section ->View Settings and obtain the view ID.
-   ii)   Navigate to the 'Admin' section->'PROPERTY'->AdWords Linking and create a new AdWords Account. Obtain the customer ID after the account creation. 
+   ii)   Navigate to the 'Admin' section->'PROPERTY'->AdWords Linking and create a new AdWords Account. Obtain the customer ID after the account creation.
  
  
  7. Update the GoogleAnalytics properties file at location "<GOOGLEANALYTICS_CONNECTOR_HOME>/googleanalytics-connector/googleanalytics-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config" as below.
