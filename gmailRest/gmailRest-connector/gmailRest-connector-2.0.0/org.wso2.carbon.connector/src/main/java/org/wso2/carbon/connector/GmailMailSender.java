@@ -71,8 +71,8 @@ public class GmailMailSender extends AbstractConnector {
 
             GmailSMTPClientLoader smtpClientLoader = new GmailSMTPClientLoader();
             log.info("Loading the SMTP connection");
-            GmailSMTPConnectionObject smtpConnectionObject =
-                    (GmailSMTPConnectionObject) smtpClientLoader.loadSMTPSession(messageContext);
+            GmailSMTPConnection smtpConnectionObject =
+                    (GmailSMTPConnection) smtpClientLoader.loadSMTPSession(messageContext);
             Session session = smtpConnectionObject.getSession();
             SMTPTransport transport = smtpConnectionObject.getTransport();
             org.apache.axis2.context.MessageContext axis2MsgCtx =

@@ -81,11 +81,11 @@ public final class GmailOAuth2SASLAuthenticator {
      *            user name
      * @param accessToken
      *            OAuth access token of the user
-     * @return {@link GmailSMTPConnectionObject} instance
+     * @return {@link GmailSMTPConnection} instance
      * @throws com.google.code.javax.mail.MessagingException
      *             as a result of authentication failure
      */
-    public static GmailSMTPConnectionObject connectToSMTP(String username, String accessToken)
+    public static GmailSMTPConnection connectToSMTP(String username, String accessToken)
             throws MessagingException {
         Properties props = new Properties();
         props.put("mail.smtp.starttls.enable", GmailConstants.GMAIL_TRUE_VALUE);
@@ -98,6 +98,6 @@ public final class GmailOAuth2SASLAuthenticator {
         SMTPTransport transport = new SMTPTransport(session, null);
         transport.connect(GmailConstants.GMAIL_SMTP_HOST, GmailConstants.GMAIL_SMTP_PORT, username,
                 "");
-        return new GmailSMTPConnectionObject(session, transport);
+        return new GmailSMTPConnection(session, transport);
     }
 }
