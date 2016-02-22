@@ -52,7 +52,6 @@ public class GmailIMAPClientLoader {
      */
     public IMAPStore loadIMAPStore(MessageContext messageContext) throws MessagingException,
             ConnectException {
-
         org.apache.axis2.context.MessageContext axis2MsgCtx =
                 ((Axis2MessageContext) messageContext).getAxis2MessageContext();
         Object prestoredInstance =
@@ -68,15 +67,13 @@ public class GmailIMAPClientLoader {
         // Login mode should have been defined during either "init" or
         // "passwordLogin" operations.
         Object loginMode = axis2MsgCtx.getProperty(GmailConstants.GMAIL_LOGIN_MODE);
-        if (loginMode == null) {
-            String errorLog = "Gmail configuration details were not initialized";
-            log.error(errorLog);
-            ConnectException connectException = new ConnectException(errorLog);
-            throw (connectException);
+        try {
+            if (loginMode == null) {
+            }
+        }catch (ConnectException, e){
+            log.error("Gmail configuration details were not initialized", e);
         }
-
         IMAPStore store = null;
-
         // Perform SASL authentication if configured using the "Password Login"
         // operation.
         if (loginMode.toString().equals(GmailConstants.GMAIL_SASL_LOGIN_MODE)) {

@@ -34,7 +34,7 @@ import java.io.IOException;
 /**
  * This class performs the "send mail" operation.
  */
-public class GmailSendMail extends AbstractConnector {
+public class GmailMailSender extends AbstractConnector {
 
     /*
      * Sends an e-mail message to specified recipients.
