@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Method Documentation URL: https://developers.google.com/analytics/devguides/config/mgmt/v3/mgmtReference/management/accounts/list -->
+<template name="listWebPropertyUserLinks" xmlns="http://ws.apache.org/ns/synapse">
+
+    <parameter name="accountId" description="Account ID to retrieve the views." />
+    <parameter name="webPropertyId" description="Returns response with indentations and line breaks." />
+    <parameter name="maxResults" description="The maximum number of views to include in this response" />
+    <parameter name="startIndex" description="The starting index of the resources." />
+    <parameter name="fields" description="option results in response." />
+
+    <sequence>
+        <property name="uri.var.accountId" expression="$func:accountId" />
+        <property name="uri.var.webPropertyId" expression="$func:webPropertyId" />
+        <property name="uri.var.maxResults" expression="$func:maxResults" />
+        <property name="uri.var.startIndex" expression="$func:startIndex" />
+        <property name="uri.var.fields" expression="$func:fields" />
+
+        <filter xpath="(not(get-property('uri.var.fields') = '' or (not(string(get-property('uri.var.fields'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'fields=',get-property('uri.var.fields'))"/>
+            </then>
+        </filter>
+        <filter xpath="(not(get-property('uri.var.maxResults') = '' or (not(string(get-property('uri.var.maxResults'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'max-results=',get-property('uri.var.maxResults'),'&amp;')"/>
+            </then>
+        </filter>
+
+        <filter xpath="(not(get-property('uri.var.startIndex') = '' or (not(string(get-property('uri.var.startIndex'))))))">
+            <then>
+                <property name="uri.var.apiParameters"
+                          expression="fn:concat(get-property('uri.var.apiParameters'),'start-index=',get-property('uri.var.startIndex'))"/>
+            </then>
+        </filter>
+
+        <call>
+            <endpoint>
+                <http method="get" uri-template="{+uri.var.apiUrl}/analytics/v3/management/accounts/{+uri.var.accountId}/webproperties/{+uri.var.webPropertyId}/entityUserLinks?{+uri.var.apiParameters}" />
+            </endpoint>
+        </call>
+        <property name="uri.var.statusCode" expression="$axis2:HTTP_SC" />
+        <!-- If the call fails with 401 Unauthorized, then get a new access token by calling getAccessTokenFromRefreshToken
+           method. -->
+        <filter xpath="get-property('uri.var.statusCode') = 401 and get-property('uri.var.refreshTokenNegotiated') = 'false'">
+            <then>
+                <googleanalytics.getAccessTokenFromRefreshToken />
+                <header name="Authorization" expression="fn:concat('Bearer ', get-property('uri.var.accessToken'))"
+                        scope="transport" />
+                <googleanalytics.listWebPropertyUserLinks/>
+            </then>
+        </filter>
+        <!-- Remove custom Headers from the API Response -->
+        <header name="X-Frame-Options" action="remove" scope="transport" />
+        <header name="Expires" action="remove" scope="transport" />
+        <header name="X-XSS-Protection" action="remove" scope="transport" />
+        <header name="Alternate-Protocol" action="remove" scope="transport" />
+        <header name="X-Content-Type-Options" action="remove" scope="transport" />
+        <header name="Alt-Svc" action="remove" scope="transport" />
+        <header name="Cache-Control" action="remove" scope="transport" />
+        <header name="Pragma" action="remove" scope="transport" />
+    </sequence>
+</template>

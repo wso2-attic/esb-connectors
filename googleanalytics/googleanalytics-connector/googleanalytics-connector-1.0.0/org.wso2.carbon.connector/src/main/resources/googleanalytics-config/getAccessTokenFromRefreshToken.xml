@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+   Copyright (c) 2005-2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 
    WSO2 Inc. licenses this file to you under the Apache License,
    Version 2.0 (the "License"); you may not use this file except
@@ -16,61 +16,67 @@
    specific language governing permissions and limitations
    under the License.
 -->
-<!-- Method Documentation URL: https://developers.google.com/identity/protocols/OAuth2WebServer -->
+<!-- Method Documentation URL: https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_understanding_refresh_token_oauth.htm -->
 <template name="getAccessTokenFromRefreshToken" xmlns="http://ws.apache.org/ns/synapse">
-   <parameter name="apiUrl" description="Base endpoint URL of GoogleAnalytics API." />
-   <sequence>
-      <filter source="boolean(get-property('uri.var.apiUrl'))" regex="false">
-         <then>
-            <property name="uri.var.apiUrl" expression="$func:apiUrl" />
-         </then>
-      </filter>
-      <property name="uri.var.refreshToken" expression="get-property('registry', 'connectors/GoogleAnalytics/refreshToken')" />
-      <property name="uri.var.clientId" expression="get-property('registry', 'connectors/GoogleAnalytics/clientId')" />
-      <property name="uri.var.clientSecret" expression="get-property('registry', 'connectors/GoogleAnalytics/clientSecret')" />
-      <!-- Type of the grant used to get a new access token by negotiating the refresh token. -->
-      <property name="uri.var.grantType" value="refresh_token" />
-      <payloadFactory media-type="json">
-         <format>
-            {
-            "refresh_token": "$1",
-            "grant_type": "$2",
-            "client_secret": "$3",
-            "client_id": "$4"
-            }
-         </format>
-         <args>
-            <arg expression="get-property('uri.var.refreshToken')" />
-            <arg expression="get-property('uri.var.grantType')" />
-            <arg expression="get-property('uri.var.clientSecret')" />
-            <arg expression="get-property('uri.var.clientId')" />
-         </args>
-      </payloadFactory>
-      <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2" />
-      <call>
-         <endpoint>
-            <http method="post" uri-template="{+uri.var.apiUrl}/oauth2/v3/token" />
-         </endpoint>
-      </call>
-      <!-- Setting the new access token to the property. -->
-      <property name="uri.var.accessToken" expression="json-eval($.access_token)" />
-      <script language="js">
-         <![CDATA[
-             importPackage(Packages.org.apache.synapse.config);
-             var newAccessToken = mc.getProperty('uri.var.accessToken');
-             if(newAccessToken != null && newAccessToken != ''){
-                var existingAccessToken = mc.getConfiguration().getRegistry().getResource("connectors/GoogleAnalytics/accessToken");
-                if(existingAccessToken == null){
-                  // Create the registry entry if no such entry exists.
-                  mc.getConfiguration().getRegistry().newResource("connectors/GoogleAnalytics/accessToken", newAccessToken);
-                } else {
-                  // Update the registry entry if it already exists.
-                  mc.getConfiguration().getRegistry().updateResource("connectors/GoogleAnalytics/accessToken", newAccessToken);
-                }     
-             }                     
-         ]]>
-      </script>
-      <!-- Boolean flag to keep track of whether the method to get the access token is already called or not. -->
-      <property name="uri.var.refreshTokenNegotiated" value="true" />
-   </sequence>
+    <parameter name="clientId"
+               description="clientId of your App, given by google console when you registered your application"/>
+    <parameter name="clientSecret"
+               description="clientSecret of your App, given by google when you registered your application"/>
+    <parameter name="refreshToken" description="Refresh Token"/>
+    <sequence>
+        <property name="uri.var.refreshToken" expression="$func:refreshToken"/>
+        <property name="uri.var.clientId" expression="$func:clientId"/>
+        <property name="uri.var.clientSecret" expression="$func:clientSecret"/>
+        <payloadFactory media-type="json">
+            <format>
+                {
+                "refresh_token": "$1",
+                "grant_type": "refresh_token",
+                "client_secret": "$2",
+                "client_id": "$3"
+                }
+            </format>
+            <args>
+                <arg expression="$ctx:uri.var.refreshToken"/>
+                <arg expression="$ctx:uri.var.clientSecret"/>
+                <arg expression="$ctx:uri.var.clientId"/>
+            </args>
+        </payloadFactory>
+        <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+        <!-- Remove custom Headers from the API Response -->
+        <header name="Content-Encoding" action="remove" scope="transport"/>
+        <property name="REQUEST_HOST_HEADER" scope="axis2" value="www.googleapis.com"/>
+        <header name="Transfer-Encoding" action="remove" scope="transport"/>
+        <call>
+            <endpoint>
+                <http method="post"
+                      uri-template="https://www.googleapis.com/oauth2/v3/token?grant_type=refresh_token&amp;client_id={ uri.var.clientId}&amp;client_secret={ uri.var.clientSecret}&amp;refresh_token={ uri.var.refreshToken}"/>
+            </endpoint>
+        </call>
+        <!-- Setting the new access token to the property. -->
+        <property name="uri.var.accessToken" expression="json-eval($.access_token)"/>
+        <script language="js">
+            <![CDATA[
+            importPackage(Packages.org.apache.synapse.config);
+            var newAccessToken = mc.getProperty('uri.var.accessToken');
+            var newAccessRegistryPath = mc.getProperty('uri.var.accessTokenRegistryPath');
+                if(newAccessToken != null && newAccessToken != ''){
+                    var existingAccessToken =mc.getConfiguration().getRegistry().getResource(newAccessRegistryPath);
+                    if(existingAccessToken == null){
+                        // Create the registry entry if no such entry exists.
+                        mc.getConfiguration().getRegistry().newResource(newAccessRegistryPath,false);
+                        mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath,newAccessToken);
+                    } else {
+                    // Update the registry entry if it already exists.
+                    mc.getConfiguration().getRegistry().updateResource(newAccessRegistryPath,newAccessToken);
+                    }
+                }
+             ]]>
+        </script>
+        <!-- store the new accessToken into registry. -->
+        <header name="Authorization" expression="fn:concat('Bearer ', $ctx:uri.var.accessToken)"
+                scope="transport"/>
+        <header name="Cache-Control" action="remove" scope="transport"/>
+        <header name="Pragma" action="remove" scope="transport"/>
+    </sequence>
 </template>
