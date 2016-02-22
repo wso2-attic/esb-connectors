@@ -80,5 +80,5 @@ STEPS:
  NOTE :  
     i)  Maximum emails that can be sent via Amazon SES is 200/day .
     ii) Following Amazon SES credentials, can be used to run the integration tests.
- 	   secretAccessKey=ieqv+/fjTl6jwJTVh/12hL2VMmO9LAaJoK1g4xOw
-       accessKeyId=AKIAIAVWAXVVQD5S3Y3A
+ 	   	secretAccessKey=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
+       		accessKeyId=AKIAIAVWAXVVQD5S3Y3A
