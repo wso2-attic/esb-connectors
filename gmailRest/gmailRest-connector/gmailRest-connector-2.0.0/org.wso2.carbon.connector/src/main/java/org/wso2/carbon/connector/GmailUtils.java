@@ -557,7 +557,7 @@ public  final class GmailUtils {
 
         if (operationContext.getProperty(GmailConstants.GMAIL_SMTP_CONNECTION_INSTANCE) != null) {
             log.info("Closing the previously opened SMTP transport");
-            ((GmailSMTPConnectionObject) operationContext.getProperty(GmailConstants.GMAIL_SMTP_CONNECTION_INSTANCE)).getTransport()
+            ((GmailSMTPConnection) operationContext.getProperty(GmailConstants.GMAIL_SMTP_CONNECTION_INSTANCE)).getTransport()
                     .close();
             operationContext.removeProperty(GmailConstants.GMAIL_SMTP_CONNECTION_INSTANCE);
         }

@@ -25,7 +25,7 @@ import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.wso2.carbon.connector.core.ConnectException;
 
 /**
- * Class which loads the {@link GmailSMTPConnectionObject} according to the
+ * Class which loads the {@link GmailSMTPConnection} according to the
  * authentication mode.
  */
 public class GmailSMTPClientLoader {
@@ -36,20 +36,20 @@ public class GmailSMTPClientLoader {
     private static Log log = LogFactory.getLog(GmailSMTPClientLoader.class);
 
     /**
-     * Method which loads the {@link GmailSMTPConnectionObject} instance
+     * Method which loads the {@link GmailSMTPConnection} instance
      * according to the authentication mode.
      *
      * @param messageContext
      *            Message context where the instantiated
-     *            {@link GmailSMTPConnectionObject} instance is stored.
+     *            {@link GmailSMTPConnection} instance is stored.
      * @return
-     *         the loaded {@link GmailSMTPConnectionObject} instance
+     *         the loaded {@link GmailSMTPConnection} instance
      * @throws org.wso2.carbon.connector.core.ConnectException
      *             as a result of invalid configuration
      * @throws com.google.code.javax.mail.MessagingException
      *             as a result of authentication failures
      */
-    public GmailSMTPConnectionObject loadSMTPSession(MessageContext messageContext)
+    public GmailSMTPConnection loadSMTPSession(MessageContext messageContext)
             throws ConnectException,
             MessagingException {
 
@@ -64,7 +64,7 @@ public class GmailSMTPClientLoader {
         // instance.
         if (prestoredInstance != null) {
             log.info("Restoring the preinstantiated SMTP session");
-            return (GmailSMTPConnectionObject) prestoredInstance;
+            return (GmailSMTPConnection) prestoredInstance;
         }
 
         // Login mode should have been defined during either "init" or
@@ -77,7 +77,7 @@ public class GmailSMTPClientLoader {
             throw (connectException);
         }
 
-        GmailSMTPConnectionObject smtpConnectionObject = null;
+        GmailSMTPConnection smtpConnectionObject = null;
 
         // Perform SASL authentication if configured using the "Password Login"
         // operation.

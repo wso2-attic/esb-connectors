@@ -25,7 +25,7 @@ import com.google.code.javax.mail.Session;
  * This class provides the object model to store {@link com.google.code.javax.mail.Session} and
  * {@link com.google.code.com.sun.mail.smtp.SMTPTransport} instances to send mails through SMTP.
  */
-public class GmailSMTPConnectionObject {
+public class GmailSMTPConnection {
 
     /**
      * class variable to store {@link com.google.code.javax.mail.Session} instance.
@@ -38,14 +38,14 @@ public class GmailSMTPConnectionObject {
     private SMTPTransport transport;
 
     /**
-     * Constructor of the {@link org.wso2.carbon.connector.GmailSMTPConnectionObject} class
+     * Constructor of the {@link GmailSMTPConnection} class
      *
      * @param session
      *            Authenticated {@link com.google.code.javax.mail.Session} instance
      * @param transport
      *            Authenticated and connected {@link com.google.code.com.sun.mail.smtp.SMTPTransport} instance
      */
-    public GmailSMTPConnectionObject(Session session, SMTPTransport transport) {
+    public GmailSMTPConnection(Session session, SMTPTransport transport) {
         this.session = session;
         this.transport = transport;
     }

@@ -44,21 +44,6 @@ public class GmailConfig extends AbstractConnector {
             String username =
                     GmailUtils.lookupFunctionParam(messageContext,
                             GmailConstants.GMAIL_PARAM_USERNAME);
-
-            // Validating the user name and OAuth access token provided by the
-            // user
-            if (username == null || "".equals(username.trim()) || oauthAccessToken == null ||
-                    "".equals(oauthAccessToken.trim())) {
-
-                String errorLog = "Invalid username or access token";
-                log.error(errorLog);
-                ConnectException connectException = new ConnectException(errorLog);
-                GmailUtils.storeErrorResponseStatus(messageContext,
-                        connectException,
-                        GmailErrorCodes.GMAIL_ERROR_CODE_CONNECT_EXCEPTION);
-                handleException(connectException.getMessage(), connectException, messageContext);
-            }
-
             // Storing OAuth user login details in the message context
             this.storeOauthUserLogin(messageContext, username, oauthAccessToken);
         } catch (MessagingException e) {

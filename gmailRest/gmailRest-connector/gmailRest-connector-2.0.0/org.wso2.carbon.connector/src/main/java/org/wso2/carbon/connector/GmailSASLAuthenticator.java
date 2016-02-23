@@ -66,11 +66,11 @@ public final class GmailSASLAuthenticator {
      *            user name
      * @param password
      *            password of the user
-     * @return {@link GmailSMTPConnectionObject} instance
+     * @return {@link GmailSMTPConnection} instance
      * @throws com.google.code.javax.mail.MessagingException
      *             as a result of authentication failure
      */
-    public static GmailSMTPConnectionObject connectToSMTPSession(final String username,
+    public static GmailSMTPConnection connectToSMTPSession(final String username,
                                                                  final String password)
             throws MessagingException {
         Properties properties = new Properties();
@@ -82,6 +82,6 @@ public final class GmailSASLAuthenticator {
         SMTPTransport transport = new SMTPTransport(session, null);
         transport.connect(GmailConstants.GMAIL_SMTP_HOST, GmailConstants.GMAIL_SMTP_PORT, username,
                 password);
-        return new GmailSMTPConnectionObject(session, transport);
+        return new GmailSMTPConnection(session, transport);
     }
 }

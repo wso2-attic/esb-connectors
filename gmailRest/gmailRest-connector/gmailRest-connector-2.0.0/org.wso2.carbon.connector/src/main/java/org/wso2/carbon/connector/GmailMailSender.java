@@ -34,7 +34,7 @@ import java.io.IOException;
 /**
  * This class performs the "send mail" operation.
  */
-public class GmailSendMail extends AbstractConnector {
+public class GmailMailSender extends AbstractConnector {
 
     /*
      * Sends an e-mail message to specified recipients.
@@ -55,7 +55,7 @@ public class GmailSendMail extends AbstractConnector {
 
             // Validating recipients. At least one recipient should have been
             // given to send the mail
-            if (toRecipients == null && bccRecipients == null && ccRecipients == null) {
+            if (StringUtils.isEmpty(toRecipients) && StringUtils.isEmpty(bccRecipients) && StringUtils.isEmpty(ccRecipients)) {
                 String errorLog = "No recipients are found";
                 log.error(errorLog);
                 ConnectException connectException = new ConnectException(errorLog);
@@ -71,8 +71,8 @@ public class GmailSendMail extends AbstractConnector {
 
             GmailSMTPClientLoader smtpClientLoader = new GmailSMTPClientLoader();
             log.info("Loading the SMTP connection");
-            GmailSMTPConnectionObject smtpConnectionObject =
-                    (GmailSMTPConnectionObject) smtpClientLoader.loadSMTPSession(messageContext);
+            GmailSMTPConnection smtpConnectionObject =
+                    (GmailSMTPConnection) smtpClientLoader.loadSMTPSession(messageContext);
             Session session = smtpConnectionObject.getSession();
             SMTPTransport transport = smtpConnectionObject.getTransport();
             org.apache.axis2.context.MessageContext axis2MsgCtx =
