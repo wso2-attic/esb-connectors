@@ -1,0 +1,496 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+
+<!-- This template retrieves the Zoho Recruit candidate details using the passed candidate ID and creates Employees in people 
+   HR, zohoPeople, Deputy and Xero -->
+<template name="peoplehr-retrieveCandidatesAndCreateEmployees" xmlns="http://ws.apache.org/ns/synapse">
+
+   <!-- Common parameters -->
+   <parameter name="candidateId" description="Zoho Recruit Candidate Identifier" />
+   <parameter name="location" description="The Work Location to of the employees being created" />
+   <parameter name="department" description="The Department of the employees being created" />
+   <parameter name="startDate" description="The start Date for the employees being created" />
+
+   <!-- People HR parameters -->
+   <parameter name="peopleHrApiUrl" description="The People HR api URL" />
+   <parameter name="peopleHrApiKey" description="The People HR Api Key" />
+
+   <!-- Zoho Recruit parameters -->
+   <parameter name="zohoRecruitApiUrl" description="The Zoho Recruit api URL" />
+   <parameter name="zohoRecruitAuthToken" description="Encrypted alphanumeric string to authenticate the Zoho Recruit credentials" />
+   <parameter name="zohoRecruitScope" description="Zoho Recruit scope, Specify the value as recruitapi" />
+
+   <!-- Zoho People -->
+   <parameter name="zohoPeopleApiUrl" description="The Zoho People URL" />
+   <parameter name="zohoPeopleAuthToken" description="The Zoho People Api Key" />
+   <parameter name="zohoPeopleDate" description="The Zoho People Date String in YYYY-MMM-DD format" />
+   <parameter name="zohoPeopleDepartmentId" description="The Zoho People Department Identifier" />
+
+   <!-- Deputy parameters -->
+   <parameter name="deputyApiUrl" description="The Deputy api URL" />
+   <parameter name="deputyAccessToken" description="OAuth 2.0 access token of the respective account" />
+   <parameter name="deputyCompanyId" description="The Company Identifier to create an employee in" />
+
+   <!-- Xero parameters -->
+   <parameter name="xeroApiUrl" description="The Xero Api Url" />
+   <parameter name="xeroConsumerKey" description="The Xero application's Consumer Secret" />
+   <parameter name="xeroConsumerSecret" description="The Xero application's Consumer Secret" />
+   <parameter name="xeroAccessToken" description="Access token for the respective account" />
+   <parameter name="xeroAccessTokenSecret" description="Access token secret for the respesctive account" />
+
+
+   <sequence>
+
+      <!-- People HR properties -->
+      <property name="uri.var.peopleHrApiUrl" expression="$func:peopleHrApiUrl" />
+      <property name="uri.var.peopleHrApiKey" expression="$func:peopleHrApiKey" />
+
+      <!-- Zoho Recruit properties -->
+      <property name="uri.var.zohoRecruitApiUrl" expression="$func:zohoRecruitApiUrl" />
+      <property name="uri.var.zohoRecruitAuthToken" expression="$func:zohoRecruitAuthToken" />
+      <property name="uri.var.zohoRecruitScope" expression="$func:zohoRecruitScope" />
+      <property name="uri.var.zohoRecruitResponseFormat" value="xml" />
+      <property name="uri.var.zohoRecruitModule" value="Candidates" />
+
+      <!-- Zoho People properties -->
+      <property name="uri.var.zohoPeopleApiUrl" expression="$func:zohoPeopleApiUrl" />
+      <property name="uri.var.zohoPeopleAuthToken" expression="$func:zohoPeopleAuthToken" />
+      <property name="uri.var.zohoPeopleDate" expression="$func:zohoPeopleDate" />
+      <property name="uri.var.zohoPeopleDepartmentId" expression="$func:zohoPeopleDepartmentId" />
+      <property name="uri.var.zohoPeopleResponseType" value="application/json" />
+      <property name="uri.var.zohoPeopleFormLinkName" value="P_Employee" />
+      <property name="uri.var.zohoPeopleInputType" value="xml" />
+
+
+      <!-- Deputy properties -->
+      <property name="uri.var.deputyApiUrl" expression="$func:deputyApiUrl" />
+      <property name="uri.var.deputyAccessToken" expression="$func:deputyAccessToken" />
+      <property name="uri.var.deputyCompanyId" expression="$func:deputyCompanyId" />
+
+      <!-- Xero properties -->
+      <property name="uri.var.xeroApiUrl" expression="$func:xeroApiUrl" />
+      <property name="uri.var.xeroConsumerKey" expression="$func:xeroConsumerKey" />
+      <property name="uri.var.xeroConsumerSecret" expression="$func:xeroConsumerSecret" />
+      <property name="uri.var.xeroAccessToken" expression="$func:xeroAccessToken" />
+      <property name="uri.var.xeroAccessTokenSecret" expression="$func:xeroAccessTokenSecret" />
+
+      <!-- Common properties -->
+      <property name="uri.var.location" expression="$func:location" />
+      <property name="uri.var.department" expression="$func:department" />
+      <property name="uri.var.startDate" expression="$func:startDate" />
+
+      <property name="uri.var.candidateId" expression="$func:candidateId" />
+
+      <zohorecruit.init>
+         <apiUrl>{$ctx:uri.var.zohoRecruitApiUrl}</apiUrl>
+         <authToken>{$ctx:uri.var.zohoRecruitAuthToken}</authToken>
+         <scope>{$ctx:uri.var.zohoRecruitScope}</scope>
+         <responseFormat>{$ctx:uri.var.zohoRecruitResponseFormat}</responseFormat>
+      </zohorecruit.init>
+      <zohorecruit.getRecordById>
+         <module>{$ctx:uri.var.zohoRecruitModule}</module>
+         <id>{$ctx:uri.var.candidateId}</id>
+         <selectColumns>{$ctx:selectColumns}</selectColumns>
+      </zohorecruit.getRecordById>
+
+      <property name="uri.var.candidateEmail" expression="//Candidates/row/FL[@val='Email']" />
+      <property name="uri.var.candidateFirstName" expression="//Candidates/row/FL[@val='First Name']/text()" />
+      <property name="uri.var.candidateLastName" expression="//Candidates/row/FL[@val='Last Name']/text()" />
+      <property name="uri.var.candidateJobRole" expression="//Candidates/row/FL[@val='Current Job Title']/text()" />
+      <property name="uri.var.candidateGender" expression="//Candidates/row/FL[@val='Gender']/text()" />
+      <property name="uri.var.candidateStreetAddress" expression="//Candidates/row/FL[@val='Street']" />
+      <property name="uri.var.candidateCity" expression="//Candidates/row/FL[@val='City']/text()" />
+      <property name="uri.var.candidateState" expression="//Candidates/row/FL[@val='State']/text()" />
+      <property name="uri.var.candidateZip" expression="//Candidates/row/FL[@val='Zip Code']/text()" />
+      <property name="uri.var.candidateLatitude" expression="//Candidates/row/FL[@val='Latitude']/text()" />
+      <property name="uri.var.candidateLongitude" expression="//Candidates/row/FL[@val='Longitude']/text()" />
+	  
+      <!-- Increment the last Employee ID to generate a new ID -->
+      <property name="uri.var.employeeIdentifier" expression="get-property('operation', 'uri.var.employeeIdentifier') + 1"
+         scope="operation" />
+
+      <!-- Removes unnecessary decimal value(.0) from the ID value -->
+      <property name="uri.var.employeeId"
+         expression="fn:substring(get-property('operation', 'uri.var.employeeIdentifier'), 0, fn:string-length(get-property('operation', 'uri.var.employeeIdentifier')) - 1)" />
+		 
+	  <property name="uri.var.employeeId" expression="fn:concat('PW', get-property('uri.var.employeeId'))" />
+
+      <!-- Candidate ID parameter to be used in responseHandlerTemplate -->
+      <property name="uri.var.id" expression="fn:concat('candidate_id:',get-property('uri.var.candidateId'))" />
+
+      <!-- Included the following messageType to support people HR Employee creation -->
+      <property name="messageType" value="application/json" scope="axis2" />
+
+      <!-- Check the availability of candidate Email to proceed with Employee creation, otherwise returns an error -->
+      <filter source="boolean(get-property('uri.var.candidateEmail'))" regex="false">
+         <then>
+            <!-- Email not found -->
+            <!-- People HR create Employee Failure Response -->
+            <property name="uri.var.message"
+               value="Failed to create the employees because the email of the candidate cannot be retrieved" />
+
+            <call-template target="responseHandlerTemplate">
+               <with-param name="activity" value="zohorecruit_getCandidateDetails" />
+               <with-param name="id" value="{$ctx:uri.var.id}" />
+               <with-param name="status" value="Error" />
+               <with-param name="message" value="{$ctx:uri.var.message}" />
+            </call-template>
+
+         </then>
+         <else>
+            <!-- Create the Employee address using Zoho Recruit Details -->
+            <property name="uri.var.candidateAddress"
+               expression="fn:concat(get-property('uri.var.candidateStreetAddress'), ', ', get-property('uri.var.candidateCity'), ', ', get-property('uri.var.candidateState'))" />
+
+            <!-- People HR create Employee -->
+            <peoplehr.init>
+               <employeeId>{$ctx:uri.var.employeeId}</employeeId>
+               <apiUrl>{$ctx:uri.var.peopleHrApiUrl}</apiUrl>
+               <apiKey>{$ctx:uri.var.peopleHrApiKey}</apiKey>
+            </peoplehr.init>
+            <peoplehr.createEmployee>
+               <lastName>{$ctx:uri.var.candidateLastName}</lastName>
+               <email>{$ctx:uri.var.candidateEmail}</email>
+               <firstName>{$ctx:uri.var.candidateFirstName}</firstName>
+               <startDate>{$ctx:uri.var.startDate}</startDate>
+               <jobRole>{$ctx:uri.var.candidateJobRole}</jobRole>
+               <location>{$ctx:uri.var.location}</location>
+               <department>{$ctx:uri.var.department}</department>
+               <gender>{$ctx:uri.var.candidateGender}</gender>
+               <address>{$ctx:uri.var.candidateAddress}</address>
+            </peoplehr.createEmployee>
+
+            <!-- End People HR Create Employee -->
+
+            <property name="uri.var.isError" expression="json-eval($.isError)" />
+
+            <!-- Proceed with rest of the employee creation calls only if the People HR Employee creation is completed -->
+            <filter source="get-property('uri.var.isError')" regex="true">
+               <then>
+                  <!-- People HR create Employee Failure Response -->
+                  <property name="uri.var.peopleHrErrorMessage" expression="json-eval($.Message)" />
+
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="activity" value="peoplehr_createEmployee" />
+                     <with-param name="id" value="{$ctx:uri.var.id}" />
+                     <with-param name="status" value="Error" />
+                     <with-param name="message" value="{$ctx:uri.var.peopleHrErrorMessage}" />
+                  </call-template>
+
+               </then>
+               <else>
+                  <!-- People HR Create Employee Successful response -->
+                  <property name="uri.var.status" value="Success" />
+                  <property name="uri.var.peopleHrId"
+                     expression="fn:concat(get-property('uri.var.id'), ',employee_id:',get-property('uri.var.employeeId'))" />
+                  <property name="uri.var.message" value="Successfully created the employee" />
+
+                  <!-- Generate the People HR create Employee response -->
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="activity" value="peoplehr_createEmployee" />
+                     <with-param name="id" value="{$ctx:uri.var.peopleHrId}" />
+                     <with-param name="status" value="{$ctx:uri.var.status}" />
+                     <with-param name="message" value="{$ctx:uri.var.message}" />
+                  </call-template>
+
+                  <property name="uri.var.zohoPeopleId" expression="get-property('uri.var.id')" />
+                  <!-- Check the availability of Zoho People auth token to proceed with the Zoho People Employee creation -->
+                  <filter source="boolean(get-property('uri.var.zohoPeopleAuthToken'))" regex="false">
+                     <then>
+                        <property name="uri.var.status" value="Skipped" />
+                        <property name="uri.var.message" value="The API Token has not provided" />
+                     </then>
+                     <else>
+                        <script language="js">
+									<![CDATA[
+										var inputData = '<Request><Record><field name="EmployeeID">' + mc.getProperty('uri.var.employeeId') +
+														'</field><field name="FirstName">' + mc.getProperty('uri.var.candidateFirstName') + 
+														'</field><field name="LastName">' + mc.getProperty('uri.var.candidateLastName') + 
+														'</field><field name="EmailID">' + mc.getProperty('uri.var.candidateEmail') + 
+														'</field><field name="Current_Job_Description">' + mc.getProperty('uri.var.candidateJobRole') + 													  
+														'</field><field name="Department">' + mc.getProperty('uri.var.zohoPeopleDepartmentId') + 
+														'</field><field name="Work_location">' + mc.getProperty('uri.var.location') + 
+														'</field><field name="Address">' + mc.getProperty('uri.var.candidateAddress') + 													  
+														'</field><field name="Dateofjoining">' + mc.getProperty('uri.var.zohoPeopleDate') + 													  
+														'</field></Record></Request>';
+													  
+										mc.setProperty('uri.var.zohoPeopleInputData', inputData);
+									]]>
+                        </script>
+
+                        <!-- Zoho People create Employee -->
+                        <zohopeople.init>
+                           <apiUrl>{$ctx:uri.var.zohoPeopleApiUrl}</apiUrl>
+                           <authToken>{$ctx:uri.var.zohoPeopleAuthToken}</authToken>
+                           <responseType>{$ctx:uri.var.zohoPeopleResponseType}</responseType>
+                        </zohopeople.init>
+                        <zohopeople.createRecord>
+                           <inputData>{$ctx:uri.var.zohoPeopleInputData}</inputData>
+                           <formLinkName>{$ctx:uri.var.zohoPeopleFormLinkName}</formLinkName>
+                           <inputType>{$ctx:uri.var.zohoPeopleInputType}</inputType>
+                        </zohopeople.createRecord>
+
+                        <property name="uri.var.zohoPeopleResponseMessage" expression="json-eval($.response.message)" />
+
+                        <!-- Check weather an Error code is NOT present -->
+                        <filter source="get-property('uri.var.zohoPeopleResponseMessage')" regex="Data added successfully">
+                           <then>
+                              <!-- Zoho People create Employee Success response -->
+                              <property name="uri.var.status" value="Success" />
+                              <property name="uri.var.zohoPeopleId"
+                                 expression="fn:concat(get-property('uri.var.id'), ',employee_id:',get-property('uri.var.employeeId'))" />
+                              <property name="uri.var.message" value="Successfully created the employee" />
+                           </then>
+                           <else>
+                              <!-- Zoho People provides a detailed error response with 200 Status code. -->
+                              <property name="uri.var.zohoPeopleErrorMessage" expression="json-eval($.response.errors..message)" />
+                              <script language="js">
+											<![CDATA[
+												var errorsArray = eval ( '(' + mc.getProperty('uri.var.zohoPeopleErrorMessage') + ')' );
+												var errorMessage = '';
+												var row = 0;
+												
+												for (var i = 0; i < errorsArray.length; i++) {
+													errorMessage += errorsArray[i].toSource() + ',';													
+												}
+												
+												// Remove all unwanted characters from the response to generate the error string separated from commas.
+												mc.setProperty('uri.var.zohoPeopleResponseMessage', errorMessage.slice(0,-1).replace(/[{}()\"]/g, ""));
+											]]>
+                              </script>
+                              <property name="uri.var.status" value="Error" />
+                              <property name="uri.var.message" expression="get-property('uri.var.zohoPeopleResponseMessage')" />
+                           </else>
+                        </filter>
+                     </else>
+                  </filter>
+                  <!-- Zoho People response generation -->
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="activity" value="zohopeople_createEmployee" />
+                     <with-param name="id" value="{$ctx:uri.var.zohoPeopleId}" />
+                     <with-param name="status" value="{$ctx:uri.var.status}" />
+                     <with-param name="message" value="{$ctx:uri.var.message}" />
+                  </call-template>
+                  <!-- End Zoho People Employee creation -->
+
+                  <property name="uri.var.deputyId" expression="get-property('uri.var.id')" />
+                  <!-- Check the availability of Deputy auth token to proceed with the Deputy Employee creation -->
+                  <filter source="boolean(get-property('uri.var.deputyAccessToken'))" regex="false">
+                     <then>
+                        <property name="uri.var.status" value="Skipped" />
+                        <property name="uri.var.message" value="The API Token has not provided" />
+                     </then>
+                     <else>
+                        <!-- Deputy create Employee -->
+                        <deputy.init>
+                           <accessToken>{$ctx:uri.var.deputyAccessToken}</accessToken>
+                           <apiUrl>{$ctx:uri.var.deputyApiUrl}</apiUrl>
+                        </deputy.init>
+                        <deputy.createEmployee>
+                           <dateOfBirth>{$ctx:uri.var.deputyDateOfBirth}</dateOfBirth>
+                           <lastName>{$ctx:uri.var.candidateLastName}</lastName>
+                           <companyId>{$ctx:uri.var.deputyCompanyId}</companyId>
+                           <mobilePhone>{$ctx:uri.var.deputyMobilePhone}</mobilePhone>
+                           <email>{$ctx:uri.var.candidateEmail}</email>
+                           <firstName>{$ctx:uri.var.candidateFirstName}</firstName>
+                           <roleId>{$ctx:uri.var.deputyRoleId}</roleId>
+                        </deputy.createEmployee>
+
+                        <property name="uri.var.deputyCreateStatusCode" expression="$axis2:HTTP_SC" />
+
+                        <!-- Checks the successful Employee creation to proceed with employee's OtherName, StartDate and 
+                           Gender fields update -->
+                        <filter source="get-property('uri.var.deputyCreateStatusCode')" regex="200">
+                           <else>
+                              <!-- This check was included since there can be 500 internal server errors which doesn't provide 
+                                 a proper response, hence cannot generate a valid Response from responseHandlerTemplate -->
+                              <property name="uri.var.status" value="Error" />
+                              <property name="uri.var.message"
+                                 expression="fn:concat('(', get-property('uri.var.deputyCreateStatusCode') , ') The Employee with ',get-property('uri.var.candidateEmail'),' has not created')" />
+                           </else>
+                           <then>
+                              <property name="uri.var.deputyEmployeeId" expression="json-eval($.Id)" />
+
+                              <filter source="boolean(get-property('uri.var.deputyEmployeeId'))" regex="true">
+                                 <then>
+                                    <property name="uri.var.objectName" value="Employee" />
+                                    <property name="uri.var.object"
+                                       expression="fn:concat('{&quot;OtherName&quot;: &quot;', get-property('uri.var.employeeId'), '&quot;, &quot;StartDate&quot;: &quot;', get-property('uri.var.startDate'), '&quot;, &quot;Gender&quot;: &quot;', get-property('uri.var.candidateGender'), '&quot; }')" />
+
+                                    <deputy.init>
+                                       <accessToken>{$ctx:uri.var.deputyAccessToken}</accessToken>
+                                       <apiUrl>{$ctx:uri.var.deputyApiUrl}</apiUrl>
+                                    </deputy.init>
+                                    <deputy.updateObject>
+                                       <objectName>{$ctx:uri.var.objectName}</objectName>
+                                       <objectId>{$ctx:uri.var.deputyEmployeeId}</objectId>
+                                       <object>{$ctx:uri.var.object}</object>
+                                    </deputy.updateObject>
+
+                                    <property name="uri.var.deputyUpdateStatusCode" expression="$axis2:HTTP_SC" />
+
+                                    <!-- Checks the successful Employee update -->
+                                    <filter source="get-property('uri.var.deputyUpdateStatusCode')" regex="200">
+                                       <then>
+                                          <!-- Successful Employee Update -->
+                                          <property name="uri.var.status" value="Success" />
+                                          <property name="uri.var.deputyId"
+                                             expression="fn:concat(get-property('uri.var.id'), ',employee_id:',get-property('uri.var.deputyEmployeeId'))" />
+                                          <property name="uri.var.message" value="Successfully created the employee" />
+                                       </then>
+                                       <else>
+                                          <!-- If the Employee update fails -->
+                                          <property name="uri.var.status" value="Error" />
+                                          <property name="uri.var.message"
+                                             expression="fn:concat( '(', get-property('uri.var.deputyUpdateStatusCode') , ') Successfully created the employee. However, the start date, Gender and OtherName Field with corresponding PeopleHR Employee ID: ',get-property('uri.var.employeeId'), ' has not created. Therefore a mapping cannot be created between Deputy and People HR Employees, Leave creation can be affected')" />
+                                       </else>
+                                    </filter>
+                                 </then>
+                                 <else>
+                                    <!-- This check was included since there can be 500 internal server errors which doesn't 
+                                       provide a proper response, hence cannot generate a valid Response from responseHandlerTemplate -->
+                                    <property name="uri.var.status" value="Error" />
+                                    <property name="uri.var.message"
+                                       expression="fn:concat('Successfully created the employee. However, the start date, Gender and OtherName Field with corresponding PeopleHR Employee ID: ',get-property('uri.var.employeeId'), ' has not created. Therefore a mapping cannot be created between Deputy and People HR Employees, Leave creation can be affected')" />
+                                 </else>
+                              </filter>
+                           </then>
+                        </filter>
+                     </else>
+                  </filter>
+                  <!-- Deputy response generation -->
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="activity" value="deputy_createEmployee" />
+                     <with-param name="id" value="{$ctx:uri.var.deputyId}" />
+                     <with-param name="status" value="{$ctx:uri.var.status}" />
+                     <with-param name="message" value="{$ctx:uri.var.message}" />
+                  </call-template>
+                  <!-- End Deputy Create Employee -->
+
+                  <property name="uri.var.xeroId" expression="get-property('uri.var.id')" />
+                  <!-- Check the availability of Xero access token to proceed with the Xero Employee creation -->
+                  <filter source="boolean(get-property('uri.var.xeroAccessToken'))" regex="false">
+                     <then>
+                        <property name="uri.var.status" value="Skipped" />
+                        <property name="uri.var.message" value="The API Token has not provided" />
+                     </then>
+                     <else>
+                        <script language="js">
+								<![CDATA[
+									var gender = mc.getProperty('uri.var.candidateGender');
+									if(gender == 'Male'){
+										gender = 'M';
+									} else if(gender == 'Female'){
+										gender = 'F';
+									}
+								
+									var employeeDetails = 	'<Employee><FirstName>' + 
+															mc.getProperty('uri.var.candidateFirstName') + '</FirstName><LastName>' +
+															mc.getProperty('uri.var.candidateLastName') + '</LastName><Email>' +
+															mc.getProperty('uri.var.candidateEmail') + '</Email><HomeAddress><City>' + 
+															mc.getProperty('uri.var.candidateCity') + '</City><Latitude>' +
+															mc.getProperty('uri.var.candidateLatitude') + '</Latitude><Longitude>' +
+															mc.getProperty('uri.var.candidateLongitude') + '</Longitude><StreetAddress>' +
+															mc.getProperty('uri.var.candidateStreetAddress') + '</StreetAddress><Zip>' +
+															mc.getProperty('uri.var.candidateZip') + '</Zip><State>' +
+															mc.getProperty('uri.var.candidateState') + '</State></HomeAddress><JobTitle>' +
+															mc.getProperty('uri.var.candidateJobRole') + '</JobTitle><StartDate>' +
+															mc.getProperty('uri.var.startDate') + '</StartDate><Gender>' +
+															gender + '</Gender></Employee>';
+									
+									mc.setProperty('uri.var.xeroEmployee', employeeDetails);
+									
+								]]>
+                        </script>
+
+                        <!-- Included the application/xml messageType to support Xero Employee creation -->
+                        <property name="messageType" value="application/xml" scope="axis2" />
+                        <property name="uri.var.acceptType" value="application/xml" />
+                        <!-- Xero create Employee -->
+                        <xero.init>
+                           <apiUrl>{$ctx:uri.var.xeroApiUrl}</apiUrl>
+                           <consumerKey>{$ctx:uri.var.xeroConsumerKey}</consumerKey>
+                           <consumerSecret>{$ctx:uri.var.xeroConsumerSecret}</consumerSecret>
+                           <accessToken>{$ctx:uri.var.xeroAccessToken}</accessToken>
+                           <accessTokenSecret>{$ctx:uri.var.xeroAccessTokenSecret}</accessTokenSecret>
+                           <acceptType>{$ctx:uri.var.acceptType}</acceptType>
+                        </xero.init>
+                        <xero.postEmployees>
+                           <employees>{$ctx:uri.var.xeroEmployee}</employees>
+                        </xero.postEmployees>
+
+                        <property name="uri.var.xeroStatusCode" expression="$axis2:HTTP_SC" />
+                        <property name="uri.var.xeroEmployeeId" expression="//EmployeeID" />
+
+
+                        <!-- Check the 200 Status code from xero response -->
+                        <filter source="get-property('uri.var.xeroStatusCode')" regex="200">
+                           <then>
+                              <property name="uri.var.status" value="Success" />
+                              <property name="uri.var.xeroId"
+                                 expression="fn:concat(get-property('uri.var.id'), ',employee_id:',get-property('uri.var.xeroEmployeeId'))" />
+                              <property name="uri.var.message" value="Successfully created the employee" />
+                           </then>
+                           <else>
+                              <!-- Error response for Xero create Employee -->
+                              <filter source="get-property('uri.var.xeroStatusCode')" regex="401">
+                                 <then>
+                                    <property name="uri.var.status" value="Error" />
+                                    <property name="uri.var.message"
+                                       expression="fn:concat('(', get-property('uri.var.xeroStatusCode') , ') Authentication error occurred due to invalid credentials')" />
+                                 </then>
+                                 <else>
+                                    <filter source="$axis2:HTTP_SC" regex="400">
+                                       <then>
+                                          <property name="uri.var.xeroErrorMessage" expression="//ValidationError/Message" />
+                                          <property name="uri.var.status" value="Error" />
+                                          <property name="uri.var.message"
+                                             expression="fn:concat('(', get-property('uri.var.xeroStatusCode') , ') ' , get-property('uri.var.xeroErrorMessage'))" />
+                                       </then>
+                                       <else>
+                                          <!-- Error when creating Xero Employee, but not received a 400 or 401 error status 
+                                             E.g. 500. Note that this has to be created manually since it doesn't provide a valid JSON error -->
+                                          <property name="uri.var.status" value="Error" />
+                                          <property name="uri.var.message"
+                                             expression="fn:concat('(', get-property('uri.var.xeroStatusCode') , ') Failed to create the employee')" />
+                                       </else>
+                                    </filter>
+                                 </else>
+                              </filter>
+                           </else>
+                        </filter>
+                     </else>
+                  </filter>
+                  <!-- Xero response generation -->
+                  <call-template target="responseHandlerTemplate">
+                     <with-param name="activity" value="xero_createEmployee" />
+                     <with-param name="id" value="{$ctx:uri.var.xeroId}" />
+                     <with-param name="status" value="{$ctx:uri.var.status}" />
+                     <with-param name="message" value="{$ctx:uri.var.message}" />
+                  </call-template>
+                  <!-- END of Xero Employee creation -->
+               </else>
+               <!-- People HR Employee creation Check -->
+            </filter>
+         </else>
+         <!-- End Email Check -->
+      </filter>
+
+   </sequence>
+</template>
