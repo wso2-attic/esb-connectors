@@ -9,13 +9,15 @@ Prerequisites:
 Tested Platform:
 
 - Mac OS X V-10.9.5
-- WSO2 ESB 4.8.1
+- WSO2 ESB 4.9.0
 - Java 1.7
 
 STEPS:
 
-1.Make sure the ESB 4.8.1 zip file with latest patches available at:
-  “nimble/repository/”.
+1. Download ESB 4.9.0-ALPHA by navigating the following the URL: https://svn.wso2.org/repos/wso2/scratch/ESB/.
+
+2.Follow the below mentioned steps to add valid certificate to access Nimble API over https.
+
   - import the gdroot-g2_cross CERTIFICATE to your ESB client’s keystore.
   	- import your gdroot-g2_cross certificates into wso2esb client’s keystore as follows:
   		Go to https://certs.godaddy.com/repository in your browser and click gdroot-g2_cross.crt
@@ -25,25 +27,24 @@ STEPS:
   keytool -importcert -file <CERTIFICATE_FILE_NAME WITH EXTENSION> -keystore client-truststore.jks -alias “<CERTIFICATE_NAME>”
   and give wso2carbon as password.
 
-2.Add following code block, just after the listeners block (Remove or comment all the other test blocks) in following file -
-  “nimble/src/test/resources/testng.xml"
+3. Compress modified ESB as wso2esb-4.9.0-ALPHA.zip and copy that zip file in to location "{ESB_Connector_Home}/repository/".
 
-   <test name="nimble-Connector-Test" preserve-order="true" verbose="2>
-   <packages>
-   <package name="org.wso2.carbon.connector.integration.test.nimble"/>
-   </packages>
-   </test>
+4.  Follow the below mentioned steps to create a new Nimble account:
+     - login https://www.nimble.com/login/ - you may use the dummy Account details below
+     - request access token - To get the access token you have to follow the steps in this documentation manually http://nimble.readthedocs.org/en/latest/obtaining_key/ then use the values obtained for refresh token,client id, client secret.
+5.Update the property file onstantcontact.properties found in {Connector_Home}/nimble/nimble-connector/nimble-connector-1.0.0/org.wso2.carbon.connector/src/test/resources/artifacts/ESB/connector/config as follows::
 
-3.Copy proxy files to following location:
-    "nimble/src/test/resources/artifacts/ESB/config/proxies/nimble"
-
-4.Copy request files to following:
-    "nimble/src/test/resources/artifacts/ESB/config/restRequests/nimble/"
-
-5.Edit the request files at 4 using valid and relevant data:
-  Parameters to be changed are mentioned below.
-   - login https://www.nimble.com/login/ - you may use the dummy Account details below
-   - request access token - To get the access token you have to follow the steps in this documentation manually http://nimble.readthedocs.org/en/latest/obtaining_key/ then use the values obtained for refresh token,client id, client secret.
+  i) apiUrl=https://api.nimble.com/api/v1
+  ii) refreshToken Use the refreshToken  obtained in Step 4
+  iii) clientId Use the clientId obtained in Step 4
+  iv) clientSecret Use the clientSecret obtained in Step 4
+  v) grantType Use the redirectUri obtained in Step 4
+  vi) redirectUri Use the grantType  obtained in Step 4
+  vii) contactId create a contact and retrive it's id from app
+  viii) relatedTo give the above created id
+  ix) noteId create a contact and retrive it's id from app
+  x ) name  Use a unique and a valid string value
+  xi) fieldId create a field and retrive it's id from app
 
 6.Following data set can be used for the first test-suite to run.
 
@@ -59,5 +60,11 @@ STEPS:
     username: testnimble33@gmail.com
     password: 0777498522Me!
 
-7. Navigate to "nimble/” and run the following command.
-    $ mvn clean install
+7. Make sure that nimble is specified as a module in ESBConnector_Parent pom.
+    <module>nimble/nimble-connector/nimble-connector-1.0.0/org.wso2.carbon.connector</module>
+
+8. Navigate to "{ESB_Connector_Home}/" and run the following command.
+      $ mvn clean install
+
+      note
+      Trail account allows to create 3 groups and 3 fields So the integration test will run only 3 times.
