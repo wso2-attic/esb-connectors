@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="chargebee_createAndSendCoupon" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- ChargeBee API call related properties -->
+         <property name="chargebeeApiUrl" expression="json-eval($.chargebeeApiUrl)" />
+         <property name="chargebeeApiKey" expression="json-eval($.chargebeeApiKey)" />
+         <property name="chargebeeCouponId" expression="json-eval($.chargebeeCouponId)" />
+         <property name="chargebeeCouponName" expression="json-eval($.chargebeeCouponName)" />
+         <property name="chargebeeInvoiceName" expression="json-eval($.chargebeeInvoiceName)" />
+         <property name="chargebeeDiscountType" expression="json-eval($.chargebeeDiscountType)" />
+         <property name="chargebeeDiscountAmount" expression="json-eval($.chargebeeDiscountAmount)" />
+         <property name="chargebeeDiscountPercentage" expression="json-eval($.chargebeeDiscountPercentage)" />
+         <property name="chargebeeDiscountQuantity" expression="json-eval($.chargebeeDiscountQuantity)" />
+         <property name="chargebeeApplyOn" expression="json-eval($.chargebeeApplyOn)" />
+         <property name="chargebeePlanConstraint" expression="json-eval($.chargebeePlanConstraint)" />
+         <property name="chargebeeAddonConstraint" expression="json-eval($.chargebeeAddonConstraint)" />
+         <property name="chargebeePlanIds" expression="json-eval($.chargebeePlanIds)" />
+         <property name="chargebeeAddonIds" expression="json-eval($.chargebeeAddonIds)" />
+         <property name="chargebeeDurationType" expression="json-eval($.chargebeeDurationType)" />
+         <property name="chargebeeDurationMonth" expression="json-eval($.chargebeeDurationMonth)" />
+         <property name="chargebeeValidTill" expression="json-eval($.chargebeeValidTill)" />
+         <property name="chargebeeMaxRedemptions" expression="json-eval($.chargebeeMaxRedemptions)" />
+         <property name="chargebeeInvoiceNotes" expression="json-eval($.chargebeeInvoiceNotes)" />
+
+         <property name="chargebeeCustomerOffset" expression="json-eval($.chargebeeCustomerOffset)" />
+
+         <!-- Gmail parameters -->
+         <property name="gmailUsername" expression="json-eval($.gmailUsername)" />
+         <property name="gmailOAuthAccessToken" expression="json-eval($.gmailOAuthAccessToken)" />
+         <property name="gmailFromAddress" expression="json-eval($.gmailFromAddress)" />
+
+         <property name="customerCount" expression="0" scope="operation" />
+         <property name="responseString" value="" scope="operation" />
+
+         <!-- Create coupon in ChargeBee if customer offset value not sent -->
+         <filter source="boolean(get-property('chargebeeCustomerOffset'))" regex="false">
+            <then>
+               <script language="js">
+                   <![CDATA[
+                     //Construct the planAndAddonIds object for create coupon.
+                     var planIDs = mc.getProperty("chargebeePlanIds");
+                     var addonIds = mc.getProperty("chargebeeAddonIds");
+                     var payload = new Object();
+                     payload.planAndAddonIds =  {};
+                     if (planIDs != null && planIDs != "") {
+                        var emailPlanIDs = "";
+                        var planIDs = eval("(" + planIDs + ")");
+                        for(var i = 0; i < planIDs.length; i++) {
+                           payload.planAndAddonIds ["plan_ids["+i+"]"] = planIDs[i];
+                           emailPlanIDs += planIDs[i] +",";
+                        }
+                        emailPlanIDs = emailPlanIDs.substring(0,emailPlanIDs.length-1);
+                        mc.setProperty("emailPlanIDs",emailPlanIDs);
+                     }
+                     if (addonIDs != null && addonIDs != "") {
+                        var addonIDs = eval("(" + addonIDs + ")");
+                        for(var i = 0; i < addonIDs.length; i++) {
+                           payload.planAndAddonIds ["addon_ids["+i+"]"] = addonIDs[i];
+                        }
+                     }
+                     mc.setPayloadJSON(payload);    
+                   ]]>
+               </script>
+               <property name="chargebeePlanAndAddonIds" expression="json-eval($.planAndAddonIds)" />
+               <!-- Create coupon. -->
+               <chargebee.init>
+                  <apiUrl>{$ctx:chargebeeApiUrl}</apiUrl>
+                  <apiKey>{$ctx:chargebeeApiKey}</apiKey>
+               </chargebee.init>
+               <chargebee.createCoupon>
+                  <couponId>{$ctx:chargebeeCouponId}</couponId>
+                  <couponName>{$ctx:chargebeeCouponName}</couponName>
+                  <invoiceName>{$ctx:chargebeeInvoiceName}</invoiceName>
+                  <discountType>{$ctx:chargebeeDiscountType}</discountType>
+                  <discountAmount>{$ctx:chargebeeDiscountAmount}</discountAmount>
+                  <discountPercentage>{$ctx:chargebeeDiscountPercentage}</discountPercentage>
+                  <discountQuantity>{$ctx:chargebeeDiscountQuantity}</discountQuantity>
+                  <applyOn>{$ctx:chargebeeApplyOn}</applyOn>
+                  <planConstraint>{$ctx:chargebeePlanConstraint}</planConstraint>
+                  <addonConstraint>{$ctx:chargebeeAddonConstraint}</addonConstraint>
+                  <planAndAddonIds>{$ctx:chargebeePlanAndAddonIds}</planAndAddonIds>
+                  <durationType>{$ctx:chargebeeDurationType}</durationType>
+                  <durationMonth>{$ctx:chargebeeDurationMonth}</durationMonth>
+                  <validTill>{$ctx:chargebeeValidTill}</validTill>
+                  <maxRedemptions>{$ctx:chargebeeMaxRedemptions}</maxRedemptions>
+                  <invoiceNotes>{$ctx:chargebeeInvoiceNotes}</invoiceNotes>
+               </chargebee.createCoupon>
+
+               <property name="id" expression="fn:concat('chargebeeCouponId:', get-property('chargebeeCouponId'))" />
+               <property name="responseStatus" expression="$axis2:HTTP_SC" />
+               <filter xpath="get-property('responseStatus') != 200">
+                  <then>
+                     <property name="apiErrorMessage" expression="json-eval($.message)" />
+                     <property name="errorMessage" expression="fn:concat('(',$axis2:HTTP_SC,'), ', get-property('apiErrorMessage'))" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="chargebee_createCoupon" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Error" />
+                        <with-param name="message" value="{$ctx:errorMessage}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <property name="message" value="Coupon is successfully created in ChargeBee" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="chargebee_createCoupon" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Success" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+
+                     <property name="mailCouponDetails" value="" />
+
+                     <property name="gmailSentIndex" expression="0" scope="operation" />
+                     <property name="gmailSendFailedIndex" expression="0" scope="operation" />
+
+                     <filter source="get-property('chargebeeDiscountType')" regex="fixed_amount">
+                        <then>
+                           <property name="chargebeeDiscountAmountInUnits" expression="get-property('chargebeeDiscountAmount') div 100" />
+                           <property name="mailCouponDetails"
+                              expression="fn:concat('You will receive ',get-property('chargebeeDiscountAmountInUnits'),'$ as discount. ')" />
+                        </then>
+                     </filter>
+                     <filter source="get-property('chargebeeDiscountType')" regex="percentage">
+                        <then>
+                           <property name="mailCouponDetails"
+                              expression="fn:concat('You will receive ',get-property('chargebeeDiscountPercentage'),'% as discount. ')" />
+                        </then>
+                     </filter>
+                     <filter source="get-property('chargebeeDiscountType')" regex="offer_quantity">
+                        <then>
+                           <property name="mailCouponDetails"
+                              expression="fn:concat('You will receive ',get-property('chargebeeDiscountQuantity'),' free units. ')" />
+                        </then>
+                     </filter>
+                     <filter source="get-property('chargebeePlanConstraint')" regex="all">
+                        <then>
+                           <property name="mailCouponDetails"
+                              expression="fn:concat(get-property('mailCouponDetails'),'This is applicable for all the plans.')" />
+                        </then>
+                     </filter>
+                     <filter source="get-property('chargebeePlanConstraint')" regex="specific">
+                        <then>
+                           <property name="mailCouponDetails"
+                              expression="fn:concat(get-property('mailCouponDetails'),'This is applicable for following plans:',get-property('emailPlanIDs'),'.')" />
+                        </then>
+                     </filter>
+                     <!-- Call the sequence to recursively fetch ChargeBee customer list of multiple pages using the offset parameter in the response -->
+                     <sequence key="chargebee_createAndSendCouponSeq" />
+                  </else>
+               </filter>
+            </then>
+         </filter>
+
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+
+         <!-- Generate the chained response of all the API calls in createLeads -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"chargebee_createAndSendCoupon",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

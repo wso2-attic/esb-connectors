@@ -1,0 +1,296 @@
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="chargebee_manageContactsSeq">
+
+   <!-- Get subscriptions. -->
+   <chargebee.init>
+      <apiUrl>{$ctx:chargebeeApiUrl}</apiUrl>
+      <apiKey>{$ctx:chargebeeApiKey}</apiKey>
+   </chargebee.init>
+   <chargebee.listEvents>
+      <offset>{$ctx:chargebeeOffset}</offset>
+      <startTime>{$ctx:chargebeeStartTime}</startTime>
+      <endTime>{$ctx:chargebeeEndTime}</endTime>
+      <webhookStatus>{$ctx:chargebeeWebhookStatus}</webhookStatus>
+      <eventType>subscription_created</eventType>
+   </chargebee.listEvents>
+   <filter source="$axis2:HTTP_SC" regex="200">
+      <then>
+         <property name="noSubscriptions" expression="count(//jsonObject/list/event)" scope="operation" />
+         <property name="subscriptionIndex" value="0" scope="operation" />
+         <!-- Check if there are subscriptions. -->
+         <filter xpath="get-property('operation', 'noSubscriptions') = 0">
+            <then>
+               <property name="id" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="chargebee_getSubscriptions" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="cancelled" />
+                  <with-param name="message" value="No subscriptions are found." />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <property name="chargebeeOffsetValue" expression="//jsonObject/next_offset/text()" />
+         <iterate continueParent="true" id="clicker" expression="//jsonObject/list/event" sequential="true">
+            <target>
+               <sequence>
+                  <property name="chargebeePlanId" expression="//event/content/subscription/plan_id/text()" />
+                  <property name="chargebeeCustomerId" expression="//event/content/customer/id/text()" />
+                  <property name="chargebeeCustomerFirstName" expression="//event/content/customer/first_name/text()" />
+                  <property name="chargebeeCustomerLastName" expression="//event/content/customer/last_name/text()" />
+                  <property name="chargebeeCustomerEmail" expression="//event/content/customer/email/text()" />
+                  <property name="chargebeeCustomerPhone" expression="//event/content/customer/phone/text()" />
+                  <property name="chargebeeCustomerCompany" expression="//event/content/customer/company/text()" />
+                  <property name="chargebeeCustomerCity" expression="//event/content/customer/billing_address/city/text()" />
+                  <property name="chargebeeCustomerState" expression="//event/content/customer/billing_address/state/text()" />
+                  <property name="chargebeeCustomerZip" expression="//event/content/customer/billing_address/zip/text()" />
+                  <property name="chargebeeCustomerLine1" expression="//event/content/customer/billing_address/line1/text()" />
+                  <property name="chargebeeCustomerLine2" expression="//event/content/customer/billing_address/line2/text()" />
+                  <property name="chargebeeCustomerLine3" expression="//event/content/customer/billing_address/line3/text()" />
+                  <property name="chargebeeAddress" value="" />
+                  <filter xpath="boolean(get-property('chargebeeCustomerLine1'))">
+                     <then>
+                        <property name="chargebeeAddress" expression="fn:concat(get-property('chargebeeCustomerLine1'),',')" />
+                     </then>
+                  </filter>
+                  <filter xpath="boolean(get-property('chargebeeCustomerLine2'))">
+                     <then>
+                        <property name="chargebeeAddress"
+                           expression="fn:concat(get-property('chargebeeAddress'),get-property('chargebeeCustomerLine2'),',')" />
+                     </then>
+                  </filter>
+                  <filter xpath="boolean(get-property('chargebeeCustomerLine3'))">
+                     <then>
+                        <property name="chargebeeAddress"
+                           expression="fn:concat(get-property('chargebeeAddress'),get-property('chargebeeCustomerLine3'),',')" />
+                     </then>
+                  </filter>
+                  <filter xpath="boolean(get-property('chargebeeAddress'))">
+                     <then>
+                        <property name="chargebeeAddress"
+                           expression="fn:substring(get-property('chargebeeAddress'), 1, fn:string-length(get-property('chargebeeAddress'))-1)" />
+                     </then>
+                  </filter>
+                  <!-- Get plan details. -->
+                  <chargebee.init>
+                     <apiUrl>{$ctx:chargebeeApiUrl}</apiUrl>
+                     <apiKey>{$ctx:chargebeeApiKey}</apiKey>
+                  </chargebee.init>
+                  <chargebee.getPlan>
+                     <planId>{$ctx:chargebeePlanId}</planId>
+                  </chargebee.getPlan>
+                  <filter source="$axis2:HTTP_SC" regex="200">
+                     <then>
+                        <property name="chargebeePlanPrice" expression="//jsonObject/plan/price/text()" />
+                        <property name="zohocrmXmlData"
+                           expression="fn:concat('&lt;row no=&quot;1&quot;&gt;&lt;FL val=&quot;Company&quot;&gt;',get-property('chargebeeCustomerCompany'),'&lt;/FL&gt;&lt;FL val=&quot;First Name&quot;&gt;',get-property('chargebeeCustomerFirstName'),'&lt;/FL&gt;&lt;FL val=&quot;Last Name&quot;&gt;',get-property('chargebeeCustomerLastName'),'&lt;/FL&gt;&lt;FL val=&quot;Email&quot;&gt;',get-property('chargebeeCustomerEmail'),'&lt;/FL&gt;&lt;FL val=&quot;Phone&quot;&gt;',get-property('chargebeeCustomerPhone'),'&lt;/FL&gt;')" />
+                        <filter xpath="get-property('chargebeePlanPrice') = 0">
+                           <then>
+                              <!-- Constructing details for Lead creation. -->
+                              <property name="zohoSuccessTyoe" value="leadId:" />
+                              <property name="zohocrmModule" value="Leads" />
+                              <property name="zohocrmActivity" value="zohocrm_createLead" />
+                              <property name="zohocrmAMessage" value="Lead has been successfully created." />
+                              <property name="zohocrmXmlData"
+                                 expression="fn:concat('&lt;Leads&gt;',get-property('zohocrmXmlData'),'&lt;FL val=&quot;Street&quot;&gt;',get-property('chargebeeAddress'),'&lt;/FL&gt;&lt;FL val=&quot;City&quot;&gt;',get-property('chargebeeCustomerCity'),'&lt;/FL&gt;&lt;FL val=&quot;State&quot;&gt;',get-property('chargebeeCustomerState'),'&lt;/FL&gt;&lt;FL val=&quot;Zip Code&quot;&gt;',get-property('chargebeeCustomerZip'),'&lt;/FL&gt;;&lt;/row&gt;&lt;/Leads&gt;')" />
+                           </then>
+                           <else>
+                              <!-- Constructing details for Contact creation. -->
+                              <property name="zohoSuccessTyoe" value="contactId:" />
+                              <property name="zohocrmModule" value="Contacts" />
+                              <property name="zohocrmActivity" value="zohocrm_createContact" />
+                              <property name="zohocrmAMessage" value="Contact has been successfully created." />
+                              <property name="zohocrmXmlData"
+                                 expression="fn:concat('&lt;Contacts&gt;',get-property('zohocrmXmlData'),'&lt;FL val=&quot;Mailing Street&quot;&gt;',get-property('chargebeeAddress'),'&lt;/FL&gt;&lt;FL val=&quot;Mailing City&quot;&gt;',get-property('chargebeeCustomerCity'),'&lt;/FL&gt;&lt;FL val=&quot;Mailing State&quot;&gt;',get-property('chargebeeCustomerState'),'&lt;/FL&gt;&lt;FL val=&quot;Mailing Zip&quot;&gt;',get-property('chargebeeCustomerZip'),'&lt;/FL&gt;&lt;/row&gt;&lt;/Contacts&gt;')" />
+                           </else>
+                        </filter>
+                        <!-- Insert record. -->
+                        <zohocrm.init>
+                           <scope>crmapi</scope>
+                           <accessToken>{$ctx:zohocrmAccessToken}</accessToken>
+                           <apiUrl>{$ctx:zohocrmApiUrl}</apiUrl>
+                        </zohocrm.init>
+                        <zohocrm.insertRecords>
+                           <moduleType>{$ctx:zohocrmModule}</moduleType>
+                           <duplicateCheck>1</duplicateCheck>
+                           <xmlData>{$ctx:zohocrmXmlData}</xmlData>
+                        </zohocrm.insertRecords>
+                        <property name="zohocrmResults" expression="//jsonObject/response/result" />
+                        <property name="zohocrmError" expression="//jsonObject/response/error" />
+
+                        <filter xpath="boolean(get-property('zohocrmResults'))">
+                           <then>
+                              <property name="zohocrmCreationResult" expression="//jsonObject/response/result/message/text()" />
+                              <filter xpath="get-property('zohocrmCreationResult') = 'Record(s) added successfully'">
+                                 <then>
+                                    <property name="zohoSuccessID"
+                                       expression="//jsonObject/response/result/recorddetail/FL[1]/content/text()" />
+                                    <property name="id"
+                                       expression="fn:concat('email:',get-property('chargebeeCustomerEmail'),',',get-property('zohoSuccessTyoe'),get-property('zohoSuccessID'))" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="{$ctx:zohocrmActivity}" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Success" />
+                                       <with-param name="message" value="{$ctx:zohocrmAMessage}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                    <property name="id" expression="fn:concat('email:',get-property('chargebeeCustomerEmail'))" />
+                                    <property name="message" expression="//jsonObject/response/result/message/text()" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="{$ctx:zohocrmActivity}" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Failed" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </else>
+                              </filter>
+                              <!-- Check subscriber list exists. -->
+                              <mailchimp.init>
+                                 <apiUrl>{$ctx:mailchimpApiUrl}</apiUrl>
+                                 <apiKey>{$ctx:mailchimpApiKey}</apiKey>
+                                 <format>json</format>
+                              </mailchimp.init>
+                              <mailchimp.listSubscriberLists>
+                                 <listName>{$ctx:chargebeePlanId}</listName>
+                              </mailchimp.listSubscriberLists>
+                              <property name="mailchimpListId" expression="//jsonObject/data[1]/id/text()" />
+                              <filter xpath="boolean(get-property('mailchimpListId'))">
+                                 <then>
+                                    <!-- Constructing batch details for mailChimp. -->
+                                    <payloadFactory media-type="json">
+                                       <format>
+                                          {
+                                          "mailchimpBatch":[{"email":{"email":"$1"}}]
+                                          }
+                                       </format>
+                                       <args>
+                                          <arg expression="get-property('chargebeeCustomerEmail')" />
+                                       </args>
+                                    </payloadFactory>
+                                    <property name="mailchimpBatch" expression="json-eval($.mailchimpBatch)" />
+                                    <!-- Add subscriber to list. -->
+                                    <mailchimp.init>
+                                       <apiUrl>{$ctx:mailchimpApiUrl}</apiUrl>
+                                       <apiKey>{$ctx:mailchimpApiKey}</apiKey>
+                                       <format>json</format>
+                                    </mailchimp.init>
+                                    <mailchimp.addSubscribersToList>
+                                       <listId>{$ctx:mailchimpListId}</listId>
+                                       <batch>{$ctx:mailchimpBatch}</batch>
+                                    </mailchimp.addSubscribersToList>
+                                    <property name="mailchimpResult" expression="//jsonObject/adds" />
+                                    <filter xpath="boolean(get-property('mailchimpResult'))">
+                                       <then>
+                                          <property name="id"
+                                             expression="fn:concat('email:',get-property('chargebeeCustomerEmail'),',planId:', get-property('chargebeePlanId'))" />
+                                          <property name="message"
+                                             expression="fn:concat('Contact has been successfully added to ',get-property('chargebeePlanId'),' subscriber list')" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="mailchimp_addSubscriptionToList" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Success" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <property name="id"
+                                             expression="fn:concat('email:',get-property('chargebeeCustomerEmail'),',planId:', get-property('chargebeePlanId'))" />
+                                          <property name="errorMessage" expression="//jsonObject/error/text()" />
+                                          <filter xpath="boolean(get-property('errorMessage'))">
+                                             <then>
+                                                <property name="message" expression="get-property('errorMessage')" />
+                                             </then>
+                                             <else>
+                                                <property name="message" expression="//jsonObject/errors[1]/error/text()" />
+                                             </else>
+                                          </filter>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="mailchimp_addSubscriptionToList" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Failed" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                    </filter>
+                                 </then>
+                                 <else>
+                                    <property name="mailchimpError" expression="//jsonObject/error/text()" />
+                                    <filter xpath="boolean(get-property('mailchimpError'))">
+                                       <then>
+                                          <property name="message" expression="get-property('mailchimpError')" />
+                                       </then>
+                                       <else>
+                                          <property name="message" value="No matching subscriber list found for the plan." />
+                                       </else>
+                                    </filter>
+                                    <property name="id"
+                                       expression="fn:concat('email:',get-property('chargebeeCustomerEmail'),',planId:', get-property('chargebeePlanId'))" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="mailchimp_addSubscriptionToList" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Failed" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </else>
+                              </filter>
+                           </then>
+                           <else>
+                              <property name="id" expression="fn:concat('email:',get-property('chargebeeCustomerEmail'))" />
+                              <property name="message" expression="//jsonObject/response/error/message/text()" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="{$ctx:zohocrmActivity}" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="Failed" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                              <loopback />
+                           </else>
+                        </filter>
+                     </then>
+                     <else>
+                        <property name="id" expression="fn:concat('planId:',get-property('chargebeePlanId'))" />
+                        <property name="message" expression="//jsonObject/message/text()" />
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="activity" value="chargebee_getSubscriptions" />
+                           <with-param name="id" value="{$ctx:id}" />
+                           <with-param name="status" value="Failed" />
+                           <with-param name="message" value="{$ctx:message}" />
+                        </call-template>
+                     </else>
+                  </filter>
+                  <property name="subscriptionIndex" expression="get-property('operation','subscriptionIndex') + 1"
+                     scope="operation" />
+               </sequence>
+            </target>
+         </iterate>
+         <filter xpath="(get-property('operation', 'noSubscriptions') = get-property('operation', 'subscriptionIndex'))">
+            <then>
+               <!-- Call the sequence recursively with the next offset value -->
+               <filter xpath="boolean(get-property('chargebeeOffsetValue'))">
+                  <then>
+                     <property name="chargebeeOffset" expression="get-property('chargebeeOffsetValue')" />
+                     <sequence key="chargebee_manageContactsSeq" />
+                  </then>
+                  <else>
+                     <property name="chargebeeOffsetFinal" value="true" />
+                  </else>
+               </filter>
+               <filter source="get-property('chargebeeOffsetFinal')" regex="true">
+                  <loopback />
+               </filter>
+            </then>
+         </filter>
+      </then>
+      <else>
+         <property name="id" value="{}" />
+         <property name="message" expression="//jsonObject/message/text()" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="chargebee_getSubscriptions" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Failed" />
+            <with-param name="message" value="{$ctx:message}" />
+         </call-template>
+         <loopback />
+      </else>
+   </filter>
+</sequence>

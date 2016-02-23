@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="chargebee_manageContacts" transports="https,http" statistics="disable"
+   trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- ChargeBee parameters. -->
+         <property name="chargebeeApiUrl" expression="json-eval($.chargebeeApiUrl)" />
+         <property name="chargebeeApiKey" expression="json-eval($.chargebeeApiKey)" />
+         <property name="chargebeeStartTime" expression="json-eval($.chargebeeStartTime)" />
+         <property name="chargebeeEndTime" expression="json-eval($.chargebeeEndTime)" />
+         <property name="chargebeeWebhookStatus" expression="json-eval($.chargebeeWebhookStatus)" />
+         <!-- ZOHO CRM parameters. -->
+         <property name="zohocrmAccessToken" expression="json-eval($.zohocrmAccessToken)" />
+         <property name="zohocrmApiUrl" value="https://crm.zoho.com" />
+         <!-- MailChimp parameters. -->
+         <property name="mailchimpApiUrl" expression="json-eval($.mailchimpApiUrl)" />
+         <property name="mailchimpApiKey" expression="json-eval($.mailchimpApiKey)" />
+
+         <!-- Call the sequence to recursively fetch ChargeBee subscription list of multiple pages using the offset parameter in the response -->
+         <sequence key="chargebee_manageContactsSeq" />
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "activity":"chargebee_manageContacts",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

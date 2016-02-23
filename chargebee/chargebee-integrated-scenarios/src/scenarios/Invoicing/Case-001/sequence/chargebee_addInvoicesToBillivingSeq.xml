@@ -1,0 +1,374 @@
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="addInvoicesToBillivingSeq">
+   <property name="invoiceCount" expression="0" scope="operation" />
+   
+   <!-- Retrieve invoices from ChargeBee -->
+   <chargebee.init>
+      <apiUrl>{$ctx:chargebeeApiUrl}</apiUrl>
+      <apiKey>{$ctx:chargebeeApiKey}</apiKey>
+   </chargebee.init>
+   <chargebee.listInvoices>
+      <offset>{$ctx:chargebeeOffset}</offset>
+      <paidOnAfter>{$ctx:chargebeePaidOnAfter}</paidOnAfter>
+   </chargebee.listInvoices>
+
+   <property name="responseStatus" expression="$axis2:HTTP_SC" />
+   <filter xpath="get-property('responseStatus') != 200">
+      <then>
+         <property name="apiErrorMessage" expression="json-eval($.message)" />
+         <property name="errorMessage" expression="fn:concat('(',$axis2:HTTP_SC,'), ', get-property('apiErrorMessage'))" />
+         <property name="id" value="{}" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="chargebee_listInvoices" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Error" />
+            <with-param name="message" value="{$ctx:errorMessage}" />
+         </call-template>
+         <loopback />
+      </then>
+   </filter>
+   
+   <property name="invoiceCount" expression="count(//invoice)" scope="operation" />
+   <property name="invoiceIndex" expression="0" scope="operation" />
+   <property name="lineItemCount" value="0" scope="operation" />
+   <property name="lineItemIndex" value="0" scope="operation" />
+ 
+   <filter xpath="0 = get-property('operation', 'invoiceCount')">
+      <then>
+         <property name="id" value="{}" />
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="chargebee_listInvoices" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="Error" />
+            <with-param name="message" value="No invoices were returned from ChargeBee" />
+         </call-template>
+         <loopback />
+      </then>
+   </filter>
+   
+   <!-- Retrieve the next offset value for the pagination purposes -->
+   <property name="chargebeeOffsetValue" expression="//jsonObject/next_offset/text()" /> 
+   
+   <iterate id="invoiceIterator" expression="//invoice" sequential="true" continueParent="true"
+      preservePayload="true">
+      <target>
+         <sequence>
+            <property name="invoiceAmount" expression="//amount[parent::invoice]" />
+                              
+            <!-- Filter the non-zero invoices -->
+            <filter xpath="get-property('invoiceAmount') &gt; 0">
+               <then>
+                  <property name="selectedInvoices" expression="get-property('operation', 'selectedInvoices') + 1" scope="operation" />
+                  
+                  <property name="invoiceId" expression="//id" />
+                  <property name="discountAmountCents" expression="sum(//discounts/amount)" />
+                  <property name="discountAmount" expression="get-property('discountAmountCents') div 100" />
+                  <property name="customerId" expression="//customer_id" />
+                  
+                  <property name="lineItemCount" expression="count(//line_items)" />
+                  <property name="invoiceLineItems" expression="//line_items" />
+                                          
+                  <!-- Retrieve ChargeBee customer details. -->
+                  <chargebee.init>
+                     <apiUrl>{$ctx:chargebeeApiUrl}</apiUrl>
+                     <apiKey>{$ctx:chargebeeApiKey}</apiKey>
+                  </chargebee.init>
+                  <chargebee.getCustomer>
+                     <customerId>{$ctx:customerId}</customerId>
+                  </chargebee.getCustomer>
+
+                  <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                  <filter xpath="get-property('responseStatus') != 200">
+                     <then>
+                        <property name="apiErrorMessage" expression="json-eval($.message)" />
+                        <property name="errorMessage" expression="fn:concat('(',$axis2:HTTP_SC,'), Cannot retrieve customer information from ChargeBee. Error: ', get-property('apiErrorMessage'))" />
+                        <property name="id" expression="fn:concat('chargebeeInvoiceId:', get-property('invoiceId'))" />
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="activity" value="chargebee_listInvoices" />
+                           <with-param name="id" value="{$ctx:id}" />
+                           <with-param name="status" value="Error" />
+                           <with-param name="message" value="{$ctx:errorMessage}" />
+                        </call-template>
+                     </then>
+                     <else>
+                        <property name="email" expression="//customer/email/text()" />
+                        <property name="firstName" expression="//customer/first_name/text()" />
+                        <property name="lastName" expression="//customer/last_name/text()" />
+                        <property name="phone" expression="//customer/phone/text()" />
+                        <property name="company" expression="//customer/company/text()" />
+                        
+                        <!-- Check the existence of the client in Billiving using email. -->
+                        <billiving.init>
+                           <apiUrl>{$ctx:billivingApiUrl}</apiUrl>
+                           <accessToken>{$ctx:billivingAccessToken}</accessToken>
+                        </billiving.init>
+                        <billiving.listClients>
+                           <freeText>{$ctx:email}</freeText>
+                        </billiving.listClients>
+                        
+                        <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                        <filter xpath="get-property('responseStatus') != 200">
+                           <then>
+                              <property name="id" expression="fn:concat('chargebeeInvoiceId:', get-property('invoiceId'))" />
+                              <property name="errorMessage" expression="//Message/text()" />
+                              <property name="errorMessage" expression="fn:concat('(',$axis2:HTTP_SC,'), ','Cannot check the existence of the client in Billiving. Error: ', get-property('errorMessage'))" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="billiving_createClient" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="Error" />
+                                 <with-param name="message" value="{$ctx:errorMessage}" />
+                              </call-template>
+                           </then>
+                           <else>
+                              <property name="clientsCount" expression="count(//Id)" />
+                              
+                              <!--  If the client not exists create the client in Billiving. -->
+                              <filter xpath="0 = get-property('clientsCount')">
+                                 <then>
+                                    <property name="contactName" expression="fn:concat(get-property('firstName'), ' ', get-property('lastName'))" />
+                                 
+                                    <billiving.init>
+                                       <apiUrl>{$ctx:billivingApiUrl}</apiUrl>
+                                       <accessToken>{$ctx:billivingAccessToken}</accessToken>
+                                    </billiving.init>
+                                    <billiving.createClient>
+                                       <email>{$ctx:email}</email>
+                                       <contactName>{$ctx:contactName}</contactName>
+                                       <telephone1>{$ctx:phone}</telephone1>
+                                       <organizationName>{$ctx:company}</organizationName>
+                                    </billiving.createClient>
+                                    
+                                    <!-- Fetch the created client ID. -->
+                                    <property name="billivingClientId" expression="//Id/text()" />
+                                 </then>
+                                 <else>
+                                    <!-- Fetch the existing client ID. -->
+                                    <property name="billivingClientId" expression="//jsonElement[1]/Id/text()" />
+                                 </else>
+                              </filter>
+                              
+                              <!-- Halt the process if there is any error in creation of the client -->
+                              <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                              <filter xpath="get-property('responseStatus') != 200">
+                                 <then>
+                                    <property name="id" expression="fn:concat('chargebeeInvoiceId:', get-property('invoiceId'))" />
+                                    <property name="errorMessage" expression="fn:concat('(',$axis2:HTTP_SC,'), ','Cannot create client in Billiving')" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="billiving_createClient" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="Error" />
+                                       <with-param name="message" value="{$ctx:errorMessage}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                 
+                                    <!-- Construct ChargeBee line items to be converted to DocItems in Billiving. -->
+                                    <payloadFactory media-type="xml">
+                                       <format>
+                                          <root xmlns="">$1</root>
+                                       </format>
+                                       <args>
+                                          <arg expression="get-property('invoiceLineItems')" />
+                                       </args>
+                                    </payloadFactory>
+                                    
+                                    <property name="lineItemCount" expression="get-property('operation','lineItemCount') + get-property('lineItemCount')" scope="operation" />
+                                    <property name="docItemsArray" value="[" scope="operation" />
+                                 
+                                    <iterate continueParent="true" id="lineItems" expression="//line_items" sequential="true">
+                                       <target>
+                                          <sequence>
+                                             <property name="itemId" expression="//entity_id" />
+                                             <property name="itemAmount" expression="//unit_amount" />
+                                             <property name="itemQuantity" expression="//quantity" />
+                                             <property name="itemDescription" expression="//description" />
+                                             
+                                             <!-- Generate the DocItem JSON object to be sent -->
+                                             <property name="docItemsArray" expression="get-property('operation','docItemsArray')" />
+                                             <script language="js">
+                                                <![CDATA[
+                                                   var docItemsArray = mc.getProperty('docItemsArray');
+                                                   var itemId = mc.getProperty('itemId');
+                                                   var itemAmount = mc.getProperty('itemAmount');
+                                                   var itemQuantity = mc.getProperty('itemQuantity');
+                                                   var itemDescription = mc.getProperty('itemDescription');
+                                                   
+                                                   var docItem = '{';
+                                                   
+                                                   if (itemId != null && itemId != "") {
+                                                      docItem += '"ItemId" : "' + itemId + '",';
+                                                   }
+                                                   if (itemAmount != null && itemAmount != "") {
+                                                      docItem += '"ItemPrice" : "' + (itemAmount / 100) + '",';
+                                                   }
+                                                   if (itemQuantity != null && itemQuantity != "") {
+                                                      docItem += '"ItemQuantity" : "' + itemQuantity + '",';
+                                                   }
+                                                   if (itemDescription != null && itemDescription != "") {
+                                                      docItem += '"ItemDescription" : "' + itemDescription + '",';
+                                                   }
+
+                                                   if (docItem != "") {
+                                                      docItem = docItem.substring(0, docItem.length - 1) + '},';
+                                                   } 
+
+                                                   mc.setProperty('docItemsArray', docItemsArray + docItem);
+                                                ]]>
+                                             </script>
+
+                                             <property name="docItemsArray" expression="get-property('docItemsArray')" scope="operation" />
+                                             
+                                             <property name="lineItemIndex" expression="get-property('operation','lineItemIndex') + 1"
+                                                scope="operation" />
+
+                                          </sequence>
+                                       </target>
+                                    </iterate>
+
+                                    <property name="docItemsArray" expression="get-property('operation', 'docItemsArray')" />
+                                    <filter xpath="fn:string-length(get-property('docItemsArray')) > 0">
+                                       <then>
+                                          <property name="docItemsArray"
+                                             expression="fn:concat(fn:substring(get-property('docItemsArray'), 1, fn:string-length(get-property('docItemsArray'))-1), ']')" />
+                                       </then>
+                                    </filter>
+                                    
+                                    <billiving.init>
+                                       <apiUrl>{$ctx:billivingApiUrl}</apiUrl>
+                                       <accessToken>{$ctx:billivingAccessToken}</accessToken>
+                                    </billiving.init>
+                                    <billiving.createInvoice>
+                                       <referenceNumber>{$ctx:invoiceId}</referenceNumber>
+                                       <clientId>{$ctx:billivingClientId}</clientId>
+                                       <discount>{$ctx:discountAmount}</discount>
+                                       <id></id>
+                                       <docItems>{$ctx:docItemsArray}</docItems>
+                                    </billiving.createInvoice>
+                                          
+                                    <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                                    <filter xpath="get-property('responseStatus') != 200">
+                                       <then>
+                                          <property name="id" expression="fn:concat('chargebeeInvoiceId:', get-property('invoiceId'))" />
+                                          <property name="errorMessage" expression="fn:concat('(',$axis2:HTTP_SC,'), ','Cannot create invoice in Billiving')" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="billiving_createInvoice" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="Error" />
+                                             <with-param name="message" value="{$ctx:errorMessage}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <property name="billivingInvoiceId" expression="//Id" />
+                                          <property name="id"
+                                             expression="fn:concat('chargebeeInvoiceId:', get-property('invoiceId'), ',billivingInvoiceId:', get-property('billivingInvoiceId'))" />
+                                                
+                                          <!-- Make payment for the invoice -->
+                                          <property name="billivingAuthString" expression="fn:concat(get-property('billivingAccessToken'), ':X')" />
+                                          <property name="Authorization" expression="fn:concat('Basic ', base64Encode(get-property('billivingAuthString')))"
+                                             scope="transport" type="STRING" />
+                                          <property name="Content-Type" value="applicatin/json" scope="transport" />
+                                          <payloadFactory media-type="json">
+                                             <format>
+                                                {
+                                                   "DocId": "$1",
+                                                   "Amount": "$2",
+                                                   "PaymentMethodId": "3"
+                                                }
+                                             </format>
+                                             <args>
+                                                <arg expression="get-property('billivingInvoiceId')" />
+                                                <arg expression="get-property('invoiceAmount') div 100" />
+                                             </args>
+                                          </payloadFactory>
+                                          
+                                          <property name="DISABLE_CHUNKING" value="true" scope="axis2" />
+                                          <!-- Construct the resource uri for payments -->
+                                          <property name="uri.var.billivingPaymentUri" expression="fn:concat(get-property('billivingApiUrl'), '/api2/v1/payments')" />
+                                          
+                                          <call>
+                                             <endpoint>
+                                                <http method="post" uri-template="{uri.var.billivingPaymentUri}" />
+                                             </endpoint>
+                                          </call>
+                                          
+                                          <!-- Remove the unwanted headers from response -->
+                                          <header name="X-AspNet-Version" scope="transport" action="remove" />
+                                          <header name="Expires" scope="transport" action="remove" />
+                                          <header name="X-Powered-By" scope="transport" action="remove" />
+                                          <header name="Pragma" scope="transport" action="remove" />
+                                          <header name="Cache-Control" scope="transport" action="remove" />
+                                          
+                                          <property name="paymentResponseStatus" expression="$axis2:HTTP_SC" />
+                                          <filter xpath="get-property('paymentResponseStatus') != 200">
+                                             <then>
+                                                <property name="errorMessage" value="ChargeBee invoice was successfully created in Billiving but payment details could not be added." />
+                                                <property name="status" value="Skipped" />
+                                             </then>
+                                             <else>
+                                                <property name="errorMessage" value="ChargeBee invoice was successfully created in Billiving" />
+                                                <property name="status" value="Success" />
+                                                
+                                                <!-- Avoid response with 0 content length -->
+                                                <property name="Content-Length" value="2" scope="transport" />
+                                                <payloadFactory media-type="json">
+                                                   <format>
+                                                      {}
+                                                   </format>
+                                                </payloadFactory>
+                                             </else>
+                                          </filter>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="billiving_createInvoice" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:errorMessage}" />
+                                          </call-template>
+                                          
+                                       </else>
+                                    </filter>
+                                 </else>
+                              </filter>
+                           </else>
+                        </filter>                              
+                     </else>
+                  </filter>
+               </then>
+            </filter>
+            <property name="invoiceIndex" expression="get-property('operation','invoiceIndex') + 1" scope="operation" />
+         </sequence>
+      </target>
+   </iterate>
+
+   <filter
+      xpath="(get-property('operation', 'invoiceCount') = get-property('operation', 'invoiceIndex')) and
+                           (get-property('operation', 'lineItemCount') = get-property('operation', 'lineItemIndex'))">
+      <then>
+         <!-- Call the sequence recursively with the next offset value -->
+         <filter xpath="boolean(get-property('chargebeeOffsetValue'))">
+            <then>
+               <property name="chargebeeOffset" expression="get-property('chargebeeOffsetValue')" />
+               <sequence key="addInvoicesToBillivingSeq" />
+            </then>
+            <else>
+               <property name="chargebeeOffsetFinal" value="true" />
+            </else>
+         </filter>
+               
+         <filter xpath="0 = get-property('operation', 'selectedInvoices')">
+            <then>
+               <property name="id" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="chargebee_listInvoices" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="No non-zero invoices were found for the given time" />
+               </call-template>
+            </then>
+         </filter>
+         
+         <filter source="get-property('chargebeeOffsetFinal')" regex="true">
+            <loopback />
+         </filter>
+      </then>
+   </filter>
+   
+</sequence>
