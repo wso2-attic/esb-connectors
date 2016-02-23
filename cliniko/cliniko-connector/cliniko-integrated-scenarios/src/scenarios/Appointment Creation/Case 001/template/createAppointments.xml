@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- This template creates appointments in cliniko and events in Google Calendar -->
+<template xmlns="http://ws.apache.org/ns/synapse" name="createAppointments">
+   <!--Cliniko parameters-->
+   <parameter name="cliniko.apiKey" description="Encrypted alphanumeric string to authenticate the cliniko credentials." />
+   <parameter name="cliniko.apiUrl" description="The cliniko API URL." />
+   <parameter name="cliniko.patientId" description="ID of the cliniko patient." />
+   <parameter name="cliniko.practionerId" description="ID of the cliniko practitioner." />
+   <parameter name="cliniko.appointmentTypeId" description="ID of the cliniko appointment type." />
+   <parameter name="cliniko.appointmentNote" description="Note of the appointment." />
+   <parameter name="cliniko.accountName" description="Name of the cliniko account." />
+   
+   <!-- GoogleCalender parameters-->
+   <parameter name="googlecalendar.accessToken" description="Encrypted alphanumeric string to authenticate the googlecalendar credentials." />
+   <parameter name="googlecalendar.apiUrl" description="The googlecalendar API URL." />
+   <parameter name="googlecalendar.calendarId" description="The ID of the common calender." />
+   
+   <!-- Common parameters-->
+   <parameter name="shared.timeZone" description="Time zone in which the application runs." />
+   <parameter name="common.id" description="ID of the resource from the appointment details are taken." />
+   
+   <sequence>
+      <property name="cliniko.apiKey" expression="$func:cliniko.apiKey" />
+      <property name="cliniko.apiUrl" expression="$func:cliniko.apiUrl" />
+      <property name="cliniko.patientId" expression="$func:cliniko.patientId" />
+      <property name="cliniko.practionerId" expression="$func:cliniko.practionerId" />
+      <property name="cliniko.appointmentTypeId" expression="$func:cliniko.appointmentTypeId" />
+      <property name="cliniko.appointmentNote" expression="$func:cliniko.appointmentNote" />
+      <property name="cliniko.accountName" expression="$func:cliniko.accountName" />
+      <property name="common.id" expression="$func:common.id" />
+      <property name="googlecalendar.accessToken" expression="$func:googlecalendar.accessToken" />
+      <property name="googlecalendar.apiUrl" expression="$func:googlecalendar.apiUrl" />
+      <property name="googlecalendar.calendarId" expression="$func:googlecalendar.calendarId" />
+      <property name="shared.timeZone" expression="$func:shared.timeZone" />
+   
+	  <!--Call cliniko connector getPractitioner method to get practitioner  -->
+      <cliniko.init>
+         <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+         <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+      </cliniko.init>
+      <cliniko.getPractitioner>
+         <practitionerId>{$ctx:cliniko.practionerId}</practitionerId>
+      </cliniko.getPractitioner>
+      
+	  <!-- Get the response status. -->
+      <property name="responseStatus" expression="$axis2:HTTP_SC" />
+      
+	  <!-- START: Proceed only if the getPractitioner call is successful. -->
+      <filter xpath="get-property('responseStatus') != 200">
+         <then>
+            <!-- Append an error message to be sent to the user. -->
+            <property name="cliniko.errorResponse" expression="json-eval($)" />
+            <call-template target="responseHandlerTemplate">
+               <with-param name="activity" value="cliniko_getPractitioner" />
+               <with-param name="id" value="{$ctx:id.empty}" />
+               <with-param name="status" value="error" />
+               <with-param name="message" value="The appointment has not been created since the practitioner ID is not given." />
+            </call-template>
+         </then>
+         <else>
+            <property name="uri.var.cliniko.user" expression="json-eval($.user.links.self)" />
+            
+			<!--Get the email address of the practitioner using the getUser API method -->
+            <header name="Accept" value="application/json" scope="transport" />
+            <header name="Content-Type" value="application/json" scope="transport" />
+            <header name="Authorization" expression="fn:concat('Basic ', base64Encode(fn:concat(get-property('cliniko.apiKey'), ':')))" scope="transport" />
+            <call>
+               <endpoint>
+                  <http method="get" uri-template="{uri.var.cliniko.user}" />
+               </endpoint>
+            </call>
+            <property name="cliniko.practitionerEmail" expression="json-eval($.email)" />
+            
+			<!--Call cliniko connector listBusinesses method to get the business ID  -->
+            <cliniko.init>
+               <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+               <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+            </cliniko.init>
+            <cliniko.listBusinesses />
+            <property name="cliniko.businessId" expression="json-eval($.businesses[0].id)" />
+            
+			<!--Call cliniko connector getNextAvailableTime method to get the availability of the practitioner  -->
+            <cliniko.init>
+               <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+               <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+            </cliniko.init>
+            <cliniko.getNextAvailableTime>
+               <practitionerId>{$ctx:cliniko.practionerId}</practitionerId>
+               <appointmentTypeId>{$ctx:cliniko.appointmentTypeId}</appointmentTypeId>
+               <businessId>{$ctx:cliniko.businessId}</businessId>
+            </cliniko.getNextAvailableTime>
+            <property name="cliniko.appointmentStart" expression="json-eval($.appointment_start)" />
+            <property name="uri.var.urlQuery" action="remove" />
+            <sequence key="removeResponseHeaders" />
+            
+			<!--Call cliniko connector listAppointments method to list appointments for a patient -->
+            <cliniko.init>
+               <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+               <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+            </cliniko.init>
+            <cliniko.listAppointments>
+               <patientId>{$ctx:cliniko.patientId}</patientId>
+            </cliniko.listAppointments>
+            <property name="cliniko.appointmentCount" expression="//appointments" />
+            
+			<!-- START: Proceed only if there is at least one appointment -->
+            <filter xpath="get-property('cliniko.appointmentCount') != 0.0">
+               <then>
+                  <!--Check the possibility of creating new appointments to the patient with the required practitioner-->
+                  <script language="js"><![CDATA[payload = mc.getPayloadJSON();
+						 var appointmentArray = payload.appointments;
+						 var requestPractioner = ''+mc.getProperty('cliniko.practionerId');
+						 var nextTime = mc.getProperty('cliniko.appointmentStart');       
+						 
+						 var proceed = 0;
+						  
+						 for(var i=0;i<appointmentArray.length;i++) {
+							var practitionerUrl = ''+appointmentArray[i].practitioner.links.self;
+							var practionerId=practitionerUrl.substring(practitionerUrl.lastIndexOf('/') + 1);
+							var cancelTime = appointmentArray[i].cancellation_time;
+							if(cancelTime == null) {
+								var endTime = appointmentArray[i].appointment_end;
+								 var startTime = appointmentArray[i].appointment_start;
+
+								if(practionerId == requestPractioner) {
+									var sdf = java.text.SimpleDateFormat.getInstance();
+						   
+									sdf= new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+									sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+									var currentTime = sdf.format(new java.util.Date());
+								   
+									if(endTime>currentTime) {
+										proceed = 1;
+										mc.setProperty('cliniko.newAppointments',"true");
+										break;
+									}
+								} 
+								else {
+									if(startTime<=nextTime && endTime>=nextTime) {
+										mc.setProperty('cliniko.newPractitionerApp',"true");
+										break;
+									}	
+								}
+							}
+						 }
+						 if(proceed == 0) {
+							 var timeZone = mc.getProperty('shared.timeZone');
+							 var hours = parseInt((timeZone.split(':')[0])*60);
+							 var mins = parseInt(timeZone.split(':')[1]);
+							 var timeGap = hours+mins;
+							 var timeFormat = "yyyy-MM-dd'T'HH:mm:ss";
+							 var newStartTime = ''+new java.text.SimpleDateFormat(timeFormat).format(new java.util.Date(new java.text.SimpleDateFormat(timeFormat).parse(nextTime).getTime() + timeGap*60*1000))+timeZone;
+							 var newEndTime = new java.text.SimpleDateFormat(timeFormat).format(new java.util.Date(new java.text.SimpleDateFormat(timeFormat).parse(newStartTime).getTime() + 30*60*1000))+timeZone;
+							 
+							  mc.setProperty('cliniko.appointmentEndTime',newEndTime);
+							  mc.setProperty('cliniko.appointmentStartTime',newStartTime);
+						 }
+					  ]]>
+					</script>
+               </then>
+            </filter>
+            <!-- END: Proceed only if there is at least one appointment -->
+			
+            <!-- START: Process only if there are no new appointments for the patient with the given practitioner -->
+            <filter source="boolean(get-property('cliniko.newAppointments'))" regex="false">
+               <then>
+                  
+				  <!--Call cliniko connector createAppointment method to create an appointment  -->
+                  <cliniko.init>
+                     <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+                     <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+                  </cliniko.init>
+                  <cliniko.createAppointment>
+                     <appointmentEndTime>{$ctx:cliniko.appointmentEndTime}</appointmentEndTime>
+                     <appointmentStartTime>{$ctx:cliniko.appointmentStartTime}</appointmentStartTime>
+                     <notes>{$ctx:cliniko.appointmentNote}</notes>
+                     <patientId>{$ctx:cliniko.patientId}</patientId>
+                     <practitionerId>{$ctx:cliniko.practionerId}</practitionerId>
+                     <appointmentTypeId>{$ctx:cliniko.appointmentTypeId}</appointmentTypeId>
+                     <businessId>{$ctx:cliniko.businessId}</businessId>
+                  </cliniko.createAppointment>
+                  <property name="cliniko.appointmentId" expression="json-eval($.id)" />
+                  
+				  <!-- START: Append the response message according to the createAppointment response -->
+                  <filter source="boolean(get-property('cliniko.appointmentId'))" regex="false">
+                     <then>
+                        <property name="id" expression="fn:concat('resourceId:',get-property('common.id'),',cliniko_patientId:',get-property('cliniko.patientId'))" />
+                        <property name="status" value="error" />
+                        <property name="message" expression="json-eval($)" />
+                        <!--Call the responseHandler template-->
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="activity" value="cliniko_createAppointment" />
+                           <with-param name="id" value="{$ctx:id}" />
+                           <with-param name="status" value="{$ctx:status}" />
+                           <with-param name="message" value="{$ctx:message}" />
+                        </call-template>
+                     </then>
+                     <else>
+                        <!-- START: Append the response message according to the the time overlapping of the appointments of patients -->
+                        <filter source="boolean(get-property('cliniko.newPractitionerApp'))" regex="true">
+                           <then>
+                              <property name="id" expression="fn:concat('resourceId:',get-property('common.id'),',cliniko_patientId:',get-property('cliniko.patientId'),',cliniko_appointmentId:',get-property('cliniko.appointmentId'))" />
+                              <property name="status" value="success" />
+                              <property name="message" value="An appointment has been successfully created. But there is a time overlap." />
+                              <!--Call the responseHandler template-->
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="cliniko_createAppointment" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </then>
+                           <else>
+                              <property name="id" expression="fn:concat('resourceId:',get-property('common.id'),',cliniko_patientId:',get-property('cliniko.patientId'),',cliniko_appointmentId:',get-property('cliniko.appointmentId'))" />
+                              <property name="status" value="success" />
+                              <property name="message" value="An appointment has been successfully created." />
+                              <!--Call the responseHandler template-->
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="cliniko_createAppointment" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                              
+							  <property name="googlecalendar.attendees" expression="fn:concat('[{&quot;email&quot;:&quot;',get-property('cliniko.practitionerEmail'),'&quot;}]')" />
+                              <property name="googlecalendar.description" expression="fn:concat('Appointment :',get-property('cliniko.appointmentNote'))" />
+                              <property name="googlecalendar.summary" expression="fn:concat('Appointment - ',get-property('cliniko.accountName'))" />
+                              
+							  <payloadFactory media-type="json">
+                                 <format>{
+									  "start": {
+										 "dateTime": "$1"
+									  },
+									  "end": {
+										 "dateTime": "$2"
+									  }
+								   }</format>
+                                 <args>
+                                    <arg expression="get-property('cliniko.appointmentStartTime')" />
+                                    <arg expression="get-property('cliniko.appointmentEndTime')" />
+                                 </args>
+                              </payloadFactory>
+                              <property name="googlecalendar.eventStart" expression="json-eval($.start)" />
+                              <property name="googlecalendar.eventEnd" expression="json-eval($.end)" />
+                              
+							  <!--Call googlecalendar connector createEvent for the appointment  -->
+                              <googlecalendar.init>
+                                 <apiUrl>{$ctx:googlecalendar.apiUrl}</apiUrl>
+                                 <accessToken>{$ctx:googlecalendar.accessToken}</accessToken>
+                              </googlecalendar.init>
+                              <googlecalendar.createEvent>
+                                 <calendarId>{$ctx:googlecalendar.calendarId}</calendarId>
+                                 <description>{$ctx:googlecalendar.description}</description>
+                                 <summary>{$ctx:googlecalendar.summary}</summary>
+                                 <start>{$ctx:googlecalendar.eventStart}</start>
+                                 <end>{$ctx:googlecalendar.eventEnd}</end>
+                                 <attendees>{$ctx:googlecalendar.attendees}</attendees>
+                                 <sendNotifications>true</sendNotifications>
+                              </googlecalendar.createEvent>
+                              <property name="googleCalendar.eventId" expression="json-eval($.id)" />
+                              
+							  <!-- START: Append the response message according to the createEvent response -->
+                              <filter source="boolean(get-property('googleCalendar.eventId'))" regex="false">
+                                 <then>
+                                    <property name="id" expression="fn:concat('resourceId:',get-property('common.id'),',cliniko_appointmentId:',get-property('cliniko.appointmentId'))" />
+                                    <property name="status" value="error" />
+                                    <property name="message" expression="json-eval($)" />
+                                 </then>
+                                 <else>
+                                    <property name="id" expression="fn:concat('resourceId:',get-property('common.id'),',cliniko_appointmentId:',get-property('cliniko.appointmentId'),',googlecalendar_eventId:',get-property('googleCalendar.eventId'))" />
+                                    <property name="status" value="success" />
+                                    <property name="message" value="A calendar event has been successfully created for the practitioner." />
+                                 </else>
+                              </filter>
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="activity" value="googleCalendar_createEvent" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </else>
+                        </filter>
+                        <!-- END: Append the response message according to the the time overlapping of the appointments of patients -->
+                     </else>
+                  </filter>
+                  <!-- END: Append the response message according to the createAppointment response -->
+               </then>
+            </filter>
+            <!-- END: Process only if there are no new appointments for the patient with the given practitioner -->
+         </else>
+      </filter>
+      <!-- END: Proceed only if the getPractitioner call is successful. -->
+   </sequence>
+</template>

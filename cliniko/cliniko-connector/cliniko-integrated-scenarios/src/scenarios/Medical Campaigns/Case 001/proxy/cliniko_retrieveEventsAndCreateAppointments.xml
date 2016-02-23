@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--This scenario will create appointments in Cliniko and events in Google Calendar using events in EventBrite. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="cliniko_retrieveEventsAndCreateAppointments" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+		 <!-- Cliniko Properties -->
+         <property name="cliniko.apiUrl" expression="get-property('registry', 'connectors/Cliniko/apiUrl')" />
+         <property name="cliniko.apiKey" expression="get-property('registry', 'connectors/Cliniko/apiKey')" />
+         <property name="cliniko.appointmentType" expression="json-eval($.cliniko.appointmentType)" />
+
+         <!-- EventBrite parameters. -->
+         <property name="eventBrite.apiUrl" expression="get-property('registry', 'connectors/Eventbrite/apiUrl')" />
+         <property name="eventBrite.accessToken" expression="get-property('registry', 'connectors/Eventbrite/accessToken')" />
+         <property name="eventBrite.eventId" expression="json-eval($.eventBrite.eventId)" />
+		 
+		 <!-- GoogleCalendar Properties -->
+         <property name="googlecalendar.apiUrl" expression="get-property('registry', 'connectors/Googlecalendar/apiUrl')" />
+         <property name="googlecalendar.accessToken" expression="get-property('registry', 'connectors/Googlecalendar/accessToken')" />
+         <property name="googlecalendar.calendarId" expression="json-eval($.googlecalendar.calendarId)" />
+
+          <!-- Shared Properties -->
+         <property name="shared.timeZone" expression="json-eval($.shared.timeZone)" />
+         
+         <!-- Operation scoped properties -->
+         <property name="responseString" value="" scope="operation" />
+		 
+		 <property name="uri.var.apiUrl" expression="get-property('eventBrite.apiUrl')" />
+         <property name="uri.var.eventId" expression="get-property('eventBrite.eventId')" />
+         <property name="uri.var.accessToken" expression="get-property('eventBrite.accessToken')" />
+         <property name="REQUEST_HOST_HEADER" value="www.eventbriteapi.com" scope="axis2" />
+         <call>
+            <endpoint>
+               <http method="get"
+                  uri-template="{+uri.var.apiUrl}/v3/events/{+uri.var.eventId}/ticket_classes/?token={uri.var.accessToken}" />
+               <property name="Accept" value="*/*" scope="transport" />
+            </endpoint>
+         </call>
+		 <!-- START: Proceed only if the call is successful. -->
+         <filter source="$axis2:HTTP_SC" regex="200">
+            <then>
+               <property name="eventBrite.ticket.classes" expression="json-eval($.ticket_classes)" />
+               <script language="js">
+               <![CDATA[
+                  var ticketClasses = eval("("+mc.getProperty('eventBrite.ticket.classes')+")"); 
+                  var ticketID = '';                             
+                  var ticketDesc = ''; 
+                  var ticketName = '';
+                  var payload = {sources:[]};    
+                  for(var i = 0; i<ticketClasses.length; i++) {
+                     ticketID = ticketClasses[i].id;
+                     ticketDesc = ticketClasses[i].description;
+                     ticketName = ticketClasses[i].name;
+                     payload.sources.push({ 
+                           "ticketID" : ticketID,     
+                           "ticketDesc" : ticketDesc,
+                           "ticketName" : ticketName});           
+                  } 
+                  mc.setPayloadJSON(payload);                                                                                                        
+               ]]>
+               </script>
+			   
+               <property name="eventBrite.ticketClassObject" expression="json-eval($.sources)" />
+            </then>
+            <else>
+               <property name="id" value="{}" />
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($.error_description)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="eventBrite_listTicketClasses" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+		 <!-- END: Proceed only if the call is successful. -->
+		 
+		 <!--Call cliniko connector listPatients method to list all the patients -->
+         <cliniko.init>
+            <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+            <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+         </cliniko.init>
+         <cliniko.listPatients />
+		 
+		 <!-- Get the response status. -->
+         <property name="responseStatus" expression="$axis2:HTTP_SC" />
+		 
+		 <!-- START: Proceed only if the call is successful. -->
+         <filter xpath="get-property('responseStatus') = 200">
+            <then>
+			   <!--Construct an object to store the patient's email and the ID-->
+               <script language="js">
+                <![CDATA[
+                  payload = mc.getPayloadJSON();
+                  var patientArray = payload.patients;
+                  var patientObj = {};
+                  for(var i=0;i<patientArray.length;i++) {
+                     patientObj[patientArray[i].email] = patientArray[i].id;
+                  }
+                  for(var key in patientObj) {
+                     var id = patientObj[key];
+                  }
+                  
+                   mc.setPayloadJSON(patientObj);
+                  
+                ]]>
+               </script>
+			   
+               <property name="cliniko.patientObject" expression="json-eval($.)" />
+            </then>
+            <else>
+               <property name="message" expression="json-eval($)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="cliniko_listPatients" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="error" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+		 <!-- END: Proceed only if the call is successful. -->
+		 
+		 <!--Call cliniko connector getAppointmentType method to get appointment types -->
+         <cliniko.init>
+            <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+            <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+         </cliniko.init>
+         <cliniko.getAppointmentType />
+		 
+		 <!-- START: Proceed only if the call is successful. -->
+         <filter xpath="get-property('responseStatus') = 200">
+            <then>
+				<!--Get the ID of the given appointmentType-->
+               <script language="js">
+               <![CDATA[
+                  payload = mc.getPayloadJSON();
+                  var appointmentTypeArray = payload.appointment_types;
+                  var appType = mc.getProperty('cliniko.appointmentType');
+                  for(var i=0;i<appointmentTypeArray.length;i++) {
+                     var name = appointmentTypeArray[i].name;
+                     if(appType.toLowerCase() == name.toLowerCase()) {
+                        var id = ''+appointmentTypeArray[i].id;
+                        mc.setProperty('cliniko.appointmentTypeId',id);
+                        break;
+                     }
+                  }
+               ]]>
+               </script>
+			   
+			   <!-- START: Proceed only if the appointmentType is existing. -->
+               <filter source="boolean(get-property('cliniko.appointmentTypeId') )" regex="false">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="status" value="skipped" />
+                     <property name="message" value="The given Appointment Type is invalid." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="cliniko_listAppointmentTypes" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+               </filter>
+			   <!-- END: Proceed only if the appointmentType is existing. -->
+            </then>
+            <else>
+               <property name="message" expression="json-eval($)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="cliniko_getAppointmentType" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="error" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+		<!-- END: Proceed only if the call is successful. -->	
+		
+		<!--Extract cliniko_getSettingsSeq to get details of cliniko  account-->
+         <sequence key="cliniko_getSettingsSeq" />
+
+		<sequence key="removeResponseHeaders" />
+		<header name="Strict-Transport-Security" action="remove" scope="transport" />
+		<header name="Host" action="remove" scope="transport" />
+		<header name="Host" value="www.eventbriteapi.com" scope="transport" />
+		
+		<!--Call eventbrite connector getEventAttendees method-->
+         <eventbrite.init>
+            <apiUrl>{$ctx:eventBrite.apiUrl}</apiUrl>
+            <accessToken>{$ctx:eventBrite.accessToken}</accessToken>
+         </eventbrite.init>
+         <eventbrite.getEventAttendees>
+            <eventId>{$ctx:eventBrite.eventId}</eventId>
+         </eventbrite.getEventAttendees>
+		
+		<!-- START: Proceed only if the call is successful. -->
+         <filter source="$axis2:HTTP_SC" regex="200">
+            <then>
+               <property name="attendeeIndex" expression="0" scope="operation" />
+               <property name="eventBrite.attendeeCount" expression="count(//attendees)" />
+				
+				<!-- START: Proceed only if there is at least one ticket -->
+               <filter xpath="get-property('eventBrite.attendeeCount') = 0.0">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="status" value="skipped" />
+                     <property name="message" value="There are no attendees to process" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="eventBrite_getEventAttendees" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+               </filter>
+			   <!-- END: Proceed only if there is at least one ticket -->
+				
+			   <!--BEGIN : FOR EACH ticket -->
+               <iterate continueParent="false" id="attendees" expression="//attendees" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="eventBrite.attendeeId" expression="json-eval($.attendees.id)" />
+                        <property name="eventBrite.ticketClassId" expression="json-eval($.attendees.ticket_class_id)" />
+                        <property name="eventBrite.attendeeEmail" expression="json-eval($.attendees.profile.email)" />
+                        <property name="eventBrite.attendeeFirstName" expression="json-eval($.attendees.profile.first_name)" />
+                        <property name="eventBrite.attendeeLastName" expression="json-eval($.attendees.profile.last_name)" />
+
+
+                        <!--Check whether the patient is already existing using the above created object -->
+                        <script language="js">
+                        <![CDATA[
+                           var patientObj = eval("(" + mc.getProperty('cliniko.patientObject') + ")");
+                           var ticketClassObj = eval("(" +mc.getProperty('eventBrite.ticketClassObject') + ")");
+                           
+                           var attendeeEmail = mc.getProperty('eventBrite.attendeeEmail');
+                           var attendeeFirstName = mc.getProperty('eventBrite.attendeeFirstName');
+                           var attendeeLastName = mc.getProperty('eventBrite.attendeeLastName');
+                           var ticketClassId = mc.getProperty('eventBrite.ticketClassId');
+                           
+                           for(var i = 0; i<ticketClassObj.length ;i++) {
+                              if(ticketClassId == ticketClassObj[i].ticketID){
+								 var desc = ticketClassObj[i].ticketDesc;
+                                 var practioner = desc.match(/\(([^)]+)\)/)[1].split(':')[1];
+								 mc.setProperty("cliniko.practionerId",practioner);
+								 break;
+                              }
+                           }
+                           
+                           if(patientObj.hasOwnProperty(attendeeEmail)) {
+                              var id = ''+patientObj[attendeeEmail];
+                              mc.setProperty("cliniko.patientId",id);
+                           } else {
+                              mc.setProperty("cliniko.firstName",attendeeFirstName);
+                              mc.setProperty("cliniko.lastName",attendeeLastName);
+                           }
+                        ]]>
+                        </script>
+						
+						<!-- START: Proceed according to the existence of the patient in cliniko -->
+                        <filter source="boolean(get-property('cliniko.patientId'))" regex="false">
+                           <then>
+                              <!--Call cliniko connector createPatient method to create a new patient -->
+                              <cliniko.init>
+                                 <apiUrl>{$ctx:cliniko.apiUrl}</apiUrl>
+                                 <apiKey>{$ctx:cliniko.apiKey}</apiKey>
+                              </cliniko.init>
+                              <cliniko.createPatient>
+                                 <email>{$ctx:eventBrite.attendeeEmail}</email>
+                                 <firstName>{$ctx:cliniko.firstName}</firstName>
+                                 <lastName>{$ctx:cliniko.lastName}</lastName>
+                              </cliniko.createPatient>
+
+                              <property name="cliniko.patientId" expression="json-eval($.id)" />
+							
+							  <!-- START: Append the response message according to the createPatient response -->
+                              <filter source="boolean(get-property('cliniko.patientId'))" regex="false">
+                                 <then>
+                                    <property name="id"
+                                       expression="fn:concat('eventBrite_attendeeId:',get-property('eventBrite.attendeeId'))" />
+                                    <property name="status" value="error" />
+                                    <property name="message" expression="json-eval($)" />
+                                 </then>
+                                 <else>
+                                    <property name="id"
+                                       expression="fn:concat('eventBrite_attendeeId:',get-property('eventBrite.attendeeId'),',cliniko_patientId:',get-property('cliniko.patientId'))" />
+                                    <property name="status" value="success" />
+                                    <property name="message" value="A patient has been successfully created." />
+                                 </else>
+                              </filter>
+                              <!--Call the responseHandler template -->
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="cliniko_createPatient" />
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="status" value="{$ctx:status}" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+
+                           </then>
+                        </filter>
+						<!-- END: Proceed according to the existence of the patient in cliniko -->
+						
+						<property name="uri.var.urlQuery" action="remove"/>
+						
+						<!-- START: Process only if the patient is existing -->
+                        <filter source="boolean(get-property('cliniko.patientId'))" regex="true">
+                           <then>
+                              <!-- Call createAppointments template to create appointments and events -->
+                              <call-template target="createAppointments">
+                                 <with-param name="cliniko.apiKey" value="{$ctx:cliniko.apiKey}" />
+                                 <with-param name="cliniko.apiUrl" value="{$ctx:cliniko.apiUrl}" />
+                                 <with-param name="cliniko.patientId" value="{$ctx:cliniko.patientId}" />
+                                 <with-param name="cliniko.practionerId" value="{$ctx:cliniko.practionerId}" />
+                                 <with-param name="cliniko.accountName" value="{$ctx:cliniko.accountName}" />
+                                 <with-param name="common.id" value="{$ctx:eventBrite.attendeeId}" />
+                                 <with-param name="cliniko.appointmentNote" value="{$ctx:livechat.ticketName}" />
+                                 <with-param name="googlecalendar.apiUrl" value="{$ctx:googlecalendar.apiUrl}" />
+                                 <with-param name="googlecalendar.accessToken" value="{$ctx:googlecalendar.accessToken}" />
+                                 <with-param name="googlecalendar.calendarId" value="{$ctx:googlecalendar.calendarId}" />
+                                 <with-param name="shared.timeZone" value="{$ctx:shared.timeZone}" />
+                              </call-template>
+                           </then>
+                        </filter>
+						<!-- END: Process only if the patient is existing -->
+						
+                        <property name="attendeeIndex" expression="get-property('operation','attendeeIndex') + 1" scope="operation" />
+                        <filter xpath="get-property('operation','attendeeIndex') = get-property('eventBrite.attendeeCount')">
+                           <then>
+                              <loopback />
+                           </then>
+                        </filter>
+                     </sequence>
+                  </target>
+               </iterate>
+			   <!--END : FOR EACH ticket -->
+
+            </then>
+            <else>
+               <property name="id" value="{}" />
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($.error_description)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="eventBrite_listTicketClasses" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+		 <!-- END: Proceed only if the call is successful. -->
+      </inSequence>
+	  
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+		 <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>{
+                     "Response":{
+                        "process":"cliniko_retrieveEventsAndCreateAppointments",
+                        "activityResponse":"No new appointments were created since the patients already have appointments."
+                     }
+                  }</format>
+               </payloadFactory>
+            </then>
+            <else>
+               <payloadFactory media-type="json">
+                  <format>{
+						"Response":{
+							"process":"cliniko_retrieveEventsAndCreateAppointments",
+							"activityResponse":[$1]
+						}
+					}</format>
+                  <args>
+                     <arg expression="get-property('operation', 'responseString')" />
+                  </args>
+               </payloadFactory>
+            </else>
+         </filter>
+         <send />
+
+      </outSequence>
+   </target>
+   <description />
+</proxy>
