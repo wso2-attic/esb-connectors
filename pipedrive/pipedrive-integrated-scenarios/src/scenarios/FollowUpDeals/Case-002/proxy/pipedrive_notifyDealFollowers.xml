@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="pipedrive_notifyDealFollowers" transports="https,http"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Pipedrive parameters -->
+         <property name="pipedriveApiUrl" value="https://api.pipedrive.com" />
+         <property name="pipedriveApiToken" expression="json-eval($.pipedrive.apiToken)" />
+         <!-- Gmail parameters -->
+         <property name="gmailUsername" expression="json-eval($.gmail.username)" />
+         <property name="gmailAccessToken" expression="json-eval($.gmail.accessToken)" />
+         <property name="currentDate" expression="get-property('SYSTEM_DATE', 'yyyy-MM-dd' )" scope="default" />
+         <!-- Retrieve all the Deals to be closed within two weeks time -->
+         <pipedrive.init>
+            <apiToken>{$ctx:pipedriveApiToken}</apiToken>
+            <apiUrl>{$ctx:pipedriveApiUrl}</apiUrl>
+         </pipedrive.init>
+         <pipedrive.listDealsTimeline>
+            <amount>2</amount>
+            <startDate>{$ctx:currentDate}</startDate>
+            <interval>week</interval>
+            <fieldKey>expected_close_date</fieldKey>
+            <filterId>1</filterId>
+         </pipedrive.listDealsTimeline>
+         <property name="responseStatus" expression="$axis2:HTTP_SC" />
+         <!-- START: Checks the successful execution of the listDealsTimeline method to proceed with notifying the Followers. 
+            If not, returns an error -->
+         <filter xpath="get-property('responseStatus') != 200">
+            <then>
+               <property name="id" value="{}" />
+               <property name="message" expression="json-eval($.error_info)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="pipedrive_listDealsTimeline" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- END: Check the successful execution of the listDealsTimeline method -->
+         <property name="dealCount" expression="count(//deals)" scope="operation" />
+         <!-- Stores the deal results to be used later -->
+         <property name="pipedrive.dealsToBeclosed" expression="json-eval($.data)" scope="operation" />
+         <property name="dealIndex" expression="0" scope="operation" />
+         <property name="followersCount" value="0" scope="operation" />
+         <property name="followersIndex" value="0" scope="operation" />
+         <property name="emailList" value="" scope="operation" />
+         <!-- START: Checks the deal count to proceed -->
+         <filter xpath="0 = get-property('operation', 'dealCount')">
+            <then>
+               <property name="id" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="pipedrive_listDealsTimeline" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="Error" />
+                  <with-param name="message" value="No deals were returned from Pipedrive" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- END: Checks the deal count -->
+         <!-- START: Iterates through the deals -->
+         <iterate continueParent="false" id="dealIterator" expression="//deals" sequential="true"
+            preservePayload="true">
+            <target>
+               <sequence>
+                  <property name="dealId" expression="//id" />
+                  <property name="dealIndex" expression="get-property('operation','dealIndex') + 1" scope="operation" />
+                  <!-- Get the followers for the deal from Pipedrive -->
+                  <pipedrive.init>
+                     <apiToken>{$ctx:pipedriveApiToken}</apiToken>
+                     <apiUrl>{$ctx:pipedriveApiUrl}</apiUrl>
+                  </pipedrive.init>
+                  <pipedrive.listDealFollowers>
+                     <id>{$ctx:dealId}</id>
+                  </pipedrive.listDealFollowers>
+                  <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                  <filter xpath="get-property('responseStatus') != 200">
+                     <then>
+                        <property name="id" expression="fn:concat('dealId:', get-property('dealId'))" />
+                        <property name="message" expression="json-eval($.error_info)" />
+                        <property name="message"
+                           expression="fn:concat('Cannot retrieve deal followers. Error: ', get-property('message'))" />
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="activity" value="pipedrive_listDealsTimeline" />
+                           <with-param name="id" value="{$ctx:id}" />
+                           <with-param name="status" value="Error" />
+                           <with-param name="message" value="{$ctx:message}" />
+                        </call-template>
+                     </then>
+                     <else>
+                        <property name="followersCountForDeal" expression="count(//data)" />
+                        <property name="followersCount"
+                           expression="get-property('operation','followersCount') + get-property('followersCountForDeal')"
+                           scope="operation" />
+                        <iterate continueParent="false" id="followersIterator" expression="//data" sequential="true">
+                           <target>
+                              <sequence>
+                                 <property name="followerId" expression="//data" />
+                                 <!-- Retrieve details of the follower -->
+                                 <pipedrive.init>
+                                    <apiToken>{$ctx:pipedriveApiToken}</apiToken>
+                                    <apiUrl>{$ctx:pipedriveApiUrl}</apiUrl>
+                                 </pipedrive.init>
+                                 <pipedrive.getUser>
+                                    <id>{$ctx:followerId}</id>
+                                 </pipedrive.getUser>
+                                 <property name="responseStatus" expression="$axis2:HTTP_SC" />
+                                 <filter xpath="get-property('responseStatus') != 200">
+                                    <then>
+                                       <property name="id" expression="fn:concat('dealId:', get-property('dealId'))" />
+                                       <property name="message" expression="json-eval($.error_info)" />
+                                       <property name="message"
+                                          expression="fn:concat('Cannot retrieve follower information. Error: ', get-property('message'))" />
+                                       <call-template target="responseHandlerTemplate">
+                                          <with-param name="activity" value="pipedrive_listDealsTimeline" />
+                                          <with-param name="id" value="{$ctx:id}" />
+                                          <with-param name="status" value="Error" />
+                                          <with-param name="message" value="{$ctx:message}" />
+                                       </call-template>
+                                    </then>
+                                    <else>
+                                       <property name="followerEmail" expression="//email" />
+                                       <property name="emailList"
+                                          expression="fn:concat(get-property('operation', 'emailList'), get-property('dealId'), ':',get-property('followerEmail'), ',')"
+                                          scope="operation" />
+                                    </else>
+                                 </filter>
+                                 <property name="followersIndex" expression="get-property('operation','followersIndex') + 1"
+                                    scope="operation" />
+                              </sequence>
+                           </target>
+                        </iterate>
+                     </else>
+                  </filter>
+               </sequence>
+            </target>
+         </iterate>
+         <!-- END: Deals Iterator -->
+         <filter
+            xpath="(get-property('operation', 'dealCount') = get-property('operation', 'dealIndex')) and
+                                 (get-property('operation', 'followersCount') = get-property('operation', 'followersIndex'))">
+            <then>
+               <property name="dealIndex" expression="0" scope="operation" />
+               <filter xpath="0 = get-property('operation', 'dealCount')">
+                  <then>
+                     <property name="id" value="{}" />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="pipedrive_listDealsTimeline" />
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="status" value="Error" />
+                        <with-param name="message" value="No deals were returned from Pipedrive" />
+                     </call-template>
+                     <loopback />
+                  </then>
+               </filter>
+               <property name="pipedriveDealsToBeClosed" expression="get-property('operation', 'pipedrive.dealsToBeclosed')" />
+               <payloadFactory media-type="json">
+                  <format>
+                     {
+                        "dealsToBeClosed":$1
+                     }
+                  </format>
+                  <args>
+                     <arg expression="get-property('pipedriveDealsToBeClosed')" />
+                  </args>
+               </payloadFactory>
+               <!-- START: Iterates through the Deals -->
+               <iterate id="dealIterator" expression="//deals" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="dealId" expression="//id" />
+                        <property name="dealTitle" expression="//title" />
+                        <property name="dealExpectedCloseDate" expression="//expected_close_date" />
+                        <property name="emailList" expression="get-property('operation', 'emailList')" />
+                        <script language="js">
+                           <![CDATA[
+                              var dealId = mc.getProperty('dealId');
+                              var emailList = mc.getProperty('emailList');
+                              var toEmailList = "";
+                              var emailArray = emailList.split(",");
+                              for (var arrayIndex in emailArray) {
+                                 valueList = emailArray[arrayIndex].split(":");
+                                 if( valueList[0].equals(dealId)) {
+                                    toEmailList += valueList[1] + ";";
+                                 }
+                              }
+                              mc.setProperty('toEmailList', toEmailList);
+                           ]]>
+                        </script>
+                        <!-- Build the Email message body -->
+                        <payloadFactory media-type="json">
+                           <format>
+                              {
+                                 "mailSubject": "Deal \"$1\" is expected to be closed on $2",
+                                 "mailContent": "Hi,\n\nA Reminder, Please be informed that the deal \"$1\" (ID: $3) is expected to be closed on $2.\n\nPlease take the necessary actions to win your deal.\n\nFor more information, please contact.\n\nThanks."
+                              }
+                           </format>
+                           <args>
+                              <arg expression="get-property('dealTitle')" />
+                              <arg expression="get-property('dealExpectedCloseDate')" />
+                              <arg expression="get-property('dealId')" />
+                           </args>
+                        </payloadFactory>
+                        <!-- Build the message body to send in GMail -->
+                        <property name="gmailSubject" expression="json-eval($.mailSubject)" />
+                        <property name="gmailTextContent" expression="json-eval($.mailContent)" />
+                        <property name="emailList" expression="get-property('operation', 'emailList')" />
+                        <!-- START: Check the availability of the Gmail accessToken to proceed with email sending -->
+                        <filter source="boolean(get-property('gmailAccessToken'))" regex="true">
+                           <then>
+                              <!-- Send the email notification via Gmail -->
+                              <gmail.gmailinit>
+                                 <access_token>{$ctx:gmailAccessToken}</access_token>
+                                 <userId>{$ctx:gmailUsername}</userId>
+                              </gmail.gmailinit>
+                              <gmail.createAMail>
+                                 <to>{$ctx:toEmailList}</to>
+                                 <subject>{$ctx:gmailSubject}</subject>
+                                 <messageBody>{$ctx:gmailTextContent}</messageBody>
+                              </gmail.createAMail>
+                              <property name="messageId" expression="json-eval($.id)" />
+                              <filter source="boolean(get-property('messageId'))" regex="false">
+                                 <then>
+                                    <property name="status" value="Error" />
+                                    <property name="message" expression="json-eval($.error.message)" />
+                                 </then>
+                                 <else>
+                                    <property name="status" value="Success" />
+                                    <property name="message"
+                                       value="The notification mail is successfully sent to the followers" />
+                                 </else>
+                              </filter>
+                           </then>
+                           <else>
+                              <property name="status" value="Skipped" />
+                              <property name="message" value="Gmail OAuth access token is not provided in the request." />
+                           </else>
+                        </filter>
+                        <!-- END: Check the availability of the Gmail accessToken -->
+                        <property name="id" expression="fn:concat('dealId:',get-property('dealId'))" />
+                        <!-- GEnerates the response for Gmail notification sending -->
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="activity" value="gmail_sendMail" />
+                           <with-param name="id" value="{$ctx:id}" />
+                           <with-param name="status" value="{$ctx:status}" />
+                           <with-param name="message" value="{$ctx:message}" />
+                        </call-template>
+                        <property name="dealIndex" expression="get-property('operation','dealIndex') + 1"
+                           scope="operation" />
+                     </sequence>
+                  </target>
+               </iterate>
+               <filter xpath="get-property('operation', 'dealCount') = get-property('operation', 'dealIndex')">
+                  <then>
+                     <loopback />
+                  </then>
+               </filter>
+            </then>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "Response":{
+                     "activity":"pipedrive_notifyDealFollowers",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
