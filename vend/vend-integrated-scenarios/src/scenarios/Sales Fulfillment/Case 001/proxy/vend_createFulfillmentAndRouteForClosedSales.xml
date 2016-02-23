@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--Retrieve closed sales and create fulfillments in Shopify, routes in Beetrack and invoices,deliveryNotes in Billomat -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="vend_createFulfillmentAndRouteForClosedSales" transports="https http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence>
+         <!-- Vend Properties -->
+         <property name="vend.companyName" expression="json-eval($.vend.companyName)" />
+
+         <!-- Shopify Properties -->
+         <property name="shopify.apiUrl" expression="get-property('registry', 'connectors/Shopify/apiUrl')" />
+         <property name="shopify.accessToken" expression="get-property('registry', 'connectors/Shopify/accessToken')" />
+
+         <!-- Billomat Properties -->
+         <property name="billomat.apiUrl" expression="get-property('registry', 'connectors/Billomat/apiUrl')" />
+         <property name="billomat.apiKey" expression="get-property('registry', 'connectors/Billomat/apiKey')" />
+
+         <!-- Beetrack Properties -->
+         <property name="beetrack.apiUrl" expression="get-property('registry', 'connectors/Beetrack/apiUrl')" />
+         <property name="beetrack.accessToken" expression="get-property('registry', 'connectors/Beetrack/accessToken')" />
+         <property name="beetrack.truckIdentifier" expression="json-eval($.beetrack.truckIdentifier)" />
+
+         <!-- Operation scoped properties -->
+         <property name="responseString" value="" scope="operation" />
+         <property name="activityName" value="pipelinedeals_retrieveClickersAndCreateDeals" scope="operation" />
+         <sequence key="removeResponseHeaders" />
+         <property name="vend.saleStatus" value="[&quot;CLOSED&quot;]" />
+
+         <!--Get the current date mid night time to retrieve sales updated for the current day -->
+         <script language="js">
+          <![CDATA[
+                mc.setProperty('vend.currentDate', new java.text.SimpleDateFormat('yyyy-MM-dd').format(new java.util.Date()) + '00:00:00');
+                mc.setProperty('beetrack.dispatchDate', new java.text.SimpleDateFormat('yyyy-MM-dd').format(new java.util.Date(new java.util.Date().getTime() + 259200000)));
+            ]]>
+         </script>
+
+         <!--Call vend connector listRegisterSales method to get closed sales -->
+         <vend.init />
+         <vend.listRegisterSales>
+            <statuses>{$ctx:vend.saleStatus}</statuses>
+            <since>{$ctx:vend.currentDate}</since>
+         </vend.listRegisterSales>
+         <sequence key="removeResponseHeaders" />
+
+         <!-- START: Proceed only if the listRegisterSale method is successful -->
+         <filter source="$axis2:HTTP_SC" regex="200">
+            <then>
+               <property name="resultSt" expression="json-eval($)" />
+               <property name="salesIndex" expression="0" scope="operation" />
+               <property name="salesCount" expression="count(//register_sales)" />
+
+               <!-- START: Proceed only if there is at least one register sale -->
+               <filter xpath="get-property('salesCount') = 0.0">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="status" value="skipped" />
+                     <property name="message" value="There are no closed sales for the day." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="vend_retrieveClosedSales" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <!--BEGIN : FOR EACH sale -->
+                     <iterate continueParent="false" id="sales" expression="//register_sales" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="vend.salesId" expression="json-eval($.register_sales.id)" />
+                              <property name="vend.userName" expression="json-eval($.register_sales.user_name)" />
+                              <property name="vend.customerEmail" expression="json-eval($.register_sales.customer.email)" />
+                              <property name="vend.saleDate" expression="json-eval($.register_sales.sale_date)" />
+                              <property name="vend.customerId" expression="json-eval($.register_sales.customer_id)" />
+                              <property name="vend.note" expression="json-eval($.register_sales.note)" />
+                              <property name="vend.customer" expression="json-eval($.register_sales.customer)" />
+                              <property name="vend.salesProducts" expression="json-eval($.register_sales.register_sale_products)" />
+
+                              <!-- START: Proceed with creating the fullfillment only if the sale is associated with shopify -->
+                              <filter source="boolean(get-property('vend.note'))" regex="true">
+                                 <then>
+
+                                    <!-- Extract the shopify order ID if its exist in the sale's note -->
+                                    <script language="js">
+                                    <![CDATA[
+                                       var notes = ''+mc.getProperty('vend.note');
+                                       //Get the shopify order ID from sales's note
+                                       if(new java.lang.String(notes).startsWith('Shopify ID'))
+                                       {
+                                             var orderId = notes.split(':')[1];
+                                             mc.setProperty("shopify.orderId",orderId);
+                                       }
+                                    ]]>
+                                    </script>
+
+                                    <!-- START: Proceed only if a order ID is existing -->
+                                    <filter source="boolean(get-property('shopify.orderId'))" regex="true">
+                                       <then>
+                                          <property name="shopify.trackNo" expression="fn:concat('trackNo_',get-property('vend.salesId'))" />
+                                          <payloadFactory media-type="json">
+                                             <format>{
+                                                   "fulfillment":{
+                                                      "tracking_number": "$1",
+                                                      "notify_customer":true
+                                                   }
+                                                }
+                                             </format>
+                                             <args>
+                                                <arg evaluator="xml" expression="get-property('shopify.trackNo')" />
+                                             </args>
+                                          </payloadFactory>
+                                          <property name="shopify.fulfillment" expression="json-eval($.fulfillment)" />
+                                          <property name="shopify.format" value="json" />
+
+                                          <!--Call shopify connector createFulfillment method to fulfill the order -->
+                                          <shopify.init>
+                                             <accessToken>{$ctx:shopify.accessToken}</accessToken>
+                                             <apiUrl>{$ctx:shopify.apiUrl}</apiUrl>
+                                             <format>{$ctx:shopify.format}</format>
+                                          </shopify.init>
+                                          <shopify.createFulfillment>
+                                             <fulfillment>{$ctx:shopify.fulfillment}</fulfillment>
+                                             <orderId>{$ctx:shopify.orderId}</orderId>
+                                          </shopify.createFulfillment>
+                                          <property name="shopify.fulfillmentId" expression="json-eval($.fulfillment.id)" />
+
+                                          <!-- START: Append the response message according to the createFulfillment response -->
+                                          <filter source="$axis2:HTTP_SC" regex="201">
+                                             <then>
+                                                <property name="id" expression="fn:concat('vend_salesId:',get-property('vend.salesId'),',shopify_orderId:',get-property('shopify.orderId'),',shopify_fulfillmentId:',get-property('shopify.fulfillmentId'))" />
+                                                <property name="status" value="success" />
+                                                <property name="message" value="The fulfillment has been successfully created." />
+                                             </then>
+                                             <else>
+                                                <property name="id" expression="fn:concat('vend_salesId:',get-property('vend.salesId'))" />
+                                                <property name="status" value="error" />
+                                                <property name="message" expression="json-eval($)" />
+                                             </else>
+                                          </filter>
+                                          <!-- END: Append the response message according to the createProduct response -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="shopify_createFulfillment" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                    </filter>
+                                    <!-- END: Proceed only if a order ID is existing -->
+                                 </then>
+                              </filter>
+                              <!-- END: Proceed with creating the fullfillment only if the sale is associated with shopify -->
+
+                              <!-- START: Proceed with routes and invoices only if a customer is associated with the sale -->
+                              <filter source="boolean(get-property('vend.customerEmail'))" regex="false">
+                                 <then>
+                                    <property name="id" expression="fn:concat('vend_registerSaleId:',get-property('vend.salesId'))" />
+                                    <property name="status" value="skipped" />
+                                    <property name="message" value="A customer is not associated with the register sale." />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="activity" value="vend_getRegisterSales" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                    <!--Extract customer related data -->
+                                    <script language="js">
+                                       <![CDATA[
+                                          var customer = eval("(" + mc.getProperty('vend.customer') + ")");
+                                          mc.setProperty("vend.customerEmail",customer.email);
+                                          mc.setProperty("vend.customerName",customer.name);
+                                          mc.setProperty("vend.customerFirstName",customer.first_name);
+                                          mc.setProperty("vend.customerFax",customer.fax);
+                                          mc.setProperty("vend.customerLastName",customer.last_name);
+                                          mc.setProperty("vend.customerAddress",customer.physical_address1);
+                                          var phone = ''+customer.phone;
+                                          mc.setProperty("vend.customerContactNo",phone);
+                                        ]]>
+                                    </script>
+
+                                    <!--Extract billomat-createCompletedInvoiceSeq to create a completed invoice and send them for the sale -->
+                                    <sequence key="billomat-createCompletedInvoiceSeq" />
+
+                                    <!--Extract beetrack-createRoutesSeq to create a route in Beetrack -->
+                                    <sequence key="beetrack-createRoutesSeq" />
+
+                                 </else>
+                              </filter>
+                              <!-- END: Proceed with routes and invoices only if a customer is associated with the sale -->
+
+                              <property name="salesIndex" expression="get-property('operation','salesIndex') + 1" scope="operation" />
+                              <filter xpath="get-property('operation','salesIndex') = get-property('salesCount')">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!--END : FOR EACH Sale -->
+                  </else>
+               </filter>
+               <!-- END: Proceed only if there is at least one register sale -->
+            </then>
+            <else>
+               <property name="id" value="{}" />
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($.)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="vend_retrieveClosedSales" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+         <!-- END: Proceed only if items are retrieved successfully -->
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>{
+                  "Response":{
+                     "process":"vend_createFulfillmentAndRouteForClosedSales",
+                     "activityResponse":[$1]
+                  }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <respond />
+      </outSequence>
+   </target>
+</proxy>

@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--Get the submissions and send the last survey response to the vend agent -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="vend_sendSurveyResponseToAgents" transports="https,http" startOnLoad="true" trace="disable">
+   <description />
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Formstack Properties -->
+         <property name="formstack.apiUrl" expression="get-property('registry', 'connectors/Formstack/apiUrl')" />
+         <property name="formstack.accessToken" expression="get-property('registry', 'connectors/Formstack/accessToken')" />
+         <property name="formstack.questions" expression="json-eval($.formstack.questions)" />
+
+         <!-- Madnrill Properties -->
+         <property name="mandrill.apiUrl" expression="get-property('registry', 'connectors/Mandrill/apiUrl')" />
+         <property name="mandrill.apiKey" expression="get-property('registry', 'connectors/Mandrill/apiKey')" />
+         <property name="mandrill.fromName" expression="json-eval($.mandrill.fromName)" />
+         <property name="mandrill.fromEmail" expression="json-eval($.mandrill.fromEmail)" />
+
+         <!--Call formstack connector listForms method to list all the forms -->
+         <formstack.init>
+            <accessToken>{$ctx:formstack.accessToken}</accessToken>
+            <format>json</format>
+            <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+         </formstack.init>
+         <formstack.listForms />
+         <property name="formstack.forms" expression="json-eval($.forms)" />
+         <sequence key="removeResponseHeaders" />
+
+         <!-- START: Proceed only if forms are retrieved successfully. -->
+         <filter source="boolean(get-property('formstack.forms'))" regex="false">
+            <then>
+               <property name="id" value="{}" />
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($)" />
+               <!--Call the responseHandler template -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="formstack_listForms" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <property name="formstack.formIndex" expression="0" scope="operation" />
+               <property name="formstack.formCount" expression="count(//forms)" />
+
+               <!-- START: Proceed only if there is at least one form -->
+               <filter xpath="get-property('formstack.formCount') = 0.0">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="status" value="Skipped" />
+                     <property name="message" value="There are no forms created." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="formstack_listForms" />
+                        <with-param name="status" value="{$ctx:status}" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <!--BEGIN : FOR EACH form -->
+                     <iterate continueParent="false" id="forms" expression="//forms" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="formstack.formId" expression="json-eval($.forms.id)" />
+                              <property name="formstack.submissions" expression="json-eval($.forms.submissions)" />
+                              <property name="formstack.formCreated" expression="json-eval($.forms.created)" />
+
+                              <!-- START: Proceed only there are submissions for the form -->
+                              <filter xpath="get-property('formstack.submissions') = 0">
+                                 <then>
+                                    <property name="id" expression="fn:concat('formstack_formId:',get-property('formstack.formId'))" />
+                                    <property name="status" value="skipped" />
+                                    <property name="message" value="There are no submissions for the form." />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="activity" value="formstack_listForms" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+
+                                    <!--Check whether the form is created before two weeks -->
+                                    <script language="js">
+                                       <![CDATA[
+                                          var createdDate = mc.getProperty('formstack.formCreated').split(" ")[0];
+                                           var twoWeeksBack= new java.text.SimpleDateFormat('yyyy-MM-dd').format(new java.util.Date(new java.util.Date().getTime() - 1209600000));
+                                           
+                                           if(createdDate<twoWeeksBack) {
+                                             mc.setProperty("formstack.delete","true");
+                                          }
+                                       ]]>
+                                    </script>
+
+                                    <!-- START: Delete the form if it is created before two weeks -->
+                                    <filter source="boolean(get-property('formstack.delete'))" regex="true">
+                                       <then>
+                                          <!--Call formstack connector deleteForm method to delete the given form -->
+                                          <formstack.init>
+                                             <accessToken>{$ctx:formstack.accessToken}</accessToken>
+                                             <format>json</format>
+                                             <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+                                          </formstack.init>
+                                          <formstack.deleteForm>
+                                             <formId>{$ctx:formstack.formId}</formId>
+                                          </formstack.deleteForm>
+                                          <property name="formstack.deleted" expression="json-eval($.success)" />
+
+                                          <!-- START: Append a message to be sent to the user regarding the status of the delete operation. -->
+                                          <filter source="get-property('formstack.deleted')" regex="0">
+                                             <then>
+                                                <property name="id" expression="fn:concat('formstack_formId:',get-property('formstack.formId'))" />
+                                                <property name="message" expression="json-eval($)" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="formstack_deleteForm" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="error" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </then>
+                                          </filter>
+                                          <!-- END: Append a message to be sent to the user regarding the status of the delete operation. -->
+                                       </then>
+                                    </filter>
+                                    <!-- END: Delete the form if it is created before two weeks -->
+                                 </then>
+                                 <else>
+                                    <formstack.init>
+                                       <accessToken>{$ctx:formstack.accessToken}</accessToken>
+                                       <format>json</format>
+                                       <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+                                    </formstack.init>
+                                    <formstack.listSubmissions>
+                                       <formId>{$ctx:formstack.formId}</formId>
+                                       <sort>DESC</sort>
+                                       <data>true</data>
+                                    </formstack.listSubmissions>
+                                    <property name="listSubmissions.statusCode" expression="$axis2:HTTP_SC" />
+
+                                    <!-- START: Proceed with the scenario only if the status code of the listSubmissions call is 200 OK. -->
+                                    <filter source="get-property('listSubmissions.statusCode')" regex="200">
+                                       <then>
+                                          <property name="formstack.submissionId" expression="json-eval($.submissions[0].id)" />
+
+                                          <!-- Get the details of the submission with all the field values. -->
+                                          <formstack.init>
+                                             <accessToken>{$ctx:formstack.accessToken}</accessToken>
+                                             <format>json</format>
+                                             <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+                                          </formstack.init>
+                                          <formstack.getSubmission>
+                                             <submissionId>{$ctx:formstack.submissionId}</submissionId>
+                                          </formstack.getSubmission>
+                                          <property name="submissionData" expression="json-eval($.data)" />
+
+                                          <!-- Construct the mail body, subject and 'to' object to send the survey in email. -->
+                                          <script language="js">
+                                             <![CDATA[
+                                                var assigneeName = mc.getProperty('supportbee.assigneeName');																				
+                                                var submissionData = mc.getProperty('submissionData');
+                                                var userQuestions = mc.getProperty('formstack.questions');
+                                                var answerString = '';
+                                                         
+                                                if(submissionData != null && submissionData != ''){
+                                                   submissionData = eval("(" + submissionData + ")");
+                                                   userQuestions = eval("(" + userQuestions + ")");
+												   var length = submissionData.length;
+												   
+                                                   var saleId = submissionData[length-2].value;
+                                                   var userName = submissionData[length-1].value;
+                                                   if(submissionData.length > 0 && userQuestions.length > 0){
+                                                      for(var i=0; i<userQuestions.length; i++){
+                                                         var index = userQuestions[i].index - 1;
+                                                         answerString += '<div><p>' +  (i+1) + '. ' + userQuestions[i].question + ' <b><u>' + submissionData[index].value + '</u></b></p></div>';
+                                                      }
+                                                   }
+                                                }
+                                                mc.setProperty('answerString', answerString);
+                                                mc.setProperty('vend.saleId', saleId);
+                                                mc.setProperty('mandrill.subject', 'Customer Feedback for the Sale');
+                                                var mailTo = '[{"email": "' + userName + '", "type": "to"}]';
+                                                mc.setProperty('mandrill.to', mailTo);
+                                             ]]>
+                                          </script>
+                                          <property name="mandrill.html" expression="fn:concat('&lt;p&gt;&lt;h3&gt;Hi,&lt;/h3&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;You have been rated by the customer.&lt;/p&gt;&lt;/br&gt;&lt;/br&gt;&lt;p&gt;Sale ID: &lt;b&gt;', get-property('vend.saleId'),'&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;/br&gt;&lt;p&gt;Feedback is as follows:&lt;/p&gt;&lt;/br&gt;&lt;/br&gt;', get-property('answerString'), '&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;This is an auto-generated email. Please do not reply.&lt;/p&gt;')" />
+
+                                          <!-- Send the requester feedback to assignee via email. -->
+                                          <mandrill.init>
+                                             <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                             <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                             <format>json</format>
+                                          </mandrill.init>
+                                          <mandrill.sendMessage>
+                                             <html>{$ctx:mandrill.html}</html>
+                                             <subject>{$ctx:mandrill.subject}</subject>
+                                             <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+                                             <fromName>{$ctx:mandrill.fromName}</fromName>
+                                             <important>false</important>
+                                             <autoHtml>true</autoHtml>
+                                             <urlStripQs>false</urlStripQs>
+                                             <preserveRecipients>true</preserveRecipients>
+                                             <viewContentLink>true</viewContentLink>
+                                             <to>{$ctx:mandrill.to}</to>
+                                          </mandrill.sendMessage>
+                                          <property name="mandrill.mailId" expression="json-eval($[0]._id)" />
+
+                                          <!-- START: Append a message to be sent to the user regarding the status of the send email operation. -->
+                                          <filter source="boolean(get-property('mandrill.mailId'))" regex="false">
+                                             <then>
+                                                <property name="id" expression="fn:concat('formstack_surveyId:', get-property('formstack.formId'))" />
+                                                <property name="status" value="error" />
+                                                <property name="message" expression="json-eval($)" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="mandrill_sendSurveyViaEmail" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <property name="id" expression="fn:concat('formstack_formId:', get-property('formstack.formId'), ',vend_saleId:', get-property('vend.saleId'))" />
+                                                <property name="status" value="success" />
+                                                <property name="message" value="Survey response has been successfully sent to the administrator." />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="mandrill_sendSurveyViaEmail" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+
+                                                <!--Call formstack connector deleteForm method to delete the given form -->
+                                                <formstack.init>
+                                                   <accessToken>{$ctx:formstack.accessToken}</accessToken>
+                                                   <format>json</format>
+                                                   <apiUrl>{$ctx:formstack.apiUrl}</apiUrl>
+                                                </formstack.init>
+                                                <formstack.deleteForm>
+                                                   <formId>{$ctx:formstack.formId}</formId>
+                                                </formstack.deleteForm>
+                                                <property name="formstack.deleted" expression="json-eval($.success)" />
+
+                                                <!-- START: Append a message to be sent to the user regarding the status of the delete operation. -->
+                                                <filter source="get-property('formstack.deleted')" regex="0">
+                                                   <then>
+                                                      <property name="id" expression="fn:concat('formstack_formId:',get-property('formstack.formId'))" />
+                                                      <property name="message" expression="json-eval($)" />
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="formstack_deleteForm" />
+                                                         <with-param name="id" value="{$ctx:id}" />
+                                                         <with-param name="status" value="error" />
+                                                         <with-param name="message" value="{$ctx:message}" />
+                                                      </call-template>
+                                                   </then>
+                                                </filter>
+                                                <!-- END: Append a message to be sent to the user regarding the status of the delete operation. -->
+                                             </else>
+                                          </filter>
+                                          <!-- END: Append a message to be sent to the user regarding the status of the send email operation. -->
+                                       </then>
+                                       <else>
+                                          <!-- Failure case: Append an error message to be sent to the user. -->
+                                          <property name="id" expression="fn:concat('supportbee_ticketId: ', get-property('supportbee.ticketId'), ',formstack_surveyId: ', get-property('formstack.surveyId'))" />
+                                          <property name="message" expression="json-eval($)" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="formstack_getSubmissions" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="error" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                    </filter>
+                                 </else>
+                              </filter>
+                              <!-- END: Proceed only there are submissions for the form -->
+                              <property name="formstack.formIndex" expression="get-property('operation','formstack.formIndex') + 1" scope="operation" />
+
+                              <filter xpath="get-property('operation','formstack.formIndex') = get-property('formstack.formCount')">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                              </filter>
+
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!--END : FOR EACH form -->
+                  </else>
+               </filter>
+               <!-- END: Proceed only if there is atleast one form -->
+            </else>
+         </filter>
+         <!-- END: Proceed only if there is a campaign from the given ID. -->
+
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>{
+               "Response":{
+               "process":"vend_sendSurveyResponseToAgents",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+</proxy>

@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!-- This scenario creates and sends campaigns to subscribers about product discounts. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="vend_marketProductsWithDiscount" transports="http,https" startOnLoad="true" trace="disable">
+   <description />
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Vend Properties -->
+         <property name="vend.priceBookName" expression="json-eval($.vend.priceBookName)" />
+
+         <!-- MailChimp Properties -->
+         <property name="mailchimp.apiUrl" expression="get-property('registry', 'connectors/Mailchimp/apiUrl')" />
+         <property name="mailchimp.apiKey" expression="get-property('registry', 'connectors/Mailchimp/apiKey')" />
+         <property name="mailchimp.listName" expression="json-eval($.mailchimp.listName)" />
+         <property name="mailchimp.fromEmail" expression="json-eval($.mailchimp.fromEmail)" />
+         <property name="mailchimp.fromName" expression="json-eval($.mailchimp.fromName)" />
+         <property name="mailchimp.templateId" expression="json-eval($.mailchimp.templateId)" />
+
+         <!-- Shopify Properties -->
+         <property name="shopify.apiUrl" expression="get-property('registry', 'connectors/Shopify/apiUrl')" />
+         <property name="shopify.accessToken" expression="get-property('registry', 'connectors/Shopify/accessToken')" />
+
+         <!-- Operation scoped properties -->
+         <property name="id.empty" value="{}" />
+         <property name="responseString" value="" scope="operation" />
+
+         <!-- List active products. -->
+         <vend.init />
+         <vend.listProducts>
+            <active>1</active>
+         </vend.listProducts>
+         <sequence key="removeResponseHeaders" />
+
+         <!-- apiUrl and accessToken extracted from the registry and stored -->
+         <property name="vend.apiUrl" expression="get-property('registry', 'connectors/Vend/apiUrl')" />
+         <property name="vend.accessToken" expression="get-property('registry', 'connectors/Vend/accessToken')" />
+
+         <property name="messageType" value="application/xml" scope="axis2" />
+         <property name="productsCount" expression="count(//products)" />
+         <property name="productIndex" expression="0" scope="operation" />
+         <property name="noOfProcessedProducts" expression="0" scope="operation" />
+
+         <!-- Get the response status. -->
+         <property name="responseStatus" expression="$axis2:HTTP_SC" />
+
+         <!-- START: Proceed only if the listProducts call is successful. -->
+         <filter xpath="get-property('responseStatus') != 200">
+            <then>
+               <!-- Append an error message to be sent to the user. -->
+               <property name="errorResponse" expression="json-eval($)" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="vend_listProducts" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="error" />
+                  <with-param name="message" value="{$ctx:errorResponse}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- END: Proceed only if the listProducts call is successful. -->
+
+         <!-- START: Proceed only if there are any products to process. -->
+         <filter xpath="get-property('productsCount') = 0.0">
+            <then>
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="vend_listProducts" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="message" value="There are no products found." />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+         <!-- END: Proceed only if there are any products to process. -->
+
+         <!-- FOR EACH Product: BEGIN -->
+         <iterate continueParent="false" id="productsIterator" expression="//products" sequential="true">
+            <target>
+               <sequence>
+                  <property name="vend.productId" expression="//products/id/text()" />
+                  <property name="vend.productName" expression="//products/name/text()" />
+                  <property name="vend.productDescription" expression="//products/description/text()" />
+                  <property name="vend.productHandle" expression="//products/handle/text()" />
+                  <property name="vend.productPrice" expression="//products/price/text()" />
+                  <property name="vend.productPriceBookEntries" expression="json-eval($.products.price_book_entries)" />
+
+                  <!-- Check whether the product has a discount that is valid at the time of execution. -->
+                  <script language="js">
+                     <![CDATA[
+                         var priceBooks = eval("(" + mc.getProperty('vend.productPriceBookEntries') + ")");
+                         var requiredPriceBook = mc.getProperty('vend.priceBookName');
+                         var priceBookPrice = '';
+                         
+                         if(priceBooks.length > 0){
+                           for(var i=0; i<priceBooks.length; i++){
+                              if(priceBooks[i].price_book_name.toLowerCase() == requiredPriceBook.toLowerCase()){                                 
+                                 var startTime = priceBooks[i].valid_from;
+                                 var endTime = priceBooks[i].valid_to;
+                                 var timeFormat = 'yyyy-MM-dd hh:mm:ss';
+                                 
+                                 // Proceed only if the discount offer is valid at the time of execution of the scenario.
+                                 if((new java.text.SimpleDateFormat(timeFormat).parse(startTime).getTime() < java.util.Date().getTime()) &&
+                                       (new java.text.SimpleDateFormat(timeFormat).parse(endTime).getTime() > java.util.Date().getTime())){
+                                    priceBookPrice = priceBooks[i].price;
+                                    mc.setProperty('vend.priceTo', endTime.split(' ')[0]);
+                                 }
+                                 break;
+                              }
+                           }
+                         }
+                         
+                         mc.setProperty('vend.priceBookValue', priceBookPrice);
+                       ]]>
+                  </script>
+
+                  <!-- Check the product is in discount price book. -->
+                  <filter source="boolean(get-property('vend.priceBookValue'))" regex="true">
+                     <then>
+                        <property name="vend.productHandle" expression="//products/handle/text()" />
+                        <property name="shopify.productId" expression="substring-after(get-property('vend.productHandle'),'-')" />
+
+                        <script language="js">
+                           <![CDATA[
+                              var shopifyApiUrl = mc.getProperty('shopify.apiUrl');
+                              var productHandle = mc.getProperty('vend.productHandle');
+                              var productId = mc.getProperty('vend.productId');
+                              
+                              if(new java.lang.String(productHandle).toLowerCase().startsWith('shopify')){
+                                 mc.setProperty('shopify.productLink', 'To buy the product online click the link ' + shopifyApiUrl + '/products/' + productId);
+                              } else {
+                                 mc.setProperty('shopify.productLink', 'For more details about the discount please visit our store or contact our customer care agent.');
+                              }
+                           ]]>
+                        </script>
+
+                        <!-- Check whether the product has a discount. -->
+                        <filter xpath="get-property('vend.productPrice') &gt; get-property('vend.priceBookValue')">
+                           <then>
+                              <property name="noOfProcessedProducts" expression="get-property('operation', 'noOfProcessedProducts') + 1" scope="operation" />
+
+                              <script language="js">
+                                 <![CDATA[
+                                     var productSellingPrice = mc.getProperty('vend.productPrice');
+                                     var productPriceAfterDiscount = mc.getProperty('vend.priceBookValue');
+                                     var difference = productSellingPrice - productPriceAfterDiscount;
+                                     var discountPercentage = (difference/productSellingPrice)*100;
+                                     mc.setProperty('vend.discountPercentage', discountPercentage);
+                                   ]]>
+                              </script>
+
+                              <!-- Get the ID of the subscriber list using the provided list name. It is troublesome for the user to obtain the list ID in Mailchimp,
+                                 as it cannot be done through the web application. Therefore the user is expected to provide the list name so the respective list ID can be obtained via the following call. -->
+                              <mailchimp.init>
+                                 <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                                 <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                                 <format>json</format>
+                              </mailchimp.init>
+                              <mailchimp.listSubscriberLists>
+                                 <listName>{$ctx:mailchimp.listName}</listName>
+                              </mailchimp.listSubscriberLists>
+                              <sequence key="removeResponseHeaders" />
+
+                              <property name="mailchimp.listId" expression="json-eval($.data[0].id)" />
+
+                              <!-- Check for mailchimp subscriber list -->
+                              <filter source="boolean(get-property('mailchimp.listId'))" regex="false">
+                                 <then>
+                                    <!-- Failure case: Append an error message to be sent to the user. -->
+                                    <property name="id" expression="fn:concat('mailchimp_listName:', get-property('mailchimp.listName'))" />
+                                    <property name="errorResponse" expression="json-eval($)" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="mailchimp_getListIdFromListName" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="error" />
+                                       <with-param name="message" value="{$ctx:errorResponse}" />
+                                    </call-template>
+                                 </then>
+                                 <else>
+                                    <!-- Construct the mailchimp 'options' parameter -->
+                                    <payloadFactory media-type="json">
+                                       <format>
+                                          {
+                                          "options": {
+                                          "list_id": "$1",
+                                          "subject": "$2",
+                                          "from_email": "$3",
+                                          "from_name": "$4",
+                                          "to_name": "Subscriber",
+                                          "template_id": "$5",
+                                          "tracking": {
+                                          "opens": true,
+                                          "html_clicks": true,
+                                          "text_clicks": true
+                                          }
+                                          }
+                                          }
+                                       </format>
+                                       <args>
+                                          <arg expression="get-property('mailchimp.listId')" />
+                                          <arg expression="fn:concat(get-property('mailchimp.fromName'), ' - Discounts for you...!')" />
+                                          <arg expression="get-property('mailchimp.fromEmail')" />
+                                          <arg expression="get-property('mailchimp.fromName')" />
+                                          <arg expression="get-property('mailchimp.templateId')" />
+                                       </args>
+                                    </payloadFactory>
+                                    <property name="mailchimp.options" expression="json-eval($.options)" />
+
+                                    <!-- Removing the HTML elements in the product description. -->
+                                    <script language="js">
+                                       <![CDATA[
+                                          var description = mc.getProperty('vend.productDescription');
+                                          var discountPercentage = mc.getProperty('vend.discountPercentage');
+                                          if(new java.lang.String(description).startsWith('<')){
+                                             var length = new java.lang.String(description).length();
+                                             mc.setProperty('vend.productDescription', new java.lang.String(description).substring(3, length-4));
+                                          }
+                                          mc.setProperty('vend.discountPercentage', new java.lang.Float(discountPercentage));
+                                       ]]>
+                                    </script>
+
+                                    <!-- Construct the mailchimp 'content' parameter where the HTML campaign parameters are specified. -->
+                                    <payloadFactory media-type="json">
+                                       <format>
+                                          {
+                                          "content": {
+                                          "sections": {
+                                          "productName": "$1",
+                                          "productDetail": "$2",
+                                          "productDiscount": "$3",
+                                          "productLink": "$4",
+                                          "companyName": "$5"
+                                          }
+                                          }
+                                          }
+                                       </format>
+                                       <args>
+                                          <arg expression="get-property('vend.productName')" />
+                                          <arg expression="get-property('vend.productDescription')" />
+                                          <arg expression="fn:concat('Visit our outlets now and get ', get-property('vend.discountPercentage'), '% off for the product from your bill...! Offer valid only till ', get-property('vend.priceTo'), '.')" />
+                                          <arg expression="get-property('shopify.productLink')" />
+                                          <arg expression="get-property('mailchimp.fromName')" />
+                                       </args>
+                                    </payloadFactory>
+                                    <property name="mailchimp.content" expression="json-eval($.content)" />
+
+                                    <!-- Create a draft campaign. -->
+                                    <mailchimp.init>
+                                       <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                                       <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                                       <format>json</format>
+                                    </mailchimp.init>
+                                    <mailchimp.createDraftCampaign>
+                                       <options>{$ctx:mailchimp.options}</options>
+                                       <content>{$ctx:mailchimp.content}</content>
+                                       <type>regular</type>
+                                    </mailchimp.createDraftCampaign>
+                                    <property name="mailchimp.campaignId" expression="json-eval($.id)" />
+
+                                    <!-- START: Proceed to send the campaign only if it is created successfully. -->
+                                    <filter source="boolean(get-property('mailchimp.campaignId'))" regex="false">
+                                       <then>
+                                          <!-- Failure case: Append an error message to be sent to the user. -->
+                                          <property name="errorResponse" expression="json-eval($)" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="mailchimp_createDraftCampaign" />
+                                             <with-param name="id" value="{$ctx:id.empty}" />
+                                             <with-param name="status" value="error" />
+                                             <with-param name="message" value="{$ctx:errorResponse}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <!-- Send the draft campaign. -->
+                                          <mailchimp.init>
+                                             <apiUrl>{$ctx:mailchimp.apiUrl}</apiUrl>
+                                             <apiKey>{$ctx:mailchimp.apiKey}</apiKey>
+                                             <format>json</format>
+                                          </mailchimp.init>
+                                          <mailchimp.sendCampaign>
+                                             <campaignId>{$ctx:mailchimp.campaignId}</campaignId>
+                                          </mailchimp.sendCampaign>
+
+                                          <!-- Check response status for all possible error responses in sendCampaign. -->
+                                          <property name="id" expression="fn:concat('vend_productId:', get-property('vend.productId'), ',mailchimp_campaignId:', get-property('mailchimp.campaignId'))" />
+                                          <property name="mailchimp.complete" expression="json-eval($.complete)" />
+
+                                          <!-- START: Build the response based on whether the campaign is successfully sent or not -->
+                                          <filter source="get-property('mailchimp.complete')" regex="true">
+                                             <then>
+                                                <property name="status" value="success" />
+                                                <property name="message" value="The campaign has been successfully created and sent to the subscribers." />
+                                             </then>
+                                             <else>
+                                                <property name="status" value="error" />
+                                                <property name="message" value="The campaign was successfully created. Apparently an error occured, while sending the campaign." />
+                                             </else>
+                                          </filter>
+
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="mailchimp_createAndSendCampaign" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+
+                                       </else>
+                                    </filter>
+                                    <!--END of Filter: Proceed to send the campaign only if it is created successfully. -->
+
+                                 </else>
+                              </filter>
+                              <!--END of Filter: Check for mailchimp subscriber list. -->
+
+                           </then>
+                        </filter>
+                        <!--END of Filter: Check the product has a discount. -->
+
+                     </then>
+                  </filter>
+                  <!--END of Filter: Check the product is in discount price book. -->
+
+                  <property name="productIndex" expression="get-property('operation','productIndex') + 1" scope="operation" />
+
+                  <!-- Check for all the iterations has completed. -->
+                  <filter xpath="get-property('operation', 'productIndex') = get-property('productsCount')">
+                     <then>
+                        <!-- Append a skip message to be sent to the user if there no consignments are created at all. -->
+                        <filter source="get-property('operation', 'noOfProcessedProducts')" regex="0.0">
+                           <then>
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="activity" value="vend_marketProductsWithDiscount" />
+                                 <with-param name="id" value="{$ctx:id.empty}" />
+                                 <with-param name="status" value="skipped" />
+                                 <with-param name="message" value="There are no products with discounts." />
+                              </call-template>
+                           </then>
+                        </filter>
+                        <loopback />
+                     </then>
+                  </filter><!--END of Filter: Checking all iterations has completed. -->
+               </sequence>
+            </target>
+         </iterate>
+         <!-- FOR EACH Product: END -->
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <payloadFactory media-type="json">
+            <format>{
+               "Response":{
+               "process":"vend_marketProductsWithDiscount",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+</proxy>

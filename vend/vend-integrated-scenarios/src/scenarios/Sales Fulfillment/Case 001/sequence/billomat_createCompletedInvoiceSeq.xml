@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<!--Create completed invoices and send them to the customers for the closed sales -->
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="billomat-createCompletedInvoiceSeq">
+
+   <!--Call billomat connector listClients method to list the clients with the email related to the sale -->
+   <billomat.init>
+      <apiUrl>{$ctx:billomat.apiUrl}</apiUrl>
+      <apiKey>{$ctx:billomat.apiKey}</apiKey>
+      <format>json</format>
+   </billomat.init>
+   <billomat.listClients>
+      <email>{$ctx:vend.customerEmail}</email>
+   </billomat.listClients>
+
+
+   <property name="billomat.clientTotal" expression="json-eval($.clients.@total)" />
+   <property name="billomat.clientId" expression="json-eval($.clients.client.id)" />
+   <sequence key="removeResponseHeaders" />
+
+   <!-- START: Process only if the client does not exist with the given email -->
+   <filter xpath="get-property('billomat.clientTotal') = '0'">
+      <then>
+         <!--Call billomat connector createClient method to create the client -->
+         <billomat.init>
+            <apiUrl>{$ctx:billomat.apiUrl}</apiUrl>
+            <apiKey>{$ctx:billomat.apiKey}</apiKey>
+            <format>json</format>
+         </billomat.init>
+         <billomat.createClient>
+            <name>{$ctx:vend.customerName}</name>
+            <street>{$ctx:street}</street>
+            <zip>{$ctx:zip}</zip>
+            <city>{$ctx:city}</city>
+            <state>{$ctx:state}</state>
+            <countryCode>{$ctx:countryCode}</countryCode>
+            <firstName>{$ctx:vend.customerFirstName}</firstName>
+            <lastName>{$ctx:vend.customerLasttName}</lastName>
+            <phone>{$ctx:phone}</phone>
+            <fax>{$ctx:vend.customerFax}</fax>
+            <mobile>{$ctx:mobile}</mobile>
+            <email>{$ctx:vend.customerEmail}</email>
+         </billomat.createClient>
+         <property name="billomat.clientId" expression="json-eval($.client.id)" />
+
+         <!-- START: Append the response message if the createClient fails -->
+         <filter source="boolean(get-property('billomat.clientId'))" regex="false">
+            <then>
+               <property name="id" expression="fn:concat('vend_salesId:',get-property('vend.salesId'))" />
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($)" />
+            </then>
+            <else>
+               <property name="id" expression="fn:concat('vend_salesId:',get-property('vend.salesId'),',billomat_customerId:',get-property('billomat.clientId'))" />
+               <property name="status" value="success" />
+               <property name="message" value="A customer has been successfully created." />
+            </else>
+         </filter>
+         <call-template target="responseHandlerTemplate">
+            <with-param name="activity" value="billomat_createCustomer" />
+            <with-param name="id" value="{$ctx:id}" />
+            <with-param name="status" value="{$ctx:status}" />
+            <with-param name="message" value="{$ctx:message}" />
+         </call-template>
+      </then>
+   </filter>
+   <!-- END: Process only if the client does not exist with the given email -->
+
+   <!-- Dummy call to reconstruct the payload after listClient method called -->
+   <vend.init>
+      <apiUrl>{$ctx:vend.apiUrl}</apiUrl>
+      <accessToken>{$ctx:vend.accessToken}</accessToken>
+   </vend.init>
+   <vend.listRegisterSales>
+      <statuses>{$ctx:vend.saleStatus}</statuses>
+   </vend.listRegisterSales>
+   <sequence key="removeResponseHeaders" />
+
+   <!-- START: Process only if the clientID is existing -->
+   <filter source="boolean(get-property('billomat.clientId'))" regex="true">
+      <then>
+         <!--Call vend-setItemArray sequence to construct the item array -->
+         <sequence key="vend-setItemArray" />
+
+         <property name="items" expression="json-eval($.billomat)" />
+
+         <!--Call billomat connector createInvoice method to create an Invoice -->
+         <billomat.init>
+            <apiUrl>{$ctx:billomat.apiUrl}</apiUrl>
+            <apiKey>{$ctx:billomat.apiKey}</apiKey>
+            <format>json</format>
+         </billomat.init>
+         <billomat.createInvoice>
+            <clientId>{$ctx:billomat.clientId}</clientId>
+            <number>{$ctx:vend.salesId}</number>
+            <numberPre>Vend</numberPre>
+            <invoiceItems>{$ctx:items}</invoiceItems>
+         </billomat.createInvoice>
+         <property name="uri.var.billomat.invoiceId" expression="json-eval($.invoice.id)" />
+
+         <!-- START: Append the response message if the createInvoice call fails and if not proceed with the completion of the invoice -->
+         <filter source="boolean(get-property('uri.var.billomat.invoiceId'))" regex="false">
+            <then>
+               <property name="id" expression="fn:concat('vend_salesId:',get-property('vend.salesId'))" />
+               <property name="status" value="error" />
+               <property name="message" expression="json-eval($)" />
+               <!--Call the responseHandler template -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="billomat_createInvoice" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+            </then>
+            <else>
+               <property name="uri.var.billomat.apiUrl" expression="get-property('billomat.apiUrl')" />
+               <property name="uri.var.billomat.apiKey" expression="get-property('billomat.apiKey')" />
+
+               <!--API call to complete the invoice created -->
+               <header name="Content-Type" value="application/json" scope="transport" />
+               <header name="Accept" value="application/json" scope="transport" />
+               <call>
+                  <endpoint>
+                     <http method="put" uri-template="{uri.var.billomat.apiUrl}/api/invoices/{uri.var.billomat.invoiceId}/complete?api_key={uri.var.billomat.apiKey}" />
+                  </endpoint>
+               </call>
+
+               <!-- START: Proceed with the sending the completed invoice if it is completed -->
+               <filter source="$axis2:HTTP_SC" regex="200">
+                  <then>
+                     <property name="id" expression="fn:concat('vend_salesId:',get-property('vend.salesId'),',billomat_invoiceId:',get-property('uri.var.billomat.invoiceId'))" />
+                     <property name="status" value="success" />
+                     <property name="message" value="A receipt has been created." />
+                  </then>
+                  <else>
+                     <property name="id" expression="fn:concat('vend_salesId:',get-property('vend.salesId'),',billomat_invoiceId:',get-property('uri.var.billomat.invoiceId'))" />
+                     <property name="status" value="error" />
+                     <property name="message" expression="json-eval($.)" />
+                  </else>
+               </filter>
+               <!-- END: Proceed with the sending the completed invoice if it is completed -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="Billomat_createReceipt" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+
+            </else>
+         </filter>
+         <!-- END: Append the response message if the createClient call fails -->
+      </then>
+   </filter>
+   <!-- END: Process only if the clientID is existing -->
+</sequence>
