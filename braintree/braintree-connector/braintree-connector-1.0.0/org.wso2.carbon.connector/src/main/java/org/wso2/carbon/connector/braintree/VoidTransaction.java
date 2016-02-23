@@ -47,13 +47,10 @@ public final class VoidTransaction extends AbstractBrainTreeConnector {
     
         String errorMessage = null;
         try {
-            
             // instantiating and authenticating a braintreeGateway
             BraintreeGateway braintreeGateway = getBrainTreeService(messageContext);
-            
             // remove the request from the payload
             messageContext.getEnvelope().getBody().getFirstElement().detach();
-            
             Result<Transaction> result =
                     braintreeGateway.transaction().voidTransaction(
                             (String) messageContext.getProperty(Constants.TRANSACTIONID));

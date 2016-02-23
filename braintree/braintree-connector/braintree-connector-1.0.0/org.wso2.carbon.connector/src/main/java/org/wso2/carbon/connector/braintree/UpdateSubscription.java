@@ -70,17 +70,13 @@ public final class UpdateSubscription extends AbstractBrainTreeConnector {
 
         String errorMessage = null;
         try {
-
             // instantiating and authenticating a braintreeGateway
             final BraintreeGateway braintreeGateway = getBrainTreeService(messageContext);
-
             // remove the request from the payload
             messageContext.getEnvelope().getBody().getFirstElement().detach();
-
             // creating a transaction & convert to JSON format and set to
             // messageContext
             final String subscriptionId = (String) messageContext.getProperty(Constants.SUBSCRIPTION_ID).toString();
-
             messageContext.setProperty(Constants.RESULT, new Gson().toJson(updateSubscription(braintreeGateway,
                     createSubscriptionRequest(), subscriptionId)));
 
