@@ -55,10 +55,8 @@ public class GenerateApiUrl {
         processedParameters= processedParameters.replace(" ","%20"); // URL encode the spaces in url.
         baseString.append("&");
         baseString.append(URLEncoder.encode(processedParameters,ENC));
-
         byte[] keyBytes = (connectorProperties.getProperty("consumerKeySecret")
                 + "&" + connectorProperties.getProperty("accessTokenSecret")).getBytes(ENC);
-
         SecretKey key = new SecretKeySpec(keyBytes, HMAC_SHA1);
         Mac mac = Mac.getInstance(HMAC_SHA1);
         mac.init(key);
