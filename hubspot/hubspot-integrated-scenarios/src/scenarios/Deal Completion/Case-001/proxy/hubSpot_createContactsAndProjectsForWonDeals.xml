@@ -1,0 +1,511 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--
+   Retrieve deals which are in "Won" stage from the Hubspot API and;
+   Create the client in the Billiving API, if they do not exist.
+   Create a project (deal) in the TSheets API (The parent job code will be the client, which can have multiple child job
+   codes as deals. These deals will have time entries.).
+   Update the deal stage as "Won" in the ActiveCampaign API.
+-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="hubSpot_createContactsAndProjectsForWonDeals" transports="https http"
+   startOnLoad="true" trace="disable">
+   <target>
+      <inSequence>
+         <!--Hubspot Properties -->
+         <property name="hubspot.apiUrl" value="https://api.hubapi.com" />
+         <property name="hubspot.apiKey" expression="json-eval($.hubSpot.apiKey)" />
+         <!--ActiveCampaign Properties -->
+         <property name="activecampaign.apiUrl" expression="json-eval($.activeCampaign.apiUrl)" />
+         <property name="activecampaign.apiKey" expression="json-eval($.activeCampaign.apiKey)" />
+
+         <!-- Billiving -->
+         <property name="billiving.apiUrl" value="https://www.billiving.com" />
+         <property name="billiving.accessToken" expression="json-eval($.billiving.accessToken)" />
+
+         <!-- Tsheets -->
+         <property name="tsheets.apiUrl" expression="json-eval($.tSheets.apiUrl)" />
+         <property name="tsheets.accessToken" expression="json-eval($.tSheets.accessToken)" />
+         <!--Common Properties -->
+         <property name="responseString" value="" scope="operation" />
+         <!-- Hubspot Get Recently Modified Deals '/deals/v1/deal/recent/modified' -->
+         <hubspot.init>
+            <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+            <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+         </hubspot.init>
+         <hubspot.getRecentlyModifiedDeals>
+         </hubspot.getRecentlyModifiedDeals>
+         <header name="Content-Encoding" action="remove" scope="transport" />
+         <property name="wonDealsCount" expression="count(//results/properties/dealstage/value[text() = 'closedwon'])"
+            scope="operation" />
+         <property name="wonDealIndex" value="0" scope="operation" />
+         <property name="dealsCount" expression="count(//results)" scope="operation" />
+         <property name="dealIndex" value="0" scope="operation" />
+         <filter xpath="get-property('operation','wonDealsCount') = 0">
+            <then>
+               <property name="id" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="hubSpot_retrieveWonDeals" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="message" value="Couldn't find new won deals to be processed." />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!--FOR EACH Estimates : BEGIN -->
+               <iterate continueParent="true" id="deals" expression="//results" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="hubspot.dealId" expression="//results/dealId" />
+                        <property name="hubspot.dealstatus" expression="//results/properties/dealstage/value" />
+                        <property name="hubspot.activeCampaignId" expression="//results/properties/active_campaign_id/value" />
+
+
+                        <filter xpath="get-property('hubspot.dealstatus') = 'closedwon' ">
+                           <then>
+                              <property name="hubspot.companyId" expression="//results/associations/associatedCompanyIds" />
+                              <property name="hubspot.contactId" expression="json-eval($.results.associations.associatedVids)" />
+                              <property name="hubspot.dealName" expression="//results/properties/dealname/value" />
+                              <property name="hubspot.tsheetsJobCode" expression="json-eval($.results.properties.tsheet_job_code.value)" />
+                              <property name="hubspot.hourlyRate" expression="json-eval($.results.properties.hourly_rate.value)" />
+
+                              <filter
+                                 xpath="(get-property('hubspot.tsheetsJobCode') = 'null') or (get-property('hubspot.tsheetsJobCode') ='' )">
+                                 <then>
+                                    <!-- START : If activecampaign deal update deal status -->
+                                    <filter source="boolean(get-property('hubspot.activeCampaignId'))" regex="true">
+                                       <then>
+                                          <property name="dealIdObject"
+                                             expression="fn:concat('hubSpot_dealId:',get-property('hubspot.dealId'),',activeCampaign_dealId:',get-property('hubspot.activeCampaignId'))" />
+                                          <header name="Content-Encoding" action="remove" scope="transport" />
+                                          <!-- Workaround to eliminate the Host header issue in ActiveCampaign. -->
+                                          <property name="Host" value="host.wso2.com" scope="transport" />
+                                          <activecampaign.init>
+                                             <apiUrl>{$ctx:activecampaign.apiUrl}</apiUrl>
+                                             <apiKey>{$ctx:activecampaign.apiKey}</apiKey>
+                                             <apiOutput>json</apiOutput>
+                                          </activecampaign.init>
+                                          <activecampaign.updateDeal>
+                                             <dealId>{$ctx:hubspot.activeCampaignId}</dealId>
+                                             <status>1</status>
+                                          </activecampaign.updateDeal>
+                                          <header name="Content-Encoding" action="remove" scope="transport" />
+                                          <property name="activecampaign.requestStatus" expression="json-eval($.success)" />
+                                          <filter source="get-property('activecampaign.requestStatus')" regex="1">
+                                             <then>
+                                                <property name="status" value="success" />
+                                                <property name="message" value="Deal has been successfully updated." />
+                                             </then>
+                                             <else>
+                                                <property name="status" value="error" />
+                                                <property name="message" expression="json-eval($.)" />
+                                             </else>
+                                          </filter>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:dealIdObject}" />
+                                             <with-param name="activity" value="activeCampaign_updateDealStatus" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                    </filter>
+                                    <!-- END : If activecampaign deal update deal status -->
+
+                                    <!-- START : Create Biliving Client And Organization -->
+
+                                    <!-- Hubspot Get Contact By Id '/contacts/v1/contact/vid/:contact_id/profile' -->
+                                    <hubspot.init>
+                                       <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                       <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                                    </hubspot.init>
+                                    <hubspot.getContactById>
+                                       <contactId>{$ctx:hubspot.contactId}</contactId>
+                                    </hubspot.getContactById>
+
+                                    <header name="Content-Encoding" action="remove" scope="transport" />
+
+                                    <property name="hubspot.contactEmail" expression="json-eval($.properties.email.value)" />
+                                    <property name="hubspot.contactFirstName" expression="json-eval($.properties.firstname.value)" />
+                                    <property name="hubspot.contactLastName" expression="json-eval($.properties.lastname.value)" />
+                                    <property name="hubspot.contactFullName"
+                                       expression="fn:concat(get-property('hubspot.contactFirstName'),' ',get-property('hubspot.contactLastName'))" />
+                                    <property name="hubspot.contactJobCode" expression="json-eval($.properties.tsheets_job_code.value)" />
+                                    <property name="billiving.contactId" expression="json-eval($.properties.biliving_client_id.value)" />
+                                    <property name="hubspot.companyName" expression="json-eval($.associated-company.properties.name.value)" />
+                                    <property name="hubspot.companyWebsite" expression="json-eval($.associated-company.properties.website.value)" />
+                                    <property name="hubspot.companyPhone" expression="json-eval($.associated-company.properties.phone.value)" />
+                                    <property name="hubspot.companyAddress" expression="json-eval($.associated-company.properties.address.value)" />
+                                    <property name="hubspot.companyCity" expression="json-eval($.associated-company.properties.city.value)" />
+                                    <property name="hubspot.companyZip" expression="json-eval($.associated-company.properties.zip.value)" />
+
+                                    <!-- Check billiving client ID exist in Hubspot. -->
+                                    <filter
+                                       xpath="(get-property('billiving.contactId') = 'null') or (get-property('billiving.contactId') ='' )">
+                                       <then>
+                                          <property name="billiving.hasContact" action="remove" />
+                                          <!-- Check contact is already in billiving -->
+                                          <billiving.init>
+                                             <apiUrl>{$ctx:billiving.apiUrl}</apiUrl>
+                                             <accessToken>{$ctx:billiving.accessToken}</accessToken>
+                                          </billiving.init>
+                                          <billiving.listClients>
+                                             <freeText>{$ctx:hubspot.contactEmail}</freeText>
+                                          </billiving.listClients>
+
+                                          <header name="Content-Encoding" action="remove" scope="transport" />
+
+                                          <script language="js">
+                                             <![CDATA[
+                                                var payload = mc.getPayloadJSON();
+                                                if(payload.length > 0){
+                                                   mc.setProperty('billiving.hasContact', true);
+                                                   mc.setProperty('billiving.contactId', payload[0].Id);
+                                                }                              
+                                             ]]>
+                                          </script>
+                                          <!-- START : Create Billiving client is not exist. -->
+                                          <filter source="boolean(get-property('billiving.hasContact'))" regex="false">
+                                             <then>
+                                                <property name="uri.var.id" action="remove" />
+                                                <billiving.init>
+                                                   <apiUrl>{$ctx:billiving.apiUrl}</apiUrl>
+                                                   <accessToken>{$ctx:billiving.accessToken}</accessToken>
+                                                </billiving.init>
+                                                <billiving.createClient>
+                                                   <organizationName>{$ctx:hubspot.companyName}</organizationName>
+                                                   <website>{$ctx:hubspot.companyWebsite}</website>
+                                                   <email>{$ctx:hubspot.contactEmail}</email>
+                                                   <contactName>{$ctx:hubspot.contactFullName}</contactName>
+                                                   <telephone1>{$ctx:hubspot.companyPhone}</telephone1>
+                                                   <address1>{$ctx:hubspot.companyAddress}</address1>
+                                                   <city>{$ctx:hubspot.companyCity}</city>
+                                                   <zipCode>{$ctx:hubspot.companyZip}</zipCode>
+                                                </billiving.createClient>
+
+                                                <header name="Content-Encoding" action="remove" scope="transport" />
+                                                <filter source="$axis2:HTTP_SC" regex="200">
+                                                   <then>
+                                                      <property name="billiving.contactId" expression="json-eval($.Id)" />
+                                                      <property name="contactIdObject"
+                                                         expression="fn:concat('hubSpot_contactId:',get-property('hubspot.contactId'),',billiving_contactId:',get-property('billiving.contactId'))" />
+                                                      <property name="status" value="success" />
+                                                      <property name="message" value="Contact has been successfully created." />
+                                                   </then>
+                                                   <else>
+                                                      <property name="contactIdObject"
+                                                         expression="fn:concat('hubSpot_contactId:',get-property('hubspot.contactId'))" />
+                                                      <property name="status" value="error" />
+                                                      <property name="message" expression="json-eval($.)" />
+                                                   </else>
+                                                </filter>
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="id" value="{$ctx:contactIdObject}" />
+                                                   <with-param name="activity" value="billiving_createContact" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </then>
+                                          </filter>
+                                          <!-- Update billiving client ID if not exsist in hubspot. -->
+                                          <filter source="boolean(get-property('billiving.contactId'))" regex="true">
+                                             <then>
+                                                <payloadFactory media-type="json">
+                                                   <format>
+                                                      {
+                                                      "properties": [
+                                                      {
+                                                      "property": "biliving_client_id",
+                                                      "value":
+                                                      "$1"
+                                                      }
+                                                      ]
+                                                      }
+                                                   </format>
+                                                   <args>
+                                                      <arg expression="get-property('billiving.contactId')" />
+                                                   </args>
+                                                </payloadFactory>
+                                                <property name="hubspot.properties" expression="json-eval($.properties)" />
+                                                <hubspot.init>
+                                                   <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                                   <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                                                </hubspot.init>
+                                                <hubspot.updateContact>
+                                                   <properties>{$ctx:hubspot.properties}</properties>
+                                                   <contactId>{$ctx:hubspot.contactId}</contactId>
+                                                </hubspot.updateContact>
+
+                                                <!-- Do a dummy get -->
+                                                <hubspot.init>
+                                                   <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                                   <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                                                </hubspot.init>
+                                                <hubspot.getContactById>
+                                                   <contactId>{$ctx:hubspot.contactId}</contactId>
+                                                </hubspot.getContactById>
+                                             </then>
+                                          </filter>
+                                       </then>
+                                    </filter>
+
+                                    <!-- Check Tsheet Contact JobCode is not being created and billiving client is exists,
+                                       if not create -->
+
+                                    <filter
+                                       xpath="(((get-property('hubspot.contactJobCode') = 'null') or (get-property('hubspot.contactJobCode') ='' )) and ((get-property('billiving.contactId') != 'null') and (get-property('billiving.contactId') !='' )))">
+                                       <then>
+                                          <payloadFactory media-type="json">
+                                             <format>
+                                                [
+                                                {
+                                                "name":"$1",
+                                                "short_code":"$2"
+                                                }
+                                                ]
+                                             </format>
+                                             <args>
+                                                <arg expression="get-property('hubspot.contactFullName')" />
+                                                <arg expression="get-property('billiving.contactId')" />
+                                             </args>
+                                          </payloadFactory>
+                                          <property name="tsheets.jobcodeObj" expression="json-eval($.)" />
+
+                                          <tsheets.init>
+                                             <accessToken>{$ctx:tsheets.accessToken}</accessToken>
+                                             <apiUrl>{$ctx:tsheets.apiUrl}</apiUrl>
+                                          </tsheets.init>
+                                          <tsheets.addJobCodes>
+                                             <jobCodes>{$ctx:tsheets.jobcodeObj}</jobCodes>
+                                          </tsheets.addJobCodes>
+                                          <property name="tsheets.statusCode" expression="json-eval($.results.jobcodes.1._status_code)" />
+
+                                          <switch source="get-property('tsheets.statusCode')">
+                                             <case regex="200">
+                                                <property name="tsheets.jobCodeId" expression="json-eval($.results.jobcodes.1.id)" />
+                                                <property name="hubspot.contactJobCode" expression="get-property('tsheets.jobCodeId')" />
+                                                <property name="jobCodeIdObject"
+                                                   expression="fn:concat('hubSpot_contactId:',get-property('hubspot.contactId'),',tSheets_jobCodeId:',get-property('tsheets.jobCodeId'))" />
+                                                <property name="message" value="Job code has been successfully created." />
+                                                <property name="status" value="success" />
+                                             </case>
+                                             <case regex="417">
+                                                <property name="jobCodeIdObject"
+                                                   expression="fn:concat('hubSpot_contactId:',get-property('hubspot.contactId'))" />
+                                                <property name="status" value="error" />
+                                                <property name="message" expression="json-eval($.)" />
+                                             </case>
+                                          </switch>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:jobCodeIdObject}" />
+                                             <with-param name="activity" value="tSheets_createJobCodeForContact" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                          <!-- If new Jobcode is created update hubspot contact with jobcode id -->
+                                          <filter xpath="get-property('tsheets.statusCode') = 200 ">
+                                             <then>
+                                                <payloadFactory media-type="json">
+                                                   <format>
+                                                      {
+                                                      "properties": [
+                                                      {
+                                                      "property": "tsheets_job_code",
+                                                      "value": "$1"
+                                                      }
+                                                      ]
+                                                      }
+                                                   </format>
+                                                   <args>
+                                                      <arg expression="get-property('tsheets.jobCodeId')" />
+                                                   </args>
+                                                </payloadFactory>
+
+                                                <property name="hubspot.properties" expression="json-eval($.properties)" />
+                                                <hubspot.init>
+                                                   <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                                   <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                                                </hubspot.init>
+                                                <hubspot.updateContact>
+                                                   <properties>{$ctx:hubspot.properties}</properties>
+                                                   <contactId>{$ctx:hubspot.contactId}</contactId>
+                                                </hubspot.updateContact>
+
+                                                <!-- Do a dummy get -->
+                                                <hubspot.init>
+                                                   <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                                   <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                                                </hubspot.init>
+                                                <hubspot.getContactById>
+                                                   <contactId>{$ctx:hubspot.contactId}</contactId>
+                                                </hubspot.getContactById>
+                                             </then>
+                                          </filter>
+                                       </then>
+                                    </filter>
+
+                                    <!-- If Parent job code is there -->
+                                    <filter
+                                       xpath="(get-property('hubspot.contactJobCode') != 'null') or (get-property('hubspot.contactJobCode') !='' )">
+                                       <then>
+                                          <payloadFactory media-type="json">
+                                             <format>
+                                                [
+                                                {
+                                                "name":"$1",
+                                                "short_code":"$2",
+                                                "parent_id":"$3",
+                                                "billable":"yes",
+                                                "assigned_to_all":"yes",
+                                                "billable_rate":"$4"
+                                                }
+                                                ]
+                                             </format>
+                                             <args>
+                                                <arg expression="get-property('hubspot.dealName')" />
+                                                <arg expression="get-property('hubspot.dealId')" />
+                                                <arg expression="get-property('hubspot.contactJobCode')" />
+                                                <arg expression="get-property('hubspot.hourlyRate')" />
+                                             </args>
+                                          </payloadFactory>
+                                          <property name="tsheets.jobcodeObj" expression="json-eval($.)" />
+
+                                          <tsheets.init>
+                                             <accessToken>{$ctx:tsheets.accessToken}</accessToken>
+                                             <apiUrl>{$ctx:tsheets.apiUrl}</apiUrl>
+                                          </tsheets.init>
+                                          <tsheets.addJobCodes>
+                                             <jobCodes>{$ctx:tsheets.jobcodeObj}</jobCodes>
+                                          </tsheets.addJobCodes>
+
+                                          <property name="tsheets.statusCode" expression="json-eval($.results.jobcodes.1._status_code)" />
+
+                                          <switch source="get-property('tsheets.statusCode')">
+                                             <case regex="200">
+                                                <property name="tsheets.jobCodeId" expression="json-eval($.results.jobcodes.1.id)" />
+                                                <property name="jobCodeIdObject"
+                                                   expression="fn:concat('hubSpot_dealId:',get-property('hubspot.dealId'),',tSheets_jobCodeId:',get-property('tsheets.jobCodeId'))" />
+                                                <property name="message" value="Job code has been successfully created." />
+                                                <property name="status" value="success" />
+                                             </case>
+                                             <case regex="417">
+                                                <property name="jobCodeIdObject"
+                                                   expression="fn:concat('hubSpot_dealId:',get-property('hubspot.dealId'))" />
+                                                <property name="status" value="error" />
+                                                <property name="message" expression="json-eval($.)" />
+                                             </case>
+                                          </switch>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:jobCodeIdObject}" />
+                                             <with-param name="activity" value="tSheets_createJobCodeForDeal" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                          <!-- If new Jobcode is created update hubspot deal with jobcode id -->
+                                          <filter
+                                             xpath="(get-property('tsheets.statusCode') = 200) or (get-property('tsheets.statusCode') = 202) ">
+                                             <then>
+                                                <payloadFactory media-type="json">
+                                                   <format>
+                                                      {
+                                                      "properties": [
+                                                      {
+                                                      "name": "tsheet_job_code",
+                                                      "value": "$1"
+                                                      }
+                                                      ]
+                                                      }
+                                                   </format>
+                                                   <args>
+                                                      <arg expression="get-property('tsheets.jobCodeId')" />
+                                                   </args>
+                                                </payloadFactory>
+                                                <property name="hubspot.properties" expression="json-eval($.properties)" />
+
+                                                <hubspot.init>
+                                                   <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                                   <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                                                </hubspot.init>
+                                                <hubspot.updateDeal>
+                                                   <dealId>{$ctx:hubspot.dealId}</dealId>
+                                                   <properties>{$ctx:hubspot.properties}</properties>
+                                                </hubspot.updateDeal>
+                                             </then>
+                                          </filter>
+                                       </then>
+                                    </filter>
+                                 </then>
+                              </filter>
+                           </then>
+                        </filter>
+                        <property name="dealIndex" expression="get-property('operation','dealIndex') + 1"
+                           scope="operation" />
+                        <filter xpath="get-property('operation','dealsCount') = get-property('operation','dealIndex') ">
+                           <then>
+                              <loopback />
+                           </then>
+                        </filter>
+                     </sequence>
+                  </target>
+               </iterate>
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>
+                     {
+                     "Response": {
+                     "process": "hubSpot_createContactsAndProjectsForWonDeals",
+                     "activityResponse": [
+                     {
+                     "activity":"hubSpot_retrieveWonDeals",
+                     "status": "skipped",
+                     "message": "Couldn't find new won deals to be process."
+                     }
+                     ]
+                     }
+                     }
+                  </format>
+               </payloadFactory>
+            </then>
+            <else>
+               <payloadFactory media-type="json">
+                  <format>
+                     {
+                     "Response":
+                     {
+                     "process":"hubSpot_createContactsAndProjectsForWonDeals",
+                     "activityResponse":[$1]
+                     }
+                     }
+                  </format>
+                  <args>
+                     <arg expression="get-property('operation', 'responseString')" />
+                  </args>
+               </payloadFactory>
+            </else>
+         </filter>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

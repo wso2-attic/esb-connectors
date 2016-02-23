@@ -1,0 +1,595 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!-- Create deals, companies and contacts in HubSpot API for the deals which are in Contacted stage in ActiveCampaign API. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="hubSpot_createDealsCompaniesAndContacts" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- ActiveCampaign parameters. -->
+         <property name="activeCampaign.apiUrl" expression="json-eval($.activeCampaign.apiUrl)" />
+         <property name="activeCampaign.apiKey" expression="json-eval($.activeCampaign.apiKey)" />
+
+         <property name="hubspot.apiUrl" value="https://api.hubapi.com" />
+         <property name="hubspot.apiKey" expression="json-eval($.hubSpot.apiKey)" />
+
+         <!-- List deal stages. -->
+         <activecampaign.init>
+            <apiUrl>{$ctx:activeCampaign.apiUrl}</apiUrl>
+            <apiKey>{$ctx:activeCampaign.apiKey}</apiKey>
+            <apiOutput>json</apiOutput>
+         </activecampaign.init>
+         <activecampaign.listDealStages>
+         </activecampaign.listDealStages>
+
+         <property name="activeCampaign.result.code" expression="//jsonObject/result_code/text()" />
+         <filter xpath="get-property('activeCampaign.result.code') = 0">
+            <then>
+               <property name="id" value="{}" />
+               <property name="status" value="error" />
+               <property name="message" expression="//jsonObject/result_message/text()" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="activeCampaign_listDealStages" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+
+         <property name="activeCampaign.stages" expression="json-eval($.)" />
+         <script language="js">
+         <![CDATA[     
+            //Getting 'Contacted' stage Id.
+            var stageList =  eval("(" + mc.getProperty("activeCampaign.stages") +")");
+            var stage = "";     
+            for (var key in stageList) {
+              if (stageList.hasOwnProperty(key)) {
+                 if (stageList[key].hasOwnProperty('title')) {
+                     stage = "" + stageList[key]['title'];
+                     if(stage == "Contacted") {
+                         mc.setProperty('activeCampaign.stageId',stageList[key]['id']);
+                         break;
+                     }
+                 }
+              }
+            }
+         ]]>
+         </script>
+
+         <filter source="boolean(get-property('activeCampaign.stageId'))" regex="false">
+            <then>
+               <property name="id" value="{}" />
+               <property name="status" value="skipped" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="activeCampaign_listDealStages" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="Contacted deal stage has not been found." />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+
+         <!-- Workaround to eliminate the Host header issue in ActiveCampaign. -->
+         <property name="Host" value="host.wso2.com" scope="transport" />
+
+         <!-- List deals. -->
+         <activecampaign.init>
+            <apiUrl>{$ctx:activeCampaign.apiUrl}</apiUrl>
+            <apiKey>{$ctx:activeCampaign.apiKey}</apiKey>
+            <apiOutput>json</apiOutput>
+         </activecampaign.init>
+         <activecampaign.listDeals>
+            <stageFilter>{$ctx:activeCampaign.stageId}</stageFilter>
+         </activecampaign.listDeals>
+
+         <property name="activeCampaign.result.code" expression="//jsonObject/result_code/text()" />
+
+         <filter xpath="get-property('activeCampaign.result.code') = 0">
+            <then>
+               <property name="id" value="{}" />
+               <property name="status" value="error" />
+               <property name="message" expression="//jsonObject/result_message/text()" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="activeCampaign_listDeals" />
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="status" value="{$ctx:status}" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </then>
+         </filter>
+
+         <property name="activeCampaign.deals" expression="json-eval($.)" />
+
+         <script language="js">
+         <![CDATA[       
+            //Create a deal array. 
+            var count = 0;
+            var payload = {deals:[]};                                 
+            var dealList =  eval( "(" + mc.getProperty("activeCampaign.deals") + ")" );  
+            for (var key in dealList) {
+               if (dealList.hasOwnProperty(key)) {
+                  if(dealList[key].hasOwnProperty("id")) {                       
+                         count++;
+                         payload.deals.push({
+                           "dealId": dealList[key].id,
+                           "dealTitle" : dealList[key].title,
+                           "contactEmail" : dealList[key].contact_email                            
+                           });                      
+                   }
+                }
+           }
+           mc.setProperty('dealCount',count);
+           mc.setPayloadJSON(payload);
+         ]]>
+         </script>
+
+         <property name="dealCount" expression="get-property('dealCount')" scope="operation" />
+         <property name="dealIndex" value="0.0" scope="operation" />
+         <property name="companyTags" value="" scope="operation" />
+
+         <!-- Deal iterator. -->
+         <iterate continueParent="true" id="dealIterator" expression="//deals" sequential="true">
+            <target>
+               <sequence>
+                  <property name="activeCampaign.contact.email" expression="json-eval($.deals.contactEmail)" />
+                  <property name="activeCampaign.deal.id" expression="json-eval($.deals.dealId)" />
+                  <property name="activeCampaign.deal.title" expression="json-eval($.deals.dealTitle)" />
+
+                  <!-- Workaround to eliminate the Host header issue in ActiveCampaign. -->
+                  <property name="Host" value="host.wso2.com" scope="transport" />
+
+                  <!-- List deals. -->
+                  <activecampaign.init>
+                     <apiUrl>{$ctx:activeCampaign.apiUrl}</apiUrl>
+                     <apiKey>{$ctx:activeCampaign.apiKey}</apiKey>
+                     <apiOutput>json</apiOutput>
+                  </activecampaign.init>
+                  <activecampaign.getContactByEmail>
+                     <email>{$ctx:activeCampaign.contact.email}</email>
+                  </activecampaign.getContactByEmail>
+
+                  <property name="activeCampaign.result.code" expression="//jsonObject/result_code/text()" />
+
+                  <filter source="get-property('activeCampaign.result.code') = 0" regex="false">
+                     <then>
+                        <property name="activeCampaign.contact.id" expression="json-eval($.id)" />
+                        <property name="activeCampaign.contact.firstName" expression="json-eval($.first_name)" />
+                        <property name="activeCampaign.contact.lastName" expression="json-eval($.last_name)" />
+                        <property name="activeCampaign.contact.phone" expression="json-eval($.phone)" />
+                        <property name="activeCampaign.contact.orgName" expression="json-eval($.orgname)" />
+                        <property name="activeCampaign.contact.tags" expression="json-eval($.tags)" />
+                        <property name="activeCampaign.contact.updateTags" value="" />
+
+
+                        <script language="js">
+                        <![CDATA[       
+                           //Store tag details.
+                           var tags = mc.getProperty('activeCampaign.contact.tags');
+                           var dealId = mc.getProperty('activeCampaign.deal.id');
+                           var contactId = "";
+                           var companyId = "";
+                           var dealCreated ="false"; 
+                           if(tags != null && tags !="" && tags!= [] ){
+                              if(tags.indexOf("[") > -1) {
+                                 tags = eval("("+tags+")");            
+                                 for(var i = 0; i<tags.length;i++) {
+                                    if(tags[i].indexOf("CompanyId") > -1) {                              
+                                       companyId = tags[i].split(":")[1];
+                                    } else if(tags[i].indexOf("ContactId")  > -1) {
+                                       contactId = tags[i].split(":")[1];
+                                    } else if(tags[i].indexOf("DealId:" + dealId)  > -1) {
+                                       dealCreated = "true";
+                                    }
+                                 }
+                              } else { 
+                                 if(tags.indexOf("CompanyId") > -1) {                              
+                                    companyId = tags.split(":")[1];
+                                 } else if(tags.indexOf("ContactId")  > -1) {
+                                    contactId = tags.split(":")[1];
+                                 } else if(tags.indexOf("DealId:" + dealId)  > -1) {
+                                    dealCreated = "true";
+                                 }
+                              }
+                              
+                           } 
+                           mc.setProperty('hubspot.companyId',companyId);
+                           mc.setProperty('hubspot.contactId',contactId);
+                           mc.setProperty('hubspot.deal.created', dealCreated); 
+                        ]]>
+                        </script>
+
+                        <filter source="boolean(get-property('hubspot.companyId'))" regex="false">
+                           <then>
+                              <filter xpath="boolean(get-property('activeCampaign.contact.orgName'))">
+                                 <then>
+                                    <!-- List companies. -->
+                                    <hubspot.init>
+                                       <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                       <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                                    </hubspot.init>
+                                    <hubspot.listRecentlyModifiedCompanies>
+                                    </hubspot.listRecentlyModifiedCompanies>
+
+                                    <property name="hubspot.companies" expression="json-eval($.results)" />
+
+                                    <filter source="$axis2:HTTP_SC" regex="200">
+                                       <then>
+                                          <script language="js">
+                                          <![CDATA[       
+                                             //Extracting company Id.
+                                             var companies = mc.getProperty('hubspot.companies');
+                                             var organization = mc.getProperty('activeCampaign.contact.orgName');
+                                             if(companies != null && companies !="" ){
+                                                companies = eval("("+companies+")");            
+                                                for(var i = 0; i<companies.length;i++) {                                       
+                                                   if(companies[i].properties.name.value == organization) {
+                                                   mc.setProperty('hubspot.companyId',companies[i].companyId);
+                                                   }
+                                                }
+                                             }
+                                          ]]>
+                                          </script>
+                                          <filter source="boolean(get-property('hubspot.companyId'))" regex="false">
+                                             <then>
+                                                <property name="companyTags" expression="get-property('operation','companyTags')" />
+                                                <script language="js">
+                                                <![CDATA[       
+                                                   //Constructing inputs for create company.
+                                                   var orgName = mc.getProperty('activeCampaign.contact.orgName');
+                                                   var createdCompanies = mc.getProperty('companyTags').split(",");
+                                                   var payload = {properties:[]};
+                                                   for(var i = 0; i<createdCompanies.length;i++) {
+                                                      if(createdCompanies[i].indexOf(orgName) > -1) {                              
+                                                         var companyId = createdCompanies[i].split(":")[1];
+                                                         mc.setProperty("hubspot.companyId",companyId);
+                                                      } 
+                                                   }
+                                                   payload.properties.push({ 
+                                                               "name" : "name",     
+                                                               "value" : "" + orgName});
+                                                   mc.setPayloadJSON(payload);
+                                                ]]>
+                                                </script>
+                                                <property name="hubspot.company.properties" expression="json-eval($.properties)" />
+                                                <filter source="boolean(get-property('hubspot.companyId'))" regex="false">
+                                                   <then>
+                                                      <!-- Create company. -->
+                                                      <hubspot.init>
+                                                         <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                                         <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                                                      </hubspot.init>
+                                                      <hubspot.createCompany>
+                                                         <properties>{$ctx:hubspot.company.properties}</properties>
+                                                      </hubspot.createCompany>
+
+                                                      <filter source="$axis2:HTTP_SC" regex="200">
+                                                         <then>
+                                                            <property name="hubspot.companyId" expression="json-eval($.companyId)" />
+                                                            <property name="companyTags" expression="fn:concat(get-property('operation','companyTags'),get-property('activeCampaign.contact.orgName'),':',get-property('hubspot.companyId'),',')" scope="operation" />
+                                                            <property name="activeCampaign.contact.updateTags" expression="fn:concat(get-property('activeCampaign.contact.updateTags'),'CompanyId:',get-property('hubspot.companyId'),',')" />
+                                                            <property name="id" expression="fn:concat('activeCampaign_contactId:',get-property('activeCampaign.contact.id'),',hubSpot_companyId:',get-property('hubspot.companyId'))" />
+                                                            <property name="status" value="success" />
+                                                            <property name="message" value="Company has been successfully created." />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="hubSpot_createCompany" />
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="status" value="{$ctx:status}" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                         </then>
+                                                         <else>
+                                                            <property name="id" expression="fn:concat('activeCampaign_contactId:',get-property('activeCampaign.contact.id'))" />
+                                                            <property name="status" value="error" />
+                                                            <property name="message" expression="//jsonObject/message/text()" />
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="hubSpot_createCompany" />
+                                                               <with-param name="id" value="{$ctx:id}" />
+                                                               <with-param name="status" value="{$ctx:status}" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                         </else>
+                                                      </filter>
+                                                   </then>
+                                                   <else>
+                                                      <property name="activeCampaign.contact.updateTags" expression="fn:concat(get-property('activeCampaign.contact.updateTags'),'CompanyId:',get-property('hubspot.companyId'),',')" />
+                                                   </else>
+                                                </filter>
+                                             </then>
+                                             <else>
+                                                <property name="activeCampaign.contact.updateTags" expression="fn:concat(get-property('activeCampaign.contact.updateTags'),'CompanyId:',get-property('hubspot.companyId'),',')" />
+                                             </else>
+                                          </filter>
+                                       </then>
+                                       <else>
+                                          <property name="id" value="{}" />
+                                          <property name="status" value="error" />
+                                          <property name="message" expression="//jsonObject/message/text()" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="hubSpot_listCompanies" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                          <loopback />
+                                       </else>
+                                    </filter>
+                                 </then>
+                              </filter>
+                           </then>
+                        </filter>
+
+                        <filter source="boolean(get-property('hubspot.contactId'))" regex="false">
+                           <then>
+                              <script language="js">
+                              <![CDATA[       
+                                 //Construct inputs for create contact. 
+                                 var firstName = mc.getProperty('activeCampaign.contact.firstName'); 
+                                 var lastName = mc.getProperty('activeCampaign.contact.lastName');
+                                 var phone = mc.getProperty('activeCampaign.contact.phone');
+                                 var email = mc.getProperty('activeCampaign.contact.email');
+                                 var payload = {properties:[]};
+                                 payload.properties.push({ 
+                                             "property" : "email",     
+                                             "value" : "" + email});
+                                 if(firstName != "null" && firstName != "") {
+                                    payload.properties.push({ 
+                                             "property" : "firstname",     
+                                             "value" : "" + firstName});
+                                 }
+                                 if(lastName != "null" && lastName != "") {
+                                    payload.properties.push({ 
+                                             "property" : "lastname",     
+                                             "value" : "" + lastName});
+                                 }
+                                 if(phone != "null" && phone != "") {
+                                    payload.properties.push({ 
+                                             "property" : "phone",     
+                                             "value" : "" + phone});
+                                 }
+                                 mc.setPayloadJSON(payload);
+                              ]]>
+                              </script>
+
+                              <property name="hubspot.contact.properties" expression="json-eval($.properties)" />
+
+                              <!-- Create contact. -->
+                              <hubspot.init>
+                                 <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                 <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                              </hubspot.init>
+                              <hubspot.createContact>
+                                 <properties>{$ctx:hubspot.contact.properties}</properties>
+                              </hubspot.createContact>
+
+                              <filter source="$axis2:HTTP_SC" regex="200">
+                                 <then>
+                                    <property name="hubspot.contactId" expression="json-eval($.vid)" />
+                                    <property name="activeCampaign.contact.updateTags" expression="fn:concat(get-property('activeCampaign.contact.updateTags'),'ContactId:',get-property('hubspot.contactId'),',')" />
+                                    <property name="id" expression="fn:concat('activeCampaign_contactId:',get-property('activeCampaign.contact.id'),',hubSpot_contactId:',get-property('hubspot.contactId'))" />
+                                    <property name="status" value="success" />
+                                    <property name="message" value="Contact has been successfully created." />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="activity" value="hubSpot_createContact" />
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="status" value="{$ctx:status}" />
+                                       <with-param name="message" value="{$ctx:message}" />
+                                    </call-template>
+                                    <filter source="boolean(get-property('hubspot.companyId'))" regex="true">
+                                       <then>
+                                          <!-- Add contact to a company. -->
+                                          <hubspot.init>
+                                             <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                             <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                                          </hubspot.init>
+                                          <hubspot.addContactToCompany>
+                                             <companyId>{$ctx:hubspot.companyId}</companyId>
+                                             <contactVId>{$ctx:hubspot.contactId}</contactVId>
+                                          </hubspot.addContactToCompany>
+
+                                          <property name="hubspot.statusResponse" expression="$axis2:HTTP_SC" />
+                                          <filter source="get-property('hubspot.statusResponse') = 200" regex="false">
+                                             <then>
+                                                <property name="id" expression="fn:concat('activeCampaign_contactId:',get-property('activeCampaign.contact.id'),',hubSpot_companyId:',get-property('hubspot.companyId'),',hubSpot_contactVId:',get-property('hubspot.contactId'))" />
+                                                <property name="status" value="skipped" />
+                                                <property name="message" expression="//jsonObject/message/text()" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="hubSpot_addContactToCompany" />
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="status" value="{$ctx:status}" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </then>
+                                          </filter>
+                                       </then>
+                                    </filter>
+                                 </then>
+                                 <else>
+                                    <filter source="$axis2:HTTP_SC" regex="409">
+                                       <then>
+                                          <property name="hubspot.contactId" expression="json-eval($.identityProfile.vid)" />
+                                          <property name="activeCampaign.contact.updateTags" expression="fn:concat(get-property('activeCampaign.contact.updateTags'),'ContactId:',get-property('hubspot.contactId'),',')" />
+                                       </then>
+                                       <else>
+                                          <property name="id" expression="fn:concat('activeCampaign_contactId:',get-property('activeCampaign.contact.id'))" />
+                                          <property name="status" value="error" />
+                                          <property name="message" expression="//jsonObject/message/text()" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="hubSpot_createContact" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                    </filter>
+                                 </else>
+                              </filter>
+                           </then>
+                        </filter>
+
+
+                        <filter xpath="boolean(get-property('hubspot.contactId'))">
+                           <then>
+                              <filter source="get-property('hubspot.deal.created') = 'true'" regex="false">
+                                 <then>
+                                    <payloadFactory media-type="json">
+                                       <format>
+                                          {
+                                          "associatedVIds":[$1],
+                                          "dealProperties":[{
+                                          "value":"$2",
+                                          "name":"dealname" },
+                                          {
+                                          "value":"$3",
+                                          "name":"active_campaign_id"
+                                          }]
+                                          }
+                                       </format>
+                                       <args>
+                                          <arg expression="get-property('hubspot.contactId')" />
+                                          <arg expression="get-property('activeCampaign.deal.title')" />
+                                          <arg expression="get-property('activeCampaign.deal.id')" />
+                                       </args>
+                                    </payloadFactory>
+
+                                    <property name="hubspot.deal.associatedVIds" expression="json-eval($.associatedVIds)" />
+                                    <property name="hubspot.deal.dealProperties" expression="json-eval($.dealProperties)" />
+
+                                    <!-- Create deal. -->
+                                    <hubspot.init>
+                                       <apiKey>{$ctx:hubspot.apiKey}</apiKey>
+                                       <apiUrl>{$ctx:hubspot.apiUrl}</apiUrl>
+                                    </hubspot.init>
+                                    <hubspot.createDeal>
+                                       <properties>{$ctx:hubspot.deal.dealProperties}</properties>
+                                       <associatedVIds>{$ctx:hubspot.deal.associatedVIds}</associatedVIds>
+                                    </hubspot.createDeal>
+
+                                    <filter source="$axis2:HTTP_SC" regex="200">
+                                       <then>
+                                          <property name="hubspot.dealId" expression="json-eval($.dealId)" />
+                                          <property name="activeCampaign.contact.updateTags" expression="fn:concat(get-property('activeCampaign.contact.updateTags'),'DealId:',get-property('activeCampaign.deal.id'),',')" />
+                                          <property name="id" expression="fn:concat('hubSpot_contactId:',get-property('hubspot.contactId'),',activeCampaign_dealId:',get-property('activeCampaign.deal.id'),',hubSpot_dealId:',get-property('hubspot.dealId'))" />
+                                          <property name="status" value="success" />
+                                          <property name="message" value="Deal has been successfully created." />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="hubSpot_createDeal" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <property name="id" expression="fn:concat('hubspot_contactId:',get-property('hubspot.contactId'),',activeCampaign_dealId:',get-property('activeCampaign.deal.id'))" />
+                                          <property name="status" value="error" />
+                                          <property name="message" expression="//jsonObject/message/text()" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="hubSpot_createDeal" />
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                    </filter>
+                                 </then>
+                              </filter>
+                           </then>
+                        </filter>
+                     </then>
+                     <else>
+                        <property name="id" value="{}" />
+                        <property name="status" value="error" />
+                        <property name="message" expression="//jsonObject/result_message/text()" />
+                        <call-template target="responseHandlerTemplate">
+                           <with-param name="activity" value="activeCampaign_getContactByEmail" />
+                           <with-param name="id" value="{$ctx:id}" />
+                           <with-param name="status" value="{$ctx:status}" />
+                           <with-param name="message" value="{$ctx:message}" />
+                        </call-template>
+                     </else>
+                  </filter>
+
+                  <filter xpath="boolean(get-property('activeCampaign.contact.updateTags'))">
+                     <then>
+                        <!-- Workaround to eliminate the Host header issue in ActiveCampaign. -->
+                        <property name="Host" value="host.wso2.com" scope="transport" />
+                        <!-- List contacts. -->
+                        <activecampaign.init>
+                           <apiUrl>{$ctx:activeCampaign.apiUrl}</apiUrl>
+                           <apiKey>{$ctx:activeCampaign.apiKey}</apiKey>
+                           <apiOutput>json</apiOutput>
+                        </activecampaign.init>
+                        <activecampaign.updateContact>
+                           <tags>{$ctx:activeCampaign.contact.updateTags}</tags>
+                           <contactId>{$ctx:activeCampaign.contact.id}</contactId>
+                           <email>{$ctx:activeCampaign.contact.email}</email>
+                           <overwrite>0</overwrite>
+                           <orgName>{$ctx:activeCampaign.contact.orgName}</orgName>
+                        </activecampaign.updateContact>
+                     </then>
+                  </filter>
+                  <property name="dealIndex" expression="get-property('operation','dealIndex') + 1" scope="operation" />
+               </sequence>
+            </target>
+         </iterate>
+         <filter xpath="get-property('operation', 'dealIndex') = get-property('operation', 'dealCount')">
+            <then>
+               <loopback />
+            </then>
+         </filter>
+      </inSequence>
+
+      <outSequence>
+
+         <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>{
+                     "Response":{
+                     "process":"hubSpot_createDealsCompaniesAndContacts",
+                     "activityResponse":[{"activity": "activeCampaign_listDeals",
+                     "id": { },
+                     "status": "skipped",		 
+                     "message": "Couldn't find deals to be processed."}]
+                     }
+                     }
+                  </format>
+                  <args />
+               </payloadFactory>
+            </then>
+            <else>
+               <payloadFactory media-type="json">
+
+                  <format>{ "Response":{ "process":"hubSpot_createDealsCompaniesAndContacts", "activityResponse":[$1] } }
+                  </format>
+                  <args>
+                     <arg expression="get-property('operation','responseString')" />
+                  </args>
+               </payloadFactory>
+            </else>
+         </filter>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+
+   </target>
+   <description />
+</proxy>
