@@ -1,11 +1,19 @@
 /*
- * Copyright (c) 2005-2013, WSO2 Inc. (http://www.wso2.org) All Rights Reserved. WSO2 Inc. licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
- * OF ANY KIND, either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ *  Copyright (c) 2005-2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *
+ *  WSO2 Inc. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 
 package org.wso2.carbon.connector.amazonsimpledb.auth;
@@ -34,14 +42,14 @@ import org.wso2.carbon.connector.core.AbstractConnector;
  * ESB Connector.
  */
 public class AmazonSimpleDBAuthConnector extends AbstractConnector {
-    
+
     /**
      * Connect method which is generating authentication of the connector for each request.
-     * 
+     *
      * @param messageContext ESB messageContext.
      */
     public final void connect(final MessageContext messageContext) {
-    
+
         final StringBuilder signatureBuilder = new StringBuilder();
         final StringBuilder xFormUrlBuilder = new StringBuilder();
         // Generate time-stamp which will be sent to API and to be used in Signature
@@ -49,7 +57,7 @@ public class AmazonSimpleDBAuthConnector extends AbstractConnector {
         final DateFormat dateFormat = new SimpleDateFormat(AmazonSimpleDBConstants.DATE_FORMAT);
         dateFormat.setTimeZone(timeZone);
         final String timestamp = dateFormat.format(new Date());
-        
+
         // Set MessageContext property.
         messageContext.setProperty(AmazonSimpleDBConstants.TIMESTAMP, timestamp);
         final Map<String, String> parameterNamesMap = getParameterNamesMap();
@@ -64,38 +72,38 @@ public class AmazonSimpleDBAuthConnector extends AbstractConnector {
             signatureBuilder.append(AmazonSimpleDBConstants.AWS_ACCESS_KEY_ID);
             signatureBuilder.append(AmazonSimpleDBConstants.EQUAL);
             signatureBuilder.append(messageContext.getProperty(AmazonSimpleDBConstants.ACCESS_KEY_ID));
-            
+
             final String charSet = Charset.defaultCharset().toString();
-            
-            xFormUrlBuilder.append(AmazonSimpleDBConstants.QUOTE + AmazonSimpleDBConstants.AWS_ACCESS_KEY_ID
-                    + AmazonSimpleDBConstants.QUOTE + AmazonSimpleDBConstants.COLON);
-            xFormUrlBuilder.append(AmazonSimpleDBConstants.QUOTE);
+            xFormUrlBuilder.append("{");
+            xFormUrlBuilder.append('"' + AmazonSimpleDBConstants.AWS_ACCESS_KEY_ID
+                    + '"' + AmazonSimpleDBConstants.COLON);
+            xFormUrlBuilder.append('"');
             xFormUrlBuilder.append((String) messageContext.getProperty(AmazonSimpleDBConstants.ACCESS_KEY_ID)
-                    + AmazonSimpleDBConstants.QUOTE);
-            
+                    + '"');
+
             final Set<String> keySet = parametersMap.keySet();
             for (String key : keySet) {
                 final String param =
                         AmazonSimpleDBConstants.AMPERSAND + URLEncoder.encode(key, charSet)
                                 + AmazonSimpleDBConstants.EQUAL + URLEncoder.encode(parametersMap.get(key), charSet);
                 signatureBuilder.append(param);
-                
+
                 xFormUrlBuilder.append(AmazonSimpleDBConstants.COMMA);
-                xFormUrlBuilder.append(AmazonSimpleDBConstants.QUOTE);
+                xFormUrlBuilder.append('"');
                 xFormUrlBuilder.append(key);
-                xFormUrlBuilder.append(AmazonSimpleDBConstants.QUOTE);
+                xFormUrlBuilder.append('"');
                 xFormUrlBuilder.append(AmazonSimpleDBConstants.COLON);
-                xFormUrlBuilder.append(AmazonSimpleDBConstants.QUOTE);
+                xFormUrlBuilder.append('"');
                 xFormUrlBuilder.append(parametersMap.get(key));
-                xFormUrlBuilder.append(AmazonSimpleDBConstants.QUOTE);
-                
+                xFormUrlBuilder.append('"');
+
             }
-            
+
             // Sign the created string.
             final AmazonSimpleDBAuthentication amazonSDBAuth =
                     new AmazonSimpleDBAuthentication(
                             (String) messageContext.getProperty(AmazonSimpleDBConstants.SECRET_ACCESS_KEY));
-            
+
             // '-' , '_' , '.' and '~' shouldn't be encoded as per the API
             // document and '*' should be encoded explicitly since java doesn't
             // encode
@@ -107,16 +115,19 @@ public class AmazonSimpleDBAuthConnector extends AbstractConnector {
             // Set signature in messageContext to be used in template
             messageContext.setProperty(AmazonSimpleDBConstants.SIGNATURE, authSignValue);
             xFormUrlBuilder.append(AmazonSimpleDBConstants.COMMA);
-            xFormUrlBuilder.append(AmazonSimpleDBConstants.QUOTE);
+            xFormUrlBuilder.append('"');
             xFormUrlBuilder.append(AmazonSimpleDBConstants.API_SIGNATURE);
-            xFormUrlBuilder.append(AmazonSimpleDBConstants.QUOTE);
+            xFormUrlBuilder.append('"');
             xFormUrlBuilder.append(AmazonSimpleDBConstants.COLON);
-            xFormUrlBuilder.append(AmazonSimpleDBConstants.QUOTE);
+            xFormUrlBuilder.append('"');
             xFormUrlBuilder.append(authSignValue);
-            xFormUrlBuilder.append(AmazonSimpleDBConstants.QUOTE);
+            xFormUrlBuilder.append('"');
+            xFormUrlBuilder.append("}");
+
+
             // Set x-www-form url in messageContext to be used in PayloadFactory
             messageContext.setProperty(AmazonSimpleDBConstants.X_FORM_URL, xFormUrlBuilder.toString());
-            
+
         } catch (InvalidKeyException ike) {
             log.error("Invalid key", ike);
             storeErrorResponseStatus(messageContext, ike, AmazonSimpleDBConstants.INVALID_KEY_ERROR_CODE);
@@ -134,48 +145,48 @@ public class AmazonSimpleDBAuthConnector extends AbstractConnector {
             storeErrorResponseStatus(messageContext, exc, AmazonSimpleDBConstants.ERROR_CODE_EXCEPTION);
             handleException("Error occured in connector", exc, messageContext);
         }
-        
+
     }
-    
+
     /**
      * getKeys method returns a list of parameter keys.
-     * 
+     *
      * @return list of parameter key value.
      */
     private String[] getParameterKeys() {
-    
-        return new String[] {AmazonSimpleDBConstants.MAX_NO_OF_DOMAINS, AmazonSimpleDBConstants.NEXT_TOKEN,
+
+        return new String[]{AmazonSimpleDBConstants.MAX_NO_OF_DOMAINS, AmazonSimpleDBConstants.NEXT_TOKEN,
                 AmazonSimpleDBConstants.ACTION, AmazonSimpleDBConstants.VERSION,
                 AmazonSimpleDBConstants.SIGNATURE_VERSION, AmazonSimpleDBConstants.SIGNATURE_METHOD,
                 AmazonSimpleDBConstants.TIMESTAMP, AmazonSimpleDBConstants.DOMAIN_NAME,
                 AmazonSimpleDBConstants.EXPECTED_NAME, AmazonSimpleDBConstants.EXPECTED_VALUE,
                 AmazonSimpleDBConstants.EXPECTED_EXISTS, AmazonSimpleDBConstants.ITEM_NAME,
                 AmazonSimpleDBConstants.CONSISTENT_READ, AmazonSimpleDBConstants.SELECT_EXPRESSION
-        
+
         };
     }
-    
+
     /**
      * getCollectionParameterKeys method returns a list of predefined parameter keys which users will be used.
      * to send collection of values in each parameter.
-     * 
+     *
      * @return list of parameter key value.
      */
     private String[] getMultivaluedParameterKeys() {
-    
-        return new String[] {AmazonSimpleDBConstants.ATTRIBUTES, AmazonSimpleDBConstants.ATTRIBUTE_NAMES };
+
+        return new String[]{AmazonSimpleDBConstants.ATTRIBUTES, AmazonSimpleDBConstants.ATTRIBUTE_NAMES};
     }
-    
+
     /**
      * getParametersMap method used to return list of parameter values sorted by expected API parameter names.
-     * 
+     *
      * @param messageContext ESB messageContext.
-     * @param namesMap contains a map of esb parameter names and matching API parameter names
+     * @param namesMap       contains a map of esb parameter names and matching API parameter names
      * @return assigned parameter values as a HashMap.
      */
     private Map<String, String> getSortedParametersMap(final MessageContext messageContext,
-            final Map<String, String> namesMap) {
-    
+                                                       final Map<String, String> namesMap) {
+
         final String[] singleValuedKeys = getParameterKeys();
         final Map<String, String> parametersMap = new TreeMap<String, String>();
         // Stores sorted, single valued API parameters
@@ -209,18 +220,18 @@ public class AmazonSimpleDBAuthConnector extends AbstractConnector {
                     }
                 }
             }
-            
+
         }
         return parametersMap;
     }
-    
+
     /**
      * getparameterNamesMap returns a map of esb parameter names and corresponding API parameter names.
-     * 
+     *
      * @return generated map.
      */
     private Map<String, String> getParameterNamesMap() {
-    
+
         final Map<String, String> map = new HashMap<String, String>();
         map.put(AmazonSimpleDBConstants.MAX_NO_OF_DOMAINS, AmazonSimpleDBConstants.API_MAX_NO_OF_DOMAINS);
         map.put(AmazonSimpleDBConstants.NEXT_TOKEN, AmazonSimpleDBConstants.API_NEXT_TOKEN);
@@ -238,36 +249,36 @@ public class AmazonSimpleDBAuthConnector extends AbstractConnector {
         map.put(AmazonSimpleDBConstants.SELECT_EXPRESSION, AmazonSimpleDBConstants.API_SELECT_EXPRESSION);
         return map;
     }
-    
+
     /**
      * Add a Throwable to a message context, the message from the throwable is embedded as the Synapse.
      * Constant ERROR_MESSAGE.
-     * 
-     * @param ctxt message context to which the error tags need to be added
+     *
+     * @param ctxt      message context to which the error tags need to be added
      * @param throwable Throwable that needs to be parsed and added
      * @param errorCode errorCode mapped to the exception
      */
     public final void storeErrorResponseStatus(final MessageContext ctxt, final Throwable throwable,
-           final int errorCode) {
-    
+                                               final int errorCode) {
+
         ctxt.setProperty(SynapseConstants.ERROR_CODE, errorCode);
         ctxt.setProperty(SynapseConstants.ERROR_MESSAGE, throwable.getMessage());
         ctxt.setFaultResponse(true);
     }
-    
+
     /**
      * Add a message to message context, the message from the throwable is embedded as the Synapse Constant
      * ERROR_MESSAGE.
-     * 
-     * @param ctxt message context to which the error tags need to be added
-     * @param message message to be returned to the user
+     *
+     * @param ctxt      message context to which the error tags need to be added
+     * @param message   message to be returned to the user
      * @param errorCode errorCode mapped to the exception
      */
     public final void storeErrorResponseStatus(final MessageContext ctxt, final String message, final int errorCode) {
-    
+
         ctxt.setProperty(SynapseConstants.ERROR_CODE, errorCode);
         ctxt.setProperty(SynapseConstants.ERROR_MESSAGE, message);
         ctxt.setFaultResponse(true);
     }
-    
+
 }

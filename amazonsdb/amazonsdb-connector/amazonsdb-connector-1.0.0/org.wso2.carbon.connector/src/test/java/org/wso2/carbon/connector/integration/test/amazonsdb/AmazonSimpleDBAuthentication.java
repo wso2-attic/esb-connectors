@@ -8,7 +8,7 @@
  * limitations under the License.
  */
 
-package org.wso2.carbon.connector.integration.test.amazonsimpledb;
+package org.wso2.carbon.connector.integration.test.amazonsdb;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
@@ -22,7 +22,7 @@ import org.apache.commons.codec.binary.Base64;
 
 /**
  * Class AmazonSimpleDBAuthentication to generate signature for Amazon simple DB WSO2 ESB Connector.
- * 
+ *
  * @see http://docs.aws.amazon.com/AmazonSimpleDB/latest/DeveloperGuide/HMACAuth.html#RequiredAuthInfo
  */
 public class AmazonSimpleDBAuthentication {
@@ -48,11 +48,11 @@ public class AmazonSimpleDBAuthentication {
      * @param signingStr - A String based on select request elements
      * @return generated authorization header as String
      * @throws UnsupportedEncodingException This exception is thrown when the Character Encoding is not
-     *         supported
-     * @throws NoSuchAlgorithmException This exception is thrown when a particular cryptographic algorithm is
-     *         requested but is not available in the environment.
-     * @throws InvalidKeyException This is the exception for invalid Keys (invalid encoding, wrong length,
-     *         uninitialized, etc).
+     *                                      supported
+     * @throws NoSuchAlgorithmException     This exception is thrown when a particular cryptographic algorithm is
+     *                                      requested but is not available in the environment.
+     * @throws InvalidKeyException          This is the exception for invalid Keys (invalid encoding, wrong length,
+     *                                      uninitialized, etc).
      */
     public final String getAuthorizationSignature(final String signingStr) throws UnsupportedEncodingException,
             NoSuchAlgorithmException, InvalidKeyException {
@@ -68,6 +68,6 @@ public class AmazonSimpleDBAuthentication {
         final byte[] signBytes = mac.doFinal(signingStr.getBytes(defaultCharset));
 
         // Returned Signed Base64 encoded signed String.
-        return new String(Base64.encodeBase64(signBytes) , defaultCharset);
+        return new String(Base64.encodeBase64(signBytes), defaultCharset);
     }
 }

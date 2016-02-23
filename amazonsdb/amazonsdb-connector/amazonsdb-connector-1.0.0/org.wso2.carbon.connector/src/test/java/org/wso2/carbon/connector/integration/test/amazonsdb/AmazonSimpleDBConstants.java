@@ -16,12 +16,11 @@
  * under the License.
  */
 
-package org.wso2.carbon.connector.integration.test.amazonsimpledb;
+package org.wso2.carbon.connector.integration.test.amazonsdb;
 
 /**
  * @author ddperera
- * AmazonSimpleDBConstants contains required constants
- *
+ *         AmazonSimpleDBConstants contains required constants
  */
 public class AmazonSimpleDBConstants {
 
@@ -241,11 +240,6 @@ public class AmazonSimpleDBConstants {
     public static final String COMMA = ",";
 
     /**
-     * Constant for Quote.
-     */
-    public static final String QUOTE = "\"";
-
-    /**
      * Constant for Colon.
      */
     public static final String COLON = ":";
@@ -353,6 +347,6 @@ public class AmazonSimpleDBConstants {
     /**
      * constant for number two.
      */
-	public static final int TWO = 2;
+    public static final int TWO = 2;
 
 }
