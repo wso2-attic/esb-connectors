@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--Retrieve tickets tagged as 'Suggestions' and create ideas in ProdPad API. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="prodpad_ideaInitiationFromZendesk" transports="https" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- zendesk properties -->
+         <property name="zendesk.apiUrl" expression="json-eval($.zendesk.apiUrl)" />
+         <property name="zendesk.username" expression="json-eval($.zendesk.username)" />
+         <property name="zendesk.password" expression="json-eval($.zendesk.password)" />
+         <property name="zendesk.componentType" value="tickets" />
+         <property name="zendesk.ideaCreatedTag" value="['idea_created']" />
+         <property name="zendesk.searchQuery" value="+tags:Suggestions" />
+
+         <!-- prodpad properties -->
+         <property name="prodpad.apiUrl" value="https://api.prodpad.com" />
+         <property name="prodpad.apiKey" expression="json-eval($.prodpad.apiKey)" />
+         <property name="prodpad.userId" expression="json-eval($.prodpad.userId)" />
+
+         <!-- Common properties -->
+         <property name="emptyID" value="{}" />
+         <property name="resultsIndex" value="0" scope="operation" />
+
+         
+
+         <!-- Retrieve tickets created within given time period, tagged as 'Suggestions' -->
+         <zendesk.init>
+            <username>{$ctx:zendesk.username}</username>
+            <apiUrl>{$ctx:zendesk.apiUrl}</apiUrl>
+            <password>{$ctx:zendesk.password}</password>
+         </zendesk.init>
+         <zendesk.search>
+            <query>{$ctx:zendesk.searchQuery}</query>
+         </zendesk.search>
+
+
+         <property name="searchResultsCount" expression="json-eval($.count)" />
+         <property name="errorMsg" expression="json-eval($.error)" />
+         <filter source="boolean(get-property('errorMsg'))" regex="false">
+            <then>
+               <filter xpath="get-property('searchResultsCount') != 0">
+                  <else>
+                     <property name="message" value="Couldn't find any ticket tagged as 'suggestions'." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:emptyID}" />
+                        <with-param name="status" value="skipped" />
+                        <with-param name="activity" value="zendesk_search" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </else>
+                  <then>
+                     <property name="tickets" expression="json-eval($.results)" />
+                     <property name="noOfTickets" expression="count(//results)" scope="operation" />
+
+                     <!-- START: Iterates over tickets to extract information and proceed with Idea creation -->
+                     <iterate id="tiketsIterator" expression="//results" continueParent="false" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="productNameAndIdeaTitle" expression="json-eval($.results.subject)" />
+                              <property name="ticketUrl" expression="json-eval($.results.url)" />
+                              <property name="ticketId" expression="json-eval($.results.id)" />
+                              <property name="ticketDescription" expression="json-eval($.results.description)" />
+                              <property name="ticketTags" expression="json-eval($.results.tags)" />
+
+                              <!-- Check whether the idea is already created for the ticket -->
+                              <script language="js">
+                                 <![CDATA[
+                                    var tags = mc.getProperty('ticketTags');
+                                    if(tags.startsWith('[')){
+                                       if (tags != '' && tags != null && tags != 'null') {
+                                          var tagsArray = eval("(" + tags + ")");  
+                                          if (tagsArray.length > 0) {
+                                             for (var i = 0; i < tagsArray.length; i++) {
+                                                if(tagsArray[i]=='idea_created'){
+                                                   mc.setProperty('isCreated','true');
+                                                   break;
+                                                 }
+                                              } 
+                                          }
+                                       } 
+                                    }
+                                    else{
+                                       if(tags=='idea_created'){
+                                          mc.setProperty('isCreated','true');    
+                                       }
+                                    }
+                                                                                                                                                
+                                 ]]>
+                              </script>
+
+                              <filter source="boolean(get-property('isCreated'))" regex="false">
+                                 <then>
+                                    <!-- Extract product and title details from ticket -->
+                                    <script language="js">
+                                       <![CDATA[
+                                          var productAndIdeaTitle = mc.getProperty('productNameAndIdeaTitle').split('-');
+                                          var title = productAndIdeaTitle[1];
+                                          var productString = ''+productAndIdeaTitle[0];
+                                          var productStringLength = productString.length;                              
+                                          var productName = productAndIdeaTitle[0].substring(1,productStringLength-1); 
+                                          mc.setProperty('productName',productName);
+                                          mc.setProperty('title',title); 
+                                       ]]>
+                                    </script>
+
+                                    <prodpad.init>
+                                       <apiKey>{$ctx:prodpad.apiKey}</apiKey>
+                                       <apiUrl>{$ctx:prodpad.apiUrl}</apiUrl>
+                                    </prodpad.init>
+                                    <prodpad.listProducts>
+                                    </prodpad.listProducts>
+
+                                    <filter source="$axis2:HTTP_SC" regex="401">
+                                       <then>
+                                          <loopback />
+                                       </then>
+                                    </filter>
+
+                                    <!-- Extract productId and other details from the ticket -->
+                                    <script language="js">
+                                       <![CDATA[
+                                       
+                                          var products = mc.getPayloadJSON();
+                                          var product = mc.getProperty('productName');
+                                          var productId = '';
+            
+                                          if (products.length > 0) {
+                                             for (var i = 0; i < products.length; i++) {
+                                                if(product==products[i].name){
+                                                   productId = products[i].id;
+                                                   mc.setProperty('productId',productId);
+                                                   break;
+                                                }
+                                             }
+                                          }
+                                       
+                                          var ticketUrl = mc.getProperty('ticketUrl');
+                                          var ticketId = mc.getProperty('ticketId');
+                                          var externalLinkObj = {};
+                                          externalLinkObj ['external_id'] = ticketId;
+                                          externalLinkObj ['url'] = ticketUrl;
+                                          externalLinkObj ['title'] = "zendesk";
+                                          var externalLinkArr = [];
+                                          externalLinkArr.push(externalLinkObj);
+                                          var payload = {};
+                                          payload.externalLink = externalLinkArr;
+                                          mc.setPayloadJSON(payload);                                                                                                                          
+                                       ]]>
+                                    </script>
+
+                                    <!-- START: Check whether the product is available in ProdPad -->
+                                    <filter source="boolean(get-property('productId'))" regex="true">
+                                       <else>
+                                          <property name="message" value="Product associated with the ticket has not been found in prodpad." />
+                                          <property name="id" expression="fn:concat('ticket_id:', get-property('ticketId'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="error" />
+                                             <with-param name="activity" value="prodpad_listProducts" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                       <then>
+                                          <property name="externalLink" expression="json-eval($.externalLink)" />
+                                          <property name="productsArr" expression="fn:concat('[',get-property('productId'),']')" />
+
+                                          <!--Remove response custom header information -->
+                                          <header name="Content-Encoding" scope="transport" action="remove" />
+                                          <header name="Vary" scope="transport" action="remove" />
+                                          <prodpad.init>
+                                             <apiKey>{$ctx:prodpad.apiKey}</apiKey>
+                                             <apiUrl>{$ctx:prodpad.apiUrl}</apiUrl>
+                                          </prodpad.init>
+                                          <prodpad.createIdea>
+                                             <title>{$ctx:title}</title>
+                                             <creatorId>{$ctx:prodpad.userId}</creatorId>
+                                             <description>{$ctx:ticketDescription}</description>
+                                             <productIds>{$ctx:productsArr}</productIds>
+                                             <externalLinks>{$ctx:externalLink}</externalLinks>
+                                          </prodpad.createIdea>
+
+                                          <!-- START: Check the successful response of createIdea -->
+                                          <filter source="$axis2:HTTP_SC" regex="201">
+                                             <else>
+                                                <property name="userMessage" expression="json-eval($.user_message)" />
+                                                <property name="id" expression="fn:concat('ticket_id:', get-property('ticketId'))" />
+                                                <property name="message" expression="fn:concat('Unable to create idea for the ticket. Error:', get-property('userMessage'))" />
+                                                <property name="status" value="error" />
+                                             </else>
+                                             <then>
+                                                <property name="createIdeaSuccessId" expression="json-eval($.id)" />
+                                                <property name="id" expression="fn:concat('idea_id:', get-property('createIdeaSuccessId'),',ticket_id:', get-property('ticketId'))" />
+                                                <property name="message" value="Idea has been created successfully." />
+                                                <property name="status" value="success" />
+
+                                                <zendesk.init>
+                                                   <username>{$ctx:zendesk.username}</username>
+                                                   <apiUrl>{$ctx:zendesk.apiUrl}</apiUrl>
+                                                   <password>{$ctx:zendesk.password}</password>
+                                                </zendesk.init>
+                                                <zendesk.addTags>
+                                                   <componentId>{$ctx:ticketId}</componentId>
+                                                   <componentType>{$ctx:zendesk.componentType}</componentType>
+                                                   <tags>{$ctx:zendesk.ideaCreatedTag}</tags>
+                                                </zendesk.addTags>
+
+                                             </then>
+                                          </filter>
+                                          <!-- END: createIdea response code check -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="activity" value="prodpad_createIdea" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                    </filter>
+                                    <!-- END: product availability check -->
+                                 </then>
+                              </filter>
+
+                              <property name="resultsIndex" expression="get-property('operation','resultsIndex') + 1" scope="operation" />
+                              <filter xpath="get-property('operation', 'resultsIndex') = get-property('operation', 'noOfTickets')">
+                                 <then>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!-- END: iteration over tickets -->
+                  </then>
+               </filter>
+            </then>
+            <else>
+               <property name="id" expression="fn:concat('ticket_id:', get-property('ticketId'))" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:emptyID}" />
+                  <with-param name="status" value="error" />
+                  <with-param name="activity" value="zendesk_search" />
+                  <with-param name="message" value="{$ctx:errorMsg}" />
+               </call-template>
+               <loopback />
+            </else>
+
+         </filter>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+
+         <!-- Generate the chained response of all the API calls in ideaInitiation -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"prodpad_ideaInitiationFromZendesk",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>       

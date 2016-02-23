@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--• Retrieve Idea Statuses daily from ProdPad API and update the status in relevant tickets in Zendesk if originated from Zendesk or notify user via Mandrill if it is from Jotform -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="prodpad_updateStatusChanges" transports="https"
+   statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+
+         <!-- Prodpad parameters. -->
+         <property name="prodpad.apiUrl" value="https://api.prodpad.com" />
+         <property name="prodpad.apiKey" expression="json-eval($.prodpad.apiKey)" />
+
+         <!-- Zendesk parameters. -->
+         <property name="zendesk.username" expression="json-eval($.zendesk.username)" />
+         <property name="zendesk.apiUrl" expression="json-eval($.zendesk.apiUrl)" />
+         <property name="zendesk.password" expression="json-eval($.zendesk.password)" />
+
+         <!-- Mandrill parameters. -->
+         <property name="mandrill.apiKey" expression="json-eval($.mandrill.apiKey)" />
+         <property name="mandrill.apiUrl" value="https://mandrillapp.com" />
+         <property name="mandrill.fromEmail" expression="json-eval($.mandrill.fromEmail)" />
+         <property name="mandrill.fromName" expression="json-eval($.mandrill.fromName)" />
+
+         <script language="js">
+           <![CDATA[
+                var systemDate = new Date();
+                var currentDate = '' + systemDate.getDate();
+                var currentMonth = '' + Number(systemDate.getMonth()+1);
+                if(currentDate.length == 1){
+                     currentDate="0"+currentDate;
+                }
+                if(currentMonth.length == 1){
+                     currentMonth="0"+currentMonth;
+                }
+                var dateString=systemDate.getFullYear() + "-" + currentMonth + "-" + currentDate ;
+                mc.setProperty('todayDate',dateString);
+           ]]>
+         </script>
+
+         <!-- List ideas. -->
+         <prodpad.init>
+            <apiKey>{$ctx:prodpad.apiKey}</apiKey>
+            <apiUrl>{$ctx:prodpad.apiUrl}</apiUrl>
+         </prodpad.init>
+         <prodpad.listIdeas>
+         </prodpad.listIdeas>
+         <filter source="$axis2:HTTP_SC" regex="200">
+            <then>
+               <property name="ideaCount" expression="count(//ideas)" scope="operation" />
+               <filter xpath="0 = get-property('operation', 'ideaCount')">
+                  <then>
+                     <property name="id" value="{}" />
+                     <property name="message" value="Ideas have not been found." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:id}" />
+                        <with-param name="activity" value="prodpad_listIdeas" />
+                        <with-param name="status" value="skipped" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </then>
+               </filter>
+               <property name="ideaIndex" expression="0" scope="operation" />
+               <!-- Idea iterater -->
+               <iterate continueParent="true" id="ideaIterator" expression="//ideas" sequential="true">
+                  <target>
+                     <sequence>
+                        <property name="prodpad.ideaId" expression="//ideas/id" />
+                        <property name="prodpad.expand" value="true" />
+                        <!-- Get idea. -->
+                        <prodpad.init>
+                           <apiKey>{$ctx:prodpad.apiKey}</apiKey>
+                           <apiUrl>{$ctx:prodpad.apiUrl}</apiUrl>
+                        </prodpad.init>
+                        <prodpad.getIdea>
+                           <ideaId>{$ctx:prodpad.ideaId}</ideaId>
+                           <expand>{$ctx:prodpad.expand}</expand>
+                        </prodpad.getIdea>
+                        <filter source="$axis2:HTTP_SC" regex="200">
+                           <then>
+                              <property name="prodpad.externalLink.externalId" expression="//jsonObject/external_links/external_id" />
+                              <property name="prodpad.externalLink.title" expression="//jsonObject/external_links/title" />
+                              <property name="prodpad.externalLink.url" expression="//jsonObject/external_links/url" />
+                              <property name="prodpad.status" expression="//jsonObject/status/status" />
+                              <property name="prodpad.status.addedDate" expression="//jsonObject/status/added" />
+                              <property name="prodpad.product.name" expression="//jsonObject/products/name" />
+                              <property name="prodpad.idea.title" expression="//jsonObject/title" />
+
+                              <script language="js">
+                              <![CDATA[
+                                 var dateString= '' + mc.getProperty('todayDate');
+                                 var prodpadStatusAddedDate = mc.getProperty('prodpad.status.addedDate');
+                                 var statusAddedDate = '' + prodpadStatusAddedDate.split(' ').shift();
+                                 if(statusAddedDate == dateString) {
+                                    var statusChanged = 'true';
+                                    mc.setProperty('statusChanged',statusChanged);
+                                 }  
+                              ]]>
+                              </script>
+                              <filter xpath="boolean(get-property('statusChanged'))">
+                                 <then>
+                                    <switch source="get-property('prodpad.externalLink.title')">
+                                       <case regex="zendesk">
+                                          <switch source="get-property('prodpad.status')">
+                                             <case regex="New">
+                                                <property name="zendeskStatus" value="new" />
+                                             </case>
+                                             <case regex="Queued for Dev">
+                                                <property name="zendeskStatus" value="open" />
+                                             </case>
+                                             <case regex="In Development">
+                                                <property name="zendeskStatus" value="pending" />
+                                             </case>
+                                             <case regex="Not Doing">
+                                                <property name="zendeskStatus" value="hold" />
+                                             </case>
+                                             <case regex="Released">
+                                                <property name="zendeskStatus" value="solved" />
+                                             </case>
+                                          </switch>
+                                          <zendesk.init>
+                                             <username>{$ctx:zendesk.username}</username>
+                                             <apiUrl>{$ctx:zendesk.apiUrl}</apiUrl>
+                                             <password>{$ctx:zendesk.password}</password>
+                                          </zendesk.init>
+                                          <zendesk.updateTicket>
+                                             <status>{$ctx:zendeskStatus}</status>
+                                             <ticketId>{$ctx:prodpad.externalLink.externalId}</ticketId>
+                                          </zendesk.updateTicket>
+                                          <filter source="$axis2:HTTP_SC" regex="200">
+                                             <then>
+                                                <property name="message" value="Ticket status has been updated successfully." />
+                                                <property name="id"
+                                                   expression="fn:concat('idea_id:',get-property('prodpad.ideaId'),',ticket_id:',get-property('prodpad.externalLink.externalId'))" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="activity" value="zendesk_updateStatus" />
+                                                   <with-param name="status" value="success" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <property name="httpStatus" expression="$axis2:HTTP_SC" />
+                                                <switch source="get-property('httpStatus')">
+                                                   <case regex="422">
+                                                      <property name="message" expression="//details/status[0]/description" />
+                                                   </case>
+                                                   <case regex="401">
+                                                      <property name="message" expression="//error" />
+                                                   </case>
+                                                   <case regex="404">
+                                                      <property name="message" value="Ticket has not been found" />
+                                                   </case>
+                                                   <default>
+                                                      <property name="message" value="Status update of the ticket has been failed." />
+                                                   </default>
+                                                </switch>
+                                                <property name="id"
+                                                   expression="fn:concat('idea_id:',get-property('prodpad.ideaId'),',ticket_id:',get-property('prodpad.externalLink.externalId'))" />
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="id" value="{$ctx:id}" />
+                                                   <with-param name="activity" value="zendesk_updateStatus" />
+                                                   <with-param name="status" value="error" />
+                                                   <with-param name="message" value="{$ctx:message}" />
+                                                </call-template>
+                                             </else>
+                                          </filter>
+
+                                       </case>
+                                       <case regex="jotform">
+                                          <script language="js">
+                                          <![CDATA[
+                                             //Create Email in HTML format      
+                                             var greetingLine= 'Dear ' + mc.getProperty('prodpad.externalLink.externalId') + ' , <br/><br/>';
+                                             var message = 'Your idea status of the product ' + mc.getProperty('prodpad.product.name')+ ' has been updated to <b><i>'+ mc.getProperty('prodpad.status') +' </i></b>status. <br/><br/>';
+                                             var signature = 'Regards, <br/> '+mc.getProperty('mandrill.fromName');
+                                             var htmlText = greetingLine +  message + signature;
+                                             mc.setProperty('mandrill.htmlText',htmlText);
+                                             var toArray = [];
+                                             var toObject = {};
+                                             toObject.email = mc.getProperty('prodpad.externalLink.url');
+                                             toObject.name = mc.getProperty('prodpad.externalLink.externalId');
+                                             toObject.type = 'to';
+                                             toArray.push(toObject);
+                                             
+                                             mc.setPayloadJSON(toArray);
+                                          ]]>
+                                          </script>
+                                          <property name="mandrill.toArray" expression="json-eval($.)" />
+                                          <!-- Send notification using Mandrill -->
+                                          <mandrill.init>
+                                             <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                             <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                             <format>json</format>
+                                          </mandrill.init>
+                                          <mandrill.sendMessage>
+                                             <html>{$ctx:mandrill.htmlText}</html>
+                                             <subject>{$ctx:prodpad.idea.title}</subject>
+                                             <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+                                             <fromName>{$ctx:mandrill.fromName}</fromName>
+                                             <to>{$ctx:mandrill.toArray}</to>
+                                          </mandrill.sendMessage>
+
+                                          <property name="mandrill.status" expression="json-eval($..status[0])" />
+                                          <filter xpath="get-property('mandrill.status') = 'sent'">
+                                             <then>
+                                                <property name="mandrillNotificationId" expression="json-eval($.._id[0])" />
+                                                <property name="notificationIdObject"
+                                                   expression="fn:concat('email:',get-property('prodpad.externalLink.url'),',notification_id:',get-property('mandrillNotificationId'),',idea_id:',get-property('prodpad.ideaId'))" />
+                                                <property name="status" value="success" />
+                                                <property name="message"
+                                                   value="Notification e-mail has been sent successfully." />
+                                             </then>
+                                             <else>
+                                                <property name="notificationIdObject"
+                                                   expression="fn:concat('email:',get-property('prodpad.externalLink.url'),',idea_id:',get-property('prodpad.ideaId'))" />
+                                                <property name="status" value="error" />
+                                                <property name="message" expression="json-eval($.message)" />
+                                             </else>
+                                          </filter>
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:notificationIdObject}" />
+                                             <with-param name="activity" value="mandrill_sendStatusUpdateNotification" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </case>
+                                    </switch>
+                                 </then>
+                              </filter>
+                           </then>
+                           <else>
+                              <property name="message" expression="//user_message" />
+                              <property name="id" expression="fn:concat('idea_id:',get-property('prodpad.ideaId'))" />
+                              <call-template target="responseHandlerTemplate">
+                                 <with-param name="id" value="{$ctx:id}" />
+                                 <with-param name="activity" value="prodpad_getIdea" />
+                                 <with-param name="status" value="error" />
+                                 <with-param name="message" value="{$ctx:message}" />
+                              </call-template>
+                           </else>
+                        </filter>
+
+                        <property name="ideaIndex" expression="get-property('operation','ideaIndex') + 1"
+                           scope="operation" />
+                        <filter xpath="get-property('operation','ideaCount') = get-property('operation','ideaIndex') ">
+                           <then>
+                              <loopback />
+                           </then>
+                        </filter>
+                     </sequence>
+                  </target>
+               </iterate>
+            </then>
+            <else>
+               <property name="message" expression="//user_message" />
+               <property name="id" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="prodpad_listIdeas" />
+                  <with-param name="status" value="error" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "activity":"prodpad_updateStatusChanges",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>

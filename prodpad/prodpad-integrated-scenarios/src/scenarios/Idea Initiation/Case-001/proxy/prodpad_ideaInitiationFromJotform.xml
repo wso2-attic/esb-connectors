@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--Retrieve flagged form submissions and create ideas in ProdPad API. -->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="prodpad_ideaInitiationFromJotform" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- jotform properties -->
+         <property name="jotform.apiUrl" value="https://api.jotform.com" />
+         <property name="jotform.apiKey" expression="json-eval($.jotform.apiKey)" />
+         <property name="jotform.formId" expression="json-eval($.jotform.formId)" />
+         <property name="jotform.titleText" expression="json-eval($.jotform.titleText)" />
+         <property name="jotform.productText" expression="json-eval($.jotform.productText)" />
+         <property name="jotform.usernameText" expression="json-eval($.jotform.usernameText)" />
+         <property name="jotform.emailText" expression="json-eval($.jotform.emailText)" />
+         <property name="jotform.suggessionText" expression="json-eval($.jotform.suggestionText)" />
+
+         <!-- prodpad properties -->
+         <property name="prodpad.apiUrl" value="https://api.prodpad.com" />
+         <property name="prodpad.apiKey" expression="json-eval($.prodpad.apiKey)" />
+         <property name="prodpad.userId" expression="json-eval($.prodpad.userId)" />
+
+         <!-- Common properties -->
+         <property name="submissionsIndex" value="0" scope="operation" />
+         <property name="noOfFlaggedSubmissions" value="0" scope="operation" />
+         <property name="emptyID" value="{}" />
+
+         <!-- Retrieve form submissions within given time period -->
+         <jotform.init>
+            <apiUrl>{$ctx:jotform.apiUrl}</apiUrl>
+            <apiKey>{$ctx:jotform.apiKey}</apiKey>
+         </jotform.init>
+         <jotform.getFormSubmissions>
+            <formId>{$ctx:jotform.formId}</formId>
+         </jotform.getFormSubmissions>
+
+         <property name="getFormSubmissionsResponseCode" expression="json-eval($.responseCode)" />
+
+         <!-- START: Check the successful response of getFormSubmissions to proceed with Idea creation -->
+         <filter source="$axis2:HTTP_SC" regex="200">
+            <else>
+               <property name="getFormSubmissionsMessage" expression="json-eval($.message)" />
+               <property name="message" expression="fn:concat('Failed to retrieve form submissions. Error:', get-property('getFormSubmissionsMessage'))" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:emptyID}" />
+                  <with-param name="status" value="error" />
+                  <with-param name="activity" value="jotform_getFormSubmissions" />
+                  <with-param name="message" value="{$ctx:message}" />
+               </call-template>
+               <loopback />
+            </else>
+            <then>
+               <property name="noOfSubmissionIds" expression="count(//content)" scope="operation" />
+               <property name="firstSubmissionId" expression="json-eval($.content[0].id)" />
+
+               <filter xpath="get-property('firstSubmissionId') != '#SampleSubmissionID'">
+                  <then>
+
+                     <!-- START: Iterates over form submissions to extract information and proceed with Idea creation -->
+                     <iterate id="submissionsIterator" expression="//content" continueParent="false" sequential="true">
+                        <target>
+                           <sequence>
+                              <property name="flag" expression="json-eval($.content.flag)" />
+                              <property name="jotform.submissionId" expression="json-eval($.content.id)" />
+
+                              <!-- START: Check the formSubmission flag to proceed with Idea creation -->
+                              <filter xpath="get-property('flag') = '1'">
+                                 <then>
+                                    <property name="noOfFlaggedSubmissions" expression="get-property('operation','noOfFlaggedSubmissions') + 1" scope="operation" />
+                                    <property name="answers" expression="json-eval($.content.answers)" />
+
+                                    <!-- Extract details from JotForm form submission -->
+                                    <script language="js">
+                                       <![CDATA[
+                                          var answersList = eval("("+mc.getProperty('answers')+")");
+                                          var titleText = mc.getProperty('jotform.titleText');
+                                          var productText = mc.getProperty('jotform.productText');
+                                          var usernameText = mc.getProperty('jotform.usernameText');
+                                          var emailText = mc.getProperty('jotform.emailText');
+                                          var suggessionText = mc.getProperty('jotform.suggessionText');
+                                                         
+                                          var product = ''; 
+                                          var name = '';
+                                          var email = '';
+                                          var title = '';
+                                          var suggession = '';
+                                                                                  
+                                          for(var key in answersList){                                             
+                                             var answer = answersList[key]; 
+                                             if(answer['text']==productText){
+                                                product = answer['answer'];
+                                                mc.setProperty('productName',product);
+                                             }
+                                             else if(answer['text']==usernameText){
+                                                name = answer['answer'];
+                                             }
+                                             else if(answer['text']==emailText){
+                                                email = answer['answer'];
+                                             }
+                                             else if(answer['text']==titleText){
+                                                title = answer['answer'];
+                                                mc.setProperty('title',title);
+                                             } 
+                                             else if(answer['text']==suggessionText){
+                                                suggession = answer['answer'];
+                                                mc.setProperty('suggession',suggession);
+                                             }                                                        
+                                          } 
+                        
+                                          var externalLinkObj = {};
+                                          externalLinkObj ['external_id'] = name;
+                                          externalLinkObj ['url'] = email;
+                                          externalLinkObj ['title'] = "jotform";
+                                          var externalLinkArr = [];
+                                          externalLinkArr.push(externalLinkObj);
+                                          var payload = {};
+                                          payload.externalLink = externalLinkArr;
+                                          mc.setPayloadJSON(payload);                                                                                                        
+                                       ]]>
+                                    </script>
+
+                                    <property name="externalLink" expression="json-eval($.externalLink)" />
+
+                                    <prodpad.init>
+                                       <apiKey>{$ctx:prodpad.apiKey}</apiKey>
+                                       <apiUrl>{$ctx:prodpad.apiUrl}</apiUrl>
+                                    </prodpad.init>
+                                    <prodpad.listProducts>
+                                    </prodpad.listProducts>
+
+                                    <filter source="$axis2:HTTP_SC" regex="401">
+                                       <then>
+                                          <loopback />
+                                       </then>
+                                    </filter>
+
+
+                                    <!-- Extract productId which is associated with the product -->
+                                    <script language="js">
+                                       <![CDATA[
+                                          var products = mc.getPayloadJSON();
+                                          var product = mc.getProperty('productName');
+                                          var productId = '';
+      
+                                             if (products.length > 0) {
+                                                for (var i = 0; i < products.length; i++) {
+                                                   if(product==products[i].name){
+                                                      productId = products[i].id;
+                                                      mc.setProperty('productId',productId);
+                                                      break;
+                                                   }
+                                                }
+                                             }
+                                                                                                                                  
+                                       ]]>
+                                    </script>
+
+                                    <!-- START: Check whether the product is available in ProdPad -->
+                                    <filter source="boolean(get-property('productId'))" regex="true">
+                                       <else>
+                                          <property name="message" value="Product associated with the submission has not been found in prodpad." />
+                                          <property name="id" expression="fn:concat('submission_id:', get-property('jotform.submissionId'))" />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="error" />
+                                             <with-param name="activity" value="prodpad_listProducts" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </else>
+                                       <then>
+                                          <property name="productsArr" expression="fn:concat('[',get-property('productId'),']')" />
+
+                                          <!-- Remove response custom header information -->
+                                          <header name="Content-Encoding" scope="transport" action="remove" />
+                                          <header name="Vary" scope="transport" action="remove" />
+                                          <prodpad.init>
+                                             <apiKey>{$ctx:prodpad.apiKey}</apiKey>
+                                             <apiUrl>{$ctx:prodpad.apiUrl}</apiUrl>
+                                          </prodpad.init>
+                                          <prodpad.createIdea>
+                                             <title>{$ctx:title}</title>
+                                             <creatorId>{$ctx:prodpad.userId}</creatorId>
+                                             <description>{$ctx:suggession}</description>
+                                             <productIds>{$ctx:productsArr}</productIds>
+                                             <externalLinks>{$ctx:externalLink}</externalLinks>
+                                          </prodpad.createIdea>
+
+                                          <!-- START: Check the successful response of createIdea -->
+                                          <filter source="$axis2:HTTP_SC" regex="201">
+                                             <else>
+                                                <property name="userMessage" expression="json-eval($.user_message)" />
+                                                <property name="id" expression="fn:concat('submission_id:', get-property('jotform.submissionId'))" />
+                                                <property name="message" expression="fn:concat('Unable to create idea for the submission. Error:', get-property('userMessage'))" />
+                                                <property name="status" value="error" />
+                                             </else>
+                                             <then>
+                                                <property name="createIdeaSuccessId" expression="json-eval($.id)" />
+                                                <property name="id" expression="fn:concat('idea_id:', get-property('createIdeaSuccessId'),',submission_id:', get-property('jotform.submissionId'))" />
+                                                <property name="message" value="Idea has been created successfully." />
+                                                <property name="status" value="success" />
+
+                                                <property name="submissionFlag" value="0" />
+
+                                                <jotform.init>
+                                                   <apiUrl>{$ctx:jotform.apiUrl}</apiUrl>
+                                                   <apiKey>{$ctx:jotform.apiKey}</apiKey>
+                                                </jotform.init>
+                                                <jotform.updateSubmission>
+                                                   <submissionFlag>{$ctx:submissionFlag}</submissionFlag>
+                                                   <submissionId>{$ctx:jotform.submissionId}</submissionId>
+                                                </jotform.updateSubmission>
+
+                                             </then>
+                                          </filter>
+                                          <!-- END: createIdea response code check -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:id}" />
+                                             <with-param name="status" value="{$ctx:status}" />
+                                             <with-param name="activity" value="prodpad_createIdea" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                    </filter>
+                                    <!-- END: product availability check -->
+                                 </then>
+                              </filter>
+
+                              <!-- END: formSubmission flag check -->
+                              <property name="submissionsIndex" expression="get-property('operation','submissionsIndex') + 1" scope="operation" />
+                              <filter xpath="get-property('operation', 'submissionsIndex') = get-property('operation', 'noOfSubmissionIds')">
+                                 <then>
+                                    <filter xpath="get-property('operation', 'noOfFlaggedSubmissions') = '0'">
+                                       <then>
+                                          <property name="message" value="Flagged form submissions have not been found." />
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="id" value="{$ctx:emptyID}" />
+                                             <with-param name="status" value="error" />
+                                             <with-param name="activity" value="jotform_getFormSubmissions" />
+                                             <with-param name="message" value="{$ctx:message}" />
+                                          </call-template>
+                                       </then>
+                                    </filter>
+                                    <loopback />
+                                 </then>
+                              </filter>
+                           </sequence>
+                        </target>
+                     </iterate>
+                     <!-- END: iteration over getFormSubmissions -->
+                  </then>
+                  <else>
+                     <property name="message" value="Form submissions have not been found." />
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="id" value="{$ctx:emptyID}" />
+                        <with-param name="status" value="error" />
+                        <with-param name="activity" value="jotform_getFormSubmissions" />
+                        <with-param name="message" value="{$ctx:message}" />
+                     </call-template>
+                     <loopback />
+                  </else>
+               </filter>
+            </then>
+         </filter>
+         <!-- END: getFormSubmissions response code check -->
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+
+         <!-- Generate the chained response of all the API calls in ideaInitiation -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+               "Response":{
+               "process":"prodpad_ideaInitiationFromJotform",
+               "activityResponse":[$1]
+               }
+               }
+            </format>
+            <args>
+               <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+            </args>
+         </payloadFactory>
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>       

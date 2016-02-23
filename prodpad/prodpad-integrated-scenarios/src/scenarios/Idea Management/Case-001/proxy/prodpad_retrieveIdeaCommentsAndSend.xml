@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2005-2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<!--Retrieve Comments of ideas which is associated with selected product from Prodpad API and add them as Comments to the relevant tickets in Zendesk if originated from Zendesk or notify user via Mandrill if it is from Jotform-->
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="prodpad_retrieveIdeaCommentsAndSend" transports="https"
+   startOnLoad="true" trace="disable">
+
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!--Prodpad Properties -->
+         <property name="prodpad.apiUrl" value="https://api.prodpad.com" />
+         <property name="prodpad.apiKey" expression="json-eval($.prodpad.apiKey)" />
+         <property name="prodpad.product" expression="json-eval($.prodpad.product)" />
+         <!--Prodpad Properties -->
+         <property name="zendesk.apiUrl" expression="json-eval($.zendesk.apiUrl)" />
+         <property name="zendesk.userName" expression="json-eval($.zendesk.userName)" />
+         <property name="zendesk.password" expression="json-eval($.zendesk.password)" />
+         <!--Mandrill Properties -->
+         <property name="mandrill.apiUrl" value="https://mandrillapp.com" />
+         <property name="mandrill.apiKey" expression="json-eval($.mandrill.apiKey)" />
+         <property name="mandrill.fromEmail" expression="json-eval($.mandrill.fromEmail)" />
+         <property name="mandrill.fromName" expression="json-eval($.mandrill.fromName)" />
+         <!--Common Properties -->
+         <!-- Create current date in YYYY-MM-dd format and store in common.today property -->
+         <script language="js"><![CDATA[var systemDate = new Date();
+            var currentDate = '' + systemDate.getDate();
+            var currentMonth = '' + Number(systemDate.getMonth()+1);
+            if(currentDate.length == 1){
+               currentDate="0"+currentDate;
+            }
+            if(currentMonth.length == 1){
+               currentMonth="0"+currentMonth;
+            }
+            var dateString=systemDate.getFullYear() + "-" + currentMonth + "-" + currentDate ;
+            mc.setProperty('common.today',dateString);]]></script>
+         <prodpad.init>
+            <apiKey>{$ctx:prodpad.apiKey}</apiKey>
+            <apiUrl>{$ctx:prodpad.apiUrl}</apiUrl>
+         </prodpad.init>
+         <prodpad.listIdeas>
+            <product>{$ctx:prodpad.product}</product>
+         </prodpad.listIdeas>
+         <property name="responseString" value="" scope="operation" />
+         <property name="ideasCount" expression="count(//ideas)" scope="operation" />
+         <property name="ideaIndex" value="0" scope="operation" />
+
+         <property name="commentsToProcess" value="[]" scope="operation" />
+         <!-- Check if any ideas to process if not skip the process. -->
+         <filter xpath="get-property('operation','ideasCount') = 0">
+            <then>
+               <property name="id" value="{}" />
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="id" value="{$ctx:id}" />
+                  <with-param name="activity" value="prodpad_retrieveIdeaCommentsAndSend" />
+                  <with-param name="status" value="skipped" />
+                  <with-param name="message" value="Ideas have not been found to be processed." />
+               </call-template>
+               <loopback />
+            </then>
+            <else>
+               <!--FOR EACH Ideas : BEGIN -->
+               <iterate id="ideas" expression="//ideas" sequential="true" continueParent="false">
+                  <target>
+                     <sequence>
+                        <property name="prodpad.ideaId" expression="json-eval($.ideas.id)" />
+                        <property name="ideaIdObject" expression="fn:concat('idea_id:',get-property('prodpad.ideaId'))" />
+                        <prodpad.init>
+                           <apiKey>{$ctx:prodpad.apiKey}</apiKey>
+                           <apiUrl>{$ctx:prodpad.apiUrl}</apiUrl>
+                        </prodpad.init>
+                        <prodpad.getIdea>
+                           <ideaId>{$ctx:prodpad.ideaId}</ideaId>
+                           <expand>true</expand>
+                        </prodpad.getIdea>
+                        <property name="idea.externalLinkType" expression="json-eval($.external_links[0].title)" />
+                        <property name="prodpad.ideaTitle" expression="json-eval($.title)" />
+                        <property name="zendesk.ticketId" expression="json-eval($.external_links[0].external_id)" />
+                        <property name="mandrill.email" expression="json-eval($.external_links[0].url)" />
+                        <property name="commentsToProcess" expression="get-property('operation','commentsToProcess')" />
+
+                        <script language="js">
+                        <![CDATA[
+                           var today = mc.getProperty('common.today');
+                           
+                           var payload = mc.getPayloadJSON();
+                           var ideaId = mc.getProperty('prodpad.ideaId');
+                           var ideaTitle = mc.getProperty('prodpad.ideaTitle');
+                           var commentsToProcessString = mc.getProperty('commentsToProcess');
+                           var commentsToProcess;
+                              if(commentsToProcessString == null || commentsToProcessString == ''){
+                                 commentsToProcess = [];
+                                
+                              }else{
+                                 commentsToProcess = eval("(" + commentsToProcessString + ")");
+                              }
+                           
+                           if(payload.external_links.length > 0){
+                              var externalLink = payload.external_links[0];
+                           
+                              var externalId = externalLink.external_id;
+                              var externalURL = externalLink.url;
+                              var comments = payload.comments;
+                              var externalLinkType = mc.getProperty('idea.externalLinkType');
+                             
+                              var todayComments = [];
+                              for(var i = 0; i < comments.length ; i++){
+                              
+                                 var commentObj = comments[i];
+                                 var commentCreatedDate = commentObj.created_at.split(' ').shift();
+                                 if(commentCreatedDate == today){
+                                    commentObj.created_by.display_name_encoded = commentObj.created_by.display_name.replace(' ','+');
+                                    todayComments.push(commentObj);
+                                 }                                      
+                              }
+                              
+                              if(todayComments.length > 0){
+                                 var commentToProcess = {};
+                                 commentToProcess.ideaId = ideaId;
+                                 commentToProcess.ideaTitle = ideaTitle;
+                                 commentToProcess.externalLinkType = externalLinkType;
+                                 commentToProcess.externalId = externalId;
+                                 commentToProcess.externalURL = externalURL;
+                                 commentToProcess.comments = todayComments;
+                                 commentsToProcess.push(commentToProcess);
+                              }
+                           }
+                           mc.setPayloadJSON(commentsToProcess);
+                           
+                        ]]>
+                        </script>
+
+                        <property name="commentsToProcess" expression="json-eval($.)" scope="operation" />
+
+                        <property name="ideaIndex" expression="get-property('operation','ideaIndex') + 1"
+                           scope="operation" />
+                        <!-- Process comments -->
+                        <filter xpath="get-property('operation','ideasCount') = get-property('operation','ideaIndex') ">
+                           <then>
+                              <property name="commentsToProcess" expression="get-property('operation','commentsToProcess')" />
+
+                              <script language="js">
+                              <![CDATA[
+                              
+                                 var payload = {};
+                                 var commentsToProcessString = mc.getProperty('commentsToProcess');
+                                 var commentsToProcess;
+                                 
+                                 if(commentsToProcessString == null || commentsToProcessString == ''){
+                                    commentsToProcess = [];
+                                 }else{
+                                    commentsToProcess = eval("(" + commentsToProcessString + ")");
+                                 }
+                                 payload.commentsToProcess = commentsToProcess;
+                                 mc.setPayloadJSON(payload);
+                              ]]>
+                              </script>
+
+                              <property name="commentsCount" expression="count(//commentsToProcess/comments)"
+                                 scope="operation" />
+                              <property name="commentIndex" value="0" scope="operation" />
+                              <filter xpath="get-property('operation','commentsCount') = 0">
+                                 <then>
+                                    <property name="id" value="{}" />
+                                    <call-template target="responseHandlerTemplate">
+                                       <with-param name="id" value="{$ctx:id}" />
+                                       <with-param name="activity" value="prodpad_retrieveIdeaCommentsAndSend" />
+                                       <with-param name="status" value="skipped" />
+                                       <with-param name="message" value="Comments have not been found to be processed." />
+                                    </call-template>
+                                    <loopback />
+                                 </then>
+                                 <else>
+                                    <iterate id="comments" expression="//commentsToProcess" sequential="true">
+                                       <target>
+                                          <sequence>
+                                             <property name="idea.externalLinkType" expression="json-eval($.commentsToProcess.externalLinkType)" />
+                                             <property name="idea.ideaId" expression="json-eval($.commentsToProcess.ideaId)" />
+                                             <property name="ideaIdObject"
+                                                expression="fn:concat('idea_id:',get-property('prodpad.ideaId'))" />
+                                             <switch source="get-property('idea.externalLinkType')">
+                                                <case regex="zendesk">
+                                                   <property name="zendeskCommentsCount" expression="count(//comments)"
+                                                      scope="operation" />
+                                                   <property name="zendeskCommentIndex" value="0" scope="operation" />
+                                                   <property name="zendesk.ticketId" expression="json-eval($.commentsToProcess.externalId)" />
+                                                   <!--FOR EACH zendesk commments : BEGIN -->
+                                                   <iterate id="zendeskComments" expression="//comments"
+                                                      sequential="true">
+                                                      <target>
+                                                         <sequence>
+                                                            <property name="zendesk.query"
+                                                               expression="json-eval($.comments.created_by.display_name_encoded)" />
+                                                            <property name="zendesk.comment" expression="json-eval($.comments.comment)" />
+                                                            <property name="prodpad.commentId" expression="json-eval($.comments.id)" />
+                                                            <property name="commentIdObject"
+                                                               expression="fn:concat(get-property('ideaIdObject'),',comment_id:',get-property('prodpad.commentId'))" />
+                                                            
+                                                            <zendesk.init>
+                                                               <username>{$ctx:zendesk.userName}</username>
+                                                               <apiUrl>{$ctx:zendesk.apiUrl}</apiUrl>
+                                                               <password>{$ctx:zendesk.password}</password>
+                                                            </zendesk.init>
+                                                            <zendesk.search>
+                                                               <query>{$ctx:zendesk.query}</query>
+                                                            </zendesk.search>
+
+                                                            <property name="zendesk.userId" expression="json-eval($.results[0].id)" />
+
+                                                            <zendesk.init>
+                                                               <username>{$ctx:zendesk.userName}</username>
+                                                               <apiUrl>{$ctx:zendesk.apiUrl}</apiUrl>
+                                                               <password>{$ctx:zendesk.password}</password>
+                                                            </zendesk.init>
+                                                            <zendesk.updateTicket>
+                                                               <ticketId>{$ctx:zendesk.ticketId}</ticketId>
+                                                               <commentBody>{$ctx:zendesk.comment}</commentBody>
+                                                               <authorId>{$ctx:zendesk.userId}</authorId>
+                                                            </zendesk.updateTicket>
+                                                            <filter source="$axis2:HTTP_SC" regex="200">
+                                                               <then>
+                                                                  <property name="status" value="success" />
+                                                                  <property name="message"
+                                                                     value="Comment has been successfully added." />
+                                                               </then>
+                                                               <else>
+                                                                  <property name="status" value="error" />
+                                                                  <property name="message" expression="json-eval($.)" />
+                                                               </else>
+                                                            </filter>
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="id" value="{$ctx:commentIdObject}" />
+                                                               <with-param name="activity"
+                                                                  value="prodpad_createIdeaCommentInZendesk" />
+                                                               <with-param name="status" value="{$ctx:status}" />
+                                                               <with-param name="message" value="{$ctx:message}" />
+                                                            </call-template>
+                                                            <property name="commentIndex"
+                                                               expression="get-property('operation','commentIndex') + 1"
+                                                               scope="operation" />
+
+                                                         </sequence>
+                                                      </target>
+                                                   </iterate>
+                                                </case>
+                                                <case regex="jotform">
+                                                   <property name="mandrill.commentsCount" expression="count(//comments)" />
+                                                   <property name="mandrill.comments" expression="json-eval($.commentsToProcess.comments)" />
+                                                   <property name="mandrill.email" expression="json-eval($.commentsToProcess.externalURL)" />
+                                                   <property name="mandrill.name" expression="json-eval($.commentsToProcess.externalId)" />
+                                                   <property name="mandrill.subject" expression="json-eval($.commentsToProcess.ideaTitle)" />
+                                                   <script language="js"><![CDATA[
+                                                      //Create Email in HTML format
+                                                      var greetingLine= 'Dear ' + mc.getProperty('mandrill.name') + ', <br/><br/>';
+                                                      var message = 'Following comments were added to your idea today.<br/><br/>';
+                     
+                                                      var commentsString = mc.getProperty('mandrill.comments');
+                                                      if(commentsString.charCodeAt(0) != '91'){
+                                                         var commentsToProcess = [];
+                                                         commentsToProcess.push(eval("(" + commentsString + ")"));
+                                                        
+                                                      }else{
+                                                         var commentsToProcess = eval("(" + commentsString + ")");
+                                                         
+                                                      }
+             
+                                                      var commentBody = '';
+                                                      for(var i = 0; i < commentsToProcess.length ; i++){
+                                                         var commentObj = commentsToProcess[i];
+                                                          var commentor = '<div style=background-color:#D3D3D3;><p><strong>'+
+                                                               commentObj.created_by.display_name + '</strong> says;</p>';
+                                                               var comment = '<p>' + commentObj.comment +'</p></div><hr/>';
+                                                               commentBody = commentBody + commentor + comment;
+                                                      }
+                                                      var htmlText = greetingLine + message + commentBody;
+                                                      mc.setProperty('mandrill.htmlText',htmlText);
+                                                      var toArray = [];
+                                                      var toObject = {};
+                                                      toObject.email = mc.getProperty('mandrill.email');
+                                                      toObject.name = mc.getProperty('mandrill.name');
+                                                      toObject.type = 'to';
+                                                      toArray.push(toObject);
+                                                      mc.setPayloadJSON(toArray);
+                                                      ]]></script>
+                                                   <property name="mandrill.toArray" expression="json-eval($.)" />
+                                                   <!-- Send notification using Mandrill -->
+                                                   <mandrill.init>
+                                                      <apiKey>{$ctx:mandrill.apiKey}</apiKey>
+                                                      <apiUrl>{$ctx:mandrill.apiUrl}</apiUrl>
+                                                      <format>json</format>
+                                                   </mandrill.init>
+                                                   <mandrill.sendMessage>
+                                                      <html>{$ctx:mandrill.htmlText}</html>
+                                                      <subject>{$ctx:mandrill.subject}</subject>
+                                                      <fromEmail>{$ctx:mandrill.fromEmail}</fromEmail>
+                                                      <fromName>{$ctx:mandrill.fromName}</fromName>
+                                                      <to>{$ctx:mandrill.toArray}</to>
+                                                   </mandrill.sendMessage>
+
+                                                   <property name="mandrill.status" expression="json-eval($..status[0])" />
+                                                   <filter xpath="get-property('mandrill.status') = 'sent'">
+                                                      <then>
+                                                         <property name="mandrill.notificationId" expression="json-eval($.._id[0])" />
+                                                         <property name="notificationIdObject"
+                                                            expression="fn:concat('email:',get-property('mandrill.email'),',notification_id:',get-property('mandrill.notificationId'))" />
+                                                         <property name="status" value="success" />
+                                                         <property name="message"
+                                                            value="Notification e-mail has been sent successfully." />
+                                                      </then>
+                                                      <else>
+                                                         <property name="notificationIdObject"
+                                                            expression="fn:concat('email:',get-property('tsheets.email'))" />
+                                                         <property name="status" value="error" />
+                                                         <property name="message" expression="json-eval($.)" />
+                                                      </else>
+                                                   </filter>
+                                                   <call-template target="responseHandlerTemplate">
+                                                      <with-param name="id" value="{$ctx:notificationIdObject}" />
+                                                      <with-param name="activity" value="prodpad_notifyIdeaCommentUpdates" />
+                                                      <with-param name="status" value="{$ctx:status}" />
+                                                      <with-param name="message" value="{$ctx:message}" />
+                                                   </call-template>
+                                                   <property name="commentIndex"
+                                                      expression="get-property('operation','commentIndex') + get-property('mandrill.commentsCount')"
+                                                      scope="operation" />
+                                                  
+                                                </case>
+                                                
+                                             </switch>
+
+                                             <filter
+                                                xpath="get-property('operation','commentsCount') = get-property('operation','commentIndex') ">
+                                                <then>
+                                                   <loopback />
+                                                </then>
+                                             </filter>
+                                          </sequence>
+                                       </target>
+                                    </iterate>
+                                 </else>
+                              </filter>
+                           </then>
+                        </filter>
+                     </sequence>
+                  </target>
+               </iterate>
+            </else>
+         </filter>
+      </inSequence>
+      <outSequence>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <filter source="boolean(get-property('operation', 'responseString'))" regex="false">
+            <then>
+               <payloadFactory media-type="json">
+                  <format>{
+                     "Response":{
+                     "process":"prodpad_retrieveIdeaCommentsAndSend",
+                     "activityResponse":"Comments have not been found to be processed."
+                     }
+                     }
+                  </format>
+                  <args />
+               </payloadFactory>
+            </then>
+            <else>
+               <payloadFactory media-type="json">
+                  <format>{
+                     "Response":{
+                     "process":"prodpad_retrieveIdeaCommentsAndSend",
+                     "activityResponse":[$1]
+                     }
+                     }
+                  </format>
+                  <args>
+                     <arg evaluator="xml" expression="get-property('operation', 'responseString')" />
+                  </args>
+               </payloadFactory>
+            </else>
+         </filter>
+         <send />
+      </outSequence>
+   </target>
+</proxy>
