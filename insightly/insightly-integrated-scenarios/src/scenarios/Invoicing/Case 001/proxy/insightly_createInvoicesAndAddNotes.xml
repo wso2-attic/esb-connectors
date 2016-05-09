@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse" name="insightly_createInvoicesAndAddNotes" transports="https,http" statistics="disable" trace="disable" startOnLoad="true">
+   <target>
+      <inSequence onError="faultHandlerSeq">
+         <!-- Freshbooks Properties -->
+         <property name="freshbooks.apiUrl" expression="json-eval($.freshbooksApiUrl)" />
+         <property name="freshbooks.arbitraryPassword" expression="json-eval($.freshbooksArbitraryPassword)" />
+         <property name="freshbooks.authenticationToken" expression="json-eval($.freshbooksAuthenticationToken)" />
+         <property name="freshbooks.projectId" expression="json-eval($.freshbooksTimeEntryProjectId)" />
+         <property name="freshbooks.unitCostOfInvoiceLineItems" expression="json-eval($.freshbooksUnitCostOfInvoiceLineItems)" />
+         <property name="freshbooks.freshbooksClientIdOfInvoice" expression="json-eval($.freshbooksClientIdOfInvoice)" />
+		 
+         <!-- Insightly Properties -->
+         <property name="insightly.apiUrl" value="https://api.insight.ly" />
+         <property name="insightly.apiKey" expression="json-eval($.insightlyApiKey)" />
+		 
+         <!-- Common Properties -->
+         <property name="id.empty" value="{}" />
+         <property name="responseString" value="" scope="operation" />
+         <property name="lineItems" value="" scope="operation" />
+		 
+         <!-- Get the 'dateFrom' and 'dateTo' dates to retrieve the monthly timeEntry records-->
+         <script language="js">
+			<![CDATA[
+				mc.setProperty('freshbooks.dateFrom', new java.text.SimpleDateFormat("yyyy-MM-'01'").format(new java.util.Date()));
+				mc.setProperty('freshbooks.dateTo', new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date()));
+			]]>
+		</script>
+		
+         <header name="Content-Type" value="application/xml" scope="transport" />
+		 
+         <!--Retrieving the TimeEntries of the given project of Freshbooks account -->
+         <freshbooks.init>
+            <apiUrl>{$ctx:freshbooks.apiUrl}</apiUrl>
+            <arbitraryPassword>{$ctx:freshbooks.arbitraryPassword}</arbitraryPassword>
+            <authenticationToken>{$ctx:freshbooks.authenticationToken}</authenticationToken>
+         </freshbooks.init>
+         <freshbooks.listTimeEntries>
+            <projectId>{$ctx:freshbooks.projectId}</projectId>
+            <dateFrom>{$ctx:freshbooks.dateFrom}</dateFrom>
+            <dateTo>{$ctx:freshbooks.dateTo}</dateTo>
+         </freshbooks.listTimeEntries>
+		 
+         <!--Removing unused headers -->
+         <sequence key="removeResponseHeaders" />
+		 
+         <!--Checking the response status-->
+         <property name="freshbooks.responseStatus" expression="//*[local-name()='response']/@status" />
+		 
+         <!--If the response is successful then check the number of timeEntry records to be processed.-->
+         <filter source="get-property('freshbooks.responseStatus')" regex="ok">
+            <then>
+               <property name="timeEntryCount" expression="count(//*[local-name()='time_entry'])" scope="operation" />
+               <property name="timeEntryIndex" expression="0" scope="operation" />
+			   
+               <!-- Checking whether there are sufficient contacts to retrieve-->
+               <filter source="get-property('operation', 'timeEntryCount')" regex="0.0">
+                  <then>
+                     <!--If there are no timeEntries in the Freshbooks account then send an error message and loopback -->
+                     <call-template target="responseHandlerTemplate">
+                        <with-param name="activity" value="freshbooks_listTimeEntries" />
+                        <with-param name="id" value="{$ctx:id.empty}" />
+                        <with-param name="status" value="Skipped" />
+                        <with-param name="message" value="Invoices cannot be created in Freshbooks since there are no time entries." />
+                     </call-template>
+                     <loopback />
+                  </then>
+                  <else>
+                     <!--If there are timeEntries in the Freshbooks account then iterate through all of them and get the details to create invoices -->
+                     <iterate continueParent="false" id="timeEntriesIterator" expression="//*[local-name()='time_entry']" sequential="true">
+                        <target>
+                           <sequence>
+                              <!--Retrieve the details that are required to create the invoice -->
+                              <property name="timeEntryId" expression="//*[local-name()='time_entry_id']" />
+                              <property name="hours" expression="//*[local-name()='hours']" />
+                              <property name="notes" expression="//*[local-name()='notes']" />
+							  
+                              <!--constructing a lineItem-->
+                              <property name="lineItems" expression="fn:concat(get-property('operation','lineItems'),'&lt;line&gt; &lt;name&gt;',get-property('timeEntryId'),'&lt;/name&gt; &lt;description&gt;',get-property('notes'),'&lt;/description&gt; &lt;unit_cost&gt;',get-property('freshbooks.unitCostOfInvoiceLineItems'),'&lt;/unit_cost&gt; &lt;quantity&gt;',get-property('hours'),'&lt;/quantity&gt; &lt;/line&gt;')" scope="operation" />
+                             
+ 							  <!--Incrementing the index -->
+                              <property name="timeEntryIndex" expression="get-property('operation','timeEntryIndex') + 1" scope="operation" />
+                             
+ 							  <!--checking the index and ending the iterator -->
+                              <filter xpath="get-property('operation', 'timeEntryCount') = get-property('operation', 'timeEntryIndex')">
+                                 <then>
+                                    <property name="lineItems" expression="get-property('operation','lineItems')" />
+                                   
+								   <header name="Content-Type" value="application/xml" scope="transport" />
+                                    <!--creating the invoice -->
+                                    <freshbooks.init>
+                                       <arbitraryPassword>{$ctx:arbitraryPassword}</arbitraryPassword>
+                                       <apiUrl>{$ctx:apiUrl}</apiUrl>
+                                       <authenticationToken>{$ctx:authenticationToken}</authenticationToken>
+                                    </freshbooks.init>
+                                    <freshbooks.createInvoice>
+                                       <clientId>{$ctx:freshbooks.freshbooksClientIdOfInvoice}</clientId>
+                                       <lines>{$ctx:lineItems}</lines>
+                                    </freshbooks.createInvoice>
+                                    
+									<!--Removing unused headers -->
+                                    <sequence key="removeResponseHeaders" />
+                                    
+									<!--checking whether the response is successful -->
+                                    <property name="freshbooks.invoiceId" expression="//*[local-name()='invoice_id']" />
+                                    
+									<!--If the creation of the invoice is unsuccessful display the error message returned by the api.-->
+                                    <filter source="boolean(get-property('freshbooks.invoiceId'))" regex="false">
+                                       <then>
+                                          <property name="freshbooks.responseError" expression="//*[local-name()='error']" />
+                                          
+										  <!--Call the responseHandler template -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="freshbooks_createInvoice" />
+                                             <with-param name="id" value="{$ctx:id.empty}" />
+                                             <with-param name="status" value="Failure" />
+                                             <with-param name="message" value="{$ctx:freshbooks.responseError}" />
+                                          </call-template>
+                                       </then>
+                                       <else>
+                                          <!--if the creation of the invoice is successful then display the success message -->
+                                          <call-template target="responseHandlerTemplate">
+                                             <with-param name="activity" value="freshbooks_createInvoice" />
+                                             <with-param name="id" value="{$ctx:freshbooks.invoiceId}" />
+                                             <with-param name="status" value="Success" />
+                                             <with-param name="message" value="Invoice is created successfully." />
+                                          </call-template>
+                                          
+										  <!--Get the Freshbooks project details to extract the corresponding Insightly project Id -->
+                                          <call-template target="getProjectName">
+                                             <with-param name="apiUrl" value="{$ctx:freshbooks.apiUrl}" />
+                                             <with-param name="arbitraryPassword" value="{$ctx:freshbooks.arbitraryPassword}" />
+                                             <with-param name="authenticationToken" value="{$ctx:freshbooks.authenticationToken}" />
+                                             <with-param name="projectId" value="{$ctx:freshbooks.projectId}" />
+                                          </call-template>
+                                          
+										  <property name="freshbooks.projectName" expression="//*[local-name()='name']" />
+                                          <property name="insightly.projectId" expression="fn:substring-after(get-property('freshbooks.projectName'), '-')" />
+                                          
+										  <header name="Content-Type" value="application/xml" scope="transport" />
+                                          
+										  <!--retrieve the created invoice details from Freshbooks -->
+                                          <freshbooks.init>
+                                             <apiUrl>{$ctx:freshbooks.apiUrl}</apiUrl>
+                                             <arbitraryPassword>{$ctx:freshbooks.arbitraryPassword}</arbitraryPassword>
+                                             <authenticationToken>{$ctx:freshbooks.authenticationToken}</authenticationToken>
+                                          </freshbooks.init>
+                                          <freshbooks.getInvoice>
+                                             <invoiceId>{$ctx:freshbooks.invoiceId}</invoiceId>
+                                          </freshbooks.getInvoice>
+										  
+                                          <!--Removing unused headers -->
+                                          <sequence key="removeResponseHeaders" />
+                                          
+										  <property name="freshbooks.responseInvoiceId" expression="//*[local-name()='invoice_id']" />
+                                          
+										  <!--If the creation of invoice is unsuccessful display the error message returned by the api.-->
+                                          <filter source="boolean(get-property('freshbooks.responseInvoiceId'))" regex="false">
+                                             <then>
+                                                <property name="freshbooks.responseError" expression="//*[local-name()='error']" />
+                                                
+												<!--Call the responseHandler template -->
+                                                <call-template target="responseHandlerTemplate">
+                                                   <with-param name="activity" value="freshbooks_getInvoice" />
+                                                   <with-param name="id" value="{$ctx:id.empty}" />
+                                                   <with-param name="status" value="Failure" />
+                                                   <with-param name="message" value="{$ctx:freshbooks.responseError}" />
+                                                </call-template>
+                                             </then>
+                                             <else>
+                                                <property name="freshbooks.invoiceLinkToView" expression="//*[local-name()='view']" />
+                                                <property name="freshbooks.organization" expression="//*[local-name()='organization']" />
+                                                
+												<!--Constructing the note body and title for Insightly -->
+                                                <property name="insightly.noteBody" expression="fn:concat('Note for the time period ', get-property('freshbooks.dateFrom'), '-', get-property('freshbooks.dateTo') ,'. Follow the link ', get-property('freshbooks.invoiceLinkToView'),' for further information.')" />
+                                                <property name="insightly.noteTitle" expression="fn:concat(get-property('freshbooks.organization'),'-',get-property('freshbooks.responseInvoiceId'))" />
+                                                
+												<header name="Content-Type" value="application/json" scope="transport" />
+                                                
+												<!--Create the note in Insightly containing the billing information-->
+                                                <insightly.init>
+                                                   <apiUrl>{$ctx:insightly.apiUrl}</apiUrl>
+                                                   <apiKey>{$ctx:insightly.apiKey}</apiKey>
+                                                </insightly.init>
+                                                <insightly.createNote>
+                                                   <linkSubjectType>PROJECT</linkSubjectType>
+                                                   <linkSubjectId>{$ctx:insightly.projectId}</linkSubjectId>
+                                                   <title>{$ctx:insightly.noteTitle}</title>
+                                                   <noteBody>{$ctx:insightly.noteBody}</noteBody>
+                                                </insightly.createNote>
+                                                
+												<!--Removing unused headers -->
+                                                <sequence key="removeResponseHeaders" />
+                                                
+												<!--Retrieving the status code of Insightly.-->
+                                                <property name="insightly.statusCode" expression="$axis2:HTTP_SC" />
+                                                
+												<!--Checking whether there is an authorization error -->
+                                                <filter source="get-property('insightly.statusCode')" regex="401">
+                                                   <then>
+                                                      <!--Call the responseHandler template -->
+                                                      <call-template target="responseHandlerTemplate">
+                                                         <with-param name="activity" value="insightly_createNote" />
+                                                         <with-param name="id" value="{$ctx:id.empty}" />
+                                                         <with-param name="status" value="Failure" />
+                                                         <with-param name="message" value="Failed to create Note due to unauthorized access." />
+                                                      </call-template>
+                                                   </then>
+                                                   <else>
+                                                      <!--Checking whether the creation of the note is successful.-->
+                                                      <filter source="get-property('insightly.statusCode')" regex="201">
+                                                         <then>
+                                                            <property name="insightly.noteId" expression="json-eval($.NOTE_ID)" />
+                                                            
+															<!--Call the responseHandler template -->
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="insightly_createNote" />
+                                                               <with-param name="id" value="{$ctx:insightly.noteId}" />
+                                                               <with-param name="status" value="Success" />
+                                                               <with-param name="message" value="Note containing billing information for the given period is created successfully." />
+                                                            </call-template>
+                                                         </then>
+                                                         <else>
+                                                            <!--If there occurs any other errors display the api returned error message.-->
+                                                            <property name="insightly.responseError" expression="json-eval($)" />
+                                                           
+														   <!--Call the responseHandler template -->
+                                                            <call-template target="responseHandlerTemplate">
+                                                               <with-param name="activity" value="insightly_createNote" />
+                                                               <with-param name="id" value="{$ctx:id.empty}" />
+                                                               <with-param name="status" value="Failure" />
+                                                               <with-param name="message" value="{$ctx:insightly.responseError}" />
+                                                            </call-template>
+                                                         </else>
+                                                      </filter><!--END of filter: Checking whether the creation of the note is successful.-->
+                                                   </else>
+                                                </filter><!--END of filter: Checking whether there is an authorization error -->
+                                             </else>
+                                          </filter><!--END of filter: If the creation of invoice is unsuccessful display the error message returned by the api.-->
+                                       </else>
+                                    </filter><!--END of filter: If the creation of the invoice is unsuccessful display the error message returned by the api.-->
+                                    <loopback />
+                                 </then>
+                              </filter><!--END of filter: Checking the index and ending the iterator -->
+                           </sequence>
+                        </target>
+                     </iterate><!--END LOOP: Iterating through all the timeEntries in Freshbooks -->
+                  </else>
+               </filter><!--END of filter: Checking whether there are sufficient timeEntries to retrieve-->
+            </then>
+			<!--If there occurred an error while retrieving the timeEntries records in Freshbooks display the api error message and loopback -->
+            <else>
+               <property name="messageType" value="application/json" scope="axis2" />
+               <property name="freshbooks.responseError" expression="json-eval($)" />
+			   
+               <!--Call the responseHandler template -->
+               <call-template target="responseHandlerTemplate">
+                  <with-param name="activity" value="freshbooks_listTimeEntries" />
+                  <with-param name="id" value="{$ctx:id.empty}" />
+                  <with-param name="status" value="Failure" />
+                  <with-param name="message" value="{$ctx:freshbooks.responseError}" />
+               </call-template>
+               <loopback />
+            </else>
+         </filter><!--END of filter: Checking the error scenario while retrieving timeEntries details-->
+      </inSequence>
+      <outSequence>
+         <payloadFactory media-type="json">
+            <format>{
+               "Response":{
+				   "process":"insightly_createInvoicesAndAddNotes",
+				   "activityResponse":[$1]
+				   }
+               }</format>
+            <args>
+               <arg expression="get-property('operation','responseString')" />
+            </args>
+         </payloadFactory>
+         <property name="messageType" value="application/json" scope="axis2" />
+         <send />
+      </outSequence>
+   </target>
+   <description />
+</proxy>
