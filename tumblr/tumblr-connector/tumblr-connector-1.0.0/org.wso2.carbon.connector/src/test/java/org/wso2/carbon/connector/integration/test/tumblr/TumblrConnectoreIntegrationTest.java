@@ -116,7 +116,6 @@ public class TumblrConnectoreIntegrationTest extends ConnectorIntegrationTestBas
         log.info("Connector response : " + esbRestResponse.getBody().toString());
 
         Assert.assertEquals(esbRestResponse.getBody().get("meta").toString(), directResponseJObj.get("meta").toString());
-       // Assert.assertEquals(esbRestResponse.getBody().get("response").toString(), directResponseJObj.get("response").toString());
     }
 
 
